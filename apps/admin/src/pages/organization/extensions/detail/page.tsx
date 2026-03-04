@@ -8,7 +8,7 @@ export function OrganizationExtensionDetailPage() {
   const { orgId: organizationId, extensionSlug } = useParams({
     from: "/o/$orgId/extensions/$extensionSlug/",
   });
-  const detail = useOrganizationExtensionDetail({ organizationId, extensionSlug });
+  const detail = useOrganizationExtensionDetail({ organizationId, extensionRef: extensionSlug });
 
   return <ExtensionDetailPage {...detail} />;
 }

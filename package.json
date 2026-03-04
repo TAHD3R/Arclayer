@@ -30,11 +30,17 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@vitest/ui": "catalog:",
+    "@types/archiver": "catalog:",
+    "antd": "catalog:",
+    "archiver": "catalog:",
     "lodash": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
+    "penpal": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-react-inspector": "catalog:",
     "vitest": "catalog:"
   },
   "packageManager": "pnpm@10.28.2"

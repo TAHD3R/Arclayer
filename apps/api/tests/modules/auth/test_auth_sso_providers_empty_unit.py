@@ -10,8 +10,6 @@ from apps.api.src.config import get_settings
 from apps.api.src.modules.auth.schema import TokenPair
 from apps.api.src.modules.auth.service import AuthService
 from apps.api.src.modules.auth.sso.service import AuthSSOService
-from apps.api.src.plugin.host import PluginHost
-from apps.api.src.plugin.manager import PluginManager
 
 
 class _FakeAuthService:
@@ -37,19 +35,17 @@ def _build_request(path: str) -> Request:
 
 
 @pytest.mark.asyncio
-async def test_auth_sso_list_providers_returns_empty_without_plugins_started() -> None:
-    # Disable plugin discovery to keep this a pure unit test and to simulate "plugin uninstalled".
+async def test_auth_sso_list_providers_returns_empty_when_core_oauth_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     settings = get_settings()
-    settings = settings.model_copy(update={"plugin": settings.plugin.model_copy(update={"enabled": False})})
 
-    host = PluginHost()  # contains only "core" hook impls
-    manager = PluginManager(settings, plugin_host=host)
-    service = AuthSSOService(
-        settings,
-        manager=manager,
-        valkey=None,
-        auth_service=cast(AuthService, _FakeAuthService()),
-    )
+    async def _fake_core_settings(*_args, **_kwargs):
+        return {}
+
+    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.get_core_settings_value_cached", _fake_core_settings)
+
+    service = AuthSSOService(settings, valkey=None, auth_service=cast(AuthService, _FakeAuthService()))
 
     request = _build_request("/api/v1/auth/sso/providers")
     items = await service.list_providers(request, redirect="/")

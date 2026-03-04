@@ -3,7 +3,7 @@ export {
   workspacePath,
   organizationWorkspacesBasePath,
   organizationWorkspacePath,
-  orgPluginPath,
+  orgExtensionPath,
   orgInvitationPath,
   orgInviteLinkPath,
   orgMemberPath,

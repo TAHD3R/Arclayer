@@ -240,20 +240,20 @@ export type {
   SiteVisualSitemapOut,
 } from "./workspace-site";
 
-// Workspace Plugins
+// Extensions platform
 export type {
-  WorkspacePluginItem,
-  WorkspacePluginList,
-  WorkspacePluginInstallResult,
-  WorkspacePluginPackageMeta,
-  WorkspacePluginPackageValidateOut,
-} from "./workspace-plugins";
+  AppKind,
+  AppProvider,
+  AppScope,
+  UIEmbedKind,
+  CapabilitySummary,
+  CapabilityListOut,
+  UIEmbedDescriptor,
+  UIEmbedListOut,
+} from "./extensions";
 
 // Workspace Themes
 export type { WorkspaceThemeItem, WorkspaceThemeListOut } from "./workspace-themes";
-
-// Organization Plugins
-export type { OrganizationPluginItem, OrganizationPluginListOut } from "./org-plugins";
 
 // Site Patterns
 export type { SitePattern, SitePatternCreateIn, SitePatternUpdateIn } from "./site-patterns";

@@ -12,7 +12,7 @@ from apps.api.src.modules.organization.http.service import require_org_owner
 from apps.api.src.modules.system.http.service import require_self_host_deployment_mode
 from apps.api.src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary, SettingsPatch
 from apps.api.src.modules.system.settings.service import SettingsService
-from apps.api.src.plugin.manager import PluginManager
+from apps.api.src.plugin.event_bus import EventBus
 
 router = APIRouter(
     tags=["System: Settings"],
@@ -20,21 +20,21 @@ router = APIRouter(
 )
 
 
-def get_plugin_manager(request: Request) -> PluginManager:
-    manager = getattr(request.app.state, "plugin_manager", None)
-    if manager is None:
+def get_event_bus(request: Request) -> EventBus:
+    bus = getattr(request.app.state, "event_bus", None)
+    if bus is None:
         raise ServiceUnavailable(
-            message=t("settings", "PLUGIN_MANAGER_UNAVAILABLE", default="插件管理器不可用"),
-            error="PLUGIN_MANAGER_UNAVAILABLE",
+            message=t("settings", "EVENT_BUS_UNAVAILABLE", default="事件总线不可用"),
+            error="EVENT_BUS_UNAVAILABLE",
         )
-    return manager
+    return bus
 
 
 def get_settings_service(
     settings: Settings = Depends(get_settings),
-    manager: PluginManager = Depends(get_plugin_manager),
+    event_bus: EventBus = Depends(get_event_bus),
 ) -> SettingsService:
-    return SettingsService(settings, manager=manager)
+    return SettingsService(settings, event_bus=event_bus)
 
 
 @router.get(

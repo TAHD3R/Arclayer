@@ -5,125 +5,136 @@ import { useTranslation } from "react-i18next";
 
 import { getMyOrganization } from "@/api/me";
 import {
-  disableOrganizationPlugin,
-  enableOrganizationPlugin,
-  getOrganizationPluginSettings,
-  listOrganizationPlugins,
-  patchOrganizationPluginSettings,
-} from "@/api/org-plugins";
-import {
-  findExtensionBySlug,
-  type ExtensionDetailPageProps,
-} from "@/pages/_shared/extensions/components/extension-detail-page";
-import { buildOrganizationPath } from "@/lib/routing/organization-routing";
+  disableOrganizationCapability,
+  enableOrganizationCapability,
+  listOrganizationCapabilities,
+  listOrganizationUIEmbeds,
+} from "@/api/org-extensions";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import {
-  organizationPluginSettingsQueryKey,
-  organizationPluginsCenterQueryKey,
+  organizationCapabilitiesQueryKey,
+  organizationUIEmbedsQueryKey,
 } from "@/lib/extensions/query-keys";
+
+import type { ExtensionDetailPageProps } from "@/pages/_shared/extensions/components/extension-detail-page";
+import type { InstalledExtensionItem } from "@/pages/_shared/extensions/types";
 
 type UseOrganizationExtensionDetailParams = {
   organizationId: string;
-  extensionSlug: string;
+  extensionRef: string;
 };
 
-export function useOrganizationExtensionDetail({
-  organizationId,
-  extensionSlug,
-}: UseOrganizationExtensionDetailParams): ExtensionDetailPageProps {
-  const { t } = useTranslation(["settings"]);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+function findCapability(
+  items: InstalledExtensionItem[] | undefined,
+  ref: string,
+): InstalledExtensionItem | null {
+  const normalized = String(ref || "")
+    .trim()
+    .toLowerCase();
+  return (
+    (items ?? []).find(
+      (item) =>
+        String(item.capabilityId || "")
+          .trim()
+          .toLowerCase() === normalized,
+    ) ?? null
+  );
+}
 
+function useOrganizationManageAccess() {
   const myOrganizationQuery = useQuery({
-    queryKey: ["me", "organization", "plugin-detail"],
+    queryKey: ["me", "organization", "extensions-detail"],
     queryFn: async () => getMyOrganization(),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
+  const role = myOrganizationQuery.data?.membership?.role;
+  const canManage = role === "owner" || role === "admin";
+  return { myOrganizationQuery, canManage };
+}
 
-  const canManage =
-    myOrganizationQuery.data?.membership?.role === "owner" ||
-    myOrganizationQuery.data?.membership?.role === "admin";
+function useOrganizationCapabilityToggle(input: {
+  extension: InstalledExtensionItem | null;
+  extensionRef: string;
+}) {
+  const { t } = useTranslation(["settings"]);
+  const queryClient = useQueryClient();
 
-  const pluginsQuery = useQuery({
-    queryKey: organizationPluginsCenterQueryKey(),
-    queryFn: async () => listOrganizationPlugins(),
+  return useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!input.extension) throw new Error("extension not found");
+      return enabled
+        ? enableOrganizationCapability(input.extension.capabilityId)
+        : disableOrganizationCapability(input.extension.capabilityId);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: organizationCapabilitiesQueryKey() });
+      await queryClient.invalidateQueries({
+        queryKey: organizationUIEmbedsQueryKey({
+          capabilityId: input.extensionRef,
+          enabledOnly: false,
+        }),
+      });
+      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    },
+    onError: (err) => notifyError(err),
+  });
+}
+
+export function useOrganizationExtensionDetail({
+  organizationId,
+  extensionRef,
+}: UseOrganizationExtensionDetailParams): ExtensionDetailPageProps {
+  const navigate = useNavigate();
+
+  const { canManage } = useOrganizationManageAccess();
+
+  const capabilitiesQuery = useQuery({
+    queryKey: organizationCapabilitiesQueryKey(),
+    queryFn: async () => listOrganizationCapabilities(),
     staleTime: 15 * 1000,
     retry: false,
   });
 
   const extension = useMemo(
-    () => findExtensionBySlug(pluginsQuery.data?.items, extensionSlug),
-    [extensionSlug, pluginsQuery.data?.items],
+    () =>
+      findCapability(
+        capabilitiesQuery.data?.items as InstalledExtensionItem[] | undefined,
+        extensionRef,
+      ),
+    [capabilitiesQuery.data?.items, extensionRef],
   );
 
-  const toggleMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      if (!extension) throw new Error("extension not found");
-      const ref = String(extension.slug || extension.pluginId);
-      return enabled ? enableOrganizationPlugin(ref) : disableOrganizationPlugin(ref);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: organizationPluginsCenterQueryKey() });
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  const settingsQuery = useQuery({
-    queryKey: organizationPluginSettingsQueryKey(
-      String(extension?.slug || extension?.pluginId || ""),
-    ),
-    enabled: extension?.hasConfigSchema ?? false,
-    queryFn: async () => {
-      if (!extension) throw new Error("extension is required");
-      return getOrganizationPluginSettings(String(extension.slug || extension.pluginId));
-    },
+  const embedsQuery = useQuery({
+    queryKey: organizationUIEmbedsQueryKey({ capabilityId: extensionRef, enabledOnly: false }),
+    enabled: Boolean(extensionRef),
+    queryFn: async () =>
+      listOrganizationUIEmbeds({ capabilityId: extensionRef, enabledOnly: false }),
     staleTime: 15 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const patchMutation = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) => {
-      if (!extension) throw new Error("extension is required");
-      return patchOrganizationPluginSettings(String(extension.slug || extension.pluginId), patch);
-    },
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({
-        queryKey: organizationPluginSettingsQueryKey(
-          String(extension?.slug || extension?.pluginId || ""),
-        ),
-      });
-    },
-    onError: (err) => notifyError(err),
-  });
+  const toggleMutation = useOrganizationCapabilityToggle({ extension, extensionRef });
 
-  const loading = pluginsQuery.isLoading && !pluginsQuery.data;
-  const loadError = pluginsQuery.isError ? pluginsQuery.error : null;
+  const loading = capabilitiesQuery.isLoading && !capabilitiesQuery.data;
+  const loadError = capabilitiesQuery.isError ? capabilitiesQuery.error : null;
 
   return {
-    extensionSlug,
+    extensionRef,
     extension,
     loading,
     loadError,
-    onRetryLoad: loadError ? () => void pluginsQuery.refetch() : undefined,
+    onRetryLoad: loadError ? () => void capabilitiesQuery.refetch() : undefined,
     onBack: () => void navigate({ to: buildOrganizationPath(organizationId, "/extensions") }),
     onToggleEnabled: async (enabled) => toggleMutation.mutateAsync(enabled),
     togglePending: toggleMutation.isPending,
     canManage,
-    settingsDetail: settingsQuery.data,
-    settingsLoading: settingsQuery.isLoading,
-    settingsError: settingsQuery.isError ? settingsQuery.error : null,
-    onRetrySettings: () => void settingsQuery.refetch(),
-    onSubmitPatch: async (patch) => {
-      await patchMutation.mutateAsync(patch);
-    },
-    patchPending: patchMutation.isPending,
-    tabPrefix: "org",
-    settingsManagedByPlatform: false,
+    uiEmbeds: embedsQuery.data?.items ?? [],
+    uiEmbedsLoading: embedsQuery.isLoading,
+    uiEmbedsError: embedsQuery.isError ? embedsQuery.error : null,
+    onRetryUIEmbeds: () => void embedsQuery.refetch(),
   };
 }

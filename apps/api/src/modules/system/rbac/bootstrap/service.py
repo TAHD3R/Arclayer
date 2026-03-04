@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from apps.api.src.config import Settings
 from apps.api.src.modules.system.rbac.service import RBACService
-from apps.api.src.plugin.manager import PluginManager
 
 
-async def ensure_rbac_ready(*, settings: Settings, plugin_manager: PluginManager) -> None:
+async def ensure_rbac_ready(*, settings: Settings) -> None:
     """
     Ensure roles + permissions are consistent in DB.
 
     Notes:
     - This should be called after DB is initialized.
-    - Permission templates are collected from both core and plugin manifests.
+    - Permission templates are collected from core only (v1 Extension/Integration platform does
+      not execute third-party code in-process).
     """
 
-    service = RBACService(settings, plugin_manager=plugin_manager)
+    service = RBACService(settings)
     await service.sync_permission_catalog()
     await service.ensure_all_workspaces_ready()

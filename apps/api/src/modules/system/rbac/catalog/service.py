@@ -182,29 +182,29 @@ CORE_PERMISSION_TEMPLATES: list[PermissionTemplate] = [
         description_i18n="rbac:RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_DESC",
         default_roles=["owner", "admin"],
     ),
-    # Plugin management entry points in admin console.
+    # Extensions/Integrations management entry points in admin console.
     #
     # Note:
     # - v2 uses workspace as the governance boundary for admin UI authorization.
-    # - System-level plugin manager endpoints are still guarded by org membership role,
-    #   but the *UI visibility* and workspace admin console features should be controlled
+    # - Some system-level manager endpoints are still guarded by org membership role,
+    #   but the *Admin UI visibility* and workspace console features should be controlled
     #   by workspace-scoped permissions.
     PermissionTemplate(
-        code="system:plugins:read",
+        code="system:extensions:read",
         scope="workspace",
-        name="Read plugins",
-        description="Allow listing plugins and reading plugin details.",
-        name_i18n="rbac:RBAC_PERM_PLUGINS_READ_NAME",
-        description_i18n="rbac:RBAC_PERM_PLUGINS_READ_DESC",
+        name="Read extensions",
+        description="Allow listing extensions/integrations and reading their details.",
+        name_i18n="rbac:RBAC_PERM_EXTENSIONS_READ_NAME",
+        description_i18n="rbac:RBAC_PERM_EXTENSIONS_READ_DESC",
         default_roles=["owner", "admin"],
     ),
     PermissionTemplate(
-        code="system:plugins:manage",
+        code="system:extensions:manage",
         scope="workspace",
-        name="Manage plugins",
-        description="Allow installing, enabling, disabling, and configuring plugins.",
-        name_i18n="rbac:RBAC_PERM_PLUGINS_MANAGE_NAME",
-        description_i18n="rbac:RBAC_PERM_PLUGINS_MANAGE_DESC",
+        name="Manage extensions",
+        description="Allow enabling, disabling and configuring extensions/integrations.",
+        name_i18n="rbac:RBAC_PERM_EXTENSIONS_MANAGE_NAME",
+        description_i18n="rbac:RBAC_PERM_EXTENSIONS_MANAGE_DESC",
         default_roles=["owner", "admin"],
     ),
 ]

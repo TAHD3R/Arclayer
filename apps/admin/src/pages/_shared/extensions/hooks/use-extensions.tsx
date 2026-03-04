@@ -1,37 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { RotateCcw, Settings2, Trash2 } from "lucide-react";
 
 import { getMyOrganization } from "@/api/me";
-import {
-  listOrganizationPlugins,
-  resetOrganizationPluginConfig,
-  uninstallOrganizationPlugin,
-} from "@/api/org-plugins";
 import { getMyWorkspaceAuthz } from "@/api/workspaces";
+import { listOrganizationCapabilities } from "@/api/org-extensions";
+import { listWorkspaceCapabilities } from "@/api/workspace-extensions";
 import {
-  listWorkspacePlugins,
-  resetWorkspacePluginConfig,
-  uninstallWorkspacePlugin,
-} from "@/api/workspace-plugins";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
-import {
-  organizationPluginsCenterQueryKey,
-  workspacePluginsCenterQueryKey,
+  organizationCapabilitiesQueryKey,
+  workspaceCapabilitiesQueryKey,
 } from "@/lib/extensions/query-keys";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
-import type { ExtensionMenuItem, InstalledExtensionItem, ExtensionScope } from "../types";
-import { buildCategoryTabs, getExtensionRef } from "../utils";
+import type { ExtensionScope, InstalledExtensionItem } from "../types";
+import { useExtensionsFilters } from "./use-extensions-filters";
+import { useExtensionsMenuActions } from "./use-extensions-menu-actions";
 
 const PAGE_SIZE = 12;
 
-type ConfirmState = {
-  open: boolean;
-  type: "reset" | "uninstall" | null;
-  extension: InstalledExtensionItem | null;
+type UseExtensionsAccess = {
+  isOrganizationScope: boolean;
+  workspaceId: string | null;
+  organizationId: string | null;
+  canManage: boolean;
 };
 
 export type UseExtensionsOptions = {
@@ -39,28 +31,13 @@ export type UseExtensionsOptions = {
   organizationId?: string;
 };
 
-export function useExtensions({ scope = "workspace", organizationId }: UseExtensionsOptions = {}) {
-  const { t } = useTranslation(["plugin", "nav", "common", "settings"]);
-  const queryClient = useQueryClient();
+function useExtensionsAccess(opts: {
+  scope: ExtensionScope;
+  organizationId?: string;
+}): UseExtensionsAccess {
   const accessToken = useAuthStore((s) => s.accessToken);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const isOrganizationScope = scope === "organization";
-
-  const [installOpen, setInstallOpen] = useState(false);
-  const [restartHint, setRestartHint] = useState(false);
-  const [category, setCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [officialChecked, setOfficialChecked] = useState(true);
-  const [communityChecked, setCommunityChecked] = useState(true);
-  const [page, setPage] = useState<number>(1);
-  const [installedPage, setInstalledPage] = useState<number>(1);
-  const [confirm, setConfirm] = useState<ConfirmState>({
-    open: false,
-    type: null,
-    extension: null,
-  });
-
-  // --- Queries ---
+  const isOrganizationScope = opts.scope === "organization";
 
   const authzQuery = useQuery({
     queryKey: ["workspace", "authz", workspaceId],
@@ -75,7 +52,7 @@ export function useExtensions({ scope = "workspace", organizationId }: UseExtens
   });
 
   const myOrganizationQuery = useQuery({
-    queryKey: ["me", "organization", "plugin-center"],
+    queryKey: ["me", "organization", "extensions-center"],
     enabled: Boolean(accessToken && isOrganizationScope),
     queryFn: async () => getMyOrganization(),
     staleTime: 5 * 60 * 1000,
@@ -89,7 +66,7 @@ export function useExtensions({ scope = "workspace", organizationId }: UseExtens
       return role === "owner" || role === "admin";
     }
     const codes = authzQuery.data?.permissionCodes ?? [];
-    return codes.includes("system:plugins:manage") || Boolean(authzQuery.data?.isSuperuser);
+    return codes.includes("system:extensions:manage") || Boolean(authzQuery.data?.isSuperuser);
   }, [
     authzQuery.data?.isSuperuser,
     authzQuery.data?.permissionCodes,
@@ -97,221 +74,69 @@ export function useExtensions({ scope = "workspace", organizationId }: UseExtens
     myOrganizationQuery.data?.membership?.role,
   ]);
 
-  const effectiveOrganizationId = useMemo(() => {
+  const organizationId = useMemo(() => {
     if (!isOrganizationScope) return null;
-    return String(organizationId || myOrganizationQuery.data?.organization.id || "").trim() || null;
-  }, [isOrganizationScope, myOrganizationQuery.data?.organization.id, organizationId]);
+    return (
+      String(opts.organizationId || myOrganizationQuery.data?.organization.id || "").trim() || null
+    );
+  }, [isOrganizationScope, myOrganizationQuery.data?.organization.id, opts.organizationId]);
 
-  const listQueryKey = useMemo(
+  return {
+    isOrganizationScope,
+    workspaceId: isOrganizationScope ? null : (workspaceId ?? null),
+    organizationId,
+    canManage,
+  };
+}
+
+function useCapabilitiesQuery(input: UseExtensionsAccess) {
+  const { isOrganizationScope, workspaceId } = input;
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  const queryKey = useMemo(
     () =>
       isOrganizationScope
-        ? organizationPluginsCenterQueryKey()
-        : workspacePluginsCenterQueryKey(workspaceId),
+        ? organizationCapabilitiesQueryKey()
+        : workspaceCapabilitiesQueryKey(workspaceId),
     [isOrganizationScope, workspaceId],
   );
 
   const listQuery = useQuery({
-    queryKey: listQueryKey,
+    queryKey,
     enabled: Boolean(accessToken && (isOrganizationScope || workspaceId)),
     queryFn: async () => {
-      if (isOrganizationScope) return listOrganizationPlugins();
+      if (isOrganizationScope) return listOrganizationCapabilities();
       if (!workspaceId) throw new Error("workspaceId is required");
-      return listWorkspacePlugins(workspaceId);
+      return listWorkspaceCapabilities(workspaceId);
     },
     staleTime: 15 * 1000,
     retry: false,
   });
-
-  // --- Mutations ---
-
-  const uninstallMutation = useMutation({
-    mutationFn: async (extension: InstalledExtensionItem) => {
-      const extensionRef = getExtensionRef(extension);
-      if (isOrganizationScope) {
-        await uninstallOrganizationPlugin(extensionRef);
-        return;
-      }
-      if (!workspaceId) throw new Error("workspaceId is required");
-      await uninstallWorkspacePlugin(workspaceId, extensionRef);
-    },
-    onSuccess: async () => {
-      notifySuccessText(
-        isOrganizationScope
-          ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_SUCCESS")
-          : t("plugin:PLUGIN_CENTER_UNINSTALL_SUCCESS"),
-      );
-      await queryClient.invalidateQueries({ queryKey: listQueryKey });
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  const resetMutation = useMutation({
-    mutationFn: async (extension: InstalledExtensionItem) => {
-      const extensionRef = getExtensionRef(extension);
-      if (isOrganizationScope) {
-        await resetOrganizationPluginConfig(extensionRef);
-        return;
-      }
-      if (!workspaceId) throw new Error("workspaceId is required");
-      await resetWorkspacePluginConfig(workspaceId, extensionRef);
-    },
-    onSuccess: async () => {
-      notifySuccessText(
-        isOrganizationScope
-          ? t("plugin:PLUGIN_CENTER_ORG_RESET_SUCCESS")
-          : t("plugin:PLUGIN_CENTER_RESET_SUCCESS"),
-      );
-      await queryClient.invalidateQueries({ queryKey: listQueryKey });
-    },
-    onError: (err) => notifyError(err),
-  });
-
-  // --- Derived data ---
 
   const items = useMemo(
     () => (listQuery.data?.items ?? []) as InstalledExtensionItem[],
     [listQuery.data?.items],
   );
 
-  const normalizedCategory =
-    String(category || "")
-      .trim()
-      .toLowerCase() || "all";
-  const normalizedSearch = searchQuery.trim().toLowerCase();
+  return { queryKey, listQuery, items };
+}
 
-  const filtered = useMemo(() => {
-    let out = items;
-    if (normalizedCategory !== "all") {
-      out = out.filter(
-        (p) =>
-          String(p.category || "")
-            .trim()
-            .toLowerCase() === normalizedCategory,
-      );
-    }
-    if (normalizedSearch) {
-      out = out.filter((p) => {
-        const name = String(p.name || "").toLowerCase();
-        const desc = String(p.description || "").toLowerCase();
-        return name.includes(normalizedSearch) || desc.includes(normalizedSearch);
-      });
-    }
-    return out;
-  }, [items, normalizedCategory, normalizedSearch]);
+export function useExtensions({ scope = "workspace", organizationId }: UseExtensionsOptions = {}) {
+  const { t } = useTranslation(["plugin", "nav", "common", "settings"]);
 
-  const installedItems = useMemo(
-    () => items.filter((p) => Boolean(p.enabled !== undefined)),
-    [items],
-  );
+  const access = useExtensionsAccess({ scope, organizationId });
+  const { workspaceId, isOrganizationScope, canManage } = access;
+  const { queryKey, listQuery, items } = useCapabilitiesQuery(access);
 
-  const filteredInstalled = useMemo(() => {
-    if (!normalizedSearch) return installedItems;
-    return installedItems.filter((p) => {
-      const name = String(p.name || "").toLowerCase();
-      const desc = String(p.description || "").toLowerCase();
-      return name.includes(normalizedSearch) || desc.includes(normalizedSearch);
-    });
-  }, [installedItems, normalizedSearch]);
-
-  const exploreTotal = filtered.length;
-  const explorePageItems = useMemo(() => {
-    const start = (Math.max(1, page) - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
-
-  const installedTotal = filteredInstalled.length;
-  const installedPageItems = useMemo(() => {
-    const start = (Math.max(1, installedPage) - 1) * PAGE_SIZE;
-    return filteredInstalled.slice(start, start + PAGE_SIZE);
-  }, [filteredInstalled, installedPage]);
-
-  const categoryTabs = useMemo(
-    () => buildCategoryTabs(items, (key) => t(`plugin:${key}`)),
-    [items, t],
-  );
-
-  // --- Effects ---
-
-  useEffect(() => {
-    setPage(1);
-  }, [category, searchQuery]);
-
-  useEffect(() => {
-    setInstalledPage(1);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (categoryTabs.some((c) => c.key === category)) return;
-    setCategory("all");
-  }, [category, categoryTabs]);
-
-  // --- Helpers ---
-
-  function buildConfigureHref(extension: InstalledExtensionItem): string | null {
-    const extensionRef = getExtensionRef(extension);
-    if (isOrganizationScope) {
-      return effectiveOrganizationId
-        ? `/o/${encodeURIComponent(effectiveOrganizationId)}/extensions/${encodeURIComponent(extensionRef)}`
-        : null;
-    }
-    return workspaceId ? `/w/${workspaceId}/extensions/${encodeURIComponent(extensionRef)}` : null;
-  }
-
-  function buildMenuItems(extension: InstalledExtensionItem): ExtensionMenuItem[] {
-    const configureHref = buildConfigureHref(extension);
-    if (!configureHref) return [];
-    return [
-      {
-        key: "configure",
-        label: t("plugin:PLUGIN_CENTER_CONFIGURE_ACTION"),
-        icon: <Settings2 className="size-4" />,
-        onClick: () => {
-          window.location.assign(configureHref);
-        },
-      },
-      { key: "divider", type: "divider" as const, label: "" },
-      {
-        key: "reset",
-        label: t("plugin:PLUGIN_CENTER_RESET_ACTION"),
-        icon: <RotateCcw className="size-4" />,
-        disabled: !canManage,
-        danger: true,
-        onClick: () => setConfirm({ open: true, type: "reset", extension }),
-      },
-      {
-        key: "detach",
-        label: isOrganizationScope
-          ? t("plugin:PLUGIN_CENTER_ORG_UNINSTALL_ACTION")
-          : t("plugin:PLUGIN_CENTER_UNINSTALL_ACTION"),
-        icon: <Trash2 className="size-4" />,
-        disabled: !canManage,
-        danger: true,
-        onClick: () => setConfirm({ open: true, type: "uninstall", extension }),
-      },
-    ];
-  }
-
-  function closeConfirm() {
-    setConfirm({ open: false, type: null, extension: null });
-  }
-
-  async function handleConfirm() {
-    const p = confirm.extension;
-    if (!p || !confirm.type) return;
-    if (confirm.type === "reset") {
-      await resetMutation.mutateAsync(p);
-    } else {
-      await uninstallMutation.mutateAsync(p);
-    }
-    closeConfirm();
-  }
-
-  function handleInstalled({ requiresRestart }: { requiresRestart?: boolean }) {
-    setRestartHint(Boolean(requiresRestart));
-    void queryClient.invalidateQueries({
-      queryKey: workspacePluginsCenterQueryKey(workspaceId),
-    });
-  }
+  const filters = useExtensionsFilters({ items, t: (key) => t(key), pageSize: PAGE_SIZE });
+  const actions = useExtensionsMenuActions({
+    scope,
+    workspaceId,
+    organizationId: access.organizationId,
+    canManage,
+    listQueryKey: queryKey,
+    t,
+  });
 
   return {
     t,
@@ -320,41 +145,28 @@ export function useExtensions({ scope = "workspace", organizationId }: UseExtens
     canManage,
     listQuery,
 
-    // Explore tab
-    categoryTabs,
-    category,
-    setCategory,
-    searchQuery,
-    setSearchQuery,
-    officialChecked,
-    setOfficialChecked,
-    communityChecked,
-    setCommunityChecked,
-    explorePageItems,
-    exploreTotal,
-    filtered,
-    page,
-    setPage,
+    categoryTabs: filters.categoryTabs,
+    category: filters.category,
+    setCategory: filters.setCategory,
+    searchQuery: filters.searchQuery,
+    setSearchQuery: filters.setSearchQuery,
+    officialChecked: filters.officialChecked,
+    setOfficialChecked: filters.setOfficialChecked,
+    communityChecked: filters.communityChecked,
+    setCommunityChecked: filters.setCommunityChecked,
+    explorePageItems: filters.explorePageItems,
+    exploreTotal: filters.exploreTotal,
+    filtered: filters.filtered,
+    page: filters.page,
+    setPage: filters.setPage,
     pageSize: PAGE_SIZE,
 
-    // Installed tab
-    filteredInstalled,
-    installedPageItems,
-    installedTotal,
-    installedPage,
-    setInstalledPage,
-    buildConfigureHref,
-    buildMenuItems,
-
-    // Dialogs
-    installOpen,
-    setInstallOpen,
-    restartHint,
-    confirm,
-    setConfirm,
-    closeConfirm,
-    handleConfirm,
-    handleInstalled,
-    confirmLoading: resetMutation.isPending || uninstallMutation.isPending,
+    filteredInstalled: filters.filteredInstalled,
+    installedPageItems: filters.installedPageItems,
+    installedTotal: filters.installedTotal,
+    installedPage: filters.installedPage,
+    setInstalledPage: filters.setInstalledPage,
+    buildConfigureHref: actions.buildConfigureHref,
+    buildMenuItems: actions.buildMenuItems,
   };
 }

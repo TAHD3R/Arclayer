@@ -11,7 +11,7 @@ from apps.api.src.modules.system.setup.initialize.workspace.service import Syste
 from apps.api.src.modules.system.setup.job.service import SystemSetupJobMixin
 from apps.api.src.modules.system.setup.masterkey.service import SystemSetupMasterKeyMixin
 from apps.api.src.modules.system.setup.reinitialize.service import SystemSetupReinitializeMixin
-from apps.api.src.plugin.manager import PluginManager
+from apps.api.src.plugin.event_bus import EventBus
 
 
 class SystemSetupService(
@@ -26,7 +26,7 @@ class SystemSetupService(
 ):
     _background_tasks: set[asyncio.Task[None]] = set()
 
-    def __init__(self, settings: Settings, *, manager: PluginManager, user_repo: object) -> None:
+    def __init__(self, settings: Settings, *, event_bus: EventBus, user_repo: object) -> None:
         super().__init__(settings)
-        self.manager = manager
+        self.event_bus = event_bus
         self.user_repo = user_repo

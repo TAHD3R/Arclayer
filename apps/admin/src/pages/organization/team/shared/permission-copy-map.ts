@@ -48,11 +48,11 @@ export const ORG_PERMISSION_COPY_MAP: Record<string, OrganizationPermissionCopyI
     nameKey: "ORG_ROLE_PERMISSION_SETTINGS_MANAGE",
     descKey: "ORG_ROLE_PERMISSION_SETTINGS_MANAGE_DESC",
   },
-  "org.plugins.read": {
+  "org.extensions.read": {
     nameKey: "ORG_ROLE_PERMISSION_PLUGINS_VIEW",
     descKey: "ORG_ROLE_PERMISSION_PLUGINS_VIEW_DESC",
   },
-  "org.plugins.manage": {
+  "org.extensions.manage": {
     nameKey: "ORG_ROLE_PERMISSION_PLUGINS_MANAGE",
     descKey: "ORG_ROLE_PERMISSION_PLUGINS_MANAGE_DESC",
   },

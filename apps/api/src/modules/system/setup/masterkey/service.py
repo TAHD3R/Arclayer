@@ -13,7 +13,7 @@ from apps.api.src.modules.auth.tokens.service import verify_password
 from apps.api.src.modules.system.schema import SystemMasterKeyRepairResult
 from apps.api.src.modules.system.settings.service import SettingsService
 from apps.api.src.modules.system.setup.shared.service import _raise_if_fatal, _ts
-from apps.api.src.plugin.manager import PluginManager
+from apps.api.src.plugin.event_bus import EventBus
 from apps.api.src.settings.crypto import ensure_master_key, master_key_exists
 from apps.api.src.settings.signing import ensure_signing_keypair
 
@@ -29,7 +29,7 @@ class _UserRepoWithCredential(Protocol):
 class SystemSetupMasterKeyMixin:
     settings: Settings
     user_repo: object
-    manager: PluginManager
+    event_bus: EventBus
     logger: LoggerLike
 
     async def repair_master_key(
@@ -78,7 +78,7 @@ class SystemSetupMasterKeyMixin:
         )
 
         try:
-            await SettingsService(self.settings, manager=self.manager).patch_namespace(
+            await SettingsService(self.settings, event_bus=self.event_bus).patch_namespace(
                 "core",
                 patch={"system": {"master_key_fingerprint": fingerprint, "signing_key_fingerprint": signing_fp}},
                 updated_by=updated_by,

@@ -27,9 +27,7 @@ from apps.api.src.core.routes import register_routes
 from apps.api.src.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.src.infra.jobs.client import close_taskiq_client, init_taskiq_client
 from apps.api.src.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
-from apps.api.src.plugin.manager import PluginManager
-from apps.api.src.plugin.restart import start_restart_watcher, stop_restart_watcher
-from apps.api.src.plugin.watch import start_plugin_watchers, stop_plugin_watchers
+from apps.api.src.plugin.host import host as plugin_host
 
 logger = get_logger(__name__)
 _FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (
@@ -38,6 +36,7 @@ _FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
 )
+_TEST_LOOP_HEARTBEAT_INTERVAL_SECONDS = 0.2
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -45,28 +44,48 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
-def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
+async def _test_event_loop_heartbeat() -> None:
+    """
+    Periodically wake the event loop in unit tests.
+
+    Why:
+    - FastAPI runs sync endpoints and some dependencies in a worker thread pool.
+    - The worker threads complete by scheduling callbacks via `loop.call_soon_threadsafe(...)`.
+    - In some test transports (e.g. httpx ASGITransport) there may be no socket I/O, so the
+      event loop can block indefinitely unless it is periodically woken by timers.
+
+    This heartbeat is enabled only in `APP_ENV=test`.
+    """
+
+    while True:
+        await asyncio.sleep(_TEST_LOOP_HEARTBEAT_INTERVAL_SECONDS)
+
+
+def _build_lifespan(settings: Settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Make startup/teardown resilient: if any step raises before `yield`,
-        # we still want to close DB/cache connections and stop partially-started plugins.
+        # we still want to close DB/cache connections.
+        event_bus = None
+        heartbeat_task: asyncio.Task[None] | None = None
         try:
             # Starlette's TestClient runs the app in a separate thread with its own event loop.
-            # Recreate the plugin host state in that loop to avoid cross-thread asyncio primitives
+            # Recreate the host state in that loop to avoid cross-thread asyncio primitives
             # (e.g. EventBus locks) created at import time.
             if settings.app_env == "test":
-                plugin_manager.host.reset()
-                # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
-                # skip heavyweight startup steps and still exercise routers/middlewares safely.
-                if not settings.database.enabled and not settings.valkey.enabled:
-                    app.state.plugin_manager = plugin_manager
-                    yield
-                    return
-            if not plugin_manager.descriptors:
-                plugin_manager.discover()
-            extra_models = plugin_manager.collect_model_modules()
+                plugin_host.reset()
+                heartbeat_task = asyncio.create_task(_test_event_loop_heartbeat(), name="test-event-loop-heartbeat")
 
-            await init_orm(settings, extra_modules=extra_models)
+            event_bus = plugin_host.event_bus
+            app.state.event_bus = event_bus
+
+            # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
+            # skip heavyweight startup steps and still exercise routers/middlewares safely.
+            if settings.app_env == "test" and not settings.database.enabled and not settings.valkey.enabled:
+                yield
+                return
+
+            await init_orm(settings)
             await verify_db_ready(settings)
             # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
             await ensure_settings_schema_constraints()
@@ -94,30 +113,28 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
                     action="sys_storage_bootstrap_failed",
                     error=str(exc),
                 )
-            await init_domain_bootstrap(app, settings, plugin_manager=plugin_manager)
+            if event_bus is None:
+                raise RuntimeError("event_bus unavailable during domain bootstrap")
+            await init_domain_bootstrap(app, settings, event_bus=event_bus)
             await init_valkey(app, settings)
             await init_taskiq_client(app, settings)
-            plugin_manager.bind_valkey(getattr(app.state, "valkey", None))
             await init_rate_limiter(app, settings)
-            if settings.database.enabled and settings.plugin.enabled:
-                await plugin_manager.sync_records()
-                # Migrations may run during sync_records; run the hotfix again to be safe.
-                await ensure_settings_schema_constraints()
-                await plugin_manager.start()
-            await start_plugin_watchers(app, settings, plugin_manager=plugin_manager)
-            await start_restart_watcher(app, settings)
-            app.state.plugin_manager = plugin_manager
             yield
         finally:
-            await stop_restart_watcher(app)
-            await stop_plugin_watchers(app)
-            await plugin_manager.stop()
-            await close_domain_bootstrap(app, plugin_manager=plugin_manager)
+            if event_bus is not None:
+                await close_domain_bootstrap(app, event_bus=event_bus)
             try:
-                await plugin_manager.host.event_bus.aclose()
+                if event_bus is not None:
+                    await event_bus.aclose()
             except BaseException as exc:
                 _raise_if_fatal(exc)
-                logger.warning("Plugin event bus close failed", action="close_plugin_event_bus", error=str(exc))
+                logger.warning("Event bus close failed", action="close_event_bus", error=str(exc))
+            if heartbeat_task is not None:
+                heartbeat_task.cancel()
+                try:
+                    await heartbeat_task
+                except asyncio.CancelledError:
+                    pass
             await close_rate_limiter(app)
             await close_orm()
             await close_taskiq_client(app)
@@ -129,7 +146,6 @@ def _build_lifespan(settings: Settings, *, plugin_manager: PluginManager):
 class AppFactory:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
-        self.plugin_manager = PluginManager(self.settings)
         self.app = FastAPI(
             debug=self.settings.debug,
             title=self.settings.application.app_name,
@@ -138,7 +154,7 @@ class AppFactory:
             openapi_url=self.settings.application.app_openapi_url if self.settings.enable_docs else None,
             docs_url=None,
             redoc_url=None,
-            lifespan=_build_lifespan(self.settings, plugin_manager=self.plugin_manager),
+            lifespan=_build_lifespan(self.settings),
         )
 
     def with_spotlight_docs(self) -> "AppFactory":
@@ -299,7 +315,7 @@ class AppFactory:
         return self
 
     def build(self) -> FastAPI:
-        register_routes(self.app, self.settings, plugin_manager=self.plugin_manager)
+        register_routes(self.app, self.settings)
         return self.app
 
 

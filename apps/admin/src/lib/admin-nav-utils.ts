@@ -187,10 +187,10 @@ export function collectAllowedWorkspacePathPrefixes(
   // Only enable them when the corresponding module is visible in the menu.
   const hasTeam = Array.from(prefixes).some((p) => p.startsWith(normalizePath(`${base}/team/`)));
   if (hasTeam) prefixes.add(normalizePath(`${base}/team`));
-  const hasPlugins = Array.from(prefixes).some((p) =>
-    p.startsWith(normalizePath(`${base}/plugins/`)),
+  const hasExtensions = Array.from(prefixes).some((p) =>
+    p.startsWith(normalizePath(`${base}/extensions/`)),
   );
-  if (hasPlugins) prefixes.add(normalizePath(`${base}/plugins`));
+  if (hasExtensions) prefixes.add(normalizePath(`${base}/extensions`));
 
   return Array.from(prefixes);
 }

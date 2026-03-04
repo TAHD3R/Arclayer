@@ -7,7 +7,6 @@ from apps.api.src.modules.system.rbac.matrix.service import RBACMatrixMixin
 from apps.api.src.modules.system.rbac.repository import RBACRepository
 from apps.api.src.modules.system.rbac.roles.service import RBACRolesMixin
 from apps.api.src.modules.system.rbac.workspaces.service import RBACWorkspacesMixin
-from apps.api.src.plugin.manager import PluginManager
 
 
 class RBACService(
@@ -26,10 +25,7 @@ class RBACService(
     def __init__(
         self,
         settings: Settings,
-        *,
-        plugin_manager: PluginManager | None = None,
         repo: RBACRepository | None = None,
     ) -> None:
         super().__init__(settings)
         self.repo = repo or RBACRepository()
-        self.plugin_manager = plugin_manager

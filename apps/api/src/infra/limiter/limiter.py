@@ -40,8 +40,6 @@ def default_callback(*args: Any, **kwargs: Any) -> None:
 
 
 def rate_limit(times: int, seconds: int) -> Any:
-    limiter = Limiter(Rate(times, Duration.SECOND * seconds))
-
     async def _identifier(request: Request) -> str:
         # fastapi-limiter uses `identifier + route_index + dep_index` as the bucket key.
         # Our `rate_limit()` wraps RateLimiter in another dependency, so dep_index may not
@@ -49,15 +47,20 @@ def rate_limit(times: int, seconds: int) -> Any:
         base = await default_identifier(request)
         return f"{base}:{times}:{seconds}"
 
-    dep = RateLimiter(limiter=limiter, identifier=_identifier, callback=default_callback)
+    limiter: Limiter | None = None
+    dep: RateLimiter | None = None
 
     async def _dependency(
         request: Request,
         response: Response,
         settings: Settings = Depends(get_settings),
     ) -> None:
+        nonlocal limiter, dep
         if not settings.valkey.enabled or not settings.valkey.limiter_enabled:
             return
+        if limiter is None or dep is None:
+            limiter = Limiter(Rate(times, Duration.SECOND * seconds))
+            dep = RateLimiter(limiter=limiter, identifier=_identifier, callback=default_callback)
         await dep(request, response)
 
     return Depends(_dependency)

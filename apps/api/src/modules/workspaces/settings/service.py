@@ -18,6 +18,7 @@ from apps.api.src.models.workspaces.workspace import (
     WorkspaceMembershipStatus,
 )
 from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
+from apps.api.src.modules.workspaces.settings.integrations.webhooks.service import WebhooksService
 from apps.api.src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersResult,
     WorkspaceRolePolicyOut,
@@ -27,6 +28,8 @@ from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETT
 from apps.api.src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
 from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
 from apps.api.src.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
+
+WORKSPACE_CORE_SETTINGS_UPDATED_EVENT = "settings.workspace.core.updated"
 
 
 class WorkspaceSettingsService(BaseService):
@@ -80,6 +83,24 @@ class WorkspaceSettingsService(BaseService):
             saved = record
 
         masked, secrets = self._mask_secrets(merged)
+        try:
+            WebhooksService(self.settings).emit_workspace_event_fire_and_forget(
+                workspace_id=workspace_id,
+                event=WORKSPACE_CORE_SETTINGS_UPDATED_EVENT,
+                payload={
+                    "workspace_id": str(workspace_id),
+                    "namespace": CORE_SETTINGS_NAMESPACE,
+                    "paths": list(self._flatten_patch_paths(patch)),
+                },
+            )
+        except BaseException as exc:
+            # Best-effort: webhook emission must not break core settings updates.
+            self.logger.warning(
+                "Webhook emission failed for workspace settings update",
+                action="emit_workspace_settings_webhook",
+                workspace_id=str(workspace_id),
+                error=str(exc),
+            )
         return WorkspaceSettingsDetail(
             namespace=CORE_SETTINGS_NAMESPACE,
             value=masked,
@@ -249,3 +270,16 @@ class WorkspaceSettingsService(BaseService):
             aad = f"{SCOPE_TYPE_WORKSPACE}:{workspace_id}:{CORE_SETTINGS_NAMESPACE}:{path}"
             section[field_key] = encrypt_secret(raw, key=key, aad=aad)
         return config
+
+    @staticmethod
+    def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:
+        out: list[str] = []
+        for key, value in (patch or {}).items():
+            if not key:
+                continue
+            path = f"{_prefix}.{key}" if _prefix else str(key)
+            if isinstance(value, dict):
+                out.extend(WorkspaceSettingsService._flatten_patch_paths(value, _prefix=path))
+            else:
+                out.append(path)
+        return out

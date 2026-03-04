@@ -18,7 +18,6 @@ from apps.api.src.modules.organization.http.service import require_org_owner
 from apps.api.src.modules.sys.http.service import require_super_admin
 from apps.api.src.modules.system.flags.service import build_system_flags
 from apps.api.src.modules.system.mail.router import router as system_mail_router
-from apps.api.src.modules.system.plugins.router import router as system_plugins_router
 from apps.api.src.modules.system.rbac.router import router as system_rbac_router
 from apps.api.src.modules.system.schema import (
     SystemMasterKeyRepairRequest,
@@ -34,26 +33,26 @@ from apps.api.src.modules.system.schema import (
 )
 from apps.api.src.modules.system.service import SystemSetupService
 from apps.api.src.modules.system.settings.router import router as system_settings_router
-from apps.api.src.plugin.manager import PluginManager
+from apps.api.src.plugin.event_bus import EventBus
 
 router = APIRouter(tags=["System: Core Settings"])
 
 
-def get_plugin_manager(request: Request) -> PluginManager:
-    manager = getattr(request.app.state, "plugin_manager", None)
-    if manager is None:
+def get_event_bus(request: Request) -> EventBus:
+    bus = getattr(request.app.state, "event_bus", None)
+    if bus is None:
         raise ServiceUnavailable(
-            message=t("setup", "PLUGIN_MANAGER_UNAVAILABLE", default="插件管理器不可用"),
-            error="PLUGIN_MANAGER_UNAVAILABLE",
+            message=t("setup", "EVENT_BUS_UNAVAILABLE", default="事件总线不可用"),
+            error="EVENT_BUS_UNAVAILABLE",
         )
-    return manager
+    return bus
 
 
 def get_setup_service(
     settings: Settings = Depends(get_settings),
-    manager: PluginManager = Depends(get_plugin_manager),
+    event_bus: EventBus = Depends(get_event_bus),
 ) -> SystemSetupService:
-    return SystemSetupService(settings, manager=manager, user_repo=UserRepository())
+    return SystemSetupService(settings, event_bus=event_bus, user_repo=UserRepository())
 
 
 @router.get(
@@ -182,6 +181,5 @@ async def get_system_runtime(
 # not the legacy org-scoped RBAC engine.
 router.include_router(system_settings_router, prefix="/settings")
 router.include_router(system_mail_router, prefix="/mail")
-router.include_router(system_plugins_router, prefix="/plugins-manager")
 router.include_router(system_rbac_router, prefix="/rbac")
 router.include_router(system_activity_router, prefix="/activity")

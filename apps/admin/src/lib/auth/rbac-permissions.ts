@@ -31,8 +31,8 @@ const PERMISSION_NAME_I18N_KEY_BY_CODE: Record<string, string> = {
   "team:invitations:manage": "rbac:RBAC_PERM_TEAM_INVITES_MANAGE_NAME",
   "team:invite-links:manage": "rbac:RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_NAME",
 
-  "system:plugins:read": "rbac:RBAC_PERM_PLUGINS_READ_NAME",
-  "system:plugins:manage": "rbac:RBAC_PERM_PLUGINS_MANAGE_NAME",
+  "system:extensions:read": "rbac:RBAC_PERM_EXTENSIONS_READ_NAME",
+  "system:extensions:manage": "rbac:RBAC_PERM_EXTENSIONS_MANAGE_NAME",
 };
 
 export function resolvePermissionNameI18nKey(permissionCode: string): string | null {

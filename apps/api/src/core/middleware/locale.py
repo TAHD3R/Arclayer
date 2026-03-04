@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
+from tortoise import Tortoise
 from tortoise.exceptions import ConfigurationError, OperationalError
 
 from apps.api.src.core.i18n import get_request_locale, reset_current_locale, set_current_locale
@@ -49,6 +50,11 @@ async def _get_core_default_locale(request: Request) -> str | None:
     """
 
     try:
+        # Best-effort: if ORM isn't initialized (e.g. unit tests with DB disabled),
+        # never attempt a DB read in the request middleware pipeline.
+        if not Tortoise._inited:
+            return None
+
         # Use app.state to avoid global state across processes.
         state = request.app.state
         now = time.monotonic()

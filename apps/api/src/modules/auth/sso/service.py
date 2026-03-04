@@ -2,41 +2,29 @@ from __future__ import annotations
 
 import asyncio
 import binascii
-from typing import Any, cast
+from typing import Any
 from urllib.parse import urlencode
 from uuid import UUID
 
 from fastapi import Request
-from tortoise.exceptions import OperationalError
 
-from apps.api.src.common.protocols.auth_sso import AuthSSOProviderDecl
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
 from apps.api.src.core.i18n import t
-from apps.api.src.core.logging import get_logger
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.models.organization.org_plugin_state import OrganizationPluginState
-from apps.api.src.models.system.plugin import PluginRecord
 from apps.api.src.modules.auth.service import AuthService
 from apps.api.src.modules.auth.sso.repository import consume_exchange_payload
-from apps.api.src.modules.organization.runtime.service import get_single_organization_id
-from apps.api.src.plugin.manager import PluginManager
-from apps.api.src.plugin.manifest import build_default_config
-from apps.api.src.plugin.types import PluginStatus
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
 from apps.api.src.settings.runtime import get_core_settings_value_cached
-from apps.api.src.settings.runtime_plugins import get_org_plugin_settings_decrypted
 
-logger = get_logger(__name__)
 _FATAL_SSO_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
     GeneratorExit,
     KeyboardInterrupt,
     SystemExit,
 )
-_SSO_STATE_LOOKUP_ERRORS = (OperationalError, RuntimeError, TypeError, ValueError)
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -46,18 +34,6 @@ def _raise_if_fatal(exc: BaseException) -> None:
 
 def _ta(key: str, default: str) -> str:
     return t("auth", key, default=default)
-
-
-def _flatten_hook_results(raw: list[Any] | None) -> list[Any]:
-    out: list[Any] = []
-    for part in raw or []:
-        if part is None:
-            continue
-        if isinstance(part, list):
-            out.extend(part)
-            continue
-        out.append(part)
-    return out
 
 
 def _is_safe_redirect(value: str | None) -> bool:
@@ -80,24 +56,14 @@ class AuthSSOService(BaseService):
         self,
         settings: Settings,
         *,
-        manager: PluginManager,
         valkey: ValkeyClientLike | None,
         auth_service: AuthService,
     ) -> None:
         super().__init__(settings)
-        self.manager = manager
         self.valkey = valkey
         self.auth_service = auth_service
 
     async def list_providers(self, request: Request, *, redirect: str | None = None) -> list[dict[str, Any]]:
-        if not self.manager.descriptors:
-            self.manager.discover()
-
-        organization_id = await get_single_organization_id()
-
-        raw = self.manager.host.hook.auth_sso_providers()
-        decls = _flatten_hook_results(raw)
-
         # Derive API prefix from the current request path. Example:
         # - /api/v1/auth/sso/providers -> /api/v1
         path = request.url.path
@@ -129,85 +95,6 @@ class AuthSSOService(BaseService):
                 "start_url": start_url,
             })
             seen.add(provider_key)
-
-        # Plugin providers are organization-scoped. If we cannot resolve a stable org id,
-        # keep only the core providers (best-effort, avoids cross-tenant leakage).
-        if organization_id is None:
-            return out
-        for obj in decls:
-            decl = cast(AuthSSOProviderDecl, obj)
-            plugin_id = (getattr(decl, "plugin_id", None) or "").strip()
-            if not plugin_id:
-                continue
-
-            record = await PluginRecord.get_or_none(plugin_id=plugin_id)
-            if record is None or record.status != PluginStatus.STARTED:
-                continue
-
-            desc = self.manager.descriptors.get(plugin_id)
-            if desc is None:
-                continue
-            if (desc.manifest.plugin.management_scope or "workspace").strip().lower() != "organization":
-                continue
-
-            try:
-                state = await OrganizationPluginState.get_or_none(organization_id=organization_id, plugin_id=plugin_id)
-            except _SSO_STATE_LOOKUP_ERRORS as exc:
-                # Rollout compatibility: treat missing org plugin state storage as disabled.
-                logger.warning(
-                    "SSO provider org plugin state lookup failed",
-                    plugin_id=plugin_id,
-                    organization_id=str(organization_id),
-                    action="sso_provider_state_lookup",
-                    error=str(exc),
-                )
-                continue
-            if state is None or not bool(state.enabled):
-                continue
-
-            schema = desc.manifest.config_schema
-            defaults = build_default_config(desc.manifest)
-            config = (
-                await get_org_plugin_settings_decrypted(
-                    self.settings,
-                    organization_id=organization_id,
-                    plugin_id=plugin_id,
-                    schema=schema,
-                    defaults=defaults,
-                )
-                if schema is not None
-                else defaults
-            )
-
-            try:
-                enabled = bool(decl.is_enabled(plugin_config=config))
-            except BaseException as exc:
-                _raise_if_fatal(exc)
-                logger.warning(
-                    "SSO provider availability check failed",
-                    plugin_id=plugin_id,
-                    action="sso_provider_enabled_check",
-                    error=str(exc),
-                )
-                enabled = False
-            if not enabled:
-                continue
-
-            start_path = (getattr(decl, "start_path", None) or "").strip()
-            if not start_path.startswith("/"):
-                continue
-
-            start_url = f"{base}{prefix}{start_path}"
-            if safe_redirect:
-                start_url = f"{start_url}?{urlencode({'redirect': safe_redirect})}"
-
-            out.append({
-                "provider": str(getattr(decl, "provider", "") or ""),
-                "label": str(getattr(decl, "label", "") or ""),
-                "icon_key": getattr(decl, "icon_key", None),
-                "start_url": start_url,
-            })
-            seen.add(str(getattr(decl, "provider", "") or "").strip().lower())
 
         return out
 

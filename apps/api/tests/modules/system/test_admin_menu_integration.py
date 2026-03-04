@@ -53,7 +53,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
             created_by_user_id=admin_user.id,
         )
 
-        # Limited admin: has admin:access + system:plugins:read only.
+        # Limited admin: has admin:access + system:extensions:read only.
         limited_user = await user_repo.create_user(
             username=f"staff_{uuid4().hex}",
             email=None,
@@ -89,7 +89,7 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
         )
         await rbac_service.set_permission_custom_roles(
             workspace_id=ws.id,
-            permission_code="system:plugins:read",
+            permission_code="system:extensions:read",
             role_codes=[role_code],
         )
         await WorkspaceMembershipRole.create(membership_id=limited_wsm.id, role_id=role.id)
@@ -135,38 +135,38 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
             assert resp.status_code == 200
             system_group_id = resp.json()["data"]["id"]
 
-            # Child: Plugins (read)
+            # Child: Extensions (read)
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/menus",
                 json={
-                    "code": f"plugins_read_{uuid4().hex}",
+                    "code": f"extensions_read_{uuid4().hex}",
                     "parentId": system_group_id,
-                    "title": "Plugins",
+                    "title": "Extensions",
                     "type": "item",
-                    "path": "/admin/plugins",
-                    "name": "admin_plugins",
-                    "componentKey": "PluginsPage",
+                    "path": "/admin/extensions",
+                    "name": "admin_extensions",
+                    "componentKey": "ExtensionsPage",
                     "sort": 1,
                     "isActive": True,
-                    "permissionCode": "system:plugins:read",
+                    "permissionCode": "system:extensions:read",
                 },
             )
             assert resp.status_code == 200
 
-            # Child: Plugins Manage (write)
+            # Child: Extensions Manage (write)
             resp = await client.post(
                 f"/api/v1/workspaces/{ws.id}/menus",
                 json={
-                    "code": f"plugins_manage_{uuid4().hex}",
+                    "code": f"extensions_manage_{uuid4().hex}",
                     "parentId": system_group_id,
-                    "title": "Plugins Manage",
+                    "title": "Extensions Manage",
                     "type": "item",
-                    "path": "/admin/plugins/manage",
-                    "name": "admin_plugins_manage",
-                    "componentKey": "PluginsManagePage",
+                    "path": "/admin/extensions/manage",
+                    "name": "admin_extensions_manage",
+                    "componentKey": "ExtensionsManagePage",
                     "sort": 2,
                     "isActive": True,
-                    "permissionCode": "system:plugins:manage",
+                    "permissionCode": "system:extensions:manage",
                 },
             )
             assert resp.status_code == 200
@@ -189,6 +189,6 @@ async def test_admin_menu_filtered_for_user(prepared_db) -> None:
             assert len(system_nodes) == 1
             system_children = system_nodes[0].get("children") or []
             # Should include read menu.
-            assert any(child.get("name") == "admin_plugins" for child in system_children)
+            assert any(child.get("name") == "admin_extensions" for child in system_children)
             # Should NOT include manage menu.
-            assert not any(child.get("name") == "admin_plugins_manage" for child in system_children)
+            assert not any(child.get("name") == "admin_extensions_manage" for child in system_children)

@@ -2,14 +2,12 @@ import { Pagination } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/components/common/content-guard";
-import { AdminExtensionsSlot } from "./admin-extensions-slot";
 
 import { ExtensionCard } from "./extension-card";
 import { ExtensionsFilterSidebar } from "./extensions-filter-sidebar";
-import type { ExtensionScope, InstalledExtensionItem } from "../types";
+import type { InstalledExtensionItem } from "../types";
 
 type ExtensionsExploreTabProps = {
-  scope: ExtensionScope;
   categoryTabs: { key: string; label: string }[];
   category: string;
   onCategoryChange: (category: string) => void;
@@ -29,7 +27,6 @@ type ExtensionsExploreTabProps = {
 };
 
 export function ExtensionsExploreTab({
-  scope,
   categoryTabs,
   category,
   onCategoryChange,
@@ -47,7 +44,7 @@ export function ExtensionsExploreTab({
   buildConfigureHref,
   isEmpty,
 }: ExtensionsExploreTabProps) {
-  const { t } = useTranslation(["plugin", "nav", "common"]);
+  const { t } = useTranslation(["plugin", "common"]);
 
   return (
     <div className="flex gap-6">
@@ -82,7 +79,7 @@ export function ExtensionsExploreTab({
           <>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {items.map((p) => (
-                <ExtensionCard key={p.pluginId} extension={p} href={buildConfigureHref(p)} />
+                <ExtensionCard key={p.capabilityId} extension={p} href={buildConfigureHref(p)} />
               ))}
             </div>
 
@@ -100,12 +97,6 @@ export function ExtensionsExploreTab({
             ) : null}
           </>
         )}
-
-        {scope === "workspace" ? (
-          <div className="mt-6">
-            <AdminExtensionsSlot slot="admin.plugins.center.cards" title={t("nav:NAV_PLUGINS")} />
-          </div>
-        ) : null}
       </div>
     </div>
   );

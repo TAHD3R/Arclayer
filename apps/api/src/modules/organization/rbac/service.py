@@ -28,8 +28,8 @@ _ORG_PERMISSION_TEMPLATES: list[tuple[str, str, str, str]] = [
     ("org.workspaces.manage", "workspaces", "Manage workspaces", "Create, archive, or delete organization workspaces."),
     ("org.settings.read", "settings", "View settings", "View organization settings."),
     ("org.settings.manage", "settings", "Manage settings", "Update organization-level settings."),
-    ("org.plugins.read", "plugins", "View plugins", "View organization plugins."),
-    ("org.plugins.manage", "plugins", "Manage plugins", "Manage organization plugins."),
+    ("org.extensions.read", "extensions", "View extensions", "View organization extensions and integrations."),
+    ("org.extensions.manage", "extensions", "Manage extensions", "Manage organization extensions and integrations."),
     ("org.activity.read", "activity", "View activity", "View organization activity and audit trails."),
 ]
 
@@ -47,8 +47,8 @@ _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
         "org.workspaces.manage",
         "org.settings.read",
         "org.settings.manage",
-        "org.plugins.read",
-        "org.plugins.manage",
+        "org.extensions.read",
+        "org.extensions.manage",
         "org.activity.read",
     },
     "member": {
@@ -57,7 +57,7 @@ _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
         "org.roles.read",
         "org.workspaces.read",
         "org.settings.read",
-        "org.plugins.read",
+        "org.extensions.read",
         "org.activity.read",
     },
 }

@@ -8,7 +8,7 @@ export function WorkspaceExtensionDetailPage() {
   const { workspaceId, extensionSlug } = useParams({
     from: "/w/$workspaceId/extensions/$extensionSlug/",
   });
-  const detail = useWorkspaceExtensionDetail({ workspaceId, extensionSlug });
+  const detail = useWorkspaceExtensionDetail({ workspaceId, extensionRef: extensionSlug });
 
   return <ExtensionDetailPage {...detail} />;
 }

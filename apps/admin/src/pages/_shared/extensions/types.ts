@@ -1,8 +1,8 @@
-import type { OrganizationPluginItem, WorkspacePluginItem } from "@/types/api";
 import type { ReactNode } from "react";
+import type { CapabilitySummary } from "@/types/api";
 
 export type ExtensionScope = "workspace" | "organization";
-export type InstalledExtensionItem = WorkspacePluginItem | OrganizationPluginItem;
+export type InstalledExtensionItem = CapabilitySummary;
 
 export type ExtensionMenuItem = {
   key: string;

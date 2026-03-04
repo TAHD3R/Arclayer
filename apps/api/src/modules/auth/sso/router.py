@@ -25,19 +25,11 @@ from apps.api.src.modules.auth.sso.schema import (
     AuthSSOProvidersOut,
 )
 from apps.api.src.modules.auth.sso.service import AuthSSOService
-from apps.api.src.plugin.manager import PluginManager
 
 router = APIRouter(prefix="/sso", tags=["Services: Auth SSO"])
 
 _SSO_LINK_STATE_EXPIRES_IN = 10 * 60
 _SSO_LINK_STATE_KEY_PREFIX = "auth:sso:link_state:"
-
-
-def get_plugin_manager(request: Request) -> PluginManager:
-    manager = getattr(request.app.state, "plugin_manager", None)
-    if manager is None:
-        raise ServiceUnavailable(message="Plugin manager unavailable", error="PLUGIN_MANAGER_UNAVAILABLE")
-    return manager
 
 
 def get_auth_service(
@@ -54,14 +46,13 @@ def get_auth_service(
 def get_sso_service(
     request: Request,
     settings: Settings = Depends(get_settings),
-    manager: PluginManager = Depends(get_plugin_manager),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> AuthSSOService:
     try:
         valkey = get_valkey(request)
     except RuntimeError:
         valkey = None
-    return AuthSSOService(settings, manager=manager, valkey=valkey, auth_service=auth_service)
+    return AuthSSOService(settings, valkey=valkey, auth_service=auth_service)
 
 
 def get_oauth_social_service(

@@ -14,7 +14,6 @@ from apps.api.src.modules.auth.service import AuthService
 from apps.api.src.modules.auth.sso.repository import _valkey_getdel_best_effort, issue_exchange_code
 from apps.api.src.modules.auth.sso.schema import AuthSSOExchangePayload
 from apps.api.src.modules.auth.sso.service import AuthSSOService
-from apps.api.src.plugin.manager import PluginManager
 
 
 class _FakeValkey(ValkeyClientLike):
@@ -159,10 +158,9 @@ async def test_valkey_getdel_best_effort_handles_sync_getdel_fake() -> None:
 @pytest.mark.asyncio
 async def test_auth_sso_exchange_code_is_one_time() -> None:
     settings = get_settings()
-    manager = PluginManager(settings)
     valkey = _FakeValkey()
     auth = cast(AuthService, _FakeAuthService())
-    service = AuthSSOService(settings, manager=manager, valkey=valkey, auth_service=auth)
+    service = AuthSSOService(settings, valkey=valkey, auth_service=auth)
 
     user_id = uuid4()
     code = await issue_exchange_code(

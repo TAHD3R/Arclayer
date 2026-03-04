@@ -96,5 +96,6 @@
   "MASTER_KEY_REPAIR_CONFIRM_MISMATCH": "Confirmation text must be exactly REPAIR",
   "MASTER_KEY_REPAIR_PASSWORD_LABEL": "Password (step-up confirmation)",
   "MASTER_KEY_REPAIR_ACTION": "Repair master key",
-  "MASTER_KEY_REPAIR_SUCCESS": "Master key repaired successfully."
+  "MASTER_KEY_REPAIR_SUCCESS": "Master key repaired successfully.",
+  "EVENT_BUS_UNAVAILABLE": "Event bus unavailable"
 }

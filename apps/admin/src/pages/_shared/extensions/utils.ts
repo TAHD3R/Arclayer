@@ -16,7 +16,14 @@ export function statusColor(status: string): string | undefined {
 }
 
 export function getExtensionRef(extension: InstalledExtensionItem): string {
-  return String(extension.slug || extension.pluginId);
+  return String(extension.capabilityId || "");
+}
+
+export function getExtensionCategory(extension: InstalledExtensionItem): string | null {
+  const meta = extension.meta;
+  if (!meta || typeof meta !== "object") return null;
+  const raw = (meta as Record<string, unknown>).category;
+  return typeof raw === "string" ? raw : null;
 }
 
 export function buildCategoryTabs(

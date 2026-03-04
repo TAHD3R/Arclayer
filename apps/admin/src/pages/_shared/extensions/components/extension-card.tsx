@@ -7,6 +7,7 @@ import { ExtensionIcon } from "./extension-icon";
 import { cn } from "@celestial/lib/utils";
 
 import type { InstalledExtensionItem } from "../types";
+import { getExtensionCategory } from "../utils";
 
 type ExtensionCardProps = {
   extension: InstalledExtensionItem;
@@ -25,10 +26,20 @@ export function ExtensionCard({
 }: ExtensionCardProps) {
   const { t } = useTranslation(["plugin"]);
 
-  const category = String(extension.category || "").trim();
+  const category = String(getExtensionCategory(extension) || "").trim();
   const categoryLabel = category
     ? t(`plugin:PLUGIN_CATEGORY_${category.toUpperCase()}`, { defaultValue: category })
     : null;
+
+  const provider = String(extension.provider || "")
+    .trim()
+    .toLowerCase();
+  const providerLabel =
+    provider === "official"
+      ? t("plugin:EXTENSION_FILTER_OFFICIAL")
+      : provider === "community"
+        ? t("plugin:EXTENSION_FILTER_COMMUNITY")
+        : provider;
 
   const content = (
     <>
@@ -45,6 +56,7 @@ export function ExtensionCard({
           </div>
           <div className="flex items-start gap-1.5">
             {installed ? <Tag color="green">{t("plugin:EXTENSION_CARD_INSTALLED")}</Tag> : null}
+            {providerLabel ? <Tag>{providerLabel}</Tag> : null}
             {actions ? (
               <div className="shrink-0" onClick={(e) => e.preventDefault()}>
                 {actions}
@@ -55,12 +67,6 @@ export function ExtensionCard({
 
         <div className="flex flex-col wrap-break-word" style={{ overflowWrap: "anywhere" }}>
           <div className="text-headline text-label-primary">{extension.name}</div>
-          {"author" in extension && extension.author ? (
-            <div className="flex flex-row items-center text-footnote text-label-secondary">
-              {t("plugin:EXTENSION_CARD_DEVELOPED_BY")}
-              <span className="ml-1 font-medium">{String(extension.author)}</span>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -70,7 +76,9 @@ export function ExtensionCard({
 
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
         {categoryLabel ? <Tag>{categoryLabel}</Tag> : null}
-        <Tag>{t("plugin:EXTENSION_CARD_VERSION", { version: extension.version })}</Tag>
+        {extension.version ? (
+          <Tag>{t("plugin:EXTENSION_CARD_VERSION", { version: extension.version })}</Tag>
+        ) : null}
       </div>
     </>
   );

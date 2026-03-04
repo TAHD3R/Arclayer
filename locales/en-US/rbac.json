@@ -15,6 +15,10 @@
   "RBAC_PERM_TEAM_MEMBERS_RESET_PW_NAME": "Reset member password",
   "RBAC_PERM_TEAM_INVITES_MANAGE_NAME": "Manage invitations",
   "RBAC_PERM_TEAM_INVITE_LINKS_MANAGE_NAME": "Manage invite links",
+  "RBAC_PERM_EXTENSIONS_READ_NAME": "Read extensions",
+  "RBAC_PERM_EXTENSIONS_READ_DESC": "Allow listing extensions/integrations and reading their details.",
+  "RBAC_PERM_EXTENSIONS_MANAGE_NAME": "Manage extensions",
+  "RBAC_PERM_EXTENSIONS_MANAGE_DESC": "Allow enabling, disabling and configuring extensions/integrations.",
   "RBAC_PERM_PLUGINS_READ_NAME": "Read plugins",
   "RBAC_PERM_PLUGINS_MANAGE_NAME": "Manage plugins"
 }

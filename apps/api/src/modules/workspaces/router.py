@@ -16,9 +16,9 @@ from apps.api.src.modules.system.admin.router import router as workspace_admin_r
 from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.authz.router import router as workspace_authz_router
 from apps.api.src.modules.workspaces.content.router import router as workspace_content_router
+from apps.api.src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
-from apps.api.src.modules.workspaces.plugins.router import router as workspace_plugins_center_router
 from apps.api.src.modules.workspaces.rbac.router import router as workspace_rbac_router
 from apps.api.src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
@@ -45,7 +45,7 @@ router.include_router(workspace_themes_router)
 router.include_router(workspace_content_router)
 router.include_router(workspace_site_router)
 router.include_router(workspace_activity_router)
-router.include_router(workspace_plugins_center_router)
+router.include_router(workspace_extensions_router)
 
 
 @router.get(

@@ -57,7 +57,7 @@ def get_center_service(
     "",
     response_model=ResponseModel[WorkspacePluginListOut],
     summary="List installed plugins with workspace enable state",
-    dependencies=[require_workspace_permission("system:plugins:read")],
+    dependencies=[require_workspace_permission("system:extensions:read")],
 )
 async def list_workspace_plugins(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -71,7 +71,7 @@ async def list_workspace_plugins(
     "/install",
     response_model=ResponseModel[WorkspacePluginInstallResult],
     summary="Install a plugin package (global) and optionally enable in current workspace",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def install_plugin(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -93,7 +93,7 @@ async def install_plugin(
     "/validate",
     response_model=ResponseModel[WorkspacePluginPackageValidateOut],
     summary="Upload and validate a plugin package (no install yet)",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def validate_plugin_package(
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
@@ -111,7 +111,7 @@ async def validate_plugin_package(
     "/install-validated",
     response_model=ResponseModel[WorkspacePluginInstallResult],
     summary="Install a previously validated plugin package by token",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def install_validated_plugin(
     payload: WorkspacePluginInstallValidatedIn,
@@ -130,7 +130,7 @@ async def install_validated_plugin(
     "/{plugin_ref}/enable",
     response_model=ResponseModel[WorkspacePluginSummary],
     summary="Enable a plugin in current workspace",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def enable_plugin(
     plugin_ref: str,
@@ -147,7 +147,7 @@ async def enable_plugin(
     "/{plugin_ref}/disable",
     response_model=ResponseModel[WorkspacePluginSummary],
     summary="Disable a plugin in current workspace",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def disable_plugin(
     plugin_ref: str,
@@ -164,7 +164,7 @@ async def disable_plugin(
     "/{plugin_ref}/uninstall",
     response_model=ResponseModel[None],
     summary="Uninstall a plugin from current workspace (detach only)",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def uninstall_from_workspace(
     plugin_ref: str,
@@ -181,7 +181,7 @@ async def uninstall_from_workspace(
     "/{plugin_ref}/reset",
     response_model=ResponseModel[None],
     summary="Reset workspace-scoped plugin config (keep installation)",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def reset_config(
     plugin_ref: str,
@@ -198,7 +198,7 @@ async def reset_config(
     "/{plugin_ref}/config",
     response_model=ResponseModel[WorkspacePluginSummary],
     summary="Update workspace-scoped plugin config",
-    dependencies=[require_workspace_permission("system:plugins:manage")],
+    dependencies=[require_workspace_permission("system:extensions:manage")],
 )
 async def update_workspace_config(
     plugin_ref: str,
@@ -218,7 +218,7 @@ async def update_workspace_config(
     "/{plugin_ref}/icon",
     response_model=None,
     summary="Get plugin icon (workspace scoped path resolver)",
-    dependencies=[require_workspace_permission("system:plugins:read")],
+    dependencies=[require_workspace_permission("system:extensions:read")],
 )
 async def get_plugin_icon(
     plugin_ref: str,

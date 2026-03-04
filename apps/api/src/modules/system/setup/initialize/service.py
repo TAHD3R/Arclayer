@@ -15,9 +15,8 @@ from apps.api.src.modules.provision.service import TenantProvisioningService
 from apps.api.src.modules.system.schema import SystemSetupJobStage
 from apps.api.src.modules.system.settings.service import SettingsService
 from apps.api.src.modules.system.setup.shared.service import _raise_if_fatal, _ts
-from apps.api.src.plugin.event_bus import Event
+from apps.api.src.plugin.event_bus import Event, EventBus
 from apps.api.src.plugin.events import SYSTEM_SETUP_COMPLETED
-from apps.api.src.plugin.manager import PluginManager
 from apps.api.src.settings.crypto import ensure_master_key
 from apps.api.src.settings.signing import ensure_signing_keypair
 
@@ -51,7 +50,7 @@ class _UserRepoForSetup(Protocol):
 
 class SystemSetupInitializeMixin:
     settings: Settings
-    manager: PluginManager
+    event_bus: EventBus
     user_repo: object
     logger: LoggerLike
 
@@ -118,7 +117,7 @@ class SystemSetupInitializeMixin:
         if isinstance(raw_patch.get("workspace_localization"), dict):
             system_patch["workspace_localization"] = raw_patch["workspace_localization"]
 
-        await SettingsService(self.settings, manager=self.manager).patch_namespace(
+        await SettingsService(self.settings, event_bus=self.event_bus).patch_namespace(
             "core",
             patch=system_patch,
             updated_by=UUID(str(user.id)),
@@ -180,7 +179,7 @@ class SystemSetupInitializeMixin:
 
         rbac_ok = True
         try:
-            await self.manager.host.event_bus.publish(
+            await self.event_bus.publish(
                 Event(
                     name=SYSTEM_SETUP_COMPLETED,
                     payload={"admin_user_id": str(user.id), "admin_username": user.username},

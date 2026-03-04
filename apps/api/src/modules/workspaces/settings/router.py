@@ -10,6 +10,7 @@ from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from apps.api.src.modules.workspaces.settings.integrations.webhooks.router import router as workspace_webhooks_router
 from apps.api.src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersRequest,
     WorkspaceAssignRoleToMembersResult,
@@ -21,6 +22,7 @@ from apps.api.src.modules.workspaces.settings.schema import (
 from apps.api.src.modules.workspaces.settings.service import WorkspaceSettingsService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/settings", tags=["Workspace Settings"])
+router.include_router(workspace_webhooks_router)
 
 
 @router.get(

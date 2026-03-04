@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import APIError
 from apps.api.src.core.registry import create_app
 
@@ -15,6 +16,9 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     monkeypatch.setenv("DATABASE__ENABLED", "0")
     monkeypatch.setenv("VALKEY__ENABLED", "0")
     monkeypatch.setenv("PLUGIN__ENABLED", "0")
+    # `get_settings()` is cached; tests that mutate env must reset it to avoid leaking
+    # configuration across the test suite.
+    get_settings.cache_clear()
 
 
 async def test_api_error_handler(monkeypatch, tmp_path: Path) -> None:
