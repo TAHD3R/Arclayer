@@ -76,9 +76,13 @@ function AdminSidebarHeaderArea(props: { showFailureSkeleton: boolean }) {
       className={cn(
         "relative z-10 flex w-full",
         "items-center gap-2",
-        "px-2.5 py-0 h-16",
-        "group-data-[collapsible=icon]:h-auto",
-        "group-data-[collapsible=icon]:py-2",
+        "px-2.5 py-2 h-16",
+        "transition-[height,padding] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+        // Avoid `height: auto` because it can't transition from/to `h-16`,
+        // and it causes the whole menu below to jump during expand/collapse.
+        // Use a fixed collapsed height to keep the vertical movement smooth.
+        "group-data-[collapsible=icon]:h-28",
+        "group-data-[collapsible=icon]:items-start",
         "group-data-[collapsible=icon]:justify-center",
       )}
     >
@@ -112,8 +116,16 @@ function useSidebarBottomBlurState(args: {
     const el = navScrollRef.current;
     if (!el) return;
 
-    const updateScroll = () => setShowNavBottomBlur(shouldShowBottomBlur(el));
-    const updatePadding = () => setSidebarContentPadding(resolveSidebarContentPaddingPx(el));
+    const updateScroll = () => {
+      const next = shouldShowBottomBlur(el);
+      setShowNavBottomBlur((prev) => (prev === next ? prev : next));
+    };
+    const updatePadding = () => {
+      const next = resolveSidebarContentPaddingPx(el);
+      setSidebarContentPadding((prev) =>
+        prev.left === next.left && prev.right === next.right ? prev : next,
+      );
+    };
 
     updatePadding();
     updateScroll();

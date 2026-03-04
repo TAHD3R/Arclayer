@@ -7,7 +7,7 @@ import type { OpenByParent } from "./nav-utils";
 import { getFirstDescendantTo } from "./nav-utils";
 import { useBlockedTooltipText } from "./blocked-tooltip";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
-import { NodeCollapsedGroup, type ResolvedChildItem } from "./node-collapsed-group";
+import type { ResolvedChildItem } from "./node-collapsed-group";
 import { NodeLeaf } from "./node-leaf";
 import { NodeAction } from "./node-action";
 import { NodeExpandedGroupRoot, NodeExpandedGroupSub } from "./node-expanded-group";
@@ -62,37 +62,17 @@ function renderChildNodes(props: NodeProps): ReactNode {
   ));
 }
 
-function renderCollapsedGroupNode(args: {
-  item: AdminNavItem;
-  label: string;
-  isTrailActive: boolean;
-  blockedTooltip: string | null;
-  hoverDropdown: CollapsedDropdownController;
-  children: readonly ResolvedChildItem[];
-  navigateTo: (to: string) => void;
-}) {
-  return (
-    <NodeCollapsedGroup
-      itemKey={args.item.key}
-      label={args.label}
-      Icon={args.item.icon}
-      isTrailActive={args.isTrailActive}
-      isDisabled={Boolean(args.item.disabled)}
-      blockedTooltip={args.blockedTooltip}
-      children={args.children}
-      hoverDropdown={args.hoverDropdown}
-      onNavigate={args.navigateTo}
-    />
-  );
-}
-
 function renderExpandedGroupNode(args: {
   item: AdminNavItem;
   depth: number;
+  isCollapsed: boolean;
   isOpen: boolean;
   isTrailActive: boolean;
   label: string;
   blockedTooltip: string | null;
+  hoverDropdown: CollapsedDropdownController | null;
+  collapsedChildren: readonly ResolvedChildItem[];
+  onNavigate: (to: string) => void;
   childNodes: ReactNode;
   onToggle: () => void;
 }) {
@@ -115,9 +95,13 @@ function renderExpandedGroupNode(args: {
     <NodeExpandedGroupRoot
       item={args.item}
       label={args.label}
+      isCollapsed={args.isCollapsed}
       isOpen={args.isOpen}
       isTrailActive={args.isTrailActive}
       blockedTooltip={args.blockedTooltip}
+      hoverDropdown={args.hoverDropdown}
+      collapsedChildren={args.collapsedChildren}
+      onNavigate={args.onNavigate}
       onToggle={args.onToggle}
     >
       {args.childNodes}
@@ -190,18 +174,6 @@ function NavNodeImpl(
   const blockedTooltip = useBlockedTooltipText(item, props.resolvePermissionName);
   const isTrailActive = props.activeKeys.has(item.key);
 
-  if (props.isCollapsed && props.depth === 0 && hasChildren && props.hoverDropdown) {
-    return renderCollapsedGroupNode({
-      item,
-      label,
-      isTrailActive,
-      blockedTooltip,
-      hoverDropdown: props.hoverDropdown,
-      children: resolveCollapsedChildren(t, item),
-      navigateTo: (to) => void navigate({ to: to as never }),
-    });
-  }
-
   if (!hasChildren && !item.to)
     return renderActionNode(item, props.depth, label, props.isCollapsed);
 
@@ -221,10 +193,14 @@ function NavNodeImpl(
   return renderExpandedGroupNode({
     item,
     depth: props.depth,
+    isCollapsed: props.isCollapsed,
     isOpen,
     isTrailActive,
     label,
     blockedTooltip,
+    hoverDropdown: props.hoverDropdown,
+    collapsedChildren: resolveCollapsedChildren(t, item),
+    onNavigate: (to) => void navigate({ to: to as never }),
     childNodes: renderChildNodes(props),
     onToggle: createExpandedGroupToggle({
       item,

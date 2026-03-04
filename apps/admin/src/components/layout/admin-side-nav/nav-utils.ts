@@ -2,7 +2,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 
 export const NAV_ITEM_HEIGHT_CLASSNAME = "h-10";
 export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
-  "group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto";
+  "group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0!";
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);

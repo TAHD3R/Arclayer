@@ -1,7 +1,7 @@
 import { cn } from "@celestial/lib/utils";
 
 export const INTERACTIVE_TRANSITION_CLASSNAME = cn(
-  "transition-[color,background-color,transform,box-shadow] duration-200 ease-out",
+  "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
   "motion-reduce:transition-none",
 );
 
@@ -19,11 +19,14 @@ export const NAV_ITEM_INTERACTIVE_BG_CLASSNAME = cn(
 export const NAV_ITEM_COLLAPSE_HIDE_CLASSNAME = cn(
   "max-w-full overflow-hidden",
   "transition-[max-width,opacity,transform] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
+  "group-data-[collapsible=icon]:duration-200",
+  "group-data-[collapsible=icon]:w-0",
+  "group-data-[collapsible=icon]:flex-none",
+  "group-data-[collapsible=icon]:ml-0",
   "group-data-[collapsible=icon]:max-w-0",
   "group-data-[collapsible=icon]:opacity-0",
   "group-data-[collapsible=icon]:translate-x-1",
   "group-data-[collapsible=icon]:pointer-events-none",
-  "group-data-[collapsible=icon]:delay-75",
 );
 
 export const DISABLED_ITEM_CLASSNAME = cn(

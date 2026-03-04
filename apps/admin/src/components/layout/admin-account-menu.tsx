@@ -247,7 +247,10 @@ export function AdminAccountMenu() {
     "flex w-full items-center",
     "h-16 py-0",
     "justify-start gap-3 px-5",
-    "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:gap-0",
+    // In collapsed state, sidebar width is 56px and avatar is 40px.
+    // Use padding (animatable) instead of `justify-center` (non-animatable) to keep the avatar centered smoothly.
+    "group-data-[collapsible=icon]:px-2",
+    "group-data-[collapsible=icon]:gap-0",
     "border-0 bg-transparent",
     "rounded-none",
     "text-label-secondary",
@@ -271,29 +274,29 @@ export function AdminAccountMenu() {
         title={isCollapsed ? model.displayName : t("ACCOUNT_TITLE")}
         className={triggerClassName}
       >
-        <Avatar size={40} src={resolveAssetRefToPublicUrlPath(model.avatarUrl) ?? undefined}>
+        <Avatar
+          size={40}
+          className="shrink-0"
+          src={resolveAssetRefToPublicUrlPath(model.avatarUrl) ?? undefined}
+        >
           {initialsFromName(model.displayName)}
         </Avatar>
 
-        {isCollapsed ? null : (
-          <>
-            <div className={cn("min-w-0 text-left flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-              <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
-                {model.displayName}
-              </div>
-              {model.email ? (
-                <div className={cn("truncate text-caption", emailClassName)}>{model.email}</div>
-              ) : null}
-            </div>
+        <div className={cn("min-w-0 text-left flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+          <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
+            {model.displayName}
+          </div>
+          {model.email ? (
+            <div className={cn("truncate text-caption", emailClassName)}>{model.email}</div>
+          ) : null}
+        </div>
 
-            <ChevronDown
-              className={cn(
-                "ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100",
-                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-              )}
-            />
-          </>
-        )}
+        <ChevronDown
+          className={cn(
+            "ml-auto group-data-[collapsible=icon]:ml-0 size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100",
+            NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+          )}
+        />
       </FloatingPanelTrigger>
 
       <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">

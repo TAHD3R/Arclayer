@@ -194,10 +194,9 @@ const TRIGGER_HEIGHT_CLASSNAME = "h-10";
 const triggerShellClassName = cn(
   "group relative",
   "w-full min-w-0",
-  "flex items-center gap-2",
-  "group-data-[collapsible=icon]:flex-col",
-  "group-data-[collapsible=icon]:items-center",
-  "group-data-[collapsible=icon]:gap-1",
+  "flex items-center gap-0",
+  "group-hover:gap-2 group-focus-within:gap-2",
+  "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
 );
 
 const triggerButtonClassName = cn(
@@ -205,11 +204,12 @@ const triggerButtonClassName = cn(
   TRIGGER_HEIGHT_CLASSNAME,
   "min-w-0 flex-1 group-data-[collapsible=icon]:flex-none",
   "flex items-center gap-2",
+  "group-data-[collapsible=icon]:gap-0",
   "rounded-lg pl-1 pr-2 py-1 group-data-[collapsible=icon]:px-0",
   "bg-transparent text-sidebar-foreground",
   "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
   "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-  "transition-colors",
+  "transition-[width,padding,color,background-color] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
   "text-left",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   "group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center",
@@ -221,11 +221,20 @@ const collapseButtonClassName = cn(
   "opacity-0 pointer-events-none",
   "bg-transparent text-sidebar-foreground",
   "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-  "transition-[width,opacity,color,background-color] duration-200 ease-out",
+  "transition-[width,opacity,color,background-color] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
   "group-hover:w-10 group-hover:opacity-100 group-hover:pointer-events-auto",
-  "group-data-[collapsible=icon]:w-10",
-  "group-data-[collapsible=icon]:opacity-100",
-  "group-data-[collapsible=icon]:pointer-events-auto",
+  "group-data-[collapsible=icon]:w-0",
+  "group-data-[collapsible=icon]:opacity-0",
+  "group-data-[collapsible=icon]:pointer-events-none",
+);
+
+const collapsedCollapseButtonClassName = cn(
+  TRIGGER_HEIGHT_CLASSNAME,
+  "w-10",
+  "rounded-lg p-0",
+  "bg-transparent text-sidebar-foreground",
+  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  "transition-[color,background-color,transform] duration-200 ease-out motion-reduce:transition-none",
 );
 
 function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
@@ -238,6 +247,19 @@ function CollapseButton(props: { ariaLabel: string; onClick: () => void; classNa
         e.stopPropagation();
         props.onClick();
       }}
+    >
+      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
+    </button>
+  );
+}
+
+function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={collapsedCollapseButtonClassName}
+      aria-label={props.ariaLabel}
+      onClick={props.onClick}
     >
       <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
     </button>
@@ -308,42 +330,62 @@ export function OrgContextPanel(props: { className?: string }) {
 
   return (
     <DropdownCardRoot open={open} onOpenChange={setOpen}>
-      <div className={cn(triggerShellClassName, props.className)}>
-        <DropdownCardTrigger asChild>
-          <button
-            type="button"
-            aria-label={t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
-            data-state={open ? "open" : "closed"}
-            className={triggerButtonClassName}
-          >
-            <Avatar size={32} className="shrink-0 rounded-md">
-              {firstLetter(selectedOrgName)}
-            </Avatar>
-
-            <div
-              className={cn(
-                "min-w-0 flex-1",
-                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                "group-data-[collapsible=icon]:hidden",
-              )}
+      <div className={cn("w-full min-w-0", props.className)}>
+        <div
+          className={cn(
+            triggerShellClassName,
+            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+          )}
+        >
+          <DropdownCardTrigger asChild>
+            <button
+              type="button"
+              aria-label={t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
+              data-state={open ? "open" : "closed"}
+              className={triggerButtonClassName}
             >
-              <div className="truncate text-callout font-semibold text-foreground">
-                {selectedOrgName}
+              <Avatar size={32} className="shrink-0 rounded-md">
+                {firstLetter(selectedOrgName)}
+              </Avatar>
+
+              <div
+                className={cn(
+                  "min-w-0 flex-1",
+                  NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                  "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
+                )}
+              >
+                <div className="truncate text-callout font-semibold text-foreground">
+                  {selectedOrgName}
+                </div>
               </div>
-            </div>
 
-            <ChevronDown
-              className={cn(
-                "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
-                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                "group-data-[collapsible=icon]:hidden",
-              )}
-              aria-hidden="true"
-            />
-          </button>
-        </DropdownCardTrigger>
+              <ChevronDown
+                className={cn(
+                  "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
+                  NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                )}
+                aria-hidden="true"
+              />
+            </button>
+          </DropdownCardTrigger>
 
-        <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+          <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+        </div>
+
+        <div
+          className={cn(
+            "mt-0 flex justify-center overflow-hidden",
+            "h-0 opacity-0 pointer-events-none",
+            "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+            "group-data-[collapsible=icon]:mt-2",
+            "group-data-[collapsible=icon]:h-10",
+            "group-data-[collapsible=icon]:opacity-100",
+            "group-data-[collapsible=icon]:pointer-events-auto",
+          )}
+        >
+          <CollapsedCollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+        </div>
       </div>
 
       <DropdownCardContent side="bottom" align="start" sideOffset={8} className="w-[360px]">

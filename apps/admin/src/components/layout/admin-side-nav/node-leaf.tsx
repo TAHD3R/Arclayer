@@ -6,11 +6,14 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@celestial/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { WithBlockedTooltip } from "./blocked-tooltip";
-import { isExactMatch } from "./nav-utils";
+import {
+  isExactMatch,
+  NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+  NAV_ITEM_HEIGHT_CLASSNAME,
+} from "./nav-utils";
 import {
   DISABLED_ITEM_CLASSNAME,
   INTERACTIVE_TRANSITION_CLASSNAME,
@@ -18,9 +21,7 @@ import {
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
 } from "./nav-node-styles";
-import { NAV_ITEM_HEIGHT_CLASSNAME } from "./nav-utils";
 import { iconSlot } from "./nav-icon-slot";
-import { CollapsedNavButton } from "./collapsed-nav-button";
 
 type NodeLeafProps = {
   item: AdminNavItem;
@@ -81,7 +82,6 @@ function NodeLeafSub({
 function NodeLeafRoot({
   item,
   depth,
-  isCollapsed,
   label,
   isSelected,
   blockedTooltip,
@@ -89,31 +89,6 @@ function NodeLeafRoot({
   onNavigate,
 }: NodeLeafProps & { onNavigate: (to: string) => void }) {
   const Icon = item.icon;
-
-  if (isCollapsed) {
-    return (
-      <SidebarMenuItem className="group/nav-item">
-        <WithBlockedTooltip tooltip={blockedTooltip}>
-          <Tooltip side="right" align="center">
-            <TooltipTrigger asChild>
-              <CollapsedNavButton
-                label={label}
-                Icon={Icon}
-                isActive={isSelected}
-                isDisabled={Boolean(item.disabled)}
-                onClick={() => {
-                  openChainForKey(item.key);
-                  if (!item.to || item.disabled) return;
-                  onNavigate(item.to);
-                }}
-              />
-            </TooltipTrigger>
-            <TooltipContent>{label}</TooltipContent>
-          </Tooltip>
-        </WithBlockedTooltip>
-      </SidebarMenuItem>
-    );
-  }
 
   return (
     <SidebarMenuItem className="group/nav-item">
@@ -129,8 +104,9 @@ function NodeLeafRoot({
             INTERACTIVE_TRANSITION_CLASSNAME,
             NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
             NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+            NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
             "pl-5",
-            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+            "group-data-[collapsible=icon]:gap-0",
             item.disabled ? DISABLED_ITEM_CLASSNAME : null,
           )}
           onClick={() => {
@@ -139,7 +115,7 @@ function NodeLeafRoot({
             onNavigate(item.to);
           }}
         >
-          {iconSlot(depth, Icon, { isActive: isSelected })}
+          {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
           <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
             {label}
           </span>

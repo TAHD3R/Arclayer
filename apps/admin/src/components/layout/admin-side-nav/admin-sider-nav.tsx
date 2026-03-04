@@ -14,9 +14,9 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@celestial/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
 import {
   NAV_ITEM_HEIGHT_CLASSNAME,
+  NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   buildNavIndex,
   findActiveTrail,
   isExactMatch,
@@ -25,25 +25,26 @@ import {
 } from "./nav-utils";
 import { NavNode } from "./nav-node";
 import { useCollapsedDropdownController } from "./collapsed-dropdown";
-import { CollapsedNavButton } from "./collapsed-nav-button";
 import {
+  INTERACTIVE_TRANSITION_CLASSNAME,
   NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
 } from "./nav-node-styles";
+import { iconSlot } from "./nav-icon-slot";
+
+const SIDEBAR_COLLAPSE_TRANSITION_MS = 400;
 
 const FAVORITE_MENU_BUTTON_CLASSNAME = cn(
   "relative z-10",
   NAV_ITEM_HEIGHT_CLASSNAME,
   "rounded-lg",
-  "transition-[color,background-color,transform,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+  INTERACTIVE_TRANSITION_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   "pl-5",
-  "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+  "group-data-[collapsible=icon]:gap-0",
 );
-
-const SIDEBAR_COLLAPSE_TRANSITION_MS = 400;
 
 function useCollapsedRenderMode(isCollapsed: boolean): boolean {
   const [renderCollapsed, setRenderCollapsed] = useState(isCollapsed);
@@ -135,7 +136,6 @@ function useFavoriteItems(
 function FavoritesSection(props: {
   items: readonly FavoriteItem[];
   pathname: string;
-  isCollapsed: boolean;
   onNavigate: (to: string) => void;
 }) {
   if (props.items.length === 0) return null;
@@ -143,46 +143,28 @@ function FavoritesSection(props: {
     <>
       <SidebarGroup className="p-0 pb-0">
         <SidebarGroupContent>
-          <SidebarMenu className={cn("mb-0! px-0", props.isCollapsed ? "gap-2" : "gap-0")}>
+          <SidebarMenu
+            className={cn(
+              "mb-0! px-0",
+              "gap-0",
+              "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+            )}
+          >
             {props.items.map((fav) => {
               const isSelected = isExactMatch(fav.path, props.pathname);
               const Icon = fav.Icon;
-              if (props.isCollapsed) {
-                return (
-                  <SidebarMenuItem key={fav.path}>
-                    <Tooltip side="right" align="center">
-                      <TooltipTrigger asChild>
-                        <CollapsedNavButton
-                          label={fav.label}
-                          Icon={Icon}
-                          isActive={isSelected}
-                          isDisabled={false}
-                          onClick={() => props.onNavigate(fav.path)}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>{fav.label}</TooltipContent>
-                    </Tooltip>
-                  </SidebarMenuItem>
-                );
-              }
               return (
                 <SidebarMenuItem key={fav.path}>
                   <SidebarMenuButton
                     isActive={isSelected}
                     tooltip={fav.label}
-                    className={FAVORITE_MENU_BUTTON_CLASSNAME}
+                    className={cn(
+                      FAVORITE_MENU_BUTTON_CLASSNAME,
+                      NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+                    )}
                     onClick={() => props.onNavigate(fav.path)}
                   >
-                    {Icon ? (
-                      <span
-                        className="size-5 shrink-0 inline-flex items-center justify-center"
-                        aria-hidden="true"
-                      >
-                        <Icon className="size-full" />
-                      </span>
-                    ) : (
-                      <span className="size-5 shrink-0" aria-hidden="true" />
-                    )}
+                    {iconSlot(0, Icon, { isActive: isSelected, collapseMotion: "shift" })}
                     <span
                       className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}
                     >
@@ -213,7 +195,13 @@ function ItemsSection(props: {
   return (
     <SidebarGroup className="p-0">
       <SidebarGroupContent>
-        <SidebarMenu className={cn("px-0", props.isCollapsed ? "gap-2" : "gap-0.5")}>
+        <SidebarMenu
+          className={cn(
+            "px-0",
+            "gap-0.5",
+            "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+          )}
+        >
           {props.items.map((item) => (
             <Fragment key={item.key}>
               <NavNode
@@ -260,12 +248,7 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
 
   return (
     <nav className={cn("mt-4 mb-8", props.className)}>
-      <FavoritesSection
-        items={favoriteItems}
-        pathname={pathname}
-        isCollapsed={collapsedMode}
-        onNavigate={onNavigate}
-      />
+      <FavoritesSection items={favoriteItems} pathname={pathname} onNavigate={onNavigate} />
       <ItemsSection
         items={props.items}
         pathname={pathname}
