@@ -6,7 +6,6 @@ import { cn } from "@celestial/lib/utils";
 import { TabsList } from "../tabs";
 import { useChromeTabsLabels, useChromeTabsReducedMotion } from "./chrome-tabs-provider";
 
-const INDICATOR_INSET_PX = 32;
 const SCROLL_DELTA_PX = 240;
 const SCROLL_THRESHOLD_PX = 1;
 
@@ -91,8 +90,14 @@ function computeIndicator(container: HTMLElement, active: HTMLElement): Indicato
   const rawX = triggerRect.left - listRect.left + container.scrollLeft;
   const rawWidth = triggerRect.width;
 
-  const width = Math.round(Math.max(0, rawWidth - INDICATOR_INSET_PX * 2));
-  const x = Math.round(rawX + INDICATOR_INSET_PX);
+  const style = window.getComputedStyle(active);
+  const paddingLeft = Number.parseFloat(style.paddingLeft);
+  const paddingRight = Number.parseFloat(style.paddingRight);
+  const insetLeft = Number.isFinite(paddingLeft) ? paddingLeft : 0;
+  const insetRight = Number.isFinite(paddingRight) ? paddingRight : 0;
+
+  const width = Math.round(Math.max(0, rawWidth - insetLeft - insetRight));
+  const x = Math.round(rawX + insetLeft);
 
   return { x, width };
 }
