@@ -1,8 +1,9 @@
-import { Avatar, Button as AntButton, Tag } from "antd";
+import { Avatar, Button as AntButton } from "antd";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
+import { OrgMembershipStatusTag, OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -11,14 +12,7 @@ import {
   DropdownMenuSeparator,
 } from "@celestial/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
-import {
-  builtinRoleLabel,
-  membershipLabel,
-  membershipTagColor,
-  roleTagColor,
-  userStatusLabel,
-  userTagColor,
-} from "../utils";
+import { builtinRoleLabel, membershipLabel, userStatusLabel } from "../utils";
 import { WorkspaceAssociationPopover } from "./workspace-association-popover";
 import { type ResolvedMemberWorkspace } from "../../shared/components/organization-member-workspace-list";
 
@@ -149,9 +143,13 @@ export function createOrganizationMemberColumns({
       meta: { sortKey: "role_code" },
       header: t("common:ORG_MEMBERS_TABLE_ROLE"),
       cell: ({ row }) => (
-        <Tag color={roleTagColor(row.original.role)} className="mr-0!">
-          {roleNameByCode.get(row.original.roleCode) || builtinRoleLabel(t, row.original.role)}
-        </Tag>
+        <OrgRoleTag
+          role={row.original.role}
+          className="mr-0!"
+          label={
+            roleNameByCode.get(row.original.roleCode) || builtinRoleLabel(t, row.original.role)
+          }
+        />
       ),
     },
     {
@@ -164,13 +162,17 @@ export function createOrganizationMemberColumns({
 
         return (
           <div className="flex flex-wrap gap-1">
-            <Tag color={membershipTagColor(item.status)} className="mr-0!">
-              {membershipLabel(t, item.status)}
-            </Tag>
+            <OrgMembershipStatusTag
+              status={item.status}
+              className="mr-0!"
+              label={membershipLabel(t, item.status)}
+            />
             {!isNormal && (
-              <Tag color={userTagColor(item.userStatus)} className="mr-0!">
-                {userStatusLabel(t, item.userStatus)}
-              </Tag>
+              <OrgUserStatusTag
+                status={item.userStatus}
+                className="mr-0!"
+                label={userStatusLabel(t, item.userStatus)}
+              />
             )}
           </div>
         );

@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
-import { Tag } from "antd";
 
 import { ExtensionIcon } from "./extension-icon";
 import { cn } from "@celestial/lib/utils";
+import {
+  ExtensionCategoryTag,
+  ExtensionInstalledTag,
+  ExtensionVersionTag,
+} from "@/components/ui/tags";
 
 import type { InstalledExtensionItem } from "../types";
 import { getExtensionCategory } from "../utils";
@@ -55,8 +59,9 @@ export function ExtensionCard({
             />
           </div>
           <div className="flex items-start gap-1.5">
-            {installed ? <Tag color="green">{t("plugin:EXTENSION_CARD_INSTALLED")}</Tag> : null}
-            {providerLabel ? <Tag>{providerLabel}</Tag> : null}
+            {installed ? (
+              <ExtensionInstalledTag label={t("plugin:EXTENSION_CARD_INSTALLED")} />
+            ) : null}
             {actions ? (
               <div className="shrink-0" onClick={(e) => e.preventDefault()}>
                 {actions}
@@ -75,10 +80,10 @@ export function ExtensionCard({
       ) : null}
 
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
-        {categoryLabel ? <Tag>{categoryLabel}</Tag> : null}
-        {extension.version ? (
-          <Tag>{t("plugin:EXTENSION_CARD_VERSION", { version: extension.version })}</Tag>
-        ) : null}
+        {categoryLabel ? <ExtensionCategoryTag label={categoryLabel} /> : null}
+        <ExtensionVersionTag
+          label={t("plugin:EXTENSION_CARD_VERSION", { version: extension.version })}
+        />
       </div>
     </>
   );

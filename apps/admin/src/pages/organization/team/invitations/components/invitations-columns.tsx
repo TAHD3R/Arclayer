@@ -1,13 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Button as AntButton, Tag } from "antd";
+import { Button as AntButton } from "antd";
 import { Link2Off, RotateCcw } from "lucide-react";
 
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";
 import { renderUserLabel } from "@/pages/_shared/team/components/user-label";
-
-import { toStatusTagColor } from "../constants";
+import { InvitationRoleTag, InvitationStatusTag } from "@/components/ui/tags";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -65,7 +64,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
             <div className="min-w-0">
               <div className="font-medium truncate">{inv.email || "-"}</div>
               <div className="mt-1">
-                <Tag style={{ marginInlineEnd: 0 }}>{roleName || t("common:NA")}</Tag>
+                <InvitationRoleTag label={roleName || t("common:NA")} />
               </div>
             </div>
           );
@@ -81,7 +80,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => {
           const status = row.original.status;
-          return <Tag color={toStatusTagColor(status)}>{invitationStatusLabel(status)}</Tag>;
+          return <InvitationStatusTag status={status} label={invitationStatusLabel(status)} />;
         },
       },
       {
@@ -169,7 +168,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => {
           const status = row.original.status;
-          return <Tag color={toStatusTagColor(status)}>{invitationStatusLabel(status)}</Tag>;
+          return <InvitationStatusTag status={status} label={invitationStatusLabel(status)} />;
         },
       },
       {

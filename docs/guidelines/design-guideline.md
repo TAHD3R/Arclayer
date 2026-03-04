@@ -95,6 +95,20 @@ To avoid style drift across settings and management flows, use the following ove
   `Form`) must provide both `title` and `description`, aligned with the invite-member
   dialog pattern.
 
+### 4.4 Tag usage rules (Admin, mandatory)
+
+Admin uses many tag-like affordances (roles, statuses, counts, asset metadata). To prevent style drift, Tag UI must be implemented through the shared semantic Tag system.
+
+Rules:
+
+- **Do not** hand-roll "Tag" UI using `div`/`span` + Tailwind in feature files.
+- **Do not** import/use Antd `Tag` directly in feature code under `apps/admin/src/**` (only the shared Tag system may use Antd `Tag` internally).
+- Use semantic Tag components from `apps/admin/src/components/ui/tags` (import from the module `index.ts`).
+- When introducing a new tag type, add a new semantic component under `apps/admin/src/components/ui/tags/**` instead of customizing per-call sites.
+- Icon alignment: if a tag includes an icon, render the icon inside the tag content (children) rather than using Antd `Tag`'s `icon` prop. Use `lucide-react` icons via the shared helper (`lucideTagIcon(...)`) for consistent sizing and alignment.
+- Base visuals (padding/weight/border) must follow `BaseTag` defaults (`!px-2 !py-1 !font-semibold !border-border`). Avoid per-call overrides unless there is a clear UX rationale.
+- Exception: "Uploader info capsule" / uploader chips are not Tags; keep the existing dedicated component and do not convert them into semantic Tags.
+
 ## 5. Page Behavior Contracts (Admin)
 
 ### 5.1 Page shell contract
@@ -308,6 +322,7 @@ A UI PR is acceptable only when all relevant items pass:
 - [ ] Sticky table layering is isolated and does not overlap app-level overlays.
 - [ ] Settings interactions follow the inline-first model unless overlay is justified.
 - [ ] Token usage follows `packages/ui/tokens` and avoids style drift.
+- [ ] Tag UI uses the semantic Tag system (`apps/admin/src/components/ui/tags`) and does not reintroduce hand-rolled tag pills or direct Antd `Tag` usage in feature files.
 - [ ] Typography uses semantic classes (`text-body`, `text-footnote`, `text-caption`, etc.) — standard Tailwind size classes (`text-xs`, `text-sm`, etc.) are banned.
 - [ ] Text color uses `text-label-secondary` — no new `text-muted-foreground` usage.
 - [ ] Accessibility baseline (focus, keyboard, labels) is satisfied.

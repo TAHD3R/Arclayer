@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Popconfirm, Tag } from "antd";
+import { Button, Card, Popconfirm } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
 import { ContentGuard } from "@/components/common/content-guard";
+import { LinkedAccountStatusTag } from "@/components/ui/tags";
 import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
 import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
 import GoogleIcon from "@celestial/ui/icons/google-icon";
@@ -179,11 +180,14 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                 </div>
 
                 <div className="shrink-0 flex items-center gap-2">
-                  {row.linked ? (
-                    <Tag color="green">{t("ME_LINKED_ACCOUNTS_CONNECTED")}</Tag>
-                  ) : (
-                    <Tag>{t("ME_LINKED_ACCOUNTS_NOT_CONNECTED")}</Tag>
-                  )}
+                  <LinkedAccountStatusTag
+                    linked={row.linked}
+                    label={
+                      row.linked
+                        ? t("ME_LINKED_ACCOUNTS_CONNECTED")
+                        : t("ME_LINKED_ACCOUNTS_NOT_CONNECTED")
+                    }
+                  />
 
                   {row.linked ? (
                     <Popconfirm

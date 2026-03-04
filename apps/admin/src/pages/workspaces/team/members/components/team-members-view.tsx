@@ -1,9 +1,10 @@
-import { Avatar, Button as AntButton, Input as AntInput, Pagination, Tag } from "antd";
+import { Avatar, Button as AntButton, Input as AntInput, Pagination } from "antd";
 import { MoreVertical, Plus, UserCheck, UserCog, UserX, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
 
 import * as authApi from "@/api/auth";
 import { listMyWorkspaces } from "@/api/workspaces";
@@ -44,14 +45,12 @@ import { TeamMembersDataTable } from "./members-data-table";
 import type { TeamMemberExtraQuery } from "../types";
 import {
   buildTeamMemberExtraQuery,
-  membershipStatusTagColor,
   resolveWorkspaceName,
   sortValueToTableSorting,
   tableSortingToSortValue,
   teamMembersQueryKey,
   teamMembersTableId,
   userInitials,
-  userStatusTagColor,
 } from "../utils";
 
 export function TeamMembersView() {
@@ -265,9 +264,11 @@ export function TeamMembersView() {
           return (
             <div className="flex flex-wrap gap-1">
               {codes.slice(0, 3).map((code) => (
-                <Tag key={code} className="mr-0!">
-                  {roleNameByCode.get(code) ?? code}
-                </Tag>
+                <TeamRoleTag
+                  key={code}
+                  className="mr-0!"
+                  label={roleNameByCode.get(code) ?? code}
+                />
               ))}
               {codes.length > 3 ? (
                 <span className="text-label-secondary text-caption">
@@ -291,21 +292,29 @@ export function TeamMembersView() {
           const isNormal = membership === "active" && user === "active";
           return (
             <div className="flex flex-wrap items-center gap-1">
-              <Tag color={membershipStatusTagColor(membership)} className="mr-0!">
-                {membership === "active"
-                  ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
-                  : membership === "invited"
-                    ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
-                    : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")}
-              </Tag>
+              <TeamMembershipStatusTag
+                status={membership}
+                className="mr-0!"
+                label={
+                  membership === "active"
+                    ? t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")
+                    : membership === "invited"
+                      ? t("team:TEAM_MEMBERSHIP_STATUS_INVITED")
+                      : t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")
+                }
+              />
               {!isNormal && (
-                <Tag color={userStatusTagColor(user)} className="mr-0!">
-                  {user === "active"
-                    ? t("team:TEAM_USER_STATUS_ACTIVE")
-                    : user === "disabled"
-                      ? t("team:TEAM_USER_STATUS_DISABLED")
-                      : t("team:TEAM_USER_STATUS_LOCKED")}
-                </Tag>
+                <TeamUserStatusTag
+                  status={user}
+                  className="mr-0!"
+                  label={
+                    user === "active"
+                      ? t("team:TEAM_USER_STATUS_ACTIVE")
+                      : user === "disabled"
+                        ? t("team:TEAM_USER_STATUS_DISABLED")
+                        : t("team:TEAM_USER_STATUS_LOCKED")
+                  }
+                />
               )}
             </div>
           );

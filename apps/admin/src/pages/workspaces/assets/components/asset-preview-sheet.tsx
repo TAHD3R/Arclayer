@@ -1,4 +1,4 @@
-import { Avatar, Button, Descriptions, Flex, Input, Tag, Tooltip } from "antd";
+import { Avatar, Button, Descriptions, Flex, Input, Tooltip } from "antd";
 import { EllipsisVertical, Plus } from "lucide-react";
 import {
   Accordion,
@@ -50,6 +50,14 @@ import {
   LazyAssetImage,
   tagInputStyle,
 } from "./asset-masonry-tile";
+import {
+  AssetAddTagActionTag,
+  AssetIndexableTag,
+  AssetMimeTag,
+  AssetPurposeTag,
+  AssetUserTagChip,
+  AssetVisibilityTag,
+} from "@/components/ui/tags";
 import {
   useAssetPreviewSheetController,
   type AssetMoreMenuItem,
@@ -289,9 +297,10 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                               key: "mime",
                               label: t("assets:ASSET_META_MIME"),
                               children: (
-                                <Tag title={active.mimeType || undefined}>
-                                  {getMimeLabel(active.mimeType, t)}
-                                </Tag>
+                                <AssetMimeTag
+                                  title={active.mimeType || undefined}
+                                  label={getMimeLabel(active.mimeType, t)}
+                                />
                               ),
                             },
                             {
@@ -311,7 +320,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "visibility",
                               label: t("assets:ASSET_META_VISIBILITY"),
-                              children: <Tag>{getVisibilityLabel(displayVisibility, t)}</Tag>,
+                              children: (
+                                <AssetVisibilityTag
+                                  visibility={displayVisibility}
+                                  label={getVisibilityLabel(displayVisibility, t)}
+                                />
+                              ),
                             },
                           ]}
                         />
@@ -360,9 +374,10 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                               }
                               const isLongTag = tag.name.length > 20;
                               const tagElem = (
-                                <Tag
+                                <AssetUserTagChip
                                   key={tag.id}
-                                  closable
+                                  label={tag.name}
+                                  closable={true}
                                   style={{ userSelect: "none" }}
                                   onClose={(e) => {
                                     e.preventDefault();
@@ -378,7 +393,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                                   >
                                     {isLongTag ? `${tag.name.slice(0, 20)}...` : tag.name}
                                   </span>
-                                </Tag>
+                                </AssetUserTagChip>
                               );
                               return isLongTag ? (
                                 <Tooltip title={tag.name} key={tag.id}>
@@ -400,20 +415,20 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                                 onPressEnter={confirmAddTag}
                               />
                             ) : (
-                              <Tag
+                              <AssetAddTagActionTag
+                                label={
+                                  <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                                    <Plus size={14} />
+                                    <span>{t("assets:ASSET_TAG_NEW")}</span>
+                                  </span>
+                                }
                                 style={{
                                   height: 22,
                                   background: token.colorBgContainer,
-                                  borderStyle: "dashed",
                                   cursor: "pointer",
                                 }}
                                 onClick={() => setInputVisible(true)}
-                              >
-                                <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                                  <Plus size={14} />
-                                  <span>{t("assets:ASSET_TAG_NEW")}</span>
-                                </span>
-                              </Tag>
+                              />
                             )}
                           </Flex>
                           {saveState !== "idle" ? (
@@ -504,12 +519,22 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "purpose",
                               label: t("assets:ASSET_META_PURPOSE"),
-                              children: <Tag>{getPurposeLabel(displayPurpose, t)}</Tag>,
+                              children: (
+                                <AssetPurposeTag
+                                  purpose={displayPurpose}
+                                  label={getPurposeLabel(displayPurpose, t)}
+                                />
+                              ),
                             },
                             {
                               key: "indexable",
                               label: t("assets:ASSET_META_INDEXABLE"),
-                              children: <Tag>{getIndexableLabel(active.indexable, t)}</Tag>,
+                              children: (
+                                <AssetIndexableTag
+                                  indexable={active.indexable}
+                                  label={getIndexableLabel(active.indexable, t)}
+                                />
+                              ),
                             },
                             {
                               key: "id",

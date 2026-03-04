@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Button as AntButton, Tag } from "antd";
+import { Avatar, Button as AntButton } from "antd";
 import { useTranslation } from "react-i18next";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
+import { OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
 
 import type {
   ActivityEvent,
-  OrgRole,
   OrgUserStatus,
   OrganizationMember,
   OrganizationMemberWorkspace,
@@ -64,18 +64,6 @@ type OrganizationMemberInspectSheetProps = {
   onAdjustRole: (member: OrganizationMember) => void;
   onRemoveMember: (member: OrganizationMember) => void;
 };
-
-function roleTagColor(role: OrgRole): string {
-  if (role === "owner") return "gold";
-  if (role === "admin") return "blue";
-  return "default";
-}
-
-function userTagColor(status: OrgUserStatus): string {
-  if (status === "active") return "green";
-  if (status === "disabled") return "red";
-  return "gold";
-}
 
 function userStatusLabel(
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -224,12 +212,16 @@ export function OrganizationMemberInspectSheet({
                   </div>
 
                   <div className="flex flex-wrap justify-end gap-1">
-                    <Tag color={roleTagColor(member.role)} className="!mr-0">
-                      {roleDetail?.name || t(`common:ORG_ROLE_${member.role.toUpperCase()}`)}
-                    </Tag>
-                    <Tag color={userTagColor(member.userStatus)} className="!mr-0">
-                      {userStatusLabel(t, member.userStatus)}
-                    </Tag>
+                    <OrgRoleTag
+                      role={member.role}
+                      className="!mr-0"
+                      label={roleDetail?.name || t(`common:ORG_ROLE_${member.role.toUpperCase()}`)}
+                    />
+                    <OrgUserStatusTag
+                      status={member.userStatus}
+                      className="!mr-0"
+                      label={userStatusLabel(t, member.userStatus)}
+                    />
                   </div>
                 </div>
               </div>

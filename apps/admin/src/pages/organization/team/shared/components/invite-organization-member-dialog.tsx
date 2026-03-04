@@ -1,10 +1,11 @@
 import { Controller, useForm } from "react-hook-form";
-import { Button as AntButton, Form, Select, Tag } from "antd";
+import { Button as AntButton, Form, Select } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { z } from "zod";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import { EmailInputTag } from "@/components/ui/tags";
 
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
@@ -214,14 +215,13 @@ export function InviteOrganizationMemberDialog(props: {
                   const message = invalidEmailMessageByValue.get(value) ?? null;
 
                   const tag = (
-                    <Tag
-                      color={message ? "error" : "default"}
-                      closable={tagProps.closable}
+                    <EmailInputTag
+                      invalid={Boolean(message)}
+                      closable={Boolean(tagProps.closable)}
                       onClose={tagProps.onClose}
                       className="!mr-0"
-                    >
-                      {tagProps.label}
-                    </Tag>
+                      label={tagProps.label}
+                    />
                   );
 
                   return message ? (

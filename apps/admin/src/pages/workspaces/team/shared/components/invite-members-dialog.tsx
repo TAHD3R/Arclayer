@@ -1,6 +1,6 @@
 "use client";
 
-import { Button as AntButton, Input, Select, Tag } from "antd";
+import { Button as AntButton, Input, Select } from "antd";
 import { UserPlus } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -15,6 +15,7 @@ import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { EmailInputTag } from "@/components/ui/tags";
 
 type FormValues = {
   emails: string[];
@@ -322,14 +323,13 @@ export function InviteMembersDialog(props: {
                 const onClose = tagProps.onClose;
 
                 const tag = (
-                  <Tag
-                    color={message ? "error" : "default"}
+                  <EmailInputTag
+                    invalid={Boolean(message)}
                     closable={closable}
                     onClose={onClose}
                     className="!mr-0"
-                  >
-                    {tagProps.label}
-                  </Tag>
+                    label={tagProps.label}
+                  />
                 );
 
                 return message ? (

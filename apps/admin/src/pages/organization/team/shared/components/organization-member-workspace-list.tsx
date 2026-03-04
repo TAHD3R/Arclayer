@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Avatar, Input, Tag } from "antd";
+import { Avatar, Input } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { OrganizationMemberWorkspace } from "@/types/api";
+import { TeamRoleTag } from "@/components/ui/tags";
 import { cn } from "@celestial/lib/utils";
 
 export type ResolvedMemberWorkspace = OrganizationMemberWorkspace & {
@@ -109,9 +110,10 @@ export function OrganizationMemberWorkspaceList({
                   <div className="min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="truncate font-medium">{title}</div>
-                      <Tag className="!mr-0">
-                        {roleSummary(roleNameByCode, workspace.roleCodes)}
-                      </Tag>
+                      <TeamRoleTag
+                        className="!mr-0"
+                        label={roleSummary(roleNameByCode, workspace.roleCodes)}
+                      />
                     </div>
 
                     <div className="mt-0.5 truncate text-label-secondary">{desc}</div>

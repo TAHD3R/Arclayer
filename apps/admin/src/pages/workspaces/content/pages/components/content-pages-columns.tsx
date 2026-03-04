@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Avatar, Tag } from "antd";
+import { Avatar } from "antd";
 import { Copy, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@celestial/ui/button";
@@ -14,6 +14,7 @@ import {
 
 import type { ContentPageRow } from "../types";
 import { resolveDisplayName } from "../utils";
+import { ContentPagePathTag, ContentPageStatusTag, ContentPageTypeTag } from "@/components/ui/tags";
 
 type BuildContentPagesColumnsOptions = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -30,11 +31,14 @@ function renderStatusTag(
   t: (key: string, options?: Record<string, unknown>) => string,
 ) {
   return (
-    <Tag color={status === "published" ? "green" : "gold"} style={{ marginInlineEnd: 0 }}>
-      {status === "published"
-        ? t("content_pages:INDEX_STATUS_PUBLISHED")
-        : t("content_pages:INDEX_STATUS_DRAFT")}
-    </Tag>
+    <ContentPageStatusTag
+      status={status}
+      label={
+        status === "published"
+          ? t("content_pages:INDEX_STATUS_PUBLISHED")
+          : t("content_pages:INDEX_STATUS_DRAFT")
+      }
+    />
   );
 }
 
@@ -143,12 +147,10 @@ export function buildContentPagesColumns(
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1 grid gap-1">
                 <div className="font-medium truncate">{displayName}</div>
-                <Tag
-                  style={{ marginInlineEnd: 0 }}
+                <ContentPagePathTag
                   className="w-fit max-w-full truncate align-middle justify-self-start"
-                >
-                  {item.path}
-                </Tag>
+                  label={item.path}
+                />
 
                 {item.description ? (
                   <div className="text-label-secondary text-caption truncate">
@@ -174,14 +176,14 @@ export function buildContentPagesColumns(
       },
       header: options.t("content_pages:INDEX_COL_TYPE"),
       cell: ({ row }) => (
-        <Tag
-          color={row.original.pageType === "template" ? "purple" : "blue"}
-          style={{ marginInlineEnd: 0 }}
-        >
-          {row.original.pageType === "template"
-            ? options.t("content_pages:INDEX_TYPE_TEMPLATE")
-            : options.t("content_pages:INDEX_TYPE_STATIC")}
-        </Tag>
+        <ContentPageTypeTag
+          pageType={row.original.pageType}
+          label={
+            row.original.pageType === "template"
+              ? options.t("content_pages:INDEX_TYPE_TEMPLATE")
+              : options.t("content_pages:INDEX_TYPE_STATIC")
+          }
+        />
       ),
       enableSorting: false,
       size: 100,

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
+import { SysRevisionActiveTag } from "@/components/ui/tags";
 
 import {
   activateSysConfigRevision,
@@ -343,9 +344,7 @@ export function SysSettingsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="font-mono text-[12px] truncate">{rev.id}</div>
                       {isActive ? (
-                        <div className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                          {t("sys:SYS_REVISION_ACTIVE")}
-                        </div>
+                        <SysRevisionActiveTag label={t("sys:SYS_REVISION_ACTIVE")} />
                       ) : null}
                     </div>
                     <div className="mt-1 text-[12px] text-label-secondary">

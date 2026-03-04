@@ -1,10 +1,11 @@
-import { Button, Card, Segmented, Space, Tag, message } from "antd";
+import { Button, Card, Segmented, Space, message } from "antd";
 import type { ComponentType, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "@tanstack/react-router";
 
 import { DefaultPage } from "@/components/common/default-page";
+import { DebugHttpStatusTag, ReducedMotionTag } from "@/components/ui/tags";
 import {
   Illust401LockedTerminal,
   Illust403ForbiddenGateway,
@@ -48,7 +49,7 @@ function ResultPreviewCard(props: { entry: PreviewEntry; previewWidth: PreviewWi
     <Card className="h-full">
       <div className="flex items-center justify-between gap-3">
         <div className="text-footnote text-label-secondary">HTTP {props.entry.status}</div>
-        <Tag>{props.entry.status}</Tag>
+        <DebugHttpStatusTag label={props.entry.status} />
       </div>
 
       <div className="mt-4">
@@ -221,11 +222,14 @@ export function IllustrationsDebugPage() {
       description={t("debug:ILLUSTRATIONS_DEBUG_DESC")}
       action={
         <Space wrap align="center">
-          <Tag color={reducedMotion ? "default" : "green"}>
-            {reducedMotion
-              ? t("debug:ILLUSTRATIONS_REDUCED_MOTION_ON")
-              : t("debug:ILLUSTRATIONS_REDUCED_MOTION_OFF")}
-          </Tag>
+          <ReducedMotionTag
+            enabled={reducedMotion}
+            label={
+              reducedMotion
+                ? t("debug:ILLUSTRATIONS_REDUCED_MOTION_ON")
+                : t("debug:ILLUSTRATIONS_REDUCED_MOTION_OFF")
+            }
+          />
           <Space size={6} align="center">
             <span className="text-footnote text-label-secondary">
               {t("debug:ILLUSTRATIONS_PREVIEW_WIDTH")}
@@ -261,7 +265,7 @@ export function IllustrationsDebugPage() {
               <Card key={status}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-footnote text-label-secondary">HTTP {status}</div>
-                  <Tag>{status}</Tag>
+                  <DebugHttpStatusTag label={status} />
                 </div>
                 <div className="mt-4">
                   <Illustration className="w-full max-w-none" />
@@ -276,7 +280,7 @@ export function IllustrationsDebugPage() {
           <Card>
             <div className="flex items-center justify-between gap-3">
               <div className="text-footnote text-label-secondary">{t("common:EMPTY_TITLE")}</div>
-              <Tag>EMPTY</Tag>
+              <DebugHttpStatusTag label="EMPTY" />
             </div>
             <div className="mt-4">
               <div className={cn("mx-auto w-full", emptyWidthClassName)}>

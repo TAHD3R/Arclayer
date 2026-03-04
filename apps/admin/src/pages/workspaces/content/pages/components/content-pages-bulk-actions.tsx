@@ -1,5 +1,6 @@
 import { Button } from "antd";
 import { AnimatePresence, motion } from "motion/react";
+import { SelectedCountTag } from "@/components/ui/tags";
 
 type ContentPagesBulkActionsProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -29,9 +30,11 @@ export function ContentPagesBulkActions(props: ContentPagesBulkActionsProps) {
           <div className="pointer-events-auto w-full border-t border-border bg-card shadow-[0_-16px_30px_-24px_rgba(0,0,0,0.28)]">
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-footnote font-semibold">
-                  {props.t("content_pages:BULK_SELECTED_COUNT", { count: props.selectedCount })}
-                </span>
+                <SelectedCountTag
+                  label={props.t("content_pages:BULK_SELECTED_COUNT", {
+                    count: props.selectedCount,
+                  })}
+                />
                 <Button type="text" onClick={props.onClearSelection} autoInsertSpace={false}>
                   {props.t("content_pages:BULK_CLEAR_SELECTION")}
                 </Button>

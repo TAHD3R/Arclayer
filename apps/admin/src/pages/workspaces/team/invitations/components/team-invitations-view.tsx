@@ -1,5 +1,5 @@
 "use client";
-import { Button as AntButton, Tag } from "antd";
+import { Button as AntButton } from "antd";
 import { Link2Off, Plus, RotateCcw } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +34,7 @@ import { renderUserLabel } from "@/pages/_shared/team/components/user-label";
 import type { RenewExpiresInSeconds, TabKey } from "../types";
 import { TeamInvitationsTableSection } from "@/pages/_shared/team/components/team-invitations-table-section";
 import { TeamInvitationsDialogs } from "./invitations-dialogs";
+import { InvitationRoleTag, InvitationStatusTag } from "@/components/ui/tags";
 
 export function TeamInvitationsView(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "nav", "common"]);
@@ -181,7 +182,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             <div className="min-w-0">
               <div className="font-medium truncate">{inv.email || "-"}</div>
               <div className="mt-1">
-                <Tag style={{ marginInlineEnd: 0 }}>{roleName || t("common:NA")}</Tag>
+                <InvitationRoleTag label={roleName || t("common:NA")} />
               </div>
             </div>
           );
@@ -200,15 +201,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => {
           const status = row.original.status;
-          const color =
-            status === "accepted"
-              ? "green"
-              : status === "revoked"
-                ? "red"
-                : status === "expired"
-                  ? "gold"
-                  : "blue";
-          return <Tag color={color}>{renderInvitationStatus(status)}</Tag>;
+          return <InvitationStatusTag status={status} label={renderInvitationStatus(status)} />;
         },
       },
       {

@@ -5,6 +5,7 @@ import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { RouteTransition } from "@/components/layout/route-transition";
+import { DevEnvTag } from "@/components/ui/tags";
 
 export function DevLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
@@ -15,7 +16,7 @@ export function DevLayout({ children }: PropsWithChildren) {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
             <AdminFullLogo to="/" ariaLabel="Celestial CMS" width={120} />
-            <div className="rounded-md bg-primary/10 px-2 py-1 text-caption text-primary">DEV</div>
+            <DevEnvTag label="DEV" />
             <div className="text-footnote text-label-secondary">{t("debug:DEV_TOOLS_TITLE")}</div>
           </div>
           <div className="flex items-center gap-2">

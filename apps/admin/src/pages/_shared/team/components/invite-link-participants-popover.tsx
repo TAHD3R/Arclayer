@@ -1,4 +1,4 @@
-import { Button, Input, List, Pagination, Popover, Tag } from "antd";
+import { Button, Input, List, Pagination, Popover } from "antd";
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import type { TeamInviteLinkParticipant, TeamUserRef } from "@/types/api";
 import { LoaderOne } from "@celestial/ui/loader";
 import { notifyError } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { UsesCountTag } from "@/components/ui/tags";
 
 import { UserLabel } from "./user-label";
 
@@ -73,9 +74,7 @@ export function InviteLinkParticipantsPopover(props: {
         <div className="text-footnote font-medium">
           {t("team:TEAM_INVITE_LINKS_PARTICIPANT_POPOVER_TITLE")}
         </div>
-        <Tag color="blue" style={{ marginInlineEnd: 0 }}>
-          {props.usesCount}
-        </Tag>
+        <UsesCountTag label={props.usesCount} />
       </div>
 
       <div className="mt-2">
@@ -165,9 +164,7 @@ export function InviteLinkParticipantsPopover(props: {
         className="flex items-center gap-2 min-w-0 text-left hover:opacity-90"
         aria-label={t("team:TEAM_INVITE_LINKS_ACTION_VIEW_PARTICIPANTS")}
       >
-        <Tag color="blue" style={{ marginInlineEnd: 0 }}>
-          {props.usesCount}
-        </Tag>
+        <UsesCountTag label={props.usesCount} />
         <div className="min-w-0">
           <UserLabel user={props.primaryUser} />
         </div>
