@@ -1,6 +1,7 @@
 export * from "./types";
 export * from "./use-data-table";
 export * from "./use-data-table-core";
+export * from "./use-data-table-density-preference";
 export * from "./data-table-presenter";
 export * from "./data-table-toolbar-tools";
 export * from "./data-table-column-settings-card";

@@ -601,6 +601,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={pendingTable}
+            tableId={workspaceId ? `team-invitations:${workspaceId}` : "team-invitations"}
             placeholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
@@ -611,6 +612,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={acceptedTable}
+            tableId={workspaceId ? `team-invitations:${workspaceId}` : "team-invitations"}
             placeholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
@@ -621,6 +623,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={linksTable}
+            tableId={workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links"}
             placeholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}

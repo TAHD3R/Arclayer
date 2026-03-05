@@ -107,7 +107,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   const initialOrderRef = useRef<string[] | null>(null);
   const leafIdsRef = useRef<readonly string[] | null>(null);
   const lastValidOverHeaderIdRef = useRef<string | null>(null);
-  const lastPreviewOverIdRef = useRef<string | null>(null);
 
   const measureColumnWidth = useCallback((columnId: string): number | null => {
     const root = scrollRef.current;
@@ -129,7 +128,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
       initialOrderRef.current = [...normalizedOrder];
       leafIdsRef.current = table.getAllLeafColumns().map((c) => c.id);
       lastValidOverHeaderIdRef.current = null;
-      lastPreviewOverIdRef.current = null;
       setActiveHeaderId(id);
       setActiveOverlayWidth(measureColumnWidth(id));
     },
@@ -153,7 +151,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
       initialOrderRef.current = null;
       leafIdsRef.current = null;
       lastValidOverHeaderIdRef.current = null;
-      lastPreviewOverIdRef.current = null;
 
       if (!initialOrder) return;
 
@@ -252,18 +249,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               if (activePinned !== overPinned) return;
 
               lastValidOverHeaderIdRef.current = nextOverId;
-
-              if (lastPreviewOverIdRef.current === nextOverId) return;
-              lastPreviewOverIdRef.current = nextOverId;
-
-              const leafIds = leafIdsRef.current ?? table.getAllLeafColumns().map((c) => c.id);
-              const currentOrder = normalizeDataTableColumnOrder(
-                leafIds,
-                table.getState().columnOrder ?? [],
-              );
-              table.setColumnOrder(
-                moveDataTableColumnInUnlockedZone(currentOrder, nextActiveId, nextOverId),
-              );
             }}
             onDragEnd={onHeaderDragEnd}
             onDragCancel={() => {
@@ -275,7 +260,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               initialOrderRef.current = null;
               leafIdsRef.current = null;
               lastValidOverHeaderIdRef.current = null;
-              lastPreviewOverIdRef.current = null;
               if (initialOrder) table.setColumnOrder(initialOrder);
             }}
           >

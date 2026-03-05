@@ -96,6 +96,7 @@ export function OrganizationTeamInvitationsView() {
           <TeamInvitationsTableSection
             t={t}
             tableHook={pendingTable}
+            tableId="organization-invitations:pending"
             placeholder={t("team:TEAM_INVITATIONS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("common:EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
@@ -107,6 +108,7 @@ export function OrganizationTeamInvitationsView() {
           <TeamInvitationsTableSection
             t={t}
             tableHook={processedTable}
+            tableId="organization-invitations:processed"
             placeholder={t("team:TEAM_INVITATIONS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("common:EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
@@ -118,6 +120,7 @@ export function OrganizationTeamInvitationsView() {
           <TeamInvitationsTableSection
             t={t}
             tableHook={linksTable}
+            tableId="organization-invite-links"
             placeholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("common:EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}

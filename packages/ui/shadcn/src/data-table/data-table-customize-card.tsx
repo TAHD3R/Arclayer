@@ -176,11 +176,7 @@ export function DataTableCustomizeCard<TData>(props: {
         </span>
       </DropdownCardTrigger>
 
-      <DropdownCardContent
-        align="end"
-        sideOffset={8}
-        className="w-[720px] max-w-[92vw] data-[state=open]:animate-none data-[state=closed]:animate-none"
-      >
+      <DropdownCardContent align="end" sideOffset={8} className="w-[720px] max-w-[92vw]">
         <DropdownCardHeader className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-headline">{props.labels.customizeTitle}</div>

@@ -21,7 +21,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import {
   DataTableToolbarTools,
-  type DataTableDensity,
+  useDataTableDensityPreference,
   useDataTable,
 } from "@celestial/ui/data-table";
 import {
@@ -68,7 +68,11 @@ export function TeamMembersView() {
 
   const [sort, setSort] = React.useState<TeamMemberSort>(DEFAULT_TEAM_MEMBER_SORT);
 
-  const [density, setDensity] = React.useState<DataTableDensity>("default");
+  const dataTableId = React.useMemo(
+    () => teamMembersTableId(workspaceId ? String(workspaceId) : null),
+    [workspaceId],
+  );
+  const [density, setDensity] = useDataTableDensityPreference({ tableId: dataTableId });
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
 
@@ -349,7 +353,7 @@ export function TeamMembersView() {
     TeamMember,
     { status?: TeamMember["membershipStatus"]; userStatus?: UserStatus; roleCode?: string }
   >({
-    tableId: teamMembersTableId(workspaceId ? String(workspaceId) : null),
+    tableId: dataTableId,
     columns,
     extraQuery,
     orderingOverride: sort,

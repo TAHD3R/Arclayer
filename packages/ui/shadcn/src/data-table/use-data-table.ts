@@ -8,6 +8,7 @@ import {
   clearVisibilityState,
   readVisibilityState,
   writeVisibilityState,
+  type DataTablePreferencesStorageOptions,
   type DataTableVisibilityStorageOptions,
 } from "./storage";
 import type {
@@ -17,6 +18,13 @@ import type {
   PageData,
 } from "./types";
 import { useDataTableCore } from "./use-data-table-core";
+import { useDataTableColumnOrderPreference } from "./use-data-table-column-order-preference";
+import {
+  buildRequestParams,
+  normalizeSearchDefault,
+  resolveDefaultColumnVisibility,
+  stableStringify,
+} from "./use-data-table-utils";
 
 export type UseDataTableOptions<
   TData,
@@ -54,6 +62,7 @@ export type UseDataTableOptions<
   >;
   storage?: {
     visibility?: DataTableVisibilityStorageOptions;
+    preferences?: DataTablePreferencesStorageOptions;
   };
 };
 
@@ -87,78 +96,6 @@ export type UseDataTableResult<TData, TExtraQuery extends Record<string, unknown
   resetColumnVisibility: () => void;
 };
 
-type ColumnMeta = { defaultHidden?: boolean };
-
-function resolveColumnId<TData>(column: ColumnDef<TData, unknown>): string | null {
-  if (typeof column.id === "string" && column.id.trim()) return column.id.trim();
-  if (
-    "accessorKey" in column &&
-    typeof column.accessorKey === "string" &&
-    column.accessorKey.trim()
-  ) {
-    return column.accessorKey.trim();
-  }
-  return null;
-}
-
-function resolveDefaultColumnVisibility<TData>(
-  columns: readonly ColumnDef<TData, unknown>[],
-): VisibilityState {
-  const state: VisibilityState = {};
-
-  const visit = (defs: readonly ColumnDef<TData, unknown>[]) => {
-    for (const col of defs) {
-      const meta = col.meta as ColumnMeta | undefined;
-      const colId = resolveColumnId(col);
-      if (colId && meta?.defaultHidden) state[colId] = false;
-
-      if ("columns" in col && Array.isArray(col.columns) && col.columns.length) {
-        visit(col.columns as readonly ColumnDef<TData, unknown>[]);
-      }
-    }
-  };
-
-  visit(columns);
-  return state;
-}
-
-function normalizeSearchDefault(input: string): string {
-  return input.trim();
-}
-
-function buildRequestParams<TExtraQuery extends Record<string, unknown>>(
-  base: DataTableBaseQuery,
-  mapped: Partial<TExtraQuery>,
-  extra: Partial<TExtraQuery>,
-): DataTableBaseQuery & Partial<TExtraQuery> {
-  // Base query wins on collisions (page/size/q/ordering should be controlled by the table hook).
-  return { ...extra, ...mapped, ...base };
-}
-
-function stableStringify(value: unknown): string {
-  const seen = new WeakSet<object>();
-  const normalize = (v: unknown): unknown => {
-    if (v === null) return null;
-    if (typeof v !== "object") return v;
-    if (v instanceof Date) return v.toISOString();
-    if (Array.isArray(v)) return v.map((item) => normalize(item));
-    if (seen.has(v as object)) return "[Circular]";
-    seen.add(v as object);
-    const obj = v as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(obj).sort()) {
-      out[key] = normalize(obj[key]);
-    }
-    return out;
-  };
-
-  try {
-    return JSON.stringify(normalize(value));
-  } catch {
-    return String(value);
-  }
-}
-
 export function useDataTable<
   TData,
   TExtraQuery extends Record<string, unknown> = Record<string, unknown>,
@@ -184,9 +121,20 @@ export function useDataTable<
     [storage?.visibility],
   );
 
+  const preferencesStorage = React.useMemo<DataTablePreferencesStorageOptions | undefined>(
+    () => storage?.preferences,
+    [storage?.preferences],
+  );
+
   const skipNextVisibilityPersistRef = React.useRef(false);
 
   const defaultVisibility = React.useMemo(() => resolveDefaultColumnVisibility(columns), [columns]);
+
+  const columnOrderPreference = useDataTableColumnOrderPreference({
+    tableId,
+    columns,
+    storage: preferencesStorage,
+  });
 
   const initialVisibility = React.useMemo<VisibilityState | undefined>(() => {
     const persisted = readVisibilityState(tableId, visibilityStorage);
@@ -219,6 +167,7 @@ export function useDataTable<
       q: initialState?.q,
       columnVisibility: initialVisibility,
       columnPinning: initialState?.columnPinning,
+      columnOrder: columnOrderPreference.initialColumnOrder,
     },
     rowSelection: {
       enabled: rowSelection?.enabled,
@@ -228,6 +177,7 @@ export function useDataTable<
     features,
     onSortingChange,
     onColumnVisibilityChange,
+    onColumnOrderChange: columnOrderPreference.onColumnOrderChange,
   });
 
   // Search input (debounced commit).

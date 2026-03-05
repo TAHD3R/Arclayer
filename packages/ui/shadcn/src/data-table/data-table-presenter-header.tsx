@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { flexRender, type Header, type Table as ReactTable } from "@tanstack/react-table";
+import type { CSSProperties } from "react";
 
 import { cn } from "@celestial/lib/utils";
 import { TableHead, TableHeader, TableRow } from "@celestial/ui/table";
@@ -87,6 +88,13 @@ function SortableHeaderCell<TData>(props: {
     ? null
     : flexRender(header.column.columnDef.header, header.getContext());
 
+  const cellTransform = toTransformStyle(sortable.transform ?? null);
+  const cellStyle = {
+    ...pinStyle.style,
+    transform: cellTransform,
+    transition: sortable.transition,
+  } as CSSProperties;
+
   return (
     <TableHead
       ref={sortable.setNodeRef}
@@ -96,7 +104,7 @@ function SortableHeaderCell<TData>(props: {
       className={cn(
         alignClass,
         pinStyle.className,
-        "uppercase! tracking-wider text-label-secondary select-none",
+        "!uppercase tracking-wider text-label-secondary select-none",
         resolveHeaderDensityClass(props.density),
         selectColumn ? "px-0" : "",
         over ? "bg-muted/60 ring-1 ring-ring/40 shadow-sm" : "",
@@ -106,7 +114,7 @@ function SortableHeaderCell<TData>(props: {
         "transition-[background-color,box-shadow,opacity] duration-150",
         props.headerCellClassName?.(header),
       )}
-      style={pinStyle.style}
+      style={cellStyle}
       data-pinned={pinned ? String(pinned) : undefined}
       onMouseEnter={() => {
         if (!leaf) return;
@@ -124,10 +132,6 @@ function SortableHeaderCell<TData>(props: {
               "flex h-full w-full items-center max-w-full select-none",
               dragDisabled ? "opacity-80" : "cursor-grab active:cursor-grabbing",
             )}
-            style={{
-              transform: toTransformStyle(sortable.transform ?? null),
-              transition: sortable.transition,
-            }}
             {...dndAttributes}
             {...sortable.listeners}
           >
@@ -155,10 +159,6 @@ function SortableHeaderCell<TData>(props: {
               "flex h-full w-full items-center max-w-full select-none",
               dragDisabled ? "opacity-80" : "cursor-grab active:cursor-grabbing",
             )}
-            style={{
-              transform: toTransformStyle(sortable.transform ?? null),
-              transition: sortable.transition,
-            }}
             {...dndAttributes}
             {...sortable.listeners}
           >
@@ -197,7 +197,7 @@ function StaticHeaderCell<TData>(props: {
       className={cn(
         alignClass,
         pinStyle.className,
-        "uppercase! tracking-wider text-label-secondary select-none",
+        "!uppercase tracking-wider text-label-secondary select-none",
         resolveHeaderDensityClass(props.density),
         selectColumn ? "px-0" : "",
         "transition-[background-color,box-shadow,opacity] duration-150",

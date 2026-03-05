@@ -45,6 +45,7 @@ export type UseDataTableCoreOptions<TData> = {
   };
   features?: DataTableFeatureOptions;
   onColumnVisibilityChange?: (next: VisibilityState) => void;
+  onColumnOrderChange?: (next: ColumnOrderState) => void;
   onSortingChange?: (next: SortingState, ordering: string | undefined) => void;
 };
 
@@ -61,7 +62,7 @@ export type UseDataTableCoreResult<TData> = {
 export function useDataTableCore<TData>(
   options: UseDataTableCoreOptions<TData>,
 ): UseDataTableCoreResult<TData> {
-  const { onColumnVisibilityChange, onSortingChange } = options;
+  const { onColumnVisibilityChange, onSortingChange, onColumnOrderChange } = options;
 
   const sortingOptions = options.features?.sorting;
   const sortingEnabled = sortingOptions?.enabled ?? true;
@@ -149,6 +150,17 @@ export function useDataTableCore<TData>(
     [onColumnVisibilityChange],
   );
 
+  const handleColumnOrderChange: OnChangeFn<ColumnOrderState> = React.useCallback(
+    (updater) => {
+      setColumnOrder((prev) => {
+        const next = applyUpdater(updater, prev);
+        onColumnOrderChange?.(next);
+        return next;
+      });
+    },
+    [onColumnOrderChange],
+  );
+
   const handlePaginationChange: OnChangeFn<PaginationState> = React.useCallback(
     (updater) => {
       setPagination((prev) => {
@@ -211,7 +223,7 @@ export function useDataTableCore<TData>(
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnPinningChange: setColumnPinning,
-    onColumnOrderChange: setColumnOrder,
+    onColumnOrderChange: handleColumnOrderChange,
     onColumnSizingChange: setColumnSizing,
     onExpandedChange: setExpanded,
     onRowSelectionChange: setRowSelection,

@@ -1,14 +1,13 @@
 import { Input, Pagination } from "antd";
 import { type Table } from "@tanstack/react-table";
 import { Search } from "lucide-react";
-import * as React from "react";
 
 import { ContentGuard } from "@/components/common/content-guard";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import {
   DataTablePresenter,
   DataTableToolbarTools,
-  type DataTableDensity,
+  useDataTableDensityPreference,
 } from "@celestial/ui/data-table";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
@@ -34,6 +33,7 @@ interface DataTableLike<TRow> {
 
 interface TeamInvitationsTableSectionProps<TRow> {
   tableHook: DataTableLike<TRow>;
+  tableId: string;
   placeholder: string;
   emptyTitle: string;
   emptyDescription: string;
@@ -46,7 +46,7 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
   const empty = !tableHook.isLoading && tableHook.items.length === 0;
   const table = tableHook.table;
   const pageData = tableHook.pageData;
-  const [density, setDensity] = React.useState<DataTableDensity>("default");
+  const [density, setDensity] = useDataTableDensityPreference({ tableId: props.tableId });
 
   const toolbarLeft = showSearch ? (
     <div className="flex-1 min-w-0">

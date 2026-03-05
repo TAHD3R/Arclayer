@@ -21,7 +21,7 @@ import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-t
 import {
   DataTablePresenter,
   DataTableToolbarTools,
-  type DataTableDensity,
+  useDataTableDensityPreference,
   useDataTable,
 } from "@celestial/ui/data-table";
 import { Button as UiButton } from "@celestial/ui/button";
@@ -84,7 +84,11 @@ export function ContentPagesView() {
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const navigate = useNavigate();
   const dateTime = useAdminDateTimeFormatter({ workspaceId });
-  const [density, setDensity] = React.useState<DataTableDensity>("default");
+  const dataTableId = React.useMemo(
+    () => tableId(workspaceId ? String(workspaceId) : null),
+    [workspaceId],
+  );
+  const [density, setDensity] = useDataTableDensityPreference({ tableId: dataTableId });
 
   const [filters, setFilters] = React.useState<ContentPagesFilters>({
     status: "all",
@@ -225,7 +229,7 @@ export function ContentPagesView() {
         : ContentPagesFilters["visibility"];
     }
   >({
-    tableId: tableId(workspaceId ? String(workspaceId) : null),
+    tableId: dataTableId,
     columns,
     extraQuery,
     rowSelection: {
