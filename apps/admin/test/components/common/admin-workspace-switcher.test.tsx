@@ -231,6 +231,23 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
     expect(trigger).not.toHaveAttribute("title");
   });
 
+  it("workspace scope: trigger shows tooltip on hover", async () => {
+    const user = userEvent.setup();
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await screen.findByText("Workspace Alpha");
+
+    await user.hover(trigger);
+    await waitFor(() => {
+      const tooltip = document.querySelector('[data-slot="tooltip-content"]');
+      expect(tooltip).toBeTruthy();
+      expect(tooltip).toHaveTextContent("Workspace Alpha");
+    });
+  });
+
   it("workspace scope: trigger avatar uses square shape and organization logo", async () => {
     vi.mocked(listMyOrganizations).mockResolvedValue({
       items: [
