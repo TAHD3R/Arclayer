@@ -68,6 +68,8 @@ const [LocalTooltipProvider, useTooltip] =
 
 type TooltipPosition = { x: number; y: number };
 
+const TOOLTIP_OVERLAY_Z_INDEX = 100;
+
 function getResolvedSide(placement: Side | `${Side}-${Align}`) {
   if (placement.includes("-")) {
     return placement.split("-")[0] as Side;
@@ -281,7 +283,7 @@ function TooltipOverlay() {
               position: strategy,
               top: 0,
               left: 0,
-              zIndex: 50,
+              zIndex: TOOLTIP_OVERLAY_Z_INDEX,
               transform: `translate3d(${x!}px, ${y!}px, 0)`,
             }}
           >

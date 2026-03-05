@@ -5,31 +5,26 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MyOrganization, MyOrganizationListResult, OrganizationWorkspace } from "@/types/api";
 import { listMyOrganizations } from "@/api/me";
-import {
-  listAllOrganizationWorkspaces,
-  listOrganizationWorkspaces,
-} from "@/api/organization-workspaces";
+import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
-import { OrgContextPanel } from "@/components/layout/org-context-panel";
-import { WorkspaceSwitchDialogHost } from "@/components/layout/workspace-switch-dialog-host";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { useWorkspaceSwitchDialogStore } from "@/stores/use-workspace-switch-dialog-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
 import { SidebarProvider } from "@celestial/ui/sidebar";
 
 const navigateMock = vi.fn();
+let mockPathname = "/w/ws-alpha/assets";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
   useRouterState: ({ select }: { select: (state: { location: { pathname: string } }) => string }) =>
-    select({ location: { pathname: "/w/ws-alpha/assets" } }),
+    select({ location: { pathname: mockPathname } }),
 }));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, _params?: unknown) => key,
   }),
 }));
 
@@ -38,7 +33,6 @@ vi.mock("@/api/me", () => ({
 }));
 
 vi.mock("@/api/organization-workspaces", () => ({
-  listAllOrganizationWorkspaces: vi.fn(),
   listOrganizationWorkspaces: vi.fn(),
 }));
 
@@ -150,7 +144,6 @@ function renderWithQueryClient(component: React.ReactElement) {
       >
         <SidebarProvider defaultOpen className="h-screen">
           {component}
-          <WorkspaceSwitchDialogHost />
         </SidebarProvider>
       </ChromeTabsProvider>
     </QueryClientProvider>,
@@ -166,208 +159,126 @@ function getLatestDialog(): HTMLElement {
   return latest;
 }
 
-describe("OrgContextPanel", () => {
-  beforeAll(() => {
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
+beforeAll(() => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
 
-    class ResizeObserverMock {
-      observe() {
-        return undefined;
-      }
-      unobserve() {
-        return undefined;
-      }
-      disconnect() {
-        return undefined;
-      }
+  class ResizeObserverMock {
+    observe() {
+      return undefined;
     }
-
-    vi.stubGlobal("ResizeObserver", ResizeObserverMock);
-
-    class IntersectionObserverMock {
-      observe() {
-        return undefined;
-      }
-      unobserve() {
-        return undefined;
-      }
-      disconnect() {
-        return undefined;
-      }
+    unobserve() {
+      return undefined;
     }
+    disconnect() {
+      return undefined;
+    }
+  }
 
-    vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
+  vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockPathname = "/w/ws-alpha/assets";
+
+  useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+  useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
+
+  vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
+  vi.mocked(listOrganizationWorkspaces).mockImplementation(async (params) => {
+    const items = params.organizationId === "org-1" ? workspaceFixturesOrg1 : [];
+    return {
+      items,
+      total: items.length,
+      page: params.page ?? 1,
+      size: params.size ?? 20,
+      pages: 1,
+      next: null,
+      prev: null,
+    };
   });
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
-    useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
-    useWorkspaceSwitchDialogStore.setState({
-      open: false,
-      organizationId: null,
-      autoOpenCreate: false,
-    });
-
-    vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
-    vi.mocked(listAllOrganizationWorkspaces).mockResolvedValue(workspaceFixturesOrg1);
-    vi.mocked(getWorkspaceDetail).mockResolvedValue({
-      id: "ws-alpha",
-      organizationId: "org-1",
-      slug: "alpha",
-      name: "Workspace Alpha",
-    });
-  });
-
-  it("trigger 显示当前组织名", async () => {
-    renderWithQueryClient(<OrgContextPanel />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Org Alpha/)).toBeInTheDocument();
-    });
-  });
-
-  it("打开面板后显示组织列表", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient(<OrgContextPanel />);
-
-    const trigger = await screen.findByRole("button", {
-      name: "common:WORKSPACE_SWITCHER_SELECT_ORG",
-    });
-    await user.click(trigger);
-
-    const panel = getLatestDialog();
-    expect(await within(panel).findByRole("radio", { name: "Org Alpha" })).toBeInTheDocument();
-    expect(within(panel).getByRole("radio", { name: "Org Beta" })).toBeInTheDocument();
-  });
-
-  it("点击组织项会导航到组织页面", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient(<OrgContextPanel />);
-
-    const trigger = await screen.findByRole("button", {
-      name: "common:WORKSPACE_SWITCHER_SELECT_ORG",
-    });
-    await user.click(trigger);
-
-    const panel = getLatestDialog();
-    await user.click(await within(panel).findByRole("radio", { name: "Org Beta" }));
-
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalled();
-    });
+  vi.mocked(getWorkspaceDetail).mockResolvedValue({
+    id: "ws-alpha",
+    organizationId: "org-1",
+    slug: "alpha",
+    name: "Workspace Alpha",
   });
 });
 
-describe("AdminWorkspaceSwitcher", () => {
-  beforeAll(() => {
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
-
-    class ResizeObserverMock {
-      observe() {
-        return undefined;
-      }
-      unobserve() {
-        return undefined;
-      }
-      disconnect() {
-        return undefined;
-      }
-    }
-
-    vi.stubGlobal("ResizeObserver", ResizeObserverMock);
-
-    class IntersectionObserverMock {
-      observe() {
-        return undefined;
-      }
-      unobserve() {
-        return undefined;
-      }
-      disconnect() {
-        return undefined;
-      }
-    }
-
-    vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
-  });
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    useAuthStore.setState({ accessToken: "token" });
-    useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
-    useWorkspaceSwitchDialogStore.setState({
-      open: false,
-      organizationId: null,
-      autoOpenCreate: false,
-    });
-
-    vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
-    vi.mocked(listAllOrganizationWorkspaces).mockResolvedValue(workspaceFixturesOrg1);
-    vi.mocked(listOrganizationWorkspaces).mockImplementation(async (params) => {
-      const items = params.archived ? [] : workspaceFixturesOrg1;
-      return {
-        items,
-        total: items.length,
-        page: params.page ?? 1,
-        size: params.size ?? 20,
-        pages: 1,
-        next: null,
-        prev: null,
-      };
-    });
-    vi.mocked(getWorkspaceDetail).mockResolvedValue({
-      id: "ws-alpha",
-      organizationId: "org-1",
-      slug: "alpha",
-      name: "Workspace Alpha",
-    });
-  });
-
-  it("trigger 显示当前工作区名", async () => {
+describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
+  it("workspace scope: trigger shows current workspace name", async () => {
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
 
     await waitFor(() => {
       expect(screen.getByText(/Workspace Alpha/)).toBeInTheDocument();
     });
+
+    const trigger = screen.getByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    expect(trigger).not.toHaveAttribute("title");
   });
 
-  it("打开面板后显示工作区列表", async () => {
+  it("workspace scope: trigger avatar uses square shape and organization logo", async () => {
+    vi.mocked(listMyOrganizations).mockResolvedValue({
+      items: [
+        {
+          ...organizationFixture,
+          organization: {
+            ...organizationFixture.organization,
+            logoUrl: "https://example.com/org-alpha-logo.png",
+          },
+        },
+        organizationFixtureBeta,
+      ],
+      total: 2,
+    });
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+
+    const squareAvatar = trigger.querySelector(".ant-avatar-square");
+    expect(squareAvatar).toBeTruthy();
+
+    await waitFor(() => {
+      const avatarImage = trigger.querySelector(".ant-avatar-square img");
+      expect(avatarImage).toBeTruthy();
+      expect(avatarImage).toHaveAttribute("src", "https://example.com/org-alpha-logo.png");
+    });
+  });
+
+  it("workspace scope: forwards className to floating root container", async () => {
+    renderWithQueryClient(<AdminWorkspaceSwitcher className="test-switcher-root" />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+
+    const root = document.querySelector(".test-switcher-root");
+    expect(root).toBeInTheDocument();
+    expect(root).toHaveClass("relative");
+    expect(root?.contains(trigger)).toBe(true);
+  });
+
+  it("workspace scope: opening panel shows organizations + workspaces", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Workspace Alpha/)).toBeInTheDocument();
-    });
 
     const trigger = await screen.findByRole("button", {
       name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
@@ -375,18 +286,39 @@ describe("AdminWorkspaceSwitcher", () => {
     await user.click(trigger);
 
     const panel = getLatestDialog();
-    expect(await within(panel).findByText("Workspace Alpha")).toBeInTheDocument();
-    expect(within(panel).getByText("Workspace Beta")).toBeInTheDocument();
+
+    // Check organizations (accessible name includes avatar initials)
+    expect(await within(panel).findByRole("button", { name: /Org Alpha/ })).toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: /Org Beta/ })).toBeInTheDocument();
+
+    // Check workspaces (accessible name includes avatar initials)
+    expect(within(panel).getByRole("button", { name: /Workspace Alpha/ })).toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: /Workspace Beta/ })).toBeInTheDocument();
+
+    // Header actions should be Organization Settings | Members
+    const orgSettingsButton = within(panel).getByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_ORG_SETTINGS",
+    });
+    const membersButton = within(panel).getByRole("button", { name: "nav:NAV_ORG_MEMBERS" });
+    expect(orgSettingsButton).toBeInTheDocument();
+    expect(membersButton).toBeInTheDocument();
+    expect(orgSettingsButton.className).toContain("ant-btn-text");
+    expect(membersButton.className).toContain("ant-btn-text");
+    expect(orgSettingsButton.className).toContain("font-medium");
+    expect(membersButton.className).toContain("font-medium");
+    expect(
+      within(panel).queryByRole("button", { name: "common:ORG_MEMBERS_INVITE" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("点击工作区项会切换到对应工作区路径", async () => {
+  it("workspace scope: hides organization picker when user belongs to only one organization", async () => {
     const user = userEvent.setup();
+    vi.mocked(listMyOrganizations).mockResolvedValue({
+      items: [organizationFixture],
+      total: 1,
+    });
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Workspace Alpha/)).toBeInTheDocument();
-    });
 
     const trigger = await screen.findByRole("button", {
       name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
@@ -394,11 +326,108 @@ describe("AdminWorkspaceSwitcher", () => {
     await user.click(trigger);
 
     const panel = getLatestDialog();
-    await user.click(await within(panel).findByText("Workspace Beta"));
+
+    expect(
+      within(panel).queryByText("common:WORKSPACE_SWITCHER_SELECT_ORG"),
+    ).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: /Org Alpha/ })).not.toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: /Workspace Alpha/ })).toBeInTheDocument();
+  });
+
+  it("workspace scope: create workspace appears as the last item in workspace section", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const createWorkspaceButton = within(panel).getByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_CREATE",
+    });
+    const workspaceBetaButton = within(panel).getByRole("button", { name: /Workspace Beta/ });
+
+    expect(createWorkspaceButton.querySelector("svg")).toBeTruthy();
+    expect(createWorkspaceButton.className).toContain("group");
+    expect(createWorkspaceButton.className).toContain("transition-colors");
+    expect(createWorkspaceButton.className).toContain("hover:bg-accent");
+    expect(createWorkspaceButton.querySelector("span.block.w-full.min-w-0.truncate")).toBeTruthy();
+    expect(
+      within(panel).queryByRole("button", {
+        name: "common:WORKSPACE_SWITCHER_OPEN_ORG_WORKSPACES",
+      }),
+    ).not.toBeInTheDocument();
+
+    const buttons = within(panel).getAllByRole("button");
+    expect(buttons.indexOf(createWorkspaceButton)).toBeGreaterThan(
+      buttons.indexOf(workspaceBetaButton),
+    );
+  });
+
+  it("workspace scope: bottom actions include explore organization overview and navigate to org home", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const exploreOverviewButton = within(panel).getByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_EXPLORE_ORG_OVERVIEW",
+    });
+
+    expect(exploreOverviewButton.querySelector("svg")).toBeTruthy();
+    await user.click(exploreOverviewButton);
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/o/org-1" });
+    });
+  });
+
+  it("workspace scope: selecting a workspace navigates and updates store", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const workspaceBetaButton = await within(panel).findByRole("button", {
+      name: /Workspace Beta/,
+    });
+    await user.click(workspaceBetaButton);
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-beta/assets" });
     });
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
+  });
+
+  it("org scope: trigger becomes back button and navigates to last workspace", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/o/org-1/settings";
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const backButton = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_BACK_TO_WORKSPACE",
+    });
+    await user.click(backButton);
+
+    expect(backButton).not.toHaveAttribute("title");
+    expect(backButton.querySelector("span.block.w-full.min-w-0.truncate")).toBeTruthy();
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-alpha/" });
+    });
   });
 });

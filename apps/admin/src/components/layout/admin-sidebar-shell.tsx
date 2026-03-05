@@ -1,13 +1,10 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import { useRouterState } from "@tanstack/react-router";
-
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
-import { OrgContextPanel } from "@/components/layout/org-context-panel";
-import { WorkspaceContextPanel } from "@/components/layout/workspace-context-panel";
+import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import {
   AdminSidebarAccountSkeleton,
   AdminSidebarFooterMenuSkeleton,
@@ -74,9 +71,6 @@ function SidebarEffects() {
 }
 
 function AdminSidebarHeaderArea(props: { showFailureSkeleton: boolean }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isWorkspaceScopeRoute = pathname.startsWith("/w/");
-
   return (
     <SidebarHeader
       className={cn(
@@ -95,17 +89,9 @@ function AdminSidebarHeaderArea(props: { showFailureSkeleton: boolean }) {
       {props.showFailureSkeleton ? (
         <AdminSidebarHeaderSkeleton />
       ) : (
-        <>
-          {isWorkspaceScopeRoute ? (
-            <WorkspaceContextPanel
-              className={cn("min-w-0 flex-1 group-data-[collapsible=icon]:flex-none")}
-            />
-          ) : (
-            <OrgContextPanel
-              className={cn("min-w-0 flex-1 group-data-[collapsible=icon]:flex-none")}
-            />
-          )}
-        </>
+        <AdminWorkspaceSwitcher
+          className={cn("min-w-0 flex-1 group-data-[collapsible=icon]:flex-none")}
+        />
       )}
     </SidebarHeader>
   );
