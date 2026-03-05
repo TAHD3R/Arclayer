@@ -9,7 +9,7 @@ from uuid import UUID
 from apps.api.src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Forbidden, NotFound
+from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.org_membership import OrgRole
@@ -227,12 +227,6 @@ class OrganizationWorkspaceService(BaseService):
         org_role: OrgRole,
         payload: OrganizationWorkspaceCreateRequest,
     ) -> OrganizationWorkspaceOut:
-        if org_role not in (OrgRole.OWNER, OrgRole.ADMIN):
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error="ORG_ADMIN_REQUIRED",
-            )
-
         name = str(payload.name or "").strip()
         if not name:
             raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_NAME")
@@ -316,12 +310,6 @@ class OrganizationWorkspaceService(BaseService):
         user_id: UUID,
         org_role: OrgRole,
     ) -> OrganizationWorkspaceArchiveResult:
-        if org_role not in (OrgRole.OWNER, OrgRole.ADMIN):
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error="ORG_ADMIN_REQUIRED",
-            )
-
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
@@ -354,12 +342,6 @@ class OrganizationWorkspaceService(BaseService):
         user_id: UUID,
         org_role: OrgRole,
     ) -> OrganizationWorkspaceArchiveResult:
-        if org_role not in (OrgRole.OWNER, OrgRole.ADMIN):
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error="ORG_ADMIN_REQUIRED",
-            )
-
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
@@ -394,12 +376,6 @@ class OrganizationWorkspaceService(BaseService):
         org_role: OrgRole,
         confirm_name: str,
     ) -> OrganizationWorkspaceDeleteResult:
-        if org_role != OrgRole.OWNER:
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error="ORG_OWNER_REQUIRED",
-            )
-
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")

@@ -40,6 +40,10 @@ export const ORG_PERMISSION_COPY_MAP: Record<string, OrganizationPermissionCopyI
     nameKey: "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE",
     descKey: "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE_DESC",
   },
+  "org.workspaces.delete": {
+    nameKey: "ORG_ROLE_PERMISSION_WORKSPACES_DELETE",
+    descKey: "ORG_ROLE_PERMISSION_WORKSPACES_DELETE_DESC",
+  },
   "org.settings.read": {
     nameKey: "ORG_ROLE_PERMISSION_SETTINGS_VIEW",
     descKey: "ORG_ROLE_PERMISSION_SETTINGS_VIEW_DESC",
@@ -47,6 +51,14 @@ export const ORG_PERMISSION_COPY_MAP: Record<string, OrganizationPermissionCopyI
   "org.settings.manage": {
     nameKey: "ORG_ROLE_PERMISSION_SETTINGS_MANAGE",
     descKey: "ORG_ROLE_PERMISSION_SETTINGS_MANAGE_DESC",
+  },
+  "org.settings.assign-default-role": {
+    nameKey: "ORG_ROLE_PERMISSION_SETTINGS_ASSIGN_DEFAULT_ROLE",
+    descKey: "ORG_ROLE_PERMISSION_SETTINGS_ASSIGN_DEFAULT_ROLE_DESC",
+  },
+  "org.settings.delete": {
+    nameKey: "ORG_ROLE_PERMISSION_SETTINGS_DELETE",
+    descKey: "ORG_ROLE_PERMISSION_SETTINGS_DELETE_DESC",
   },
   "org.extensions.read": {
     nameKey: "ORG_ROLE_PERMISSION_PLUGINS_VIEW",

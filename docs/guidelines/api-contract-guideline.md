@@ -87,6 +87,15 @@ This guideline applies to:
 - Router must not call repository directly.
 - Contract mapping and normalization should happen in service/schema boundaries, not scattered across routers.
 
+### 7.1 Authorization granularity (mandatory)
+
+- Business endpoints must use domain capability permissions (for example `system:assets:read`,
+  `system:assets:manage`, `system:content:publish`) instead of broad gates.
+- `require_workspace_permission("admin:access")` is forbidden in router endpoint dependencies.
+- `admin:access` may be kept only for backward compatibility metadata and must not be used as
+  the effective authorization dependency for business APIs.
+- Read/write/publish/delete operations must be split into corresponding permissions where semantics differ.
+
 ## 8. Frontend Consumption Rules
 
 - Frontend components must not parse raw HTTP payloads directly.

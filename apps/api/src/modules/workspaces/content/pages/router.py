@@ -48,6 +48,7 @@ from apps.api.src.modules.sites.schema import (
 from apps.api.src.modules.sites.schema import (
     SitePageUpdateIn as ContentPageUpdateIn,
 )
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.content.service import WorkspaceContentService
 from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id, get_workspace_content_service
 
@@ -74,6 +75,7 @@ async def list_workspace_content_pages_tree(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content page (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_page(
     payload: Annotated[ContentPageCreateIn, Body(description="Create content page payload.")],
@@ -109,6 +111,7 @@ async def get_workspace_content_page(
     response_model=ResponseModel[ContentPageTreeNodeOut],
     response_model_exclude_none=True,
     summary="Update a content page (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_page(
     page_id: PublicUUID,
@@ -131,6 +134,7 @@ async def update_workspace_content_page(
     response_model=ResponseModel[ContentPageDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content page (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_page(
     page_id: PublicUUID,
@@ -146,6 +150,7 @@ async def delete_workspace_content_page(
     response_model=ResponseModel[ContentPageTreeNodeOut],
     response_model_exclude_none=True,
     summary="Move a content page (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def move_workspace_content_page(
     page_id: PublicUUID,
@@ -185,6 +190,7 @@ async def get_workspace_content_page_revision(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Save a content page draft revision (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def save_workspace_content_page_draft(
     page_id: PublicUUID,
@@ -207,6 +213,7 @@ async def save_workspace_content_page_draft(
     response_model=ResponseModel[ContentPagePublishOut],
     response_model_exclude_none=True,
     summary="Publish a content page revision (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
 )
 async def publish_workspace_content_page(
     page_id: PublicUUID,
@@ -229,6 +236,7 @@ async def publish_workspace_content_page(
     response_model=ResponseModel[ContentPageUnpublishOut],
     response_model_exclude_none=True,
     summary="Unpublish a content page (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
 )
 async def unpublish_workspace_content_page(
     page_id: PublicUUID,
@@ -249,6 +257,7 @@ async def unpublish_workspace_content_page(
     response_model=ResponseModel[ContentPageRollbackOut],
     response_model_exclude_none=True,
     summary="Rollback content page revision pointer (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
 )
 async def rollback_workspace_content_page_revision(
     page_id: PublicUUID,

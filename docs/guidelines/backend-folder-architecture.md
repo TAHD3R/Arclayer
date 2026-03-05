@@ -160,6 +160,13 @@ If a new directory is introduced, include a minimal README or guideline entry.
 - If a migration requires custom SQL or data transforms:
   - Generate the file via `db:migrate` first, then apply minimal edits to the generated operations.
 
+### 7.6 RBAC authorization granularity
+
+- Router dependencies must use domain-scoped permissions (for example `system:domains:read`,
+  `system:domains:manage`) instead of coarse console gates.
+- `require_workspace_permission("admin:access")` must not be used for business endpoint authorization.
+- When a module contains both read and mutating operations, define and use separate permissions.
+
 ## 8. Architecture PR Checklist
 
 A backend PR should pass all items:

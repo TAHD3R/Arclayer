@@ -6,7 +6,13 @@ from uuid import uuid4
 import pytest
 
 from apps.api.src.config import get_settings
-from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
+from apps.api.src.modules.organization.rbac import service as rbac_service_module
+from apps.api.src.modules.organization.rbac.service import (
+    _BUILTIN_ROLE_RULES,
+    _ORG_PERMISSION_I18N_KEYS,
+    _ORG_PERMISSION_TEMPLATES,
+    OrganizationRBACService,
+)
 
 
 class _FakeOrganizationRBACRepo:
@@ -69,3 +75,77 @@ async def test_organization_rbac_ensure_defaults_creates_builtin_roles_with_i18n
     assert owner_payload is not None
     assert owner_payload.get("name_i18n")
     assert owner_payload.get("description_i18n")
+
+
+def test_organization_rbac_sensitive_permissions_have_owner_only_defaults() -> None:
+    permission_codes = {code for code, _, _, _ in _ORG_PERMISSION_TEMPLATES}
+
+    assert "org.workspaces.delete" in permission_codes
+    assert "org.settings.assign-default-role" in permission_codes
+    assert "org.settings.delete" in permission_codes
+
+    owner_codes = _BUILTIN_ROLE_RULES["owner"]
+    admin_codes = _BUILTIN_ROLE_RULES["admin"]
+
+    assert "org.workspaces.delete" in owner_codes
+    assert "org.settings.assign-default-role" in owner_codes
+    assert "org.settings.delete" in owner_codes
+
+    assert "org.workspaces.delete" not in admin_codes
+    assert "org.settings.assign-default-role" not in admin_codes
+    assert "org.settings.delete" not in admin_codes
+
+
+def test_organization_rbac_permission_i18n_map_covers_all_templates() -> None:
+    template_codes = {code for code, _, _, _ in _ORG_PERMISSION_TEMPLATES}
+    mapped_codes = set(_ORG_PERMISSION_I18N_KEYS)
+
+    assert mapped_codes == template_codes
+
+
+def test_organization_rbac_localize_permission_uses_i18n_map(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = OrganizationRBACService(settings)
+
+    monkeypatch.setattr(
+        rbac_service_module,
+        "t",
+        lambda namespace, key, default=None: f"{namespace}:{key}:{default}",
+    )
+
+    permission = SimpleNamespace(
+        id=uuid4(),
+        code="org.settings.delete",
+        module="settings",
+        name="Delete organization",
+        description="Delete organization and all scoped settings.",
+    )
+
+    localized = service.localize_permission(permission)
+
+    assert localized["name"] == "common:ORG_ROLE_PERMISSION_SETTINGS_DELETE:Delete organization"
+    assert (
+        localized["description"]
+        == "common:ORG_ROLE_PERMISSION_SETTINGS_DELETE_DESC:Delete organization and all scoped settings."
+    )
+
+
+def test_organization_rbac_localize_permission_keeps_raw_when_no_i18n_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = OrganizationRBACService(settings)
+    permission = SimpleNamespace(
+        id=uuid4(),
+        code="org.unknown.read",
+        module="unknown",
+        name="Unknown permission",
+        description="Unknown description.",
+    )
+
+    localized = service.localize_permission(permission)
+
+    assert localized["name"] == "Unknown permission"
+    assert localized["description"] == "Unknown description."

@@ -11,12 +11,11 @@ from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.models.organization.org_membership import OrgMembership
 from apps.api.src.modules.extensions.schema import CapabilityListOut, CapabilitySummaryOut, UIEmbedListOut
 from apps.api.src.modules.extensions.service import ExtensionsService
-from apps.api.src.modules.organization.http.service import require_org_admin
+from apps.api.src.modules.organization.http.service import require_org_permission
 
 router = APIRouter(
     prefix="/organizations/current/extensions",
     tags=["Organization: Extensions"],
-    dependencies=[Depends(require_org_admin)],
 )
 
 
@@ -30,7 +29,10 @@ def get_extensions_service(settings: Settings = Depends(get_settings)) -> Extens
     summary="List organization-scoped capabilities (extensions/integrations)",
 )
 async def list_org_capabilities(
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.read", error_code="ORG_EXTENSIONS_READ_REQUIRED"),
+    ],
     service: Annotated[ExtensionsService, Depends(get_extensions_service)],
 ) -> ResponseModel[CapabilityListOut]:
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
@@ -45,7 +47,10 @@ async def list_org_capabilities(
 )
 async def enable_org_capability(
     capability_id: str,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.manage", error_code="ORG_EXTENSIONS_MANAGE_REQUIRED"),
+    ],
     service: Annotated[ExtensionsService, Depends(get_extensions_service)],
 ) -> ResponseModel[CapabilitySummaryOut]:
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
@@ -64,7 +69,10 @@ async def enable_org_capability(
 )
 async def disable_org_capability(
     capability_id: str,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.manage", error_code="ORG_EXTENSIONS_MANAGE_REQUIRED"),
+    ],
     service: Annotated[ExtensionsService, Depends(get_extensions_service)],
 ) -> ResponseModel[CapabilitySummaryOut]:
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
@@ -82,7 +90,10 @@ async def disable_org_capability(
     summary="List UI embed descriptors (iframe) for enabled org-scoped capabilities",
 )
 async def list_org_ui_embeds(
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.read", error_code="ORG_EXTENSIONS_READ_REQUIRED"),
+    ],
     service: Annotated[ExtensionsService, Depends(get_extensions_service)],
     slot: str | None = Query(default=None, description="Host-defined slot id (optional)."),
     capability_id: str | None = Query(default=None, alias="capabilityId"),

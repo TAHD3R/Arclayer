@@ -28,7 +28,7 @@ from apps.api.src.modules.workspaces.http.service import require_workspace_manag
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site/domains",
     tags=["Workspace: Site Domains"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:domains:read")],
 )
 
 
@@ -67,6 +67,7 @@ async def list_site_domains(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Bind a custom domain (DNS TXT verification required)",
+    dependencies=[require_workspace_permission("system:domains:manage")],
 )
 async def create_site_domain(
     payload: Annotated[SiteDomainCreateIn, Body(description="Custom domain binding request.")],
@@ -88,6 +89,7 @@ async def create_site_domain(
     response_model=ResponseModel[SiteDomainVerifyOut],
     response_model_exclude_none=True,
     summary="Verify a custom domain via DNS TXT",
+    dependencies=[require_workspace_permission("system:domains:manage")],
 )
 async def verify_site_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],
@@ -115,6 +117,7 @@ async def verify_site_domain(
     response_model=ResponseModel[SiteDomainOut],
     response_model_exclude_none=True,
     summary="Update a custom domain binding",
+    dependencies=[require_workspace_permission("system:domains:manage")],
 )
 async def update_site_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],
@@ -142,6 +145,7 @@ async def update_site_domain(
     response_model=ResponseModel[SiteDomainDeleteOut],
     response_model_exclude_none=True,
     summary="Unbind a custom domain",
+    dependencies=[require_workspace_permission("system:domains:manage")],
 )
 async def delete_site_domain(
     domain_id: Annotated[PublicUUID, Path(..., description="Domain record id.")],

@@ -27,7 +27,7 @@ from apps.api.src.modules.workspaces.http.service import require_workspace_manag
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/notifications",
     tags=["Workspace: Notifications"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:notifications:read")],
 )
 
 
@@ -101,6 +101,7 @@ async def mark_all_read(
     "/dev/seed",
     response_model=ResponseModel[NotificationDevSeedResult],
     summary="Seed demo notifications (dev/test only)",
+    dependencies=[require_workspace_permission("system:notifications:manage")],
 )
 async def seed_demo_notifications(
     payload: NotificationDevSeedRequest,

@@ -26,13 +26,50 @@ _ORG_PERMISSION_TEMPLATES: list[tuple[str, str, str, str]] = [
     ("org.roles.read", "rbac", "View roles", "View organization roles and permissions."),
     ("org.roles.write", "rbac", "Manage roles", "Create roles and manage organization permission grants."),
     ("org.workspaces.read", "workspaces", "View workspaces", "View organization workspaces."),
-    ("org.workspaces.manage", "workspaces", "Manage workspaces", "Create, archive, or delete organization workspaces."),
+    ("org.workspaces.manage", "workspaces", "Manage workspaces", "Create and archive organization workspaces."),
+    ("org.workspaces.delete", "workspaces", "Delete workspaces", "Permanently delete organization workspaces."),
     ("org.settings.read", "settings", "View settings", "View organization settings."),
     ("org.settings.manage", "settings", "Manage settings", "Update organization-level settings."),
+    (
+        "org.settings.assign-default-role",
+        "settings",
+        "Assign default role to members",
+        "Bulk-assign organization role to all active member users.",
+    ),
+    ("org.settings.delete", "settings", "Delete organization", "Delete organization and all scoped settings."),
     ("org.extensions.read", "extensions", "View extensions", "View organization extensions and integrations."),
     ("org.extensions.manage", "extensions", "Manage extensions", "Manage organization extensions and integrations."),
     ("org.activity.read", "activity", "View activity", "View organization activity and audit trails."),
 ]
+
+_ORG_PERMISSION_I18N_KEYS: dict[str, tuple[str, str]] = {
+    "org.members.read": ("ORG_ROLE_PERMISSION_MEMBERS_VIEW", "ORG_ROLE_PERMISSION_MEMBERS_VIEW_DESC"),
+    "org.members.manage": ("ORG_ROLE_PERMISSION_MEMBERS_MANAGE", "ORG_ROLE_PERMISSION_MEMBERS_MANAGE_DESC"),
+    "org.invitations.read": ("ORG_ROLE_PERMISSION_INVITES_VIEW", "ORG_ROLE_PERMISSION_INVITES_VIEW_DESC"),
+    "org.invitations.create": ("ORG_ROLE_PERMISSION_INVITES_CREATE", "ORG_ROLE_PERMISSION_INVITES_CREATE_DESC"),
+    "org.invitations.revoke": ("ORG_ROLE_PERMISSION_INVITES_REVOKE", "ORG_ROLE_PERMISSION_INVITES_REVOKE_DESC"),
+    "org.roles.read": ("ORG_ROLE_PERMISSION_ROLES_VIEW", "ORG_ROLE_PERMISSION_ROLES_VIEW_DESC"),
+    "org.roles.write": ("ORG_ROLE_PERMISSION_ROLES_MANAGE", "ORG_ROLE_PERMISSION_ROLES_MANAGE_DESC"),
+    "org.workspaces.read": ("ORG_ROLE_PERMISSION_WORKSPACES_VIEW", "ORG_ROLE_PERMISSION_WORKSPACES_VIEW_DESC"),
+    "org.workspaces.manage": (
+        "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE",
+        "ORG_ROLE_PERMISSION_WORKSPACES_MANAGE_DESC",
+    ),
+    "org.workspaces.delete": (
+        "ORG_ROLE_PERMISSION_WORKSPACES_DELETE",
+        "ORG_ROLE_PERMISSION_WORKSPACES_DELETE_DESC",
+    ),
+    "org.settings.read": ("ORG_ROLE_PERMISSION_SETTINGS_VIEW", "ORG_ROLE_PERMISSION_SETTINGS_VIEW_DESC"),
+    "org.settings.manage": ("ORG_ROLE_PERMISSION_SETTINGS_MANAGE", "ORG_ROLE_PERMISSION_SETTINGS_MANAGE_DESC"),
+    "org.settings.assign-default-role": (
+        "ORG_ROLE_PERMISSION_SETTINGS_ASSIGN_DEFAULT_ROLE",
+        "ORG_ROLE_PERMISSION_SETTINGS_ASSIGN_DEFAULT_ROLE_DESC",
+    ),
+    "org.settings.delete": ("ORG_ROLE_PERMISSION_SETTINGS_DELETE", "ORG_ROLE_PERMISSION_SETTINGS_DELETE_DESC"),
+    "org.extensions.read": ("ORG_ROLE_PERMISSION_PLUGINS_VIEW", "ORG_ROLE_PERMISSION_PLUGINS_VIEW_DESC"),
+    "org.extensions.manage": ("ORG_ROLE_PERMISSION_PLUGINS_MANAGE", "ORG_ROLE_PERMISSION_PLUGINS_MANAGE_DESC"),
+    "org.activity.read": ("ORG_ROLE_PERMISSION_ACTIVITY_VIEW", "ORG_ROLE_PERMISSION_ACTIVITY_VIEW_DESC"),
+}
 
 _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
     "owner": {code for code, _, _, _ in _ORG_PERMISSION_TEMPLATES},
@@ -72,7 +109,7 @@ _BUILTIN_ROLE_DEFS: dict[str, dict[str, str | None]] = {
     },
     "admin": {
         "name": "Admin",
-        "description": "Manage members, invitations, and most organization operations.",
+        "description": "Manage members, invitations, and most organization operations except destructive actions.",
         "name_i18n": "rbac:ORG_RBAC_ROLE_ADMIN_NAME",
         "description_i18n": "rbac:ORG_RBAC_ROLE_ADMIN_DESC",
     },
@@ -162,6 +199,21 @@ class OrganizationRBACService(BaseService):
             "description_i18n": role_with_i18n.description_i18n,
             "is_system": bool(role.is_system),
             "is_builtin": bool(role.is_builtin),
+        }
+
+    def localize_permission(self, permission: OrganizationPermission) -> dict[str, object]:
+        mapped = _ORG_PERMISSION_I18N_KEYS.get(str(permission.code))
+        name = str(permission.name)
+        description = str(permission.description or "")
+        if mapped:
+            name = t("common", mapped[0], default=name)
+            description = t("common", mapped[1], default=description)
+        return {
+            "id": permission.id,
+            "code": permission.code,
+            "module": permission.module,
+            "name": name,
+            "description": (description.strip() or None),
         }
 
     async def ensure_defaults(self, *, organization_id: UUID) -> None:

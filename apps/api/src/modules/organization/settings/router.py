@@ -11,8 +11,7 @@ from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.models.organization.org_membership import OrgMembership
 from apps.api.src.modules.organization.http.service import (
     get_current_org_membership,
-    require_org_admin,
-    require_org_owner,
+    require_org_permission,
 )
 from apps.api.src.modules.organization.settings.schema import (
     DeleteOrganizationResult,
@@ -34,7 +33,9 @@ router = APIRouter(prefix="/organizations/me", tags=["Organization Settings"])
     summary="Get organization core settings",
 )
 async def get_organization_core_settings(
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership, require_org_permission("org.settings.read", error_code="ORG_SETTINGS_READ_REQUIRED")
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationSettingsCoreOut]:
     service = OrganizationSettingsService(settings)
@@ -49,7 +50,10 @@ async def get_organization_core_settings(
 )
 async def patch_organization_core_settings(
     payload: OrganizationSettingsCorePatch,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.settings.manage", error_code="ORG_SETTINGS_MANAGE_REQUIRED"),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationSettingsCoreOut]:
     service = OrganizationSettingsService(settings)
@@ -68,7 +72,13 @@ async def patch_organization_core_settings(
 )
 async def assign_organization_default_role_to_all_users(
     payload: OrganizationAssignDefaultRoleRequest,
-    orgm: Annotated[OrgMembership, Depends(require_org_owner)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission(
+            "org.settings.assign-default-role",
+            error_code="ORG_SETTINGS_ASSIGN_DEFAULT_ROLE_REQUIRED",
+        ),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationAssignDefaultRoleResult]:
     service = OrganizationSettingsService(settings)
@@ -105,7 +115,10 @@ async def leave_organization(
     summary="Delete current organization",
 )
 async def delete_organization(
-    orgm: Annotated[OrgMembership, Depends(require_org_owner)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.settings.delete", error_code="ORG_SETTINGS_DELETE_REQUIRED"),
+    ],
     confirm_name: str | None = Query(
         default=None,
         alias="confirmName",

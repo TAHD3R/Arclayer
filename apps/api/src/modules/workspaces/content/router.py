@@ -41,7 +41,7 @@ from apps.api.src.modules.workspaces.http.service import require_workspace_manag
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
     tags=["Workspace: Content"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:content:read")],
 )
 
 
@@ -71,6 +71,7 @@ async def list_workspace_content_types(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content type (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_type(
     payload: Annotated[ContentTypeCreateIn, Body(description="Create payload.")],
@@ -91,6 +92,7 @@ async def create_workspace_content_type(
     response_model=ResponseModel[ContentTypeOut],
     response_model_exclude_none=True,
     summary="Update a content type (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_type(
     type_id: PublicUUID,
@@ -113,6 +115,7 @@ async def update_workspace_content_type(
     response_model=ResponseModel[ContentTypeDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content type (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_type(
     type_id: PublicUUID,
@@ -156,6 +159,7 @@ async def list_workspace_content_entries(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content entry (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_entry(
     payload: Annotated[ContentEntryCreateIn, Body(description="Create payload.")],
@@ -198,6 +202,7 @@ async def get_workspace_content_entry(
     response_model=ResponseModel[ContentEntryOut],
     response_model_exclude_none=True,
     summary="Update a content entry (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_entry(
     entry_id: PublicUUID,
@@ -222,6 +227,7 @@ async def update_workspace_content_entry(
     response_model=ResponseModel[ContentEntryDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content entry (must unpublish first; workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_entry(
     entry_id: PublicUUID,
@@ -243,6 +249,7 @@ async def delete_workspace_content_entry(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Save a draft entry revision (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def save_workspace_content_entry_draft(
     entry_id: PublicUUID,
@@ -267,6 +274,7 @@ async def save_workspace_content_entry_draft(
     response_model=ResponseModel[ContentEntryPublishOut],
     response_model_exclude_none=True,
     summary="Publish a content entry (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
 )
 async def publish_workspace_content_entry(
     entry_id: PublicUUID,
@@ -291,6 +299,7 @@ async def publish_workspace_content_entry(
     response_model=ResponseModel[ContentEntryUnpublishOut],
     response_model_exclude_none=True,
     summary="Unpublish a content entry (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
 )
 async def unpublish_workspace_content_entry(
     entry_id: PublicUUID,
@@ -335,6 +344,7 @@ async def get_workspace_content_entry_revision(
     response_model=ResponseModel[ContentEntryRollbackOut],
     response_model_exclude_none=True,
     summary="Rollback content entry revision pointer (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
 )
 async def rollback_workspace_content_entry_revision(
     entry_id: PublicUUID,

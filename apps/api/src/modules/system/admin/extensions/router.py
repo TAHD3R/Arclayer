@@ -20,7 +20,7 @@ router = APIRouter(
     tags=["Workspace: Admin Extensions"],
     dependencies=[
         Depends(require_workspace_manage_access),
-        require_workspace_permission("admin:access"),
+        require_workspace_permission("system:extensions:read"),
     ],
 )
 

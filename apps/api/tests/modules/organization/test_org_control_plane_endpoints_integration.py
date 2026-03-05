@@ -330,7 +330,27 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
             assert set_member_custom_role.json()["data"]["role"] == "member"
             assert set_member_custom_role.json()["data"]["roleCode"] == "ops_manager"
 
+            grant_workspace_manage = await client.put(
+                "/api/v1/organizations/me/rbac/permissions/org.workspaces.manage/roles",
+                json={"roleCodes": ["ops_manager"]},
+            )
+            assert grant_workspace_manage.status_code == 200, grant_workspace_manage.text
+
             current_user = member
+            create_workspace_with_custom_role = await client.post(
+                "/api/v1/organizations/me/workspaces",
+                json={"name": "Ops Workspace"},
+            )
+            assert create_workspace_with_custom_role.status_code == 200, create_workspace_with_custom_role.text
+            custom_workspace_id = create_workspace_with_custom_role.json()["data"]["workspaceId"]
+
+            delete_workspace_with_custom_role = await client.delete(
+                f"/api/v1/organizations/me/workspaces/{custom_workspace_id}",
+                params={"confirmName": "Ops Workspace"},
+            )
+            assert delete_workspace_with_custom_role.status_code == 403, delete_workspace_with_custom_role.text
+            assert delete_workspace_with_custom_role.json().get("error") == "ORG_OWNER_REQUIRED"
+
             custom_role_invite_resp = await client.post(
                 "/api/v1/organizations/me/invitations",
                 json={"email": f"custom_{uuid4().hex[:8]}@example.com", "roleCode": "member"},

@@ -12,8 +12,8 @@ from apps.api.src.core.http.pagination import DependsPagination, PageData, PageP
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.models.organization.org_membership import OrgMembership
 from apps.api.src.modules.organization.http.service import (
-    get_current_org_membership,
     get_org_membership_for_organization,
+    require_org_permission,
 )
 from apps.api.src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -151,7 +151,10 @@ async def _delete_workspace(
     summary="List organization workspaces",
 )
 async def list_organization_workspaces_me(
-    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.workspaces.read", error_code="ORG_WORKSPACES_READ_REQUIRED"),
+    ],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by workspace name or slug."),
     ordering: str | None = Query(default=None, description="Ordering fields, e.g. -created_at, name."),
@@ -176,7 +179,14 @@ async def list_organization_workspaces_me(
     summary="List organization workspaces by organization id",
 )
 async def list_organization_workspaces_by_org(
-    orgm: Annotated[OrgMembership, Depends(get_org_membership_for_organization)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission(
+            "org.workspaces.read",
+            error_code="ORG_WORKSPACES_READ_REQUIRED",
+            membership_dependency=get_org_membership_for_organization,
+        ),
+    ],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by workspace name or slug."),
     ordering: str | None = Query(default=None, description="Ordering fields, e.g. -created_at, name."),
@@ -202,7 +212,10 @@ async def list_organization_workspaces_by_org(
 )
 async def list_organization_workspace_members_me(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.workspaces.read", error_code="ORG_WORKSPACES_READ_REQUIRED"),
+    ],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by name or email."),
     settings: Settings = Depends(get_settings),
@@ -223,7 +236,14 @@ async def list_organization_workspace_members_me(
 )
 async def list_organization_workspace_members_by_org(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_org_membership_for_organization)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission(
+            "org.workspaces.read",
+            error_code="ORG_WORKSPACES_READ_REQUIRED",
+            membership_dependency=get_org_membership_for_organization,
+        ),
+    ],
     params: PageParams = DependsPagination,
     q: str | None = Query(default=None, description="Search query by name or email."),
     settings: Settings = Depends(get_settings),
@@ -244,7 +264,10 @@ async def list_organization_workspace_members_by_org(
 )
 async def create_organization_workspace_me(
     payload: OrganizationWorkspaceCreateRequest,
-    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.workspaces.manage", error_code="ORG_ADMIN_REQUIRED"),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceOut]:
     return await _create_workspace(payload=payload, orgm=orgm, settings=settings)
@@ -257,7 +280,14 @@ async def create_organization_workspace_me(
 )
 async def create_organization_workspace_by_org(
     payload: OrganizationWorkspaceCreateRequest,
-    orgm: Annotated[OrgMembership, Depends(get_org_membership_for_organization)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission(
+            "org.workspaces.manage",
+            error_code="ORG_ADMIN_REQUIRED",
+            membership_dependency=get_org_membership_for_organization,
+        ),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceOut]:
     return await _create_workspace(payload=payload, orgm=orgm, settings=settings)
@@ -270,7 +300,10 @@ async def create_organization_workspace_by_org(
 )
 async def archive_organization_workspace_me(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.workspaces.manage", error_code="ORG_ADMIN_REQUIRED"),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
     return await _archive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
@@ -283,7 +316,14 @@ async def archive_organization_workspace_me(
 )
 async def archive_organization_workspace_by_org(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_org_membership_for_organization)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission(
+            "org.workspaces.manage",
+            error_code="ORG_ADMIN_REQUIRED",
+            membership_dependency=get_org_membership_for_organization,
+        ),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
     return await _archive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
@@ -296,7 +336,10 @@ async def archive_organization_workspace_by_org(
 )
 async def unarchive_organization_workspace_me(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.workspaces.manage", error_code="ORG_ADMIN_REQUIRED"),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
     return await _unarchive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
@@ -309,7 +352,14 @@ async def unarchive_organization_workspace_me(
 )
 async def unarchive_organization_workspace_by_org(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_org_membership_for_organization)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission(
+            "org.workspaces.manage",
+            error_code="ORG_ADMIN_REQUIRED",
+            membership_dependency=get_org_membership_for_organization,
+        ),
+    ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
     return await _unarchive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
@@ -322,7 +372,10 @@ async def unarchive_organization_workspace_by_org(
 )
 async def delete_organization_workspace_me(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.workspaces.delete", error_code="ORG_OWNER_REQUIRED"),
+    ],
     confirm_name: str | None = Query(
         default=None,
         alias="confirmName",
@@ -347,7 +400,14 @@ async def delete_organization_workspace_me(
 )
 async def delete_organization_workspace_by_org(
     workspace_id: PublicUUID,
-    orgm: Annotated[OrgMembership, Depends(get_org_membership_for_organization)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission(
+            "org.workspaces.delete",
+            error_code="ORG_OWNER_REQUIRED",
+            membership_dependency=get_org_membership_for_organization,
+        ),
+    ],
     confirm_name: str | None = Query(
         default=None,
         alias="confirmName",

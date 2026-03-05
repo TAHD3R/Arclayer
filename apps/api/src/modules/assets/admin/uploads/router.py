@@ -25,7 +25,7 @@ from apps.api.src.modules.workspaces.http.service import require_workspace_manag
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
     tags=["Workspace: Uploads"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 
 

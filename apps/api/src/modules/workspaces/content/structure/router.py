@@ -20,6 +20,7 @@ from apps.api.src.modules.sites.schema import (
 from apps.api.src.modules.sites.schema import (
     SiteRouteTemplateUpdateIn as ContentRouteUpdateIn,
 )
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.content.schema import (
     ContentGlobalSlotOut,
     ContentGlobalSlotsOut,
@@ -62,6 +63,7 @@ async def list_workspace_content_routes(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content route (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_route(
     payload: Annotated[ContentRouteCreateIn, Body(description="Create content route payload.")],
@@ -78,6 +80,7 @@ async def create_workspace_content_route(
     response_model=ResponseModel[ContentRouteOut],
     response_model_exclude_none=True,
     summary="Update a content route (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_route(
     route_id: PublicUUID,
@@ -100,6 +103,7 @@ async def update_workspace_content_route(
     response_model=ResponseModel[ContentRouteDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content route (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_route(
     route_id: PublicUUID,
@@ -129,6 +133,7 @@ async def list_workspace_content_global_slots(
     response_model=ResponseModel[ContentGlobalSlotOut],
     response_model_exclude_none=True,
     summary="Upsert a content global slot (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def upsert_workspace_content_global_slot(
     slot_key: str,
@@ -162,6 +167,7 @@ async def list_workspace_content_menus(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content menu (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_menu(
     payload: Annotated[ContentMenuCreateIn, Body(description="Create content menu payload.")],
@@ -177,6 +183,7 @@ async def create_workspace_content_menu(
     response_model=ResponseModel[ContentMenuOut],
     response_model_exclude_none=True,
     summary="Update a content menu (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_menu(
     menu_id: PublicUUID,
@@ -193,6 +200,7 @@ async def update_workspace_content_menu(
     response_model=ResponseModel[ContentMenuDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content menu (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_menu(
     menu_id: PublicUUID,
@@ -209,6 +217,7 @@ async def delete_workspace_content_menu(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content menu item (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_menu_item(
     menu_id: PublicUUID,
@@ -225,6 +234,7 @@ async def create_workspace_content_menu_item(
     response_model=ResponseModel[ContentMenuOut],
     response_model_exclude_none=True,
     summary="Update a content menu item (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_menu_item(
     menu_id: PublicUUID,
@@ -242,6 +252,7 @@ async def update_workspace_content_menu_item(
     response_model=ResponseModel[ContentMenuItemDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content menu item (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_menu_item(
     menu_id: PublicUUID,
@@ -258,6 +269,7 @@ async def delete_workspace_content_menu_item(
     response_model=ResponseModel[ContentMenuOut],
     response_model_exclude_none=True,
     summary="Reorder content menu items (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def reorder_workspace_content_menu_items(
     menu_id: PublicUUID,

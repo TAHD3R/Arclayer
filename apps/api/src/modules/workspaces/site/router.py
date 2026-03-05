@@ -20,7 +20,7 @@ from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site",
     tags=["Workspace: Site"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:site:read")],
 )
 
 
@@ -76,6 +76,7 @@ async def get_workspace_site(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Issue a preview token for Portal editor/preview (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:site:manage")],
 )
 async def create_workspace_site_preview_token(
     payload: Annotated[SitePreviewTokenCreateIn, Body(description="Preview token request.")],

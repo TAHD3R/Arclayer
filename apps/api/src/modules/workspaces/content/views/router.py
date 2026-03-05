@@ -8,6 +8,7 @@ from fastapi import APIRouter, Body, Depends, status
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.src.core.http.response import Response, ResponseModel
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.content.schema import (
     ContentViewCreateIn,
     ContentViewDeleteOut,
@@ -46,6 +47,7 @@ async def list_workspace_content_views(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content view (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_view(
     payload: Annotated[ContentViewCreateIn, Body(description="Create content view payload.")],
@@ -62,6 +64,7 @@ async def create_workspace_content_view(
     response_model=ResponseModel[ContentViewOut],
     response_model_exclude_none=True,
     summary="Update a content view (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_view(
     view_id: PublicUUID,
@@ -84,6 +87,7 @@ async def update_workspace_content_view(
     response_model=ResponseModel[ContentViewDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content view (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_view(
     view_id: PublicUUID,

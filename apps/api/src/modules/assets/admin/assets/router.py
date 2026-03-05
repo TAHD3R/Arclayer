@@ -36,7 +36,7 @@ from apps.api.src.modules.workspaces.http.service import require_workspace_manag
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
     tags=["Workspace: Asset Library"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:assets:read")],
 )
 
 
@@ -92,6 +92,7 @@ async def list_asset_tags(
     "/asset-tags",
     response_model=ResponseModel[AdminAssetTagOut],
     summary="Create asset tag",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def create_asset_tag(
     payload: AdminAssetTagCreateRequest,
@@ -120,6 +121,7 @@ async def get_asset_detail(
     "/assets/{asset_id}",
     response_model=ResponseModel[AdminAssetDetailOut],
     summary="Update asset",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def patch_asset(
     asset_id: PublicUUID,
@@ -135,6 +137,7 @@ async def patch_asset(
     "/assets/{asset_id}",
     response_model=ResponseModel[AdminAssetDeleteOut],
     summary="Delete asset",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def delete_asset(
     asset_id: PublicUUID,
@@ -149,6 +152,7 @@ async def delete_asset(
     "/asset-folders",
     response_model=ResponseModel[AdminAssetFolderOut],
     summary="Create asset folder",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def create_asset_folder(
     payload: AdminAssetFolderCreateRequest,
@@ -163,6 +167,7 @@ async def create_asset_folder(
     "/asset-folders/{folder_id}",
     response_model=ResponseModel[AdminAssetFolderOut],
     summary="Update asset folder",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def update_asset_folder(
     folder_id: PublicUUID,
@@ -178,6 +183,7 @@ async def update_asset_folder(
     "/asset-folders/{folder_id}",
     response_model=ResponseModel[AdminAssetFolderDeleteOut],
     summary="Delete asset folder",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def delete_asset_folder(
     folder_id: PublicUUID,
@@ -192,6 +198,7 @@ async def delete_asset_folder(
     "/assets/bulk/move",
     response_model=ResponseModel[AdminAssetBulkMoveOut],
     summary="Bulk move assets",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def bulk_move_assets(
     payload: AdminAssetBulkMoveRequest,
@@ -214,6 +221,7 @@ async def bulk_move_assets(
     "/assets/bulk/delete",
     response_model=ResponseModel[AdminAssetBulkDeleteOut],
     summary="Bulk delete assets",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def bulk_delete_assets(
     payload: AdminAssetBulkDeleteRequest,
@@ -235,6 +243,7 @@ async def bulk_delete_assets(
     "/assets/bulk/update",
     response_model=ResponseModel[AdminAssetBulkUpdateOut],
     summary="Bulk update assets",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def bulk_update_assets(
     payload: AdminAssetBulkUpdateRequest,
@@ -257,6 +266,7 @@ async def bulk_update_assets(
     "/assets/{asset_id}/move",
     response_model=ResponseModel[AdminAssetSummaryOut],
     summary="Move asset",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def move_asset(
     asset_id: PublicUUID,

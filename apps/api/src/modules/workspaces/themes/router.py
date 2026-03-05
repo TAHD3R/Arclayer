@@ -22,7 +22,7 @@ from apps.api.src.modules.workspaces.themes.service import WorkspaceThemesServic
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
     tags=["Workspace: Themes"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:themes:read")],
 )
 
 
@@ -40,7 +40,12 @@ async def list_themes(
     return Response.success(data=WorkspaceThemeListOut(items=items))
 
 
-@router.post("/themes/import", response_model=ResponseModel[WorkspaceThemeOut], summary="Import a theme package (zip)")
+@router.post(
+    "/themes/import",
+    response_model=ResponseModel[WorkspaceThemeOut],
+    summary="Import a theme package (zip)",
+    dependencies=[require_workspace_permission("system:themes:manage")],
+)
 async def import_theme(
     payload: WorkspaceThemeImportIn,
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
@@ -75,6 +80,7 @@ async def get_theme(
     "/themes/{theme_id}/{version}",
     response_model=ResponseModel[None],
     summary="Uninstall a theme package",
+    dependencies=[require_workspace_permission("system:themes:manage")],
 )
 async def delete_theme(
     theme_id: str,

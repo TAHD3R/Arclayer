@@ -80,7 +80,7 @@ def get_rbac_service(settings: Settings = Depends(get_settings)) -> WorkspaceRBA
     "/roles",
     response_model=ResponseModel[PageData[WorkspaceRoleOut]],
     summary="List roles in current workspace",
-    dependencies=[require_workspace_permission("team:members:read")],
+    dependencies=[require_workspace_permission("rbac:roles:read")],
 )
 async def list_roles(
     params: PageParams = Depends(get_page_params),

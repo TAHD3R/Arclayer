@@ -8,6 +8,7 @@ from fastapi import APIRouter, Body, Depends, status
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
 from apps.api.src.core.http.response import Response, ResponseModel
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.content.schema import (
     ContentBlockCreateIn,
     ContentBlockDeleteOut,
@@ -45,6 +46,7 @@ async def list_workspace_content_blocks(
     response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     summary="Create a content block (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def create_workspace_content_block(
     payload: Annotated[ContentBlockCreateIn, Body(description="Create content block payload.")],
@@ -60,6 +62,7 @@ async def create_workspace_content_block(
     response_model=ResponseModel[ContentBlockOut],
     response_model_exclude_none=True,
     summary="Update a content block (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def update_workspace_content_block(
     block_id: PublicUUID,
@@ -76,6 +79,7 @@ async def update_workspace_content_block(
     response_model=ResponseModel[ContentBlockDeleteOut],
     response_model_exclude_none=True,
     summary="Delete a content block (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def delete_workspace_content_block(
     block_id: PublicUUID,

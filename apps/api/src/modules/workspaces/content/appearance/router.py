@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, Depends, Query
 
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.core.http.response import Response, ResponseModel
+from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.content.schema import (
     ContentActiveThemeOut,
     ContentActiveThemeSetIn,
@@ -41,6 +42,7 @@ async def get_workspace_content_active_theme(
     response_model=ResponseModel[ContentActiveThemeOut],
     response_model_exclude_none=True,
     summary="Set active content theme binding (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def set_workspace_content_active_theme(
     payload: Annotated[ContentActiveThemeSetIn, Body(description="Set active content theme payload.")],
@@ -70,6 +72,7 @@ async def get_workspace_content_global_style(
     response_model=ResponseModel[ContentStyleValueOut],
     response_model_exclude_none=True,
     summary="Set global content style payload (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def set_workspace_content_global_style(
     payload: Annotated[ContentStyleSetIn, Body(description="Set global content style payload.")],
@@ -85,6 +88,7 @@ async def set_workspace_content_global_style(
     response_model=ResponseModel[ContentStyleValueOut],
     response_model_exclude_none=True,
     summary="Set content type style payload (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def set_workspace_content_type_style(
     type_code: str,
@@ -101,6 +105,7 @@ async def set_workspace_content_type_style(
     response_model=ResponseModel[ContentStyleValueOut],
     response_model_exclude_none=True,
     summary="Set content entry style payload (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
 )
 async def set_workspace_content_entry_style(
     entry_id: PublicUUID,

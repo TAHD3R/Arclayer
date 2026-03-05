@@ -22,7 +22,7 @@ from apps.api.src.modules.workspaces.http.service import require_workspace_manag
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
     tags=["Workspace: Asset Usages"],
-    dependencies=[require_workspace_permission("admin:access")],
+    dependencies=[require_workspace_permission("system:assets:read")],
 )
 
 
@@ -50,6 +50,7 @@ async def list_asset_usages(
     "/asset-usages",
     response_model=ResponseModel[AdminAssetUsageOut],
     summary="Upsert asset usage",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def upsert_asset_usage(
     payload: AdminAssetUsageUpsertRequest,
@@ -65,6 +66,7 @@ async def upsert_asset_usage(
     "/asset-usages/delete",
     response_model=ResponseModel[AdminAssetUsageDeleteOut],
     summary="Delete asset usage by ref",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def delete_asset_usage_by_ref(
     payload: AdminAssetUsageDeleteRequest,
@@ -81,6 +83,7 @@ async def delete_asset_usage_by_ref(
     "/asset-usages",
     response_model=ResponseModel[AdminAssetUsageDeleteOut],
     summary="Delete asset usage by ref (compat)",
+    dependencies=[require_workspace_permission("system:assets:manage")],
 )
 async def delete_asset_usage_by_ref_delete(
     payload: AdminAssetUsageDeleteRequest,

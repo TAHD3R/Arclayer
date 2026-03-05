@@ -89,13 +89,7 @@ async def list_permissions(
     )
     page = paginate_items(
         [
-            OrganizationPermissionOut(
-                id=UUID(str(permission.id)),
-                code=permission.code,
-                module=permission.module,
-                name=permission.name,
-                description=permission.description,
-            )
+            OrganizationPermissionOut.model_validate(service.localize_permission(permission))
             for permission in permissions
         ],
         params=params,
@@ -121,18 +115,19 @@ async def get_matrix(
     roles, permissions, grants = await service.get_matrix(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id))
     )
+    localized_permissions = [service.localize_permission(permission) for permission in permissions]
     return Response.success(
         data=OrganizationRBACMatrixOut(
             roles=[OrganizationRoleOut.model_validate(service.localize_role(role)) for role in roles],
             permissions=[
                 OrganizationRBACMatrixPermissionRowOut(
-                    code=permission.code,
-                    module=permission.module,
-                    name=permission.name,
-                    description=permission.description,
-                    granted_role_codes=grants.get(permission.code, []),
+                    code=str(lp["code"]),
+                    module=str(lp["module"]),
+                    name=str(lp["name"]),
+                    description=(str(lp["description"]) if lp.get("description") is not None else None),
+                    granted_role_codes=grants.get(str(lp["code"]), []),
                 )
-                for permission in permissions
+                for lp in localized_permissions
             ],
         )
     )

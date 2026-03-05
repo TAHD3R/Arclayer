@@ -11,7 +11,7 @@ from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.org_membership import OrgMembership
-from apps.api.src.modules.organization.http.service import require_org_admin
+from apps.api.src.modules.organization.http.service import require_org_permission
 from apps.api.src.modules.organization.plugins.schema import OrganizationPluginListOut, OrganizationPluginSummary
 from apps.api.src.modules.organization.plugins.service import OrganizationPluginService
 from apps.api.src.modules.system.plugins.manager.service import PluginService
@@ -21,7 +21,6 @@ from apps.api.src.plugin.manager import PluginManager
 router = APIRouter(
     prefix="/organizations/current/plugins",
     tags=["Organization: Plugins"],
-    dependencies=[Depends(require_org_admin)],
 )
 
 
@@ -55,7 +54,10 @@ def get_org_plugin_service(
     summary="List organization-scoped plugins",
 )
 async def list_org_plugins(
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.read", error_code="ORG_EXTENSIONS_READ_REQUIRED"),
+    ],
     service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
 ) -> ResponseModel[OrganizationPluginListOut]:
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
@@ -70,7 +72,10 @@ async def list_org_plugins(
 )
 async def enable_org_plugin(
     plugin_ref: str,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.manage", error_code="ORG_EXTENSIONS_MANAGE_REQUIRED"),
+    ],
     plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
     service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
 ) -> ResponseModel[OrganizationPluginSummary]:
@@ -87,7 +92,10 @@ async def enable_org_plugin(
 )
 async def disable_org_plugin(
     plugin_ref: str,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.manage", error_code="ORG_EXTENSIONS_MANAGE_REQUIRED"),
+    ],
     plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
     service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
 ) -> ResponseModel[OrganizationPluginSummary]:
@@ -104,7 +112,10 @@ async def disable_org_plugin(
 )
 async def get_org_plugin_settings(
     plugin_ref: str,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.read", error_code="ORG_EXTENSIONS_READ_REQUIRED"),
+    ],
     plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
     service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
 ) -> ResponseModel[SettingsDetail]:
@@ -122,7 +133,10 @@ async def get_org_plugin_settings(
 async def patch_org_plugin_settings(
     plugin_ref: str,
     payload: SettingsPatch,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.manage", error_code="ORG_EXTENSIONS_MANAGE_REQUIRED"),
+    ],
     plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
     service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
 ) -> ResponseModel[SettingsDetail]:
@@ -145,7 +159,10 @@ async def patch_org_plugin_settings(
 )
 async def reset_org_plugin_settings(
     plugin_ref: str,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.manage", error_code="ORG_EXTENSIONS_MANAGE_REQUIRED"),
+    ],
     plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
     service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
 ) -> ResponseModel[None]:
@@ -162,7 +179,10 @@ async def reset_org_plugin_settings(
 )
 async def uninstall_org_plugin(
     plugin_ref: str,
-    orgm: Annotated[OrgMembership, Depends(require_org_admin)],
+    orgm: Annotated[
+        OrgMembership,
+        require_org_permission("org.extensions.manage", error_code="ORG_EXTENSIONS_MANAGE_REQUIRED"),
+    ],
     plugin_service: Annotated[PluginService, Depends(get_plugin_service)],
     service: Annotated[OrganizationPluginService, Depends(get_org_plugin_service)],
 ) -> ResponseModel[None]:
