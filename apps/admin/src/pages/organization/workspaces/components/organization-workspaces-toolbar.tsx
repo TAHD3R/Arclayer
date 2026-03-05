@@ -9,14 +9,8 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@celestial/ui/chrome-tabs";
-import { useMediaQuery } from "@celestial/hooks/use-media-query";
 
-import type {
-  OrganizationWorkspacesTab,
-  OrganizationWorkspacesTranslateFn,
-  OrganizationWorkspacesViewMode,
-} from "../types";
-import { WorkspacesViewModeToggle } from "./workspaces-view-mode-toggle";
+import type { OrganizationWorkspacesTab, OrganizationWorkspacesTranslateFn } from "../types";
 
 interface OrganizationWorkspacesToolbarProps {
   t: OrganizationWorkspacesTranslateFn;
@@ -24,8 +18,7 @@ interface OrganizationWorkspacesToolbarProps {
   onTabChange: (nextTab: OrganizationWorkspacesTab) => void;
   searchInput: string;
   onSearchInputChange: (nextValue: string) => void;
-  viewMode: OrganizationWorkspacesViewMode;
-  onViewModeChange: (mode: OrganizationWorkspacesViewMode) => void;
+  showSearchInput?: boolean;
   children: ReactNode;
 }
 
@@ -36,12 +29,9 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
     onTabChange,
     searchInput,
     onSearchInputChange,
-    viewMode,
-    onViewModeChange,
+    showSearchInput = true,
     children,
   } = props;
-
-  const showViewModeText = useMediaQuery("(min-width: 768px)");
 
   return (
     <ChromeTabs
@@ -62,21 +52,17 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
         }
         right={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
-            <WorkspacesViewModeToggle
-              t={t}
-              value={viewMode}
-              onChange={onViewModeChange}
-              display={showViewModeText ? "icon+text" : "icon"}
-            />
-            <Input
-              className="w-[240px] sm:w-[280px] md:w-[320px]"
-              value={searchInput}
-              onChange={(event) => onSearchInputChange(event.target.value)}
-              placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
-              allowClear
-              variant="filled"
-              prefix={<Search className="size-4 text-label-secondary" />}
-            />
+            {showSearchInput ? (
+              <Input
+                className="w-[240px] sm:w-[280px] md:w-[320px]"
+                value={searchInput}
+                onChange={(event) => onSearchInputChange(event.target.value)}
+                placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
+                allowClear
+                variant="filled"
+                prefix={<Search className="size-4 text-label-secondary" />}
+              />
+            ) : null}
           </div>
         }
       />

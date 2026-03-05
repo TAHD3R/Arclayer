@@ -44,7 +44,10 @@ export function createOrganizationMemberColumns({
   return [
     {
       id: "member",
-      meta: { sortKey: "username" },
+      meta: {
+        title: t("common:ORG_MEMBERS_TABLE_MEMBER"),
+        sortKey: "username",
+      },
       header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
       cell: ({ row }) => {
         const item = row.original;
@@ -128,7 +131,11 @@ export function createOrganizationMemberColumns({
     },
     {
       id: "workspaces",
-      meta: { sortKey: "workspace_count" },
+      meta: {
+        title: t("common:ORG_MEMBERS_TABLE_WORKSPACES"),
+        sortKey: "workspace_count",
+        defaultHidden: true,
+      },
       header: t("common:ORG_MEMBERS_TABLE_WORKSPACES"),
       cell: ({ row }) => (
         <WorkspaceAssociationPopover
@@ -140,7 +147,10 @@ export function createOrganizationMemberColumns({
     },
     {
       id: "role",
-      meta: { sortKey: "role_code" },
+      meta: {
+        title: t("common:ORG_MEMBERS_TABLE_ROLE"),
+        sortKey: "role_code",
+      },
       header: t("common:ORG_MEMBERS_TABLE_ROLE"),
       cell: ({ row }) => (
         <OrgRoleTag
@@ -152,7 +162,10 @@ export function createOrganizationMemberColumns({
     },
     {
       id: "status",
-      meta: { sortKey: "status" },
+      meta: {
+        title: t("common:ORG_MEMBERS_TABLE_STATUS"),
+        sortKey: "status",
+      },
       header: t("common:ORG_MEMBERS_TABLE_STATUS"),
       cell: ({ row }) => {
         const item = row.original;
@@ -178,7 +191,11 @@ export function createOrganizationMemberColumns({
     },
     {
       id: "lastLogin",
-      meta: { sortKey: "last_login_at" },
+      meta: {
+        title: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
+        sortKey: "last_login_at",
+        defaultHidden: true,
+      },
       header: t("common:ORG_MEMBERS_TABLE_LAST_LOGIN"),
       cell: ({ row }) => <span>{formatDateTime(row.original.lastLoginAt)}</span>,
     },

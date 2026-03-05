@@ -17,9 +17,11 @@ export type OrganizationWorkspaceTableHook = UseDataTableResult<
 export function useOrganizationWorkspacesTables(options: UseOrganizationWorkspacesTablesOptions) {
   const { organizationId, columns } = options;
   const tableScope = organizationId ? `org:${organizationId}` : "org:me";
+  const activeTableId = `organization-workspaces-active:${tableScope}`;
+  const archivedTableId = `organization-workspaces-archived:${tableScope}`;
 
   const activeTableHook = useDataTable<OrganizationWorkspace>({
-    tableId: `organization-workspaces-active:${tableScope}`,
+    tableId: activeTableId,
     columns,
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
@@ -39,7 +41,7 @@ export function useOrganizationWorkspacesTables(options: UseOrganizationWorkspac
   });
 
   const archivedTableHook = useDataTable<OrganizationWorkspace>({
-    tableId: `organization-workspaces-archived:${tableScope}`,
+    tableId: archivedTableId,
     columns,
     initialState: { pageSize: 10 },
     fetcher: async (params) =>
@@ -59,6 +61,8 @@ export function useOrganizationWorkspacesTables(options: UseOrganizationWorkspac
   });
 
   return {
+    activeTableId,
+    archivedTableId,
     activeTableHook,
     archivedTableHook,
   } as const;

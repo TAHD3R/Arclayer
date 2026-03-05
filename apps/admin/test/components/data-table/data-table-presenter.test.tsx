@@ -4,7 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { getCoreRowModel, type SortingState, useReactTable } from "@tanstack/react-table";
 import { describe, expect, it } from "vitest";
 
-import { DataTablePresenter, buildOrdering, collectColumnSortKeys } from "@celestial/ui/data-table";
+import {
+  DataTablePresenter,
+  buildOrdering,
+  collectColumnSortKeys,
+  useDataTableCore,
+} from "@celestial/ui/data-table";
 
 function SortableTableHarness() {
   const data = React.useMemo(() => [{ name: "Alice" }], []);
@@ -103,5 +108,63 @@ describe("DataTablePresenter", () => {
     const headerCells = container.querySelectorAll("th");
     expect(headerCells[0]?.className).toContain("text-left");
     expect(headerCells[1]?.className).toContain("text-right");
+  });
+});
+
+function ClientSortingHarness() {
+  const data = React.useMemo(() => [{ name: "Bravo" }, { name: "Alpha" }], []);
+  const columns = React.useMemo(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Name",
+        meta: { sortKey: "name" },
+      },
+    ],
+    [],
+  );
+
+  const core = useDataTableCore({
+    columns,
+    data,
+    pageCount: 1,
+    features: {
+      sorting: {
+        enabled: true,
+        mode: "client",
+      },
+    },
+  });
+
+  const names = core.table
+    .getRowModel()
+    .rows.map((row) => String(row.getValue("name")))
+    .join(",");
+
+  return (
+    <div>
+      <button type="button" onClick={() => core.setSorting([{ id: "name", desc: false }])}>
+        sort-asc
+      </button>
+      <button type="button" onClick={() => core.setSorting([{ id: "name", desc: true }])}>
+        sort-desc
+      </button>
+      <span data-testid="client-order">{names}</span>
+    </div>
+  );
+}
+
+describe("useDataTableCore", () => {
+  it("applies client-side sorting when sorting mode is client", async () => {
+    const user = userEvent.setup();
+    render(<ClientSortingHarness />);
+
+    expect(screen.getByTestId("client-order")).toHaveTextContent("Bravo,Alpha");
+
+    await user.click(screen.getByRole("button", { name: "sort-asc" }));
+    expect(screen.getByTestId("client-order")).toHaveTextContent("Alpha,Bravo");
+
+    await user.click(screen.getByRole("button", { name: "sort-desc" }));
+    expect(screen.getByTestId("client-order")).toHaveTextContent("Bravo,Alpha");
   });
 });

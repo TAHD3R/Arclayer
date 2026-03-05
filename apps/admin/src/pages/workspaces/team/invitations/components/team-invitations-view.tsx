@@ -190,14 +190,20 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         id: "inviter",
-        meta: { title: t("team:TEAM_INVITE_LINKS_COL_CREATOR") },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
+          defaultHidden: true,
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
         cell: ({ row }) => renderUserLabel(row.original.createdBy),
       },
 
       {
         accessorKey: "status",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_STATUS") },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_STATUS"),
+          sortKey: "status",
+        },
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => {
           const status = row.original.status;
@@ -299,12 +305,19 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         id: "status",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_STATUS") },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_STATUS"),
+          sortKey: "status",
+        },
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => <span>{renderInvitationStatus(row.original.status)}</span>,
       },
       {
         id: "processedBy",
+        meta: {
+          title: t("common:ORG_MEMBERS_TABLE_MEMBER"),
+          defaultHidden: true,
+        },
         header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
         cell: ({ row }) => (
           <span>
@@ -314,6 +327,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         id: "processedAt",
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
+          defaultHidden: true,
+        },
         header: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.acceptedAt || row.original.revokedAt, {
@@ -341,7 +358,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     return [
       {
         id: "creator",
-        meta: { title: t("team:TEAM_INVITE_LINKS_COL_CREATOR") },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
+          defaultHidden: true,
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
         cell: ({ row }) => renderUserLabel(row.original.createdBy),
       },

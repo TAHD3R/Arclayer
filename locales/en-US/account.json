@@ -122,6 +122,7 @@
   "ME_SECURITY_2FA_ENABLE": "Enable",
   "ME_SECURITY_SESSIONS_PANEL_TITLE": "Sessions",
   "ME_SECURITY_SESSIONS_TABLE_DESC": "Session management will be fully available soon.",
+  "ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER": "Search device, location, or IP",
   "ME_SECURITY_SESSIONS_EMPTY": "No sessions to display.",
   "ME_SECURITY_SESSIONS_KICK": "Sign out",
   "ME_SECURITY_SESSIONS_KICK_ALL": "Sign out all devices",

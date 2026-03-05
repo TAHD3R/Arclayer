@@ -11,6 +11,7 @@ import {
   getCoreRowModel,
   type OnChangeFn,
   getPaginationRowModel,
+  getSortedRowModel,
   type PaginationState,
   type RowSelectionState,
   type SortingState,
@@ -199,6 +200,7 @@ export function useDataTableCore<TData>(
     columns: columnsWithSorting,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
 
     // Server-side by default.
     manualPagination: true,

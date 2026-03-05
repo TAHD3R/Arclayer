@@ -3,10 +3,7 @@ import { ContentGuard } from "@/components/common/content-guard";
 
 import { OrganizationMembersDialogs } from "./components/members-dialogs";
 import { OrganizationMembersTableSection } from "./components/members-table-section";
-import {
-  OrganizationMembersInviteAction,
-  OrganizationMembersToolbar,
-} from "./components/members-toolbar";
+import { OrganizationMembersInviteAction } from "./components/members-toolbar";
 import { useOrganizationTeamMembers } from "./hooks/use-organization-team-members";
 
 export function OrganizationTeamMembersPage() {
@@ -20,7 +17,6 @@ export function OrganizationTeamMembersPage() {
       description={t("common:ORG_MEMBERS_DESC")}
       contentClassName="min-h-0"
       action={<OrganizationMembersInviteAction onInvite={openInviteDialog} />}
-      extra={<OrganizationMembersToolbar {...toolbarProps} />}
     >
       <ContentGuard
         loading={tableState.isLoading}
@@ -32,9 +28,18 @@ export function OrganizationTeamMembersPage() {
         emptyDescription={t("common:ORG_MEMBERS_EMPTY_DESC")}
       >
         <OrganizationMembersTableSection
+          tableId={tableState.tableId}
           table={tableState.table}
           pageData={tableState.pageData}
           onPaginationChange={tableState.onPaginationChange}
+          searchInput={toolbarProps.searchInput}
+          onSearchInputChange={toolbarProps.onSearchInputChange}
+          filters={toolbarProps.filters}
+          onFiltersChange={toolbarProps.onFiltersChange}
+          isFetching={tableState.isFetching}
+          isLoading={tableState.isLoading}
+          onRefresh={tableState.refetch}
+          onResetColumnVisibility={tableState.resetColumnVisibility}
         />
       </ContentGuard>
 

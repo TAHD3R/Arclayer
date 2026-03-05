@@ -40,7 +40,10 @@ export function useOrganizationWorkspacesColumns(
     () => [
       {
         id: "workspace",
-        meta: { sortKey: "name" },
+        meta: {
+          title: t("common:ORG_WORKSPACES_TABLE_WORKSPACE"),
+          sortKey: "name",
+        },
         header: t("common:ORG_WORKSPACES_TABLE_WORKSPACE"),
         cell: ({ row }) => {
           const item = row.original;
@@ -128,12 +131,19 @@ export function useOrganizationWorkspacesColumns(
       },
       {
         id: "members",
+        meta: {
+          title: t("common:ORG_WORKSPACES_TABLE_MEMBERS"),
+        },
         header: t("common:ORG_WORKSPACES_TABLE_MEMBERS"),
         cell: ({ row }) => <WorkspaceMembersPopover workspace={row.original} />,
       },
       {
         id: "createdAt",
-        meta: { sortKey: "created_at" },
+        meta: {
+          title: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
+          sortKey: "created_at",
+          defaultHidden: true,
+        },
         header: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
         cell: ({ row }) => <span>{dateTime.formatDateTime(row.original.createdAt)}</span>,
       },

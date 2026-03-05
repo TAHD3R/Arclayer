@@ -16,6 +16,7 @@ import {
 } from "./components/organization-workspaces-dialogs";
 import { OrganizationWorkspacesToolbar } from "./components/organization-workspaces-toolbar";
 import { WorkspacesContentSection } from "./components/workspaces-table-section";
+import { WorkspacesViewModeToggle } from "./components/workspaces-view-mode-toggle";
 import { useOrganizationWorkspacesColumns } from "./components/workspaces-columns";
 import { useOrganizationWorkspacesMutations } from "./hooks/use-organization-workspaces-mutations";
 import {
@@ -55,6 +56,8 @@ type Controller = {
   setDeleteConfirmName: Dispatch<SetStateAction<string>>;
   deleteConfirmMatches: boolean;
   buildCardMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
+  activeTableId: string;
+  archivedTableId: string;
   activeTableHook: OrganizationWorkspaceTableHook;
   archivedTableHook: OrganizationWorkspaceTableHook;
   currentTableHook: OrganizationWorkspaceTableHook;
@@ -187,10 +190,11 @@ function useOrganizationWorkspacesDialogController(args: {
     onUnarchiveWorkspace: onUnarchive,
     onEnterWorkspace,
   });
-  const { activeTableHook, archivedTableHook } = useOrganizationWorkspacesTables({
-    organizationId: args.organizationId,
-    columns,
-  });
+  const { activeTableId, archivedTableId, activeTableHook, archivedTableHook } =
+    useOrganizationWorkspacesTables({
+      organizationId: args.organizationId,
+      columns,
+    });
   const currentTableHook = tab === "active" ? activeTableHook : archivedTableHook;
   const deleteConfirmMatches = useMemo(
     () => deleteConfirmName.trim() === (confirmDelete?.name || ""),
@@ -214,6 +218,8 @@ function useOrganizationWorkspacesDialogController(args: {
     setDeleteConfirmName,
     deleteConfirmMatches,
     buildCardMenuItems,
+    activeTableId,
+    archivedTableId,
     activeTableHook,
     archivedTableHook,
     currentTableHook,
@@ -222,23 +228,33 @@ function useOrganizationWorkspacesDialogController(args: {
   };
 }
 
-function DialogHeaderCreateButton(props: {
+function DialogHeaderActions(props: {
   t: OrganizationWorkspacesTranslateFn;
-  onClick: () => void;
+  viewMode: OrganizationWorkspacesViewMode;
+  onViewModeChange: (mode: OrganizationWorkspacesViewMode) => void;
+  onCreateClick: () => void;
 }) {
   return (
-    <AntButton
-      type="primary"
-      icon={<Plus size={16} />}
-      onClick={props.onClick}
-      autoInsertSpace={false}
-    >
-      {props.t("common:ORG_WORKSPACES_CREATE")}
-    </AntButton>
+    <div className="flex items-center gap-2">
+      <WorkspacesViewModeToggle
+        t={props.t}
+        value={props.viewMode}
+        onChange={props.onViewModeChange}
+      />
+      <AntButton
+        type="primary"
+        icon={<Plus size={16} />}
+        onClick={props.onCreateClick}
+        autoInsertSpace={false}
+      >
+        {props.t("common:ORG_WORKSPACES_CREATE")}
+      </AntButton>
+    </div>
   );
 }
 
 function ActiveTab(props: {
+  tableId: string;
   t: OrganizationWorkspacesTranslateFn;
   organizationId: string;
   viewMode: OrganizationWorkspacesViewMode;
@@ -249,6 +265,7 @@ function ActiveTab(props: {
   return (
     <ChromeTabsContent value="active">
       <WorkspacesContentSection
+        tableId={props.tableId}
         viewMode={props.viewMode}
         tableHook={props.tableHook}
         emptyTitle={props.t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
@@ -267,6 +284,7 @@ function ActiveTab(props: {
 }
 
 function ArchivedTab(props: {
+  tableId: string;
   t: OrganizationWorkspacesTranslateFn;
   organizationId: string;
   viewMode: OrganizationWorkspacesViewMode;
@@ -276,6 +294,7 @@ function ArchivedTab(props: {
   return (
     <ChromeTabsContent value="archived">
       <WorkspacesContentSection
+        tableId={props.tableId}
         viewMode={props.viewMode}
         tableHook={props.tableHook}
         emptyTitle={props.t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}
@@ -297,7 +316,8 @@ function OrganizationWorkspacesDialogBody(props: {
   tab: OrganizationWorkspacesTab;
   onTabChange: (tab: OrganizationWorkspacesTab) => void;
   viewMode: OrganizationWorkspacesViewMode;
-  onViewModeChange: (mode: OrganizationWorkspacesViewMode) => void;
+  activeTableId: string;
+  archivedTableId: string;
   activeTableHook: OrganizationWorkspaceTableHook;
   archivedTableHook: OrganizationWorkspaceTableHook;
   currentTableHook: OrganizationWorkspaceTableHook;
@@ -311,10 +331,10 @@ function OrganizationWorkspacesDialogBody(props: {
       onTabChange={props.onTabChange}
       searchInput={props.currentTableHook.searchInput}
       onSearchInputChange={props.currentTableHook.setSearchInput}
-      viewMode={props.viewMode}
-      onViewModeChange={props.onViewModeChange}
+      showSearchInput={props.viewMode === "card"}
     >
       <ActiveTab
+        tableId={props.activeTableId}
         t={props.t}
         organizationId={props.organizationId}
         viewMode={props.viewMode}
@@ -323,6 +343,7 @@ function OrganizationWorkspacesDialogBody(props: {
         onEnter={props.onEnterWorkspace}
       />
       <ArchivedTab
+        tableId={props.archivedTableId}
         t={props.t}
         organizationId={props.organizationId}
         viewMode={props.viewMode}
@@ -392,7 +413,14 @@ export function OrganizationWorkspacesDialog({
       size="xl"
       title={c.t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
       description={c.t("common:ORG_WORKSPACES_DESC")}
-      headerRight={<DialogHeaderCreateButton t={c.t} onClick={() => c.setCreateOpen(true)} />}
+      headerRight={
+        <DialogHeaderActions
+          t={c.t}
+          viewMode={c.viewMode}
+          onViewModeChange={c.setViewMode}
+          onCreateClick={() => c.setCreateOpen(true)}
+        />
+      }
       bodyClassName="pt-3"
     >
       <OrganizationWorkspacesDialogBody
@@ -401,7 +429,8 @@ export function OrganizationWorkspacesDialog({
         tab={c.tab}
         onTabChange={c.setTab}
         viewMode={c.viewMode}
-        onViewModeChange={c.setViewMode}
+        activeTableId={c.activeTableId}
+        archivedTableId={c.archivedTableId}
         activeTableHook={c.activeTableHook}
         archivedTableHook={c.archivedTableHook}
         currentTableHook={c.currentTableHook}

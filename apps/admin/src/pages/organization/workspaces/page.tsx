@@ -24,6 +24,7 @@ import { useOrganizationWorkspacesColumns } from "./components/workspaces-column
 import { useOrganizationWorkspacesMutations } from "./hooks/use-organization-workspaces-mutations";
 import { useOrganizationWorkspacesTables } from "./hooks/use-organization-workspaces-tables";
 import { WorkspacesContentSection } from "./components/workspaces-table-section";
+import { WorkspacesViewModeToggle } from "./components/workspaces-view-mode-toggle";
 
 export function OrganizationWorkspacesPage() {
   const { orgId: organizationId } = useParams({ from: "/o/$orgId/workspaces/" });
@@ -138,10 +139,11 @@ export function OrganizationWorkspacesPage() {
     onEnterWorkspace: handleEnterWorkspace,
   });
 
-  const { activeTableHook, archivedTableHook } = useOrganizationWorkspacesTables({
-    organizationId,
-    columns,
-  });
+  const { activeTableId, archivedTableId, activeTableHook, archivedTableHook } =
+    useOrganizationWorkspacesTables({
+      organizationId,
+      columns,
+    });
   const currentTableHook = tab === "active" ? activeTableHook : archivedTableHook;
   const deleteConfirmMatches = deleteConfirmName.trim() === (confirmDelete?.name || "");
 
@@ -151,16 +153,19 @@ export function OrganizationWorkspacesPage() {
       description={t("common:ORG_WORKSPACES_DESC")}
       contentClassName="min-h-0"
       action={
-        <AntButton
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => {
-            setCreateOpen(true);
-          }}
-          autoInsertSpace={false}
-        >
-          {t("common:ORG_WORKSPACES_CREATE")}
-        </AntButton>
+        <div className="flex items-center gap-2">
+          <WorkspacesViewModeToggle t={t} value={viewMode} onChange={setViewMode} />
+          <AntButton
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => {
+              setCreateOpen(true);
+            }}
+            autoInsertSpace={false}
+          >
+            {t("common:ORG_WORKSPACES_CREATE")}
+          </AntButton>
+        </div>
       }
     >
       <OrganizationWorkspacesToolbar
@@ -169,11 +174,11 @@ export function OrganizationWorkspacesPage() {
         onTabChange={setTab}
         searchInput={currentTableHook.searchInput}
         onSearchInputChange={currentTableHook.setSearchInput}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        showSearchInput={viewMode === "card"}
       >
         <ChromeTabsContent value="active">
           <WorkspacesContentSection
+            tableId={activeTableId}
             viewMode={viewMode}
             tableHook={activeTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
@@ -191,6 +196,7 @@ export function OrganizationWorkspacesPage() {
 
         <ChromeTabsContent value="archived">
           <WorkspacesContentSection
+            tableId={archivedTableId}
             viewMode={viewMode}
             tableHook={archivedTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}

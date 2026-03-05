@@ -54,7 +54,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
     () => [
       {
         id: "email",
-        meta: { sortKey: "email" },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_EMAIL"),
+          sortKey: "email",
+        },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => {
           const inv = row.original;
@@ -72,11 +75,19 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "inviter",
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
+          defaultHidden: true,
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
         cell: ({ row }) => renderUserLabel(row.original.createdBy),
       },
       {
         id: "status",
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_STATUS"),
+          sortKey: "status",
+        },
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => {
           const status = row.original.status;
@@ -85,7 +96,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "createdAt",
-        meta: { sortKey: "created_at" },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_CREATED"),
+          sortKey: "created_at",
+        },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -99,7 +113,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "expiresAt",
-        meta: { sortKey: "expires_at" },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
+          sortKey: "expires_at",
+        },
         header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
@@ -112,8 +129,12 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "actions",
+        enableHiding: false,
         size: 220,
-        meta: { kind: "actions" },
+        meta: {
+          title: t("team:TEAM_TABLE_COL_ACTIONS"),
+          kind: "actions",
+        },
         header: "",
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
@@ -151,13 +172,19 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
     () => [
       {
         id: "invitee",
-        meta: { sortKey: "email" },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_EMAIL"),
+          sortKey: "email",
+        },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => <span>{row.original.email || "-"}</span>,
       },
       {
         id: "role",
-        meta: { sortKey: "role_code" },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_ROLE"),
+          sortKey: "role_code",
+        },
         header: t("team:TEAM_INVITATIONS_COL_ROLE"),
         cell: ({ row }) => (
           <span>{roleNameByCode.get(row.original.roleCode) || row.original.roleCode}</span>
@@ -165,6 +192,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "status",
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_STATUS"),
+          sortKey: "status",
+        },
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => {
           const status = row.original.status;
@@ -173,6 +204,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "processedBy",
+        meta: {
+          title: t("common:ORG_MEMBERS_TABLE_MEMBER"),
+          defaultHidden: true,
+        },
         header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
         cell: ({ row }) => (
           <span>
@@ -186,6 +221,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "processedAt",
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
+          defaultHidden: true,
+        },
         header: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.acceptedAt || row.original.revokedAt, {
@@ -198,7 +237,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "createdAt",
-        meta: { sortKey: "created_at" },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_CREATED"),
+          sortKey: "created_at",
+        },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -215,12 +257,19 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
     () => [
       {
         id: "creator",
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
+          defaultHidden: true,
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
         cell: ({ row }) => renderUserLabel(row.original.createdBy),
       },
       {
         id: "code",
-        meta: { sortKey: "display_code" },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CODE"),
+          sortKey: "display_code",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
         cell: ({ row }) => {
           const text = row.original.inviteUrl || row.original.displayCode;
@@ -238,7 +287,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "participant",
-        meta: { sortKey: "uses_count" },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
+          sortKey: "uses_count",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
         cell: ({ row }) => {
           const uses = Number(row.original.usesCount || 0);
@@ -255,7 +307,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "createdAt",
-        meta: { sortKey: "created_at" },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
+          sortKey: "created_at",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -269,7 +324,10 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "expiresAt",
-        meta: { sortKey: "expires_at" },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
+          sortKey: "expires_at",
+        },
         header: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
@@ -282,8 +340,12 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       },
       {
         id: "actions",
+        enableHiding: false,
         size: 220,
-        meta: { kind: "actions" },
+        meta: {
+          title: t("team:TEAM_INVITE_LINKS_COL_ACTIONS"),
+          kind: "actions",
+        },
         header: "",
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
