@@ -7,7 +7,6 @@ import { cn } from "@celestial/lib/utils";
 import {
   DropdownCardBody,
   DropdownCardContent,
-  DropdownCardHeader,
   DropdownCardRoot,
   DropdownCardTrigger,
 } from "@celestial/ui/dropdown-card";
@@ -107,20 +106,7 @@ export function DataTableDensityCard(props: {
       </DropdownCardTrigger>
 
       <DropdownCardContent align="end" sideOffset={8} className="w-[520px] max-w-[90vw]">
-        <DropdownCardHeader className="flex items-center justify-between">
-          <div className="min-w-0">
-            <div className="font-semibold">{props.labels.density}</div>
-            <div className="text-footnote text-label-secondary">
-              {props.value === "compact"
-                ? props.labels.densityCompact
-                : props.value === "relaxed"
-                  ? props.labels.densityRelaxed
-                  : props.labels.densityDefault}
-            </div>
-          </div>
-        </DropdownCardHeader>
-
-        <DropdownCardBody>
+        <DropdownCardBody className="pt-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <DensityCardButton
               label={props.labels.densityCompact}

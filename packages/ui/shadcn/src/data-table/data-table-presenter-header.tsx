@@ -2,7 +2,6 @@
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { flexRender, type Header, type Table as ReactTable } from "@tanstack/react-table";
-import { GripVertical } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@celestial/lib/utils";
@@ -17,7 +16,6 @@ import {
 import { isDataTableColumnLocked } from "./data-table-column-settings-utils";
 import type { DataTableDensity } from "./types";
 
-const ICON_CLASS = "size-4";
 type ColumnMeta = { kind?: string };
 
 function resolveHeaderDensityClass(density: DataTableDensity): string {
@@ -35,29 +33,28 @@ function isLeafHeader<TData>(header: Header<TData, unknown>): boolean {
   return !header.isPlaceholder && header.colSpan === 1;
 }
 
-function HeaderDragHandle(props: { id: string; disabled: boolean }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: props.id,
+function HeaderDraggableBlock(props: {
+  headerId: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  const { listeners, setNodeRef, isDragging } = useDraggable({
+    id: props.headerId,
     disabled: props.disabled,
   });
 
   return (
-    <button
+    <div
       ref={setNodeRef}
-      type="button"
-      aria-label={props.id}
       className={cn(
-        "ml-1 inline-flex size-6 items-center justify-center rounded-md text-label-secondary",
-        "hover:bg-muted/60 hover:text-foreground",
-        props.disabled ? "opacity-40 cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
-        isDragging ? "bg-muted/60 text-foreground" : "",
+        "flex h-full w-full items-center max-w-full select-none",
+        props.disabled ? "opacity-80" : "cursor-grab active:cursor-grabbing",
+        isDragging ? "bg-muted/60 rounded-sm" : "",
       )}
-      {...attributes}
       {...listeners}
-      onClick={(e) => e.stopPropagation()}
     >
-      <GripVertical className={ICON_CLASS} />
-    </button>
+      {props.children}
+    </div>
   );
 }
 
@@ -97,7 +94,7 @@ function HeaderDroppableCell<TData>(props: {
       className={cn(
         alignClass,
         pinStyle.className,
-        "uppercase tracking-wider text-label-secondary",
+        "uppercase tracking-wider text-label-secondary select-none",
         resolveHeaderDensityClass(props.density),
         selectColumn ? "px-0" : "",
         over ? "bg-muted/60 ring-1 ring-ring/40" : "",
@@ -107,24 +104,30 @@ function HeaderDroppableCell<TData>(props: {
       data-pinned={pinned ? String(pinned) : undefined}
     >
       {canSort ? (
-        <div className={cn("inline-flex items-center", justifyClass)}>
-          <button
-            type="button"
-            className={cn(
-              "group inline-flex items-center gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-muted/50",
-              justifyClass,
-            )}
-            onClick={header.column.getToggleSortingHandler()}
-          >
-            <span className="truncate">{content}</span>
-            <SortStateIcon state={sorted} />
-          </button>
-          <HeaderDragHandle id={id} disabled={dragDisabled} />
+        <div className={cn("flex h-full items-center", justifyClass)}>
+          <HeaderDraggableBlock headerId={id} disabled={dragDisabled}>
+            <button
+              type="button"
+              className={cn(
+                "group inline-flex items-center gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-muted/50",
+                justifyClass,
+              )}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                header.column.getToggleSortingHandler()?.(e);
+              }}
+            >
+              <span className="truncate select-none">{content}</span>
+              <SortStateIcon state={sorted} />
+            </button>
+          </HeaderDraggableBlock>
         </div>
       ) : (
-        <div className={cn("inline-flex items-center", justifyClass)}>
-          {content}
-          {leaf ? <HeaderDragHandle id={id} disabled={dragDisabled} /> : null}
+        <div className={cn("flex h-full items-center", justifyClass)}>
+          <HeaderDraggableBlock headerId={id} disabled={dragDisabled}>
+            <span className="truncate select-none px-1 py-1">{content}</span>
+          </HeaderDraggableBlock>
         </div>
       )}
     </TableHead>

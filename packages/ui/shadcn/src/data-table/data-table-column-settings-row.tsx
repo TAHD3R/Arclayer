@@ -6,6 +6,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 import { cn } from "@celestial/lib/utils";
 import { Checkbox } from "@celestial/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@celestial/ui/tooltip";
 
 import { DataTableDefaultIconButton } from "./data-table-icon-button";
 import type { DataTableToolsLabels } from "./data-table-tools.types";
@@ -26,20 +27,25 @@ function ColumnDragHandle(props: { id: string; disabled: boolean; ariaLabel: str
   });
 
   return (
-    <button
-      ref={setNodeRef}
-      type="button"
-      className={cn(
-        "flex size-7 items-center justify-center rounded-md text-label-secondary hover:bg-accent hover:text-foreground",
-        props.disabled ? "opacity-40 cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
-        isDragging ? "bg-accent text-foreground" : "",
-      )}
-      aria-label={props.ariaLabel}
-      {...attributes}
-      {...listeners}
-    >
-      <GripVertical className={ICON_CLASS} />
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          ref={setNodeRef}
+          type="button"
+          className={cn(
+            "flex size-7 items-center justify-center rounded-md text-label-secondary hover:bg-accent hover:text-foreground",
+            props.disabled ? "opacity-40 cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
+            isDragging ? "bg-accent text-foreground" : "",
+          )}
+          aria-label={props.ariaLabel}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className={ICON_CLASS} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{props.ariaLabel}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -73,45 +79,70 @@ function ColumnRowActions(props: {
 
   return (
     <div className="flex items-center gap-1">
-      <DataTableDefaultIconButton
-        label={props.labels.moveUp}
-        disabled={!canMoveUp}
-        onClick={() => moveTo(Math.max(0, idx - 1))}
-      >
-        <ArrowUp className={ICON_CLASS} />
-      </DataTableDefaultIconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DataTableDefaultIconButton
+            label={props.labels.moveUp}
+            disabled={!canMoveUp}
+            onClick={() => moveTo(Math.max(0, idx - 1))}
+          >
+            <ArrowUp className={ICON_CLASS} />
+          </DataTableDefaultIconButton>
+        </TooltipTrigger>
+        <TooltipContent>{props.labels.moveUp}</TooltipContent>
+      </Tooltip>
 
-      <DataTableDefaultIconButton
-        label={props.labels.moveDown}
-        disabled={!canMoveDown}
-        onClick={() => moveTo(Math.min(props.order.length - 1, idx + 1))}
-      >
-        <ArrowDown className={ICON_CLASS} />
-      </DataTableDefaultIconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DataTableDefaultIconButton
+            label={props.labels.moveDown}
+            disabled={!canMoveDown}
+            onClick={() => moveTo(Math.min(props.order.length - 1, idx + 1))}
+          >
+            <ArrowDown className={ICON_CLASS} />
+          </DataTableDefaultIconButton>
+        </TooltipTrigger>
+        <TooltipContent>{props.labels.moveDown}</TooltipContent>
+      </Tooltip>
 
-      <DataTableDefaultIconButton
-        label={props.labels.pinLeft}
-        disabled={!props.canPin || pinned === "left"}
-        onClick={() => props.table.getColumn(props.columnId)?.pin("left")}
-      >
-        <AlignLeft className={ICON_CLASS} />
-      </DataTableDefaultIconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DataTableDefaultIconButton
+            label={props.labels.pinLeft}
+            disabled={!props.canPin || pinned === "left"}
+            onClick={() => props.table.getColumn(props.columnId)?.pin("left")}
+          >
+            <AlignLeft className={ICON_CLASS} />
+          </DataTableDefaultIconButton>
+        </TooltipTrigger>
+        <TooltipContent>{props.labels.pinLeft}</TooltipContent>
+      </Tooltip>
 
-      <DataTableDefaultIconButton
-        label={props.labels.pinRight}
-        disabled={!props.canPin || pinned === "right"}
-        onClick={() => props.table.getColumn(props.columnId)?.pin("right")}
-      >
-        <AlignRight className={ICON_CLASS} />
-      </DataTableDefaultIconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DataTableDefaultIconButton
+            label={props.labels.pinRight}
+            disabled={!props.canPin || pinned === "right"}
+            onClick={() => props.table.getColumn(props.columnId)?.pin("right")}
+          >
+            <AlignRight className={ICON_CLASS} />
+          </DataTableDefaultIconButton>
+        </TooltipTrigger>
+        <TooltipContent>{props.labels.pinRight}</TooltipContent>
+      </Tooltip>
 
-      <DataTableDefaultIconButton
-        label={props.labels.pinNone}
-        disabled={!props.canPin || pinned === false}
-        onClick={() => props.table.getColumn(props.columnId)?.pin(false)}
-      >
-        <PinOff className={ICON_CLASS} />
-      </DataTableDefaultIconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DataTableDefaultIconButton
+            label={props.labels.pinNone}
+            disabled={!props.canPin || pinned === false}
+            onClick={() => props.table.getColumn(props.columnId)?.pin(false)}
+          >
+            <PinOff className={ICON_CLASS} />
+          </DataTableDefaultIconButton>
+        </TooltipTrigger>
+        <TooltipContent>{props.labels.pinNone}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }
@@ -139,37 +170,39 @@ export function DataTableColumnSettingsRow<TData>(props: {
   const highlighted = Boolean(isOver || props.overId === props.column.id);
 
   return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "flex items-center gap-2 rounded-xl border px-2 py-2 transition-colors",
-        highlighted ? "border-ring bg-accent/30" : "border-border/60 bg-background",
-        locked ? "opacity-70" : "",
-      )}
-    >
-      <ColumnDragHandle id={props.column.id} disabled={locked} ariaLabel={props.labels.drag} />
+    <TooltipProvider>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex items-center gap-2 rounded-xl border px-2 py-2 transition-colors",
+          highlighted ? "border-ring bg-accent/30" : "border-border/60 bg-background",
+          locked ? "opacity-70" : "",
+        )}
+      >
+        <ColumnDragHandle id={props.column.id} disabled={locked} ariaLabel={props.labels.drag} />
 
-      <Checkbox
-        aria-label={label}
-        checked={props.column.getIsVisible()}
-        disabled={!canHide}
-        onCheckedChange={(next) => props.column.toggleVisibility(Boolean(next))}
-      />
+        <Checkbox
+          aria-label={label}
+          checked={props.column.getIsVisible()}
+          disabled={!canHide}
+          onCheckedChange={(next) => props.column.toggleVisibility(Boolean(next))}
+        />
 
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-footnote font-medium">{label}</div>
-        <div className="text-caption text-label-secondary">{props.column.id}</div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-footnote font-medium">{label}</div>
+          <div className="text-caption text-label-secondary">{props.column.id}</div>
+        </div>
+
+        <ColumnRowActions
+          table={props.table as unknown as ReactTable<unknown>}
+          columnId={props.column.id}
+          pinned={() => props.column.getIsPinned()}
+          canPin={canPin}
+          order={props.order}
+          labels={props.labels}
+          locked={locked}
+        />
       </div>
-
-      <ColumnRowActions
-        table={props.table as unknown as ReactTable<unknown>}
-        columnId={props.column.id}
-        pinned={() => props.column.getIsPinned()}
-        canPin={canPin}
-        order={props.order}
-        labels={props.labels}
-        locked={locked}
-      />
-    </div>
+    </TooltipProvider>
   );
 }

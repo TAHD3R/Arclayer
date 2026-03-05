@@ -8,7 +8,6 @@ export type DataTableToolsLabels = {
   columns: string;
   columnsTitle: string;
   columnsDescription: string;
-  columnsLockedHint: string;
   density: string;
   densityCompact: string;
   densityDefault: string;
@@ -20,7 +19,6 @@ export type DataTableToolsLabels = {
   pinNone: string;
   moveUp: string;
   moveDown: string;
-  confirm: string;
   drag: string;
 };
 

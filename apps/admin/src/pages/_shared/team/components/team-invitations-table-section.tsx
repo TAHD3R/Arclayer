@@ -67,7 +67,6 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
     columns: t("common:DATA_TABLE_COLUMNS"),
     columnsTitle: t("common:DATA_TABLE_COLUMNS_TITLE"),
     columnsDescription: t("common:DATA_TABLE_COLUMNS_DESCRIPTION"),
-    columnsLockedHint: t("common:DATA_TABLE_COLUMNS_LOCKED_HINT"),
     density: t("common:DATA_TABLE_DENSITY"),
     densityCompact: t("common:DATA_TABLE_DENSITY_COMPACT"),
     densityDefault: t("common:DATA_TABLE_DENSITY_DEFAULT"),
@@ -79,7 +78,6 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
     pinNone: t("common:DATA_TABLE_PIN_NONE"),
     moveUp: t("common:DATA_TABLE_MOVE_UP"),
     moveDown: t("common:DATA_TABLE_MOVE_DOWN"),
-    confirm: t("common:DATA_TABLE_CONFIRM"),
     drag: t("common:DATA_TABLE_DRAG"),
   };
 

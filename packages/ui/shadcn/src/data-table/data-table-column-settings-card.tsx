@@ -2,14 +2,13 @@
 
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { Columns3, RotateCcw } from "lucide-react";
+import { Columns3, GripVertical, RotateCcw } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import * as React from "react";
 
 import {
   DropdownCardBody,
   DropdownCardContent,
-  DropdownCardFooter,
   DropdownCardHeader,
   DropdownCardRoot,
   DropdownCardTrigger,
@@ -43,23 +42,10 @@ function isLockedId(id: string): boolean {
   return DATA_TABLE_LOCKED_START_IDS.has(id) || DATA_TABLE_LOCKED_END_IDS.has(id);
 }
 
-function useDraftColumnOrder<TData>(table: ReactTable<TData>, open: boolean) {
-  const normalizedOrder = useNormalizedDataTableColumnOrder(table);
-  const leafColumns = table.getAllLeafColumns();
-
-  const [draftOrder, setDraftOrder] = React.useState<string[]>(() => normalizedOrder);
-
-  React.useEffect(() => {
-    if (!open) return;
-    setDraftOrder(normalizedOrder);
-  }, [open, normalizedOrder]);
-
-  const orderedColumns = React.useMemo(() => {
-    const idx = new Map(draftOrder.map((id, i) => [id, i]));
-    return [...leafColumns].sort((a, b) => (idx.get(a.id) ?? 0) - (idx.get(b.id) ?? 0));
-  }, [draftOrder, leafColumns]);
-
-  return { leafColumns, normalizedOrder, draftOrder, setDraftOrder, orderedColumns } as const;
+function isLockedColumn(column: { id: string; columnDef: { meta?: unknown } }): boolean {
+  if (isLockedId(column.id)) return true;
+  const kind = (column.columnDef.meta as { kind?: unknown } | undefined)?.kind;
+  return kind === "select" || kind === "actions";
 }
 
 export function DataTableColumnSettingsCard<TData>(props: {
@@ -69,14 +55,12 @@ export function DataTableColumnSettingsCard<TData>(props: {
     | "columns"
     | "columnsTitle"
     | "columnsDescription"
-    | "columnsLockedHint"
     | "reset"
     | "pinLeft"
     | "pinRight"
     | "pinNone"
     | "moveUp"
     | "moveDown"
-    | "confirm"
     | "drag"
   >;
   components?: DataTableToolsComponents;
@@ -87,8 +71,17 @@ export function DataTableColumnSettingsCard<TData>(props: {
   const [overId, setOverId] = React.useState<string | null>(null);
 
   const IconButton = resolveIconButton(props.components);
-  const { leafColumns, normalizedOrder, draftOrder, setDraftOrder, orderedColumns } =
-    useDraftColumnOrder(props.table, open);
+  const normalizedOrder = useNormalizedDataTableColumnOrder(props.table);
+  const leafColumns = props.table.getAllLeafColumns();
+
+  const orderedColumns = React.useMemo(() => {
+    const idx = new Map(normalizedOrder.map((id, i) => [id, i]));
+    return [...leafColumns].sort((a, b) => (idx.get(a.id) ?? 0) - (idx.get(b.id) ?? 0));
+  }, [leafColumns, normalizedOrder]);
+
+  const configurableColumns = React.useMemo(() => {
+    return orderedColumns.filter((col) => !isLockedColumn(col));
+  }, [orderedColumns]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -99,16 +92,7 @@ export function DataTableColumnSettingsCard<TData>(props: {
   const onDragOver = React.useCallback((e: DragOverEvent) => {
     const nextOverId = e.over ? String(e.over.id) : null;
     setOverId(nextOverId);
-    if (!nextOverId) return;
-
-    const nextActiveId = String(e.active.id);
-    if (nextActiveId === nextOverId) return;
-    if (isLockedId(nextActiveId) || isLockedId(nextOverId)) return;
-
-    setDraftOrder((prev) => {
-      if (!prev.includes(nextActiveId) || !prev.includes(nextOverId)) return prev;
-      return moveDataTableColumnInUnlockedZone(prev, nextActiveId, nextOverId);
-    });
+    void e;
   }, []);
 
   const onDragEnd = React.useCallback(
@@ -119,15 +103,17 @@ export function DataTableColumnSettingsCard<TData>(props: {
       setOverId(null);
       if (!nextOverId) return;
       if (nextOverId === nextActiveId) return;
-      props.table.setColumnOrder(draftOrder);
+      if (isLockedId(nextActiveId) || isLockedId(nextOverId)) return;
+      props.table.setColumnOrder(
+        moveDataTableColumnInUnlockedZone(normalizedOrder, nextActiveId, nextOverId),
+      );
     },
-    [draftOrder, props.table],
+    [normalizedOrder, props.table],
   );
 
   const onDragCancel = React.useCallback(() => {
     setActiveId(null);
     setOverId(null);
-    setDraftOrder(normalizedOrder);
   }, [normalizedOrder]);
 
   const resetAll = React.useCallback(() => {
@@ -135,7 +121,6 @@ export function DataTableColumnSettingsCard<TData>(props: {
     else props.table.resetColumnVisibility();
     props.table.resetColumnPinning();
     props.table.resetColumnOrder();
-    setDraftOrder(normalizedOrder);
   }, [normalizedOrder, props.onResetColumnVisibility, props.table]);
 
   const activeLabel = React.useMemo(() => {
@@ -181,11 +166,11 @@ export function DataTableColumnSettingsCard<TData>(props: {
             onDragCancel={onDragCancel}
           >
             <div className="grid grid-cols-1 gap-2">
-              {orderedColumns.map((column) => (
+              {configurableColumns.map((column) => (
                 <DataTableColumnSettingsRow
                   key={column.id}
                   table={props.table}
-                  order={draftOrder}
+                  order={normalizedOrder}
                   column={column}
                   labels={props.labels}
                   overId={overId}
@@ -196,23 +181,15 @@ export function DataTableColumnSettingsCard<TData>(props: {
             <DragOverlay>
               {activeLabel ? (
                 <div className="rounded-xl border bg-background px-3 py-2 shadow-xl">
-                  <div className="text-footnote font-medium">{activeLabel}</div>
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="size-4 text-label-secondary" />
+                    <div className="text-footnote font-medium">{activeLabel}</div>
+                  </div>
                 </div>
               ) : null}
             </DragOverlay>
           </DndContext>
         </DropdownCardBody>
-
-        <DropdownCardFooter className="flex items-center justify-between">
-          <div className="text-footnote text-label-secondary">{props.labels.columnsLockedHint}</div>
-          <button
-            type="button"
-            className="text-footnote font-medium text-primary hover:underline"
-            onClick={() => setOpen(false)}
-          >
-            {props.labels.confirm}
-          </button>
-        </DropdownCardFooter>
       </DropdownCardContent>
     </DropdownCardRoot>
   );
