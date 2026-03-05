@@ -12,7 +12,6 @@ import {
 } from "@/api/organization-members";
 import type {
   OrgMembershipStatus,
-  OrgRole,
   OrgUserStatus,
   OrganizationMember,
   OrganizationMemberWorkspace,
@@ -43,7 +42,7 @@ type OrganizationWorkspaceMeta = {
 };
 
 type OrganizationMembersTableQuery = {
-  role?: OrgRole;
+  roleCode?: string;
   membershipStatus?: OrgMembershipStatus;
   userStatus?: OrgUserStatus;
   hasWorkspace?: boolean;
@@ -61,7 +60,7 @@ export function useOrganizationTeamMembers() {
   const [pendingRemove, setPendingRemove] = useState<OrganizationMember | null>(null);
   const [editingRoleMember, setEditingRoleMember] = useState<OrganizationMember | null>(null);
   const [inspectingMember, setInspectingMember] = useState<OrganizationMember | null>(null);
-  const [roleDraft, setRoleDraft] = useState<string>("member");
+  const [roleDraft, setRoleDraft] = useState<string>("");
   const dateTime = useWorkspaceDateTimeFormatter();
 
   const rolesQuery = useQuery({
@@ -160,25 +159,9 @@ export function useOrganizationTeamMembers() {
     for (const role of rolesQuery.data?.items ?? []) {
       map.set(role.code, {
         name: getOrganizationRoleDisplayName(t, role.code, role.name),
-        description: role.description,
+        description: role.description || null,
       });
     }
-
-    map.set("owner", {
-      name: getOrganizationRoleDisplayName(t, "owner", map.get("owner")?.name),
-      description: map.get("owner")?.description || t("common:ORG_ROLE_OWNER_DESC"),
-    });
-
-    map.set("admin", {
-      name: getOrganizationRoleDisplayName(t, "admin", map.get("admin")?.name),
-      description: map.get("admin")?.description || t("common:ORG_ROLE_ADMIN_DESC"),
-    });
-
-    map.set("member", {
-      name: getOrganizationRoleDisplayName(t, "member", map.get("member")?.name),
-      description: map.get("member")?.description || t("common:ORG_ROLE_MEMBER_DESC"),
-    });
-
     return map;
   }, [rolesQuery.data?.items, t]);
 
@@ -196,25 +179,13 @@ export function useOrganizationTeamMembers() {
   );
 
   const roleOptions = useMemo<InviteOrganizationRoleOption[]>(() => {
-    const fromApi = (rolesQuery.data?.items ?? []).map((role) => ({
+    return (rolesQuery.data?.items ?? []).map((role) => ({
       value: role.code,
       label: getOrganizationRoleDisplayName(t, role.code, role.name),
     }));
-
-    if (fromApi.length > 0) {
-      return fromApi;
-    }
-
-    return [
-      { value: "owner", label: t("common:ORG_ROLE_OWNER") },
-      { value: "admin", label: t("common:ORG_ROLE_ADMIN") },
-      { value: "member", label: t("common:ORG_ROLE_MEMBER") },
-    ];
   }, [rolesQuery.data?.items, t]);
 
-  const defaultRoleCode = roleOptions.some((option) => option.value === "member")
-    ? "member"
-    : (roleOptions[0]?.value ?? "member");
+  const defaultRoleCode = roleOptions[0]?.value ?? "";
 
   const inviteMutation = useMutation({
     mutationFn: async (payload: InviteOrganizationMemberFormValues) => {
@@ -356,7 +327,7 @@ export function useOrganizationTeamMembers() {
     columns,
     initialState: { pageSize: 10 },
     extraQuery: {
-      role: filters.role,
+      roleCode: filters.roleCode,
       membershipStatus: filters.membershipStatus,
       userStatus: filters.userStatus,
       hasWorkspace: filters.hasWorkspace,
@@ -367,7 +338,7 @@ export function useOrganizationTeamMembers() {
         size: params.size,
         q: params.q,
         ordering: params.ordering,
-        role: params.role,
+        roleCode: params.roleCode,
         membershipStatus: params.membershipStatus,
         userStatus: params.userStatus,
         hasWorkspace: params.hasWorkspace,
@@ -428,6 +399,7 @@ export function useOrganizationTeamMembers() {
       onSearchInputChange: tableHook.setSearchInput,
       filters,
       onFiltersChange: setFilters,
+      roleOptions,
       isFetching: tableHook.isFetching,
       isLoading: tableHook.isLoading,
     },

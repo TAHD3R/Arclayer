@@ -32,6 +32,8 @@ class OrganizationRBACRepository(BaseRepository):
         code: str,
         name: str,
         description: str | None,
+        name_i18n: str | None,
+        description_i18n: str | None,
         is_system: bool,
         is_builtin: bool,
     ) -> OrganizationRole:
@@ -40,6 +42,8 @@ class OrganizationRBACRepository(BaseRepository):
             code=code,
             name=name,
             description=description,
+            name_i18n=name_i18n,
+            description_i18n=description_i18n,
             is_system=is_system,
             is_builtin=is_builtin,
         )

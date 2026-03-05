@@ -62,17 +62,7 @@ async def list_roles(
     )
     roles = await service.list_roles(organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)))
     page = paginate_items(
-        [
-            OrganizationRoleOut(
-                id=UUID(str(role.id)),
-                code=role.code,
-                name=role.name,
-                description=role.description,
-                is_system=bool(role.is_system),
-                is_builtin=bool(role.is_builtin),
-            )
-            for role in roles
-        ],
+        [OrganizationRoleOut.model_validate(service.localize_role(role)) for role in roles],
         params=params,
     )
     return Response.success(data=page)
@@ -133,17 +123,7 @@ async def get_matrix(
     )
     return Response.success(
         data=OrganizationRBACMatrixOut(
-            roles=[
-                OrganizationRoleOut(
-                    id=UUID(str(role.id)),
-                    code=role.code,
-                    name=role.name,
-                    description=role.description,
-                    is_system=bool(role.is_system),
-                    is_builtin=bool(role.is_builtin),
-                )
-                for role in roles
-            ],
+            roles=[OrganizationRoleOut.model_validate(service.localize_role(role)) for role in roles],
             permissions=[
                 OrganizationRBACMatrixPermissionRowOut(
                     code=permission.code,
@@ -181,16 +161,7 @@ async def create_role(
         description=body.description,
         template_role_code=body.template_role_code,
     )
-    return Response.success(
-        data=OrganizationRoleOut(
-            id=UUID(str(role.id)),
-            code=role.code,
-            name=role.name,
-            description=role.description,
-            is_system=bool(role.is_system),
-            is_builtin=bool(role.is_builtin),
-        )
-    )
+    return Response.success(data=OrganizationRoleOut.model_validate(service.localize_role(role)))
 
 
 @router.delete(

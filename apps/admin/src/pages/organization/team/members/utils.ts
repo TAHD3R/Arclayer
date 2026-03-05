@@ -1,6 +1,5 @@
 import type {
   OrgMembershipStatus,
-  OrgRole,
   OrgUserStatus,
   OrganizationRbacMatrixPermissionRow,
 } from "@/types/api";
@@ -11,19 +10,6 @@ export type DisplayOrganizationPermission = OrganizationRbacMatrixPermissionRow 
   displayName: string;
   displayDescription: string | null;
 };
-
-export function builtinRoleLabel(
-  t: (key: string, opts?: Record<string, unknown>) => string,
-  role: OrgRole,
-): string {
-  return t(`common:ORG_ROLE_${role.toUpperCase()}`);
-}
-
-export function roleTagColor(role: OrgRole): string {
-  if (role === "owner") return "gold";
-  if (role === "admin") return "blue";
-  return "default";
-}
 
 export function membershipTagColor(status: OrgMembershipStatus): string {
   if (status === "active") return "green";

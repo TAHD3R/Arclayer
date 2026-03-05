@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
 } from "@celestial/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
-import { builtinRoleLabel, membershipLabel, userStatusLabel } from "../utils";
+import { membershipLabel, userStatusLabel } from "../utils";
 import { WorkspaceAssociationPopover } from "./workspace-association-popover";
 import { type ResolvedMemberWorkspace } from "../../shared/components/organization-member-workspace-list";
 
@@ -146,9 +146,7 @@ export function createOrganizationMemberColumns({
         <OrgRoleTag
           role={row.original.role}
           className="mr-0!"
-          label={
-            roleNameByCode.get(row.original.roleCode) || builtinRoleLabel(t, row.original.role)
-          }
+          label={roleNameByCode.get(row.original.roleCode) || row.original.roleCode}
         />
       ),
     },

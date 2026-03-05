@@ -9,6 +9,8 @@ class OrganizationRoleOut(BaseOut):
     code: str = Field(..., description="Role code (unique within organization).")
     name: str = Field(..., description="Role name.")
     description: str | None = Field(default=None, description="Role description.")
+    name_i18n: str | None = Field(default=None, description="Optional i18n key for system role name.")
+    description_i18n: str | None = Field(default=None, description="Optional i18n key for system role description.")
     is_system: bool = Field(default=False, description="Whether this role is immutable.")
     is_builtin: bool = Field(default=False, description="Whether this role is built-in.")
 

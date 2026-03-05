@@ -38,6 +38,7 @@ export type OrganizationMemberListParams = {
   q?: string;
   ordering?: string;
   role?: OrgRole;
+  roleCode?: string;
   membershipStatus?: OrgMembershipStatus;
   userStatus?: OrgUserStatus;
   hasWorkspace?: boolean;

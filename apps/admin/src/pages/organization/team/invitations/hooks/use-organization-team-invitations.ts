@@ -47,7 +47,7 @@ export function useOrganizationTeamInvitations() {
   const [renewExpiresInSeconds, setRenewExpiresInSeconds] = useState<RenewExpiresInSeconds>(
     DEFAULT_RENEW_EXPIRES_IN_SECONDS,
   );
-  const [linkRoleCode, setLinkRoleCode] = useState<string>("member");
+  const [linkRoleCode, setLinkRoleCode] = useState<string>("");
   const [linkExpiresInSeconds, setLinkExpiresInSeconds] = useState<RenewExpiresInSeconds>(
     DEFAULT_RENEW_EXPIRES_IN_SECONDS,
   );
@@ -71,31 +71,17 @@ export function useOrganizationTeamInvitations() {
     for (const role of rolesQuery.data?.items ?? []) {
       map.set(role.code, getOrganizationRoleDisplayName(t, role.code, role.name));
     }
-    map.set("owner", getOrganizationRoleDisplayName(t, "owner", map.get("owner")));
-    map.set("admin", getOrganizationRoleDisplayName(t, "admin", map.get("admin")));
-    map.set("member", getOrganizationRoleDisplayName(t, "member", map.get("member")));
     return map;
   }, [rolesQuery.data?.items, t]);
 
   const roleOptionItems = useMemo<InviteOrganizationRoleOption[]>(() => {
-    const options = (rolesQuery.data?.items ?? []).map((role) => ({
+    return (rolesQuery.data?.items ?? []).map((role) => ({
       value: role.code,
       label: getOrganizationRoleDisplayName(t, role.code, role.name),
     }));
-    if (options.length > 0) {
-      return options;
-    }
-
-    return [
-      { value: "owner", label: t("common:ORG_ROLE_OWNER") },
-      { value: "admin", label: t("common:ORG_ROLE_ADMIN") },
-      { value: "member", label: t("common:ORG_ROLE_MEMBER") },
-    ];
   }, [rolesQuery.data?.items, t]);
 
-  const defaultRoleCode = roleOptionItems.some((role) => role.value === "member")
-    ? "member"
-    : (roleOptionItems[0]?.value ?? "member");
+  const defaultRoleCode = roleOptionItems[0]?.value ?? "";
 
   useEffect(() => {
     if (!roleOptionItems.some((item) => item.value === linkRoleCode)) {

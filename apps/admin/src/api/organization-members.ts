@@ -22,6 +22,7 @@ export async function listOrganizationMembers(
     q: params.q,
     ordering: params.ordering,
     role: params.role,
+    roleCode: params.roleCode,
     membershipStatus: params.membershipStatus,
     userStatus: params.userStatus,
     hasWorkspace: params.hasWorkspace,

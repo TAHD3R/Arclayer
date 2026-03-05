@@ -108,6 +108,7 @@ class OrganizationMemberService(BaseService):
         q: str | None,
         ordering: str | None,
         role: OrgRole | None,
+        role_code: str | None,
         membership_status: str | None,
         user_status: str | None,
         has_workspace: bool | None,
@@ -131,12 +132,17 @@ class OrganizationMemberService(BaseService):
         workspace_map = self._build_workspace_map(workspace_rows)
 
         needle = str(q or "").strip().lower()
+        normalized_role_code = str(role_code or "").strip().lower() or None
         normalized_membership_status = str(membership_status or "").strip().lower() or None
         normalized_user_status = str(user_status or "").strip().lower() or None
 
         items: list[OrganizationMemberOut] = []
         for row in rows:
             if role is not None and row.role != role:
+                continue
+
+            effective_role_code = str(getattr(row, "role_code", row.role.value) or "").strip().lower()
+            if normalized_role_code and effective_role_code != normalized_role_code:
                 continue
 
             if normalized_membership_status and str(row.status).lower() != normalized_membership_status:
@@ -180,7 +186,7 @@ class OrganizationMemberService(BaseService):
                     membership_id=row.id,
                     organization_id=organization_id,
                     role=row.role,
-                    role_code=str(getattr(row, "role_code", row.role.value)),
+                    role_code=effective_role_code or str(row.role.value),
                     status=row.status,
                     user_id=row.user.id,
                     username=row.user.username,

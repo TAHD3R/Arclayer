@@ -26,6 +26,7 @@ interface OrganizationMembersToolbarProps {
   onSearchInputChange: (value: string) => void;
   filters: OrgMemberFilters;
   onFiltersChange: (next: OrgMemberFilters) => void;
+  roleOptions: Array<{ value: string; label: string }>;
   isFetching: boolean;
   isLoading: boolean;
 }
@@ -35,6 +36,7 @@ export function OrganizationMembersToolbar({
   onSearchInputChange,
   filters,
   onFiltersChange,
+  roleOptions,
   isFetching,
   isLoading,
 }: OrganizationMembersToolbarProps) {
@@ -53,7 +55,11 @@ export function OrganizationMembersToolbar({
           style={{ width: 360, maxWidth: "100%" }}
         />
 
-        <MembersFilterPopover value={filters} onChange={onFiltersChange} />
+        <MembersFilterPopover
+          value={filters}
+          onChange={onFiltersChange}
+          roleOptions={roleOptions}
+        />
       </div>
 
       {isFetching && !isLoading ? <LoaderOne /> : null}

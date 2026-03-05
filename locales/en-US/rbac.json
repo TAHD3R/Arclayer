@@ -20,5 +20,21 @@
   "RBAC_PERM_EXTENSIONS_MANAGE_NAME": "Manage extensions",
   "RBAC_PERM_EXTENSIONS_MANAGE_DESC": "Allow enabling, disabling and configuring extensions/integrations.",
   "RBAC_PERM_PLUGINS_READ_NAME": "Read plugins",
-  "RBAC_PERM_PLUGINS_MANAGE_NAME": "Manage plugins"
+  "RBAC_PERM_PLUGINS_MANAGE_NAME": "Manage plugins",
+  "RBAC_ROLE_OWNER_NAME": "Owner",
+  "RBAC_ROLE_OWNER_DESC": "Full access within this workspace.",
+  "RBAC_ROLE_ADMIN_NAME": "Admin",
+  "RBAC_ROLE_ADMIN_DESC": "Manage members, settings, and permission policies.",
+  "RBAC_ROLE_EDITOR_NAME": "Editor",
+  "RBAC_ROLE_EDITOR_DESC": "Manage content editing and publishing.",
+  "RBAC_ROLE_DESIGNER_NAME": "Designer",
+  "RBAC_ROLE_DESIGNER_DESC": "Manage themes, pages, and presentation styles.",
+  "RBAC_ROLE_VIEWER_NAME": "Viewer",
+  "RBAC_ROLE_VIEWER_DESC": "Read-only access to the admin console.",
+  "ORG_RBAC_ROLE_OWNER_NAME": "Organization Owner",
+  "ORG_RBAC_ROLE_OWNER_DESC": "Full organization control including destructive operations.",
+  "ORG_RBAC_ROLE_ADMIN_NAME": "Organization Admin",
+  "ORG_RBAC_ROLE_ADMIN_DESC": "Manage members, invitations, and most organization operations.",
+  "ORG_RBAC_ROLE_MEMBER_NAME": "Organization Member",
+  "ORG_RBAC_ROLE_MEMBER_DESC": "Organization visibility with limited governance operations."
 }

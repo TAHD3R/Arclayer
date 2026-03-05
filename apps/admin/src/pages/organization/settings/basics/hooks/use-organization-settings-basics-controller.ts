@@ -194,7 +194,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   const initialOrgTimezone = coreQuery.data?.organizationLocalization.timezone || DEFAULT_TIMEZONE;
   const initialOrgDateFormat =
     coreQuery.data?.organizationLocalization.dateFormat || DEFAULT_DATE_FORMAT;
-  const initialDefaultRoleCode = coreQuery.data?.defaultRoleCode || "viewer";
+  const initialDefaultRoleCode = coreQuery.data?.defaultRoleCode || roleItems[0]?.code || "";
 
   const orgLocale = (Form.useWatch("locale", form) as string | undefined) ?? initialOrgLocale;
   const orgTimezone = (Form.useWatch("timezone", form) as string | undefined) ?? initialOrgTimezone;

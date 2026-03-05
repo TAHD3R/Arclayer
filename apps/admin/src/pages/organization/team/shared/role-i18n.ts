@@ -1,21 +1,13 @@
-const BUILTIN_ROLE_NAME_KEYS = {
-  owner: "common:ORG_ROLE_OWNER",
-  admin: "common:ORG_ROLE_ADMIN",
-  member: "common:ORG_ROLE_MEMBER",
-} as const;
-
-const BUILTIN_ROLE_DESCRIPTION_KEYS = {
-  owner: "common:ORG_ROLE_OWNER_DESC",
-  admin: "common:ORG_ROLE_ADMIN_DESC",
-  member: "common:ORG_ROLE_MEMBER_DESC",
-} as const;
-
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+const ROLE_CODE_NORMALIZE_PATTERN = /[^A-Z0-9]+/g;
 
-export type OrganizationBuiltinRoleCode = keyof typeof BUILTIN_ROLE_NAME_KEYS;
-
-export function isOrganizationBuiltinRoleCode(code: string): code is OrganizationBuiltinRoleCode {
-  return code in BUILTIN_ROLE_NAME_KEYS;
+function toRoleKey(roleCode: string): string {
+  const normalized = String(roleCode || "")
+    .trim()
+    .toUpperCase()
+    .replace(ROLE_CODE_NORMALIZE_PATTERN, "_")
+    .replace(/^_+|_+$/g, "");
+  return normalized;
 }
 
 export function getOrganizationRoleDisplayName(
@@ -23,10 +15,11 @@ export function getOrganizationRoleDisplayName(
   roleCode: string,
   fallback?: string | null,
 ): string {
-  if (isOrganizationBuiltinRoleCode(roleCode)) {
-    return t(BUILTIN_ROLE_NAME_KEYS[roleCode], { defaultValue: fallback || roleCode });
-  }
-  return String(fallback || roleCode);
+  const roleKey = toRoleKey(roleCode);
+  const fallbackText = String(fallback || roleCode || "");
+  if (!roleKey) return fallbackText;
+  const translationKey = `common:ORG_ROLE_${roleKey}`;
+  return t(translationKey, { defaultValue: fallbackText });
 }
 
 export function getOrganizationRoleDisplayDescription(
@@ -34,11 +27,11 @@ export function getOrganizationRoleDisplayDescription(
   roleCode: string,
   fallback?: string | null,
 ): string | null {
-  if (isOrganizationBuiltinRoleCode(roleCode)) {
-    const translated = t(BUILTIN_ROLE_DESCRIPTION_KEYS[roleCode], {
-      defaultValue: fallback || "",
-    });
-    return translated.trim() ? translated : null;
+  const roleKey = toRoleKey(roleCode);
+  if (!roleKey) {
+    return fallback?.trim() || null;
   }
-  return fallback?.trim() || null;
+  const translationKey = `common:ORG_ROLE_${roleKey}_DESC`;
+  const translated = t(translationKey, { defaultValue: fallback || "" });
+  return translated.trim() ? translated : null;
 }

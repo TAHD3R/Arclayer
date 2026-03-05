@@ -2,12 +2,12 @@ import { Button as AntButton, Select } from "antd";
 import { Filter } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { OrgMembershipStatus, OrgRole, OrgUserStatus } from "@/types/api";
+import type { OrgMembershipStatus, OrgUserStatus } from "@/types/api";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 export type OrgMemberFilters = {
-  role?: OrgRole;
+  roleCode?: string;
   membershipStatus?: OrgMembershipStatus;
   userStatus?: OrgUserStatus;
   hasWorkspace?: boolean;
@@ -16,9 +16,11 @@ export type OrgMemberFilters = {
 export function MembersFilterPopover({
   value,
   onChange,
+  roleOptions,
 }: {
   value: OrgMemberFilters;
   onChange: (next: OrgMemberFilters) => void;
+  roleOptions: Array<{ value: string; label: string }>;
 }) {
   const { t } = useTranslation(["common", "team"]);
 
@@ -44,21 +46,16 @@ export function MembersFilterPopover({
               {t("common:ORG_MEMBERS_TABLE_ROLE")}
             </div>
             <Select
-              value={value.role ?? "all"}
+              value={value.roleCode ?? "all"}
               className="w-full"
               onChange={(next) =>
                 onChange({
                   ...value,
-                  role: next === "all" ? undefined : (next as OrgRole),
+                  roleCode: next === "all" ? undefined : String(next),
                 })
               }
               getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[
-                { value: "all", label: t("team:TEAM_FILTER_ALL") },
-                { value: "owner", label: t("common:ORG_ROLE_OWNER") },
-                { value: "admin", label: t("common:ORG_ROLE_ADMIN") },
-                { value: "member", label: t("common:ORG_ROLE_MEMBER") },
-              ]}
+              options={[{ value: "all", label: t("team:TEAM_FILTER_ALL") }, ...roleOptions]}
             />
           </div>
 

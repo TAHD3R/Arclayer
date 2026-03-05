@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button as AntButton, Input } from "antd";
 import { Plus, Search } from "lucide-react";
@@ -28,7 +28,7 @@ export function OrganizationTeamRolesView() {
 
   const deleteRoleDialog = useDialogSnapshotState<string>();
 
-  const [newRoleTemplateCode, setNewRoleTemplateCode] = useState<string>("member");
+  const [newRoleTemplateCode, setNewRoleTemplateCode] = useState<string>("");
   const [newRoleName, setNewRoleName] = useState("");
   const [newRoleDesc, setNewRoleDesc] = useState("");
 
@@ -47,10 +47,16 @@ export function OrganizationTeamRolesView() {
       t,
     });
 
+  useEffect(() => {
+    if (displayRoles.length === 0) return;
+    if (displayRoles.some((role) => role.code === newRoleTemplateCode)) return;
+    setNewRoleTemplateCode(displayRoles[0]?.code || "");
+  }, [displayRoles, newRoleTemplateCode]);
+
   const createRoleMutation = useMutation({
     mutationFn: async () =>
       createOrganizationRoleFromTemplate({
-        templateRoleCode: newRoleTemplateCode,
+        templateRoleCode: newRoleTemplateCode || null,
         name: newRoleName.trim(),
         description: newRoleDesc.trim() || null,
       }),

@@ -19,6 +19,8 @@ class OrganizationRole(BaseModel):
     code = fields.CharField(max_length=64, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.TextField(null=True)
+    name_i18n = fields.CharField(max_length=200, null=True)
+    description_i18n = fields.CharField(max_length=200, null=True)
 
     is_system = fields.BooleanField(default=False, db_index=True)
     is_builtin = fields.BooleanField(default=False, db_index=True)

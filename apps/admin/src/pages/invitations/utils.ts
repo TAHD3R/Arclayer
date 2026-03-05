@@ -47,21 +47,13 @@ export function resolveRoleText(
   backendFallback: { name?: string | null; description?: string | null },
 ): { name: string; description: string | null } {
   const code = (roleCode || "").trim().toLowerCase();
-  const known =
-    code === "owner" ||
-    code === "admin" ||
-    code === "architect" ||
-    code === "editor" ||
-    code === "viewer";
-  if (known) {
-    const nameKey = `invite:ROLE_${code.toUpperCase()}_NAME`;
-    const descKey = `invite:ROLE_${code.toUpperCase()}_DESC`;
-    const name = t(nameKey);
-    const desc = t(descKey);
-    return {
-      name: name && name !== nameKey ? name : backendFallback.name || code,
-      description: desc && desc !== descKey ? desc : backendFallback.description || null,
-    };
+  const normalizedCode = code.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  const nameKey = normalizedCode ? `invite:ROLE_${normalizedCode}_NAME` : "";
+  const descKey = normalizedCode ? `invite:ROLE_${normalizedCode}_DESC` : "";
+  if (nameKey && descKey) {
+    const name = t(nameKey, { defaultValue: backendFallback.name || code });
+    const desc = t(descKey, { defaultValue: backendFallback.description || "" });
+    return { name, description: desc.trim() || null };
   }
   return {
     name: backendFallback.name || code || t("invite:INVITE_ROLE_UNKNOWN"),

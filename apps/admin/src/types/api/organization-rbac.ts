@@ -3,6 +3,8 @@ export type OrganizationRole = {
   code: string;
   name: string;
   description: string | null;
+  nameI18n?: string | null;
+  descriptionI18n?: string | null;
   isSystem: boolean;
   isBuiltin: boolean;
 };

@@ -8,8 +8,6 @@ export type WorkspaceRoleMetadata = {
   roleDescriptionMap: Map<string, string | null>;
 };
 
-const FALLBACK_ROLE_CODE = "viewer";
-
 export function buildWorkspaceRoleMetadata(roleItems: Role[]): WorkspaceRoleMetadata {
   const options = roleItems.map((item) => ({ label: item.name, value: item.code }));
   const labelMap = new Map<string, string>();
@@ -21,7 +19,7 @@ export function buildWorkspaceRoleMetadata(roleItems: Role[]): WorkspaceRoleMeta
   }
 
   const initialDefaultRoleCode =
-    roleItems.find((item) => item.isDefault)?.code ?? roleItems[0]?.code ?? FALLBACK_ROLE_CODE;
+    roleItems.find((item) => item.isDefault)?.code ?? roleItems[0]?.code ?? "";
 
   return {
     roleItems,

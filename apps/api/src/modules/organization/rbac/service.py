@@ -8,6 +8,7 @@ from apps.api.src.common.services import BaseService
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
 from apps.api.src.models.organization.org_rbac import (
     OrganizationPermission,
@@ -62,10 +63,25 @@ _BUILTIN_ROLE_RULES: dict[str, set[str]] = {
     },
 }
 
-_BUILTIN_ROLE_LABELS: dict[str, tuple[str, str | None]] = {
-    "owner": ("Owner", "Full organization control including destructive operations."),
-    "admin": ("Admin", "Manage members, invitations, and most organization operations."),
-    "member": ("Member", "Organization visibility with limited governance operations."),
+_BUILTIN_ROLE_DEFS: dict[str, dict[str, str | None]] = {
+    "owner": {
+        "name": "Owner",
+        "description": "Full organization control including destructive operations.",
+        "name_i18n": "rbac:ORG_RBAC_ROLE_OWNER_NAME",
+        "description_i18n": "rbac:ORG_RBAC_ROLE_OWNER_DESC",
+    },
+    "admin": {
+        "name": "Admin",
+        "description": "Manage members, invitations, and most organization operations.",
+        "name_i18n": "rbac:ORG_RBAC_ROLE_ADMIN_NAME",
+        "description_i18n": "rbac:ORG_RBAC_ROLE_ADMIN_DESC",
+    },
+    "member": {
+        "name": "Member",
+        "description": "Organization visibility with limited governance operations.",
+        "name_i18n": "rbac:ORG_RBAC_ROLE_MEMBER_NAME",
+        "description_i18n": "rbac:ORG_RBAC_ROLE_MEMBER_DESC",
+    },
 }
 
 _ROLE_CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{1,63}$")
@@ -73,6 +89,33 @@ _ROLE_CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{1,63}$")
 
 class _HasNullableDescription(Protocol):
     description: str | None
+
+
+class _HasRoleI18nFields(Protocol):
+    name_i18n: str | None
+    description_i18n: str | None
+
+
+def _parse_i18n_ref(value: str | None) -> tuple[str, str] | None:
+    if not value:
+        return None
+    raw = str(value).strip()
+    if not raw or ":" not in raw:
+        return None
+    namespace, key = raw.split(":", 1)
+    namespace = namespace.strip()
+    key = key.strip()
+    if not namespace or not key:
+        return None
+    return namespace, key
+
+
+def _localize_i18n_ref(value: str | None, *, default: str | None) -> str | None:
+    ref = _parse_i18n_ref(value)
+    if ref is None:
+        return default
+    namespace, key = ref
+    return t(namespace, key, default=default)
 
 
 class OrganizationRBACService(BaseService):
@@ -96,6 +139,31 @@ class OrganizationRBACService(BaseService):
 
         return raw_code
 
+    def localize_role(self, role: OrganizationRole) -> dict[str, object]:
+        if role.is_system:
+            role_with_i18n = cast(_HasRoleI18nFields, role)
+            name = _localize_i18n_ref(role_with_i18n.name_i18n, default=role.name) or role.name
+            description = (
+                _localize_i18n_ref(role_with_i18n.description_i18n, default=role.description or "")
+                or role.description
+                or ""
+            )
+        else:
+            name = role.name
+            description = role.description or ""
+
+        role_with_i18n = cast(_HasRoleI18nFields, role)
+        return {
+            "id": role.id,
+            "code": role.code,
+            "name": name,
+            "description": description or None,
+            "name_i18n": role_with_i18n.name_i18n,
+            "description_i18n": role_with_i18n.description_i18n,
+            "is_system": bool(role.is_system),
+            "is_builtin": bool(role.is_builtin),
+        }
+
     async def ensure_defaults(self, *, organization_id: UUID) -> None:
         permissions: dict[str, OrganizationPermission] = {}
         for code, module, name, description in _ORG_PERMISSION_TEMPLATES:
@@ -109,13 +177,19 @@ class OrganizationRBACService(BaseService):
 
         for code in ("owner", "admin", "member"):
             role = await self.repo.get_role_by_code(organization_id=organization_id, code=code)
-            name, description = _BUILTIN_ROLE_LABELS[code]
+            builtin = _BUILTIN_ROLE_DEFS[code]
+            name = str(builtin["name"] or "")
+            description = str(builtin["description"] or "") or None
+            name_i18n = str(builtin["name_i18n"] or "") or None
+            description_i18n = str(builtin["description_i18n"] or "") or None
             if role is None:
                 role = await self.repo.create_role(
                     organization_id=organization_id,
                     code=code,
                     name=name,
                     description=description,
+                    name_i18n=name_i18n,
+                    description_i18n=description_i18n,
                     is_system=True,
                     is_builtin=True,
                 )
@@ -134,6 +208,13 @@ class OrganizationRBACService(BaseService):
                 if role_with_nullable_desc.description != description:
                     role_with_nullable_desc.description = description
                     update_fields.append("description")
+                role_with_i18n = cast(_HasRoleI18nFields, role)
+                if role_with_i18n.name_i18n != name_i18n:
+                    role_with_i18n.name_i18n = name_i18n
+                    update_fields.append("name_i18n")
+                if role_with_i18n.description_i18n != description_i18n:
+                    role_with_i18n.description_i18n = description_i18n
+                    update_fields.append("description_i18n")
                 if update_fields:
                     update_fields.append("updated_at")
                     await role.save(update_fields=update_fields)
@@ -251,6 +332,8 @@ class OrganizationRBACService(BaseService):
             code=role_code,
             name=clean_name,
             description=(description or "").strip() or None,
+            name_i18n=None,
+            description_i18n=None,
             is_system=False,
             is_builtin=False,
         )

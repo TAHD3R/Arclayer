@@ -20,5 +20,21 @@
   "RBAC_PERM_EXTENSIONS_MANAGE_NAME": "管理拓展",
   "RBAC_PERM_EXTENSIONS_MANAGE_DESC": "允许启用、停用和配置拓展/集成。",
   "RBAC_PERM_PLUGINS_READ_NAME": "查看插件",
-  "RBAC_PERM_PLUGINS_MANAGE_NAME": "插件管理"
+  "RBAC_PERM_PLUGINS_MANAGE_NAME": "插件管理",
+  "RBAC_ROLE_OWNER_NAME": "所有者",
+  "RBAC_ROLE_OWNER_DESC": "拥有当前工作区的全部权限。",
+  "RBAC_ROLE_ADMIN_NAME": "管理员",
+  "RBAC_ROLE_ADMIN_DESC": "管理成员、设置与权限策略。",
+  "RBAC_ROLE_EDITOR_NAME": "编辑者",
+  "RBAC_ROLE_EDITOR_DESC": "管理内容编辑与发布。",
+  "RBAC_ROLE_DESIGNER_NAME": "设计师",
+  "RBAC_ROLE_DESIGNER_DESC": "管理主题、页面与呈现样式。",
+  "RBAC_ROLE_VIEWER_NAME": "访客",
+  "RBAC_ROLE_VIEWER_DESC": "只读访问后台内容。",
+  "ORG_RBAC_ROLE_OWNER_NAME": "组织所有者",
+  "ORG_RBAC_ROLE_OWNER_DESC": "拥有组织级全部权限，包括高风险操作。",
+  "ORG_RBAC_ROLE_ADMIN_NAME": "组织管理员",
+  "ORG_RBAC_ROLE_ADMIN_DESC": "可管理成员、邀请与大部分组织运维操作。",
+  "ORG_RBAC_ROLE_MEMBER_NAME": "组织成员",
+  "ORG_RBAC_ROLE_MEMBER_DESC": "拥有组织级基础可见性，具体能力由角色授权决定。"
 }

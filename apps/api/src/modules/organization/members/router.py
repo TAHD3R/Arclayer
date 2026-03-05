@@ -51,6 +51,11 @@ async def list_organization_members(
         description="Ordering fields, e.g. -joined_at, email.",
     ),
     role: OrgRole | None = Query(default=None, description="Filter by organization role."),
+    role_code: str | None = Query(
+        default=None,
+        alias="roleCode",
+        description="Filter by effective organization role code.",
+    ),
     membership_status: str | None = Query(
         default=None,
         alias="membershipStatus",
@@ -96,6 +101,7 @@ async def list_organization_members(
         q=q,
         ordering=ordering,
         role=role,
+        role_code=role_code,
         membership_status=membership_status,
         user_status=user_status,
         has_workspace=has_workspace,
