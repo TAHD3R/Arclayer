@@ -1,6 +1,5 @@
 import {
   Activity,
-  Blocks,
   Database,
   File,
   FileText,
@@ -109,19 +108,11 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: History,
   },
   {
-    key: "extensionsIntegrations",
-    label: "Extensions & integrations",
-    labelKey: "nav:NAV_EXTENSIONS_INTEGRATIONS",
-    icon: Blocks,
-    children: [
-      {
-        key: "extensionsIntegrations.extensions",
-        label: "Extensions",
-        labelKey: "nav:NAV_EXTENSIONS",
-        to: "/extensions",
-        icon: Puzzle,
-      },
-    ],
+    key: "extensions",
+    label: "Extensions",
+    labelKey: "nav:NAV_EXTENSIONS",
+    to: "/extensions",
+    icon: Puzzle,
   },
   // ── Group 3: Configuration ──
   {

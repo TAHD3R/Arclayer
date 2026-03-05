@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Avatar, Button, Input } from "antd";
-import { Building2, ChevronDown, PanelLeftIcon, Plus, RefreshCw, Search } from "lucide-react";
+import { ChevronDown, PanelLeftIcon, Plus, Puzzle, RefreshCw, Search, Users } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { OrganizationWorkspace } from "@/types/api";
@@ -232,12 +232,14 @@ function WsPanelContent(props: {
   error: unknown;
   currentWorkspaceId: string | null;
   canCreateWorkspace: boolean;
-  canOpenAdminCenter: boolean;
-  adminCenterPath: string | null;
+  canOpenOrgAreas: boolean;
+  peoplePath: string | null;
+  sharedExtensionsPath: string | null;
   onRefresh: () => void;
   onSelectWorkspace: (id: string) => void;
   onCreateWorkspace: () => void;
-  onOpenAdminCenter: () => void;
+  onOpenPeople: () => void;
+  onOpenSharedExtensions: () => void;
 }) {
   const { t } = useTranslation(["common", "nav"]);
   const { closeFloatingPanel } = useFloatingPanel();
@@ -295,20 +297,36 @@ function WsPanelContent(props: {
       </div>
 
       <div className="border-t border-border/60 p-2">
-        {props.canOpenAdminCenter && props.adminCenterPath ? (
+        {props.canOpenOrgAreas && props.peoplePath ? (
           <Button
             type="link"
             block
             size="small"
             className="justify-start px-1"
-            icon={<Building2 className="size-3.5" aria-hidden="true" />}
+            icon={<Users className="size-3.5" aria-hidden="true" />}
             onClick={() => {
               closeFloatingPanel();
-              props.onOpenAdminCenter();
+              props.onOpenPeople();
             }}
             autoInsertSpace={false}
           >
-            {t("common:WORKSPACE_SWITCHER_OPEN_ADMIN_CENTER")}
+            {t("nav:NAV_ORG_DIRECTORY")}
+          </Button>
+        ) : null}
+        {props.canOpenOrgAreas && props.sharedExtensionsPath ? (
+          <Button
+            type="link"
+            block
+            size="small"
+            className="justify-start px-1"
+            icon={<Puzzle className="size-3.5" aria-hidden="true" />}
+            onClick={() => {
+              closeFloatingPanel();
+              props.onOpenSharedExtensions();
+            }}
+            autoInsertSpace={false}
+          >
+            {t("nav:NAV_ORG_PLATFORM")}
           </Button>
         ) : null}
         <Button
@@ -382,17 +400,20 @@ export function AdminWorkspaceSwitcher() {
     return found.membership.role === "owner" || found.membership.role === "admin";
   }, [organizationId, organizationsQuery.data?.items]);
 
-  const canOpenAdminCenter = canCreateWorkspace;
-
   const selectedOrgId = useMemo(() => {
     if (!organizationId) return null;
     const items = organizationsQuery.data?.items ?? [];
     return items.find((item) => item.organization.id === organizationId)?.organization.id ?? null;
   }, [organizationId, organizationsQuery.data?.items]);
 
-  const adminCenterPath = useMemo(() => {
+  const peoplePath = useMemo(() => {
     if (!organizationId) return null;
-    return buildOrganizationPath(String(organizationId), "/workspaces");
+    return buildOrganizationPath(String(organizationId), "/team/members");
+  }, [organizationId]);
+
+  const sharedExtensionsPath = useMemo(() => {
+    if (!organizationId) return null;
+    return buildOrganizationPath(String(organizationId), "/extensions");
   }, [organizationId]);
 
   return (
@@ -460,8 +481,9 @@ export function AdminWorkspaceSwitcher() {
           error={workspaceQuery.error}
           currentWorkspaceId={currentWorkspaceId}
           canCreateWorkspace={canCreateWorkspace}
-          canOpenAdminCenter={canOpenAdminCenter}
-          adminCenterPath={adminCenterPath}
+          canOpenOrgAreas={canCreateWorkspace}
+          peoplePath={peoplePath}
+          sharedExtensionsPath={sharedExtensionsPath}
           onRefresh={() => void workspaceQuery.refetch()}
           onSelectWorkspace={(nextWorkspaceId) => {
             setCurrentWorkspaceId(nextWorkspaceId);
@@ -479,9 +501,13 @@ export function AdminWorkspaceSwitcher() {
               search: { create: "1" } as never,
             });
           }}
-          onOpenAdminCenter={() => {
-            if (!adminCenterPath) return;
-            void navigate({ to: adminCenterPath as never });
+          onOpenPeople={() => {
+            if (!peoplePath) return;
+            void navigate({ to: peoplePath as never });
+          }}
+          onOpenSharedExtensions={() => {
+            if (!sharedExtensionsPath) return;
+            void navigate({ to: sharedExtensionsPath as never });
           }}
         />
       </FloatingPanelContent>

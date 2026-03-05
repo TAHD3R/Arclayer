@@ -278,7 +278,7 @@ export function ExtensionDetailPage(props: ExtensionDetailPageProps) {
       title={
         props.extension
           ? props.extension.name
-          : `${t("nav:NAV_EXTENSIONS_INTEGRATIONS")} / ${props.extensionRef}`
+          : `${t("nav:NAV_EXTENSIONS")} / ${props.extensionRef}`
       }
       description={props.extension?.description || t("common:NA")}
       width="fixed"
