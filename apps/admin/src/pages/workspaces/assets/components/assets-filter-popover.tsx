@@ -63,6 +63,7 @@ export function AssetsFilterPopover(props: {
     <Popover>
       <PopoverTrigger asChild>
         <Button
+          type="text"
           icon={<Filter size={18} />}
           title={t("assets:ASSET_FILTER_TITLE")}
           autoInsertSpace={false}

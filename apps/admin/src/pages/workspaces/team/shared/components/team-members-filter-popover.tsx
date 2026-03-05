@@ -58,6 +58,7 @@ export function TeamMembersFilterPopover(props: {
     <Popover>
       <PopoverTrigger asChild>
         <Button
+          type="text"
           icon={<Filter size={18} />}
           title={t("team:TEAM_FILTER_TITLE")}
           autoInsertSpace={false}

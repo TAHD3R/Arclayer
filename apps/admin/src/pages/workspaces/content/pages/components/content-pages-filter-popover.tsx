@@ -43,6 +43,7 @@ export function ContentPagesFilterPopover(props: ContentPagesFilterPopoverProps)
     <Popover>
       <PopoverTrigger asChild>
         <Button
+          type="text"
           icon={<Filter size={18} />}
           title={props.t("content_pages:FILTER_TITLE")}
           autoInsertSpace={false}
