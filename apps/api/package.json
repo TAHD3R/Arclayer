@@ -18,8 +18,8 @@
     "test": "uv run --project apps/api --directory ../.. pytest --cov=apps.api.src",
     "test:integration": "RUN_INTEGRATION_TESTS=1 MAIL__SUPPRESS_SEND=${MAIL__SUPPRESS_SEND:-1} uv run --project apps/api --directory ../.. pytest -m integration --cov=apps.api.src",
     "test:quick": "uv run --project apps/api --directory ../.. pytest -q apps/api/tests/test_tenant_context.py --no-cov",
-    "db:migrate": "uv run --project apps/api --directory ../.. python -m tortoise makemigrations",
-    "db:upgrade": "uv run --project apps/api --directory ../.. python -m tortoise migrate",
+    "db:migrate": "uv run --project apps/api --directory ../.. python -m tortoise -c apps.api.src.core.database.orm.TORTOISE_ORM makemigrations",
+    "db:upgrade": "uv run --project apps/api --directory ../.. python -m tortoise -c apps.api.src.core.database.orm.TORTOISE_ORM migrate",
     "jobs:worker": "uv run --project apps/api --directory ../.. taskiq worker apps.api.src.infra.jobs.taskiq_app:broker apps.api.src.infra.jobs.tasks",
     "jobs:scheduler": "uv run --project apps/api --directory ../.. taskiq scheduler apps.api.src.infra.jobs.taskiq_app:scheduler apps.api.src.infra.jobs.tasks"
   }
