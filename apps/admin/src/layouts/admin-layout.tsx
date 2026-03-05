@@ -10,7 +10,6 @@ import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { useToggle } from "@celestial/hooks/use-toggle";
 import { ORG_NAV_ITEMS } from "@/constants/menu/organization";
 import { mapOrgItemsWithPrefix, normalizePath } from "@/lib/admin-nav-utils";
-import { AdminHeader } from "@/components/layout/admin-header";
 import { RouteProgress } from "@/components/layout/route-progress";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { ContentGuard } from "@/components/common/content-guard";
@@ -269,12 +268,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
       />
 
       <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
-        <AdminHeader
-          navItems={navItems}
-          onRefresh={() => {
-            window.location.reload();
-          }}
-        />
         <div className="flex-1 min-h-0 overflow-auto">
           <ContentGuard
             loading={Boolean(
