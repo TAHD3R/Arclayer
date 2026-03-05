@@ -16,6 +16,7 @@ from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams
 from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.user import User
+from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
 from apps.api.src.models.system.rbac import Role
 from apps.api.src.models.workspaces.workspace import (
     Workspace,
@@ -46,6 +47,8 @@ _FATAL_TEAM_ACTIVITY_ERRORS: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
 )
+TEAM_MEMBERS_TARGET_TO = "/settings/team/members"
+SYSTEM_ACTOR_LABEL = "System"
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
@@ -112,6 +115,197 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             )
             # Best-effort only.
             return
+
+    async def _resolve_actor_label(self, *, actor_user_id: UUID | None) -> str:
+        if actor_user_id is None:
+            return SYSTEM_ACTOR_LABEL
+        user = await User.get_or_none(id=actor_user_id)
+        if user is None:
+            return SYSTEM_ACTOR_LABEL
+        label = (user.display_name or user.username or user.email or "").strip()
+        return label or SYSTEM_ACTOR_LABEL
+
+    async def _create_notification_record(
+        self,
+        *,
+        workspace_id: UUID,
+        recipient_user_id: UUID,
+        actor_user_id: UUID | None,
+        category: NotificationCategory,
+        title: str,
+        body: str | None,
+        target_to: str,
+        event_name: str,
+        dedupe_key: str | None,
+    ) -> None:
+        try:
+            await NotificationRecord.create(
+                workspace_id=workspace_id,
+                recipient_user_id=recipient_user_id,
+                actor_user_id=actor_user_id,
+                category=category,
+                title=title,
+                body=body,
+                target_to=target_to,
+                target_meta=None,
+                event_name=event_name,
+                dedupe_key=dedupe_key,
+            )
+        except IntegrityError:
+            return
+        except BaseException as exc:
+            _raise_if_fatal(exc)
+            self.logger.warning(
+                "Workspace team notification create failed",
+                action="create_workspace_team_notification",
+                workspace_id=str(workspace_id),
+                recipient_user_id=str(recipient_user_id),
+                event_name=event_name,
+                error=str(exc),
+            )
+
+    async def _notify_workspace_email_invite_change(
+        self,
+        *,
+        workspace_id: UUID,
+        invited_email: str,
+        invited_by_user_id: UUID,
+        invite_id: UUID,
+        role_code: str | None,
+        action: str,
+    ) -> None:
+        normalized_email = invited_email.strip().lower()
+        if not normalized_email:
+            return
+        recipient = await User.get_or_none(email=normalized_email)
+        if recipient is None:
+            return
+
+        actor_label = await self._resolve_actor_label(actor_user_id=invited_by_user_id)
+        role_label = (role_code or "member").strip() or "member"
+        title_key = f"NOTIFICATIONS_WORKSPACE_EMAIL_INVITE_{action.upper()}_TITLE"
+        body_key = f"NOTIFICATIONS_WORKSPACE_EMAIL_INVITE_{action.upper()}_BODY"
+        title = t(
+            "notifications",
+            title_key,
+            default="{actor} invited you to join the workspace",
+            actor=actor_label,
+        )
+        body = t("notifications", body_key, default="Assigned role: {role}", role=role_label)
+        await self._create_notification_record(
+            workspace_id=workspace_id,
+            recipient_user_id=recipient.id,
+            actor_user_id=invited_by_user_id,
+            category=NotificationCategory.TEAM,
+            title=title,
+            body=body,
+            target_to=TEAM_MEMBERS_TARGET_TO,
+            event_name=f"workspace.invite.email.{action}",
+            dedupe_key=f"workspace.invite.email.{action}:{invite_id}",
+        )
+
+    async def _notify_member_status_updated(
+        self,
+        *,
+        workspace_id: UUID,
+        membership_id: UUID,
+        subject_user_id: UUID,
+        actor_user_id: UUID,
+        enabled: bool,
+    ) -> None:
+        actor_label = await self._resolve_actor_label(actor_user_id=actor_user_id)
+        status_key = "ENABLED" if enabled else "DISABLED"
+        title = t(
+            "notifications",
+            f"NOTIFICATIONS_MEMBER_STATUS_{status_key}_TITLE",
+            default="Your workspace membership was updated",
+            actor=actor_label,
+        )
+        body = t(
+            "notifications",
+            f"NOTIFICATIONS_MEMBER_STATUS_{status_key}_BODY",
+            default="{actor} changed your workspace membership status.",
+            actor=actor_label,
+        )
+        await self._create_notification_record(
+            workspace_id=workspace_id,
+            recipient_user_id=subject_user_id,
+            actor_user_id=actor_user_id,
+            category=NotificationCategory.SECURITY,
+            title=title,
+            body=body,
+            target_to=TEAM_MEMBERS_TARGET_TO,
+            event_name="workspace.member.status.updated",
+            dedupe_key=None,
+        )
+
+    async def _notify_member_roles_updated(
+        self,
+        *,
+        workspace_id: UUID,
+        membership_id: UUID,
+        subject_user_id: UUID,
+        actor_user_id: UUID,
+        role_codes_after: list[str],
+    ) -> None:
+        actor_label = await self._resolve_actor_label(actor_user_id=actor_user_id)
+        role_text = ", ".join(role_codes_after) if role_codes_after else "-"
+        title = t(
+            "notifications",
+            "NOTIFICATIONS_MEMBER_ROLES_UPDATED_TITLE",
+            default="Your workspace roles were updated",
+            actor=actor_label,
+        )
+        body = t(
+            "notifications",
+            "NOTIFICATIONS_MEMBER_ROLES_UPDATED_BODY",
+            default="{actor} updated your roles to: {roles}",
+            actor=actor_label,
+            roles=role_text,
+        )
+        await self._create_notification_record(
+            workspace_id=workspace_id,
+            recipient_user_id=subject_user_id,
+            actor_user_id=actor_user_id,
+            category=NotificationCategory.TEAM,
+            title=title,
+            body=body,
+            target_to=TEAM_MEMBERS_TARGET_TO,
+            event_name="workspace.member.roles.updated",
+            dedupe_key=None,
+        )
+
+    async def _notify_member_password_reset(
+        self,
+        *,
+        workspace_id: UUID,
+        subject_user_id: UUID,
+        actor_user_id: UUID,
+    ) -> None:
+        actor_label = await self._resolve_actor_label(actor_user_id=actor_user_id)
+        title = t(
+            "notifications",
+            "NOTIFICATIONS_MEMBER_PASSWORD_RESET_TITLE",
+            default="Your workspace password was reset",
+            actor=actor_label,
+        )
+        body = t(
+            "notifications",
+            "NOTIFICATIONS_MEMBER_PASSWORD_RESET_BODY",
+            default="{actor} reset your password from team management.",
+            actor=actor_label,
+        )
+        await self._create_notification_record(
+            workspace_id=workspace_id,
+            recipient_user_id=subject_user_id,
+            actor_user_id=actor_user_id,
+            category=NotificationCategory.SECURITY,
+            title=title,
+            body=body,
+            target_to=TEAM_MEMBERS_TARGET_TO,
+            event_name="workspace.member.password.reset",
+            dedupe_key=None,
+        )
 
     def _build_member_out(self, *, membership: WorkspaceMembership) -> WorkspaceTeamMemberOut:
         membership_roles = getattr(membership, "membership_roles", None) or []
@@ -333,7 +527,8 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             )
 
         target = WorkspaceMembershipStatus.ACTIVE if enabled else WorkspaceMembershipStatus.DISABLED
-        if membership.status != target:
+        status_changed = membership.status != target
+        if status_changed:
             membership.status = target
             await membership.save(update_fields=["status", "updated_at"])
 
@@ -352,6 +547,14 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
                 "enabled": bool(enabled),
             },
         )
+        if status_changed and subject_user_id is not None:
+            await self._notify_member_status_updated(
+                workspace_id=workspace_id,
+                membership_id=membership.id,
+                subject_user_id=subject_user_id,
+                actor_user_id=acting_user_id,
+                enabled=enabled,
+            )
 
         return WorkspaceTeamMemberStatusResult(membership_id=membership.id, status=membership.status)
 
@@ -361,6 +564,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         workspace_id: UUID,
         membership_id: UUID,
         payload: WorkspaceTeamResetPasswordRequest,
+        acting_user_id: UUID,
     ) -> None:
         """
         Reset the user's password for a workspace member.
@@ -381,6 +585,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         password_hash = hash_password(payload.new_password, self.settings.auth)
         await self.user_repo.set_password(user, password_hash)
         await self.user_repo.increment_token_version(user)
+        await self._notify_member_password_reset(
+            workspace_id=workspace_id,
+            subject_user_id=membership_user_id,
+            actor_user_id=acting_user_id,
+        )
 
     async def set_member_roles(
         self,
@@ -445,3 +654,12 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
                 "role_codes_after": sorted({r.code for r in roles}),
             },
         )
+        role_codes_after = sorted({r.code for r in roles})
+        if subject_user_id is not None and before_codes != role_codes_after:
+            await self._notify_member_roles_updated(
+                workspace_id=workspace_id,
+                membership_id=membership.id,
+                subject_user_id=subject_user_id,
+                actor_user_id=acting_user_id,
+                role_codes_after=role_codes_after,
+            )

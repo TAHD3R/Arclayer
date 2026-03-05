@@ -149,6 +149,17 @@ class WorkspaceTeamInviteMixin:
         self, *, link_id: UUID, limit: int = 3
     ) -> list[WorkspaceInviteLinkParticipantOut]: ...
 
+    async def _notify_workspace_email_invite_change(
+        self,
+        *,
+        workspace_id: UUID,
+        invited_email: str,
+        invited_by_user_id: UUID,
+        invite_id: UUID,
+        role_code: str | None,
+        action: str,
+    ) -> None: ...
+
     async def create_or_update_email_invite(
         self,
         *,
@@ -250,6 +261,14 @@ class WorkspaceTeamInviteMixin:
                 "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
             },
         )
+        await self._notify_workspace_email_invite_change(
+            workspace_id=workspace_id,
+            invited_email=inv.email,
+            invited_by_user_id=invited_by_user_id,
+            invite_id=inv.id,
+            role_code=inv.role_code,
+            action="updated" if is_update else "created",
+        )
         return WorkspaceEmailInviteCreateResult(invitation=out, token=token, invite_url=invite_url)
 
     async def renew_email_invite(
@@ -312,6 +331,14 @@ class WorkspaceTeamInviteMixin:
                 "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
             },
         )
+        await self._notify_workspace_email_invite_change(
+            workspace_id=workspace_id,
+            invited_email=inv.email,
+            invited_by_user_id=renewed_by_user_id,
+            invite_id=inv.id,
+            role_code=inv.role_code,
+            action="renewed",
+        )
         return WorkspaceEmailInviteCreateResult(invitation=out, token=token, invite_url=invite_url)
 
     async def revoke_email_invite(
@@ -346,6 +373,14 @@ class WorkspaceTeamInviteMixin:
                 "invite_id": str(inv.id),
                 "role_code": inv.role_code,
             },
+        )
+        await self._notify_workspace_email_invite_change(
+            workspace_id=workspace_id,
+            invited_email=inv.email,
+            invited_by_user_id=revoked_by_user_id,
+            invite_id=inv.id,
+            role_code=inv.role_code,
+            action="revoked",
         )
 
     async def create_invite_link(

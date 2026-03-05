@@ -85,6 +85,7 @@ async def test_workspace_email_invite_pending_unique_and_accept(
 
         from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
         from apps.api.src.models.organization.user import User
+        from apps.api.src.models.system.notification import NotificationRecord
         from apps.api.src.models.workspaces.workspace import Workspace
         from apps.api.src.models.workspaces.workspace_invite import WorkspaceEmailInvite
         from apps.api.src.modules.auth.repository import UserRepository
@@ -144,6 +145,14 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             )
             assert resp.status_code == 200
             token1 = resp.json()["data"]["token"]
+            assert (
+                await NotificationRecord.filter(
+                    workspace_id=ws.id,
+                    recipient_user_id=invitee.id,
+                    event_name="workspace.invite.email.created",
+                ).count()
+                == 1
+            )
 
             # Q2: create again should update existing (still one active invite).
             resp = await client.post(
@@ -153,6 +162,14 @@ async def test_workspace_email_invite_pending_unique_and_accept(
             assert resp.status_code == 200
             token2 = resp.json()["data"]["token"]
             assert token1 == token2  # code is stable when updating
+            assert (
+                await NotificationRecord.filter(
+                    workspace_id=ws.id,
+                    recipient_user_id=invitee.id,
+                    event_name="workspace.invite.email.updated",
+                ).count()
+                == 1
+            )
 
             assert (
                 await WorkspaceEmailInvite.filter(
@@ -404,6 +421,7 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
 
         from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
         from apps.api.src.models.organization.user import User
+        from apps.api.src.models.system.notification import NotificationRecord
         from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership
         from apps.api.src.modules.auth.repository import UserRepository
         from apps.api.src.modules.auth.tokens.service import hash_password
@@ -503,6 +521,29 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/enable")
             assert resp.status_code == 200
             assert resp.json()["data"]["status"] == "active"
+            assert (
+                await NotificationRecord.filter(
+                    workspace_id=ws.id,
+                    recipient_user_id=member.id,
+                    event_name="workspace.member.status.updated",
+                ).count()
+                == 2
+            )
+
+            # Update member roles.
+            resp = await client.put(
+                f"/api/v1/workspaces/{ws_pid}/team/members/{member_m_pid}/roles",
+                json={"roleCodes": ["admin"]},
+            )
+            assert resp.status_code == 200
+            assert (
+                await NotificationRecord.filter(
+                    workspace_id=ws.id,
+                    recipient_user_id=member.id,
+                    event_name="workspace.member.roles.updated",
+                ).count()
+                == 1
+            )
 
             # Reset password should update credential and bump token_version.
             before = await user_repo.get_by_id_with_credential(member.id)
@@ -524,6 +565,14 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             assert after_hash is not None
             assert after_hash != before_hash
             assert int(after_like.token_version or 0) == before_ver + 1
+            assert (
+                await NotificationRecord.filter(
+                    workspace_id=ws.id,
+                    recipient_user_id=member.id,
+                    event_name="workspace.member.password.reset",
+                ).count()
+                == 1
+            )
 
             # Disabling self should be rejected.
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{owner_m_pid}/disable")

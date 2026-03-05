@@ -165,10 +165,16 @@ async def reset_member_password(
     membership_id: PublicUUID,
     payload: WorkspaceTeamResetPasswordRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
     service = WorkspaceTeamService(settings)
-    await service.reset_member_password(workspace_id=ctx.workspace_id, membership_id=membership_id, payload=payload)
+    await service.reset_member_password(
+        workspace_id=ctx.workspace_id,
+        membership_id=membership_id,
+        payload=payload,
+        acting_user_id=user_id,
+    )
     return Response.success()
 
 
