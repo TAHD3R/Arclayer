@@ -2,30 +2,20 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
     "package.json",
-    "pnpm-lock.yaml",
-    "pyproject.toml",
-    "uv.lock",
-    "tsconfig.json"
+    "pnpm-lock.yaml"
   ],
   "globalEnv": [
-    "NODE_ENV",
-    "DATABASE_URL",
-    "APPLICATION_ENV",
-    "DATABASE__NAME",
-    "DATABASE__HOST",
-    "VALKEY__DB",
-    "RUN_INTEGRATION_TESTS",
-    "AUTH__JWT_SECRET",
-    "PLUGIN__AUTO_MIGRATE"
+    "NODE_ENV"
   ],
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "interruptible": true
     },
     "build": {
-      "dependsOn": ["^build", "lint", "typecheck"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"]
     },
     "typecheck": {
       "outputs": []
@@ -52,11 +42,134 @@
     },
     "jobs:worker": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "interruptible": true
     },
     "jobs:scheduler": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "interruptible": true
+    },
+    "@celestial/api#dev": {
+      "cache": false,
+      "persistent": true,
+      "interruptible": true,
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "RUN_INTEGRATION_TESTS",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE",
+        "MAIL__SUPPRESS_SEND"
+      ]
+    },
+    "@celestial/api#test": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/pyproject.toml"
+      ],
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "RUN_INTEGRATION_TESTS",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE",
+        "MAIL__SUPPRESS_SEND"
+      ]
+    },
+    "@celestial/api#test:integration": {
+      "cache": false,
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/pyproject.toml"
+      ],
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "RUN_INTEGRATION_TESTS",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE",
+        "MAIL__SUPPRESS_SEND"
+      ]
+    },
+    "@celestial/api#lint": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/pyproject.toml"
+      ]
+    },
+    "@celestial/api#typecheck": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/pyproject.toml"
+      ]
+    },
+    "@celestial/api#db:migrate": {
+      "cache": false,
+      "interactive": true,
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE"
+      ]
+    },
+    "@celestial/api#db:upgrade": {
+      "cache": false,
+      "interactive": true,
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE"
+      ]
+    },
+    "@celestial/api#jobs:worker": {
+      "cache": false,
+      "persistent": true,
+      "interruptible": true,
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE"
+      ]
+    },
+    "@celestial/api#jobs:scheduler": {
+      "cache": false,
+      "persistent": true,
+      "interruptible": true,
+      "passThroughEnv": [
+        "APPLICATION_ENV",
+        "DATABASE_URL",
+        "DATABASE__NAME",
+        "DATABASE__HOST",
+        "VALKEY__DB",
+        "AUTH__JWT_SECRET",
+        "PLUGIN__AUTO_MIGRATE"
+      ]
     }
   }
 }

@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev jobs:worker jobs:scheduler --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal  --filter=@celestial/studio",
-    "dev:saas": "DEPLOYMENT_MODE=saas pnpm infra:saas && pnpm dev",
-    "dev:self_host": "pnpm infra:self_host && pnpm dev",
-    "dev:self_host:min": "pnpm infra:self_host:min && pnpm dev",
+    "dev:saas": "DEPLOYMENT_MODE=saas pnpm docker:saas && pnpm dev",
+    "dev:selfhost": "pnpm docker:edge && pnpm dev",
+    "dev:selfhost:min": "pnpm docker && pnpm dev",
     "build": "turbo run build --filter=@celestial/admin --filter=@celestial/portal",
     "format": "turbo run format --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
     "check": "turbo run lint format typecheck test --filter=@celestial/admin --filter=@celestial/api --filter=@celestial/portal",
@@ -19,13 +19,12 @@
     "portal:build": "turbo run build --filter=@celestial/portal",
     "portal:check": "turbo run lint format typecheck --filter=@celestial/portal",
     "api": "turbo run dev --filter=@celestial/api",
-    "api:test": "turbo run test --filter=@celestial/api  --ui=tui",
+    "api:test": "pnpm -C apps/api test",
     "api:check": "turbo run lint format typecheck test --filter=@celestial/api",
-    "infra:saas": "docker compose --profile saas up -d",
-    "infra:edge": "docker compose --profile edge up -d",
-    "infra:devtools": "docker compose --profile devtools up -d",
-    "infra:self_host": "docker compose --profile edge up -d",
-    "infra:self_host:min": "docker compose up -d"
+    "docker": "docker compose up -d",
+    "docker:saas": "docker compose --profile saas up -d",
+    "docker:edge": "docker compose --profile edge up -d",
+    "docker:devtools": "docker compose --profile devtools up -d"
   },
   "devDependencies": {
     "@types/node": "catalog:",

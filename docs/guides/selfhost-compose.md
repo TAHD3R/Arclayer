@@ -37,7 +37,7 @@ and access services via `localhost` ports.
 Starts database/search/storage dependencies.
 
 ```bash
-pnpm infra:self_host:min
+pnpm infra:up
 ```
 
 ### Edge (Traefik, recommended for self-host)
@@ -45,20 +45,20 @@ pnpm infra:self_host:min
 Starts Traefik edge + baseline dependencies.
 
 ```bash
-pnpm infra:self_host
+pnpm infra:up:edge
 ```
 
 Notes:
 
-- `infra:self_host` binds ports **80/443**. Do not run it at the same time as `infra:saas`
+- `infra:up:edge` binds ports **80/443**. Do not run it at the same time as `infra:up:saas`
   (which also binds port 80).
 - If you already have something on 80/443 (nginx/caddy), keep using your existing edge
-  and start `infra:self_host:min` instead.
+  and start `infra:up` instead.
 
 ### Devtools (Mailpit, Dozzle)
 
 ```bash
-pnpm infra:devtools
+pnpm infra:up:devtools
 ```
 
 Both services bind to `127.0.0.1` only.

@@ -51,6 +51,9 @@ dev = [
   "safety>=3.7.0",
 ]
 
+[tool.uv]
+cache-dir = ".uv-cache"
+
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true

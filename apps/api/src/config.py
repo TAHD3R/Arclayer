@@ -805,6 +805,10 @@ def get_settings() -> Settings:
     import os
 
     current = os.getenv("APP_ENV") or os.getenv("ENV") or "development"
-    env_files = (".env", f".env.{current}", ".env.local")
+    env_files = (
+        str(_API_DIR / ".env"),
+        str(_API_DIR / f".env.{current}"),
+        str(_API_DIR / ".env.local"),
+    )
 
     return _build_settings_from_env_file(Settings, env_file=env_files, env_file_encoding="utf-8")

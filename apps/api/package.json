@@ -7,20 +7,20 @@
     "url": "https://github.com/TAHD4R"
   },
   "scripts": {
-    "uv": "node ./scripts/uv.mjs run",
-    "lock": "node ./scripts/uv.mjs lock",
-    "install": "node ./scripts/uv.mjs sync",
-    "dev": "node ./scripts/uv.mjs run uvicorn apps.api.src.main:app --reload --host 0.0.0.0 --port 8000",
-    "openapi:export": "node ./scripts/uv.mjs run python scripts/export_openapi.py",
-    "lint": "node ./scripts/uv.mjs run ruff check . --fix",
-    "format": "node ./scripts/uv.mjs run ruff format .",
-    "typecheck": "node ./scripts/uv.mjs run pyright --project ../../pyproject.toml",
-    "test": "node ./scripts/uv.mjs run pytest --cov=.",
-    "test:integration": "node ./scripts/uv.mjs --integration run pytest -m integration --cov=.",
-    "test:quick": "node ./scripts/uv.mjs run pytest -q tests/test_tenant_context.py --no-cov",
-    "db:migrate": "node ./scripts/uv.mjs run python -m tortoise makemigrations",
-    "db:upgrade": "node ./scripts/uv.mjs run python -m tortoise migrate",
-    "jobs:worker": "node ./scripts/uv.mjs run taskiq worker apps.api.src.infra.jobs.taskiq_app:broker apps.api.src.infra.jobs.tasks",
-    "jobs:scheduler": "node ./scripts/uv.mjs run taskiq scheduler apps.api.src.infra.jobs.taskiq_app:scheduler apps.api.src.infra.jobs.tasks"
+    "uv": "uv run",
+    "lock": "uv lock",
+    "install": "uv sync",
+    "dev": "uv run --project apps/api --directory ../.. uvicorn apps.api.src.main:app --reload --host 0.0.0.0 --port 8000",
+    "openapi:export": "uv run --project apps/api --directory ../.. python apps/api/scripts/export_openapi.py",
+    "lint": "uv run ruff check . --fix",
+    "format": "uv run ruff format .",
+    "typecheck": "uv run pyright --project ../../pyproject.toml",
+    "test": "uv run --project apps/api --directory ../.. pytest --cov=apps.api.src",
+    "test:integration": "RUN_INTEGRATION_TESTS=1 MAIL__SUPPRESS_SEND=${MAIL__SUPPRESS_SEND:-1} uv run --project apps/api --directory ../.. pytest -m integration --cov=apps.api.src",
+    "test:quick": "uv run --project apps/api --directory ../.. pytest -q apps/api/tests/test_tenant_context.py --no-cov",
+    "db:migrate": "uv run --project apps/api --directory ../.. python -m tortoise makemigrations",
+    "db:upgrade": "uv run --project apps/api --directory ../.. python -m tortoise migrate",
+    "jobs:worker": "uv run --project apps/api --directory ../.. taskiq worker apps.api.src.infra.jobs.taskiq_app:broker apps.api.src.infra.jobs.tasks",
+    "jobs:scheduler": "uv run --project apps/api --directory ../.. taskiq scheduler apps.api.src.infra.jobs.taskiq_app:scheduler apps.api.src.infra.jobs.tasks"
   }
 }
