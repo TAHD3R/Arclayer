@@ -29,6 +29,7 @@ import {
   parseOrganizationIdFromPath,
 } from "@/lib/routing/organization-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceSwitchDialogStore } from "@/stores/use-workspace-switch-dialog-store";
 import { useSidebar } from "@celestial/ui/sidebar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 
@@ -174,6 +175,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const clear = useAuthStore((s) => s.clear);
+  const openWorkspaceSwitchDialog = useWorkspaceSwitchDialogStore((s) => s.openDialog);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me", sessionVersion],
@@ -229,7 +231,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
         void navigate({ to: "/" });
         return;
       }
-      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/workspaces") as never });
+      openWorkspaceSwitchDialog({ organizationId: currentOrganizationId });
     },
     onNotifications: () => void navigate({ to: "/me/inbox" }),
     onHelpCenter: () => window.location.assign("#"),

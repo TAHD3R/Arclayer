@@ -5,12 +5,18 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MyOrganization, MyOrganizationListResult, OrganizationWorkspace } from "@/types/api";
 import { listMyOrganizations } from "@/api/me";
-import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
+import {
+  listAllOrganizationWorkspaces,
+  listOrganizationWorkspaces,
+} from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { OrgContextPanel } from "@/components/layout/org-context-panel";
+import { WorkspaceSwitchDialogHost } from "@/components/layout/workspace-switch-dialog-host";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceSwitchDialogStore } from "@/stores/use-workspace-switch-dialog-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
 import { SidebarProvider } from "@celestial/ui/sidebar";
 
 const navigateMock = vi.fn();
@@ -33,6 +39,7 @@ vi.mock("@/api/me", () => ({
 
 vi.mock("@/api/organization-workspaces", () => ({
   listAllOrganizationWorkspaces: vi.fn(),
+  listOrganizationWorkspaces: vi.fn(),
 }));
 
 vi.mock("@/api/workspaces", () => ({
@@ -138,9 +145,14 @@ function renderWithQueryClient(component: React.ReactElement) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider defaultOpen className="h-screen">
-        {component}
-      </SidebarProvider>
+      <ChromeTabsProvider
+        labels={{ scrollLeftAriaLabel: "scroll left", scrollRightAriaLabel: "scroll right" }}
+      >
+        <SidebarProvider defaultOpen className="h-screen">
+          {component}
+          <WorkspaceSwitchDialogHost />
+        </SidebarProvider>
+      </ChromeTabsProvider>
     </QueryClientProvider>,
   );
 }
@@ -183,6 +195,20 @@ describe("OrgContextPanel", () => {
     }
 
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+
+    class IntersectionObserverMock {
+      observe() {
+        return undefined;
+      }
+      unobserve() {
+        return undefined;
+      }
+      disconnect() {
+        return undefined;
+      }
+    }
+
+    vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
   });
 
   beforeEach(() => {
@@ -190,6 +216,11 @@ describe("OrgContextPanel", () => {
 
     useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
+    useWorkspaceSwitchDialogStore.setState({
+      open: false,
+      organizationId: null,
+      autoOpenCreate: false,
+    });
 
     vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
     vi.mocked(listAllOrganizationWorkspaces).mockResolvedValue(workspaceFixturesOrg1);
@@ -272,6 +303,20 @@ describe("AdminWorkspaceSwitcher", () => {
     }
 
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+
+    class IntersectionObserverMock {
+      observe() {
+        return undefined;
+      }
+      unobserve() {
+        return undefined;
+      }
+      disconnect() {
+        return undefined;
+      }
+    }
+
+    vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
   });
 
   beforeEach(() => {
@@ -279,9 +324,26 @@ describe("AdminWorkspaceSwitcher", () => {
 
     useAuthStore.setState({ accessToken: "token" });
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
+    useWorkspaceSwitchDialogStore.setState({
+      open: false,
+      organizationId: null,
+      autoOpenCreate: false,
+    });
 
     vi.mocked(listMyOrganizations).mockResolvedValue(organizationsFixture);
     vi.mocked(listAllOrganizationWorkspaces).mockResolvedValue(workspaceFixturesOrg1);
+    vi.mocked(listOrganizationWorkspaces).mockImplementation(async (params) => {
+      const items = params.archived ? [] : workspaceFixturesOrg1;
+      return {
+        items,
+        total: items.length,
+        page: params.page ?? 1,
+        size: params.size ?? 20,
+        pages: 1,
+        next: null,
+        prev: null,
+      };
+    });
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-alpha",
       organizationId: "org-1",
@@ -303,6 +365,10 @@ describe("AdminWorkspaceSwitcher", () => {
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
 
+    await waitFor(() => {
+      expect(screen.getByText(/Workspace Alpha/)).toBeInTheDocument();
+    });
+
     const trigger = await screen.findByRole("button", {
       name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
     });
@@ -318,16 +384,17 @@ describe("AdminWorkspaceSwitcher", () => {
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
 
+    await waitFor(() => {
+      expect(screen.getByText(/Workspace Alpha/)).toBeInTheDocument();
+    });
+
     const trigger = await screen.findByRole("button", {
       name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
     });
     await user.click(trigger);
 
     const panel = getLatestDialog();
-    const workspaceBetaButton = await within(panel).findByRole("button", {
-      name: /Workspace Beta/i,
-    });
-    await user.click(workspaceBetaButton);
+    await user.click(await within(panel).findByText("Workspace Beta"));
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-beta/assets" });

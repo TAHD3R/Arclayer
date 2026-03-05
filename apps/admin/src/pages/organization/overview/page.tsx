@@ -8,11 +8,13 @@ import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { buildOrganizationPath } from "@/lib/routing/organization-routing";
+import { useWorkspaceSwitchDialogStore } from "@/stores/use-workspace-switch-dialog-store";
 
 export function OrganizationOverviewPage() {
   const { orgId } = useParams({ from: "/o/$orgId/" });
   const { t } = useTranslation(["nav", "common", "team"]);
   const navigate = useNavigate();
+  const openWorkspaceSwitchDialog = useWorkspaceSwitchDialogStore((s) => s.openDialog);
 
   const workspacesQuery = useQuery({
     queryKey: ["organization", "overview", "workspaces"],
@@ -51,7 +53,7 @@ export function OrganizationOverviewPage() {
             <div className="mt-4 flex gap-2">
               <Button
                 type="primary"
-                onClick={() => void navigate({ to: buildOrganizationPath(orgId, "/workspaces") })}
+                onClick={() => openWorkspaceSwitchDialog({ organizationId: String(orgId) })}
                 autoInsertSpace={false}
               >
                 {t("nav:NAV_ORG_WORKSPACES")}

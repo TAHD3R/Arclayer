@@ -2,7 +2,6 @@ import {
   Activity,
   BarChart3,
   Blocks,
-  Boxes,
   Cable,
   CreditCard,
   Home,
@@ -26,13 +25,6 @@ export const ORG_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ORG_OVERVIEW",
     to: "/",
     icon: Home,
-  },
-  {
-    key: "org.workspaces",
-    label: "Workspaces",
-    labelKey: "nav:NAV_ORG_WORKSPACES",
-    to: "/workspaces",
-    icon: Boxes,
   },
   // ── Group 2 ──
   {
