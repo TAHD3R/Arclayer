@@ -17,19 +17,27 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { getMyOrganization } from "@/api/me";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { getUnreadNotificationPreview } from "@/api/notifications";
+import { listMyOrganizations } from "@/api/me";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import { filterNavByScope } from "@/lib/filter-nav-by-scope";
+import { parseOrganizationIdFromPath } from "@/lib/routing/organization-routing";
 import { SidebarInset, SidebarProvider } from "@celestial/ui/sidebar";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
+import { ForbiddenView } from "@/components/builtin/forbidden-page";
 
 const SIDEBAR_EXPANDED_WIDTH_PX = 270;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
+
+type AdminCenterAccessState = "loading" | "allowed" | "forbidden" | "error" | "not-admin-center";
+
+function canEnterAdminCenter(role: string | null): boolean {
+  return role === "owner" || role === "admin";
+}
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t } = useTranslation();
@@ -46,32 +54,17 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const systemRuntime = useSystemRuntime();
 
   const orgPathPrefix = useMemo(() => /^\/o\/[^/]+/.exec(pathname || "")?.[0] ?? null, [pathname]);
-  const isOrgScopeRoute = useMemo(
-    () => (pathname || "/") === "/" || (pathname || "/").startsWith("/o/"),
-    [pathname],
-  );
+  const isAdminCenterRoute = useMemo(() => (pathname || "/").startsWith("/o/"), [pathname]);
   const isMeScopeRoute = useMemo(() => (pathname || "/").startsWith("/me/"), [pathname]);
+  const adminCenterOrgId = useMemo(
+    () => (isAdminCenterRoute ? parseOrganizationIdFromPath(pathname) : null),
+    [isAdminCenterRoute, pathname],
+  );
 
   const workspaceBase = useMemo(() => {
     const id = String(workspaceId ?? "").trim();
     return id ? `/w/${id}` : null;
   }, [workspaceId]);
-
-  const myOrganizationQuery = useQuery({
-    queryKey: ["me", "organization", "layout", accessToken],
-    enabled: Boolean(accessToken),
-    queryFn: async () => getMyOrganization(),
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const resolvedOrgPathPrefix = useMemo(() => {
-    if (orgPathPrefix) return orgPathPrefix;
-    const orgId = myOrganizationQuery.data?.organization?.id;
-    if (!orgId) return null;
-    return `/o/${encodeURIComponent(orgId)}`;
-  }, [myOrganizationQuery.data?.organization?.id, orgPathPrefix]);
 
   const resolvePermissionName = useMemo(() => {
     return (code: string) => {
@@ -88,14 +81,54 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return normalizePath(pathname).startsWith(normalizePath(workspaceBase));
   }, [pathname, workspaceBase]);
 
+  const adminCenterOrganizationsQuery = useQuery({
+    queryKey: ["organization", "me", "organizations", "admin-layout", sessionVersion],
+    enabled: Boolean(accessToken && isAdminCenterRoute && adminCenterOrgId),
+    queryFn: listMyOrganizations,
+    staleTime: 5 * 60 * 1000,
+    meta: { silent: true },
+  });
+
+  const adminCenterAccess = useMemo((): {
+    state: AdminCenterAccessState;
+    error: unknown | null;
+  } => {
+    if (!isAdminCenterRoute) return { state: "not-admin-center", error: null };
+    if (!adminCenterOrgId) return { state: "forbidden", error: null };
+    if (adminCenterOrganizationsQuery.isLoading) return { state: "loading", error: null };
+    if (adminCenterOrganizationsQuery.error)
+      return { state: "error", error: adminCenterOrganizationsQuery.error };
+
+    const items = adminCenterOrganizationsQuery.data?.items ?? [];
+    const match = items.find((it) => it.organization.id === adminCenterOrgId);
+    const isActive = match?.membership.status === "active";
+    const role = match?.membership.role ?? null;
+
+    if (!isActive || !canEnterAdminCenter(role)) return { state: "forbidden", error: null };
+    return { state: "allowed", error: null };
+  }, [
+    adminCenterOrgId,
+    adminCenterOrganizationsQuery.data?.items,
+    adminCenterOrganizationsQuery.error,
+    adminCenterOrganizationsQuery.isLoading,
+    isAdminCenterRoute,
+  ]);
+
+  const canRenderAdminCenterNav = isAdminCenterRoute && adminCenterAccess.state === "allowed";
+  const shouldShowAdminCenterForbidden =
+    isAdminCenterRoute && adminCenterAccess.state === "forbidden";
+
   const navItems = useMemo(() => {
-    if (isOrgScopeRoute || isMeScopeRoute) {
-      if (!resolvedOrgPathPrefix) return [];
-      return mapOrgItemsWithPrefix(ORG_NAV_ITEMS, resolvedOrgPathPrefix);
+    if (isAdminCenterRoute) {
+      if (!orgPathPrefix) return [];
+      if (!canRenderAdminCenterNav) return [];
+      return mapOrgItemsWithPrefix(ORG_NAV_ITEMS, orgPathPrefix);
+    }
+    if (isMeScopeRoute) {
+      return [];
     }
     if (!workspaceBase) {
-      if (resolvedOrgPathPrefix) return mapOrgItemsWithPrefix(ORG_NAV_ITEMS, resolvedOrgPathPrefix);
-      return ORG_NAV_ITEMS;
+      return [];
     }
     const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
@@ -117,7 +150,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
     };
 
     return mapItems(baseItems);
-  }, [isOrgScopeRoute, isMeScopeRoute, resolvedOrgPathPrefix, workspaceBase]);
+  }, [canRenderAdminCenterNav, isAdminCenterRoute, isMeScopeRoute, orgPathPrefix, workspaceBase]);
 
   const scopedNavItems = useMemo(() => {
     if (!systemRuntime.runtime) return [];
@@ -169,18 +202,17 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", workspaceId, sessionVersion],
-    enabled: Boolean(accessToken && workspaceId && !isOrgScopeRoute && isWorkspaceScopeRoute),
+    enabled: Boolean(accessToken && workspaceId && isWorkspaceScopeRoute),
     queryFn: async () => getWorkspaceDetail(String(workspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const orgContextMissing = (isOrgScopeRoute || isMeScopeRoute) && !resolvedOrgPathPrefix;
-  const showOrgNavSkeleton = Boolean(accessToken) && orgContextMissing;
-  const showSystemRuntimeSkeleton = Boolean(accessToken) && !systemRuntime.runtime;
-  const showNavSkeleton = showOrgNavSkeleton || showSystemRuntimeSkeleton;
-  const showOrgNavErrorOverlay = showOrgNavSkeleton && myOrganizationQuery.isError;
+  const showNavSkeleton =
+    Boolean(accessToken) &&
+    (!systemRuntime.runtime || (isAdminCenterRoute && adminCenterAccess.state === "loading"));
+  const showOrgNavErrorOverlay = false;
 
   const workspaceLocalization = useWorkspaceLocalization();
 
@@ -244,21 +276,35 @@ export function AdminLayout({ children }: PropsWithChildren) {
         <div className="flex-1 min-h-0 overflow-auto">
           <ContentGuard
             loading={Boolean(
-              !isOrgScopeRoute && isWorkspaceScopeRoute && workspaceDetailQuery.isLoading,
+              (isWorkspaceScopeRoute && workspaceDetailQuery.isLoading) ||
+              (isAdminCenterRoute && adminCenterAccess.state === "loading"),
             )}
-            error={!isOrgScopeRoute && isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}
+            error={
+              isWorkspaceScopeRoute
+                ? workspaceDetailQuery.error
+                : isAdminCenterRoute
+                  ? adminCenterAccess.error
+                  : null
+            }
             container="admin-route"
             containerWidth="fixed"
             onRetry={
-              !isOrgScopeRoute && isWorkspaceScopeRoute
+              isWorkspaceScopeRoute
                 ? () => {
                     void workspaceDetailQuery.refetch();
                   }
-                : undefined
+                : isAdminCenterRoute
+                  ? () => {
+                      void adminCenterOrganizationsQuery.refetch();
+                    }
+                  : undefined
             }
             loadingVariant="form"
           >
-            <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
+            <RouteTransition className="w-full">
+              {shouldShowAdminCenterForbidden ? <ForbiddenView variant="admin" /> : null}
+              {!shouldShowAdminCenterForbidden ? (children ?? <Outlet />) : null}
+            </RouteTransition>
           </ContentGuard>
         </div>
       </SidebarInset>

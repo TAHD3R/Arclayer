@@ -13,39 +13,8 @@ export function LandingPage() {
   const { t } = useTranslation(["common", "nav"]);
   const navigate = useNavigate();
 
-  const organizationsQuery = useQuery({
-    queryKey: ["organization", "me", "organizations", "landing"],
-    queryFn: listMyOrganizations,
-    staleTime: 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const firstOrganizationId = useMemo(() => {
-    const items = organizationsQuery.data?.items ?? [];
-    const activeItems = items.filter((item) => item.membership.status === "active");
-    if (!activeItems.length) return null;
-
-    return (
-      activeItems
-        .slice()
-        .sort((left, right) => left.organization.name.localeCompare(right.organization.name))[0]
-        ?.organization.id ?? null
-    );
-  }, [organizationsQuery.data?.items]);
-
-  useEffect(() => {
-    if (!firstOrganizationId) return;
-    void navigate({ to: `/o/${firstOrganizationId}/workspaces`, replace: true });
-  }, [firstOrganizationId, navigate]);
-
   const workspacesQuery = useQuery({
     queryKey: ["workspace", "me", "workspaces", "landing"],
-    enabled: Boolean(
-      organizationsQuery.isSuccess &&
-      !firstOrganizationId &&
-      (organizationsQuery.data?.items?.length ?? 0) === 0,
-    ),
     queryFn: listMyWorkspaces,
     staleTime: 60 * 1000,
     retry: false,
@@ -62,27 +31,58 @@ export function LandingPage() {
     void navigate({ to: `/w/${firstWorkspaceId}/`, replace: true });
   }, [firstWorkspaceId, navigate]);
 
+  const organizationsQuery = useQuery({
+    queryKey: ["organization", "me", "organizations", "landing"],
+    enabled: Boolean(workspacesQuery.isSuccess && (workspacesQuery.data?.items?.length ?? 0) === 0),
+    queryFn: listMyOrganizations,
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const firstAdminOrganizationId = useMemo(() => {
+    const items = organizationsQuery.data?.items ?? [];
+    const activeAdminItems = items.filter(
+      (item) =>
+        item.membership.status === "active" &&
+        (item.membership.role === "owner" || item.membership.role === "admin"),
+    );
+    if (!activeAdminItems.length) return null;
+
+    return (
+      activeAdminItems
+        .slice()
+        .sort((left, right) => left.organization.name.localeCompare(right.organization.name))[0]
+        ?.organization.id ?? null
+    );
+  }, [organizationsQuery.data?.items]);
+
+  useEffect(() => {
+    if (!firstAdminOrganizationId) return;
+    void navigate({ to: `/o/${firstAdminOrganizationId}/workspaces`, replace: true });
+  }, [firstAdminOrganizationId, navigate]);
+
   return (
     <DefaultPage
       width="fixed"
       title={t("nav:NAV_ORG_WORKSPACES")}
-      description={t("common:WORKSPACE_SWITCHER_ORG_EMPTY_DESC")}
+      description={t("common:LANDING_WORKSPACE_EMPTY_DESC")}
     >
       <ContentGuard
         loading={
-          Boolean(firstOrganizationId) ||
           Boolean(firstWorkspaceId) ||
-          (organizationsQuery.isLoading && !organizationsQuery.data) ||
-          (workspacesQuery.isLoading && !workspacesQuery.data)
+          Boolean(firstAdminOrganizationId) ||
+          (workspacesQuery.isLoading && !workspacesQuery.data) ||
+          (organizationsQuery.isLoading && !organizationsQuery.data)
         }
-        error={organizationsQuery.error ?? workspacesQuery.error}
+        error={workspacesQuery.error ?? organizationsQuery.error}
         onRetry={() => {
-          void organizationsQuery.refetch();
           void workspacesQuery.refetch();
+          void organizationsQuery.refetch();
         }}
-        empty={!firstOrganizationId && !firstWorkspaceId}
-        emptyTitle={t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}
-        emptyDescription={t("common:WORKSPACE_SWITCHER_ORG_EMPTY_DESC")}
+        empty={!firstWorkspaceId && !firstAdminOrganizationId}
+        emptyTitle={t("common:LANDING_WORKSPACE_EMPTY_TITLE")}
+        emptyDescription={t("common:LANDING_WORKSPACE_EMPTY_DESC")}
       />
     </DefaultPage>
   );

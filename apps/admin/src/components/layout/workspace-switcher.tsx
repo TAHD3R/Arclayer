@@ -232,12 +232,12 @@ function WsPanelContent(props: {
   error: unknown;
   currentWorkspaceId: string | null;
   canCreateWorkspace: boolean;
-  canAccessOrganization: boolean;
-  organizationWorkspacesPath: string | null;
+  canOpenAdminCenter: boolean;
+  adminCenterPath: string | null;
   onRefresh: () => void;
   onSelectWorkspace: (id: string) => void;
   onCreateWorkspace: () => void;
-  onOpenOrganizationWorkspaces: () => void;
+  onOpenAdminCenter: () => void;
 }) {
   const { t } = useTranslation(["common", "nav"]);
   const { closeFloatingPanel } = useFloatingPanel();
@@ -295,7 +295,7 @@ function WsPanelContent(props: {
       </div>
 
       <div className="border-t border-border/60 p-2">
-        {props.canAccessOrganization && props.organizationWorkspacesPath ? (
+        {props.canOpenAdminCenter && props.adminCenterPath ? (
           <Button
             type="link"
             block
@@ -304,11 +304,11 @@ function WsPanelContent(props: {
             icon={<Building2 className="size-3.5" aria-hidden="true" />}
             onClick={() => {
               closeFloatingPanel();
-              props.onOpenOrganizationWorkspaces();
+              props.onOpenAdminCenter();
             }}
             autoInsertSpace={false}
           >
-            {t("common:WORKSPACE_SWITCHER_OPEN_ORG_WORKSPACES")}
+            {t("common:WORKSPACE_SWITCHER_OPEN_ADMIN_CENTER")}
           </Button>
         ) : null}
         <Button
@@ -382,19 +382,15 @@ export function AdminWorkspaceSwitcher() {
     return found.membership.role === "owner" || found.membership.role === "admin";
   }, [organizationId, organizationsQuery.data?.items]);
 
+  const canOpenAdminCenter = canCreateWorkspace;
+
   const selectedOrgId = useMemo(() => {
     if (!organizationId) return null;
     const items = organizationsQuery.data?.items ?? [];
     return items.find((item) => item.organization.id === organizationId)?.organization.id ?? null;
   }, [organizationId, organizationsQuery.data?.items]);
 
-  const canAccessOrganization = useMemo(() => {
-    if (!organizationId) return false;
-    const items = organizationsQuery.data?.items ?? [];
-    return items.some((item) => item.organization.id === organizationId);
-  }, [organizationId, organizationsQuery.data?.items]);
-
-  const organizationWorkspacesPath = useMemo(() => {
+  const adminCenterPath = useMemo(() => {
     if (!organizationId) return null;
     return buildOrganizationPath(String(organizationId), "/workspaces");
   }, [organizationId]);
@@ -464,8 +460,8 @@ export function AdminWorkspaceSwitcher() {
           error={workspaceQuery.error}
           currentWorkspaceId={currentWorkspaceId}
           canCreateWorkspace={canCreateWorkspace}
-          canAccessOrganization={canAccessOrganization}
-          organizationWorkspacesPath={organizationWorkspacesPath}
+          canOpenAdminCenter={canOpenAdminCenter}
+          adminCenterPath={adminCenterPath}
           onRefresh={() => void workspaceQuery.refetch()}
           onSelectWorkspace={(nextWorkspaceId) => {
             setCurrentWorkspaceId(nextWorkspaceId);
@@ -483,9 +479,9 @@ export function AdminWorkspaceSwitcher() {
               search: { create: "1" } as never,
             });
           }}
-          onOpenOrganizationWorkspaces={() => {
-            if (!organizationWorkspacesPath) return;
-            void navigate({ to: organizationWorkspacesPath as never });
+          onOpenAdminCenter={() => {
+            if (!adminCenterPath) return;
+            void navigate({ to: adminCenterPath as never });
           }}
         />
       </FloatingPanelContent>
