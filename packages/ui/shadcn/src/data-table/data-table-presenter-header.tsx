@@ -28,6 +28,19 @@ function isSelectColumn(meta: unknown, columnId: string): boolean {
   return kind === "select" || columnId === "select";
 }
 
+function isActionsColumn(meta: unknown, columnId: string): boolean {
+  const kind = (meta as ColumnMeta | undefined)?.kind;
+  return kind === "actions" || columnId === "actions";
+}
+
+function isLockedLeafColumn(meta: unknown, columnId: string): boolean {
+  return (
+    isDataTableColumnLocked(columnId) ||
+    isSelectColumn(meta, columnId) ||
+    isActionsColumn(meta, columnId)
+  );
+}
+
 function isLeafHeader<TData>(header: Header<TData, unknown>): boolean {
   return !header.isPlaceholder && header.colSpan === 1;
 }
@@ -60,6 +73,8 @@ function SortableHeaderCell<TData>(props: {
   const active = props.dragging.activeId === id;
   const hovered = props.hoveredColumnId === id;
 
+  const dndAttributes = { ...sortable.attributes, role: undefined, tabIndex: undefined };
+
   const alignClass = resolveHeaderAlignClass(header);
   const justifyClass = resolveHeaderJustifyClass(alignClass);
   const pinStyle = resolveHeaderPinStyle(header);
@@ -81,7 +96,7 @@ function SortableHeaderCell<TData>(props: {
       className={cn(
         alignClass,
         pinStyle.className,
-        "uppercase tracking-wider text-label-secondary select-none",
+        "uppercase! tracking-wider text-label-secondary select-none",
         resolveHeaderDensityClass(props.density),
         selectColumn ? "px-0" : "",
         over ? "bg-muted/60 ring-1 ring-ring/40 shadow-sm" : "",
@@ -113,7 +128,7 @@ function SortableHeaderCell<TData>(props: {
               transform: toTransformStyle(sortable.transform ?? null),
               transition: sortable.transition,
             }}
-            {...sortable.attributes}
+            {...dndAttributes}
             {...sortable.listeners}
           >
             <button
@@ -122,12 +137,13 @@ function SortableHeaderCell<TData>(props: {
                 "group inline-flex items-center gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-muted/50",
                 justifyClass,
               )}
+              style={{ textTransform: "uppercase" }}
               onClick={(e) => {
                 e.stopPropagation();
                 header.column.getToggleSortingHandler()?.(e);
               }}
             >
-              <span className="truncate select-none">{content}</span>
+              <div className="min-w-0 truncate select-none">{content}</div>
               <SortStateIcon state={sorted} />
             </button>
           </div>
@@ -143,10 +159,15 @@ function SortableHeaderCell<TData>(props: {
               transform: toTransformStyle(sortable.transform ?? null),
               transition: sortable.transition,
             }}
-            {...sortable.attributes}
+            {...dndAttributes}
             {...sortable.listeners}
           >
-            <span className="truncate select-none px-1 py-1">{content}</span>
+            <div
+              className="min-w-0 truncate select-none px-1 py-1"
+              style={{ textTransform: "uppercase" }}
+            >
+              {content}
+            </div>
           </div>
         </div>
       )}
@@ -176,7 +197,7 @@ function StaticHeaderCell<TData>(props: {
       className={cn(
         alignClass,
         pinStyle.className,
-        "uppercase tracking-wider text-label-secondary select-none",
+        "uppercase! tracking-wider text-label-secondary select-none",
         resolveHeaderDensityClass(props.density),
         selectColumn ? "px-0" : "",
         "transition-[background-color,box-shadow,opacity] duration-150",
@@ -202,8 +223,23 @@ export function DataTablePresenterHeader<TData>(props: {
     <TableHeader>
       {props.table.getHeaderGroups().map((headerGroup) => (
         <TableRow key={headerGroup.id} className="border-border/40 hover:bg-transparent">
-          {headerGroup.headers.map((header) =>
-            isLeafHeader(header) ? (
+          {headerGroup.headers.map((header) => {
+            const meta = header.column.columnDef.meta;
+            const columnId = header.column.id;
+            const leaf = isLeafHeader(header);
+
+            if (!leaf || isLockedLeafColumn(meta, columnId)) {
+              return (
+                <StaticHeaderCell
+                  key={header.id}
+                  header={header}
+                  density={props.density}
+                  headerCellClassName={props.headerCellClassName}
+                />
+              );
+            }
+
+            return (
               <SortableHeaderCell
                 key={header.id}
                 header={header}
@@ -213,15 +249,8 @@ export function DataTablePresenterHeader<TData>(props: {
                 hoveredColumnId={props.hoveredColumnId}
                 onHeaderHoverChange={props.onHeaderHoverChange}
               />
-            ) : (
-              <StaticHeaderCell
-                key={header.id}
-                header={header}
-                density={props.density}
-                headerCellClassName={props.headerCellClassName}
-              />
-            ),
-          )}
+            );
+          })}
         </TableRow>
       ))}
     </TableHeader>

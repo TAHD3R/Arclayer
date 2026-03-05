@@ -13,6 +13,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import * as React from "react";
+import { createPortal } from "react-dom";
 
 import {
   DropdownCardBody,
@@ -182,8 +183,8 @@ export function DataTableCustomizeCard<TData>(props: {
       >
         <DropdownCardHeader className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="font-semibold">{props.labels.customizeTitle}</div>
-            <div className="text-footnote text-label-secondary">
+            <div className="text-headline">{props.labels.customizeTitle}</div>
+            <div className="text-callout text-label-secondary">
               {props.labels.customizeDescription}
             </div>
           </div>
@@ -197,16 +198,10 @@ export function DataTableCustomizeCard<TData>(props: {
 
         <DropdownCardBody className="py-3">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
-            <div className="min-w-0 rounded-xl border bg-muted/5 p-3">
+            <div className="min-w-0 ">
               <div className="flex items-start justify-between gap-3 pb-3">
                 <div className="min-w-0">
-                  <div className="text-footnote font-medium">{props.labels.columnsTitle}</div>
-                  <div className="text-caption text-label-secondary">
-                    {props.labels.columnsDescription}
-                  </div>
-                </div>
-                <div className="text-caption text-label-secondary">
-                  {configurableColumns.length}
+                  <div className="font-semibold">{props.labels.columnsTitle}</div>
                 </div>
               </div>
 
@@ -235,28 +230,37 @@ export function DataTableCustomizeCard<TData>(props: {
                   </div>
                 </SortableContext>
 
-                <DragOverlay
-                  adjustScale={false}
-                  dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}
-                >
-                  {activeColumn ? (
-                    <DataTableColumnSettingsRowOverlay
-                      table={props.table}
-                      column={activeColumn}
-                      labels={props.labels}
-                    />
-                  ) : activeLabel ? (
-                    <div className="rounded-xl border px-3 py-2 opacity-80 ring-2 ring-ring/50">
-                      <div className="truncate text-footnote font-medium">{activeLabel}</div>
-                    </div>
-                  ) : null}
-                </DragOverlay>
+                {typeof document === "undefined"
+                  ? null
+                  : createPortal(
+                      <DragOverlay
+                        adjustScale={false}
+                        zIndex={80}
+                        dropAnimation={{
+                          duration: 180,
+                          easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+                        }}
+                      >
+                        {activeColumn ? (
+                          <DataTableColumnSettingsRowOverlay
+                            table={props.table}
+                            column={activeColumn}
+                            labels={props.labels}
+                          />
+                        ) : activeLabel ? (
+                          <div className="rounded-xl border px-3 py-2 opacity-80 ring-2 ring-ring/50">
+                            <div className="truncate text-footnote font-medium">{activeLabel}</div>
+                          </div>
+                        ) : null}
+                      </DragOverlay>,
+                      document.body,
+                    )}
               </DndContext>
             </div>
 
-            <div className="min-w-0 rounded-xl border bg-muted/5 p-3">
+            <div className="min-w-0 max-h-[360px] overflow-auto ">
               <div className="pb-3">
-                <div className="text-footnote font-medium">{props.labels.density}</div>
+                <div className="font-semibold">{props.labels.density}</div>
               </div>
 
               <div className="pb-3">

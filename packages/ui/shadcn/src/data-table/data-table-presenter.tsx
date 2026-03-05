@@ -30,6 +30,14 @@ import {
 import type { DataTableDensity } from "./types";
 import { useScrollOverflow } from "./use-scroll-overflow";
 
+type ColumnMeta = { kind?: string };
+
+function isLockedColumn(column: { id: string; columnDef: { meta?: unknown } }): boolean {
+  if (isDataTableColumnLocked(column.id)) return true;
+  const kind = (column.columnDef.meta as ColumnMeta | undefined)?.kind;
+  return kind === "select" || kind === "actions";
+}
+
 type DataTableToolbarSlots = {
   fullWidth?: React.ReactNode;
   left?: React.ReactNode;
@@ -98,6 +106,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   const activeHeaderIdRef = useRef<string | null>(null);
   const initialOrderRef = useRef<string[] | null>(null);
   const leafIdsRef = useRef<readonly string[] | null>(null);
+  const lastValidOverHeaderIdRef = useRef<string | null>(null);
   const lastPreviewOverIdRef = useRef<string | null>(null);
 
   const measureColumnWidth = useCallback((columnId: string): number | null => {
@@ -119,6 +128,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
       activeHeaderIdRef.current = id;
       initialOrderRef.current = [...normalizedOrder];
       leafIdsRef.current = table.getAllLeafColumns().map((c) => c.id);
+      lastValidOverHeaderIdRef.current = null;
       lastPreviewOverIdRef.current = null;
       setActiveHeaderId(id);
       setActiveOverlayWidth(measureColumnWidth(id));
@@ -132,6 +142,9 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
       const nextActiveId = String(e.active.id);
 
       const initialOrder = initialOrderRef.current;
+      const leafIds = leafIdsRef.current;
+      const lastValidOverId = lastValidOverHeaderIdRef.current;
+      const resolvedOverId = nextOverId ?? lastValidOverId;
 
       setActiveHeaderId(null);
       setOverHeaderId(null);
@@ -139,29 +152,32 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
       activeHeaderIdRef.current = null;
       initialOrderRef.current = null;
       leafIdsRef.current = null;
+      lastValidOverHeaderIdRef.current = null;
       lastPreviewOverIdRef.current = null;
 
-      if (!nextOverId) {
-        if (initialOrder) table.setColumnOrder(initialOrder);
+      if (!initialOrder) return;
+
+      if (!resolvedOverId || resolvedOverId === nextActiveId) {
+        table.setColumnOrder(initialOrder);
         return;
       }
-      if (nextOverId === nextActiveId) {
-        if (initialOrder) table.setColumnOrder(initialOrder);
-        return;
-      }
-      if (isDataTableColumnLocked(nextActiveId) || isDataTableColumnLocked(nextOverId)) {
-        if (initialOrder) table.setColumnOrder(initialOrder);
+      if (isDataTableColumnLocked(nextActiveId) || isDataTableColumnLocked(resolvedOverId)) {
+        table.setColumnOrder(initialOrder);
         return;
       }
 
       const activePinned = table.getColumn(nextActiveId)?.getIsPinned() ?? false;
-      const overPinned = table.getColumn(nextOverId)?.getIsPinned() ?? false;
+      const overPinned = table.getColumn(resolvedOverId)?.getIsPinned() ?? false;
       if (activePinned !== overPinned) {
-        if (initialOrder) table.setColumnOrder(initialOrder);
+        table.setColumnOrder(initialOrder);
         return;
       }
 
-      // During drag we apply "preview ordering" eagerly. On drop, keep it as-is.
+      const resolvedLeafIds = leafIds ?? table.getAllLeafColumns().map((c) => c.id);
+      const normalized = normalizeDataTableColumnOrder(resolvedLeafIds, initialOrder);
+      table.setColumnOrder(
+        moveDataTableColumnInUnlockedZone(normalized, nextActiveId, resolvedOverId),
+      );
     },
     [table],
   );
@@ -178,7 +194,10 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     return activeOverlayWidth ?? table.getColumn(activeHeaderId)?.getSize() ?? null;
   }, [activeHeaderId, activeOverlayWidth, table]);
 
-  const visibleLeafHeaderIds = table.getVisibleLeafColumns().map((c) => c.id);
+  const draggableLeafHeaderIds = table
+    .getVisibleLeafColumns()
+    .filter((c) => !isLockedColumn({ id: c.id, columnDef: { meta: c.columnDef.meta } }))
+    .map((c) => c.id);
 
   const onHeaderHoverChange = useCallback((next: string | null) => {
     setHoveredColumnId(next);
@@ -232,6 +251,8 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               const overPinned = table.getColumn(nextOverId)?.getIsPinned() ?? false;
               if (activePinned !== overPinned) return;
 
+              lastValidOverHeaderIdRef.current = nextOverId;
+
               if (lastPreviewOverIdRef.current === nextOverId) return;
               lastPreviewOverIdRef.current = nextOverId;
 
@@ -253,13 +274,14 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               activeHeaderIdRef.current = null;
               initialOrderRef.current = null;
               leafIdsRef.current = null;
+              lastValidOverHeaderIdRef.current = null;
               lastPreviewOverIdRef.current = null;
               if (initialOrder) table.setColumnOrder(initialOrder);
             }}
           >
             <table className={cn("w-full caption-bottom text-callout", tableClassName)}>
               <SortableContext
-                items={visibleLeafHeaderIds}
+                items={draggableLeafHeaderIds}
                 strategy={horizontalListSortingStrategy}
               >
                 <DataTablePresenterHeader

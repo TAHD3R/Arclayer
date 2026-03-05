@@ -6,6 +6,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Columns3, GripVertical, RotateCcw } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import * as React from "react";
+import { createPortal } from "react-dom";
 
 import {
   DropdownCardBody,
@@ -170,24 +171,30 @@ export function DataTableColumnSettingsCard<TData>(props: {
               </div>
             </SortableContext>
 
-            <DragOverlay
-              adjustScale={false}
-              dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}
-            >
-              {activeLabel ? (
-                <div className="rounded-xl border bg-background/80 px-3 py-2 shadow-2xl ring-2 ring-ring/30 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-7 items-center justify-center rounded-md bg-accent/40 text-label-secondary">
-                      <GripVertical className={ICON_CLASS} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-footnote font-medium">{activeLabel}</div>
-                    </div>
-                    <div className="h-5 w-8 rounded-full bg-muted/50" />
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
+            {typeof document === "undefined"
+              ? null
+              : createPortal(
+                  <DragOverlay
+                    adjustScale={false}
+                    zIndex={80}
+                    dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}
+                  >
+                    {activeLabel ? (
+                      <div className="rounded-xl border bg-background/80 px-3 py-2 shadow-2xl ring-2 ring-ring/30 backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-7 items-center justify-center rounded-md bg-accent/40 text-label-secondary">
+                            <GripVertical className={ICON_CLASS} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-footnote font-medium">{activeLabel}</div>
+                          </div>
+                          <div className="h-5 w-8 rounded-full bg-muted/50" />
+                        </div>
+                      </div>
+                    ) : null}
+                  </DragOverlay>,
+                  document.body,
+                )}
           </DndContext>
         </DropdownCardBody>
       </DropdownCardContent>

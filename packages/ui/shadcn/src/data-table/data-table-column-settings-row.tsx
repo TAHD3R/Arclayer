@@ -19,6 +19,20 @@ import {
 
 const ICON_CLASS = "size-4";
 
+function StaticSwitch(props: { checked: boolean }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "relative flex h-5 w-8 px-px shrink-0 items-center justify-start rounded-full border border-transparent shadow-xs opacity-70",
+        props.checked ? "bg-primary justify-end" : "bg-input dark:bg-input/80 justify-start",
+      )}
+    >
+      <div className="bg-background block size-4 rounded-full ring-0" />
+    </div>
+  );
+}
+
 function ColumnRowActions(props: {
   table: ReactTable<unknown>;
   columnId: string;
@@ -151,17 +165,12 @@ function DataTableColumnSettingsRowView<TData>(props: DataTableColumnSettingsRow
         {...props.dnd?.listeners}
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex size-7 items-center justify-center rounded-md text-label-secondary group-hover:text-foreground">
-                <GripVertical className={ICON_CLASS} />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>{props.labels.drag}</TooltipContent>
-          </Tooltip>
+          <div className="flex size-7 items-center justify-center rounded-md text-label-secondary group-hover:text-foreground">
+            <GripVertical className={ICON_CLASS} />
+          </div>
 
           <div className="min-w-0 flex-1">
-            <div className="truncate text-footnote font-medium">{label}</div>
+            <div className="truncate text-callout">{label}</div>
           </div>
         </div>
 
@@ -178,14 +187,16 @@ function DataTableColumnSettingsRowView<TData>(props: DataTableColumnSettingsRow
         </div>
 
         <div className="cursor-default" onPointerDown={stopDndPointerDown}>
-          <Switch
-            aria-label={label}
-            checked={visible}
-            disabled={overlay || !canHide}
-            onCheckedChange={
-              overlay ? undefined : (next) => props.column.toggleVisibility(Boolean(next))
-            }
-          />
+          {overlay ? (
+            <StaticSwitch checked={visible} />
+          ) : (
+            <Switch
+              aria-label={label}
+              checked={visible}
+              disabled={!canHide}
+              onCheckedChange={(next) => props.column.toggleVisibility(Boolean(next))}
+            />
+          )}
         </div>
       </div>
     </TooltipProvider>
