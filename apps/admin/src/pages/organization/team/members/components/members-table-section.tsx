@@ -28,8 +28,8 @@ export function OrganizationMembersTableSection({
           <div className="text-label-secondary text-footnote">
             {t("team:TEAM_PAGINATION_TOTAL", {
               total: pageData.total,
-              from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-              to: Math.min(pageData.page * pageData.size, pageData.total),
+              start: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
+              end: Math.min(pageData.page * pageData.size, pageData.total),
             })}
           </div>
           <Pagination

@@ -21,7 +21,7 @@
   "INDEX_ACTION_OPEN_EDITOR": "打开编辑器",
   "INDEX_ACTION_MORE": "更多操作",
   "INDEX_EMPTY": "暂无页面",
-  "PAGINATION_TOTAL": "显示 {{from}}-{{to}} / 共 {{total}} 页",
+  "PAGINATION_TOTAL": "共 {{total}} 条 ({{start}}-{{end}})",
   "FILTER_TITLE": "筛选",
   "FILTER_FIELD_STATUS": "状态",
   "FILTER_FIELD_VISIBILITY": "可见性",

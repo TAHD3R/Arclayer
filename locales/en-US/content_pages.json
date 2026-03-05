@@ -21,7 +21,7 @@
   "INDEX_ACTION_OPEN_EDITOR": "Open editor",
   "INDEX_ACTION_MORE": "More actions",
   "INDEX_EMPTY": "No pages yet",
-  "PAGINATION_TOTAL": "Showing {{from}}-{{to}} of {{total}} pages",
+  "PAGINATION_TOTAL": "{{total}} total ({{start}}-{{end}})",
   "FILTER_TITLE": "Filters",
   "FILTER_FIELD_STATUS": "Status",
   "FILTER_FIELD_VISIBILITY": "Visibility",

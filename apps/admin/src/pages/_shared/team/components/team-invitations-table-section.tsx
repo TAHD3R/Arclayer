@@ -1,9 +1,15 @@
 import { Input, Pagination } from "antd";
 import { type Table } from "@tanstack/react-table";
 import { Search } from "lucide-react";
+import * as React from "react";
 
 import { ContentGuard } from "@/components/common/content-guard";
-import { DataTablePresenter } from "@celestial/ui/data-table";
+import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import {
+  DataTablePresenter,
+  DataTableToolbarTools,
+  type DataTableDensity,
+} from "@celestial/ui/data-table";
 import { LoaderOne } from "@celestial/ui/loader";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
@@ -20,6 +26,7 @@ interface DataTableLike<TRow> {
   items: TRow[];
   error: unknown;
   refetch: () => Promise<unknown> | void;
+  resetColumnVisibility?: () => void;
   table: Table<TRow>;
   pageData?: PageDataLike | null;
   searchInput: string;
@@ -40,26 +47,60 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
   const empty = !tableHook.isLoading && tableHook.items.length === 0;
   const table = tableHook.table;
   const pageData = tableHook.pageData;
+  const [density, setDensity] = React.useState<DataTableDensity>("default");
+
+  const toolbarLeft = showSearch ? (
+    <div className="flex-1 min-w-0">
+      <Input
+        value={tableHook.searchInput}
+        onChange={(event) => tableHook.setSearchInput(event.target.value)}
+        placeholder={placeholder}
+        allowClear
+        variant="filled"
+        prefix={<Search className="size-4 text-label-secondary" />}
+        style={{ width: "100%" }}
+      />
+    </div>
+  ) : null;
+
+  const toolsLabels = {
+    columns: t("common:DATA_TABLE_COLUMNS"),
+    columnsTitle: t("common:DATA_TABLE_COLUMNS_TITLE"),
+    columnsDescription: t("common:DATA_TABLE_COLUMNS_DESCRIPTION"),
+    columnsLockedHint: t("common:DATA_TABLE_COLUMNS_LOCKED_HINT"),
+    density: t("common:DATA_TABLE_DENSITY"),
+    densityCompact: t("common:DATA_TABLE_DENSITY_COMPACT"),
+    densityDefault: t("common:DATA_TABLE_DENSITY_DEFAULT"),
+    densityRelaxed: t("common:DATA_TABLE_DENSITY_RELAXED"),
+    refresh: t("common:DATA_TABLE_REFRESH"),
+    reset: t("common:DATA_TABLE_RESET"),
+    pinLeft: t("common:DATA_TABLE_PIN_LEFT"),
+    pinRight: t("common:DATA_TABLE_PIN_RIGHT"),
+    pinNone: t("common:DATA_TABLE_PIN_NONE"),
+    moveUp: t("common:DATA_TABLE_MOVE_UP"),
+    moveDown: t("common:DATA_TABLE_MOVE_DOWN"),
+    confirm: t("common:DATA_TABLE_CONFIRM"),
+    drag: t("common:DATA_TABLE_DRAG"),
+  };
+
+  const toolbarRight = (
+    <div className="flex items-center gap-2">
+      {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
+      <DataTableToolbarTools
+        table={table}
+        density={density}
+        onDensityChange={setDensity}
+        onRefresh={() => void tableHook.refetch()}
+        refreshing={tableHook.isFetching}
+        onResetColumnVisibility={tableHook.resetColumnVisibility}
+        labels={toolsLabels}
+        components={{ IconButton: DataTableToolbarAntdIconButton }}
+      />
+    </div>
+  );
 
   return (
     <div className="min-h-0 flex flex-col gap-4">
-      {showSearch ? (
-        <div className="flex items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <Input
-              value={tableHook.searchInput}
-              onChange={(event) => tableHook.setSearchInput(event.target.value)}
-              placeholder={placeholder}
-              allowClear
-              variant="filled"
-              prefix={<Search className="size-4 text-label-secondary" />}
-              style={{ width: "100%" }}
-            />
-          </div>
-          {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
-        </div>
-      ) : null}
-
       <ContentGuard
         loading={tableHook.isLoading}
         error={tableHook.error}
@@ -74,6 +115,8 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
           table={table}
           className="flex-1 min-h-0"
           emptyText={t("team:TEAM_EMPTY_TABLE")}
+          toolbar={{ left: toolbarLeft, right: toolbarRight }}
+          density={density}
         />
 
         {pageData ? (
@@ -81,8 +124,8 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
             <div className="text-label-secondary text-footnote">
               {t("team:TEAM_PAGINATION_TOTAL", {
                 total: pageData.total,
-                from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-                to: Math.min(pageData.page * pageData.size, pageData.total),
+                start: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
+                end: Math.min(pageData.page * pageData.size, pageData.total),
               })}
             </div>
             <Pagination

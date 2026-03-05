@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Button } from "antd";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Button, Input as AntInput } from "antd";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -17,7 +17,13 @@ import {
 } from "@/api/workspace-site";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { DataTablePresenter, useDataTable } from "@celestial/ui/data-table";
+import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import {
+  DataTablePresenter,
+  DataTableToolbarTools,
+  type DataTableDensity,
+  useDataTable,
+} from "@celestial/ui/data-table";
 import { Button as UiButton } from "@celestial/ui/button";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -28,8 +34,8 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { buildContentPagesColumns } from "./content-pages-columns";
 import { ContentPagesBulkActions } from "./content-pages-bulk-actions";
 import { ContentPagesConfirmDialogs } from "./content-pages-confirm-dialogs";
+import { ContentPagesFilterPopover } from "./content-pages-filter-popover";
 import { ContentPagesSheet } from "./content-pages-sheet";
-import { ContentPagesToolbar } from "./content-pages-toolbar";
 import type {
   ContentPageFormValues,
   ContentPageRow,
@@ -78,6 +84,7 @@ export function ContentPagesView() {
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const navigate = useNavigate();
   const dateTime = useAdminDateTimeFormatter({ workspaceId });
+  const [density, setDensity] = React.useState<DataTableDensity>("default");
 
   const [filters, setFilters] = React.useState<ContentPagesFilters>({
     status: "all",
@@ -297,6 +304,63 @@ export function ContentPagesView() {
     });
   }, []);
 
+  const toolsLabels = React.useMemo(
+    () => ({
+      columns: t("common:DATA_TABLE_COLUMNS"),
+      columnsTitle: t("common:DATA_TABLE_COLUMNS_TITLE"),
+      columnsDescription: t("common:DATA_TABLE_COLUMNS_DESCRIPTION"),
+      columnsLockedHint: t("common:DATA_TABLE_COLUMNS_LOCKED_HINT"),
+      density: t("common:DATA_TABLE_DENSITY"),
+      densityCompact: t("common:DATA_TABLE_DENSITY_COMPACT"),
+      densityDefault: t("common:DATA_TABLE_DENSITY_DEFAULT"),
+      densityRelaxed: t("common:DATA_TABLE_DENSITY_RELAXED"),
+      refresh: t("common:DATA_TABLE_REFRESH"),
+      reset: t("common:DATA_TABLE_RESET"),
+      pinLeft: t("common:DATA_TABLE_PIN_LEFT"),
+      pinRight: t("common:DATA_TABLE_PIN_RIGHT"),
+      pinNone: t("common:DATA_TABLE_PIN_NONE"),
+      moveUp: t("common:DATA_TABLE_MOVE_UP"),
+      moveDown: t("common:DATA_TABLE_MOVE_DOWN"),
+      confirm: t("common:DATA_TABLE_CONFIRM"),
+      drag: t("common:DATA_TABLE_DRAG"),
+    }),
+    [t],
+  );
+
+  const toolbarLeft = (
+    <>
+      <AntInput
+        allowClear
+        value={tableHook.searchInput}
+        onChange={(event) => tableHook.setSearchInput(event.target.value)}
+        placeholder={t("content_pages:INDEX_SEARCH_PLACEHOLDER")}
+        variant="filled"
+        prefix={<Search size={16} className="text-label-secondary" />}
+        style={{ width: 320, maxWidth: "100%" }}
+      />
+
+      <ContentPagesFilterPopover
+        t={t}
+        value={filters}
+        onChange={setFilters}
+        onReset={resetFilters}
+      />
+    </>
+  );
+
+  const toolbarRight = (
+    <DataTableToolbarTools
+      table={table}
+      density={density}
+      onDensityChange={setDensity}
+      onRefresh={() => void tableHook.refetch()}
+      refreshing={tableHook.isFetching}
+      onResetColumnVisibility={tableHook.resetColumnVisibility}
+      labels={toolsLabels}
+      components={{ IconButton: DataTableToolbarAntdIconButton }}
+    />
+  );
+
   const allRows = React.useMemo(
     () => mapTreeToRows(pagesTreeQuery.data?.items ?? []),
     [pagesTreeQuery.data?.items],
@@ -497,17 +561,6 @@ export function ContentPagesView() {
             {t("content_pages:ACTION_CREATE_PAGE")}
           </Button>
         }
-        extra={
-          <ContentPagesToolbar
-            t={t}
-            filters={filters}
-            searchInput={tableHook.searchInput}
-            onSearchInputChange={tableHook.setSearchInput}
-            onFiltersChange={setFilters}
-            onResetFilters={resetFilters}
-            isFetching={tableHook.isFetching && !tableHook.isLoading}
-          />
-        }
       >
         <ContentGuard
           loading={tableHook.isLoading}
@@ -537,16 +590,30 @@ export function ContentPagesView() {
             emptyText={t("content_pages:INDEX_EMPTY")}
             className="flex-1 min-h-0"
             onRowClick={(row) => openEditor(row.original)}
+            density={density}
+            toolbar={{ left: toolbarLeft, right: toolbarRight }}
           />
 
           {pageData ? (
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-              <div className="text-label-secondary text-footnote">
-                {t("content_pages:PAGINATION_TOTAL", {
-                  total: pageData.total,
-                  from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-                  to: Math.min(pageData.page * pageData.size, pageData.total),
-                })}
+              <div className="flex flex-wrap items-center gap-2 text-label-secondary text-footnote">
+                <span>
+                  {t("content_pages:PAGINATION_TOTAL", {
+                    total: pageData.total,
+                    start: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
+                    end: Math.min(pageData.page * pageData.size, pageData.total),
+                  })}
+                </span>
+
+                {selectedCount > 0 ? (
+                  <>
+                    <span className="text-border">·</span>
+                    <span>{t("common:DATA_TABLE_SELECTED_COUNT", { count: selectedCount })}</span>
+                    <UiButton variant="ghost" size="sm" onClick={() => table.resetRowSelection()}>
+                      {t("common:DATA_TABLE_CLEAR_SELECTION")}
+                    </UiButton>
+                  </>
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 <select

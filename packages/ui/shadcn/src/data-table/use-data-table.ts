@@ -87,6 +87,41 @@ export type UseDataTableResult<TData, TExtraQuery extends Record<string, unknown
   resetColumnVisibility: () => void;
 };
 
+type ColumnMeta = { defaultHidden?: boolean };
+
+function resolveColumnId<TData>(column: ColumnDef<TData, unknown>): string | null {
+  if (typeof column.id === "string" && column.id.trim()) return column.id.trim();
+  if (
+    "accessorKey" in column &&
+    typeof column.accessorKey === "string" &&
+    column.accessorKey.trim()
+  ) {
+    return column.accessorKey.trim();
+  }
+  return null;
+}
+
+function resolveDefaultColumnVisibility<TData>(
+  columns: readonly ColumnDef<TData, unknown>[],
+): VisibilityState {
+  const state: VisibilityState = {};
+
+  const visit = (defs: readonly ColumnDef<TData, unknown>[]) => {
+    for (const col of defs) {
+      const meta = col.meta as ColumnMeta | undefined;
+      const colId = resolveColumnId(col);
+      if (colId && meta?.defaultHidden) state[colId] = false;
+
+      if ("columns" in col && Array.isArray(col.columns) && col.columns.length) {
+        visit(col.columns as readonly ColumnDef<TData, unknown>[]);
+      }
+    }
+  };
+
+  visit(columns);
+  return state;
+}
+
 function normalizeSearchDefault(input: string): string {
   return input.trim();
 }
@@ -149,13 +184,30 @@ export function useDataTable<
     [storage?.visibility],
   );
 
+  const skipNextVisibilityPersistRef = React.useRef(false);
+
+  const defaultVisibility = React.useMemo(() => resolveDefaultColumnVisibility(columns), [columns]);
+
   const initialVisibility = React.useMemo<VisibilityState | undefined>(() => {
     const persisted = readVisibilityState(tableId, visibilityStorage);
-    return persisted ?? undefined;
-  }, [tableId, visibilityStorage]);
+    if (persisted) return persisted;
+    if (Object.keys(defaultVisibility).length) return defaultVisibility;
+    return undefined;
+  }, [defaultVisibility, tableId, visibilityStorage]);
 
   const [tableData, setTableData] = React.useState<TData[]>([]);
   const [pageCount, setPageCount] = React.useState<number>(0);
+
+  const onColumnVisibilityChange = React.useCallback(
+    (next: VisibilityState) => {
+      if (skipNextVisibilityPersistRef.current) {
+        skipNextVisibilityPersistRef.current = false;
+        return;
+      }
+      writeVisibilityState(tableId, next, visibilityStorage);
+    },
+    [tableId, visibilityStorage],
+  );
 
   const core = useDataTableCore<TData>({
     columns,
@@ -175,7 +227,7 @@ export function useDataTable<
     },
     features,
     onSortingChange,
-    onColumnVisibilityChange: (next) => writeVisibilityState(tableId, next, visibilityStorage),
+    onColumnVisibilityChange,
   });
 
   // Search input (debounced commit).
@@ -257,9 +309,10 @@ export function useDataTable<
   }, [pageData]);
 
   const resetColumnVisibility = React.useCallback(() => {
-    core.table.resetColumnVisibility();
     clearVisibilityState(tableId, visibilityStorage);
-  }, [core.table, tableId, visibilityStorage]);
+    skipNextVisibilityPersistRef.current = true;
+    core.table.setColumnVisibility(defaultVisibility);
+  }, [core.table, defaultVisibility, tableId, visibilityStorage]);
 
   return {
     table: core.table,

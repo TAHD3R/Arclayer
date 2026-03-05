@@ -175,5 +175,5 @@
   "TEAM_INVITATIONS_COL_CREATED": "Date",
   "TEAM_INVITATIONS_COL_ACCEPTED": "Accepted",
   "TEAM_INVITATIONS_SENT_AT": "Sent at {{datetime}}",
-  "TEAM_PAGINATION_TOTAL": "{{total}} total ({{from}}-{{to}})"
+  "TEAM_PAGINATION_TOTAL": "{{total}} total ({{start}}-{{end}})"
 }

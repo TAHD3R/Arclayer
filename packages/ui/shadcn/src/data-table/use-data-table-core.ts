@@ -5,6 +5,7 @@ import {
   type ColumnPinningState,
   type ColumnDef,
   type ColumnFiltersState,
+  type ColumnOrderState,
   type ColumnSizingState,
   type ExpandedState,
   getCoreRowModel,
@@ -31,6 +32,7 @@ export type UseDataTableCoreOptions<TData> = {
     q?: string;
     columnVisibility?: VisibilityState;
     columnPinning?: ColumnPinningState;
+    columnOrder?: ColumnOrderState;
   };
   rowSelection?: {
     enabled?: boolean;
@@ -108,6 +110,9 @@ export function useDataTableCore<TData>(
       ...(right.length > 0 ? { right: [...new Set(right)] } : {}),
     };
   });
+  const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>(
+    () => options.initialState?.columnOrder ?? [],
+  );
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({});
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -206,6 +211,7 @@ export function useDataTableCore<TData>(
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnPinningChange: setColumnPinning,
+    onColumnOrderChange: setColumnOrder,
     onColumnSizingChange: setColumnSizing,
     onExpandedChange: setExpanded,
     onRowSelectionChange: setRowSelection,
@@ -216,6 +222,7 @@ export function useDataTableCore<TData>(
       columnFilters,
       columnVisibility,
       columnPinning,
+      columnOrder,
       columnSizing,
       expanded,
       rowSelection,

@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { motion, type HTMLMotionProps } from "motion/react";
 
 import { Slot, type WithAsChild } from "@celestial/ui/animate-slot";
@@ -11,10 +12,21 @@ type ButtonProps = WithAsChild<
   }
 >;
 
-function Button({ hoverScale = 1.05, tapScale = 0.95, asChild = false, ...props }: ButtonProps) {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { hoverScale = 1.05, tapScale = 0.95, asChild = false, ...props },
+  ref,
+) {
   const Component = asChild ? Slot : motion.button;
 
-  return <Component whileTap={{ scale: tapScale }} whileHover={{ scale: hoverScale }} {...props} />;
-}
+  return (
+    <Component
+      ref={ref}
+      whileTap={{ scale: tapScale }}
+      whileHover={{ scale: hoverScale }}
+      {...props}
+    />
+  );
+});
+Button.displayName = "ButtonPrimitive";
 
 export { Button, type ButtonProps };

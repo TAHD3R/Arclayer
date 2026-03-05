@@ -17,6 +17,8 @@ export type DataTableBaseQuery = {
   ordering?: string;
 };
 
+export type DataTableDensity = "compact" | "default" | "relaxed";
+
 export type MapColumnFiltersFn<TExtraQuery extends Record<string, unknown>> = (
   filters: ColumnFiltersState,
 ) => Partial<TExtraQuery>;

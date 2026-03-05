@@ -126,9 +126,9 @@ export function buildContentPagesColumns(
       ),
       enableSorting: false,
       enableHiding: false,
-      size: 48,
-      minSize: 48,
-      maxSize: 48,
+      size: 32,
+      minSize: 32,
+      maxSize: 32,
     },
     {
       id: "name",
@@ -221,6 +221,7 @@ export function buildContentPagesColumns(
       accessorFn: (row) => row.updatedBy?.displayName || row.updatedBy?.email || "",
       meta: {
         title: options.t("content_pages:INDEX_COL_UPDATED_BY"),
+        defaultHidden: true,
       },
       header: options.t("content_pages:INDEX_COL_UPDATED_BY"),
       cell: ({ row }) => {

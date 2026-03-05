@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import {
@@ -41,10 +42,18 @@ const buttonVariants = cva(
 
 type ButtonProps = ButtonPrimitiveProps & VariantProps<typeof buttonVariants>;
 
-function Button({ className, variant, size, ...props }: ButtonProps) {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { className, variant, size, ...props },
+  ref,
+) {
   return (
-    <ButtonPrimitive className={cn(buttonVariants({ variant, size, className }))} {...props} />
+    <ButtonPrimitive
+      ref={ref}
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
   );
-}
+});
+Button.displayName = "Button";
 
 export { Button, buttonVariants, type ButtonProps };

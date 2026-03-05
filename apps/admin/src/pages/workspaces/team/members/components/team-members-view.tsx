@@ -18,7 +18,12 @@ import {
 import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { useDataTable } from "@celestial/ui/data-table";
+import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import {
+  DataTableToolbarTools,
+  type DataTableDensity,
+  useDataTable,
+} from "@celestial/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -63,6 +68,8 @@ export function TeamMembersView() {
   const [filters, setFilters] = React.useState<TeamMembersFilters>({});
 
   const [sort, setSort] = React.useState<TeamMemberSort>(DEFAULT_TEAM_MEMBER_SORT);
+
+  const [density, setDensity] = React.useState<DataTableDensity>("default");
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
 
@@ -374,6 +381,81 @@ export function TeamMembersView() {
   const empty = !tableHook.isLoading && tableHook.items.length === 0;
   const table = tableHook.table;
   const pageData = tableHook.pageData;
+  const toolsLabels = React.useMemo(
+    () => ({
+      columns: t("common:DATA_TABLE_COLUMNS"),
+      columnsTitle: t("common:DATA_TABLE_COLUMNS_TITLE"),
+      columnsDescription: t("common:DATA_TABLE_COLUMNS_DESCRIPTION"),
+      columnsLockedHint: t("common:DATA_TABLE_COLUMNS_LOCKED_HINT"),
+      density: t("common:DATA_TABLE_DENSITY"),
+      densityCompact: t("common:DATA_TABLE_DENSITY_COMPACT"),
+      densityDefault: t("common:DATA_TABLE_DENSITY_DEFAULT"),
+      densityRelaxed: t("common:DATA_TABLE_DENSITY_RELAXED"),
+      refresh: t("common:DATA_TABLE_REFRESH"),
+      reset: t("common:DATA_TABLE_RESET"),
+      pinLeft: t("common:DATA_TABLE_PIN_LEFT"),
+      pinRight: t("common:DATA_TABLE_PIN_RIGHT"),
+      pinNone: t("common:DATA_TABLE_PIN_NONE"),
+      moveUp: t("common:DATA_TABLE_MOVE_UP"),
+      moveDown: t("common:DATA_TABLE_MOVE_DOWN"),
+      confirm: t("common:DATA_TABLE_CONFIRM"),
+      drag: t("common:DATA_TABLE_DRAG"),
+    }),
+    [t],
+  );
+
+  const toolbarLeft = (
+    <>
+      <AntInput
+        value={tableHook.searchInput}
+        onChange={(e) => tableHook.setSearchInput(e.target.value)}
+        placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
+        allowClear
+        variant="filled"
+        prefix={<Search className="size-4 text-label-secondary" />}
+        style={{ width: 360, maxWidth: "100%" }}
+      />
+
+      <TeamMembersFilterPopover
+        value={{
+          membershipStatus: filters.membershipStatus,
+          userStatus: filters.userStatus,
+          roleCode: filters.roleCode,
+        }}
+        onChange={(next) =>
+          setFilters({
+            membershipStatus: next.membershipStatus,
+            userStatus: next.userStatus,
+            roleCode: next.roleCode,
+          })
+        }
+        roles={rolesQuery.data?.items ?? []}
+        rolesLoading={rolesQuery.isLoading}
+        sort={sort}
+        onSortChange={(next) => {
+          setSort(next);
+          tableHook.setSorting(sortValueToTableSorting(next));
+        }}
+        defaultSort={DEFAULT_TEAM_MEMBER_SORT}
+      />
+    </>
+  );
+
+  const toolbarRight = (
+    <div className="flex items-center gap-2">
+      {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
+      <DataTableToolbarTools
+        table={table}
+        density={density}
+        onDensityChange={setDensity}
+        onRefresh={() => void tableHook.refetch()}
+        refreshing={tableHook.isFetching}
+        onResetColumnVisibility={tableHook.resetColumnVisibility}
+        labels={toolsLabels}
+        components={{ IconButton: DataTableToolbarAntdIconButton }}
+      />
+    </div>
+  );
 
   return (
     <DefaultPage
@@ -392,46 +474,6 @@ export function TeamMembersView() {
           {t("team:TEAM_INVITE_MEMBER")}
         </AntButton>
       }
-      extra={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <AntInput
-              value={tableHook.searchInput}
-              onChange={(e) => tableHook.setSearchInput(e.target.value)}
-              placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
-              allowClear
-              variant="filled"
-              prefix={<Search className="size-4 text-label-secondary" />}
-              style={{ width: 360, maxWidth: "100%" }}
-            />
-
-            <TeamMembersFilterPopover
-              value={{
-                membershipStatus: filters.membershipStatus,
-                userStatus: filters.userStatus,
-                roleCode: filters.roleCode,
-              }}
-              onChange={(next) =>
-                setFilters({
-                  membershipStatus: next.membershipStatus,
-                  userStatus: next.userStatus,
-                  roleCode: next.roleCode,
-                })
-              }
-              roles={rolesQuery.data?.items ?? []}
-              rolesLoading={rolesQuery.isLoading}
-              sort={sort}
-              onSortChange={(next) => {
-                setSort(next);
-                tableHook.setSorting(sortValueToTableSorting(next));
-              }}
-              defaultSort={DEFAULT_TEAM_MEMBER_SORT}
-            />
-          </div>
-
-          {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
-        </div>
-      }
     >
       <ContentGuard
         loading={tableHook.isLoading}
@@ -443,7 +485,12 @@ export function TeamMembersView() {
         emptyDescription={t("team:TEAM_EMPTY_DESC")}
         className="flex-1 min-h-0"
       >
-        <TeamMembersDataTable table={table} emptyText={t("team:TEAM_EMPTY_TABLE")} />
+        <TeamMembersDataTable
+          table={table}
+          emptyText={t("team:TEAM_EMPTY_TABLE")}
+          density={density}
+          toolbar={{ left: toolbarLeft, right: toolbarRight }}
+        />
 
         <EditMemberRolesDialog
           open={Boolean(editingMember)}
@@ -475,8 +522,8 @@ export function TeamMembersView() {
             <div className="text-label-secondary text-footnote">
               {t("team:TEAM_PAGINATION_TOTAL", {
                 total: pageData.total,
-                from: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-                to: Math.min(pageData.page * pageData.size, pageData.total),
+                start: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
+                end: Math.min(pageData.page * pageData.size, pageData.total),
               })}
             </div>
             <Pagination

@@ -175,5 +175,5 @@
   "TEAM_INVITATIONS_COL_CREATED": "日期",
   "TEAM_INVITATIONS_COL_ACCEPTED": "接受时间",
   "TEAM_INVITATIONS_SENT_AT": "发送于{{datetime}}",
-  "TEAM_PAGINATION_TOTAL": "共 {{total}} 条（{{from}}-{{to}}）"
+  "TEAM_PAGINATION_TOTAL": "共 {{total}} 条 ({{start}}-{{end}})"
 }

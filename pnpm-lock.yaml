@@ -672,6 +672,9 @@ importers:
       '@celestial/lib':
         specifier: workspace:*
         version: link:../../lib
+      '@dnd-kit/core':
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@floating-ui/react':
         specifier: ^0.27.16
         version: 0.27.18(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
