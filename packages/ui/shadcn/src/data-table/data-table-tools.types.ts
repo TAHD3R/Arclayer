@@ -5,6 +5,9 @@ import type * as React from "react";
 import type { DataTableDensity } from "./types";
 
 export type DataTableToolsLabels = {
+  customize: string;
+  customizeTitle: string;
+  customizeDescription: string;
   columns: string;
   columnsTitle: string;
   columnsDescription: string;

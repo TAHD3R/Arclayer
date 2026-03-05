@@ -10,7 +10,6 @@ import {
   DataTableToolbarTools,
   type DataTableDensity,
 } from "@celestial/ui/data-table";
-import { LoaderOne } from "@celestial/ui/loader";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -64,6 +63,9 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
   ) : null;
 
   const toolsLabels = {
+    customize: t("common:DATA_TABLE_CUSTOMIZE"),
+    customizeTitle: t("common:DATA_TABLE_CUSTOMIZE_TITLE"),
+    customizeDescription: t("common:DATA_TABLE_CUSTOMIZE_DESCRIPTION"),
     columns: t("common:DATA_TABLE_COLUMNS"),
     columnsTitle: t("common:DATA_TABLE_COLUMNS_TITLE"),
     columnsDescription: t("common:DATA_TABLE_COLUMNS_DESCRIPTION"),
@@ -83,7 +85,6 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
 
   const toolbarRight = (
     <div className="flex items-center gap-2">
-      {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
       <DataTableToolbarTools
         table={table}
         density={density}
@@ -115,6 +116,7 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
           emptyText={t("team:TEAM_EMPTY_TABLE")}
           toolbar={{ left: toolbarLeft, right: toolbarRight }}
           density={density}
+          refreshing={tableHook.isFetching && !tableHook.isLoading}
         />
 
         {pageData ? (

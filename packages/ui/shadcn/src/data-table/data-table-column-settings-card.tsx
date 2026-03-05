@@ -1,7 +1,8 @@
 "use client";
 
-import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Columns3, GripVertical, RotateCcw } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import * as React from "react";
@@ -59,8 +60,6 @@ export function DataTableColumnSettingsCard<TData>(props: {
     | "pinLeft"
     | "pinRight"
     | "pinNone"
-    | "moveUp"
-    | "moveDown"
     | "drag"
   >;
   components?: DataTableToolsComponents;
@@ -68,7 +67,6 @@ export function DataTableColumnSettingsCard<TData>(props: {
 }) {
   const [open, setOpen] = React.useState(false);
   const [activeId, setActiveId] = React.useState<string | null>(null);
-  const [overId, setOverId] = React.useState<string | null>(null);
 
   const IconButton = resolveIconButton(props.components);
   const normalizedOrder = useNormalizedDataTableColumnOrder(props.table);
@@ -89,18 +87,11 @@ export function DataTableColumnSettingsCard<TData>(props: {
     setActiveId(String(e.active.id));
   }, []);
 
-  const onDragOver = React.useCallback((e: DragOverEvent) => {
-    const nextOverId = e.over ? String(e.over.id) : null;
-    setOverId(nextOverId);
-    void e;
-  }, []);
-
   const onDragEnd = React.useCallback(
     (e: DragEndEvent) => {
       const nextOverId = e.over ? String(e.over.id) : null;
       const nextActiveId = String(e.active.id);
       setActiveId(null);
-      setOverId(null);
       if (!nextOverId) return;
       if (nextOverId === nextActiveId) return;
       if (isLockedId(nextActiveId) || isLockedId(nextOverId)) return;
@@ -113,7 +104,6 @@ export function DataTableColumnSettingsCard<TData>(props: {
 
   const onDragCancel = React.useCallback(() => {
     setActiveId(null);
-    setOverId(null);
   }, [normalizedOrder]);
 
   const resetAll = React.useCallback(() => {
@@ -161,29 +151,39 @@ export function DataTableColumnSettingsCard<TData>(props: {
           <DndContext
             sensors={sensors}
             onDragStart={onDragStart}
-            onDragOver={onDragOver}
             onDragEnd={onDragEnd}
             onDragCancel={onDragCancel}
           >
-            <div className="grid grid-cols-1 gap-2">
-              {configurableColumns.map((column) => (
-                <DataTableColumnSettingsRow
-                  key={column.id}
-                  table={props.table}
-                  order={normalizedOrder}
-                  column={column}
-                  labels={props.labels}
-                  overId={overId}
-                />
-              ))}
-            </div>
+            <SortableContext
+              items={configurableColumns.map((c) => c.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="grid grid-cols-1 gap-2">
+                {configurableColumns.map((column) => (
+                  <DataTableColumnSettingsRow
+                    key={column.id}
+                    table={props.table}
+                    column={column}
+                    labels={props.labels}
+                  />
+                ))}
+              </div>
+            </SortableContext>
 
-            <DragOverlay>
+            <DragOverlay
+              adjustScale={false}
+              dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}
+            >
               {activeLabel ? (
-                <div className="rounded-xl border bg-background px-3 py-2 shadow-xl">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="size-4 text-label-secondary" />
-                    <div className="text-footnote font-medium">{activeLabel}</div>
+                <div className="rounded-xl border bg-background/80 px-3 py-2 shadow-2xl ring-2 ring-ring/30 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-7 items-center justify-center rounded-md bg-accent/40 text-label-secondary">
+                      <GripVertical className={ICON_CLASS} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-footnote font-medium">{activeLabel}</div>
+                    </div>
+                    <div className="h-5 w-8 rounded-full bg-muted/50" />
                   </div>
                 </div>
               ) : null}

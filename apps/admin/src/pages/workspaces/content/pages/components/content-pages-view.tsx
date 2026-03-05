@@ -306,6 +306,9 @@ export function ContentPagesView() {
 
   const toolsLabels = React.useMemo(
     () => ({
+      customize: t("common:DATA_TABLE_CUSTOMIZE"),
+      customizeTitle: t("common:DATA_TABLE_CUSTOMIZE_TITLE"),
+      customizeDescription: t("common:DATA_TABLE_CUSTOMIZE_DESCRIPTION"),
       columns: t("common:DATA_TABLE_COLUMNS"),
       columnsTitle: t("common:DATA_TABLE_COLUMNS_TITLE"),
       columnsDescription: t("common:DATA_TABLE_COLUMNS_DESCRIPTION"),
@@ -590,6 +593,7 @@ export function ContentPagesView() {
             onRowClick={(row) => openEditor(row.original)}
             density={density}
             toolbar={{ left: toolbarLeft, right: toolbarRight }}
+            refreshing={tableHook.isFetching && !tableHook.isLoading}
           />
 
           {pageData ? (

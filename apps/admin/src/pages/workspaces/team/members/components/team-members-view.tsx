@@ -31,7 +31,6 @@ import {
   DropdownMenuIconItem,
   DropdownMenuSeparator,
 } from "@celestial/ui/dropdown-menu";
-import { LoaderOne } from "@celestial/ui/loader";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { TeamMembersFilterPopover } from "@/pages/workspaces/team/shared/components/team-members-filter-popover";
 import {
@@ -383,6 +382,9 @@ export function TeamMembersView() {
   const pageData = tableHook.pageData;
   const toolsLabels = React.useMemo(
     () => ({
+      customize: t("common:DATA_TABLE_CUSTOMIZE"),
+      customizeTitle: t("common:DATA_TABLE_CUSTOMIZE_TITLE"),
+      customizeDescription: t("common:DATA_TABLE_CUSTOMIZE_DESCRIPTION"),
       columns: t("common:DATA_TABLE_COLUMNS"),
       columnsTitle: t("common:DATA_TABLE_COLUMNS_TITLE"),
       columnsDescription: t("common:DATA_TABLE_COLUMNS_DESCRIPTION"),
@@ -441,7 +443,6 @@ export function TeamMembersView() {
 
   const toolbarRight = (
     <div className="flex items-center gap-2">
-      {tableHook.isFetching && !tableHook.isLoading ? <LoaderOne /> : null}
       <DataTableToolbarTools
         table={table}
         density={density}
@@ -488,6 +489,7 @@ export function TeamMembersView() {
           emptyText={t("team:TEAM_EMPTY_TABLE")}
           density={density}
           toolbar={{ left: toolbarLeft, right: toolbarRight }}
+          refreshing={tableHook.isFetching && !tableHook.isLoading}
         />
 
         <EditMemberRolesDialog

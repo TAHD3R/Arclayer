@@ -5,6 +5,7 @@ export * from "./data-table-presenter";
 export * from "./data-table-toolbar-tools";
 export * from "./data-table-column-settings-card";
 export * from "./data-table-density-card";
+export * from "./data-table-customize-card";
 export * from "./data-table-tools.types";
 export * from "./utils";
 export * from "./storage";

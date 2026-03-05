@@ -17,7 +17,6 @@ export const DataTableToolbarAntdIconButton = React.forwardRef<
       disabled={props.disabled}
       onClick={props.onClick}
       aria-label={props.label}
-      title={props.label}
     />
   );
 });

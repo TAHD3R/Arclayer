@@ -4,9 +4,8 @@ import { RefreshCw } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import * as React from "react";
 
-import { DataTableColumnSettingsCard } from "./data-table-column-settings-card";
+import { DataTableCustomizeCard } from "./data-table-customize-card";
 import { DataTableDefaultIconButton } from "./data-table-icon-button";
-import { DataTableDensityCard } from "./data-table-density-card";
 import { DataTableToolTooltip } from "./data-table-tool-tooltip";
 import type {
   DataTableIconButtonProps,
@@ -27,18 +26,13 @@ export function DataTableToolbarTools<TData>(props: DataTableToolbarToolsProps<T
 
   return (
     <div className="flex items-center gap-2">
-      <DataTableColumnSettingsCard
+      <DataTableCustomizeCard
         table={props.table as ReactTable<TData>}
+        density={props.density}
+        onDensityChange={props.onDensityChange}
         labels={props.labels}
         components={props.components}
         onResetColumnVisibility={props.onResetColumnVisibility}
-      />
-
-      <DataTableDensityCard
-        value={props.density}
-        onChange={props.onDensityChange}
-        labels={props.labels}
-        components={props.components}
       />
 
       <DataTableToolTooltip label={props.labels.refresh}>

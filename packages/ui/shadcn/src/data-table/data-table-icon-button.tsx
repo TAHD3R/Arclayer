@@ -17,7 +17,6 @@ export const DataTableDefaultIconButton = React.forwardRef<
       type="button"
       variant="ghost"
       size="icon-sm"
-      title={label}
       aria-label={label}
       className={cn(active ? "bg-accent" : undefined, className)}
       disabled={props.disabled}

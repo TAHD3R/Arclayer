@@ -15,6 +15,7 @@ interface TeamMembersDataTableProps {
   emptyText: string;
   toolbar?: DataTableToolbarSlots;
   density?: DataTableDensity;
+  refreshing?: boolean;
 }
 
 export function TeamMembersDataTable({
@@ -22,6 +23,7 @@ export function TeamMembersDataTable({
   emptyText,
   toolbar,
   density,
+  refreshing,
 }: TeamMembersDataTableProps) {
   return (
     <DataTablePresenter
@@ -30,6 +32,7 @@ export function TeamMembersDataTable({
       emptyText={emptyText}
       toolbar={toolbar}
       density={density}
+      refreshing={refreshing}
     />
   );
 }
