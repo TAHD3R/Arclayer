@@ -69,17 +69,6 @@ class SitePageMutableFields(Protocol):
     updated_by_user_id: UUID | None
 
 
-class AdminMenuItemMutableFields(Protocol):
-    deleted_at: datetime | None
-    title_i18n: str | None
-    icon: str | None
-    path: str | None
-    name: str | None
-    component_key: str | None
-    redirect: str | None
-    permission_code: str | None
-
-
 class SettingUpdatedBy(Protocol):
     updated_by: UUID | None
 

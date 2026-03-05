@@ -1,6 +1,7 @@
 from tortoise import migrations
 from tortoise.migrations import operations as ops
 import uuid
+from enum import StrEnum
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.models.assets.asset import AssetPurpose, AssetVisibility
 from apps.api.src.models.assets.upload import UploadStatus
@@ -8,7 +9,6 @@ from apps.api.src.models.extensions.app import AppStatus
 from apps.api.src.models.organization.org_membership import OrgRole
 from apps.api.src.models.organization.user import UserStatus
 from apps.api.src.models.sites.site_page import SitePageVisibility
-from apps.api.src.models.system.admin_menu_item import AdminMenuItemType
 from apps.api.src.models.system.notification import NotificationCategory
 from apps.api.src.models.system.rbac import PermissionScope
 from apps.api.src.models.workspaces.workspace import WorkspaceMembershipStatus
@@ -18,6 +18,12 @@ from tortoise.fields.base import OnDelete
 from tortoise.fields.data import JSON_DUMPS
 from tortoise import fields
 from tortoise.indexes import Index
+
+
+class AdminMenuItemType(StrEnum):
+    GROUP = "group"
+    ITEM = "item"
+
 
 class Migration(migrations.Migration):
     initial = True

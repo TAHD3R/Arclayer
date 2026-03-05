@@ -61,6 +61,14 @@ def _should_exclude_parts(parts: tuple[str, ...], exclude: tuple[str, ...]) -> b
     return False
 
 
+def _is_importable_package(pkg: str) -> bool:
+    spec = find_spec(pkg)
+    if spec is None:
+        return False
+    locations = getattr(spec, "submodule_search_locations", None)
+    return bool(locations)
+
+
 _PRIMARY_CORE_MODELS_PKG: Final[str] = "apps.api.src.models"
 _LEGACY_CORE_MODELS_PKGS: Final[tuple[str, ...]] = (
     # Legacy pre-refactor paths often referenced `modules` as the model package.
@@ -111,7 +119,6 @@ def _normalize_core_model_pkgs_cached(pkgs: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(out)
 
 
-@lru_cache(maxsize=32)
 def discover_model_modules(
     base_pkg: str,
     *,
@@ -195,11 +202,22 @@ def build_models_list(
 ) -> list[str]:
     modules: set[str] = set()
     for pkg in _normalize_core_model_pkgs(settings.database.core_models):
+        if not _is_importable_package(pkg):
+            logger.warning(
+                "DATABASE__CORE_MODELS contains non-package entry; ignoring",
+                action="db_core_models_invalid_entry",
+                entry=pkg,
+            )
+            continue
         discovered = discover_model_modules(pkg, max_depth=settings.database.models_max_depth)
         if discovered:
             modules.update(discovered)
         else:
-            modules.add(pkg)
+            logger.warning(
+                "No ORM model modules discovered under DATABASE__CORE_MODELS entry; ignoring",
+                action="db_core_models_no_models",
+                entry=pkg,
+            )
     modules.update(
         discover_plugin_models(
             settings.database.plugin_packages,
