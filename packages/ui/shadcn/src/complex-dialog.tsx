@@ -13,10 +13,10 @@ import { cn } from "@celestial/lib/utils";
 export type ComplexDialogSize = "md" | "lg" | "xl" | "full";
 
 const COMPLEX_DIALOG_SIZE_CLASSNAME: Record<ComplexDialogSize, string> = {
-  md: "sm:max-w-[720px]",
-  lg: "sm:max-w-[900px]",
-  xl: "sm:max-w-[1100px]",
-  full: "sm:max-w-[calc(100vw-2rem)]",
+  md: cn("w-[90vw] max-w-[720px]", "h-[min(560px,calc(100vh-100px))]"),
+  lg: cn("w-[90vw] max-w-[1100px]", "h-[min(652px,calc(100vh-100px))]"),
+  xl: cn("w-[90vw] max-w-[1512px]", "h-[calc(100vh-100px)]"),
+  full: cn("w-[90vw] max-w-[1512px]", "h-[calc(100vh-100px)]"),
 };
 
 export type ComplexDialogProps = {
@@ -51,9 +51,12 @@ export function ComplexDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        showCloseButton={false}
         className={cn(
           "min-w-0 overflow-hidden p-0",
-          "max-h-[calc(100vh-2rem)]",
+          "border border-border shadow-xl",
+          "rounded-[16px]",
+          "max-h-[calc(100vh-100px)]",
           COMPLEX_DIALOG_SIZE_CLASSNAME[size],
           contentClassName,
         )}
