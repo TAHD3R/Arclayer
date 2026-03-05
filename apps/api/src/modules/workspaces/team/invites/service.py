@@ -10,6 +10,12 @@ from tortoise.transactions import in_transaction
 
 from apps.api.src.common.invitations.expiry.service import build_expires_at
 from apps.api.src.common.invitations.tokens.service import build_invite_token, generate_invite_code
+from apps.api.src.common.invitations.workspace_invites import (
+    WORKSPACE_EMAIL_INVITE_PREFIX_GUEST,
+    WORKSPACE_EMAIL_INVITE_PREFIX_MEMBER,
+    WORKSPACE_INVITE_LINK_PREFIX_GUEST,
+    WORKSPACE_INVITE_LINK_PREFIX_MEMBER,
+)
 from apps.api.src.common.protocols.tortoise import (
     WorkspaceEmailInviteMutableFields,
     WorkspaceInviteLinkMutableFields,
@@ -32,6 +38,7 @@ from apps.api.src.modules.workspaces.team.schema import (
     WorkspaceEmailInviteCreateResult,
     WorkspaceEmailInviteOut,
     WorkspaceEmailInviteRenewRequest,
+    WorkspaceInviteJoinMode,
     WorkspaceInviteLinkCreateRequest,
     WorkspaceInviteLinkCreateResult,
     WorkspaceInviteLinkOut,
@@ -49,6 +56,18 @@ def _user_ref(user: User) -> WorkspaceTeamUserRefOut:
         display_name=user.display_name,
         avatar_url=user.avatar_url,
     )
+
+
+def _resolve_workspace_email_invite_prefix(join_mode: WorkspaceInviteJoinMode) -> str:
+    if join_mode == WorkspaceInviteJoinMode.GUEST:
+        return WORKSPACE_EMAIL_INVITE_PREFIX_GUEST
+    return WORKSPACE_EMAIL_INVITE_PREFIX_MEMBER
+
+
+def _resolve_workspace_invite_link_prefix(join_mode: WorkspaceInviteJoinMode) -> str:
+    if join_mode == WorkspaceInviteJoinMode.GUEST:
+        return WORKSPACE_INVITE_LINK_PREFIX_GUEST
+    return WORKSPACE_INVITE_LINK_PREFIX_MEMBER
 
 
 _WORKSPACE_EMAIL_INVITE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({
@@ -167,7 +186,7 @@ class WorkspaceTeamInviteMixin:
                 .first()
             )
             if existing is None:
-                code = generate_invite_code(prefix="ei")
+                code = generate_invite_code(prefix=_resolve_workspace_email_invite_prefix(payload.join_mode))
                 inv = await WorkspaceEmailInvite.create(
                     using_db=conn,
                     organization_id=organization_id,
@@ -188,7 +207,7 @@ class WorkspaceTeamInviteMixin:
 
         token = build_invite_token(self.settings, code=inv.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
-        invite_url = f"{base}/accept-invite?token={token}" if base else None
+        invite_url = f"{base}/invitations?token={token}" if base else None
 
         inviter_user = await User.get_or_none(id=inv.created_by_user_id)
         accepted_by = await User.get_or_none(id=inv.accepted_by_user_id) if inv.accepted_by_user_id else None
@@ -262,7 +281,7 @@ class WorkspaceTeamInviteMixin:
 
         token = build_invite_token(self.settings, code=inv.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
-        invite_url = f"{base}/accept-invite?token={token}" if base else None
+        invite_url = f"{base}/invitations?token={token}" if base else None
 
         inviter_user = await User.get_or_none(id=inv.created_by_user_id)
         out = WorkspaceEmailInviteOut(
@@ -368,7 +387,7 @@ class WorkspaceTeamInviteMixin:
                 error="FAILED_TO_CREATE_INVITE_LINK",
             )
 
-        code = generate_invite_code(prefix="il")
+        code = generate_invite_code(prefix=_resolve_workspace_invite_link_prefix(payload.join_mode))
         link = await WorkspaceInviteLink.create(
             organization_id=organization_id,
             workspace_id=workspace_id,
@@ -384,7 +403,7 @@ class WorkspaceTeamInviteMixin:
 
         token = build_invite_token(self.settings, code=link.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
-        invite_url = f"{base}/accept-invite?token={token}" if base else None
+        invite_url = f"{base}/invitations?token={token}" if base else None
 
         creator = await User.get_or_none(id=link.created_by_user_id) if link.created_by_user_id else None
         out = WorkspaceInviteLinkOut(
@@ -442,7 +461,7 @@ class WorkspaceTeamInviteMixin:
 
         token = build_invite_token(self.settings, code=link.code)
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
-        invite_url = f"{base}/accept-invite?token={token}" if base else None
+        invite_url = f"{base}/invitations?token={token}" if base else None
 
         creator = await User.get_or_none(id=link.created_by_user_id) if link.created_by_user_id else None
         last_used = await User.get_or_none(id=link.last_used_by_user_id) if link.last_used_by_user_id else None
@@ -553,7 +572,7 @@ class WorkspaceTeamInviteMixin:
             last_used = user_by_id.get(UUID(str(link.last_used_by_user_id))) if link.last_used_by_user_id else None
             token = build_invite_token(self.settings, code=link.code)
             base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
-            invite_url = f"{base}/accept-invite?token={token}" if base else None
+            invite_url = f"{base}/invitations?token={token}" if base else None
             items.append(
                 WorkspaceInviteLinkOut(
                     id=link.id,

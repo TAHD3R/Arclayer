@@ -7,6 +7,10 @@ from uuid import UUID
 from tortoise.expressions import Q
 
 from apps.api.src.common.invitations.tokens.service import verify_invite_token
+from apps.api.src.common.invitations.workspace_invites import (
+    is_workspace_email_invite_code,
+    is_workspace_invite_link_code,
+)
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
@@ -278,7 +282,7 @@ class AuthInvitationService(BaseService):
         ws: Workspace | None = None
         is_org_scope = False
 
-        if code.startswith("il_"):
+        if is_workspace_invite_link_code(code):
             link = await WorkspaceInviteLink.get_or_none(code=code).select_related("organization", "workspace")
             if link is None:
                 raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
@@ -298,7 +302,7 @@ class AuthInvitationService(BaseService):
             inviter_user_id = link.created_by_user_id
             expires_at = link.expires_at
             invitation_email = None
-        elif code.startswith("ei_"):
+        elif is_workspace_email_invite_code(code):
             inv = await WorkspaceEmailInvite.get_or_none(code=code).select_related("organization", "workspace")
             if inv is None:
                 raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")

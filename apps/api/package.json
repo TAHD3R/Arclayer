@@ -17,6 +17,7 @@
     "typecheck": "node ./scripts/uv.mjs run pyright --project ../../pyproject.toml",
     "test": "node ./scripts/uv.mjs run pytest --cov=.",
     "test:integration": "node ./scripts/uv.mjs --integration run pytest -m integration --cov=.",
+    "test:quick": "node ./scripts/uv.mjs run pytest -q tests/test_tenant_context.py --no-cov",
     "db:migrate": "node ./scripts/uv.mjs run python -m tortoise makemigrations",
     "db:upgrade": "node ./scripts/uv.mjs run python -m tortoise migrate",
     "jobs:worker": "node ./scripts/uv.mjs run taskiq worker apps.api.src.infra.jobs.taskiq_app:broker apps.api.src.infra.jobs.tasks",

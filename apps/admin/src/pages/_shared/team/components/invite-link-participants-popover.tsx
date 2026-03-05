@@ -162,11 +162,11 @@ export function InviteLinkParticipantsPopover(props: {
     >
       <button
         type="button"
-        className="flex items-center gap-2 min-w-0 text-left hover:opacity-90"
+        className="flex w-full items-center gap-2 min-w-0 text-left hover:opacity-90"
         aria-label={t("team:TEAM_INVITE_LINKS_ACTION_VIEW_PARTICIPANTS")}
       >
         <UsesCountTag label={props.usesCount} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <UserLabel user={props.primaryUser} />
         </div>
       </button>

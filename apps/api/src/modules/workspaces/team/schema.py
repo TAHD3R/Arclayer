@@ -89,6 +89,11 @@ class InviteStatus(StrEnum):
     EXPIRED = "expired"
 
 
+class WorkspaceInviteJoinMode(StrEnum):
+    MEMBER = "member"
+    GUEST = "guest"
+
+
 class WorkspaceEmailInviteOut(BaseOut):
     email: str = Field(..., description="Invitee email.")
     role_code: str | None = Field(default=None, description="Role code to assign when accepted.")
@@ -112,6 +117,10 @@ class WorkspaceEmailInviteOut(BaseOut):
 class WorkspaceEmailInviteCreateRequest(BaseSchema):
     email: EmailStr = Field(..., description="Invitee email.")
     role_code: str | None = Field(default=None, description="Role code to assign when accepted.")
+    join_mode: WorkspaceInviteJoinMode = Field(
+        default=WorkspaceInviteJoinMode.MEMBER,
+        description="Join mode: member joins org + workspace; guest joins workspace only.",
+    )
     expires_in_seconds: int | None = Field(
         default=7 * 24 * 60 * 60,
         ge=60,
@@ -171,6 +180,10 @@ class WorkspaceInviteLinkOut(BaseOut):
 
 class WorkspaceInviteLinkCreateRequest(BaseSchema):
     role_code: str | None = Field(default=None, description="Role code assigned when joining via the link.")
+    join_mode: WorkspaceInviteJoinMode = Field(
+        default=WorkspaceInviteJoinMode.MEMBER,
+        description="Join mode: member joins org + workspace; guest joins workspace only.",
+    )
     expires_in_seconds: int | None = Field(
         default=7 * 24 * 60 * 60,
         ge=60,

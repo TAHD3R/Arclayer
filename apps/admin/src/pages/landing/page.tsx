@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { listMyOrganizations } from "@/api/me";
+import { listMyWorkspaces } from "@/api/workspaces";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
 
@@ -38,6 +39,29 @@ export function LandingPage() {
     void navigate({ to: `/o/${firstOrganizationId}/workspaces`, replace: true });
   }, [firstOrganizationId, navigate]);
 
+  const workspacesQuery = useQuery({
+    queryKey: ["workspace", "me", "workspaces", "landing"],
+    enabled: Boolean(
+      organizationsQuery.isSuccess &&
+      !firstOrganizationId &&
+      (organizationsQuery.data?.items?.length ?? 0) === 0,
+    ),
+    queryFn: listMyWorkspaces,
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const firstWorkspaceId = useMemo(() => {
+    const items = workspacesQuery.data?.items ?? [];
+    return items[0]?.workspaceId ?? null;
+  }, [workspacesQuery.data?.items]);
+
+  useEffect(() => {
+    if (!firstWorkspaceId) return;
+    void navigate({ to: `/w/${firstWorkspaceId}/`, replace: true });
+  }, [firstWorkspaceId, navigate]);
+
   return (
     <DefaultPage
       width="fixed"
@@ -46,13 +70,17 @@ export function LandingPage() {
     >
       <ContentGuard
         loading={
-          Boolean(firstOrganizationId) || (organizationsQuery.isLoading && !organizationsQuery.data)
+          Boolean(firstOrganizationId) ||
+          Boolean(firstWorkspaceId) ||
+          (organizationsQuery.isLoading && !organizationsQuery.data) ||
+          (workspacesQuery.isLoading && !workspacesQuery.data)
         }
-        error={organizationsQuery.error}
+        error={organizationsQuery.error ?? workspacesQuery.error}
         onRetry={() => {
           void organizationsQuery.refetch();
+          void workspacesQuery.refetch();
         }}
-        empty={!firstOrganizationId}
+        empty={!firstOrganizationId && !firstWorkspaceId}
         emptyTitle={t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}
         emptyDescription={t("common:WORKSPACE_SWITCHER_ORG_EMPTY_DESC")}
       />

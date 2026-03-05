@@ -997,4 +997,4 @@ class OrganizationMemberService(BaseService):
         base = (self.settings.application.frontend_base_url or "").strip().rstrip("/")
         if not base:
             return None
-        return f"{base}/accept-invite?token={token}"
+        return f"{base}/invitations?token={token}"

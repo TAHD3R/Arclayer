@@ -10,6 +10,11 @@ from asgi_correlation_id import correlation_id
 from tortoise.transactions import in_transaction
 
 from apps.api.src.common.invitations.tokens.service import verify_invite_token
+from apps.api.src.common.invitations.workspace_invites import (
+    is_workspace_email_invite_code,
+    is_workspace_guest_invite_code,
+    is_workspace_invite_link_code,
+)
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
@@ -112,7 +117,7 @@ class AuthInvitationAcceptanceService(BaseService):
             org_email_inv: OrganizationEmailInvite | None = None
             is_org_scope = False
 
-            if code.startswith("il_"):
+            if is_workspace_invite_link_code(code):
                 invite_link = await WorkspaceInviteLink.filter(code=code).using_db(conn).select_for_update().first()
                 if invite_link is None:
                     raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
@@ -148,7 +153,7 @@ class AuthInvitationAcceptanceService(BaseService):
                             message=self._ta("INVITE_EMAIL_MISMATCH", "邮箱不符合要求"),
                             error="INVITE_EMAIL_DOMAIN_FORBIDDEN",
                         )
-            elif code.startswith("ei_"):
+            elif is_workspace_email_invite_code(code):
                 email_inv = await WorkspaceEmailInvite.filter(code=code).using_db(conn).select_for_update().first()
                 if email_inv is None:
                     raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
@@ -293,21 +298,28 @@ class AuthInvitationAcceptanceService(BaseService):
             )
             await UserCredential.create(using_db=conn, user_id=user.id, password_hash=password_hash)
 
+            join_as_guest = bool((not is_org_scope) and is_workspace_guest_invite_code(code))
+
             # Workspace invitations never imply organization governance elevation.
-            normalized_org_role = self._to_builtin_org_role(assigned_role_code) if is_org_scope else OrgRole.MEMBER
-            org_membership_role_code = (
-                str(assigned_role_code or "").strip().lower()
-                if is_org_scope and assigned_role_code
-                else normalized_org_role.value
-            )
-            await OrgMembership.create(
-                using_db=conn,
-                organization_id=organization_id,
-                user_id=user.id,
-                role=normalized_org_role,
-                role_code=org_membership_role_code,
-                status="active",
-            )
+            #
+            # Join modes:
+            # - member: join org + workspace (OrgMembership role=member)
+            # - guest: join workspace only (no OrgMembership)
+            if not join_as_guest:
+                normalized_org_role = self._to_builtin_org_role(assigned_role_code) if is_org_scope else OrgRole.MEMBER
+                org_membership_role_code = (
+                    str(assigned_role_code or "").strip().lower()
+                    if is_org_scope and assigned_role_code
+                    else normalized_org_role.value
+                )
+                await OrgMembership.create(
+                    using_db=conn,
+                    organization_id=organization_id,
+                    user_id=user.id,
+                    role=normalized_org_role,
+                    role_code=org_membership_role_code,
+                    status="active",
+                )
 
             roles: list[Role] = []
             wsm: WorkspaceMembership | None = None
@@ -467,7 +479,7 @@ class AuthInvitationAcceptanceService(BaseService):
                             "organization_id": str(organization_id),
                             "workspace_id": str(workspace_id),
                             "inviter_user_id": str(inviter_user_id) if inviter_user_id else None,
-                            "invite_kind": "link" if code.startswith("il_") else "email",
+                            "invite_kind": "link" if is_workspace_invite_link_code(code) else "email",
                         },
                         source="api",
                         trace_id=correlation_id.get(None),
@@ -524,7 +536,7 @@ class AuthInvitationAcceptanceService(BaseService):
             org_email_inv: OrganizationEmailInvite | None = None
             is_org_scope = False
 
-            if code.startswith("il_"):
+            if is_workspace_invite_link_code(code):
                 invite_link = await WorkspaceInviteLink.filter(code=code).using_db(conn).select_for_update().first()
                 if invite_link is None:
                     raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
@@ -561,7 +573,7 @@ class AuthInvitationAcceptanceService(BaseService):
                             message=self._ta("INVITE_EMAIL_MISMATCH", "邮箱不符合要求"),
                             error="INVITE_EMAIL_DOMAIN_FORBIDDEN",
                         )
-            elif code.startswith("ei_"):
+            elif is_workspace_email_invite_code(code):
                 email_inv = await WorkspaceEmailInvite.filter(code=code).using_db(conn).select_for_update().first()
                 if email_inv is None:
                     raise NotFound(message=self._ta("INVITE_NOT_FOUND", "邀请不存在"), error="INVITE_NOT_FOUND")
@@ -688,6 +700,8 @@ class AuthInvitationAcceptanceService(BaseService):
                         error="INVITE_ALREADY_MEMBER",
                     )
 
+            join_as_guest = bool((not is_org_scope) and is_workspace_guest_invite_code(code))
+
             # Workspace invitations never imply organization governance elevation.
             normalized_org_role = self._to_builtin_org_role(assigned_role_code) if is_org_scope else OrgRole.MEMBER
             org_membership_role_code = (
@@ -696,14 +710,15 @@ class AuthInvitationAcceptanceService(BaseService):
                 else normalized_org_role.value
             )
             if existing_orgm is None:
-                await OrgMembership.create(
-                    using_db=conn,
-                    organization_id=organization_id,
-                    user_id=user.id,
-                    role=normalized_org_role,
-                    role_code=org_membership_role_code,
-                    status="active",
-                )
+                if not join_as_guest:
+                    await OrgMembership.create(
+                        using_db=conn,
+                        organization_id=organization_id,
+                        user_id=user.id,
+                        role=normalized_org_role,
+                        role_code=org_membership_role_code,
+                        status="active",
+                    )
             else:
                 if UUID(str(cast(HasOrganizationId, existing_orgm).organization_id)) != organization_id:
                     raise Forbidden(

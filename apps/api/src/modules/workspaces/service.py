@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import cast
+from typing import TypedDict, cast
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -24,6 +24,101 @@ from apps.api.src.modules.workspaces.schema import (
 from apps.api.src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
 
+def _resolve_organization_id(value: object) -> UUID:
+    return UUID(str(cast(HasOrganizationId, value).organization_id))
+
+
+def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorkspaceOut]:
+    """
+    Build workspace list for users without any org memberships.
+
+    This supports explicit workspace-only guest access: a user can have active workspace memberships
+    but no organization governance access.
+    """
+
+    out: list[MyWorkspaceOut] = []
+    for ws in workspaces:
+        out.append(
+            MyWorkspaceOut(
+                id=ws.id,
+                workspace_id=ws.id,
+                organization_id=_resolve_organization_id(ws),
+                slug=ws.slug,
+                name=ws.name,
+                visible_only=False,
+                is_creator_admin=False,
+            )
+        )
+    return out
+
+
+def _collect_org_roles(orgms: list[OrgMembership]) -> tuple[dict[UUID, OrgRole], list[UUID]]:
+    org_roles: dict[UUID, OrgRole] = {}
+    org_order: list[UUID] = []
+    for orgm in orgms:
+        org_id = _resolve_organization_id(orgm)
+        if org_id in org_roles:
+            continue
+        org_roles[org_id] = orgm.role
+        org_order.append(org_id)
+    return org_roles, org_order
+
+
+def _group_workspaces_by_org(workspaces: list[Workspace]) -> dict[UUID, list[Workspace]]:
+    by_org: dict[UUID, list[Workspace]] = defaultdict(list)
+    for ws in workspaces:
+        by_org[_resolve_organization_id(ws)].append(ws)
+    return by_org
+
+
+class _MemberWorkspaceListArgs(TypedDict):
+    org_order: list[UUID]
+    org_roles: dict[UUID, OrgRole]
+    membership_by_workspace_id: dict[UUID, WorkspaceMembership]
+    membership_workspaces_by_org: dict[UUID, list[Workspace]]
+    owner_workspaces_by_org: dict[UUID, list[Workspace]]
+    user_id: UUID
+
+
+def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorkspaceOut]:
+    out: list[MyWorkspaceOut] = []
+    seen_workspace_ids: set[UUID] = set()
+
+    for org_id in args["org_order"]:
+        role = args["org_roles"].get(org_id)
+        if role is None:
+            continue
+
+        is_owner = role == OrgRole.OWNER
+        org_workspaces = (
+            args["owner_workspaces_by_org"].get(org_id, [])
+            if is_owner
+            else args["membership_workspaces_by_org"].get(org_id, [])
+        )
+        for ws in org_workspaces:
+            ws_id = UUID(str(ws.id))
+            if ws_id in seen_workspace_ids:
+                continue
+            seen_workspace_ids.add(ws_id)
+
+            is_creator_admin = is_owner and (UUID(str(ws.created_by_user_id)) == UUID(str(args["user_id"])))
+            has_membership = ws_id in args["membership_by_workspace_id"]
+            visible_only = bool(is_owner and (not has_membership) and (not is_creator_admin))
+
+            out.append(
+                MyWorkspaceOut(
+                    id=ws.id,
+                    workspace_id=ws.id,
+                    organization_id=org_id,
+                    slug=ws.slug,
+                    name=ws.name,
+                    visible_only=visible_only,
+                    is_creator_admin=is_creator_admin,
+                )
+            )
+    return out
+
+
 class WorkspaceService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
@@ -41,21 +136,8 @@ class WorkspaceService(BaseService):
         - A user can belong to multiple organizations.
         - This endpoint aggregates workspaces across all ACTIVE org memberships.
         """
-
         orgms = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").all()
-        if not orgms:
-            return []
 
-        org_roles: dict[UUID, OrgRole] = {}
-        org_order: list[UUID] = []
-        for orgm in orgms:
-            orgm_like = cast(HasOrganizationId, orgm)
-            org_id = UUID(str(orgm_like.organization_id))
-            if org_id not in org_roles:
-                org_roles[org_id] = orgm.role
-                org_order.append(org_id)
-
-        # Collect memberships for the current user.
         memberships = await WorkspaceMembership.filter(
             user_id=user_id,
             status=WorkspaceMembershipStatus.ACTIVE,
@@ -70,10 +152,11 @@ class WorkspaceService(BaseService):
                 await Workspace.filter(id__in=membership_workspace_ids, is_active=True).order_by("created_at").all()
             )
 
-        membership_workspaces_by_org: dict[UUID, list[Workspace]] = defaultdict(list)
-        for ws in membership_workspaces:
-            ws_org_id = UUID(str(cast(HasOrganizationId, ws).organization_id))
-            membership_workspaces_by_org[ws_org_id].append(ws)
+        if not orgms:
+            return _build_guest_workspace_list(workspaces=membership_workspaces)
+
+        org_roles, org_order = _collect_org_roles(orgms)
+        membership_workspaces_by_org = _group_workspaces_by_org(membership_workspaces)
 
         owner_org_ids = [org_id for org_id in org_order if org_roles.get(org_id) == OrgRole.OWNER]
         owner_workspaces: list[Workspace] = []
@@ -81,46 +164,16 @@ class WorkspaceService(BaseService):
             owner_workspaces = (
                 await Workspace.filter(organization_id__in=owner_org_ids, is_active=True).order_by("created_at").all()
             )
+        owner_workspaces_by_org = _group_workspaces_by_org(owner_workspaces)
 
-        owner_workspaces_by_org: dict[UUID, list[Workspace]] = defaultdict(list)
-        for ws in owner_workspaces:
-            ws_org_id = UUID(str(cast(HasOrganizationId, ws).organization_id))
-            owner_workspaces_by_org[ws_org_id].append(ws)
-
-        out: list[MyWorkspaceOut] = []
-        seen_workspace_ids: set[UUID] = set()
-
-        for org_id in org_order:
-            role = org_roles.get(org_id)
-            if role is None:
-                continue
-
-            is_owner = role == OrgRole.OWNER
-            org_workspaces = (
-                owner_workspaces_by_org.get(org_id, []) if is_owner else membership_workspaces_by_org.get(org_id, [])
-            )
-            for ws in org_workspaces:
-                ws_id = UUID(str(ws.id))
-                if ws_id in seen_workspace_ids:
-                    continue
-                seen_workspace_ids.add(ws_id)
-
-                is_creator_admin = is_owner and (UUID(str(ws.created_by_user_id)) == UUID(str(user_id)))
-                has_membership = ws_id in membership_by_workspace_id
-                visible_only = bool(is_owner and (not has_membership) and (not is_creator_admin))
-
-                out.append(
-                    MyWorkspaceOut(
-                        id=ws.id,
-                        workspace_id=ws.id,
-                        organization_id=org_id,
-                        slug=ws.slug,
-                        name=ws.name,
-                        visible_only=visible_only,
-                        is_creator_admin=is_creator_admin,
-                    )
-                )
-        return out
+        return _build_member_workspace_list({
+            "org_order": org_order,
+            "org_roles": org_roles,
+            "membership_by_workspace_id": membership_by_workspace_id,
+            "membership_workspaces_by_org": membership_workspaces_by_org,
+            "owner_workspaces_by_org": owner_workspaces_by_org,
+            "user_id": user_id,
+        })
 
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
         ws = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)

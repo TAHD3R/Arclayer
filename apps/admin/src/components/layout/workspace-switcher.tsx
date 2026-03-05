@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Avatar, Button, Input } from "antd";
-import { ChevronDown, Plus, RefreshCw, Search } from "lucide-react";
+import { Building2, ChevronDown, PanelLeftIcon, Plus, RefreshCw, Search } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { OrganizationWorkspace } from "@/types/api";
@@ -23,6 +23,9 @@ import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { switchWorkspacePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { useSidebar } from "@celestial/ui/sidebar";
+
+import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 
 function normalizeSearch(input: string): string {
   return String(input || "")
@@ -73,6 +76,82 @@ export const breadcrumbTriggerClassName = cn(
   "data-[state=open]:bg-accent data-[state=open]:text-foreground transition-colors",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
+
+const TRIGGER_HEIGHT_CLASSNAME = "h-10";
+
+const sidebarTriggerShellClassName = cn(
+  "group relative",
+  "w-full min-w-0",
+  "flex items-center gap-0",
+  "group-hover:gap-2 group-focus-within:gap-2",
+  "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+);
+
+const sidebarTriggerButtonClassName = cn(
+  TRIGGER_HEIGHT_CLASSNAME,
+  "min-w-0 flex-1 group-data-[collapsible=icon]:flex-none",
+  "flex items-center gap-2",
+  "group-data-[collapsible=icon]:gap-0",
+  "rounded-lg pl-1 pr-2 py-1 group-data-[collapsible=icon]:px-0",
+  "bg-transparent text-sidebar-foreground",
+  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+  "transition-[width,padding,color,background-color] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+  "text-left",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center",
+);
+
+const collapseButtonClassName = cn(
+  TRIGGER_HEIGHT_CLASSNAME,
+  "w-0 shrink-0 overflow-hidden rounded-lg p-0",
+  "opacity-0 pointer-events-none",
+  "bg-transparent text-sidebar-foreground",
+  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  "transition-[width,opacity,color,background-color] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+  "group-hover:w-10 group-hover:opacity-100 group-hover:pointer-events-auto",
+  "group-data-[collapsible=icon]:w-0",
+  "group-data-[collapsible=icon]:opacity-0",
+  "group-data-[collapsible=icon]:pointer-events-none",
+);
+
+const collapsedCollapseButtonClassName = cn(
+  TRIGGER_HEIGHT_CLASSNAME,
+  "w-10",
+  "rounded-lg p-0",
+  "bg-transparent text-sidebar-foreground",
+  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  "transition-[color,background-color,transform] duration-200 ease-out motion-reduce:transition-none",
+);
+
+function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      className={cn(collapseButtonClassName, props.className)}
+      aria-label={props.ariaLabel}
+      onClick={(e) => {
+        e.stopPropagation();
+        props.onClick();
+      }}
+    >
+      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
+    </button>
+  );
+}
+
+function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={collapsedCollapseButtonClassName}
+      aria-label={props.ariaLabel}
+      onClick={props.onClick}
+    >
+      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
+    </button>
+  );
+}
 
 function workspaceSearchText(workspace: OrganizationWorkspace): string {
   return [workspace.name, workspace.slug, workspace.description]
@@ -153,11 +232,14 @@ function WsPanelContent(props: {
   error: unknown;
   currentWorkspaceId: string | null;
   canCreateWorkspace: boolean;
+  canAccessOrganization: boolean;
+  organizationWorkspacesPath: string | null;
   onRefresh: () => void;
   onSelectWorkspace: (id: string) => void;
   onCreateWorkspace: () => void;
+  onOpenOrganizationWorkspaces: () => void;
 }) {
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "nav"]);
   const { closeFloatingPanel } = useFloatingPanel();
   const [search, setSearch] = useState("");
 
@@ -213,6 +295,22 @@ function WsPanelContent(props: {
       </div>
 
       <div className="border-t border-border/60 p-2">
+        {props.canAccessOrganization && props.organizationWorkspacesPath ? (
+          <Button
+            type="link"
+            block
+            size="small"
+            className="justify-start px-1"
+            icon={<Building2 className="size-3.5" aria-hidden="true" />}
+            onClick={() => {
+              closeFloatingPanel();
+              props.onOpenOrganizationWorkspaces();
+            }}
+            autoInsertSpace={false}
+          >
+            {t("common:WORKSPACE_SWITCHER_OPEN_ORG_WORKSPACES")}
+          </Button>
+        ) : null}
         <Button
           type="link"
           block
@@ -240,6 +338,7 @@ export function AdminWorkspaceSwitcher() {
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { toggleSidebar } = useSidebar();
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", currentWorkspaceId],
@@ -289,18 +388,73 @@ export function AdminWorkspaceSwitcher() {
     return items.find((item) => item.organization.id === organizationId)?.organization.id ?? null;
   }, [organizationId, organizationsQuery.data?.items]);
 
+  const canAccessOrganization = useMemo(() => {
+    if (!organizationId) return false;
+    const items = organizationsQuery.data?.items ?? [];
+    return items.some((item) => item.organization.id === organizationId);
+  }, [organizationId, organizationsQuery.data?.items]);
+
+  const organizationWorkspacesPath = useMemo(() => {
+    if (!organizationId) return null;
+    return buildOrganizationPath(String(organizationId), "/workspaces");
+  }, [organizationId]);
+
   return (
     <FloatingPanelRoot>
-      <FloatingPanelTrigger
-        title={t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
-        aria-label={t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
-        className={breadcrumbTriggerClassName}
-      >
-        <span className="truncate">
-          {workspaceName || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
-        </span>
-        <ChevronDown className="size-3 shrink-0 opacity-60" aria-hidden="true" />
-      </FloatingPanelTrigger>
+      <div className="w-full min-w-0">
+        <div
+          className={cn(
+            sidebarTriggerShellClassName,
+            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+          )}
+        >
+          <FloatingPanelTrigger
+            title={t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+            aria-label={t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+            className={sidebarTriggerButtonClassName}
+          >
+            <Avatar size={32} className="shrink-0 rounded-md">
+              {firstLetter(workspaceName || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE"))}
+            </Avatar>
+
+            <div
+              className={cn(
+                "min-w-0 flex-1",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
+              )}
+            >
+              <div className="truncate text-callout font-semibold text-foreground">
+                {workspaceName || t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+              </div>
+            </div>
+
+            <ChevronDown
+              className={cn(
+                "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+              )}
+              aria-hidden="true"
+            />
+          </FloatingPanelTrigger>
+
+          <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+        </div>
+
+        <div
+          className={cn(
+            "mt-0 flex justify-center overflow-hidden",
+            "h-0 opacity-0 pointer-events-none",
+            "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+            "group-data-[collapsible=icon]:mt-2",
+            "group-data-[collapsible=icon]:h-10",
+            "group-data-[collapsible=icon]:opacity-100",
+            "group-data-[collapsible=icon]:pointer-events-auto",
+          )}
+        >
+          <CollapsedCollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+        </div>
+      </div>
 
       <FloatingPanelContent placement="bottom" showTitle={false} className="w-[280px] p-0">
         <WsPanelContent
@@ -310,6 +464,8 @@ export function AdminWorkspaceSwitcher() {
           error={workspaceQuery.error}
           currentWorkspaceId={currentWorkspaceId}
           canCreateWorkspace={canCreateWorkspace}
+          canAccessOrganization={canAccessOrganization}
+          organizationWorkspacesPath={organizationWorkspacesPath}
           onRefresh={() => void workspaceQuery.refetch()}
           onSelectWorkspace={(nextWorkspaceId) => {
             setCurrentWorkspaceId(nextWorkspaceId);
@@ -326,6 +482,10 @@ export function AdminWorkspaceSwitcher() {
               to: buildOrganizationPath(selectedOrgId, "/workspaces") as never,
               search: { create: "1" } as never,
             });
+          }}
+          onOpenOrganizationWorkspaces={() => {
+            if (!organizationWorkspacesPath) return;
+            void navigate({ to: organizationWorkspacesPath as never });
           }}
         />
       </FloatingPanelContent>

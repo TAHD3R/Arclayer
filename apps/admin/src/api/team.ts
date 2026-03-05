@@ -120,6 +120,7 @@ export async function createTeamInvitation(payload: {
   workspaceId: string;
   email: string;
   roleCode: string | null;
+  joinMode?: "member" | "guest";
   expiresInSeconds?: number | null;
 }): Promise<TeamInvitationCreateResult> {
   return api.post<TeamInvitationCreateResult>(
@@ -127,6 +128,7 @@ export async function createTeamInvitation(payload: {
     {
       email: payload.email,
       roleCode: payload.roleCode,
+      joinMode: payload.joinMode,
       expiresInSeconds: payload.expiresInSeconds ?? undefined,
     },
   );
@@ -172,6 +174,7 @@ export async function listTeamInviteLinks(
 export async function createTeamInviteLink(payload: {
   workspaceId: string;
   roleCode: string | null;
+  joinMode?: "member" | "guest";
   expiresInSeconds?: number | null;
   maxUses?: number | null;
   allowedEmailDomain?: string | null;
@@ -180,6 +183,7 @@ export async function createTeamInviteLink(payload: {
     workspacePath(payload.workspaceId, "/team/invite-links"),
     {
       roleCode: payload.roleCode,
+      joinMode: payload.joinMode,
       expiresInSeconds: payload.expiresInSeconds ?? undefined,
       maxUses: payload.maxUses ?? undefined,
       allowedEmailDomain: payload.allowedEmailDomain ?? undefined,

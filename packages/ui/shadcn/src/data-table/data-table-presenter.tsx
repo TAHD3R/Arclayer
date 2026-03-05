@@ -174,10 +174,12 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                   return (
                     <TableCell
                       key={cell.id}
-                      className={cn(pinStyle.className, cellClassName?.(cell))}
+                      className={cn("overflow-hidden", pinStyle.className, cellClassName?.(cell))}
                       style={pinStyle.style}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <div className="min-w-0 w-full overflow-hidden">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </div>
                     </TableCell>
                   );
                 })}

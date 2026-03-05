@@ -20,7 +20,11 @@ export function UserLabel(props: { user: UserLabelUser | null }) {
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Avatar size={24} src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}>
+      <Avatar
+        size={24}
+        src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}
+        className="shrink-0"
+      >
         {initialsFromName(primary)}
       </Avatar>
       <div className="min-w-0">
