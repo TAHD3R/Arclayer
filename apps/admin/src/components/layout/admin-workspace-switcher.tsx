@@ -767,53 +767,46 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
               "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
             )}
           >
-            <Tooltip side="bottom" sideOffset={DEFAULT_TOOLTIP_SIDE_OFFSET}>
-              <TooltipTrigger asChild>
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <FloatingPanelTrigger
-                    title={workspaceTriggerText}
-                    aria-label={label}
-                    className={cn(
-                      sidebarTriggerButtonClassName,
-                      "w-full max-w-full overflow-hidden",
-                      !canOpenPanel && "opacity-60",
-                    )}
-                    disabled={!canOpenPanel}
-                  >
-                    <OrganizationAvatar
-                      name={workspaceTriggerText}
-                      assetRef={triggerOrganizationLogoUrl}
-                      size={32}
-                      className="shrink-0"
-                    />
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <FloatingPanelTrigger
+                title={workspaceTriggerText}
+                aria-label={label}
+                className={cn(
+                  sidebarTriggerButtonClassName,
+                  "w-full max-w-full overflow-hidden",
+                  !canOpenPanel && "opacity-60",
+                )}
+                disabled={!canOpenPanel}
+              >
+                <OrganizationAvatar
+                  name={workspaceTriggerText}
+                  assetRef={triggerOrganizationLogoUrl}
+                  size={32}
+                  className="shrink-0"
+                />
 
-                    <div
-                      className={cn(
-                        "min-w-0 flex-1 overflow-hidden",
-                        NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                        "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
-                      )}
-                    >
-                      <TruncatedText
-                        text={workspaceTriggerText}
-                        className="text-callout font-semibold text-foreground"
-                      />
-                    </div>
-
-                    <ChevronDown
-                      className={cn(
-                        "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
-                        NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                      )}
-                      aria-hidden="true"
-                    />
-                  </FloatingPanelTrigger>
+                <div
+                  className={cn(
+                    "min-w-0 flex-1 overflow-hidden",
+                    NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                    "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
+                  )}
+                >
+                  <TruncatedText
+                    text={workspaceTriggerText}
+                    className="text-callout font-semibold text-foreground"
+                  />
                 </div>
-              </TooltipTrigger>
-              <TooltipContent data-tooltip-text={workspaceTriggerText}>
-                {workspaceTriggerText}
-              </TooltipContent>
-            </Tooltip>
+
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
+                    NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                  )}
+                  aria-hidden="true"
+                />
+              </FloatingPanelTrigger>
+            </div>
 
             <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
           </div>
