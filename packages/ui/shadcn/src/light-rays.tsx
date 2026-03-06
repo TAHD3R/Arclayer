@@ -23,17 +23,28 @@ type LightRay = {
   intensity: number;
 };
 
+const MIN_LEFT_PERCENT = 6;
+const LEFT_SPREAD_PERCENT = 48;
+const BASE_ROTATE_DEG = -24;
+const ROTATE_SPREAD_DEG = 18;
+const MIN_RAY_WIDTH_PX = 140;
+const RAY_WIDTH_SPREAD_PX = 90;
+const MIN_SWING_DEG = 0.35;
+const SWING_SPREAD_DEG = 0.65;
+const MIN_INTENSITY = 0.14;
+const INTENSITY_SPREAD = 0.12;
+
 const createRays = (count: number, cycle: number): LightRay[] => {
   if (count <= 0) return [];
 
   return Array.from({ length: count }, (_, index) => {
-    const left = 8 + Math.random() * 84;
-    const rotate = -28 + Math.random() * 56;
-    const width = 160 + Math.random() * 160;
-    const swing = 0.8 + Math.random() * 1.8;
+    const left = MIN_LEFT_PERCENT + Math.random() * LEFT_SPREAD_PERCENT;
+    const rotate = BASE_ROTATE_DEG + Math.random() * ROTATE_SPREAD_DEG;
+    const width = MIN_RAY_WIDTH_PX + Math.random() * RAY_WIDTH_SPREAD_PX;
+    const swing = MIN_SWING_DEG + Math.random() * SWING_SPREAD_DEG;
     const delay = Math.random() * cycle;
-    const duration = cycle * (0.75 + Math.random() * 0.5);
-    const intensity = 0.6 + Math.random() * 0.5;
+    const duration = cycle * (0.9 + Math.random() * 0.25);
+    const intensity = MIN_INTENSITY + Math.random() * INTENSITY_SPREAD;
 
     return {
       id: `${index}-${Math.round(left * 10)}`,
@@ -51,7 +62,7 @@ const createRays = (count: number, cycle: number): LightRay[] => {
 const Ray = ({ left, rotate, width, swing, delay, duration, intensity }: LightRay) => {
   return (
     <motion.div
-      className="pointer-events-none absolute -top-[12%] left-[var(--ray-left)] h-[var(--light-rays-length)] w-[var(--ray-width)] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-[color-mix(in_srgb,var(--light-rays-color)_70%,transparent)] to-transparent opacity-0 mix-blend-screen blur-[var(--light-rays-blur)]"
+      className="pointer-events-none absolute -top-[10%] left-[var(--ray-left)] h-[var(--light-rays-length)] w-[var(--ray-width)] origin-top-left -translate-x-1/2 rounded-full bg-gradient-to-b from-[color-mix(in_srgb,var(--light-rays-color)_42%,transparent)] via-[color-mix(in_srgb,var(--light-rays-color)_16%,transparent)] to-transparent opacity-0 mix-blend-screen blur-[var(--light-rays-blur)]"
       style={
         {
           "--ray-left": `${left}%`,
@@ -77,10 +88,10 @@ const Ray = ({ left, rotate, width, swing, delay, duration, intensity }: LightRa
 export function LightRays({
   className,
   style,
-  count = 7,
-  color = "rgba(160, 210, 255, 0.2)",
-  blur = 36,
-  speed = 14,
+  count = 5,
+  color = "rgba(160, 210, 255, 0.12)",
+  blur = 44,
+  speed = 18,
   length = "70vh",
   ref,
   ...props
@@ -112,21 +123,21 @@ export function LightRays({
       <div className="absolute inset-0 overflow-hidden">
         <div
           aria-hidden
-          className="absolute inset-0 opacity-60"
+          className="absolute inset-0 opacity-65"
           style={
             {
               background:
-                "radial-gradient(circle at 20% 15%, color-mix(in srgb, var(--light-rays-color) 45%, transparent), transparent 70%)",
+                "radial-gradient(circle at 14% 10%, color-mix(in srgb, var(--light-rays-color) 38%, transparent), transparent 62%)",
             } as CSSProperties
           }
         />
         <div
           aria-hidden
-          className="absolute inset-0 opacity-60"
+          className="absolute inset-0 opacity-35"
           style={
             {
               background:
-                "radial-gradient(circle at 80% 10%, color-mix(in srgb, var(--light-rays-color) 35%, transparent), transparent 75%)",
+                "linear-gradient(135deg, color-mix(in srgb, var(--light-rays-color) 12%, transparent) 0%, transparent 42%)",
             } as CSSProperties
           }
         />

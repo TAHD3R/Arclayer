@@ -12,15 +12,24 @@ import {
   AdminSidebarMainMenuSkeleton,
 } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
+import { useRouterState } from "@tanstack/react-router";
+
 import { LightRays } from "@celestial/ui/light-rays";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@celestial/ui/sidebar";
 import { cn } from "@celestial/lib/utils";
 
-const LIGHT_RAYS_COUNT = 7;
-const LIGHT_RAYS_SPEED = 16;
-const LIGHT_RAYS_BLUR = 48;
-const LIGHT_RAYS_LENGTH = "70vh";
-const LIGHT_RAYS_COLOR = "rgba(140, 200, 255, 0.18)";
+const LIGHT_RAYS_COUNT = 5;
+const LIGHT_RAYS_SPEED = 18;
+const LIGHT_RAYS_BLUR = 44;
+const LIGHT_RAYS_LENGTH = "64vh";
+const WORKSPACE_LIGHT_RAYS_COLOR =
+  "color-mix(in srgb, var(--color-sidebar-primary) 76%, var(--color-sidebar-accent) 24%)";
+const ORGANIZATION_LIGHT_RAYS_COLOR =
+  "color-mix(in srgb, var(--color-sidebar-ring) 34%, var(--color-sidebar-accent) 66%)";
+const WORKSPACE_OVERLAY_BACKGROUND =
+  "linear-gradient(to bottom, color-mix(in srgb, var(--color-sidebar-accent) 28%, transparent), transparent)";
+const ORGANIZATION_OVERLAY_BACKGROUND =
+  "linear-gradient(to bottom, color-mix(in srgb, var(--color-sidebar-ring) 18%, transparent), transparent)";
 
 export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
@@ -50,21 +59,32 @@ function resolveSidebarContentPaddingPx(el: HTMLElement): { left: number; right:
 }
 
 function SidebarEffects() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isOrganizationView = pathname.startsWith("/o/");
+  const lightRaysColor = isOrganizationView
+    ? ORGANIZATION_LIGHT_RAYS_COLOR
+    : WORKSPACE_LIGHT_RAYS_COLOR;
+  const overlayBackground = isOrganizationView
+    ? ORGANIZATION_OVERLAY_BACKGROUND
+    : WORKSPACE_OVERLAY_BACKGROUND;
+  const containerClassName = cn(
+    "pointer-events-none absolute inset-x-0 top-0 h-80 [mask-image:linear-gradient(to_bottom,black,transparent)]",
+    isOrganizationView ? "opacity-[0.8]" : "opacity-[0.84]",
+  );
+
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 top-0 h-80 opacity-90 [mask-image:linear-gradient(to_bottom,black,transparent)]"
-    >
+    <div aria-hidden="true" className={containerClassName}>
       <LightRays
         count={LIGHT_RAYS_COUNT}
         speed={LIGHT_RAYS_SPEED}
         blur={LIGHT_RAYS_BLUR}
         length={LIGHT_RAYS_LENGTH}
-        color={LIGHT_RAYS_COLOR}
+        color={lightRaysColor}
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent"
+        className="absolute inset-0"
+        style={{ background: overlayBackground }}
       />
     </div>
   );

@@ -114,7 +114,7 @@ function AdminAccountPanelContent(props: {
 
       {divider()}
 
-      <div className="px-4 py-1 text-caption text-label-secondary">
+      <div className="px-4 py-1 text-callout text-label-secondary">
         {t("ACCOUNT_SETTINGS_THEME_LABEL")}
       </div>
 
@@ -159,7 +159,7 @@ function AdminAccountPanelContent(props: {
         </FloatingPanelButton>
       </div>
 
-      <div className="px-4 py-1 text-caption text-label-secondary">
+      <div className="px-4 py-1 text-callout text-label-secondary">
         {t("ACCOUNT_SETTINGS_LANGUAGE_LABEL")}
       </div>
 
@@ -200,7 +200,7 @@ function AdminAccountPanelContent(props: {
 
       {divider()}
 
-      <div>
+      <div className="pb-4">
         <FloatingPanelButton
           className={menuItemClassName}
           onClick={() => onClickAndClose(props.onLogout)}
