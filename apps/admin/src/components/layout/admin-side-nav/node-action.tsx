@@ -1,4 +1,5 @@
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -43,7 +44,13 @@ function NodeActionSub({ item, label, isActive }: Omit<NodeActionProps, "depth" 
           isActive && "font-semibold text-foreground!",
         )}
       >
-        <button type="button" onClick={item.onAction} className="w-full justify-start text-left">
+        <ButtonPrimitive
+          type="button"
+          hoverScale={1}
+          tapScale={1}
+          onClick={item.onAction}
+          className="w-full justify-start text-left"
+        >
           <span className="min-w-0 flex-1 truncate">{label}</span>
           {TrailingIcon ? (
             <TrailingIcon
@@ -51,7 +58,7 @@ function NodeActionSub({ item, label, isActive }: Omit<NodeActionProps, "depth" 
               aria-hidden="true"
             />
           ) : null}
-        </button>
+        </ButtonPrimitive>
       </SidebarMenuSubButton>
     </SidebarMenuSubItem>
   );

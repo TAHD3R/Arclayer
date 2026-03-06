@@ -4,6 +4,7 @@ import { SlidersHorizontal } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import {
   DropdownCardBody,
   DropdownCardContent,
@@ -51,19 +52,21 @@ function DensityCardButton(props: {
   density: DataTableDensity;
 }) {
   return (
-    <button
+    <ButtonPrimitive
       type="button"
       className={cn(
         "group w-full text-left rounded-xl border p-3 transition-colors",
         props.active ? "border-ring bg-accent/40" : "border-border hover:bg-accent/30",
       )}
       onClick={props.onClick}
+      hoverScale={1}
+      tapScale={1}
     >
       <div className="text-footnote font-medium">{props.label}</div>
       <div className="mt-2">
         <DensityPreview density={props.density} />
       </div>
-    </button>
+    </ButtonPrimitive>
   );
 }
 

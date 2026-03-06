@@ -6,7 +6,7 @@ import { cn } from "@celestial/lib/utils";
 
 const TAG_ICON_SIZE_PX = 12;
 
-export const TAG_BASE_ROOT_CLASSNAME = "!px-2 !py-1 !font-semibold !border-border";
+export const TAG_BASE_ROOT_CLASSNAME = "!px-2 !py-1 !text-caption !font-semibold !border-border";
 
 type TagSemanticClassNames = {
   root?: string;

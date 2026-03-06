@@ -25,7 +25,6 @@ import {
   useDataTableDensityPreference,
   useDataTable,
 } from "@celestial/ui/data-table";
-import { Button as UiButton } from "@celestial/ui/button";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@celestial/lib/utils";
@@ -594,9 +593,14 @@ export function ContentPagesView() {
                   <>
                     <span className="text-border">·</span>
                     <span>{t("common:DATA_TABLE_SELECTED_COUNT", { count: selectedCount })}</span>
-                    <UiButton variant="ghost" size="sm" onClick={() => table.resetRowSelection()}>
+                    <Button
+                      type="link"
+                      size="small"
+                      autoInsertSpace={false}
+                      onClick={() => table.resetRowSelection()}
+                    >
                       {t("common:DATA_TABLE_CLEAR_SELECTION")}
-                    </UiButton>
+                    </Button>
                   </>
                 ) : null}
               </div>
@@ -616,27 +620,27 @@ export function ContentPagesView() {
                   ))}
                 </select>
 
-                <UiButton
-                  variant="outline"
-                  size="icon-sm"
+                <Button
+                  type="default"
+                  size="small"
+                  autoInsertSpace={false}
+                  icon={<ChevronLeft className="size-4" aria-hidden="true" />}
                   disabled={!pageData.prev}
                   onClick={() => table.setPageIndex(Math.max(0, pageData.page - 2))}
-                >
-                  <ChevronLeft className="size-4" />
-                </UiButton>
+                />
 
                 <span className="text-footnote tabular-nums">
                   {pageData.page} / {pageData.pages || 1}
                 </span>
 
-                <UiButton
-                  variant="outline"
-                  size="icon-sm"
+                <Button
+                  type="default"
+                  size="small"
+                  autoInsertSpace={false}
+                  icon={<ChevronRight className="size-4" aria-hidden="true" />}
                   disabled={!pageData.next}
                   onClick={() => table.setPageIndex(pageData.page)}
-                >
-                  <ChevronRight className="size-4" />
-                </UiButton>
+                />
               </div>
             </div>
           ) : null}

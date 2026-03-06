@@ -8,7 +8,7 @@ import { type Transition } from "motion/react";
 
 import { useIsMobile } from "@celestial/hooks/use-is-mobile";
 import { cn } from "@celestial/lib/utils";
-import { Button } from "@celestial/ui/button";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { Input } from "@celestial/ui/input";
 import { Separator } from "@celestial/ui/separator";
 import {
@@ -31,6 +31,7 @@ import {
   SidebarMenuSubItem,
 } from "./sidebar-menu";
 import { getStrictContext } from "@celestial/lib/get-strict-context";
+import { buttonVariants } from "./button-variants";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -286,45 +287,49 @@ function Sidebar({
   );
 }
 
-type SidebarTriggerProps = React.ComponentProps<typeof Button>;
+type SidebarTriggerProps = Omit<
+  React.ComponentProps<typeof ButtonPrimitive>,
+  "asChild" | "children"
+>;
 
 function SidebarTrigger({ className, onClick, ...props }: SidebarTriggerProps) {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <Button
+    <ButtonPrimitive
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
-      variant="ghost"
-      size="icon"
-      className={cn("size-7", className)}
+      type="button"
+      hoverScale={1}
+      tapScale={1}
+      className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "size-7", className)}
       onClick={(event) => {
         onClick?.(event);
         toggleSidebar();
       }}
       {...props}
     >
-      <>
-        <PanelLeftIcon />
-        <span className="sr-only">Toggle Sidebar</span>
-      </>
-    </Button>
+      <PanelLeftIcon aria-hidden="true" />
+      <span className="sr-only">Toggle Sidebar</span>
+    </ButtonPrimitive>
   );
 }
 
-type SidebarRailProps = React.ComponentProps<"button">;
+type SidebarRailProps = React.ComponentProps<typeof ButtonPrimitive>;
 
 function SidebarRail({ className, ...props }: SidebarRailProps) {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <button
+    <ButtonPrimitive
       data-sidebar="rail"
       data-slot="sidebar-rail"
       aria-label="Toggle Sidebar"
       tabIndex={-1}
       onClick={toggleSidebar}
       title="Toggle Sidebar"
+      hoverScale={1}
+      tapScale={1}
       className={cn(
         "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",

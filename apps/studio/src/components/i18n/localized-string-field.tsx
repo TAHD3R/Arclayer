@@ -127,7 +127,7 @@ export function LocalizedStringField(props: {
         />
       )}
 
-      <Typography.Text type="secondary" className="text-xs">
+      <Typography.Text type="secondary" className="text-caption">
         {t("editor:EDITOR_I18N_FIELD_HINT")}
       </Typography.Text>
     </Space>

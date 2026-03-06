@@ -56,7 +56,7 @@ export function LocalizedStringMapField(props: {
         onChange={(e) => setValueForLocale(effectiveLocale, e.target.value)}
       />
 
-      <Typography.Text type="secondary" className="text-xs">
+      <Typography.Text type="secondary" className="text-caption">
         {t("settings:SETTINGS_I18N_HINT")}
       </Typography.Text>
     </Space>

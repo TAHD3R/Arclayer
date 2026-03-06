@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { FileTypeIcon } from "@celestial/ui/icon/file-type-icon";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 export type FileUploadItemStatus = "pending" | "uploading" | "success" | "error" | "canceled";
 
@@ -331,8 +332,10 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <ButtonPrimitive
                 type="button"
+                hoverScale={1}
+                tapScale={1}
                 className={cn(
                   "inline-flex size-6 items-center justify-center rounded-md text-label-secondary transition-colors",
                   "hover:bg-accent/35 hover:text-label-primary",
@@ -344,7 +347,7 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
                 }}
               >
                 <CircleHelp className="size-4" />
-              </button>
+              </ButtonPrimitive>
             </TooltipTrigger>
             <TooltipContent>
               <div className="max-w-xs whitespace-pre-line text-callout">{hintDetail}</div>

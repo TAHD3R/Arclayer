@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { Button } from "antd";
 import { ChevronDownIcon } from "lucide-react";
 import { SysRevisionActiveTag } from "@/components/ui/tags";
 
@@ -23,7 +24,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@celestial/ui/dialog";
-import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -202,8 +202,9 @@ export function SysSettingsPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="outline"
+                type="default"
                 disabled={!hasValidSysToken || namespacesQuery.isPending || namespaces.length <= 1}
+                autoInsertSpace={false}
               >
                 <span className="max-w-[220px] truncate">
                   {currentSummary?.title ?? namespaceId}
@@ -237,15 +238,18 @@ export function SysSettingsPage() {
           </DropdownMenu>
 
           <Button
-            variant="outline"
+            type="default"
             disabled={!canOperateOnDraft || isTesting || isActivating}
             onClick={() => testMutation.mutate()}
+            autoInsertSpace={false}
           >
             {t("sys:SYS_REVISION_TEST")}
           </Button>
           <Button
             disabled={!canOperateOnDraft || isTesting || isActivating || testOk === false}
             onClick={() => activateMutation.mutate()}
+            type="primary"
+            autoInsertSpace={false}
           >
             {t("sys:SYS_REVISION_ACTIVATE")}
           </Button>
@@ -300,7 +304,7 @@ export function SysSettingsPage() {
                       key={c.code}
                       className="flex items-start justify-between gap-2 text-footnote"
                     >
-                      <span className="font-mono text-[12px] text-label-secondary">{c.code}</span>
+                      <span className="font-mono text-caption text-label-secondary">{c.code}</span>
                       <span
                         className={cn("shrink-0", c.ok ? "text-emerald-600" : "text-destructive")}
                       >
@@ -342,12 +346,12 @@ export function SysSettingsPage() {
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="font-mono text-[12px] truncate">{rev.id}</div>
+                      <div className="font-mono text-caption truncate">{rev.id}</div>
                       {isActive ? (
                         <SysRevisionActiveTag label={t("sys:SYS_REVISION_ACTIVE")} />
                       ) : null}
                     </div>
-                    <div className="mt-1 text-[12px] text-label-secondary">
+                    <div className="mt-1 text-caption text-label-secondary">
                       {new Date(rev.createdAt).toLocaleString()}
                     </div>
                   </div>
@@ -407,10 +411,20 @@ function SysStepUpDialog(props: {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={props.onCancel} disabled={props.busy}>
+          <Button
+            type="text"
+            autoInsertSpace={false}
+            onClick={props.onCancel}
+            disabled={props.busy}
+          >
             {t("sys:SYS_STEP_UP_CANCEL")}
           </Button>
-          <Button onClick={props.onSubmit} disabled={props.busy || !props.password.trim()}>
+          <Button
+            type="primary"
+            autoInsertSpace={false}
+            onClick={props.onSubmit}
+            disabled={props.busy || !props.password.trim()}
+          >
             {t("sys:SYS_STEP_UP_SUBMIT")}
           </Button>
         </DialogFooter>

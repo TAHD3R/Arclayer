@@ -125,7 +125,7 @@ export function PrefabTemplateNodeInspectorPanel(props: {
             nodeId: props.templateNodeId,
           })}
         </Typography.Text>
-        <Typography.Text type="secondary" className="mt-1 block text-xs">
+        <Typography.Text type="secondary" className="mt-1 block text-caption">
           {(tplNode as any).name ? String((tplNode as any).name) : tplNode.type}
         </Typography.Text>
       </div>

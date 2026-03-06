@@ -68,24 +68,27 @@ export function SetupWorkspaceTemplateStep(props: {
                 </div>
               }
               actions={[
-                <button
+                <Button
                   key={`${template.key}-action`}
-                  type="button"
+                  type="text"
+                  autoInsertSpace={false}
+                  aria-label={template.title}
                   className={clsx(
                     "inline-flex cursor-pointer items-center gap-1 text-body font-medium",
                     selected ? "text-primary" : undefined,
                   )}
+                  icon={
+                    <span className="inline-flex items-center gap-1">
+                      <Icon size={16} />
+                      {selected ? <Check size={16} /> : null}
+                    </span>
+                  }
                   onClick={() => props.onTemplateSelect(template.key)}
-                  aria-label={template.title}
                 >
-                  <Icon size={16} />
-                  <span>
-                    {selected
-                      ? t("setup:SETUP_TEMPLATE_SELECTED_ACTION")
-                      : t("setup:SETUP_TEMPLATE_SELECT_ACTION")}
-                  </span>
-                  {selected ? <Check size={16} /> : null}
-                </button>,
+                  {selected
+                    ? t("setup:SETUP_TEMPLATE_SELECTED_ACTION")
+                    : t("setup:SETUP_TEMPLATE_SELECT_ACTION")}
+                </Button>,
               ]}
               onClick={() => props.onTemplateSelect(template.key)}
               role="button"

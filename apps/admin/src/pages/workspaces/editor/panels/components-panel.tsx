@@ -16,6 +16,7 @@ import { getErrorMessage, notifyErrorText } from "@/lib/notifications";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useViewerContext } from "@/pages/workspaces/editor/hooks/use-viewer-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 type ContentRefState = "auto" | "draft" | "published";
 
@@ -42,20 +43,22 @@ function BlockInsertTile(props: {
   });
 
   return (
-    <button
+    <ButtonPrimitive
       ref={dnd.setNodeRef}
       type="button"
       disabled={!props.canInsert}
+      hoverScale={1}
+      tapScale={1}
       className="flex flex-col items-center gap-1 rounded-md border p-2 text-caption hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
       onClick={props.onInsert}
       {...dnd.listeners}
       {...dnd.attributes}
     >
-      <span className="text-[10px] text-label-secondary">
+      <span className="text-caption text-label-secondary">
         {props.manifest.icon ?? props.manifest.type}
       </span>
       <span className="truncate">{props.label}</span>
-    </button>
+    </ButtonPrimitive>
   );
 }
 
@@ -112,7 +115,7 @@ export function ComponentsPanel() {
       {/* Insert: content_ref */}
       <div className="px-2 pb-2">
         <div className="rounded-md border border-border bg-muted/30 px-2 py-2">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-label-secondary">
+          <div className="mb-1 text-caption font-semibold uppercase tracking-wider text-label-secondary">
             {t("content_pages:EDITOR_CONTENT_REF_INSERT_TITLE")}
           </div>
           <div className="flex items-center gap-1">
@@ -184,7 +187,7 @@ export function ComponentsPanel() {
       <div className="flex-1 overflow-auto px-2 pb-2">
         {[...grouped.entries()].map(([category, manifests]) => (
           <div key={category} className="mb-3">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-label-secondary">
+            <div className="mb-1 text-caption font-semibold uppercase tracking-wider text-label-secondary">
               {t(CATEGORY_LABEL_KEYS[category])}
             </div>
             <div className="grid grid-cols-2 gap-1">

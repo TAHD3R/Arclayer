@@ -551,7 +551,7 @@ function PanelContentInner() {
               />
             </>
           ) : (
-            <div className="text-xs text-muted-foreground">
+            <div className="text-caption text-label-secondary">
               {t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}
             </div>
           )}

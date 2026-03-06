@@ -6,6 +6,7 @@ import { Bell, Shield, SlidersHorizontal, UserRound, X, type LucideIcon } from "
 import { ComplexDialog } from "@celestial/ui/complex-dialog";
 import { cn } from "@celestial/lib/utils";
 import { MiniCategoryNav } from "@celestial/ui/mini-category-nav";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { MeNotificationSettingsPage } from "@/pages/me/notifications/page";
 import { MePreferencesView } from "@/pages/me/preferences/components/me-preferences-view";
 import { MeProfileView } from "@/pages/me/profile/components/me-profile-view";
@@ -43,10 +44,12 @@ function buildTabItems(labels: Record<MeSettingsDialogTab, string>): readonly Me
 
 function MeSettingsDialogCloseButton(props: { onClose: () => void; label: string }) {
   return (
-    <button
+    <ButtonPrimitive
       type="button"
       onClick={props.onClose}
       aria-label={props.label}
+      hoverScale={1}
+      tapScale={1}
       className={cn(
         "inline-flex h-8 w-8 items-center justify-center rounded-full",
         "text-label-secondary transition-colors hover:bg-accent hover:text-label-primary",
@@ -54,7 +57,7 @@ function MeSettingsDialogCloseButton(props: { onClose: () => void; label: string
       )}
     >
       <X className="h-4 w-4" />
-    </button>
+    </ButtonPrimitive>
   );
 }
 

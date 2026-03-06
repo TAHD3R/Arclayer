@@ -1135,7 +1135,7 @@ function WorkspacePageEditorRoute() {
               <Button size="small">{t("editor:EDITOR_PAGE_BACK_TO_PAGES")}</Button>
             </Link>
             <Typography.Text strong>{t("editor:EDITOR_PAGE_EDITOR_TITLE")}</Typography.Text>
-            <Typography.Text type="secondary" className="text-xs">
+            <Typography.Text type="secondary" className="text-caption">
               {t("editor:EDITOR_PAGE_EDITOR_SUBTITLE", { pageId })}
             </Typography.Text>
           </Space>

@@ -45,7 +45,7 @@ export function Illust403ForbiddenGateway(props: IllustrationProps) {
               </div>
 
               <div className="celestial-illust-anim-bounce absolute -right-6 -top-6 z-20 flex size-10 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-lg shadow-destructive/30">
-                <span className="text-sm font-bold leading-none">!</span>
+                <span className="text-footnote font-bold leading-none">!</span>
               </div>
 
               <div className="absolute left-1/2 top-1/2 h-0.5 w-[120%] -translate-x-1/2 -translate-y-1/2 bg-destructive/70 blur-[1px] shadow-[0_0_10px_color-mix(in_srgb,var(--color-destructive)_60%,transparent)]" />

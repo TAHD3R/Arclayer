@@ -24,6 +24,7 @@ import { useNowTick } from "@celestial/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 type NotificationPanelTab = "unread" | "all" | "read" | "archived";
 
@@ -374,8 +375,10 @@ export function AdminNotificationsPanel({
 
       {/* Footer */}
       <div className="shrink-0 border-t border-border/60 p-2">
-        <button
+        <ButtonPrimitive
           type="button"
+          hoverScale={1}
+          tapScale={1}
           className={cn(
             "w-full rounded-md px-3 py-2 text-left",
             "text-footnote text-label-secondary",
@@ -389,7 +392,7 @@ export function AdminNotificationsPanel({
           }}
         >
           {t("NOTIFICATIONS_OPEN_CENTER")}
-        </button>
+        </ButtonPrimitive>
       </div>
     </motion.div>
   );

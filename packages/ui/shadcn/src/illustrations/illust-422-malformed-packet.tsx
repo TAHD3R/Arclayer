@@ -70,7 +70,7 @@ export function Illust422MalformedPacket(props: IllustrationProps) {
               <div className="ml-auto h-[2px] w-5 rounded-full bg-destructive/40" />
             </div>
 
-            <div className="absolute -left-12 top-10 select-none font-mono text-[10px] leading-tight text-primary/35 opacity-70">
+            <div className="absolute -left-12 top-10 select-none font-mono text-caption leading-tight text-primary/35 opacity-70">
               <div>0100101</div>
               <div>ERROR_VAL</div>
               <div>x86_fail</div>

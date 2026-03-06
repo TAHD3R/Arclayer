@@ -16,7 +16,7 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "./radix-primitives/radix-alert-dialog";
-import { Button } from "./button";
+import { buttonVariants } from "./button-variants";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -54,24 +54,20 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancelPrimitive asChild>
-            <Button
-              variant="ghost"
-              onClick={() => props.onOpenChange(false)}
-              disabled={Boolean(props.loading)}
-            >
-              {props.cancelText}
-            </Button>
+          <AlertDialogCancelPrimitive
+            className={buttonVariants({ variant: "ghost" })}
+            onClick={() => props.onOpenChange(false)}
+            disabled={Boolean(props.loading)}
+          >
+            {props.cancelText}
           </AlertDialogCancelPrimitive>
-          <AlertDialogActionPrimitive asChild>
-            <Button
-              variant={props.danger ? "destructive" : "default"}
-              onClick={() => void props.onConfirm()}
-              disabled={Boolean(props.loading)}
-            >
-              {props.loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
-              {props.confirmText}
-            </Button>
+          <AlertDialogActionPrimitive
+            className={buttonVariants({ variant: props.danger ? "destructive" : "default" })}
+            onClick={() => void props.onConfirm()}
+            disabled={Boolean(props.loading)}
+          >
+            {props.loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            {props.confirmText}
           </AlertDialogActionPrimitive>
         </AlertDialogFooter>
       </AlertDialogContent>

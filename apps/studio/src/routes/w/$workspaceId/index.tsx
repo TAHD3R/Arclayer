@@ -146,7 +146,7 @@ function WorkspacePagesHome() {
             <Typography.Title level={3} className="!mb-1">
               {t("editor:EDITOR_PAGES_TITLE")}
             </Typography.Title>
-            <Typography.Paragraph className="!mb-0 text-muted-foreground">
+            <Typography.Paragraph className="!mb-0 text-label-secondary">
               {t("editor:EDITOR_PAGES_DESC")}
             </Typography.Paragraph>
           </div>

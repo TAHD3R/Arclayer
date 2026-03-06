@@ -50,7 +50,7 @@ export function Illust401LockedTerminal(props: IllustrationProps) {
               <div className="relative z-10 mt-auto self-center">
                 <div className="flex items-center gap-1 rounded-full border border-border bg-muted/40 px-3 py-1">
                   <div className="size-2 rounded-full bg-border" />
-                  <span className="text-[8px] font-mono text-label-secondary uppercase tracking-widest">
+                  <span className="text-caption leading-none font-mono text-label-secondary uppercase tracking-widest">
                     ID-VERIFY
                   </span>
                 </div>

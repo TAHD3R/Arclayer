@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import type { CSSProperties } from "react";
 
 import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
@@ -64,10 +65,12 @@ export function AdminNotificationsShell(props: AdminNotificationsShellProps) {
               ].join(" ")}
               style={{ left: sidebarOffsetPx } as CSSProperties}
             />,
-            <button
+            <ButtonPrimitive
               key="admin-notifications-backdrop"
               type="button"
               aria-label={props.closeAriaLabel}
+              hoverScale={1}
+              tapScale={1}
               className={[
                 "fixed inset-y-0 right-0 z-20 bg-transparent",
                 NOTIFICATIONS_SHELL_TRANSITION_CLASSNAME,

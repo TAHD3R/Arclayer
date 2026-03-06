@@ -5,6 +5,7 @@ import { flexRender, type Header, type Table as ReactTable } from "@tanstack/rea
 import type { CSSProperties } from "react";
 
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { TableHead, TableHeader, TableRow } from "@celestial/ui/table";
 
 import {
@@ -135,7 +136,7 @@ function SortableHeaderCell<TData>(props: {
             {...dndAttributes}
             {...sortable.listeners}
           >
-            <button
+            <ButtonPrimitive
               type="button"
               className={cn(
                 "group inline-flex items-center gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-muted/50",
@@ -146,10 +147,12 @@ function SortableHeaderCell<TData>(props: {
                 e.stopPropagation();
                 header.column.getToggleSortingHandler()?.(e);
               }}
+              hoverScale={1}
+              tapScale={1}
             >
               <div className="min-w-0 truncate select-none">{content}</div>
               <SortStateIcon state={sorted} />
-            </button>
+            </ButtonPrimitive>
           </div>
         </div>
       ) : (

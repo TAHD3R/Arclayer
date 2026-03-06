@@ -11,7 +11,6 @@
     "./animate-tooltip": "./src/animate-tooltip.tsx",
     "./auto-height": "./src/auto-height.tsx",
     "./button-primitive": "./src/button-primitive.tsx",
-    "./button": "./src/button.tsx",
     "./card": "./src/card.tsx",
     "./checkbox": "./src/checkbox.tsx",
     "./collapsible": "./src/collapsible.tsx",

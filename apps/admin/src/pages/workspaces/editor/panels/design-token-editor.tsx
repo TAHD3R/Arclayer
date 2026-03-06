@@ -7,6 +7,7 @@ import type {
   TokenLayer,
   TokenValue,
 } from "@celestial/block-protocol";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 interface DesignTokenEditorProps {
   collection: DesignTokenCollection | null;
@@ -47,14 +48,16 @@ function LayerSection({
 
   return (
     <div>
-      <button
+      <ButtonPrimitive
         type="button"
         onClick={() => setOpen((o) => !o)}
+        hoverScale={1}
+        tapScale={1}
         className="flex w-full items-center gap-1 py-1 text-caption font-semibold text-label-secondary"
       >
         <span className={`transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
         {LAYER_LABEL[layer]} ({tokens.length})
-      </button>
+      </ButtonPrimitive>
       {open && (
         <div className="flex flex-col gap-1 pl-3">
           {tokens.map((token) => {
@@ -75,7 +78,7 @@ function LayerSection({
                   />
                 )}
                 {ref ? (
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-label-secondary">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-caption text-label-secondary">
                     {display}
                   </span>
                 ) : (
@@ -126,16 +129,18 @@ export function DesignTokenEditor({
       {modes.length > 1 && (
         <div className="flex gap-1">
           {modes.map((m) => (
-            <button
+            <ButtonPrimitive
               key={m}
               type="button"
+              hoverScale={1}
+              tapScale={1}
               className={`rounded px-2 py-0.5 text-caption ${
                 m === mode ? "bg-primary text-primary-foreground" : "bg-muted text-label-secondary"
               }`}
               onClick={() => onTokenChange?.("__mode__", m, m)}
             >
               {m}
-            </button>
+            </ButtonPrimitive>
           ))}
         </div>
       )}

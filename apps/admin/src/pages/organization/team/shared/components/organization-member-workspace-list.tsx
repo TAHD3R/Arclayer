@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { OrganizationMemberWorkspace } from "@/types/api";
 import { TeamRoleTag } from "@/components/ui/tags";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 export type ResolvedMemberWorkspace = OrganizationMemberWorkspace & {
   description?: string | null;
@@ -83,10 +84,12 @@ export function OrganizationMemberWorkspaceList({
             const desc = workspace.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK");
             const clickable = workspace.membershipStatus === "active";
             return (
-              <button
+              <ButtonPrimitive
                 type="button"
                 key={`${workspace.workspaceId}:${workspace.membershipStatus}`}
                 disabled={!clickable}
+                hoverScale={1}
+                tapScale={1}
                 onClick={() => {
                   if (!clickable) return;
                   onEnterWorkspace(workspace.workspaceId);
@@ -119,7 +122,7 @@ export function OrganizationMemberWorkspaceList({
                     <div className="mt-0.5 truncate text-label-secondary">{desc}</div>
                   </div>
                 </div>
-              </button>
+              </ButtonPrimitive>
             );
           })}
         </div>

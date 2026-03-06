@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import * as React from "react";
 
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { cn } from "@celestial/lib/utils";
 import { TabsList } from "../tabs";
 import { useChromeTabsLabels, useChromeTabsReducedMotion } from "./chrome-tabs-provider";
@@ -38,14 +39,16 @@ function ScrollButton({ ariaLabel, direction, onClick }: ScrollButtonProps) {
   const sideClassName = direction === "left" ? "left-0" : "right-0";
 
   return (
-    <button
+    <ButtonPrimitive
       type="button"
       className={cn(SCROLL_BUTTON_CLASSNAME, sideClassName)}
       aria-label={ariaLabel}
       onClick={onClick}
+      hoverScale={1}
+      tapScale={1}
     >
       <Icon className="mx-auto size-4" />
-    </button>
+    </ButtonPrimitive>
   );
 }
 

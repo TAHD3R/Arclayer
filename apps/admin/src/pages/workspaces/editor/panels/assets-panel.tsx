@@ -13,6 +13,7 @@ import { useAssetsExplorerController } from "@/pages/workspaces/assets/component
 import type { AdminAssetFolder } from "@/types/api";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
@@ -44,9 +45,11 @@ function AssetTile(props: { asset: AssetMasonryItem; disabled: boolean; onClick:
     asset.previewUrl || asset.publicUrl || resolveAssetRefToPublicUrlPath(asset.id) || "";
 
   return (
-    <button
+    <ButtonPrimitive
       ref={dnd.setNodeRef}
       type="button"
+      hoverScale={1}
+      tapScale={1}
       className={cn(
         "group flex w-full flex-col overflow-hidden rounded-lg border border-border/60 bg-card",
         "transition-shadow hover:shadow-sm",
@@ -74,7 +77,7 @@ function AssetTile(props: { asset: AssetMasonryItem; disabled: boolean; onClick:
       <div className="min-w-0 px-2 py-1.5 text-left">
         <div className="truncate text-caption font-medium">{asset.name}</div>
       </div>
-    </button>
+    </ButtonPrimitive>
   );
 }
 

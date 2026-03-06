@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import type { EditorSelectionInspector } from "@celestial/editor-protocol";
 
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useRequestEditContentRef } from "@/pages/workspaces/editor/hooks/use-editor-bridge";
 import { useEditorSelectionPatch } from "@/pages/workspaces/editor/hooks/use-editor-selection-patch";
@@ -208,8 +209,10 @@ export function PropertiesPanel() {
           const isActive = propertiesPanelOpen && tab === id;
           return (
             <Tooltip key={id} title={t(`content_pages:${labelKey}`)} placement="left">
-              <button
+              <ButtonPrimitive
                 type="button"
+                hoverScale={1}
+                tapScale={1}
                 className={cn(
                   "flex size-10 items-center justify-center rounded-md transition-colors",
                   isActive
@@ -225,7 +228,7 @@ export function PropertiesPanel() {
                 }}
               >
                 <Icon className="size-5" />
-              </button>
+              </ButtonPrimitive>
             </Tooltip>
           );
         })}

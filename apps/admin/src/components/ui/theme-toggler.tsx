@@ -11,6 +11,10 @@ import {
   type ThemeSelection,
   type Resolved,
 } from "@/components/ui/theme-toggler-primitive";
+import {
+  Button as ButtonPrimitive,
+  type ButtonProps as ButtonPrimitiveProps,
+} from "@celestial/ui/button-primitive";
 import { buttonVariants } from "@celestial/ui/icon-button";
 import { cn } from "@celestial/lib/utils";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -28,7 +32,7 @@ const getNextTheme = (effective: ThemeSelection, modes: ThemeSelection[]): Theme
   return modes[(i + 1) % modes.length];
 };
 
-type ThemeTogglerButtonProps = React.ComponentProps<"button"> &
+type ThemeTogglerButtonProps = ButtonPrimitiveProps &
   VariantProps<typeof buttonVariants> & {
     modes?: ThemeSelection[];
     onImmediateChange?: ThemeTogglerPrimitiveProps["onImmediateChange"];
@@ -56,7 +60,10 @@ function ThemeTogglerButton({
       onImmediateChange={onImmediateChange}
     >
       {({ effective, resolved, toggleTheme }) => (
-        <button
+        <ButtonPrimitive
+          type="button"
+          hoverScale={1}
+          tapScale={1}
           data-slot="theme-toggler-button"
           className={cn(buttonVariants({ variant, size, className }))}
           onClick={(e) => {
@@ -66,7 +73,7 @@ function ThemeTogglerButton({
           {...props}
         >
           {getIcon(effective, resolved, modes)}
-        </button>
+        </ButtonPrimitive>
       )}
     </ThemeTogglerPrimitive>
   );
@@ -104,11 +111,13 @@ function ThemePreferenceToggleGroup({
       {items.map((it) => {
         const selected = themePreference === it.value;
         return (
-          <button
+          <ButtonPrimitive
             key={it.value}
             type="button"
             role="radio"
             aria-checked={selected}
+            hoverScale={1}
+            tapScale={1}
             className={cn(
               buttonVariants({
                 variant: selected ? "secondary" : "ghost",
@@ -121,8 +130,8 @@ function ThemePreferenceToggleGroup({
             }}
           >
             {it.icon}
-            <span className="text-footnote font-medium">{it.label}</span>
-          </button>
+            <span>{it.label}</span>
+          </ButtonPrimitive>
         );
       })}
     </div>

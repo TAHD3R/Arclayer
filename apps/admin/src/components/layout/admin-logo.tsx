@@ -41,7 +41,7 @@ export function AdminBrandMark(props: { size?: number; productName?: string }) {
         style={{ width: size, height: size }}
         alt={productName}
       />
-      {productName ? <span className="text-lg font-medium">{productName}</span> : null}
+      {productName ? <span className="text-body font-medium">{productName}</span> : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "antd";
-import { BaseTag } from "@/components/ui/tags";
+import { SecurityNotConfiguredTag } from "@/components/ui/tags";
 import { Smartphone, KeyRound, Mail } from "lucide-react";
 
 import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";
@@ -77,7 +77,9 @@ export function MeSecurityView(props: MeSecurityViewProps) {
                           <span className="text-body font-medium text-label-primary">
                             {t("account:ME_SECURITY_2FA_AUTH_APP_TITLE")}
                           </span>
-                          <BaseTag>{t("account:ME_SECURITY_2FA_AUTH_APP_NOT_CONFIGURED")}</BaseTag>
+                          <SecurityNotConfiguredTag
+                            label={t("account:ME_SECURITY_2FA_AUTH_APP_NOT_CONFIGURED")}
+                          />
                         </div>
                         <div className="mt-1 text-callout text-label-secondary">
                           {t("account:ME_SECURITY_2FA_AUTH_APP_DESC")}

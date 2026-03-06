@@ -1,8 +1,8 @@
 import { Archive, Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
+import { Button } from "antd";
 import { useTranslation } from "react-i18next";
 
 import type { NotificationCategory, NotificationItem } from "@/types/api";
-import { Button } from "@celestial/ui/button";
 import {
   Item,
   ItemContent,
@@ -106,48 +106,45 @@ export function NotificationCard({
         <div className="flex items-center gap-1">
           {!isRead && onMarkRead ? (
             <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
               aria-label={t("NOTIFICATIONS_MARK_AS_READ")}
+              type="text"
+              size="small"
+              autoInsertSpace={false}
+              icon={<Check className="size-4" aria-hidden="true" />}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onMarkRead();
               }}
-            >
-              <Check className="size-4" aria-hidden="true" />
-            </Button>
+            />
           ) : null}
           {!item.archivedAt && onArchive ? (
             <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
               aria-label={t("NOTIFICATIONS_ARCHIVE")}
+              type="text"
+              size="small"
+              autoInsertSpace={false}
+              icon={<Archive className="size-4" aria-hidden="true" />}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onArchive();
               }}
-            >
-              <Archive className="size-4" aria-hidden="true" />
-            </Button>
+            />
           ) : null}
           {onDelete ? (
             <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
               aria-label={t("NOTIFICATIONS_DELETE")}
+              type="text"
+              size="small"
+              autoInsertSpace={false}
+              icon={<Trash2 className="size-4" aria-hidden="true" />}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onDelete();
               }}
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-            </Button>
+            />
           ) : null}
         </div>
       </div>

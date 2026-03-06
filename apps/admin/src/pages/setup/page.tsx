@@ -15,6 +15,7 @@ import {
   ExpandableScreenContent,
   ExpandableScreenTrigger,
 } from "@celestial/ui/expandable-screen";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 const ColorBendsLazy = lazy(() => import("@celestial/ui/color-bends"));
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import {
@@ -525,15 +526,17 @@ export function SetupPage() {
             autoInsertSpace={false}
           />
         ) : (
-          <ExpandableScreenTrigger>
-            <button
+          <ExpandableScreenTrigger className={submitting ? "pointer-events-none opacity-60" : ""}>
+            <ButtonPrimitive
               type="button"
+              hoverScale={1}
+              tapScale={1}
               className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
               aria-label={t("setup:SETUP_START_BUTTON")}
               disabled={submitting}
             >
               <Sparkles size={20} />
-            </button>
+            </ButtonPrimitive>
           </ExpandableScreenTrigger>
         )}
       </div>

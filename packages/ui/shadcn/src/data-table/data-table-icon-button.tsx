@@ -3,7 +3,9 @@
 import * as React from "react";
 
 import { cn } from "@celestial/lib/utils";
-import { Button } from "@celestial/ui/button";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+
+import { buttonVariants } from "../button-variants";
 
 import type { DataTableIconButtonProps } from "./data-table-tools.types";
 
@@ -12,18 +14,22 @@ export const DataTableDefaultIconButton = React.forwardRef<
   DataTableIconButtonProps & { className?: string }
 >(function DataTableDefaultIconButton({ label, active, className, ...props }, ref) {
   return (
-    <Button
+    <ButtonPrimitive
       ref={ref}
       type="button"
-      variant="ghost"
-      size="icon-sm"
       aria-label={label}
-      className={cn(active ? "bg-accent" : undefined, className)}
+      className={cn(
+        buttonVariants({ variant: "ghost", size: "icon-sm" }),
+        active ? "bg-accent" : undefined,
+        className,
+      )}
       disabled={props.disabled}
       onClick={props.onClick}
+      hoverScale={1}
+      tapScale={1}
     >
       {props.children}
-    </Button>
+    </ButtonPrimitive>
   );
 });
 DataTableDefaultIconButton.displayName = "DataTableDefaultIconButton";

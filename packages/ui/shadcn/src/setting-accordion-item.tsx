@@ -1,10 +1,9 @@
 import { type ReactNode } from "react";
-import { ChevronRight, LoaderCircle } from "lucide-react";
+import { Button } from "antd";
+import { ChevronRight } from "lucide-react";
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@celestial/ui/accordion";
 import { cn } from "@celestial/lib/utils";
-
-import { Button } from "./button";
 
 const DEFAULT_TITLE_COLUMN_WIDTH_PX = 240;
 
@@ -203,21 +202,23 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
             <div className="flex items-center justify-start gap-2">
               {props.onConfirm ? (
                 <Button
-                  variant="default"
                   disabled={Boolean(props.disabled || props.resetLoading || props.confirmLoading)}
                   onClick={() => void props.onConfirm?.()}
+                  type="primary"
+                  loading={Boolean(props.confirmLoading)}
+                  autoInsertSpace={false}
                 >
-                  {props.confirmLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
                   {props.confirmText}
                 </Button>
               ) : null}
               {props.onReset ? (
                 <Button
-                  variant="outline"
                   disabled={Boolean(props.disabled || props.confirmLoading || props.resetLoading)}
                   onClick={() => void props.onReset?.()}
+                  type="default"
+                  loading={Boolean(props.resetLoading)}
+                  autoInsertSpace={false}
                 >
-                  {props.resetLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
                   {props.resetText}
                 </Button>
               ) : null}

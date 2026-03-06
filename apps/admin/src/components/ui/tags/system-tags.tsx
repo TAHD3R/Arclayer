@@ -13,7 +13,7 @@ export function SysRevisionActiveTag(props: SharedProps) {
     <BaseTag
       icon={lucideTagIcon(Star)}
       className={props.className}
-      classNames={{ root: "!rounded-full !bg-primary/10 !text-primary !text-[11px]" }}
+      classNames={{ root: "!rounded-full !bg-primary/10 !text-primary" }}
     >
       {props.label}
     </BaseTag>

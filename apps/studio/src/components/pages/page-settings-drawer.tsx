@@ -192,7 +192,7 @@ export function PageSettingsDrawer(props: PageSettingsDrawerProps) {
                   }))}
                 />
               </div>
-              <Typography.Text type="secondary" className="text-xs">
+              <Typography.Text type="secondary" className="text-caption">
                 {t("editor:EDITOR_PAGE_SETTINGS_SEO_HINT")}
               </Typography.Text>
             </div>
@@ -207,7 +207,7 @@ export function PageSettingsDrawer(props: PageSettingsDrawerProps) {
                 <div className="mt-2">
                   <Input {...field} status={fieldState.error ? "error" : ""} />
                   {fieldState.error ? (
-                    <Typography.Text type="danger" className="mt-1 block text-xs">
+                    <Typography.Text type="danger" className="mt-1 block text-caption">
                       {fieldState.error.message === "PATH_REQUIRED"
                         ? t("editor:EDITOR_PAGES_FORM_PATH_REQUIRED")
                         : t("editor:EDITOR_PAGE_SETTINGS_PATH_INVALID")}

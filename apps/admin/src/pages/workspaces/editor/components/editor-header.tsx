@@ -37,6 +37,7 @@ import {
   MenubarSeparator,
   MenubarShortcut,
 } from "@celestial/ui/menubar";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { AdminLogo } from "@/components/layout/admin-logo";
 import type { AppLocale } from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -90,9 +91,11 @@ function EditorUserMenuContent() {
     <div className="w-52">
       <div className="p-1">
         {/* Language */}
-        <button
+        <ButtonPrimitive
           type="button"
           className={menuItemClass}
+          hoverScale={1}
+          tapScale={1}
           onClick={() => {
             setShowLangSub(!showLangSub);
             setShowThemeSub(false);
@@ -101,14 +104,16 @@ function EditorUserMenuContent() {
           <Languages className="size-4 shrink-0" />
           <span className="flex-1 text-left">{t("content_pages:EDITOR_USER_MENU_LANGUAGE")}</span>
           <ChevronRight className="size-3.5 text-label-secondary" />
-        </button>
+        </ButtonPrimitive>
         {showLangSub && (
           <div className="py-0.5 pl-6">
             {(["zh-CN", "en-US"] as const).map((loc) => (
-              <button
+              <ButtonPrimitive
                 key={loc}
                 type="button"
                 className={menuItemClass}
+                hoverScale={1}
+                tapScale={1}
                 onClick={() => setLocale(loc as AppLocale)}
               >
                 <span className="flex-1 text-left">
@@ -117,15 +122,17 @@ function EditorUserMenuContent() {
                     : t("account:ACCOUNT_LANGUAGE_EN")}
                 </span>
                 {locale === loc && <Check className="size-3.5 text-primary" />}
-              </button>
+              </ButtonPrimitive>
             ))}
           </div>
         )}
 
         {/* Theme */}
-        <button
+        <ButtonPrimitive
           type="button"
           className={menuItemClass}
+          hoverScale={1}
+          tapScale={1}
           onClick={() => {
             setShowThemeSub(!showThemeSub);
             setShowLangSub(false);
@@ -134,14 +141,16 @@ function EditorUserMenuContent() {
           <Palette className="size-4 shrink-0" />
           <span className="flex-1 text-left">{t("content_pages:EDITOR_USER_MENU_THEME")}</span>
           <ChevronRight className="size-3.5 text-label-secondary" />
-        </button>
+        </ButtonPrimitive>
         {showThemeSub && (
           <div className="py-0.5 pl-6">
             {(["light", "dark", "system"] as const).map((m) => (
-              <button
+              <ButtonPrimitive
                 key={m}
                 type="button"
                 className={menuItemClass}
+                hoverScale={1}
+                tapScale={1}
                 onClick={() => {
                   if (m === "system") {
                     void setThemePreferenceWithTransition("system", { direction: "ltr" });
@@ -154,7 +163,7 @@ function EditorUserMenuContent() {
                   {t(`content_pages:EDITOR_USER_MENU_THEME_${m.toUpperCase()}` as const)}
                 </span>
                 {themePreference === m && <Check className="size-3.5 text-primary" />}
-              </button>
+              </ButtonPrimitive>
             ))}
           </div>
         )}
@@ -163,16 +172,18 @@ function EditorUserMenuContent() {
       <div className="mx-2 my-1 h-px bg-border" />
 
       <div className="p-1">
-        <button
+        <ButtonPrimitive
           type="button"
           className={menuItemClass}
+          hoverScale={1}
+          tapScale={1}
           onClick={() => {
             window.location.href = `/w/${workspaceId}`;
           }}
         >
           <LogOut className="size-4 shrink-0" />
           <span className="flex-1 text-left">{t("content_pages:EDITOR_USER_MENU_EXIT")}</span>
-        </button>
+        </ButtonPrimitive>
       </div>
     </div>
   );

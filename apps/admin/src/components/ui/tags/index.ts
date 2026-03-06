@@ -8,5 +8,6 @@ export * from "./input-tags";
 export * from "./invitation-tags";
 export * from "./org-tags";
 export * from "./profile-tags";
+export * from "./security-tags";
 export * from "./system-tags";
 export * from "./team-member-tags";

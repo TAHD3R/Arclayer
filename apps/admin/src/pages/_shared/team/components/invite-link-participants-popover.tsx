@@ -10,6 +10,7 @@ import { LoaderOne } from "@celestial/ui/loader";
 import { notifyError } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { UsesCountTag } from "@/components/ui/tags";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 import { UserLabel } from "./user-label";
 
@@ -160,8 +161,10 @@ export function InviteLinkParticipantsPopover(props: {
       content={content}
       placement="bottomLeft"
     >
-      <button
+      <ButtonPrimitive
         type="button"
+        hoverScale={1}
+        tapScale={1}
         className="flex w-full items-center gap-2 min-w-0 text-left hover:opacity-90"
         aria-label={t("team:TEAM_INVITE_LINKS_ACTION_VIEW_PARTICIPANTS")}
       >
@@ -169,7 +172,7 @@ export function InviteLinkParticipantsPopover(props: {
         <div className="min-w-0 flex-1">
           <UserLabel user={props.primaryUser} />
         </div>
-      </button>
+      </ButtonPrimitive>
     </Popover>
   );
 }

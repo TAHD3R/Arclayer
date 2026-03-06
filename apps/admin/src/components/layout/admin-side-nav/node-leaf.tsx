@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -61,8 +62,10 @@ function NodeLeafSub({
             item.disabled ? DISABLED_ITEM_CLASSNAME : null,
           )}
         >
-          <button
+          <ButtonPrimitive
             type="button"
+            hoverScale={1}
+            tapScale={1}
             aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
             onClick={() => {
               openChainForKey(item.key);
@@ -72,7 +75,7 @@ function NodeLeafSub({
             className="flex w-full items-center justify-start text-left"
           >
             <span className="min-w-0 flex-1 truncate">{label}</span>
-          </button>
+          </ButtonPrimitive>
         </SidebarMenuSubButton>
       </WithBlockedTooltip>
     </SidebarMenuSubItem>

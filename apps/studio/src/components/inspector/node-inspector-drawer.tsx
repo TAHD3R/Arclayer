@@ -121,7 +121,7 @@ export function NodeInspectorPanel(props: {
         ) : (
           <Space direction="vertical" size={14} className="w-full">
             <div>
-              <Typography.Text type="secondary" className="text-xs">
+              <Typography.Text type="secondary" className="text-caption">
                 {t("editor:EDITOR_NODE_INSPECTOR_NODE_ID")}
               </Typography.Text>
               <div className="mt-1">
@@ -790,7 +790,7 @@ function PrefabInstanceInspector(props: {
   return (
     <Space direction="vertical" size={10} className="w-full">
       <Typography.Text strong>{t("editor:EDITOR_NODE_FIELD_PREFAB_PROPS")}</Typography.Text>
-      <Typography.Text type="secondary" className="text-xs">
+      <Typography.Text type="secondary" className="text-caption">
         {t("editor:EDITOR_NODE_FIELD_PREFAB_PROPS_HINT", { prefabId: props.node.prefabId })}
       </Typography.Text>
 
@@ -919,13 +919,13 @@ function ContentRefNodeInspector(props: {
               />
             ))
           ) : (
-            <Typography.Text type="secondary" className="text-xs">
+            <Typography.Text type="secondary" className="text-caption">
               {t("editor:EDITOR_NODE_FIELD_CONTENT_REF_PROPS_EMPTY")}
             </Typography.Text>
           )}
 
           <div className="rounded-md border border-border p-3">
-            <Typography.Text type="secondary" className="text-xs">
+            <Typography.Text type="secondary" className="text-caption">
               {t("editor:EDITOR_NODE_FIELD_CONTENT_REF_PROPS_ADD")}
             </Typography.Text>
             <div className="mt-2 flex items-center gap-2">
@@ -943,7 +943,7 @@ function ContentRefNodeInspector(props: {
               </Button>
             </div>
             {newKeyError ? (
-              <Typography.Text type="danger" className="mt-1 block text-xs">
+              <Typography.Text type="danger" className="mt-1 block text-caption">
                 {newKeyError === "KEY_REQUIRED"
                   ? t("editor:EDITOR_NODE_FIELD_CONTENT_REF_PROPS_KEY_REQUIRED")
                   : t("editor:EDITOR_NODE_FIELD_CONTENT_REF_PROPS_KEY_DUPLICATE")}
@@ -1339,7 +1339,7 @@ function JsonValueEditor(props: {
         }}
       />
       {error ? (
-        <Typography.Text type="danger" className="mt-1 block text-xs">
+        <Typography.Text type="danger" className="mt-1 block text-caption">
           {error}
         </Typography.Text>
       ) : null}

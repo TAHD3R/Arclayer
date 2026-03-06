@@ -218,7 +218,7 @@ export function DesignBindingExprField(props: {
               onChange={(v) => setPath(String(v))}
             />
             <div className="mt-1 flex items-center justify-between">
-              <Typography.Text type="secondary" className="text-xs">
+              <Typography.Text type="secondary" className="text-caption">
                 {t("editor:EDITOR_BINDING_PATH_SELECT_HINT")}
               </Typography.Text>
               <Button size="small" type="link" onClick={() => setManualPathMode(true)}>
@@ -246,11 +246,11 @@ export function DesignBindingExprField(props: {
           </div>
         )}
         {pathError ? (
-          <Typography.Text type="danger" className="mt-1 block text-xs">
+          <Typography.Text type="danger" className="mt-1 block text-caption">
             {pathError}
           </Typography.Text>
         ) : (
-          <Typography.Text type="secondary" className="mt-1 block text-xs">
+          <Typography.Text type="secondary" className="mt-1 block text-caption">
             {t("editor:EDITOR_BINDING_EXAMPLE", { example })}
           </Typography.Text>
         )}

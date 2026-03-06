@@ -107,7 +107,7 @@ export function MePreferencesAppearanceSection() {
             ) : null}
 
             <div className="flex items-center gap-3">
-              <div className="shrink-0 select-none text-[24px] leading-none text-label-secondary">
+              <div className="shrink-0 select-none text-title2 leading-none text-label-secondary">
                 Aa
               </div>
               <Slider
@@ -122,7 +122,7 @@ export function MePreferencesAppearanceSection() {
                 }}
                 onChange={(v) => setFontScalePreference(typeof v === "number" ? v : Number(v))}
               />
-              <div className="shrink-0 select-none text-[36px] leading-none text-label-secondary">
+              <div className="shrink-0 select-none text-largetitle leading-none text-label-secondary">
                 Aa
               </div>
             </div>
@@ -160,7 +160,7 @@ export function MePreferencesAppearanceSection() {
             ) : null}
 
             <div className="flex items-center gap-3">
-              <div className="shrink-0 select-none text-[24px] font-light leading-none text-label-secondary">
+              <div className="shrink-0 select-none text-title2 font-light leading-none text-label-secondary">
                 Aa
               </div>
               <Slider
@@ -175,7 +175,7 @@ export function MePreferencesAppearanceSection() {
                 }}
                 onChange={(v) => setFontWeightPreference(typeof v === "number" ? v : Number(v))}
               />
-              <div className="shrink-0 select-none text-[36px] font-bold leading-none text-label-secondary">
+              <div className="shrink-0 select-none text-largetitle font-bold leading-none text-label-secondary">
                 Aa
               </div>
             </div>
@@ -186,7 +186,7 @@ export function MePreferencesAppearanceSection() {
       <SettingCard>
         <div className="flex items-center justify-between px-6 py-5 sm:px-6">
           <div>
-            <div className="text-[15px] font-semibold text-label-primary">
+            <div className="text-callout font-semibold text-label-primary">
               {t("ME_PREF_CONTRAST_TITLE")}
             </div>
             <div className="mt-1 text-callout text-label-secondary">
@@ -203,7 +203,7 @@ export function MePreferencesAppearanceSection() {
       <SettingCard>
         <div className="flex items-center justify-between px-6 py-5 sm:px-6">
           <div>
-            <div className="text-[15px] font-semibold text-label-primary">
+            <div className="text-callout font-semibold text-label-primary">
               {t("ME_PREF_NOTIFICATIONS_PANEL_PIN_TITLE")}
             </div>
             <div className="mt-1 text-callout text-label-secondary">
@@ -220,7 +220,7 @@ export function MePreferencesAppearanceSection() {
       <SettingCard>
         <div className="flex items-center justify-between px-6 py-5 sm:px-6">
           <div>
-            <div className="text-[15px] font-semibold text-label-primary">
+            <div className="text-callout font-semibold text-label-primary">
               {t("ME_PREF_NAV_BADGE_TITLE")}
             </div>
             <div className="mt-1 text-callout text-label-secondary">
@@ -237,7 +237,7 @@ export function MePreferencesAppearanceSection() {
       <SettingCard>
         <div className="flex items-center justify-between px-6 py-5 sm:px-6">
           <div>
-            <div className="text-[15px] font-semibold text-label-primary">
+            <div className="text-callout font-semibold text-label-primary">
               {t("ME_PREF_MOTION_REDUCE_TITLE")}
             </div>
             <div className="mt-1 text-callout text-label-secondary">

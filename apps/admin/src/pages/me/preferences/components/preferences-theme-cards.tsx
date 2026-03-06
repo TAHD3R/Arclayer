@@ -1,6 +1,7 @@
 import { cn } from "@celestial/lib/utils";
 import type { ThemePreference } from "@/types/stores";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 function AdminLayoutMockupContent({ isDark }: { isDark: boolean }) {
   const bg = isDark ? "hsl(220 10% 8%)" : "hsl(210 30% 98%)";
@@ -120,8 +121,10 @@ export function ThemeCard(props: {
   const Icon = props.value === "system" ? Monitor : props.value === "dark" ? Moon : Sun;
 
   return (
-    <button
+    <ButtonPrimitive
       type="button"
+      hoverScale={1}
+      tapScale={1}
       onClick={props.onSelect}
       className={cn(
         "w-full overflow-hidden rounded-xl border text-left",
@@ -160,6 +163,6 @@ export function ThemeCard(props: {
           <span className="truncate">{props.label}</span>
         </div>
       </div>
-    </button>
+    </ButtonPrimitive>
   );
 }

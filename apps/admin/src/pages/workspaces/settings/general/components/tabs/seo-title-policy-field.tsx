@@ -123,7 +123,7 @@ function TitlePolicyPartRow(props: {
     >
       <div
         ref={draggable.setNodeRef}
-        className="cursor-grab select-none text-muted-foreground"
+        className="cursor-grab select-none text-label-secondary"
         {...draggable.listeners}
         {...draggable.attributes}
         aria-label={t("settings:SETTINGS_SEO_TITLE_FORMAT_DRAG_HANDLE")}
@@ -220,7 +220,7 @@ export function SeoTitlePolicyField(props: {
         </Typography.Text>
         <div className="mt-2">
           <Typography.Text strong>{titlePreview || "-"}</Typography.Text>
-          <div className="mt-1 text-xs text-muted-foreground">
+          <div className="mt-1 text-caption text-label-secondary">
             {t("settings:SETTINGS_SEO_TITLE_FORMAT_SEARCH_PREVIEW_HINT")}
           </div>
         </div>

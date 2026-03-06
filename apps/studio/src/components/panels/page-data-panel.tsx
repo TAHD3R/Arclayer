@@ -100,7 +100,7 @@ export function PageDataPanel(props: {
           allowClear
         />
         {!primaryEntryTypeHint ? (
-          <Typography.Text type="secondary" className="mt-1 block text-xs">
+          <Typography.Text type="secondary" className="mt-1 block text-caption">
             {t("editor:EDITOR_DATA_PRIMARY_TYPE_HELP")}
           </Typography.Text>
         ) : null}
@@ -124,7 +124,7 @@ export function PageDataPanel(props: {
           onChange={(v) => applyPatch({ primaryEntryId: v ? String(v) : null })}
           allowClear
         />
-        <Typography.Text type="secondary" className="mt-1 block text-xs">
+        <Typography.Text type="secondary" className="mt-1 block text-caption">
           {t("editor:EDITOR_DATA_PRIMARY_ENTRY_HELP")}
         </Typography.Text>
       </div>

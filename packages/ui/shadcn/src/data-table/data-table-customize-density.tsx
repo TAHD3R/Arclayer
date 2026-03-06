@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 import type { DataTableDensity } from "./types";
 
@@ -51,7 +52,7 @@ export function DataTableDensityOptionButton(props: {
   density: DataTableDensity;
 }) {
   return (
-    <button
+    <ButtonPrimitive
       type="button"
       className={cn(
         "group w-full rounded-lg border px-3 py-2 text-left transition-colors",
@@ -59,10 +60,12 @@ export function DataTableDensityOptionButton(props: {
         props.active ? "bg-accent" : "border-border hover:bg-accent/25",
       )}
       onClick={props.onClick}
+      hoverScale={1}
+      tapScale={1}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="text-callout">{props.label}</div>
       </div>
-    </button>
+    </ButtonPrimitive>
   );
 }

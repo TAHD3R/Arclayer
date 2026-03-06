@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 
 import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { cn } from "@celestial/lib/utils";
 
 type Description = ReactNode | string | string[] | undefined | null;
@@ -123,12 +124,14 @@ export function SettingActionItem(props: SettingActionItemProps) {
   }
 
   return (
-    <button
+    <ButtonPrimitive
       type="button"
       disabled={props.disabled}
       onClick={() => props.onTrigger?.()}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      hoverScale={1}
+      tapScale={1}
       className={cn(
         "w-full text-left",
         "transition-colors",
@@ -141,6 +144,6 @@ export function SettingActionItem(props: SettingActionItemProps) {
       )}
     >
       {inner}
-    </button>
+    </ButtonPrimitive>
   );
 }

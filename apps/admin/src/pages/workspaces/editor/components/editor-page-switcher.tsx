@@ -20,6 +20,7 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { cn } from "@celestial/lib/utils";
 import { getTreeIndentClass } from "@/pages/workspaces/editor/constants/tree-indent";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 const listContainerVariants: Variants = {
   hidden: {},
@@ -84,9 +85,11 @@ function PageTreeNodeRow(props: {
         )}
       >
         {hasChildren ? (
-          <button
+          <ButtonPrimitive
             type="button"
             aria-label="Toggle"
+            hoverScale={1}
+            tapScale={1}
             className="flex size-6 items-center justify-center rounded hover:bg-muted/70"
             onClick={(e) => {
               e.preventDefault();
@@ -100,21 +103,23 @@ function PageTreeNodeRow(props: {
                 isCollapsed ? null : "rotate-90",
               )}
             />
-          </button>
+          </ButtonPrimitive>
         ) : (
           <span className="flex size-6 items-center justify-center">
             <FileText className="size-3 shrink-0 text-label-secondary" />
           </span>
         )}
 
-        <button
+        <ButtonPrimitive
           type="button"
           className="min-w-0 flex-1 truncate text-left"
+          hoverScale={1}
+          tapScale={1}
           onClick={() => onNavigate(node.id, node.path)}
           title={node.path}
         >
           {node.title || node.path}
-        </button>
+        </ButtonPrimitive>
       </div>
 
       {hasChildren && !isCollapsed

@@ -120,7 +120,7 @@ export function BlocksPanel(props: {
             <Space direction="vertical" size={2}>
               <Typography.Text strong>{item.label}</Typography.Text>
               <Space size={6} wrap>
-                <Typography.Text type="secondary" className="text-xs">
+                <Typography.Text type="secondary" className="text-caption">
                   {item.prefabId}
                 </Typography.Text>
                 <Tag>{item.category}</Tag>

@@ -1,8 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Avatar } from "antd";
+import { Avatar, Button } from "antd";
 import { Copy, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
-import { Button } from "@celestial/ui/button";
 import { Checkbox } from "@celestial/ui/checkbox";
 import {
   DropdownMenu,
@@ -56,13 +55,14 @@ function RowActionsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
           className="h-7 w-7 p-0 self-center"
           disabled={processing}
           aria-label={options.t("content_pages:INDEX_ACTION_MORE")}
-        >
-          <MoreVertical className="size-4" />
-        </Button>
+          type="text"
+          size="small"
+          autoInsertSpace={false}
+          icon={<MoreVertical className="size-4" aria-hidden="true" />}
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuIconItem

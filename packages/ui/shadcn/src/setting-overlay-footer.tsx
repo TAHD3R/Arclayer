@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { LoaderCircle } from "lucide-react";
 
-import { Button } from "./button";
+import { Button } from "antd";
 
 type AsyncAction = () => void | Promise<void>;
 
@@ -76,30 +75,33 @@ export function SettingOverlayFooter({
   return (
     <div className="flex w-full items-center justify-end gap-2">
       <Button
-        variant="ghost"
+        type="text"
         onClick={close}
         disabled={Boolean(disabled || saveLoading || resetLoading)}
+        autoInsertSpace={false}
       >
         {backText}
       </Button>
 
       {shouldShowReset ? (
         <Button
-          variant="outline"
+          type="default"
           disabled={Boolean(disabled || resetLoading || saveLoading)}
           onClick={() => void handleReset()}
+          loading={Boolean(resetLoading)}
+          autoInsertSpace={false}
         >
-          {resetLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
           {resetText}
         </Button>
       ) : null}
 
       <Button
-        variant="default"
         disabled={Boolean(disabled || saveLoading || resetLoading)}
         onClick={() => void handleSave()}
+        type="primary"
+        loading={Boolean(saveLoading)}
+        autoInsertSpace={false}
       >
-        {saveLoading ? <LoaderCircle className="size-4 animate-spin" /> : null}
         {saveText}
       </Button>
     </div>

@@ -8,6 +8,7 @@ import {
 } from "@/pages/workspaces/editor/stores/editor-store";
 import { EDITOR_MENU_TITLE_KEYS } from "@/pages/workspaces/editor/constants/menus";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 type MenuEntry = {
   id: ActivityBarMenuId;
@@ -51,10 +52,12 @@ function BarButton({
 
   return (
     <Tooltip title={label} placement="right">
-      <button
+      <ButtonPrimitive
         type="button"
+        hoverScale={1.05}
+        tapScale={0.95}
         className={cn(
-          "flex size-10 items-center justify-center rounded-md transition-all hover:scale-105",
+          "flex size-10 items-center justify-center rounded-md transition-all",
           isActive
             ? "bg-accent text-accent-foreground"
             : "text-label-secondary hover:bg-muted hover:text-foreground",
@@ -63,7 +66,7 @@ function BarButton({
         aria-label={label}
       >
         <Icon className="size-5" />
-      </button>
+      </ButtonPrimitive>
     </Tooltip>
   );
 }

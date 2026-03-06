@@ -1,6 +1,7 @@
 import { Collapsible, CollapsibleContent } from "@celestial/ui/collapsible";
 import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -229,7 +230,13 @@ export function NodeExpandedGroupSub({
             aria-disabled={item.disabled ? "true" : undefined}
             className={buttonClassName}
           >
-            <button type="button" onClick={onToggle} className="w-full justify-start text-left">
+            <ButtonPrimitive
+              type="button"
+              hoverScale={1}
+              tapScale={1}
+              onClick={onToggle}
+              className="w-full justify-start text-left"
+            >
               <span className="min-w-0 flex-1 truncate">{label}</span>
               <ChevronRightIcon
                 size={16}
@@ -237,7 +244,7 @@ export function NodeExpandedGroupSub({
                 className="ml-auto shrink-0 text-label-secondary"
                 aria-hidden="true"
               />
-            </button>
+            </ButtonPrimitive>
           </SidebarMenuSubButton>
         </WithBlockedTooltip>
         <GroupChildren>{children}</GroupChildren>

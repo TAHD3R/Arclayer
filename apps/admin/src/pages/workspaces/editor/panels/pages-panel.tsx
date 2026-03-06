@@ -8,6 +8,7 @@ import type { SitePageTreeNode } from "@/types/api";
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { getTreeIndentClass } from "@/pages/workspaces/editor/constants/tree-indent";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 function PageNode({
   node,
@@ -20,8 +21,10 @@ function PageNode({
 }) {
   return (
     <>
-      <button
+      <ButtonPrimitive
         type="button"
+        hoverScale={1}
+        tapScale={1}
         className={cn(
           "flex w-full items-center gap-1.5 rounded py-1 pr-2 text-left text-caption hover:bg-muted",
           getTreeIndentClass(depth),
@@ -34,7 +37,7 @@ function PageNode({
           <FileText className="size-3 shrink-0 text-label-secondary" />
         )}
         <span className="truncate">{node.title || node.path}</span>
-      </button>
+      </ButtonPrimitive>
       {node.children.map((child) => (
         <PageNode key={child.id} node={child} depth={depth + 1} onNavigate={onNavigate} />
       ))}

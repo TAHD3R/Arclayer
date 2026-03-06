@@ -19,6 +19,7 @@ import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/edito
 import { useEditorConfig } from "@/pages/workspaces/editor/contexts/editor-config-context";
 import { useEditorStore } from "@/pages/workspaces/editor/stores/editor-store";
 import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -249,8 +250,10 @@ export function BlocksPanel() {
               return (
                 <ContextMenu key={p.id}>
                   <ContextMenuTrigger asChild>
-                    <button
+                    <ButtonPrimitive
                       type="button"
+                      hoverScale={1}
+                      tapScale={1}
                       className={cn(
                         "w-full rounded-md border border-border/60 bg-card px-3 py-2 text-left",
                         "hover:bg-muted",
@@ -282,7 +285,7 @@ export function BlocksPanel() {
                           <div className="truncate text-caption text-label-secondary">{p.code}</div>
                         </div>
                       </div>
-                    </button>
+                    </ButtonPrimitive>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
                     <ContextMenuItem

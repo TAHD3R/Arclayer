@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { cn } from "@celestial/lib/utils";
 import { SidebarMenu, SidebarMenuItem } from "./sidebar-menu";
 
@@ -115,7 +116,7 @@ export function MiniCategoryNav({
 
           return (
             <SidebarMenuItem key={item.key}>
-              <button
+              <ButtonPrimitive
                 type="button"
                 onClick={() => {
                   if (isDisabled) return;
@@ -125,6 +126,8 @@ export function MiniCategoryNav({
                 aria-disabled={isDisabled ? "true" : undefined}
                 disabled={isDisabled}
                 data-active={isActive ? "true" : "false"}
+                hoverScale={1}
+                tapScale={1}
                 className={cn(
                   "relative flex w-full min-w-0 items-center justify-start gap-2 rounded-lg",
                   itemHeightClassName,
@@ -151,7 +154,7 @@ export function MiniCategoryNav({
                   </span>
                 ) : null}
                 <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-              </button>
+              </ButtonPrimitive>
             </SidebarMenuItem>
           );
         })}

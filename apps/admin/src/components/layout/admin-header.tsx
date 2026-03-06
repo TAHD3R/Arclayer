@@ -14,6 +14,7 @@ import {
   DropdownMenuIconItem,
   DropdownMenuTrigger,
 } from "@celestial/ui/dropdown-menu";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 type BreadcrumbMenuItem = {
   key: string;
@@ -162,9 +163,11 @@ export function AdminHeader(props: {
       )}
     >
       {props.onRefresh != null ? (
-        <button
+        <ButtonPrimitive
           type="button"
           aria-label={t("common:REFRESH")}
+          hoverScale={1}
+          tapScale={1}
           onMouseEnter={() => setRefreshHovered(true)}
           onMouseLeave={() => setRefreshHovered(false)}
           onClick={props.onRefresh}
@@ -177,7 +180,7 @@ export function AdminHeader(props: {
           )}
         >
           <RefreshIcon size={16} isHovered={refreshHovered} className="text-current" />
-        </button>
+        </ButtonPrimitive>
       ) : null}
 
       <nav
@@ -202,8 +205,10 @@ export function AdminHeader(props: {
                       {hasChildren && menuItems?.length ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button
+                            <ButtonPrimitive
                               type="button"
+                              hoverScale={1}
+                              tapScale={1}
                               className={cn(breadcrumbTriggerClassName, "min-w-0")}
                             >
                               <span className="min-w-0 flex-1">{content}</span>
@@ -211,7 +216,7 @@ export function AdminHeader(props: {
                                 className="size-3 shrink-0 opacity-60"
                                 aria-hidden="true"
                               />
-                            </button>
+                            </ButtonPrimitive>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
                             {menuItems.map((it) => (
@@ -228,13 +233,15 @@ export function AdminHeader(props: {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : !isLast && node.to ? (
-                        <button
+                        <ButtonPrimitive
                           type="button"
+                          hoverScale={1}
+                          tapScale={1}
                           className={cn(breadcrumbTriggerClassName, "min-w-0")}
                           onClick={() => void navigate({ to: node.to as never })}
                         >
                           {content}
-                        </button>
+                        </ButtonPrimitive>
                       ) : (
                         <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-foreground font-medium">
                           {content}
