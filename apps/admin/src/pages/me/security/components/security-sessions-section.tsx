@@ -1,163 +1,181 @@
-import { Button, Input } from "antd";
-import type { ColumnDef } from "@tanstack/react-table";
-import { Search } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useRef, useState, type MutableRefObject } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { Button } from "antd";
 import { useTranslation } from "react-i18next";
 
-import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import * as authApi from "@/api/auth";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import type { AuthSessionRow } from "@/types/api";
 import {
-  DataTablePresenter,
-  DataTableToolbarTools,
   useDataTable,
   useDataTableDensityPreference,
+  type PageData,
 } from "@celestial/ui/data-table";
-import type { PageData } from "@celestial/ui/data-table";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 
-type SessionRow = {
-  id: string;
-  device: string;
-  ip: string;
-  location: string;
-  signedInAt: string;
-  lastActiveAt: string;
-};
+import {
+  buildSessionColumns,
+  SecuritySessionsTableContent,
+  type SessionRow,
+} from "./security-sessions-table-view";
 
-async function fetchSessions(params: {
+type SessionFetchParams = {
   page: number;
   size: number;
   q?: string;
   ordering?: string;
-}): Promise<PageData<SessionRow>> {
-  // TODO: Backend endpoint not available yet.
-  // Keep the data-table structure ready so we can plug in API later.
+};
+
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
+function mapSessionRow(session: AuthSessionRow): SessionRow {
   return {
-    items: [],
-    total: 0,
-    page: params.page,
+    sessionId: session.sessionId,
+    current: Boolean(session.current),
+    revocable: Boolean(session.revocable),
+    device: session.deviceLabel || session.userAgent || "-",
+    ip: session.ipAddress || "-",
+    location: session.locationLabel || "-",
+    authMethod: session.authMethod || "unknown",
+    signedInAt: session.issuedAt,
+    lastActiveAt: session.lastUsedAt || "",
+  };
+}
+
+function filterRows(items: SessionRow[], query: string | undefined): SessionRow[] {
+  const normalized = String(query || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return items;
+  return items.filter((item) =>
+    [item.device, item.location, item.ip, item.authMethod].some((value) =>
+      value.toLowerCase().includes(normalized),
+    ),
+  );
+}
+
+function sortRows(items: SessionRow[], ordering: string | undefined): SessionRow[] {
+  const normalizedOrdering = String(ordering || "").trim();
+  if (!normalizedOrdering) return items;
+  const desc = normalizedOrdering.startsWith("-");
+  const key = (desc ? normalizedOrdering.slice(1) : normalizedOrdering) as keyof SessionRow;
+  return [...items].sort((left, right) => {
+    const result = String(left[key] || "").localeCompare(String(right[key] || ""));
+    return desc ? -result : result;
+  });
+}
+
+function paginateRows(items: SessionRow[], params: SessionFetchParams): PageData<SessionRow> {
+  const total = items.length;
+  const pages = total === 0 ? 0 : Math.ceil(total / params.size);
+  const page = Math.min(Math.max(params.page, 1), Math.max(pages, 1));
+  const start = (page - 1) * params.size;
+  return {
+    items: items.slice(start, start + params.size),
+    total,
+    page,
     size: params.size,
-    pages: 0,
-    next: null,
-    prev: null,
+    pages,
+    next: page < pages ? page + 1 : null,
+    prev: page > 1 ? page - 1 : null,
+  };
+}
+
+function buildSessionsPage(
+  items: AuthSessionRow[],
+  params: SessionFetchParams,
+): PageData<SessionRow> {
+  return paginateRows(
+    sortRows(filterRows(items.map(mapSessionRow), params.q), params.ordering),
+    params,
+  );
+}
+
+function useSessionRevocationMutations(
+  t: TranslateFn,
+  refreshRef: MutableRefObject<() => Promise<unknown> | void>,
+) {
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const revokeSessionMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      setRevokingSessionId(sessionId);
+      return authApi.revokeMySession(sessionId);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("account:ME_SECURITY_SESSIONS_KICK_SUCCESS"));
+      await refreshRef.current();
+    },
+    onError: (error) => notifyError(error),
+    onSettled: () => setRevokingSessionId(null),
+  });
+  const revokeOthersMutation = useMutation({
+    mutationFn: async () => authApi.revokeOtherSessions(),
+    onSuccess: async (result) => {
+      const revokedCount = result.revokedCount ?? result.revoked_count ?? 0;
+      notifySuccessText(
+        t("account:ME_SECURITY_SESSIONS_KICK_ALL_SUCCESS", { count: revokedCount }),
+      );
+      await refreshRef.current();
+    },
+    onError: (error) => notifyError(error),
+  });
+  return { revokingSessionId, revokeSessionMutation, revokeOthersMutation };
+}
+
+function SessionsAction(props: { loading: boolean; onClick: () => void; label: string }) {
+  return (
+    <Button
+      danger
+      type="primary"
+      loading={props.loading}
+      onClick={props.onClick}
+      autoInsertSpace={false}
+    >
+      {props.label}
+    </Button>
+  );
+}
+
+function useSessionsTableController(t: TranslateFn) {
+  const refreshRef = useRef<() => Promise<unknown> | void>(() => undefined);
+  const dateTime = useAdminDateTimeFormatter();
+  const { revokingSessionId, revokeSessionMutation, revokeOthersMutation } =
+    useSessionRevocationMutations(t, refreshRef);
+  const columns = useMemo(
+    () =>
+      buildSessionColumns({
+        t,
+        formatDateTime: dateTime.formatDateTime,
+        isRevoking: revokeSessionMutation.isPending,
+        revokingSessionId,
+        onRevoke: revokeSessionMutation.mutate,
+      }),
+    [dateTime.formatDateTime, revokeSessionMutation.isPending, revokingSessionId, t],
+  );
+  const table = useDataTable<SessionRow>({
+    tableId: "me:sessions",
+    columns,
+    fetcher: async (params) => buildSessionsPage((await authApi.listMySessions()).items, params),
+    initialState: { pageSize: 10, sorting: [{ id: "lastActiveAt", desc: true }] },
+    features: { sorting: { enabled: true, mode: "client" } },
+    queryOptions: { retry: false, staleTime: 10 * 1000 },
+  });
+  refreshRef.current = () => table.refetch();
+  const [density, setDensity] = useDataTableDensityPreference({ tableId: "me:sessions" });
+  return {
+    table,
+    density,
+    setDensity,
+    toolsLabels: buildDataTableToolsLabels(t),
+    revokeOthersMutation,
   };
 }
 
 export function MeSecuritySessionsSection() {
   const { t } = useTranslation(["account", "common", "settings"]);
-
-  const columns = useMemo(() => {
-    const cols: ColumnDef<SessionRow, any>[] = [
-      {
-        accessorKey: "device",
-        header: t("account:ME_SECURITY_SESSIONS_COL_DEVICE"),
-        meta: {
-          title: t("account:ME_SECURITY_SESSIONS_COL_DEVICE"),
-          sortKey: "device",
-        },
-        cell: (ctx) => <div className="truncate">{String(ctx.getValue() ?? "")}</div>,
-        size: 220,
-      },
-      {
-        accessorKey: "location",
-        header: t("account:ME_SECURITY_SESSIONS_COL_LOCATION"),
-        meta: {
-          title: t("account:ME_SECURITY_SESSIONS_COL_LOCATION"),
-          sortKey: "location",
-          defaultHidden: true,
-        },
-        cell: (ctx) => <div className="truncate">{String(ctx.getValue() ?? "")}</div>,
-        size: 220,
-      },
-      {
-        accessorKey: "ip",
-        header: t("account:ME_SECURITY_SESSIONS_COL_IP"),
-        meta: {
-          title: t("account:ME_SECURITY_SESSIONS_COL_IP"),
-          sortKey: "ip",
-          defaultHidden: true,
-        },
-        cell: (ctx) => (
-          <div className="font-mono text-footnote">{String(ctx.getValue() ?? "")}</div>
-        ),
-        size: 160,
-      },
-      {
-        accessorKey: "signedInAt",
-        header: t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
-        meta: {
-          title: t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
-          sortKey: "signedInAt",
-        },
-        cell: (ctx) => <div className="truncate">{String(ctx.getValue() ?? "")}</div>,
-        size: 200,
-      },
-      {
-        accessorKey: "lastActiveAt",
-        header: t("account:ME_SECURITY_SESSIONS_COL_LAST_ACTIVE"),
-        meta: {
-          title: t("account:ME_SECURITY_SESSIONS_COL_LAST_ACTIVE"),
-          sortKey: "lastActiveAt",
-        },
-        cell: (ctx) => <div className="truncate">{String(ctx.getValue() ?? "")}</div>,
-        size: 200,
-      },
-      {
-        id: "actions",
-        header: t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
-        meta: {
-          title: t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
-          kind: "actions",
-        },
-        cell: () => (
-          <Button disabled type="link" className="px-0!" autoInsertSpace={false}>
-            {t("account:ME_SECURITY_SESSIONS_KICK")}
-          </Button>
-        ),
-        size: 120,
-      },
-    ];
-    return cols as ColumnDef<SessionRow, unknown>[];
-  }, [t]);
-
-  const table = useDataTable<SessionRow>({
-    tableId: "me:sessions",
-    columns,
-    fetcher: fetchSessions,
-    initialState: {
-      pageSize: 10,
-      sorting: [{ id: "lastActiveAt", desc: true }],
-    },
-    features: { sorting: { enabled: true, mode: "client" } },
-    queryOptions: { retry: false, staleTime: 10 * 1000, meta: { silent: true } },
-  });
-  const [density, setDensity] = useDataTableDensityPreference({ tableId: "me:sessions" });
-  const toolsLabels = useMemo(() => buildDataTableToolsLabels(t), [t]);
-  const toolbarLeft = (
-    <div className="flex min-w-0 flex-1 items-center gap-2">
-      <Input
-        value={table.searchInput}
-        onChange={(event) => table.setSearchInput(event.target.value)}
-        placeholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
-        allowClear
-        variant="filled"
-        prefix={<Search className="size-4 text-label-secondary" />}
-        className="max-w-[320px]"
-      />
-    </div>
-  );
-  const toolbarRight = (
-    <DataTableToolbarTools
-      table={table.table}
-      density={density}
-      onDensityChange={setDensity}
-      onRefresh={() => void table.refetch()}
-      refreshing={table.isFetching}
-      onResetColumnVisibility={table.resetColumnVisibility}
-      labels={toolsLabels}
-      components={{ IconButton: DataTableToolbarAntdIconButton }}
-    />
-  );
+  const controller = useSessionsTableController(t);
 
   return (
     <SettingCard>
@@ -165,22 +183,30 @@ export function MeSecuritySessionsSection() {
         title={t("account:ME_SECURITY_SESSIONS_PANEL_TITLE")}
         description={t("account:ME_SECURITY_SESSIONS_TABLE_DESC")}
         action={
-          <Button disabled danger type="primary" autoInsertSpace={false}>
-            {t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
-          </Button>
+          <SessionsAction
+            loading={controller.revokeOthersMutation.isPending}
+            onClick={() => controller.revokeOthersMutation.mutate()}
+            label={t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
+          />
         }
       />
       <SettingCardContent>
-        <div className="min-w-0">
-          <DataTablePresenter
-            table={table.table}
-            emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
-            className="min-h-0"
-            toolbar={{ left: toolbarLeft, right: toolbarRight }}
-            density={density}
-            refreshing={table.isFetching && !table.isLoading}
-          />
-        </div>
+        <SecuritySessionsTableContent
+          table={controller.table.table}
+          searchInput={controller.table.searchInput}
+          onSearchInputChange={controller.table.setSearchInput}
+          onRefresh={controller.table.refetch}
+          isFetching={controller.table.isFetching}
+          isLoading={controller.table.isLoading}
+          onResetColumnVisibility={controller.table.resetColumnVisibility}
+          density={controller.density}
+          onDensityChange={controller.setDensity}
+          toolsLabels={controller.toolsLabels}
+          searchPlaceholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
+          emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
+          alertTitle={t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE_TITLE")}
+          alertDescription={t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE")}
+        />
       </SettingCardContent>
     </SettingCard>
   );

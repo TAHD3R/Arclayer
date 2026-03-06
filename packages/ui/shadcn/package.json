@@ -96,7 +96,8 @@
     "./timeline": "./src/timeline.tsx",
     "./toggle": "./src/toggle.tsx",
     "./tooltip": "./src/tooltip.tsx",
-    "./illustrations": "./src/illustrations/index.ts"
+    "./illustrations": "./src/illustrations/index.ts",
+    "./input-otp": "./src/input-otp.tsx"
   },
   "dependencies": {
     "@celestial/hooks": "workspace:*",
@@ -122,7 +123,8 @@
     "motion": "^12.29.0",
     "radix-ui": "^1.4.3",
     "three": "^0.182.0",
-    "vaul": "^1.1.2"
+    "vaul": "^1.1.2",
+    "input-otp": "^1.4.2"
   },
   "peerDependencies": {
     "react": "^19.0.0",

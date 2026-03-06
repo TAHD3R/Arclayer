@@ -6,6 +6,7 @@ from typing import Any, Final
 from uuid import UUID
 
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
+from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
 
 _DEFAULT_CHALLENGE_TTL_SECONDS: Final[int] = 5 * 60
 _DEFAULT_MAX_ATTEMPTS: Final[int] = 10
@@ -37,7 +38,13 @@ class TwoFactorChallengeStore:
     def _consumed_key(self, token: str) -> str:
         return f"auth:2fa:challenge:consumed:{token}"
 
-    async def issue(self, *, user_id: UUID) -> tuple[str, int]:
+    async def issue(
+        self,
+        *,
+        user_id: UUID,
+        request_context: AuthRequestContext | None = None,
+        auth_method: str | None = None,
+    ) -> tuple[str, int]:
         token = secrets.token_urlsafe(32)
         ttl = self.ttl_seconds
         now_ts = int(datetime.now(UTC).timestamp())

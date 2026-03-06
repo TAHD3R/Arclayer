@@ -1,5 +1,7 @@
 import { api } from "@/lib/http";
 import type {
+  AuthSessionList,
+  AuthSessionRevokeOthersResult,
   ConfirmMyEmailChangePayload,
   DeleteMyAccountCapability,
   DeleteMyAccountPayload,
@@ -8,12 +10,32 @@ import type {
   RequestMyEmailChangePayload,
   ResetTokenPayload,
   TokenPair,
+  TwoFactorBackupCodesResult,
+  TwoFactorCapabilities,
+  TwoFactorSetupResult,
+  TwoFactorStatus,
   UpdateMyProfilePayload,
   UserProfile,
 } from "@/types/api";
 
 export async function login(payload: { identifier: string; password: string }): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } });
+}
+
+export async function loginTwoFactor(payload: {
+  twoFactorToken: string;
+  code?: string;
+  backupCode?: string;
+}): Promise<TokenPair> {
+  return api.post<TokenPair>(
+    "/auth/login/2fa",
+    {
+      two_factor_token: payload.twoFactorToken,
+      ...(payload.code ? { code: payload.code } : {}),
+      ...(payload.backupCode ? { backup_code: payload.backupCode } : {}),
+    },
+    { auth: { skipRefresh: true } },
+  );
 }
 
 export async function register(payload: RegisterPayload): Promise<UserProfile> {
@@ -76,4 +98,56 @@ export async function resetPassword(payload: {
   new_password: string;
 }): Promise<null> {
   return api.post<null>("/auth/reset-password", payload, { auth: { skipRefresh: true } });
+}
+
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  return api.get<TwoFactorStatus>("/auth/2fa");
+}
+
+export async function getTwoFactorCapabilities(): Promise<TwoFactorCapabilities> {
+  return api.get<TwoFactorCapabilities>("/auth/2fa/capabilities");
+}
+
+export async function beginTwoFactorSetup(payload?: {
+  password?: string;
+}): Promise<TwoFactorSetupResult> {
+  return api.post<TwoFactorSetupResult>("/auth/2fa/setup", payload ?? {});
+}
+
+export async function confirmTwoFactorSetup(payload: {
+  code: string;
+}): Promise<TwoFactorBackupCodesResult> {
+  return api.post<TwoFactorBackupCodesResult>("/auth/2fa/confirm", payload);
+}
+
+export async function disableTwoFactor(payload: {
+  code?: string;
+  backupCode?: string;
+}): Promise<null> {
+  return api.post<null>("/auth/2fa/disable", {
+    ...(payload.code ? { code: payload.code } : {}),
+    ...(payload.backupCode ? { backup_code: payload.backupCode } : {}),
+  });
+}
+
+export async function regenerateTwoFactorBackupCodes(payload: {
+  code?: string;
+  backupCode?: string;
+}): Promise<TwoFactorBackupCodesResult> {
+  return api.post<TwoFactorBackupCodesResult>("/auth/2fa/backup-codes/regenerate", {
+    ...(payload.code ? { code: payload.code } : {}),
+    ...(payload.backupCode ? { backup_code: payload.backupCode } : {}),
+  });
+}
+
+export async function listMySessions(): Promise<AuthSessionList> {
+  return api.get<AuthSessionList>("/auth/sessions");
+}
+
+export async function revokeMySession(sessionId: string): Promise<null> {
+  return api.post<null>(`/auth/sessions/${sessionId}/revoke`);
+}
+
+export async function revokeOtherSessions(): Promise<AuthSessionRevokeOthersResult> {
+  return api.post<AuthSessionRevokeOthersResult>("/auth/sessions/revoke-others");
 }

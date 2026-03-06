@@ -73,3 +73,74 @@ export type RegisterPayload = {
   confirm_password: string;
   display_name?: string;
 };
+
+export type TwoFactorChallengeMeta = {
+  twoFactorToken: string;
+  expiresIn: number;
+  two_factor_token?: string;
+  expires_in?: number;
+};
+
+export type TwoFactorReauthMethod = "password" | "relogin" | "totp" | "backup_code";
+
+export type TwoFactorCapabilities = {
+  enabled: boolean;
+  canSetup: boolean;
+  setupRequiredReauthMethods: TwoFactorReauthMethod[];
+  disableRequiredReauthMethods: TwoFactorReauthMethod[];
+  regenerateBackupCodesRequiredReauthMethods: TwoFactorReauthMethod[];
+  hasPassword: boolean;
+  can_setup?: boolean;
+  setup_required_reauth_methods?: TwoFactorReauthMethod[];
+  disable_required_reauth_methods?: TwoFactorReauthMethod[];
+  regenerate_backup_codes_required_reauth_methods?: TwoFactorReauthMethod[];
+  has_password?: boolean;
+};
+
+export type TwoFactorStatus = {
+  enabled: boolean;
+  backupCodesRemaining: number;
+  backup_codes_remaining?: number;
+};
+
+export type TwoFactorSetupResult = {
+  secret: string;
+  otpauthUri: string;
+  otpauth_uri?: string;
+};
+
+export type TwoFactorBackupCodesResult = {
+  backupCodes: string[];
+  backup_codes?: string[];
+};
+
+export type AuthSessionRow = {
+  sessionId: string;
+  issuedAt: string;
+  lastUsedAt: string | null;
+  current: boolean;
+  ipAddress: string | null;
+  userAgent: string | null;
+  deviceLabel: string | null;
+  locationLabel: string | null;
+  authMethod: string | null;
+  revocable: boolean;
+  session_id?: string;
+  issued_at?: string;
+  last_used_at?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  device_label?: string | null;
+  location_label?: string | null;
+  auth_method?: string | null;
+};
+
+export type AuthSessionList = {
+  items: AuthSessionRow[];
+  total: number;
+};
+
+export type AuthSessionRevokeOthersResult = {
+  revokedCount: number;
+  revoked_count?: number;
+};

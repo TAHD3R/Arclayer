@@ -44,6 +44,9 @@ describe("LoginView register entry visibility", () => {
         onForgotPassword={async () => undefined}
         onRegisterSubmit={() => undefined}
         publicRegisterEnabled={false}
+        challenge={null}
+        onLoginTwoFactorSubmit={() => undefined}
+        onCancelTwoFactorChallenge={() => undefined}
       />,
     );
 
@@ -60,6 +63,9 @@ describe("LoginView register entry visibility", () => {
         onForgotPassword={async () => undefined}
         onRegisterSubmit={() => undefined}
         publicRegisterEnabled
+        challenge={null}
+        onLoginTwoFactorSubmit={() => undefined}
+        onCancelTwoFactorChallenge={() => undefined}
       />,
     );
 

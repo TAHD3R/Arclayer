@@ -1,9 +1,15 @@
 import type { LoginMode } from "@/lib/auth/auth-mode";
+import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
 
 export interface LoginFormValues {
   account: string;
   password: string;
   keepSession: boolean;
+}
+
+export interface LoginTwoFactorFormValues {
+  code?: string;
+  backupCode?: string;
 }
 
 export interface RegisterFormValues {
@@ -24,4 +30,8 @@ export interface LoginViewProps {
   onRegisterSubmit: (values: RegisterFormValues) => void;
   registerLoading?: boolean;
   publicRegisterEnabled?: boolean;
+  challenge: AuthChallengeSnapshot | null;
+  onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => void;
+  onCancelTwoFactorChallenge: () => void;
+  twoFactorLoading?: boolean;
 }

@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   fontScalePreference: "celestial:admin:fontScalePreference",
   fontWeightPreference: "celestial:admin:fontWeightPreference",
   auth: "celestial:admin:auth",
+  authChallenge: "celestial:auth:challenge",
   workspace: "celestial:admin:workspace",
   workspaceLocaleCache: "celestial:admin:workspaceLocaleCache",
   dataTableVisibility: "celestial:admin:dataTable:visibility",

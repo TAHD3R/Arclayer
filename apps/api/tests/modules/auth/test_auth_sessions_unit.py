@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import pytest
 from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.config import get_settings
@@ -169,6 +170,12 @@ class FakeUserRepository:
         raise RuntimeError("not used")
 
 
+def _get_refresh_record(valkey: FakeValkeyClient, *, jti: str) -> dict[str, Any]:
+    record = valkey._store.get(f"auth:refresh:{jti}")
+    assert isinstance(record, dict)
+    return record
+
+
 def _build(monkeypatch) -> tuple[AuthService, AuthSessionService, FakeValkeyClient, FakeUser]:
     monkeypatch.setenv("JWT_SECRET", "test-secret")
     settings = get_settings()
@@ -223,3 +230,40 @@ async def test_revoke_other_sessions(monkeypatch) -> None:
     listed = await sessions.list_sessions(user_id=user.id, current_session_id=a_sid)
     assert listed.total == 1
     assert listed.items[0].session_id == a_sid
+
+
+async def test_login_persists_session_metadata(monkeypatch) -> None:
+    auth, _, valkey, user = _build(monkeypatch)
+
+    try:
+        from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
+    except ModuleNotFoundError as exc:
+        pytest.fail(f"missing auth request context module: {exc}")
+
+    request_context = AuthRequestContext(
+        ip_address="203.0.113.8",
+        user_agent=(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+        ),
+    )
+
+    try:
+        tokens = await auth.issue_token_pair_for_user(
+            user.id,
+            request_context=request_context,
+            auth_method="password",
+        )
+    except TypeError as exc:
+        pytest.fail(f"missing metadata-aware token issuing signature: {exc}")
+
+    refresh_payload = decode_token(tokens.refresh_token, auth.settings.auth)
+    refresh_jti = refresh_payload.get("jti")
+    assert isinstance(refresh_jti, str)
+
+    record = _get_refresh_record(valkey, jti=refresh_jti)
+
+    assert record["user_id"] == str(user.id)
+    assert record["ip_address"] == "203.0.113.8"
+    assert record["user_agent"].startswith("Mozilla/5.0")
+    assert record["auth_method"] == "password"

@@ -12,6 +12,12 @@ class AuthSessionOut(BaseSchema):
     issued_at: datetime = Field(..., description="Session issue time (UTC).")
     last_used_at: datetime | None = Field(default=None, description="Last refresh usage time (UTC).")
     current: bool = Field(default=False, description="Whether this is the current session.")
+    ip_address: str | None = Field(default=None, description="IP address captured for this session.")
+    user_agent: str | None = Field(default=None, description="Raw user agent captured for this session.")
+    device_label: str | None = Field(default=None, description="Human-readable device label for this session.")
+    location_label: str | None = Field(default=None, description="Human-readable location label for this session.")
+    auth_method: str | None = Field(default=None, description="Authentication method used to establish the session.")
+    revocable: bool = Field(default=True, description="Whether the session can be revoked from the current UI.")
 
 
 class AuthSessionListOut(BaseSchema):

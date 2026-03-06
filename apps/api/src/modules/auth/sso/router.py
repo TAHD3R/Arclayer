@@ -19,6 +19,7 @@ from apps.api.src.modules.auth.oauth.schema import OAuthLinkedIdentityListOut
 from apps.api.src.modules.auth.oauth.service import OAuthSocialService
 from apps.api.src.modules.auth.schema import TokenPair
 from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.auth.sessions.request_context import build_auth_request_context
 from apps.api.src.modules.auth.sso.schema import (
     AuthSSOExchangeIn,
     AuthSSOLinkStateOut,
@@ -105,9 +106,10 @@ async def list_providers(
 )
 async def exchange(
     payload: AuthSSOExchangeIn,
+    request: Request,
     service: AuthSSOService = Depends(get_sso_service),
 ) -> ResponseModel[TokenPair]:
-    tokens = await service.exchange(code=payload.code)
+    tokens = await service.exchange(code=payload.code, request_context=build_auth_request_context(request))
     return Response.success(data=tokens)
 
 

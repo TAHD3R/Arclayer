@@ -14,6 +14,7 @@ from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
 from apps.api.src.core.i18n import t
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
 from apps.api.src.modules.auth.schema import TokenPair
+from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
 from apps.api.src.modules.auth.sso.repository import consume_exchange_payload
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
@@ -52,7 +53,13 @@ def _is_safe_redirect(value: str | None) -> bool:
 
 
 class LoginIssuerLike(Protocol):
-    async def issue_after_upstream_auth(self, *, user_id: UUID) -> TokenPair: ...
+    async def issue_after_upstream_auth(
+        self,
+        *,
+        user_id: UUID,
+        request_context: AuthRequestContext | None = None,
+        auth_method: str = "sso",
+    ) -> TokenPair: ...
 
 
 class AuthSSOService(BaseService):
@@ -163,7 +170,7 @@ class AuthSSOService(BaseService):
             })
         return out
 
-    async def exchange(self, *, code: str):
+    async def exchange(self, *, code: str, request_context: AuthRequestContext | None = None):
         if self.valkey is None:
             raise ServiceUnavailable(message=_ta("SSO_UNAVAILABLE", "SSO 服务不可用"), error="SSO_UNAVAILABLE")
 
@@ -181,4 +188,8 @@ class AuthSSOService(BaseService):
         except (TypeError, ValueError):
             raise BadRequest(message=_ta("SSO_CODE_INVALID", "登录码无效"), error="SSO_CODE_INVALID")
 
-        return await self.login_service.issue_after_upstream_auth(user_id=user_uuid)
+        return await self.login_service.issue_after_upstream_auth(
+            user_id=user_uuid,
+            request_context=request_context,
+            auth_method="sso",
+        )

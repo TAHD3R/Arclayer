@@ -9,6 +9,8 @@ from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailabl
 from apps.api.src.core.i18n import t
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
 from apps.api.src.modules.auth.repository import RefreshTokenStore
+from apps.api.src.modules.auth.sessions.device_label import build_device_label
+from apps.api.src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
 from apps.api.src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionOut
 
 
@@ -42,6 +44,7 @@ class AuthSessionService(BaseService):
     def __init__(self, settings: Settings, *, valkey: ValkeyClientLike | None) -> None:
         super().__init__(settings)
         self._store = RefreshTokenStore(valkey, settings.auth) if valkey else None
+        self._location_lookup = AuthSessionLocationLookup(settings)
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
@@ -54,6 +57,38 @@ class AuthSessionService(BaseService):
             )
         return self._store
 
+    async def _lookup_location_label(self, *, ip_address: str | None) -> str | None:
+        return self._location_lookup.lookup(ip_address=ip_address)
+
+    async def _build_session_out(
+        self, *, record: dict[str, object], current_session_id: str | None, fallback_session_id: str
+    ) -> AuthSessionOut | None:
+        session_id = _parse_sid(record.get("sid")) or fallback_session_id
+        issued_at = _parse_ts(record.get("issued_at"))
+        if issued_at is None:
+            return None
+        last_used_at = _parse_ts(record.get("last_used_at"))
+        current = bool(current_session_id and current_session_id == session_id)
+        ip_address = record.get("ip_address") if isinstance(record.get("ip_address"), str) else None
+        user_agent = record.get("user_agent") if isinstance(record.get("user_agent"), str) else None
+        device_label = record.get("device_label") if isinstance(record.get("device_label"), str) else None
+        location_label = record.get("location_label") if isinstance(record.get("location_label"), str) else None
+        auth_method = record.get("auth_method") if isinstance(record.get("auth_method"), str) else None
+        if location_label is None:
+            location_label = await self._lookup_location_label(ip_address=ip_address)
+        return AuthSessionOut(
+            session_id=session_id,
+            issued_at=issued_at,
+            last_used_at=last_used_at,
+            current=current,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            device_label=device_label or build_device_label(user_agent),
+            location_label=location_label,
+            auth_method=auth_method,
+            revocable=not current,
+        )
+
     async def list_sessions(self, *, user_id: UUID, current_session_id: str | None) -> AuthSessionListOut:
         store = self._require_store()
         jtis = await store.list_active(user_id)
@@ -63,21 +98,14 @@ class AuthSessionService(BaseService):
             record = await store.get(jti)
             if not isinstance(record, dict):
                 continue
-
-            session_id = _parse_sid(record.get("sid")) or jti
-            issued_at = _parse_ts(record.get("issued_at"))
-            if issued_at is None:
-                continue
-            last_used_at = _parse_ts(record.get("last_used_at"))
-
-            items.append(
-                AuthSessionOut(
-                    session_id=session_id,
-                    issued_at=issued_at,
-                    last_used_at=last_used_at,
-                    current=bool(current_session_id and current_session_id == session_id),
-                )
+            item = await self._build_session_out(
+                record=record,
+                current_session_id=current_session_id,
+                fallback_session_id=jti,
             )
+            if item is None:
+                continue
+            items.append(item)
 
         items.sort(key=lambda s: s.last_used_at or s.issued_at, reverse=True)
         return AuthSessionListOut(items=items, total=len(items))

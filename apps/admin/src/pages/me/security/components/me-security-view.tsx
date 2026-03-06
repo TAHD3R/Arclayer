@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "antd";
-import { SecurityNotConfiguredTag } from "@/components/ui/tags";
-import { Smartphone, KeyRound, Mail } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 
 import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";
 import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
 import { MeSecurityChangePasswordSection } from "@/pages/me/security/components/security-change-password-section";
 import { MeSecuritySessionsSection } from "@/pages/me/security/components/security-sessions-section";
+import { MeSecurityTwoFactorSection } from "@/pages/me/security/components/security-two-factor-section";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
 
@@ -50,44 +50,7 @@ export function MeSecurityView(props: MeSecurityViewProps) {
               variant={panelVariant}
             >
               <div className="flex flex-col gap-6">
-                <SettingCard>
-                  <SettingCardHeader
-                    title={t("account:ME_SECURITY_2FA_TITLE")}
-                    description={t("account:ME_SECURITY_2FA_DISABLED_DESC")}
-                    action={
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex">
-                            <Button disabled type="primary" autoInsertSpace={false}>
-                              {t("account:ME_SECURITY_2FA_ENABLE")}
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{t("account:ME_FEATURE_NOT_AVAILABLE")}</TooltipContent>
-                      </Tooltip>
-                    }
-                  />
-                  <SettingCardContent>
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/30 border border-border/60 shadow-sm">
-                        <Smartphone className="h-5 w-5 text-label-secondary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-body font-medium text-label-primary">
-                            {t("account:ME_SECURITY_2FA_AUTH_APP_TITLE")}
-                          </span>
-                          <SecurityNotConfiguredTag
-                            label={t("account:ME_SECURITY_2FA_AUTH_APP_NOT_CONFIGURED")}
-                          />
-                        </div>
-                        <div className="mt-1 text-callout text-label-secondary">
-                          {t("account:ME_SECURITY_2FA_AUTH_APP_DESC")}
-                        </div>
-                      </div>
-                    </div>
-                  </SettingCardContent>
-                </SettingCard>
+                <MeSecurityTwoFactorSection />
               </div>
             </MeSettingPanel>
           ),

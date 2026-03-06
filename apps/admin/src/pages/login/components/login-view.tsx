@@ -8,7 +8,10 @@ import type { LoginMode } from "@/lib/auth/auth-mode";
 import type { LoginViewProps } from "../types";
 import { ForgotPasswordDialog } from "./forgot-password-dialog";
 import { LoginPane } from "./login-pane";
+import { LoginTwoFactorPane } from "./login-two-factor-pane";
 import { RegisterPane } from "./register-pane";
+
+type LoginViewPane = LoginMode | "two-factor";
 
 export function LoginView({
   mode,
@@ -21,15 +24,21 @@ export function LoginView({
   onRegisterSubmit,
   registerLoading = false,
   publicRegisterEnabled = true,
+  challenge,
+  onLoginTwoFactorSubmit,
+  onCancelTwoFactorChallenge,
+  twoFactorLoading = false,
 }: LoginViewProps) {
   const reducedMotion = usePrefersReducedMotion();
-  const prevModeRef = useRef<LoginMode>(mode);
+  const resolvedMode: LoginMode = publicRegisterEnabled ? mode : "login";
+  const currentPane: LoginViewPane = challenge ? "two-factor" : resolvedMode;
+  const prevPaneRef = useRef<LoginViewPane>(currentPane);
   const [forgotOpen, setForgotOpen] = useState(false);
 
   const direction =
-    mode === prevModeRef.current
+    currentPane === prevPaneRef.current
       ? 0
-      : mode === "register" && prevModeRef.current === "login"
+      : currentPane === "register" && prevPaneRef.current === "login"
         ? 1
         : -1;
 
@@ -37,8 +46,8 @@ export function LoginView({
   const exitOffsetX = direction > 0 ? -8 : direction < 0 ? 8 : 0;
 
   useEffect(() => {
-    prevModeRef.current = mode;
-  }, [mode]);
+    prevPaneRef.current = currentPane;
+  }, [currentPane]);
 
   const transition = reducedMotion
     ? ({ duration: 0 } as const)
@@ -50,12 +59,10 @@ export function LoginView({
     exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
   };
 
-  const resolvedMode: LoginMode = publicRegisterEnabled ? mode : "login";
-
   const { setLegalKey } = useAuthLegalKey();
   useEffect(() => {
-    setLegalKey(resolvedMode === "register" ? "auth:LEGAL_REGISTER" : "auth:LEGAL_LOGIN");
-  }, [resolvedMode, setLegalKey]);
+    setLegalKey(currentPane === "register" ? "auth:LEGAL_REGISTER" : "auth:LEGAL_LOGIN");
+  }, [currentPane, setLegalKey]);
 
   return (
     <div className="w-full">
@@ -71,7 +78,7 @@ export function LoginView({
         <div className="relative">
           <AnimatePresence mode="wait">
             <motion.div
-              key={resolvedMode}
+              key={currentPane}
               initial="hidden"
               animate="show"
               exit="exit"
@@ -87,7 +94,16 @@ export function LoginView({
                 exit: reducedMotion ? { opacity: 1 } : { opacity: 0, x: exitOffsetX },
               }}
             >
-              {resolvedMode === "login" ? (
+              {currentPane === "two-factor" && challenge ? (
+                <LoginTwoFactorPane
+                  challenge={challenge}
+                  loading={twoFactorLoading}
+                  onSubmit={onLoginTwoFactorSubmit}
+                  onBackToLogin={onCancelTwoFactorChallenge}
+                  reducedMotion={reducedMotion}
+                  itemVariants={itemVariants}
+                />
+              ) : currentPane === "login" ? (
                 <LoginPane
                   onSubmit={onLoginSubmit}
                   loading={loginLoading}

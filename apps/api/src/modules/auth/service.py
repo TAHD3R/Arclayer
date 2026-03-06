@@ -43,6 +43,9 @@ from apps.api.src.modules.auth.schema import (
     UpdateMyProfileRequest,
     UserProfile,
 )
+from apps.api.src.modules.auth.sessions.device_label import build_device_label
+from apps.api.src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
+from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
 from apps.api.src.modules.auth.tokens.service import (
     build_access_token,
     build_refresh_token,
@@ -90,9 +93,51 @@ class AuthService(BaseService):
         self.email_change_store = EmailChangeStore(valkey) if valkey else None
         self.email_service = EmailService(settings)
         self.invitation_service = AuthInvitationService(settings)
+        self.location_lookup = AuthSessionLocationLookup(settings)
 
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
+
+    def _build_session_metadata(
+        self, *, request_context: AuthRequestContext | None, auth_method: str
+    ) -> dict[str, object | None]:
+        ip_address = None if request_context is None else request_context.ip_address
+        user_agent = None if request_context is None else request_context.user_agent
+        return {
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "device_label": build_device_label(user_agent),
+            "location_label": self.location_lookup.lookup(ip_address=ip_address),
+            "auth_method": (auth_method or "password").strip() or "password",
+        }
+
+    def _build_refresh_record(
+        self,
+        *,
+        jti: str,
+        user_id: UUID,
+        token_version: int,
+        session_id: str,
+        now_ts: int,
+        refresh_ttl: int,
+        request_context: AuthRequestContext | None,
+        auth_method: str,
+        parent: str | None = None,
+    ) -> dict[str, object | None]:
+        record = {
+            "jti": jti,
+            "user_id": str(user_id),
+            "token_version": token_version,
+            "sid": session_id,
+            "status": REFRESH_STATUS_ACTIVE,
+            "issued_at": now_ts,
+            "last_used_at": now_ts,
+            "expires_at": now_ts + refresh_ttl,
+        }
+        record.update(self._build_session_metadata(request_context=request_context, auth_method=auth_method))
+        if parent:
+            record["parent"] = parent
+        return record
 
     def _require_refresh_store(self) -> RefreshTokenStore:
         if self.refresh_store is None:
@@ -423,7 +468,13 @@ class AuthService(BaseService):
         await store.revoke_all(self._coerce_user_id(user))
         self.logger.warning("Refresh token reuse detected", user_id=str(user_id))
 
-    async def login(self, *, identifier: str, password: str) -> TokenPair:
+    async def login(
+        self,
+        *,
+        identifier: str,
+        password: str,
+        request_context: AuthRequestContext | None = None,
+    ) -> TokenPair:
         store = self._require_refresh_store()
         user = await self.user_repo.get_by_identifier(identifier)
         credential = cast(CredentialLike | None, getattr(user, "credential", None) if user is not None else None)
@@ -460,16 +511,16 @@ class AuthService(BaseService):
         )
 
         now_ts = int(datetime.now(UTC).timestamp())
-        record = {
-            "jti": jti,
-            "user_id": str(user_id),
-            "token_version": token_version,
-            "sid": session_id,
-            "status": REFRESH_STATUS_ACTIVE,
-            "issued_at": now_ts,
-            "last_used_at": now_ts,
-            "expires_at": now_ts + refresh_ttl,
-        }
+        record = self._build_refresh_record(
+            jti=jti,
+            user_id=user_id,
+            token_version=token_version,
+            session_id=session_id,
+            now_ts=now_ts,
+            refresh_ttl=refresh_ttl,
+            request_context=request_context,
+            auth_method="password",
+        )
         await store.store(record, ttl=refresh_ttl)
         await self.user_repo.update_last_login(user)
 
@@ -509,7 +560,13 @@ class AuthService(BaseService):
             refresh_expires_in=refresh_ttl,
         )
 
-    async def issue_token_pair_for_user(self, user_id: UUID) -> TokenPair:
+    async def issue_token_pair_for_user(
+        self,
+        user_id: UUID,
+        *,
+        request_context: AuthRequestContext | None = None,
+        auth_method: str = "password",
+    ) -> TokenPair:
         """
         Issue a TokenPair for a user without password verification.
 
@@ -544,16 +601,16 @@ class AuthService(BaseService):
         )
 
         now_ts = int(datetime.now(UTC).timestamp())
-        record = {
-            "jti": jti,
-            "user_id": str(resolved_user_id),
-            "token_version": token_version,
-            "sid": session_id,
-            "status": REFRESH_STATUS_ACTIVE,
-            "issued_at": now_ts,
-            "last_used_at": now_ts,
-            "expires_at": now_ts + refresh_ttl,
-        }
+        record = self._build_refresh_record(
+            jti=jti,
+            user_id=resolved_user_id,
+            token_version=token_version,
+            session_id=session_id,
+            now_ts=now_ts,
+            refresh_ttl=refresh_ttl,
+            request_context=request_context,
+            auth_method=auth_method,
+        )
         await store.store(record, ttl=refresh_ttl)
         await self.user_repo.update_last_login(user)
 
@@ -619,7 +676,12 @@ class AuthService(BaseService):
             password_hash=password_hash,
         )
 
-    async def refresh(self, *, refresh_token: str) -> TokenPair:
+    async def refresh(
+        self,
+        *,
+        refresh_token: str,
+        request_context: AuthRequestContext | None = None,
+    ) -> TokenPair:
         store = self._require_refresh_store()
         payload = decode_token(refresh_token, self.settings.auth)
         if payload.get("typ") != TOKEN_TYPE_REFRESH:
@@ -697,17 +759,24 @@ class AuthService(BaseService):
         )
 
         await store.mark_rotated(jti, replaced_by=new_jti)
-        new_record = {
-            "jti": new_jti,
-            "user_id": str(resolved_user_id),
-            "token_version": resolved_token_version,
-            "sid": session_id,
-            "status": REFRESH_STATUS_ACTIVE,
-            "issued_at": now_ts,
-            "last_used_at": now_ts,
-            "expires_at": now_ts + refresh_ttl,
-            "parent": jti,
-        }
+        effective_context = request_context
+        if effective_context is None:
+            effective_context = AuthRequestContext(
+                ip_address=record.get("ip_address") if isinstance(record.get("ip_address"), str) else None,
+                user_agent=record.get("user_agent") if isinstance(record.get("user_agent"), str) else None,
+            )
+        auth_method = record.get("auth_method") if isinstance(record.get("auth_method"), str) else "password"
+        new_record = self._build_refresh_record(
+            jti=new_jti,
+            user_id=resolved_user_id,
+            token_version=resolved_token_version,
+            session_id=session_id,
+            now_ts=now_ts,
+            refresh_ttl=refresh_ttl,
+            request_context=effective_context,
+            auth_method=auth_method,
+            parent=jti,
+        )
         await store.store(new_record, ttl=refresh_ttl)
 
         return TokenPair(

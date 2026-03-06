@@ -22,6 +22,24 @@ class TwoFactorSetupRequest(BaseSchema):
     )
 
 
+class TwoFactorCapabilitiesOut(BaseSchema):
+    enabled: bool = Field(..., description="Whether 2FA is enabled.")
+    can_setup: bool = Field(..., description="Whether the current user can start 2FA setup now.")
+    setup_required_reauth_methods: list[str] = Field(
+        default_factory=list,
+        description="Required re-auth method(s) before setup, e.g. password or relogin.",
+    )
+    disable_required_reauth_methods: list[str] = Field(
+        default_factory=list,
+        description="Allowed verification method(s) for disabling 2FA, e.g. totp or backup_code.",
+    )
+    regenerate_backup_codes_required_reauth_methods: list[str] = Field(
+        default_factory=list,
+        description="Allowed verification method(s) for regenerating backup codes.",
+    )
+    has_password: bool = Field(default=False, description="Whether the account has a local password credential.")
+
+
 class TwoFactorStatusOut(BaseSchema):
     enabled: bool = Field(..., description="Whether 2FA is enabled.")
     backup_codes_remaining: int = Field(..., ge=0, description="Number of unused backup codes.")

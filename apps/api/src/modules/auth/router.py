@@ -68,10 +68,13 @@ from apps.api.src.modules.auth.schema import (
     UserProfile,
 )
 from apps.api.src.modules.auth.service import AuthService
+from apps.api.src.modules.auth.sessions.request_context import build_auth_request_context
 from apps.api.src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionRevokeOthersOut
 from apps.api.src.modules.auth.sessions.service import AuthSessionService
 from apps.api.src.modules.auth.sso.router import router as auth_sso_router
+from apps.api.src.modules.auth.two_factor.capability_service import TwoFactorCapabilityService
 from apps.api.src.modules.auth.two_factor.schema import (
+    TwoFactorCapabilitiesOut,
     TwoFactorConfirmOut,
     TwoFactorConfirmRequest,
     TwoFactorDisableRequest,
@@ -113,6 +116,12 @@ def _get_auth_two_factor_service(
     settings: Settings = Depends(get_settings),
 ) -> AuthTwoFactorService:
     return AuthTwoFactorService(settings)
+
+
+def _get_auth_two_factor_capability_service(
+    settings: Settings = Depends(get_settings),
+) -> TwoFactorCapabilityService:
+    return TwoFactorCapabilityService(settings)
 
 
 def _get_auth_login_service(
@@ -241,10 +250,15 @@ def _enforce_refresh_cookie_origin_policy(request: Request, *, settings: Setting
 )
 async def login(
     payload: LoginRequest,
+    request: Request,
     fastapi_response: FastAPIResponse,
     service: AuthLoginService = Depends(_get_auth_login_service),
 ) -> ResponseModel[TokenPair]:
-    tokens = await service.login(identifier=payload.username, password=payload.password)
+    tokens = await service.login(
+        identifier=payload.username,
+        password=payload.password,
+        request_context=build_auth_request_context(request),
+    )
     _set_refresh_cookie(
         fastapi_response,
         settings=service.settings,
@@ -262,6 +276,7 @@ async def login(
 )
 async def login_two_factor(
     payload: TwoFactorLoginRequest,
+    request: Request,
     fastapi_response: FastAPIResponse,
     service: AuthLoginService = Depends(_get_auth_login_service),
 ) -> ResponseModel[TokenPair]:
@@ -269,6 +284,7 @@ async def login_two_factor(
         two_factor_token=payload.two_factor_token,
         code=payload.code,
         backup_code=payload.backup_code,
+        request_context=build_auth_request_context(request),
     )
     _set_refresh_cookie(
         fastapi_response,
@@ -317,10 +333,14 @@ async def register(
 )
 async def refresh(
     payload: RefreshRequest,
+    request: Request,
     fastapi_response: FastAPIResponse,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
-    tokens = await service.refresh(refresh_token=payload.refresh_token)
+    tokens = await service.refresh(
+        refresh_token=payload.refresh_token,
+        request_context=build_auth_request_context(request),
+    )
     _set_refresh_cookie(
         fastapi_response,
         settings=service.settings,
@@ -522,6 +542,19 @@ async def get_two_factor_status(
 ) -> ResponseModel[TwoFactorStatusOut]:
     enabled, backup_codes_remaining = await service.get_status(user_id=user.id)
     return Response.success(data=TwoFactorStatusOut(enabled=enabled, backup_codes_remaining=backup_codes_remaining))
+
+
+@router.get(
+    "/2fa/capabilities",
+    response_model=ResponseModel[TwoFactorCapabilitiesOut],
+    summary="Get 2FA capabilities for current user",
+)
+async def get_two_factor_capabilities(
+    user: User = Depends(get_current_user),
+    service: TwoFactorCapabilityService = Depends(_get_auth_two_factor_capability_service),
+) -> ResponseModel[TwoFactorCapabilitiesOut]:
+    out = await service.get_capabilities(user_id=user.id)
+    return Response.success(data=out)
 
 
 @router.post(

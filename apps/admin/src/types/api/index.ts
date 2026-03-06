@@ -14,6 +14,15 @@ export type {
   DeleteMyAccountReauthMethod,
   ResetTokenPayload,
   RegisterPayload,
+  TwoFactorChallengeMeta,
+  TwoFactorReauthMethod,
+  TwoFactorCapabilities,
+  TwoFactorStatus,
+  TwoFactorSetupResult,
+  TwoFactorBackupCodesResult,
+  AuthSessionRow,
+  AuthSessionList,
+  AuthSessionRevokeOthersResult,
 } from "./auth";
 export type { AuthSSOProvider, AuthSSOProvidersOut, AuthSSOLinkStateOut } from "./auth-sso";
 export type { OAuthLinkedIdentity, OAuthLinkedIdentityListOut } from "./oauth-social";
