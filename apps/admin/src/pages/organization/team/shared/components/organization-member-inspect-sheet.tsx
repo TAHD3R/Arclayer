@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button as AntButton } from "antd";
 import { useTranslation } from "react-i18next";
-import { UserAvatar } from "@/components/common/entity-avatar";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
 
 import type {
@@ -13,28 +10,13 @@ import type {
   OrganizationRbacMatrixPermissionRow,
 } from "@/types/api";
 import { ActivityDetailDialog } from "@/pages/organization/activity/components/activity-detail-dialog";
-import {
-  ChromeTabs,
-  ChromeTabsContent,
-  ChromeTabsList,
-  ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@celestial/ui/sheet";
-
+import { MemberContextDialog } from "@/pages/_shared/team/components/member-context-dialog";
 import { OrganizationMemberInspectActivityTab } from "./organization-member-inspect-activity-tab";
+import { OrganizationMemberInspectOverviewTab } from "./organization-member-inspect-overview-tab";
 import { OrganizationMemberInspectRoleTab } from "./organization-member-inspect-role-tab";
 import { OrganizationMemberInspectWorkspacesTab } from "./organization-member-inspect-workspaces-tab";
 import type { ResolvedMemberWorkspace } from "./organization-member-workspace-list";
 import { useOrganizationMemberInspectActivity } from "../hooks/use-organization-member-inspect-activity";
-
-type InspectTab = "role" | "workspaces" | "activity";
 
 type RoleDisplay = {
   name: string;
@@ -95,19 +77,18 @@ export function OrganizationMemberInspectSheet({
   onRemoveMember,
 }: OrganizationMemberInspectSheetProps) {
   const { t } = useTranslation(["common", "team"]);
-  const [tab, setTab] = useState<InspectTab>("role");
   const [selectedActivity, setSelectedActivity] = useState<ActivityEvent | null>(null);
+  const [displayMember, setDisplayMember] = useState(member);
+
+  useEffect(() => {
+    if (member) setDisplayMember(member);
+  }, [member]);
 
   useEffect(() => {
     if (!open) {
-      setTab("role");
       setSelectedActivity(null);
-      return;
     }
-
-    setTab("role");
-    setSelectedActivity(null);
-  }, [member?.membershipId, open]);
+  }, [open, member?.membershipId]);
 
   const {
     activityItems,
@@ -118,28 +99,28 @@ export function OrganizationMemberInspectSheet({
     activitySentinelRef,
     refetchActivity,
   } = useOrganizationMemberInspectActivity({
-    enabled: open && tab === "activity",
-    userId: member?.userId ?? null,
+    enabled: open,
+    userId: (member ?? displayMember)?.userId ?? null,
   });
 
   const resolvedWorkspaces = useMemo(() => {
-    if (!member) return [];
-    return resolveWorkspaces(member.workspaces);
-  }, [member, resolveWorkspaces]);
+    const targetMember = member ?? displayMember;
+    if (!targetMember) return [];
+    return resolveWorkspaces(targetMember.workspaces);
+  }, [displayMember, member, resolveWorkspaces]);
 
   const roleDetail = useMemo<RoleDisplay | null>(() => {
-    if (!member) return null;
+    const targetMember = member ?? displayMember;
+    if (!targetMember) return null;
 
-    const fromMap = roleDetailsByCode.get(member.roleCode);
+    const fromMap = roleDetailsByCode.get(targetMember.roleCode);
     if (fromMap?.name) return fromMap;
 
-    const fallbackName = t(`common:ORG_ROLE_${member.role.toUpperCase()}`);
-    const fallbackDesc = t(`common:ORG_ROLE_${member.role.toUpperCase()}_DESC`);
     return {
-      name: fallbackName,
-      description: fallbackDesc,
+      name: t(`common:ORG_ROLE_${targetMember.role.toUpperCase()}`),
+      description: t(`common:ORG_ROLE_${targetMember.role.toUpperCase()}_DESC`),
     };
-  }, [member, roleDetailsByCode, t]);
+  }, [displayMember, member, roleDetailsByCode, t]);
 
   const roleNameByCode = useMemo(() => {
     const map = new Map<string, string>();
@@ -150,165 +131,137 @@ export function OrganizationMemberInspectSheet({
   }, [roleDetailsByCode]);
 
   const rolePermissions = useMemo(() => {
-    if (!member) return [];
+    const targetMember = member ?? displayMember;
+    if (!targetMember) return [];
 
-    const roleCode = member.roleCode || member.role;
+    const roleCode = targetMember.roleCode || targetMember.role;
     return permissions.map((permission) => ({
       code: permission.code,
       displayName: permission.displayName,
       displayDescription: permission.displayDescription,
       granted: permission.grantedRoleCodes.includes(roleCode),
     }));
-  }, [member, permissions]);
+  }, [displayMember, member, permissions]);
 
-  const isCurrentUser = Boolean(member && currentUserId && member.userId === currentUserId);
-  const isOwnerSelf = Boolean(isCurrentUser && member?.role === "owner");
-  const primary = member?.displayName || member?.username || "";
-  const secondary = member?.email || "-";
-
-  const leaveLabel = isOwnerSelf ? (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span>{t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")}</span>
-      </TooltipTrigger>
-      <TooltipContent>{t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}</TooltipContent>
-    </Tooltip>
-  ) : (
-    t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")
+  const activeMember = member ?? displayMember;
+  const isCurrentUser = Boolean(
+    activeMember && currentUserId && activeMember.userId === currentUserId,
   );
+  const isOwnerSelf = Boolean(isCurrentUser && activeMember?.role === "owner");
 
-  const removeLabel = isOwnerSelf ? (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span>{t("common:DELETE")}</span>
-      </TooltipTrigger>
-      <TooltipContent>{t("common:ORG_MEMBERS_OWNER_SELF_REMOVE_BLOCKED")}</TooltipContent>
-    </Tooltip>
-  ) : (
-    t("common:DELETE")
-  );
+  if (!activeMember) {
+    return null;
+  }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[860px] max-w-[96vw] gap-0 p-0">
-        {member ? (
-          <div className="flex h-full min-h-0 flex-col">
-            <SheetHeader className="sticky top-0 z-10 border-b bg-gradient-to-b from-muted/40 to-background px-6 pb-5 pt-5">
-              <SheetTitle>{t("common:ORG_MEMBERS_INSPECT_TITLE")}</SheetTitle>
-              <SheetDescription>{t("common:ORG_MEMBERS_INSPECT_DESC")}</SheetDescription>
-
-              <div className="p-2">
-                <div className="flex items-center gap-3">
-                  <UserAvatar
-                    name={primary}
-                    assetRef={member.avatarUrl}
-                    size={64}
-                    className="shrink-0 bg-muted text-foreground"
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{primary}</div>
-                    <div className="truncate text-label-secondary">{secondary}</div>
-                  </div>
-
-                  <div className="flex flex-wrap justify-end gap-1">
-                    <OrgRoleTag
-                      role={member.role}
-                      className="!mr-0"
-                      label={roleDetail?.name || t(`common:ORG_ROLE_${member.role.toUpperCase()}`)}
-                    />
-                    <OrgUserStatusTag
-                      status={member.userStatus}
-                      className="!mr-0"
-                      label={userStatusLabel(t, member.userStatus)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </SheetHeader>
-
-            <div className="min-h-0 flex-1 overflow-hidden px-6 pb-4 pt-3">
-              <ChromeTabs
-                value={tab}
-                onValueChange={(next) => setTab(next as InspectTab)}
-                className="flex h-full min-h-0 flex-col"
-              >
-                <ChromeTabsList className="w-auto shrink-0">
-                  <ChromeTabsTrigger value="role">
-                    {t("common:ORG_MEMBERS_INSPECT_TAB_ROLE")}
-                  </ChromeTabsTrigger>
-                  <ChromeTabsTrigger value="workspaces">
-                    {t("common:ORG_MEMBERS_INSPECT_TAB_WORKSPACES")}
-                  </ChromeTabsTrigger>
-                  <ChromeTabsTrigger value="activity">
-                    {t("common:ORG_MEMBERS_INSPECT_TAB_ACTIVITY")}
-                  </ChromeTabsTrigger>
-                </ChromeTabsList>
-
-                <ChromeTabsContent value="role" className="flex min-h-0 flex-1 flex-col pt-3">
-                  <div className="flex min-h-0 flex-1 flex-col">
-                    <OrganizationMemberInspectRoleTab
-                      roleName={roleDetail?.name ?? null}
-                      roleDescription={roleDetail?.description ?? null}
-                      permissions={rolePermissions}
-                      rolesLoading={rolesLoading}
-                      permissionsLoading={permissionsLoading}
-                      rolesError={rolesError}
-                      permissionsError={permissionsError}
-                    />
-                  </div>
-                </ChromeTabsContent>
-
-                <ChromeTabsContent value="workspaces" className="min-h-0 pt-3">
-                  <div className="min-h-[360px]">
-                    <OrganizationMemberInspectWorkspacesTab
-                      workspaces={resolvedWorkspaces}
-                      roleNameByCode={roleNameByCode}
-                      workspaceDataLoading={workspaceDataLoading}
-                      workspaceDataError={workspaceDataError}
-                      onEnterWorkspace={onEnterWorkspace}
-                    />
-                  </div>
-                </ChromeTabsContent>
-
-                <ChromeTabsContent value="activity" className="flex min-h-0 flex-1 flex-col pt-3">
-                  <div className="flex min-h-0 flex-1 flex-col">
-                    <OrganizationMemberInspectActivityTab
-                      items={activityItems}
-                      loading={activityLoading}
-                      error={activityError}
-                      isFetchingNextPage={isFetchingNextActivityPage}
-                      onRetry={refetchActivity}
-                      onSelect={(event) => setSelectedActivity(event)}
-                      scrollRef={activityScrollRef}
-                      sentinelRef={activitySentinelRef}
-                    />
-                  </div>
-                </ChromeTabsContent>
-              </ChromeTabs>
-            </div>
-
-            <SheetFooter className="sticky bottom-0 border-t bg-card px-6 py-3">
-              <div className="flex w-full items-center justify-end gap-2">
-                <AntButton type="text" onClick={() => onAdjustRole(member)} autoInsertSpace={false}>
-                  {t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE")}
-                </AntButton>
-                <AntButton
-                  danger
-                  disabled={isOwnerSelf}
-                  onClick={() => {
-                    if (isOwnerSelf) return;
-                    onRemoveMember(member);
-                  }}
-                  autoInsertSpace={false}
-                >
-                  {isCurrentUser ? leaveLabel : removeLabel}
-                </AntButton>
-              </div>
-            </SheetFooter>
-          </div>
-        ) : null}
-      </SheetContent>
+    <>
+      <MemberContextDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        dialogTitle={t("common:ORG_MEMBERS_INSPECT_TITLE")}
+        dialogDescription={t("common:ORG_MEMBERS_INSPECT_DESC")}
+        member={activeMember}
+        scopeLabel={t("common:ORG_MEMBERS_CONTEXT_SCOPE")}
+        scopeVariant="organization"
+        badges={
+          <>
+            <OrgRoleTag
+              role={activeMember.role}
+              className="!mr-0 max-w-full overflow-hidden"
+              label={
+                <span className="truncate">
+                  {roleDetail?.name || t(`common:ORG_ROLE_${activeMember.role.toUpperCase()}`)}
+                </span>
+              }
+            />
+            <OrgUserStatusTag
+              status={activeMember.userStatus}
+              className="!mr-0 max-w-full overflow-hidden"
+              label={
+                <span className="truncate">{userStatusLabel(t, activeMember.userStatus)}</span>
+              }
+            />
+          </>
+        }
+        actionButtons={[
+          {
+            key: "change-role",
+            label: t("common:ORG_MEMBERS_ACTION_CHANGE_ROLE"),
+            onClick: () => onAdjustRole(activeMember),
+          },
+          {
+            key: "remove-member",
+            label: isCurrentUser
+              ? t("common:ORG_MEMBERS_ACTION_LEAVE_ORGANIZATION")
+              : t("common:DELETE"),
+            onClick: () => {
+              if (isOwnerSelf) return;
+              onRemoveMember(activeMember);
+            },
+            disabled: isOwnerSelf,
+            danger: true,
+          },
+        ]}
+        tabs={[
+          {
+            key: "overview",
+            label: t("common:ORG_MEMBERS_CONTEXT_TAB_OVERVIEW"),
+            content: (
+              <OrganizationMemberInspectOverviewTab
+                member={activeMember}
+                roleName={roleDetail?.name ?? null}
+                roleDescription={roleDetail?.description ?? null}
+                permissions={rolePermissions}
+                recentActivity={activityItems[0] ?? null}
+              />
+            ),
+          },
+          {
+            key: "access",
+            label: t("common:ORG_MEMBERS_CONTEXT_TAB_ACCESS"),
+            content: (
+              <OrganizationMemberInspectRoleTab
+                roleName={roleDetail?.name ?? null}
+                roleDescription={roleDetail?.description ?? null}
+                permissions={rolePermissions}
+                rolesLoading={rolesLoading}
+                permissionsLoading={permissionsLoading}
+                rolesError={rolesError}
+                permissionsError={permissionsError}
+              />
+            ),
+          },
+          {
+            key: "participation",
+            label: t("common:ORG_MEMBERS_CONTEXT_TAB_PARTICIPATION"),
+            content: (
+              <OrganizationMemberInspectWorkspacesTab
+                workspaces={resolvedWorkspaces}
+                roleNameByCode={roleNameByCode}
+                workspaceDataLoading={workspaceDataLoading}
+                workspaceDataError={workspaceDataError}
+                onEnterWorkspace={onEnterWorkspace}
+              />
+            ),
+          },
+          {
+            key: "activity",
+            label: t("common:ORG_MEMBERS_INSPECT_TAB_ACTIVITY"),
+            content: (
+              <OrganizationMemberInspectActivityTab
+                items={activityItems}
+                loading={activityLoading}
+                error={activityError}
+                isFetchingNextPage={isFetchingNextActivityPage}
+                onRetry={refetchActivity}
+                onSelect={(event) => setSelectedActivity(event)}
+                scrollRef={activityScrollRef}
+                sentinelRef={activitySentinelRef}
+              />
+            ),
+          },
+        ]}
+      />
 
       <ActivityDetailDialog
         open={Boolean(selectedActivity)}
@@ -320,6 +273,6 @@ export function OrganizationMemberInspectSheet({
         event={selectedActivity}
         workspaceLabelById={workspaceLabelById}
       />
-    </Sheet>
+    </>
   );
 }

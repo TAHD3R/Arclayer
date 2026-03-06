@@ -60,7 +60,6 @@ export function OrganizationMemberInspectRoleTab({
         </p>
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 text-title3">{t("team:TEAM_ROLES_COL_PERMISSION")}</div>
           <div className="min-h-0 flex-1 divide-y overflow-auto rounded-md border">
             {permissions.map((permission) => (
               <div key={permission.code} className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2">

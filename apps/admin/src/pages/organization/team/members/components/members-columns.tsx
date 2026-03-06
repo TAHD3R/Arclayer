@@ -2,7 +2,7 @@ import { Button as AntButton } from "antd";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
-import { UserAvatar } from "@/components/common/entity-avatar";
+import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
 import { OrgMembershipStatusTag, OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
 import {
@@ -52,19 +52,39 @@ export function createOrganizationMemberColumns({
       header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
       cell: ({ row }) => {
         const item = row.original;
-        const primary = item.displayName || item.username;
-        const secondary = item.email || "-";
         const isCurrentUser = currentUserId !== null && item.userId === currentUserId;
         const isOwnerSelf = item.role === "owner" && isCurrentUser;
 
         return (
           <div className="flex min-w-0 items-center gap-3">
-            <UserAvatar name={primary} assetRef={item.avatarUrl} size={28} className="shrink-0" />
-
-            <div className="min-w-0">
-              <div className="truncate font-medium">{primary}</div>
-              <div className="truncate text-caption text-label-secondary">{secondary}</div>
-            </div>
+            <MemberIdentityCell
+              member={item}
+              scopeLabel={t("common:ORG_MEMBERS_CONTEXT_SCOPE")}
+              scopeVariant="organization"
+              badges={
+                <>
+                  <OrgRoleTag
+                    role={item.role}
+                    className="!mr-0 max-w-full overflow-hidden"
+                    label={
+                      <span className="truncate">
+                        {roleNameByCode.get(item.roleCode) || item.roleCode}
+                      </span>
+                    }
+                  />
+                  <OrgUserStatusTag
+                    status={item.userStatus}
+                    className="!mr-0 max-w-full overflow-hidden"
+                    label={<span className="truncate">{userStatusLabel(t, item.userStatus)}</span>}
+                  />
+                </>
+              }
+              description={t("common:ORG_MEMBERS_CONTEXT_HOVER_SUMMARY", {
+                workspaceCount: item.workspaceCount,
+              })}
+              onOpenDetails={() => onInspectMember(item)}
+              className="min-w-0 flex-1"
+            />
 
             <div className="ml-auto pl-2">
               <DropdownMenu>

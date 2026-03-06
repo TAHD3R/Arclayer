@@ -1,5 +1,5 @@
 import { Button as AntButton, Input as AntInput, Pagination } from "antd";
-import { MoreVertical, Plus, UserCheck, UserCog, UserX, Search } from "lucide-react";
+import { Eye, MoreVertical, Plus, Search, UserCheck, UserCog, UserX } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -15,7 +15,7 @@ import {
   listTeamMembers,
   setTeamMemberRoles,
 } from "@/api/team";
-import { UserAvatar } from "@/components/common/entity-avatar";
+import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
 import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
@@ -44,6 +44,7 @@ import { useAuthStore } from "@/stores/use-auth-store";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
+import { WorkspaceMemberContextDialog } from "@/pages/workspaces/team/shared/components/workspace-member-context-dialog";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { TeamMembersDataTable } from "./members-data-table";
 import type { TeamMemberExtraQuery } from "../types";
@@ -125,6 +126,7 @@ export function TeamMembersView() {
 
   const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null);
   const [editingRoleCode, setEditingRoleCode] = React.useState<string | null>(null);
+  const [inspectingMember, setInspectingMember] = React.useState<TeamMember | null>(null);
   const canEditRoles = Boolean(editingMember) && editingMember?.membershipStatus === "active";
 
   const extraQuery = React.useMemo<TeamMemberExtraQuery>(
@@ -191,22 +193,46 @@ export function TeamMembersView() {
         header: t("team:TEAM_TABLE_COL_USER"),
         cell: ({ row }) => {
           const m = row.original;
-          const primary = (m.displayName || m.username || m.email || "-").trim() || "-";
-          const secondary = m.email || m.username || "";
           const canEnable = m.membershipStatus === "disabled";
           const canDisable = m.membershipStatus === "active";
           const isSelf = currentUserId ? String(currentUserId) === String(m.userId) : false;
           const canEditMemberRoles = m.membershipStatus === "active";
+          const roleSummary =
+            m.roleCodes.length <= 1
+              ? (roleNameByCode.get(m.roleCodes[0] ?? "") ?? m.roleCodes[0] ?? "-")
+              : t("team:TEAM_MEMBER_CONTEXT_MULTIPLE_ROLES", { count: m.roleCodes.length });
+          const hoverStatusLabel =
+            m.userStatus === "active"
+              ? t("team:TEAM_USER_STATUS_ACTIVE")
+              : m.userStatus === "disabled"
+                ? t("team:TEAM_USER_STATUS_DISABLED")
+                : t("team:TEAM_USER_STATUS_LOCKED");
 
           return (
             <div className="flex items-center gap-3">
-              <UserAvatar name={primary} assetRef={m.avatarUrl} size={28} className="shrink-0" />
-              <div className="min-w-0">
-                <div className="font-medium truncate">{primary}</div>
-                {secondary ? (
-                  <div className="text-label-secondary text-caption truncate">{secondary}</div>
-                ) : null}
-              </div>
+              <MemberIdentityCell
+                member={m}
+                scopeLabel={t("team:TEAM_MEMBER_CONTEXT_SCOPE")}
+                scopeVariant="workspace"
+                badges={
+                  <>
+                    <TeamRoleTag
+                      className="!mr-0 max-w-full overflow-hidden"
+                      label={<span className="truncate">{roleSummary}</span>}
+                    />
+                    <TeamUserStatusTag
+                      status={m.userStatus}
+                      className="!mr-0 max-w-full overflow-hidden"
+                      label={<span className="truncate">{hoverStatusLabel}</span>}
+                    />
+                  </>
+                }
+                description={t("team:TEAM_MEMBER_CONTEXT_HOVER_SUMMARY", {
+                  roleCount: m.roleCodes.length,
+                })}
+                onOpenDetails={() => setInspectingMember(m)}
+                className="min-w-0 flex-1"
+              />
 
               <div className="ml-auto pl-2">
                 <DropdownMenu>
@@ -220,6 +246,12 @@ export function TeamMembersView() {
                     />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuIconItem
+                      icon={<Eye className="size-4" />}
+                      onSelect={() => setInspectingMember(m)}
+                    >
+                      {t("team:TEAM_MEMBER_CONTEXT_TITLE")}
+                    </DropdownMenuIconItem>
                     <DropdownMenuIconItem
                       icon={<UserCog className="size-4" />}
                       disabled={!canEditMemberRoles || rolesQueryFailed}
@@ -495,6 +527,26 @@ export function TeamMembersView() {
               roleCodes: editingRoleCode ? [editingRoleCode] : [],
             });
           }}
+        />
+
+        <WorkspaceMemberContextDialog
+          open={Boolean(inspectingMember)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setInspectingMember(null);
+            }
+          }}
+          workspaceId={workspaceId ? String(workspaceId) : null}
+          member={inspectingMember}
+          currentUserId={currentUserId}
+          onAdjustRoles={(member) => {
+            setInspectingMember(null);
+            setEditingMember(member);
+            setEditingRoleCode(member.roleCodes?.[0] ?? null);
+          }}
+          onEnable={(membershipId) => enableMutation.mutate(membershipId)}
+          onDisable={(membershipId) => disableMutation.mutate(membershipId)}
+          rolesUpdateDisabled={rolesQueryFailed || rolesQuery.isLoading}
         />
 
         {pageData ? (
