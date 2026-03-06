@@ -20,7 +20,8 @@ type ActivityTranslator = (key: string, options?: Record<string, unknown>) => st
 
 function buildTitle(t: ActivityTranslator, event: ActivityEvent): string {
   const entry = resolveCatalogEntry(event.eventName);
-  if (!entry) return t("activity:ACTIVITY_DETAIL_TITLE");
+  const rawName = (event.eventName || "").trim() || "-";
+  if (!entry) return t("activity:ACTIVITY_EVENT_UNKNOWN_TITLE", { eventName: rawName });
   return t(`activity:${entry.titleKey}`);
 }
 
@@ -29,7 +30,11 @@ function buildDescription(t: ActivityTranslator, event: ActivityEvent): string {
   const rawName = (event.eventName || "").trim() || "-";
   const parts: string[] = [];
   parts.push(`${t("activity:ACTIVITY_FIELD_EVENT_NAME")}: ${rawName}`);
-  if (entry?.descriptionKey) parts.push(t(`activity:${entry.descriptionKey}`));
+  if (entry?.descriptionKey) {
+    parts.push(t(`activity:${entry.descriptionKey}`));
+  } else {
+    parts.push(t("activity:ACTIVITY_EVENT_UNKNOWN_DESC", { eventName: rawName }));
+  }
   return parts.join(" · ");
 }
 

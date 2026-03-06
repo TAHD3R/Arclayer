@@ -209,7 +209,7 @@ type ActivityTimelineEntryProps = {
   clickable: boolean;
   onSelect?: (event: ActivityEvent) => void;
   dateTime: DateTimeFormatter;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 };
 
 function ActivityTimelineEntry({
@@ -230,8 +230,13 @@ function ActivityTimelineEntry({
     : "-";
 
   const catalog = resolveCatalogEntry(event.eventName);
-  const eventTitle = catalog ? t(`activity:${catalog.titleKey}`) : event.eventName;
-  const eventDesc = catalog?.descriptionKey ? t(`activity:${catalog.descriptionKey}`) : null;
+  const rawEventName = (event.eventName || "").trim() || "-";
+  const eventTitle = catalog
+    ? t(`activity:${catalog.titleKey}`)
+    : t("activity:ACTIVITY_EVENT_UNKNOWN_TITLE", { eventName: rawEventName });
+  const eventDesc = catalog?.descriptionKey
+    ? t(`activity:${catalog.descriptionKey}`)
+    : t("activity:ACTIVITY_EVENT_UNKNOWN_DESC", { eventName: rawEventName });
   const { Icon, className: iconClass } = getEventIndicator(catalog?.level);
 
   const actor = event.actor

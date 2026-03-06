@@ -86,6 +86,7 @@ async def set_member_roles(
 ) -> ResponseModel[None]:
     service = WorkspaceTeamService(settings)
     await service.set_member_roles(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
         membership_id=membership_id,
         payload=payload,
@@ -104,10 +105,17 @@ async def update_member_user(
     membership_id: PublicUUID,
     payload: WorkspaceTeamUserUpdateRequest,
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberOut]:
     service = WorkspaceTeamService(settings)
-    out = await service.update_member_user(workspace_id=ctx.workspace_id, membership_id=membership_id, payload=payload)
+    out = await service.update_member_user(
+        organization_id=ctx.organization_id,
+        workspace_id=ctx.workspace_id,
+        membership_id=membership_id,
+        payload=payload,
+        acting_user_id=user_id,
+    )
     return Response.success(data=out)
 
 
@@ -125,6 +133,7 @@ async def enable_member(
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
     service = WorkspaceTeamService(settings)
     out = await service.set_member_status(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
         membership_id=membership_id,
         enabled=True,
@@ -147,6 +156,7 @@ async def disable_member(
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
     service = WorkspaceTeamService(settings)
     out = await service.set_member_status(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
         membership_id=membership_id,
         enabled=False,
@@ -170,6 +180,7 @@ async def reset_member_password(
 ) -> ResponseModel[None]:
     service = WorkspaceTeamService(settings)
     await service.reset_member_password(
+        organization_id=ctx.organization_id,
         workspace_id=ctx.workspace_id,
         membership_id=membership_id,
         payload=payload,

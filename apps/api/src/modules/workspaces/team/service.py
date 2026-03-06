@@ -457,9 +457,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     async def update_member_user(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
         membership_id: UUID,
         payload: WorkspaceTeamUserUpdateRequest,
+        acting_user_id: UUID,
     ) -> WorkspaceTeamMemberOut:
         """
         Update a member's user profile (global identity) but enforce workspace scope.
@@ -498,6 +500,23 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
                 # Defensive: email has a unique constraint. Race conditions can still happen.
                 raise Conflict(message=t("errors", "CONFLICT", default="资源冲突"), error="CONFLICT") from exc
 
+            await self._publish_activity_event(
+                name="workspace.member.profile.updated",
+                actor_user_id=acting_user_id,
+                payload={
+                    "organization_id": str(organization_id),
+                    "workspace_id": str(workspace_id),
+                    "membership_id": str(membership.id),
+                    "subject_user_id": str(user.id),
+                    "entity_type": "workspace_membership",
+                    "entity_id": str(membership.id),
+                    "changed_fields": sorted(updates.keys()),
+                    "email_updated": "email" in updates,
+                    "display_name_updated": "display_name" in updates,
+                    "avatar_url_updated": "avatar_url" in updates,
+                },
+            )
+
         membership = (
             await WorkspaceMembership
             .get_or_none(id=membership.id)
@@ -510,6 +529,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     async def set_member_status(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
         membership_id: UUID,
         enabled: bool,
@@ -541,9 +561,12 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             name="workspace.member.status.updated",
             actor_user_id=acting_user_id,
             payload={
+                "organization_id": str(organization_id),
                 "workspace_id": str(workspace_id),
                 "membership_id": str(membership.id),
                 "subject_user_id": str(subject_user_id) if subject_user_id else None,
+                "entity_type": "workspace_membership",
+                "entity_id": str(membership.id),
                 "enabled": bool(enabled),
             },
         )
@@ -561,6 +584,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     async def reset_member_password(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
         membership_id: UUID,
         payload: WorkspaceTeamResetPasswordRequest,
@@ -585,6 +609,18 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         password_hash = hash_password(payload.new_password, self.settings.auth)
         await self.user_repo.set_password(user, password_hash)
         await self.user_repo.increment_token_version(user)
+        await self._publish_activity_event(
+            name="workspace.member.password.reset",
+            actor_user_id=acting_user_id,
+            payload={
+                "organization_id": str(organization_id),
+                "workspace_id": str(workspace_id),
+                "membership_id": str(membership.id),
+                "subject_user_id": str(membership_user_id),
+                "entity_type": "workspace_membership",
+                "entity_id": str(membership.id),
+            },
+        )
         await self._notify_member_password_reset(
             workspace_id=workspace_id,
             subject_user_id=membership_user_id,
@@ -594,6 +630,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     async def set_member_roles(
         self,
         *,
+        organization_id: UUID,
         workspace_id: UUID,
         membership_id: UUID,
         payload: WorkspaceTeamMemberRoleSetRequest,
@@ -647,9 +684,12 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             name="workspace.member.roles.updated",
             actor_user_id=acting_user_id,
             payload={
+                "organization_id": str(organization_id),
                 "workspace_id": str(workspace_id),
                 "membership_id": str(membership.id),
                 "subject_user_id": str(subject_user_id) if subject_user_id else None,
+                "entity_type": "workspace_membership",
+                "entity_id": str(membership.id),
                 "role_codes_before": before_codes,
                 "role_codes_after": sorted({r.code for r in roles}),
             },

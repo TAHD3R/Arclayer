@@ -46,6 +46,16 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
     descriptionKey: "ACTIVITY_EVENT_WORKSPACE_MEMBER_ROLES_UPDATED_DESC",
     level: "info",
   },
+  "workspace.member.profile.updated": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_MEMBER_PROFILE_UPDATED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_MEMBER_PROFILE_UPDATED_DESC",
+    level: "info",
+  },
+  "workspace.member.password.reset": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_MEMBER_PASSWORD_RESET_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_MEMBER_PASSWORD_RESET_DESC",
+    level: "warning",
+  },
   "workspace.invite.email.created": {
     titleKey: "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_CREATED_TITLE",
     descriptionKey: "ACTIVITY_EVENT_WORKSPACE_INVITE_EMAIL_CREATED_DESC",
@@ -81,6 +91,11 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
     descriptionKey: "ACTIVITY_EVENT_WORKSPACE_INVITE_LINK_DISABLED_DESC",
     level: "warning",
   },
+  "workspace.invite.accepted": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_INVITE_ACCEPTED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_INVITE_ACCEPTED_DESC",
+    level: "info",
+  },
 
   // RBAC
   "rbac.role.created": {
@@ -101,6 +116,43 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
   "rbac.permission.roles_set": {
     titleKey: "ACTIVITY_EVENT_RBAC_PERMISSION_ROLES_SET_TITLE",
     descriptionKey: "ACTIVITY_EVENT_RBAC_PERMISSION_ROLES_SET_DESC",
+    level: "info",
+  },
+  "rbac.role.permissions_set": {
+    titleKey: "ACTIVITY_EVENT_RBAC_ROLE_PERMISSIONS_SET_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_RBAC_ROLE_PERMISSIONS_SET_DESC",
+    level: "info",
+  },
+
+  // System / Plugin / Asset / Settings
+  "system.setup.completed": {
+    titleKey: "ACTIVITY_EVENT_SYSTEM_SETUP_COMPLETED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_SYSTEM_SETUP_COMPLETED_DESC",
+    level: "info",
+  },
+  "settings.updated": {
+    titleKey: "ACTIVITY_EVENT_SETTINGS_UPDATED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_SETTINGS_UPDATED_DESC",
+    level: "warning",
+  },
+  "plugin.installed": {
+    titleKey: "ACTIVITY_EVENT_PLUGIN_INSTALLED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_PLUGIN_INSTALLED_DESC",
+    level: "info",
+  },
+  "plugin.enabled": {
+    titleKey: "ACTIVITY_EVENT_PLUGIN_ENABLED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_PLUGIN_ENABLED_DESC",
+    level: "info",
+  },
+  "plugin.disabled": {
+    titleKey: "ACTIVITY_EVENT_PLUGIN_DISABLED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_PLUGIN_DISABLED_DESC",
+    level: "warning",
+  },
+  "asset.uploaded": {
+    titleKey: "ACTIVITY_EVENT_ASSET_UPLOADED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_ASSET_UPLOADED_DESC",
     level: "info",
   },
 };

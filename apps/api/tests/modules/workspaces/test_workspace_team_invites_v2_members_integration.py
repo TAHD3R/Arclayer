@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Protocol, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -22,6 +23,29 @@ class _CredentialWithHash(Protocol):
 class _UserWithCredential(Protocol):
     credential: _CredentialWithHash | None
     token_version: int | None
+
+
+async def _wait_latest_workspace_audit_event(
+    *,
+    event_name: str,
+    workspace_id: UUID,
+    timeout_seconds: float = 3.0,
+):
+    from apps.api.src.models.analytics.audit_event import AuditEvent
+
+    deadline = asyncio.get_running_loop().time() + timeout_seconds
+    while True:
+        row = (
+            await AuditEvent
+            .filter(event_name=event_name, workspace_id=workspace_id)
+            .order_by("-occurred_at", "-id")
+            .first()
+        )
+        if row is not None:
+            return row
+        if asyncio.get_running_loop().time() >= deadline:
+            raise AssertionError(f"expected audit event not found: {event_name}")
+        await asyncio.sleep(0.1)
 
 
 async def _enable_mail_service() -> None:
@@ -503,6 +527,20 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
             assert out["membershipId"] == member_m_pid
             assert out["displayName"] == "Member Renamed"
             assert out["email"] == "member2@example.com"
+            profile_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.member.profile.updated",
+                workspace_id=ws.id,
+            )
+            assert profile_event.organization_id == org.id
+            assert profile_event.actor_user_id == owner.id
+            assert profile_event.subject_user_id == member.id
+            assert profile_event.entity_type == "workspace_membership"
+            assert profile_event.entity_id == member_m.id
+            assert isinstance(profile_event.properties, dict)
+            changed_fields = profile_event.properties.get("changed_fields")
+            assert isinstance(changed_fields, list)
+            assert "display_name" in changed_fields
+            assert "email" in changed_fields
 
             # Email conflict should be rejected.
             resp = await client.patch(
@@ -573,6 +611,15 @@ async def test_workspace_team_member_manage_update_disable_enable_and_reset_pass
                 ).count()
                 == 1
             )
+            pwd_event = await _wait_latest_workspace_audit_event(
+                event_name="workspace.member.password.reset",
+                workspace_id=ws.id,
+            )
+            assert pwd_event.organization_id == org.id
+            assert pwd_event.actor_user_id == owner.id
+            assert pwd_event.subject_user_id == member.id
+            assert pwd_event.entity_type == "workspace_membership"
+            assert pwd_event.entity_id == member_m.id
 
             # Disabling self should be rejected.
             resp = await client.post(f"/api/v1/workspaces/{ws_pid}/team/members/{owner_m_pid}/disable")
