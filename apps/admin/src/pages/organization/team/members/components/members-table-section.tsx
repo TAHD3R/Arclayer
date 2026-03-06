@@ -24,6 +24,7 @@ interface OrganizationMembersTableSectionProps {
   onSearchInputChange: (value: string) => void;
   filters: OrgMemberFilters;
   onFiltersChange: (next: OrgMemberFilters) => void;
+  roleOptions: Array<{ value: string; label: string }>;
   isFetching: boolean;
   isLoading: boolean;
   onRefresh: () => Promise<unknown> | void;
@@ -39,6 +40,7 @@ export function OrganizationMembersTableSection({
   onSearchInputChange,
   filters,
   onFiltersChange,
+  roleOptions,
   isFetching,
   isLoading,
   onRefresh,
@@ -60,7 +62,7 @@ export function OrganizationMembersTableSection({
         style={{ width: 360, maxWidth: "100%" }}
       />
 
-      <MembersFilterPopover value={filters} onChange={onFiltersChange} />
+      <MembersFilterPopover value={filters} onChange={onFiltersChange} roleOptions={roleOptions} />
     </div>
   );
 

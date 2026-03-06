@@ -36,6 +36,7 @@ export function OrganizationTeamMembersPage() {
           onSearchInputChange={toolbarProps.onSearchInputChange}
           filters={toolbarProps.filters}
           onFiltersChange={toolbarProps.onFiltersChange}
+          roleOptions={toolbarProps.roleOptions}
           isFetching={tableState.isFetching}
           isLoading={tableState.isLoading}
           onRefresh={tableState.refetch}
