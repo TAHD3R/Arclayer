@@ -70,6 +70,33 @@ type TooltipPosition = { x: number; y: number };
 
 const TOOLTIP_OVERLAY_Z_INDEX = 100;
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function areTooltipValuesEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== typeof b || a == null || b == null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, index) => areTooltipValuesEqual(item, b[index]));
+  }
+  if (React.isValidElement(a) || React.isValidElement(b)) {
+    if (!React.isValidElement(a) || !React.isValidElement(b)) return false;
+    return a.type === b.type && a.key === b.key && areTooltipValuesEqual(a.props, b.props);
+  }
+  if (isPlainObject(a) || isPlainObject(b)) {
+    if (!isPlainObject(a) || !isPlainObject(b)) return false;
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((key) => Object.hasOwn(b, key) && areTooltipValuesEqual(a[key], b[key]));
+  }
+  return false;
+}
+
 function getResolvedSide(placement: Side | `${Side}-${Align}`) {
   if (placement.includes("-")) {
     return placement.split("-")[0] as Side;
@@ -101,6 +128,7 @@ function TooltipProvider({
 }: TooltipProviderProps) {
   const globalId = React.useId();
   const [currentTooltip, setCurrentTooltip] = React.useState<TooltipData | null>(null);
+  const currentTooltipRef = React.useRef<TooltipData | null>(null);
   const timeoutRef = React.useRef<number | null>(null);
   const lastCloseTimeRef = React.useRef<number>(0);
   const referenceElRef = React.useRef<HTMLElement | null>(null);
@@ -108,20 +136,25 @@ function TooltipProvider({
   const showTooltip = React.useCallback(
     (data: TooltipData) => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (currentTooltip !== null) {
+      if (currentTooltipRef.current !== null) {
+        currentTooltipRef.current = data;
         setCurrentTooltip(data);
         return;
       }
       const now = Date.now();
       const delay = now - lastCloseTimeRef.current < closeDelay ? 0 : openDelay;
-      timeoutRef.current = window.setTimeout(() => setCurrentTooltip(data), delay);
+      timeoutRef.current = window.setTimeout(() => {
+        currentTooltipRef.current = data;
+        setCurrentTooltip(data);
+      }, delay);
     },
-    [openDelay, closeDelay, currentTooltip],
+    [openDelay, closeDelay],
   );
 
   const hideTooltip = React.useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = window.setTimeout(() => {
+      currentTooltipRef.current = null;
       setCurrentTooltip(null);
       lastCloseTimeRef.current = Date.now();
     }, closeDelay);
@@ -129,6 +162,7 @@ function TooltipProvider({
 
   const hideImmediate = React.useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    currentTooltipRef.current = null;
     setCurrentTooltip(null);
     lastCloseTimeRef.current = Date.now();
   }, []);
@@ -379,17 +413,17 @@ function Tooltip({
 
 type TooltipContentProps = WithAsChild<HTMLMotionProps<"div">>;
 
-function shallowEqualWithoutChildren(a?: HTMLMotionProps<"div">, b?: HTMLMotionProps<"div">) {
+function areTooltipContentPropsEqual(a?: HTMLMotionProps<"div">, b?: HTMLMotionProps<"div">) {
   if (a === b) return true;
   if (!a || !b) return false;
-  const keysA = Object.keys(a).filter((k) => k !== "children");
-  const keysB = Object.keys(b).filter((k) => k !== "children");
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  const recordA = a as Record<string, unknown>;
+  const recordB = b as Record<string, unknown>;
   if (keysA.length !== keysB.length) return false;
-  for (const k of keysA) {
-    // @ts-expect-error index
-    if (a[k] !== b[k]) return false;
-  }
-  return true;
+  return keysA.every(
+    (key) => Object.hasOwn(recordB, key) && areTooltipValuesEqual(recordA[key], recordB[key]),
+  );
 }
 
 function TooltipContent({ asChild = false, ...props }: TooltipContentProps) {
@@ -397,7 +431,7 @@ function TooltipContent({ asChild = false, ...props }: TooltipContentProps) {
   const lastPropsRef = React.useRef<HTMLMotionProps<"div"> | undefined>(undefined);
 
   React.useEffect(() => {
-    if (!shallowEqualWithoutChildren(lastPropsRef.current, props)) {
+    if (!areTooltipContentPropsEqual(lastPropsRef.current, props)) {
       lastPropsRef.current = props;
       setProps(props);
     }
@@ -438,6 +472,42 @@ function TooltipTrigger({
   React.useImperativeHandle(ref, () => triggerRef.current as HTMLDivElement);
 
   const suppressNextFocusRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (currentTooltip?.id !== id || !triggerRef.current) return;
+    if (
+      currentTooltip.contentProps === contentProps &&
+      currentTooltip.contentAsChild === contentAsChild &&
+      currentTooltip.side === side &&
+      currentTooltip.sideOffset === sideOffset &&
+      currentTooltip.align === align &&
+      currentTooltip.alignOffset === alignOffset
+    ) {
+      return;
+    }
+    setReferenceEl(triggerRef.current);
+    showTooltip({
+      contentProps,
+      contentAsChild,
+      rect: triggerRef.current.getBoundingClientRect(),
+      side,
+      sideOffset,
+      align,
+      alignOffset,
+      id,
+    });
+  }, [
+    align,
+    alignOffset,
+    contentAsChild,
+    contentProps,
+    currentTooltip,
+    id,
+    setReferenceEl,
+    showTooltip,
+    side,
+    sideOffset,
+  ]);
 
   const handleOpen = React.useCallback(() => {
     if (!triggerRef.current) return;
