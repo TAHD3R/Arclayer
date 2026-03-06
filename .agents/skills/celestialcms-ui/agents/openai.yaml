@@ -1,0 +1,4 @@
+interface:
+  display_name: "CelestialCMS UI"
+  short_description: "同 Feel 的 Admin/Studio 页面与弹层"
+  default_prompt: "使用 $celestialcms-ui 按 CelestialCMS 既有规范设计并实现一个新的 Admin 页面或 SettingDialog。"

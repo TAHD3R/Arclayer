@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { SettingCard, SettingCardHeader } from "@celestial/ui/setting-card";
 import { type AppLocale } from "@/lib/i18n";
+import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import { buildTimezoneOptions } from "@/lib/settings/general/localization-options";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
@@ -76,6 +77,7 @@ export function MePreferencesLocalizationSection() {
                 showSearch
                 options={timeZoneOptions}
                 style={{ width: "100%" }}
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
                 onChange={(value) => {
                   if (value === "__auto__") {
                     setTimeZonePreference(null);
@@ -103,6 +105,7 @@ export function MePreferencesLocalizationSection() {
                 value={languageValue}
                 options={languageOptions}
                 style={{ width: "100%" }}
+                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
                 onChange={(value) => {
                   if (value === "workspace") {
                     setWorkspaceLocaleMode();

@@ -5,6 +5,7 @@ import { Bell, Shield, SlidersHorizontal, UserRound, X, type LucideIcon } from "
 
 import { ComplexDialog } from "@celestial/ui/complex-dialog";
 import { cn } from "@celestial/lib/utils";
+import { MiniCategoryNav } from "@celestial/ui/mini-category-nav";
 import { MeNotificationSettingsPage } from "@/pages/me/notifications/page";
 import { MePreferencesView } from "@/pages/me/preferences/components/me-preferences-view";
 import { MeProfileView } from "@/pages/me/profile/components/me-profile-view";
@@ -63,37 +64,29 @@ function MeSettingsTabNavigation(props: {
   onTabChange: (tab: MeSettingsDialogTab) => void;
   ariaLabel: string;
 }) {
-  return (
-    <nav
-      aria-label={props.ariaLabel}
-      role="tablist"
-      aria-orientation="vertical"
-      className="space-y-1 px-2 py-3"
-    >
-      {props.items.map((item) => {
+  const navItems = useMemo(
+    () =>
+      props.items.map((item) => {
         const Icon = item.icon;
-        const isActive = item.key === props.selectedTab;
-        return (
-          <button
-            key={item.key}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => props.onTabChange(item.key)}
-            className={cn(
-              "flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-footnote",
-              "transition-colors",
-              isActive
-                ? "bg-background text-label-primary font-semibold shadow-sm ring-1 ring-border/70"
-                : "text-label-secondary hover:bg-background/75 hover:text-label-primary",
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="truncate">{item.label}</span>
-          </button>
-        );
-      })}
-    </nav>
+        return {
+          key: item.key,
+          icon: <Icon className="h-4 w-4" aria-hidden="true" />,
+          label: item.label,
+        } as const;
+      }),
+    [props.items],
+  );
+
+  return (
+    <MiniCategoryNav
+      ariaLabel={props.ariaLabel}
+      items={navItems}
+      selectedKey={props.selectedTab}
+      onSelect={(key) => props.onTabChange(key as MeSettingsDialogTab)}
+      className="px-2 py-3"
+      itemClassName="text-footnote"
+      itemHeightClassName="h-10"
+    />
   );
 }
 
@@ -127,7 +120,7 @@ function MeSettingsDialogBody(props: {
         />
       </aside>
 
-      <section className="relative z-[1] flex min-h-0 flex-1 overflow-auto [transform:translateZ(0)]">
+      <section className="relative z-[1] flex min-h-0 flex-1 overflow-auto">
         <div className="flex w-full min-w-0 justify-center px-[clamp(18px,5vw,60px)] py-9">
           <div className="flex w-full max-w-[800px] min-w-0 flex-col gap-9">
             <div role="tabpanel" className="flex min-w-0 flex-col gap-9">

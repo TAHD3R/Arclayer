@@ -1,4 +1,10 @@
+const DIALOG_OVERLAY_ROOT_SELECTOR = "[data-overlay-root=dialog]";
+
 const OVERLAY_ROOT_SELECTORS = [
+  // NOTE:
+  // Do not include DIALOG_OVERLAY_ROOT_SELECTOR here and rely on `closest()` ordering.
+  // `Element.closest()` always returns the nearest matching ancestor, not the first selector match.
+  // For dialogs we must explicitly prefer the fixed overlay root over the animated dialog content.
   "[data-slot=dialog-content]",
   "[data-slot=sheet-content]",
   "[data-slot=popover-content]",
@@ -19,6 +25,13 @@ export function getPopupContainerWithinOverlay(triggerNode?: HTMLElement | null)
 
   if (!triggerNode) {
     return document.body;
+  }
+
+  // Prefer the fixed overlay root (viewport-aligned) over the animated dialog content.
+  // This prevents rc-trigger popups (Select/Tooltip) from being affected by dialog content layout/transforms.
+  const dialogOverlayRoot = triggerNode.closest(DIALOG_OVERLAY_ROOT_SELECTOR);
+  if (dialogOverlayRoot instanceof HTMLElement) {
+    return dialogOverlayRoot;
   }
 
   const overlayRoot = triggerNode.closest(OVERLAY_ROOT_SELECTORS);

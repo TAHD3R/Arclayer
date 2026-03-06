@@ -83,7 +83,7 @@ export function MePreferencesAppearanceSection() {
           description={t("ME_PREF_TEXT_SIZE_DESC")}
           action={
             <Button
-              type="default"
+              type="primary"
               icon={<RotateCcw className="h-3.5 w-3.5" />}
               disabled={fontScalePreference === null}
               onClick={() => setFontScalePreference(null)}
@@ -116,7 +116,10 @@ export function MePreferencesAppearanceSection() {
                 max={1.25}
                 step={0.05}
                 value={fontScale}
-                tooltip={{ formatter: (v) => `${Math.round(Number(v) * 100)}%` }}
+                tooltip={{
+                  formatter: (v) => `${Math.round(Number(v) * 100)}%`,
+                  getPopupContainer: () => document.body,
+                }}
                 onChange={(v) => setFontScalePreference(typeof v === "number" ? v : Number(v))}
               />
               <div className="shrink-0 select-none text-[36px] leading-none text-label-secondary">
@@ -133,7 +136,7 @@ export function MePreferencesAppearanceSection() {
           description={t("ME_PREF_TEXT_WEIGHT_DESC")}
           action={
             <Button
-              type="default"
+              type="primary"
               icon={<RotateCcw className="h-3.5 w-3.5" />}
               disabled={fontWeightPreference === null}
               onClick={() => setFontWeightPreference(null)}
@@ -166,7 +169,10 @@ export function MePreferencesAppearanceSection() {
                 max={700}
                 step={25}
                 value={fontWeight}
-                tooltip={{ formatter: (v) => String(v) }}
+                tooltip={{
+                  formatter: (v) => String(v),
+                  getPopupContainer: () => document.body,
+                }}
                 onChange={(v) => setFontWeightPreference(typeof v === "number" ? v : Number(v))}
               />
               <div className="shrink-0 select-none text-[36px] font-bold leading-none text-label-secondary">

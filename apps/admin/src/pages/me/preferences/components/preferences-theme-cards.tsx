@@ -1,5 +1,6 @@
 import { cn } from "@celestial/lib/utils";
 import type { ThemePreference } from "@/types/stores";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 function AdminLayoutMockupContent({ isDark }: { isDark: boolean }) {
   const bg = isDark ? "hsl(220 10% 8%)" : "hsl(210 30% 98%)";
@@ -116,6 +117,8 @@ export function ThemeCard(props: {
   label: string;
   onSelect: () => void;
 }) {
+  const Icon = props.value === "system" ? Monitor : props.value === "dark" ? Moon : Sun;
+
   return (
     <button
       type="button"
@@ -129,8 +132,16 @@ export function ThemeCard(props: {
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       )}
     >
-      <div className="w-full aspect-[16/10]">
-        <AdminLayoutMockup mode={props.value} />
+      <div className="p-3">
+        <div
+          className={cn(
+            "w-full aspect-[16/10] overflow-hidden rounded-lg",
+            "ring-1",
+            props.selected ? "ring-primary/20 bg-primary/5" : "ring-border/60 bg-muted/10",
+          )}
+        >
+          <AdminLayoutMockup mode={props.value} />
+        </div>
       </div>
 
       <div
@@ -141,11 +152,12 @@ export function ThemeCard(props: {
       >
         <div
           className={cn(
-            "text-footnote font-medium",
+            "flex items-center gap-2 text-footnote font-medium",
             props.selected ? "text-primary" : "text-label-primary",
           )}
         >
-          {props.label}
+          <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">{props.label}</span>
         </div>
       </div>
     </button>

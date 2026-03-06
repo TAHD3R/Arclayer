@@ -92,9 +92,14 @@ function DialogContent({
   transition = { type: "spring", stiffness: 150, damping: 25 },
   ...props
 }: DialogContentProps) {
-  const initialRotation = from === "bottom" || from === "left" ? "20deg" : "-20deg";
-  const isVertical = from === "top" || from === "bottom";
-  const rotateAxis = isVertical ? "rotateX" : "rotateY";
+  const initialOffset =
+    from === "top"
+      ? ({ y: -14 } as const)
+      : from === "bottom"
+        ? ({ y: 14 } as const)
+        : from === "left"
+          ? ({ x: -14 } as const)
+          : ({ x: 14 } as const);
 
   return (
     <DialogPrimitive.Content
@@ -112,17 +117,21 @@ function DialogContent({
         initial={{
           opacity: 0,
           filter: "blur(4px)",
-          transform: `perspective(500px) ${rotateAxis}(${initialRotation}) scale(0.8)`,
+          scale: 0.98,
+          ...initialOffset,
         }}
         animate={{
           opacity: 1,
           filter: "blur(0px)",
-          transform: `perspective(500px) ${rotateAxis}(0deg) scale(1)`,
+          scale: 1,
+          x: 0,
+          y: 0,
         }}
         exit={{
           opacity: 0,
           filter: "blur(4px)",
-          transform: `perspective(500px) ${rotateAxis}(${initialRotation}) scale(0.8)`,
+          scale: 0.98,
+          ...initialOffset,
         }}
         transition={transition}
         {...props}

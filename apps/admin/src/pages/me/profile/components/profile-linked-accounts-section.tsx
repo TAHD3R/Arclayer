@@ -207,9 +207,12 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                         title={t("ME_LINKED_ACCOUNTS_DISCONNECT_CONFIRM")}
                         okText={t("ME_LINKED_ACCOUNTS_DISCONNECT")}
                         cancelText={t("common:CANCEL")}
+                        okButtonProps={{ danger: true, type: "primary" }}
+                        cancelButtonProps={{ type: "primary" }}
                         onConfirm={() => void unlinkIdentityMutation.mutateAsync(row.provider)}
                       >
                         <Button
+                          type="primary"
                           danger
                           disabled={unlinkIdentityMutation.isPending}
                           loading={unlinkIdentityMutation.isPending}

@@ -66,8 +66,8 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
     [nextDisplayNameNormalized],
   );
 
-  const canSaveDisplayName =
-    currentDisplayNameNormalized !== nextDisplayNameNormalized && isDisplayNameValid;
+  const hasDisplayNameChanged = currentDisplayNameNormalized !== nextDisplayNameNormalized;
+  const canSaveDisplayName = hasDisplayNameChanged && isDisplayNameValid;
 
   const updateProfileMutation = useMutation({
     mutationFn: async (payload: { display_name: string | null }) =>
@@ -148,16 +148,18 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
                     className="h-10 text-body flex-1"
                     placeholder={t("account:ME_PROFILE_DISPLAY_NAME_PLACEHOLDER")}
                   />
-                  <Button
-                    type="primary"
-                    disabled={!canSaveDisplayName || updateProfileMutation.isPending}
-                    loading={updateProfileMutation.isPending}
-                    onClick={() => setConfirmDisplayNameOpen(true)}
-                    autoInsertSpace={false}
-                    className="h-10 px-5 font-medium shadow-none"
-                  >
-                    {t("settings:SETTINGS_SAVE")}
-                  </Button>
+                  {hasDisplayNameChanged || updateProfileMutation.isPending ? (
+                    <Button
+                      type="primary"
+                      disabled={!canSaveDisplayName || updateProfileMutation.isPending}
+                      loading={updateProfileMutation.isPending}
+                      onClick={() => setConfirmDisplayNameOpen(true)}
+                      autoInsertSpace={false}
+                      className="h-10 px-5 font-medium shadow-none"
+                    >
+                      {t("settings:SETTINGS_SAVE")}
+                    </Button>
+                  ) : null}
                 </div>
                 {displayNameDirty && !isDisplayNameValid && (
                   <div className="mt-1 flex items-center gap-1.5 text-footnote text-destructive">
@@ -181,7 +183,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
               </div>
             </div>
             <Button
-              type="default"
+              type="primary"
               onClick={() => setChangeEmailOpen(true)}
               autoInsertSpace={false}
               className="shrink-0"

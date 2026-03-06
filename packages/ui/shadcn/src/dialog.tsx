@@ -72,7 +72,10 @@ function DialogContent({
   return (
     <DialogPortalPrimitive>
       <DialogOverlay />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        data-overlay-root="dialog"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
         <DialogContentPrimitive
           className={cn(
             "bg-background grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",

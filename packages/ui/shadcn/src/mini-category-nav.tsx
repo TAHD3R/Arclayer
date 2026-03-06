@@ -1,8 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@celestial/lib/utils";
+import { SidebarMenu, SidebarMenuItem } from "./sidebar-menu";
 
 export type MiniCategoryNavItem = {
   key: string;
+  icon?: ReactNode;
   label: ReactNode;
   disabled?: boolean;
 };
@@ -105,46 +107,55 @@ export function MiniCategoryNav({
   const activeKey = followedKey ?? selectedKey;
 
   return (
-    <nav aria-label={ariaLabel} className={cn("space-y-2", className)}>
-      {items.map((item) => {
-        const isActive = item.key === activeKey;
-        const isDisabled = Boolean(item.disabled);
+    <nav aria-label={ariaLabel} className={className}>
+      <SidebarMenu className="gap-1.5">
+        {items.map((item) => {
+          const isActive = item.key === activeKey;
+          const isDisabled = Boolean(item.disabled);
 
-        return (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => {
-              if (isDisabled) return;
-              onSelect(item.key);
-            }}
-            aria-current={isActive ? "true" : undefined}
-            aria-disabled={isDisabled ? "true" : undefined}
-            disabled={isDisabled}
-            data-active={isActive ? "true" : "false"}
-            className={cn(
-              "relative flex w-full min-w-0 items-center rounded-lg",
-              itemHeightClassName,
-              "px-4 pl-6",
-              "text-callout",
-              "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
-              "motion-reduce:transition-none",
-              "text-label-secondary hover:text-label-primary!",
-              "bg-transparent hover:bg-accent/40 data-[active=true]:bg-accent/50",
-              "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
-              isDisabled
-                ? cn(
-                    "opacity-60 cursor-not-allowed",
-                    "hover:bg-transparent hover:text-label-secondary",
-                  )
-                : "cursor-pointer",
-              itemClassName,
-            )}
-          >
-            <span className="min-w-0 truncate">{item.label}</span>
-          </button>
-        );
-      })}
+          return (
+            <SidebarMenuItem key={item.key}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isDisabled) return;
+                  onSelect(item.key);
+                }}
+                aria-current={isActive ? "true" : undefined}
+                aria-disabled={isDisabled ? "true" : undefined}
+                disabled={isDisabled}
+                data-active={isActive ? "true" : "false"}
+                className={cn(
+                  "relative flex w-full min-w-0 items-center justify-start gap-2 rounded-lg",
+                  itemHeightClassName,
+                  "px-4 pl-6",
+                  "text-callout",
+                  "text-left",
+                  "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
+                  "motion-reduce:transition-none",
+                  "text-label-secondary hover:text-label-primary!",
+                  "bg-transparent hover:bg-accent/40 data-[active=true]:bg-accent/50",
+                  "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+                  isDisabled
+                    ? cn(
+                        "opacity-60 cursor-not-allowed",
+                        "hover:bg-transparent hover:text-label-secondary",
+                      )
+                    : "cursor-pointer",
+                  itemClassName,
+                )}
+              >
+                {item.icon ? (
+                  <span className="shrink-0 text-label-secondary data-[active=true]:text-foreground">
+                    {item.icon}
+                  </span>
+                ) : null}
+                <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+              </button>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>
     </nav>
   );
 }

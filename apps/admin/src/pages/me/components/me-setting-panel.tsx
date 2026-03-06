@@ -20,13 +20,9 @@ export function MeSettingPanel(props: MeSettingPanelProps) {
     return (
       <section className={cn("flex flex-col", props.className)}>
         <header className="pb-4 pt-1">
-          <div className="text-[17px] font-semibold tracking-tight text-label-primary">
-            {props.title}
-          </div>
+          <div className="text-title3 font-bold text-label-primary">{props.title}</div>
           {props.description ? (
-            <div className="mt-1 text-callout leading-snug text-label-secondary">
-              {props.description}
-            </div>
+            <div className="mt-1 text-label-secondary">{props.description}</div>
           ) : null}
         </header>
         <div className={cn("pt-2", props.bodyClassName)}>{props.children}</div>

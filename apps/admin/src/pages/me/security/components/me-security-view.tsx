@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Button, Tooltip } from "antd";
+import { Button } from "antd";
 import { BaseTag } from "@/components/ui/tags";
 import { Smartphone, KeyRound, Mail } from "lucide-react";
 
@@ -8,6 +8,7 @@ import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-cate
 import { MeSecurityChangePasswordSection } from "@/pages/me/security/components/security-change-password-section";
 import { MeSecuritySessionsSection } from "@/pages/me/security/components/security-sessions-section";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
 
 type MeSecurityViewMode = "page" | "dialog";
 
@@ -54,10 +55,15 @@ export function MeSecurityView(props: MeSecurityViewProps) {
                     title={t("account:ME_SECURITY_2FA_TITLE")}
                     description={t("account:ME_SECURITY_2FA_DISABLED_DESC")}
                     action={
-                      <Tooltip title={t("account:ME_FEATURE_NOT_AVAILABLE")}>
-                        <Button disabled type="primary" autoInsertSpace={false}>
-                          {t("account:ME_SECURITY_2FA_ENABLE")}
-                        </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button disabled type="primary" autoInsertSpace={false}>
+                              {t("account:ME_SECURITY_2FA_ENABLE")}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t("account:ME_FEATURE_NOT_AVAILABLE")}</TooltipContent>
                       </Tooltip>
                     }
                   />
@@ -124,10 +130,15 @@ export function MeSecurityView(props: MeSecurityViewProps) {
                           {t("account:ME_SECURITY_SIGNIN_METHOD_EMAIL_LINK")}
                         </span>
                       </div>
-                      <Tooltip title={t("account:ME_FEATURE_NOT_AVAILABLE")}>
-                        <Button disabled size="small" type="default" autoInsertSpace={false}>
-                          {t("account:ME_SECURITY_SIGNIN_CONFIGURE")}
-                        </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button disabled size="small" type="primary" autoInsertSpace={false}>
+                              {t("account:ME_SECURITY_SIGNIN_CONFIGURE")}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t("account:ME_FEATURE_NOT_AVAILABLE")}</TooltipContent>
                       </Tooltip>
                     </div>
                     <div className="flex items-center justify-between pt-4">
@@ -139,10 +150,15 @@ export function MeSecurityView(props: MeSecurityViewProps) {
                           {t("account:ME_SECURITY_SIGNIN_METHOD_PASSKEYS")}
                         </span>
                       </div>
-                      <Tooltip title={t("account:ME_FEATURE_NOT_AVAILABLE")}>
-                        <Button disabled size="small" type="default" autoInsertSpace={false}>
-                          {t("account:ME_SECURITY_SIGNIN_CONFIGURE")}
-                        </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button disabled size="small" type="primary" autoInsertSpace={false}>
+                              {t("account:ME_SECURITY_SIGNIN_CONFIGURE")}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t("account:ME_FEATURE_NOT_AVAILABLE")}</TooltipContent>
                       </Tooltip>
                     </div>
                   </SettingCardContent>

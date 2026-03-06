@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -61,6 +61,9 @@ async function openAccountMenu(user: ReturnType<typeof userEvent.setup>) {
   const trigger = triggerName.closest("button");
   if (!trigger) throw new Error("Missing account menu trigger");
   await user.click(trigger);
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: "ACCOUNT_ACCOUNT_SETTINGS" })).toBeVisible();
+  });
 }
 
 describe("AdminAccountMenu", () => {
