@@ -8,6 +8,7 @@ export type OrganizationMemberWorkspace = {
   workspaceId: string;
   workspaceName: string;
   workspaceSlug: string;
+  iconUrl: string | null;
   membershipStatus: OrgMembershipStatus;
   roleCodes: string[];
   joinedAt: string;

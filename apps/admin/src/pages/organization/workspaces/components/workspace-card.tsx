@@ -1,4 +1,6 @@
 import { Avatar, Button as AntButton } from "antd";
+
+import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { MoreVertical } from "lucide-react";
 
 import type { OrganizationWorkspace } from "@/types/api";
@@ -36,9 +38,7 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
       {/* Header: icon + action menu */}
       <div className="mb-4 flex flex-row justify-between">
         <div className="mr-4">
-          <Avatar size={40} src={workspace.iconUrl ?? undefined}>
-            {workspace.name.slice(0, 1).toUpperCase()}
-          </Avatar>
+          <WorkspaceAvatar name={workspace.name} assetRef={workspace.iconUrl} size={40} />
         </div>
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
@@ -86,9 +86,11 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
             size="small"
           >
             {workspace.membersPreview.map((member) => (
-              <Avatar key={member.userId} src={member.avatarUrl ?? undefined}>
-                {(member.displayName || member.username || "U").slice(0, 1).toUpperCase()}
-              </Avatar>
+              <UserAvatar
+                key={member.userId}
+                name={member.displayName || member.username || "U"}
+                assetRef={member.avatarUrl}
+              />
             ))}
           </Avatar.Group>
         )}

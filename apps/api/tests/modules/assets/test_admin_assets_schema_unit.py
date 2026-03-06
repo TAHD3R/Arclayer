@@ -88,3 +88,29 @@ def test_admin_asset_update_request_accepts_description_and_tag_ids() -> None:
     })
     assert r.description == "hello"
     assert r.tag_ids == [tid]
+
+
+def test_admin_asset_summary_out_accepts_uploader_avatar_url() -> None:
+    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
+
+    out = AdminAssetSummaryOut(
+        id=uuid4(),
+        workspace_id=uuid4(),
+        owner_user_id=uuid4(),
+        uploader_name="Ada",
+        uploader_avatar_url="/assets/uploader.png",
+        purpose="avatar",
+        visibility="public",
+        indexable=False,
+        title=None,
+        slug="avatar",
+        original_filename="avatar.png",
+        mime="image/png",
+        ext="png",
+        size_bytes=128,
+        checksum_sha256=None,
+        folder_id=None,
+        created_at=datetime(2026, 1, 28, 0, 0, 0, tzinfo=UTC),
+    )
+
+    assert out.uploader_avatar_url == "/assets/uploader.png"

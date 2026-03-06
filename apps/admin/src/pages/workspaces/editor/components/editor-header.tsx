@@ -25,7 +25,7 @@ import {
   Ruler,
   Square,
 } from "lucide-react";
-import { Button, Tooltip, Avatar } from "antd";
+import { Button, Tooltip } from "antd";
 
 import {
   Menubar,
@@ -38,6 +38,7 @@ import {
   MenubarShortcut,
 } from "@celestial/ui/menubar";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { UserAvatar } from "@/components/common/entity-avatar";
 import { AdminLogo } from "@/components/layout/admin-logo";
 import type { AppLocale } from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -61,12 +62,7 @@ import { EditorPageSwitcher } from "@/pages/workspaces/editor/components/editor-
 import { useEditorBridgeContext } from "@/pages/workspaces/editor/contexts/editor-bridge-context";
 import * as authApi from "@/api/auth";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import {
-  normalizeUserProfile,
-  initialsFromName,
-  getUserDisplayName,
-} from "@/lib/auth/user-profile";
+import { normalizeUserProfile, getUserDisplayName } from "@/lib/auth/user-profile";
 
 /** Returns the platform-appropriate shortcut label. */
 function useShortcut() {
@@ -345,8 +341,6 @@ function EditorAvatar() {
     [accessToken, profile.displayName, profile.username, profile.email],
   );
 
-  const avatarSrc = resolveAssetRefToPublicUrlPath(profile.avatarUrl ?? profile.avatarAssetId);
-
   return (
     <FloatingPanelRoot>
       <CloseFloatingPanelOnOverlaySignal signal={overlayCloseSignal} />
@@ -354,9 +348,11 @@ function EditorAvatar() {
         title={t("content_pages:EDITOR_USER_MENU_TITLE")}
         className="size-8 justify-center rounded-full border-0 bg-transparent"
       >
-        <Avatar size={28} src={avatarSrc ?? undefined}>
-          {initialsFromName(displayName)}
-        </Avatar>
+        <UserAvatar
+          name={displayName}
+          assetRef={profile.avatarUrl ?? profile.avatarAssetId}
+          size={28}
+        />
       </FloatingPanelTrigger>
       <FloatingPanelContent placement="bottom" className="w-auto">
         <FloatingPanelBody className="p-0">

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Avatar, Input } from "antd";
+import { Input } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationMemberWorkspace } from "@/types/api";
 import { TeamRoleTag } from "@/components/ui/tags";
 import { cn } from "@celestial/lib/utils";
@@ -10,7 +11,6 @@ import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
 export type ResolvedMemberWorkspace = OrganizationMemberWorkspace & {
   description?: string | null;
-  iconUrl?: string | null;
 };
 
 type OrganizationMemberWorkspaceListProps = {
@@ -102,13 +102,12 @@ export function OrganizationMemberWorkspaceList({
                 )}
               >
                 <div className="grid grid-cols-[auto_1fr] gap-3">
-                  <Avatar
+                  <WorkspaceAvatar
+                    name={title}
+                    assetRef={workspace.iconUrl}
                     size={34}
-                    src={workspace.iconUrl ?? undefined}
                     className="shrink-0 bg-muted text-foreground"
-                  >
-                    {title.slice(0, 1).toUpperCase()}
-                  </Avatar>
+                  />
 
                   <div className="min-w-0">
                     <div className="flex items-center justify-between gap-2">

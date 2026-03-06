@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Button as AntButton } from "antd";
+import { Button as AntButton } from "antd";
 import { useTranslation } from "react-i18next";
+import { UserAvatar } from "@/components/common/entity-avatar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
 
@@ -198,13 +199,12 @@ export function OrganizationMemberInspectSheet({
 
               <div className="p-2">
                 <div className="flex items-center gap-3">
-                  <Avatar
+                  <UserAvatar
+                    name={primary}
+                    assetRef={member.avatarUrl}
                     size={64}
-                    src={member.avatarUrl ?? undefined}
                     className="shrink-0 bg-muted text-foreground"
-                  >
-                    {primary.slice(0, 1).toUpperCase()}
-                  </Avatar>
+                  />
 
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{primary}</div>

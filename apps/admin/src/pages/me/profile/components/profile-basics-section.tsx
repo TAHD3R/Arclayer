@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Avatar, Button, Input } from "antd";
+import { Button, Input } from "antd";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { UserAvatar } from "@/components/common/entity-avatar";
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
@@ -232,12 +233,11 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
           </div>
 
           <div className="mt-4 flex items-center gap-4">
-            <Avatar
+            <UserAvatar
+              name={displayNameFallback === "-" ? "用户" : displayNameFallback}
+              assetRef={props.profile.avatarUrl}
               size={56}
-              src={resolveAssetRefToPublicUrlPath(props.profile.avatarUrl) ?? undefined}
-            >
-              {initialsFromName(displayNameFallback === "-" ? "用户" : displayNameFallback)}
-            </Avatar>
+            />
 
             <div className="min-w-0">
               <div className="truncate text-title2 font-semibold text-label-primary">

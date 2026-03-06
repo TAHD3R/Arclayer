@@ -76,6 +76,7 @@ export function toMasonryItem(
     downloadUrl,
     contentUrl,
     uploaderName: asset.uploaderName || undefined,
+    uploaderAvatarUrl: asset.uploaderAvatarUrl || undefined,
     aspectRatio: opts?.aspectRatioOverride,
   };
 }

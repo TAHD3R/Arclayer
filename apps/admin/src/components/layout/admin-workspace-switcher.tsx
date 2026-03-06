@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Avatar, Button } from "antd";
+import { Button } from "antd";
 import {
   ArrowLeft,
   Check,
@@ -18,9 +18,8 @@ import { useTranslation } from "react-i18next";
 import { listMyOrganizations } from "@/api/me";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { getWorkspaceDetail } from "@/api/workspaces";
+import { OrganizationAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
-import { initialsFromName } from "@/lib/auth/user-profile";
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -201,14 +200,12 @@ function OrgHeaderSection(props: { name: string; logoUrl: string | null; memberC
 
   return (
     <div className="mb-3 flex items-start gap-3">
-      <Avatar
-        shape="square"
+      <OrganizationAvatar
+        name={props.name}
+        assetRef={props.logoUrl}
         size={40}
         className="shrink-0"
-        src={resolveAssetRefToPublicUrlPath(props.logoUrl) ?? undefined}
-      >
-        {initialsFromName(props.name)}
-      </Avatar>
+      />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TruncatedText text={props.name} className="text-headline text-label-primary" />
         <div className="mt-1 flex items-center gap-1.5 text-callout text-label-secondary">
@@ -280,14 +277,12 @@ function OrgPickerSection(props: {
             <PanelMenuButton key={org.id} onClick={() => props.onSelect(org.id)}>
               <PanelMenuItemContent
                 icon={
-                  <Avatar
+                  <OrganizationAvatar
+                    name={org.name}
+                    assetRef={org.logoUrl}
                     size={24}
-                    shape="square"
                     className="shrink-0"
-                    src={resolveAssetRefToPublicUrlPath(org.logoUrl) ?? undefined}
-                  >
-                    {initialsFromName(org.name)}
-                  </Avatar>
+                  />
                 }
                 text={org.name}
                 right={
@@ -328,14 +323,12 @@ function WorkspacePickerSection(props: {
             <PanelMenuButton key={ws.workspaceId} onClick={() => props.onSelect(ws.workspaceId)}>
               <PanelMenuItemContent
                 icon={
-                  <Avatar
+                  <WorkspaceAvatar
+                    name={ws.name || ws.slug || ws.workspaceId}
+                    assetRef={ws.iconUrl}
                     size={24}
-                    shape="square"
                     className="shrink-0"
-                    src={resolveAssetRefToPublicUrlPath(ws.iconUrl) ?? undefined}
-                  >
-                    {initialsFromName(ws.name || ws.slug || ws.workspaceId)}
-                  </Avatar>
+                  />
                 }
                 text={ws.name || ws.slug || ws.workspaceId}
                 right={
@@ -787,14 +780,12 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
                     )}
                     disabled={!canOpenPanel}
                   >
-                    <Avatar
-                      shape="square"
+                    <OrganizationAvatar
+                      name={workspaceTriggerText}
+                      assetRef={triggerOrganizationLogoUrl}
                       size={32}
                       className="shrink-0"
-                      src={resolveAssetRefToPublicUrlPath(triggerOrganizationLogoUrl) ?? undefined}
-                    >
-                      {initialsFromName(workspaceTriggerText)}
-                    </Avatar>
+                    />
 
                     <div
                       className={cn(

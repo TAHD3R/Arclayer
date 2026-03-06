@@ -1,4 +1,4 @@
-import { Avatar, Button, Descriptions, Flex, Input, Tooltip } from "antd";
+import { Button, Descriptions, Flex, Input, Tooltip } from "antd";
 import { EllipsisVertical, Plus } from "lucide-react";
 import {
   Accordion,
@@ -37,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@celestial/ui/dropdown-menu";
+import { UserAvatar } from "@/components/common/entity-avatar";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
   downloadWithAuth,
@@ -46,7 +47,6 @@ import {
   getPurposeLabel,
   getSafeAspectRatio,
   getVisibilityLabel,
-  initialsFromName,
   LazyAssetImage,
   tagInputStyle,
 } from "./asset-masonry-tile";
@@ -169,14 +169,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
           <>
             <SheetHeader className="border-b border-border/60 pb-4">
               <div className="flex items-start gap-3">
-                <Avatar
+                <UserAvatar
+                  name={uploaderName}
+                  assetRef={active.uploaderAvatarUrl}
                   size={40}
-                  style={{
-                    flexShrink: 0,
-                  }}
-                >
-                  {initialsFromName(uploaderName)}
-                </Avatar>
+                  style={{ flexShrink: 0 }}
+                />
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="truncate" title={active.name}>
                     {active.name}

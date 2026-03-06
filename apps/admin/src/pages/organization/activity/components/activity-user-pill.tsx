@@ -1,7 +1,6 @@
-import { Avatar } from "antd";
 import * as React from "react";
 
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import { UserAvatar } from "@/components/common/entity-avatar";
 
 export type ActivityUserSummary = {
   id: string;
@@ -9,11 +8,6 @@ export type ActivityUserSummary = {
   displayName: string | null;
   avatarUrl: string | null;
 };
-
-function userInitials(label: string | null | undefined): string {
-  const v = String(label || "U").trim();
-  return v.slice(0, 1).toUpperCase();
-}
 
 export function renderUserDisplayName(user: ActivityUserSummary | null | undefined): string {
   if (!user) return "-";
@@ -32,13 +26,9 @@ export function ActivityUserPill(props: {
 
   const primary = renderUserDisplayName(user);
   const secondary = props.secondary;
-  const avatarSrc = resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined;
-
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Avatar size={size} src={avatarSrc}>
-        {userInitials(primary)}
-      </Avatar>
+      <UserAvatar name={primary} assetRef={user.avatarUrl} size={size} />
       <div className="min-w-0">
         <div className="text-footnote font-medium truncate">{primary}</div>
         {secondary ? (

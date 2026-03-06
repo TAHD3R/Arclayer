@@ -147,7 +147,7 @@ export function useOrganizationTeamMembers() {
           workspaceName: meta?.name || workspace.workspaceName,
           workspaceSlug: meta?.slug || workspace.workspaceSlug,
           description: meta?.description,
-          iconUrl: meta?.iconUrl,
+          iconUrl: meta?.iconUrl ?? workspace.iconUrl ?? null,
         };
       });
     },

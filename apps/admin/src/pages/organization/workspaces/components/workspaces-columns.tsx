@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Avatar, Button as AntButton } from "antd";
+import { Button as AntButton } from "antd";
 import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
+import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationWorkspace } from "@/types/api";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import {
@@ -89,9 +90,7 @@ export function useOrganizationWorkspacesColumns(
 
           return (
             <div className="flex min-w-0 items-center gap-3">
-              <Avatar size={42} src={item.iconUrl ?? undefined}>
-                {item.name.slice(0, 1).toUpperCase()}
-              </Avatar>
+              <WorkspaceAvatar name={item.name} assetRef={item.iconUrl} size={42} />
               <div className="min-w-0 flex-1">
                 <span className="truncate text-headline font-semibold">{item.name}</span>
                 <div className="truncate text-label-secondary">

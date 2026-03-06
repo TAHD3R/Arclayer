@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button as AntButton, Input, List, Pagination } from "antd";
+import { Button as AntButton, Input, List, Pagination } from "antd";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listOrganizationWorkspaceMembers } from "@/api/organization-workspaces";
+import { UserAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationWorkspace, OrganizationWorkspaceMember } from "@/types/api";
 import { LoaderOne } from "@celestial/ui/loader";
 import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
@@ -49,7 +50,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
     return (
       <List.Item key={member.membershipId} className="py-2">
         <div className="flex w-full items-center gap-2">
-          <Avatar src={member.avatarUrl ?? undefined}>{primary.slice(0, 1).toUpperCase()}</Avatar>
+          <UserAvatar name={primary} assetRef={member.avatarUrl} />
           <div className="min-w-0">
             <div className="truncate font-medium">{primary}</div>
             <div className="truncate text-label-secondary">{member.email || "-"}</div>

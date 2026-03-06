@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Avatar, Select } from "antd";
+import { Select } from "antd";
 import type { SelectProps } from "antd";
 import debounce from "lodash/debounce";
 
+import { UserAvatar } from "@/components/common/entity-avatar";
 import { LoaderOne } from "@celestial/ui/loader";
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 
 export type DebounceSelectOption = {
   label: ReactNode;
@@ -93,14 +93,11 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
       options={options}
       optionRender={(option) => (
         <div style={{ display: "flex", alignItems: "center" }}>
-          <Avatar
-            src={resolveAssetRefToPublicUrlPath(option.data.avatarUrl) || undefined}
-            style={{
-              marginRight: 8,
-            }}
-          >
-            {avatarFallbackText(option.data.label)}
-          </Avatar>
+          <UserAvatar
+            name={avatarFallbackText(option.data.label)}
+            assetRef={option.data.avatarUrl}
+            style={{ marginRight: 8 }}
+          />
           {option.label}
         </div>
       )}

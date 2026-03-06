@@ -1,4 +1,4 @@
-import { Avatar, Button as AntButton, Input as AntInput, Pagination } from "antd";
+import { Button as AntButton, Input as AntInput, Pagination } from "antd";
 import { MoreVertical, Plus, UserCheck, UserCog, UserX, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,7 @@ import {
   listTeamMembers,
   setTeamMemberRoles,
 } from "@/api/team";
+import { UserAvatar } from "@/components/common/entity-avatar";
 import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
@@ -41,7 +42,6 @@ import {
 import type { TeamMemberSort, TeamMembersFilters } from "@/pages/workspaces/team/shared/types";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
@@ -54,7 +54,6 @@ import {
   tableSortingToSortValue,
   teamMembersQueryKey,
   teamMembersTableId,
-  userInitials,
 } from "../utils";
 
 export function TeamMembersView() {
@@ -201,13 +200,7 @@ export function TeamMembersView() {
 
           return (
             <div className="flex items-center gap-3">
-              <Avatar
-                size={28}
-                src={resolveAssetRefToPublicUrlPath(m.avatarUrl) || undefined}
-                className="shrink-0"
-              >
-                {userInitials(m)}
-              </Avatar>
+              <UserAvatar name={primary} assetRef={m.avatarUrl} size={28} className="shrink-0" />
               <div className="min-w-0">
                 <div className="font-medium truncate">{primary}</div>
                 {secondary ? (

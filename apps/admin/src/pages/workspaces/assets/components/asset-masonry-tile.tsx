@@ -1,9 +1,10 @@
-import { Avatar, Button } from "antd";
+import { Button } from "antd";
 import { ImageOff, RotateCw } from "lucide-react";
 import { motion } from "motion/react";
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
+import { UserAvatar } from "@/components/common/entity-avatar";
 import { cn } from "@celestial/lib/utils";
 import { type AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
@@ -370,16 +371,16 @@ export const AssetMasonryTile = memo(
                 "bg-black/45 text-white backdrop-blur-sm",
               )}
             >
-              <Avatar
+              <UserAvatar
+                name={uploaderLabel}
+                assetRef={props.asset.uploaderAvatarUrl}
                 size={20}
                 style={{
                   backgroundColor: "rgba(255,255,255,0.18)",
                   color: "white",
                   flexShrink: 0,
                 }}
-              >
-                {initialsFromName(uploaderLabel)}
-              </Avatar>
+              />
               <span className="max-w-36 truncate text-caption font-medium">{uploaderLabel}</span>
             </div>
           </div>

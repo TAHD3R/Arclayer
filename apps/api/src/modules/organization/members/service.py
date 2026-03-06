@@ -54,6 +54,7 @@ class _WorkspaceRef(Protocol):
     id: UUID | str
     name: str
     slug: str
+    icon_url: str | None
 
 
 class _WorkspaceMembershipWithRelations(Protocol):
@@ -848,6 +849,7 @@ class OrganizationMemberService(BaseService):
                     workspace_id=UUID(str(workspace.id)),
                     workspace_name=workspace.name,
                     workspace_slug=workspace.slug,
+                    icon_url=workspace.icon_url,
                     membership_status=str(membership.status),
                     role_codes=role_codes,
                     joined_at=membership.created_at,

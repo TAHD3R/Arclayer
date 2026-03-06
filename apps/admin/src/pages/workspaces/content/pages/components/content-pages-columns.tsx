@@ -1,7 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Avatar, Button } from "antd";
+import { Button } from "antd";
 import { Copy, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
+import { UserAvatar } from "@/components/common/entity-avatar";
 import { Checkbox } from "@celestial/ui/checkbox";
 import {
   DropdownMenu,
@@ -233,9 +234,7 @@ export function buildContentPagesColumns(
 
         return (
           <div className="flex items-center gap-2 min-w-48">
-            <Avatar src={user.avatarUrl || undefined} size={24}>
-              {primary.slice(0, 1).toUpperCase()}
-            </Avatar>
+            <UserAvatar name={primary} assetRef={user.avatarUrl} size={24} />
             <div className="min-w-0">
               <div className="font-medium truncate">{primary}</div>
               {secondary ? (

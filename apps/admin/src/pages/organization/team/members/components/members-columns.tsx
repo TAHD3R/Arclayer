@@ -1,7 +1,8 @@
-import { Avatar, Button as AntButton } from "antd";
+import { Button as AntButton } from "antd";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
+import { UserAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
 import { OrgMembershipStatusTag, OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
 import {
@@ -58,9 +59,7 @@ export function createOrganizationMemberColumns({
 
         return (
           <div className="flex min-w-0 items-center gap-3">
-            <Avatar size={28} src={item.avatarUrl ?? undefined} className="shrink-0">
-              {primary.slice(0, 1).toUpperCase()}
-            </Avatar>
+            <UserAvatar name={primary} assetRef={item.avatarUrl} size={28} className="shrink-0" />
 
             <div className="min-w-0">
               <div className="truncate font-medium">{primary}</div>

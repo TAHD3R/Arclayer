@@ -79,7 +79,7 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:workspace:locale"}
           >
-            <div className="text-label-secondary mb-4">
+            <div className="text-callout text-label-secondary mb-4">
               {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
                 locale: c.workspaceLocaleLabel ?? "-",
               })}

@@ -19,6 +19,7 @@ export type AssetMasonryItem = {
   downloadUrl?: string;
   contentUrl?: string;
   uploaderName?: string;
+  uploaderAvatarUrl?: string;
 
   // Future fields (reserved):
   // - category

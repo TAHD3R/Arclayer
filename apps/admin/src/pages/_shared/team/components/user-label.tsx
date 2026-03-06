@@ -1,8 +1,6 @@
-import { Avatar } from "antd";
 import * as React from "react";
 
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import { initialsFromName } from "@/lib/auth/user-profile";
+import { UserAvatar } from "@/components/common/entity-avatar";
 
 export type UserLabelUser = {
   username: string;
@@ -20,13 +18,7 @@ export function UserLabel(props: { user: UserLabelUser | null }) {
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Avatar
-        size={24}
-        src={resolveAssetRefToPublicUrlPath(user.avatarUrl) || undefined}
-        className="shrink-0"
-      >
-        {initialsFromName(primary)}
-      </Avatar>
+      <UserAvatar name={primary} assetRef={user.avatarUrl} size={24} className="shrink-0" />
       <div className="min-w-0">
         <div className="text-footnote font-medium truncate">{primary}</div>
         {secondary ? (

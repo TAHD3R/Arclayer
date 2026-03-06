@@ -5,6 +5,7 @@ export type AdminAssetSummary = {
   indexable: boolean;
   ownerUserId?: string | null;
   uploaderName?: string | null;
+  uploaderAvatarUrl?: string | null;
   title?: string | null;
   slug?: string | null;
   originalFilename?: string | null;

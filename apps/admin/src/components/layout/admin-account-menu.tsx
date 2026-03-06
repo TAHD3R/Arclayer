@@ -2,7 +2,6 @@ import { useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Avatar } from "antd";
 import { useTranslation } from "react-i18next";
 import {
   Check,
@@ -26,12 +25,8 @@ import {
   useFloatingPanel,
 } from "@celestial/ui/floating-panel";
 import { cn } from "@celestial/lib/utils";
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import {
-  getUserDisplayName,
-  initialsFromName,
-  normalizeUserProfile,
-} from "@/lib/auth/user-profile";
+import { UserAvatar } from "@/components/common/entity-avatar";
+import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profile";
 import type { AppLocale } from "@/lib/i18n";
 import { queryClient } from "@/lib/query/query-client-instance";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
@@ -95,9 +90,7 @@ function AdminAccountPanelContent(props: {
     <div className="w-72">
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-3">
-          <Avatar size={56} src={resolveAssetRefToPublicUrlPath(props.avatarUrl) ?? undefined}>
-            {initialsFromName(props.displayName)}
-          </Avatar>
+          <UserAvatar name={props.displayName} assetRef={props.avatarUrl} size={56} />
 
           <div className="min-w-0 flex-1">
             <div className="truncate text-headline">{props.displayName}</div>
@@ -319,13 +312,12 @@ export function AdminAccountMenu() {
         title={isCollapsed ? model.displayName : t("ACCOUNT_TITLE")}
         className={triggerClassName}
       >
-        <Avatar
+        <UserAvatar
+          name={model.displayName}
+          assetRef={model.avatarUrl}
           size={40}
           className="shrink-0"
-          src={resolveAssetRefToPublicUrlPath(model.avatarUrl) ?? undefined}
-        >
-          {initialsFromName(model.displayName)}
-        </Avatar>
+        />
 
         <div className={cn("min-w-0 text-left flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           <div className={cn("truncate text-footnote font-semibold", nameClassName)}>

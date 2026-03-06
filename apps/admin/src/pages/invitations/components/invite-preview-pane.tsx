@@ -1,5 +1,7 @@
-import { Avatar, Button } from "antd";
+import { Button } from "antd";
 import { motion, type Variants } from "motion/react";
+
+import { OrganizationAvatar } from "@/components/common/entity-avatar";
 
 type InvitePreviewPaneProps = {
   t: (key: string, params?: Record<string, unknown>) => string;
@@ -42,9 +44,11 @@ export function InvitePreviewPane({
       variants={staggerContainer}
     >
       <motion.div variants={v}>
-        <Avatar size={80} src={data.organization.logoUrl || undefined}>
-          {(targetName || "W").slice(0, 1)}
-        </Avatar>
+        <OrganizationAvatar
+          name={data.organization.name || targetName}
+          assetRef={data.organization.logoUrl}
+          size={80}
+        />
       </motion.div>
 
       <motion.div variants={v} className="mt-4 text-largetitle font-semibold text-label-primary">
