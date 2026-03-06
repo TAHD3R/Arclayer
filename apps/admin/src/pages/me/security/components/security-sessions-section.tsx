@@ -13,7 +13,7 @@ import {
   useDataTableDensityPreference,
 } from "@celestial/ui/data-table";
 import type { PageData } from "@celestial/ui/data-table";
-import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
+import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 
 type SessionRow = {
   id: string;
@@ -160,17 +160,18 @@ export function MeSecuritySessionsSection() {
   );
 
   return (
-    <SettingVerticalItem
-      title={t("account:ME_SECURITY_SESSIONS_PANEL_TITLE")}
-      description={t("account:ME_SECURITY_SESSIONS_TABLE_DESC")}
-      control={
+    <SettingCard>
+      <SettingCardHeader
+        title={t("account:ME_SECURITY_SESSIONS_PANEL_TITLE")}
+        description={t("account:ME_SECURITY_SESSIONS_TABLE_DESC")}
+        action={
+          <Button disabled danger type="primary" autoInsertSpace={false}>
+            {t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
+          </Button>
+        }
+      />
+      <SettingCardContent>
         <div className="min-w-0">
-          <div className="mb-3 flex items-center justify-end">
-            <Button disabled danger type="primary" autoInsertSpace={false}>
-              {t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
-            </Button>
-          </div>
-
           <DataTablePresenter
             table={table.table}
             emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
@@ -180,7 +181,7 @@ export function MeSecuritySessionsSection() {
             refreshing={table.isFetching && !table.isLoading}
           />
         </div>
-      }
-    />
+      </SettingCardContent>
+    </SettingCard>
   );
 }

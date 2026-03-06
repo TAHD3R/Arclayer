@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { SettingCard, SettingCardHeader } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 
 type ChangePasswordFormValues = {
   oldPassword: string;
@@ -37,14 +37,16 @@ export function MeSecurityChangePasswordSection() {
 
   return (
     <>
-      <SettingVerticalItem
-        title={t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")}
-        control={
-          <Button type="primary" onClick={() => setOpen(true)} autoInsertSpace={false}>
-            {t("account:ME_SECURITY_CHANGE_PASSWORD_ACTION")}
-          </Button>
-        }
-      />
+      <SettingCard>
+        <SettingCardHeader
+          title={t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")}
+          action={
+            <Button type="primary" onClick={() => setOpen(true)} autoInsertSpace={false}>
+              {t("account:ME_SECURITY_CHANGE_PASSWORD_ACTION")}
+            </Button>
+          }
+        />
+      </SettingCard>
 
       <SettingDialog
         open={open}

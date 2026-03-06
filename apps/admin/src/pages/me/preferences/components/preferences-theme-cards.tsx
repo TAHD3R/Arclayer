@@ -1,35 +1,111 @@
 import { cn } from "@celestial/lib/utils";
 import type { ThemePreference } from "@/types/stores";
 
-function AdminLayoutMockup(props: { mode: ThemePreference }) {
-  const isDark = props.mode === "dark";
-
-  const bg = isDark ? "hsl(0 0% 0%)" : "hsl(0 0% 100%)";
-  const panel = isDark ? "hsl(210 11% 10%)" : "hsl(210 30% 96%)";
-  const panel2 = isDark ? "hsl(206 12% 18%)" : "hsl(0 0% 100%)";
-  const border = isDark ? "hsl(206 7% 20%)" : "hsl(210 14% 89%)";
-  const text = isDark ? "hsl(200 7% 91%)" : "hsl(210 25% 8%)";
-  const muted = isDark ? "hsl(206 4% 46%)" : "hsl(206 15% 38%)";
+function AdminLayoutMockupContent({ isDark }: { isDark: boolean }) {
+  const bg = isDark ? "hsl(220 10% 8%)" : "hsl(210 30% 98%)";
+  const panel = isDark ? "hsl(220 10% 12%)" : "hsl(0 0% 100%)";
+  const border = isDark ? "hsl(220 10% 20%)" : "hsl(210 14% 92%)";
+  const textTitle = isDark ? "hsl(200 7% 91%)" : "hsl(210 25% 15%)";
+  const textBody = isDark ? "hsl(210 4% 60%)" : "hsl(210 10% 45%)";
+  const primary = "hsl(220 70% 50%)";
 
   return (
-    <svg viewBox="0 0 320 200" className="h-full w-full">
-      <rect x="0" y="0" width="320" height="200" rx="14" fill={bg} stroke={border} />
+    <>
+      <rect x="0" y="0" width="320" height="200" fill={bg} />
 
-      {/* sidebar */}
-      <rect x="14" y="14" width="74" height="172" rx="10" fill={panel} stroke={border} />
-      <rect x="26" y="28" width="50" height="10" rx="5" fill={muted} opacity="0.7" />
-      <rect x="26" y="52" width="50" height="10" rx="5" fill={muted} opacity="0.45" />
-      <rect x="26" y="76" width="50" height="10" rx="5" fill={muted} opacity="0.45" />
-      <rect x="26" y="100" width="50" height="10" rx="5" fill={muted} opacity="0.45" />
+      {/* Sidebar */}
+      <rect x="0" y="0" width="70" height="200" fill={panel} stroke={border} strokeWidth="1" />
+      <rect
+        x="12"
+        y="16"
+        width="24"
+        height="24"
+        rx="6"
+        fill={primary}
+        opacity={isDark ? "0.8" : "0.9"}
+      />
+      <rect x="44" y="22" width="14" height="12" rx="4" fill={textBody} opacity="0.3" />
 
-      {/* header */}
-      <rect x="96" y="14" width="210" height="26" rx="10" fill={panel2} stroke={border} />
+      <rect x="12" y="56" width="46" height="8" rx="4" fill={textBody} opacity="0.8" />
+      <rect x="12" y="76" width="38" height="8" rx="4" fill={textBody} opacity="0.4" />
+      <rect x="12" y="96" width="42" height="8" rx="4" fill={textBody} opacity="0.4" />
+      <rect x="12" y="116" width="36" height="8" rx="4" fill={textBody} opacity="0.4" />
 
-      {/* content */}
-      <rect x="96" y="50" width="210" height="136" rx="12" fill={panel2} stroke={border} />
-      <rect x="112" y="68" width="120" height="14" rx="7" fill={text} opacity="0.9" />
-      <rect x="112" y="92" width="160" height="10" rx="5" fill={muted} opacity="0.55" />
-      <rect x="112" y="112" width="172" height="58" rx="10" fill={panel} opacity={0.6} />
+      {/* Header */}
+      <rect x="70" y="0" width="250" height="40" fill={panel} stroke={border} strokeWidth="1" />
+      <rect x="286" y="12" width="16" height="16" rx="8" fill={textBody} opacity="0.5" />
+
+      {/* Content Area */}
+      <rect x="90" y="60" width="120" height="12" rx="4" fill={textTitle} />
+      <rect x="90" y="80" width="190" height="6" rx="3" fill={textBody} opacity="0.5" />
+      <rect x="90" y="92" width="160" height="6" rx="3" fill={textBody} opacity="0.5" />
+
+      {/* Card representations */}
+      <rect
+        x="90"
+        y="116"
+        width="95"
+        height="64"
+        rx="8"
+        fill={panel}
+        stroke={border}
+        strokeWidth="1"
+      />
+      <rect x="102" y="128" width="40" height="8" rx="4" fill={textTitle} opacity="0.9" />
+      <rect x="102" y="144" width="71" height="4" rx="2" fill={textBody} opacity="0.4" />
+      <rect x="102" y="154" width="55" height="4" rx="2" fill={textBody} opacity="0.4" />
+
+      <rect
+        x="195"
+        y="116"
+        width="95"
+        height="64"
+        rx="8"
+        fill={panel}
+        stroke={border}
+        strokeWidth="1"
+      />
+      <rect x="207" y="128" width="40" height="8" rx="4" fill={textTitle} opacity="0.9" />
+      <rect x="207" y="144" width="71" height="4" rx="2" fill={textBody} opacity="0.4" />
+    </>
+  );
+}
+
+function AdminLayoutMockup(props: { mode: ThemePreference }) {
+  if (props.mode === "system") {
+    return (
+      <svg viewBox="0 0 320 200" className="block h-full w-full">
+        <defs>
+          <clipPath id="left-half">
+            <rect x="0" y="0" width="160" height="200" />
+          </clipPath>
+          <clipPath id="right-half">
+            <rect x="160" y="0" width="160" height="200" />
+          </clipPath>
+        </defs>
+        <g clipPath="url(#left-half)">
+          <AdminLayoutMockupContent isDark={false} />
+        </g>
+        <g clipPath="url(#right-half)">
+          <AdminLayoutMockupContent isDark={true} />
+        </g>
+        {/* Subtle divider line in the middle */}
+        <line
+          x1="160"
+          y1="0"
+          x2="160"
+          y2="200"
+          stroke="hsl(206 10% 50%)"
+          strokeOpacity="0.3"
+          strokeWidth="1"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 320 200" className="block h-full w-full">
+      <AdminLayoutMockupContent isDark={props.mode === "dark"} />
     </svg>
   );
 }
@@ -45,25 +121,28 @@ export function ThemeCard(props: {
       type="button"
       onClick={props.onSelect}
       className={cn(
-        "w-full overflow-hidden rounded-lg border text-left",
-        "transition-colors",
+        "w-full overflow-hidden rounded-xl border text-left",
+        "transition-all duration-200",
         props.selected
-          ? "border-foreground bg-muted/10"
-          : "border-border bg-card hover:bg-muted/40",
+          ? "border-primary bg-background ring-1 ring-primary shadow-sm"
+          : "border-border/60 bg-background hover:bg-muted/30",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       )}
     >
-      <div className={cn("w-full p-3", props.selected ? "bg-muted/30" : "bg-muted/15")}>
-        <div className="aspect-[16/10] w-full">
-          <AdminLayoutMockup mode={props.value} />
-        </div>
+      <div className="w-full aspect-[16/10]">
+        <AdminLayoutMockup mode={props.value} />
       </div>
 
-      <div className="border-t border-border px-4 py-3">
+      <div
+        className={cn(
+          "border-t px-4 py-3",
+          props.selected ? "border-primary/20" : "border-border/60",
+        )}
+      >
         <div
           className={cn(
-            "text-headline font-semibold",
-            props.selected ? "text-foreground" : "text-label-primary",
+            "text-footnote font-medium",
+            props.selected ? "text-primary" : "text-label-primary",
           )}
         >
           {props.label}

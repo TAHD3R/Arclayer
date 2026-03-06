@@ -7,6 +7,7 @@ export type MeSettingPanelProps = {
   title: ReactNode;
   description?: ReactNode;
   children: ReactNode;
+  variant?: "page" | "dialog";
   className?: string;
   bodyClassName?: string;
   showDivider?: boolean;
@@ -14,6 +15,25 @@ export type MeSettingPanelProps = {
 };
 
 export function MeSettingPanel(props: MeSettingPanelProps) {
+  const variant = props.variant ?? "page";
+  if (variant === "dialog") {
+    return (
+      <section className={cn("flex flex-col", props.className)}>
+        <header className="pb-4 pt-1">
+          <div className="text-[17px] font-semibold tracking-tight text-label-primary">
+            {props.title}
+          </div>
+          {props.description ? (
+            <div className="mt-1 text-callout leading-snug text-label-secondary">
+              {props.description}
+            </div>
+          ) : null}
+        </header>
+        <div className={cn("pt-2", props.bodyClassName)}>{props.children}</div>
+      </section>
+    );
+  }
+
   const showDivider = props.showDivider ?? true;
   return (
     <SettingPanel

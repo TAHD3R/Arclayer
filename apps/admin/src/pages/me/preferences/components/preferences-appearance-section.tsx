@@ -1,8 +1,9 @@
 import { Alert, Button, Slider, Switch } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { RotateCcw } from "lucide-react";
 
-import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
+import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { ThemeCard } from "@/pages/me/preferences/components/preferences-theme-cards";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
@@ -40,11 +41,13 @@ export function MePreferencesAppearanceSection() {
   const sliderLargeClassName = "w-64 md:w-80";
 
   return (
-    <div className="flex flex-col gap-8">
-      <SettingVerticalItem
-        title={t("ACCOUNT_SETTINGS_THEME_LABEL")}
-        description={t("ME_PREF_APPEARANCE_PANEL_DESC")}
-        control={
+    <div className="flex flex-col gap-6">
+      <SettingCard>
+        <SettingCardHeader
+          title={t("ACCOUNT_SETTINGS_THEME_LABEL")}
+          description={t("ME_PREF_APPEARANCE_PANEL_DESC")}
+        />
+        <SettingCardContent>
           <div className="grid gap-3 md:grid-cols-3">
             <ThemeCard
               value="system"
@@ -71,13 +74,27 @@ export function MePreferencesAppearanceSection() {
               }}
             />
           </div>
-        }
-      />
+        </SettingCardContent>
+      </SettingCard>
 
-      <SettingVerticalItem
-        title={t("ME_PREF_TEXT_SIZE_TITLE")}
-        description={t("ME_PREF_TEXT_SIZE_DESC")}
-        control={
+      <SettingCard>
+        <SettingCardHeader
+          title={t("ME_PREF_TEXT_SIZE_TITLE")}
+          description={t("ME_PREF_TEXT_SIZE_DESC")}
+          action={
+            <Button
+              type="default"
+              icon={<RotateCcw className="h-3.5 w-3.5" />}
+              disabled={fontScalePreference === null}
+              onClick={() => setFontScalePreference(null)}
+              autoInsertSpace={false}
+              className={fontScalePreference === null ? "hidden" : ""}
+            >
+              {t("ME_PREF_RESET_TO_DEFAULT")}
+            </Button>
+          }
+        />
+        <SettingCardContent>
           <div className="max-w-xl">
             {showFontScaleAlert ? (
               <Alert
@@ -85,24 +102,12 @@ export function MePreferencesAppearanceSection() {
                 showIcon
                 message={t("ME_PREF_TEXT_SIZE_ALERT_TITLE")}
                 description={t("ME_PREF_TEXT_SIZE_ALERT_DESC")}
-                className="mb-3"
+                className="mb-6"
               />
             ) : null}
 
-            <div className="flex justify-end">
-              <Button
-                type="link"
-                className="px-0!"
-                disabled={fontScalePreference === null}
-                onClick={() => setFontScalePreference(null)}
-                autoInsertSpace={false}
-              >
-                {t("ME_PREF_RESET_TO_DEFAULT")}
-              </Button>
-            </div>
-
             <div className="flex items-center gap-3">
-              <div className="shrink-0 select-none text-label-secondary leading-none text-[24px]">
+              <div className="shrink-0 select-none text-[24px] leading-none text-label-secondary">
                 Aa
               </div>
               <Slider
@@ -114,18 +119,32 @@ export function MePreferencesAppearanceSection() {
                 tooltip={{ formatter: (v) => `${Math.round(Number(v) * 100)}%` }}
                 onChange={(v) => setFontScalePreference(typeof v === "number" ? v : Number(v))}
               />
-              <div className="shrink-0 select-none text-label-secondary leading-none text-[36px]">
+              <div className="shrink-0 select-none text-[36px] leading-none text-label-secondary">
                 Aa
               </div>
             </div>
           </div>
-        }
-      />
+        </SettingCardContent>
+      </SettingCard>
 
-      <SettingVerticalItem
-        title={t("ME_PREF_TEXT_WEIGHT_TITLE")}
-        description={t("ME_PREF_TEXT_WEIGHT_DESC")}
-        control={
+      <SettingCard>
+        <SettingCardHeader
+          title={t("ME_PREF_TEXT_WEIGHT_TITLE")}
+          description={t("ME_PREF_TEXT_WEIGHT_DESC")}
+          action={
+            <Button
+              type="default"
+              icon={<RotateCcw className="h-3.5 w-3.5" />}
+              disabled={fontWeightPreference === null}
+              onClick={() => setFontWeightPreference(null)}
+              autoInsertSpace={false}
+              className={fontWeightPreference === null ? "hidden" : ""}
+            >
+              {t("ME_PREF_RESET_TO_DEFAULT")}
+            </Button>
+          }
+        />
+        <SettingCardContent>
           <div className="max-w-xl">
             {showFontWeightAlert ? (
               <Alert
@@ -133,24 +152,12 @@ export function MePreferencesAppearanceSection() {
                 showIcon
                 message={t("ME_PREF_TEXT_WEIGHT_ALERT_TITLE")}
                 description={t("ME_PREF_TEXT_WEIGHT_ALERT_DESC")}
-                className="mb-3"
+                className="mb-6"
               />
             ) : null}
 
-            <div className="flex justify-end">
-              <Button
-                type="link"
-                className="px-0!"
-                disabled={fontWeightPreference === null}
-                onClick={() => setFontWeightPreference(null)}
-                autoInsertSpace={false}
-              >
-                {t("ME_PREF_RESET_TO_DEFAULT")}
-              </Button>
-            </div>
-
             <div className="flex items-center gap-3">
-              <div className="shrink-0 select-none text-label-secondary leading-none font-light text-[24px]">
+              <div className="shrink-0 select-none text-[24px] font-light leading-none text-label-secondary">
                 Aa
               </div>
               <Slider
@@ -162,57 +169,81 @@ export function MePreferencesAppearanceSection() {
                 tooltip={{ formatter: (v) => String(v) }}
                 onChange={(v) => setFontWeightPreference(typeof v === "number" ? v : Number(v))}
               />
-              <div className="shrink-0 select-none text-label-secondary leading-none font-bold text-[36px]">
+              <div className="shrink-0 select-none text-[36px] font-bold leading-none text-label-secondary">
                 Aa
               </div>
             </div>
           </div>
-        }
-      />
+        </SettingCardContent>
+      </SettingCard>
 
-      <SettingVerticalItem
-        title={t("ME_PREF_CONTRAST_TITLE")}
-        description={t("ME_PREF_CONTRAST_DESC")}
-        control={
+      <SettingCard>
+        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
+          <div>
+            <div className="text-[15px] font-semibold text-label-primary">
+              {t("ME_PREF_CONTRAST_TITLE")}
+            </div>
+            <div className="mt-1 text-callout text-label-secondary">
+              {t("ME_PREF_CONTRAST_DESC")}
+            </div>
+          </div>
           <Switch
             checked={contrastMore}
             onChange={(checked) => setContrastMore(Boolean(checked))}
           />
-        }
-      />
+        </div>
+      </SettingCard>
 
-      <SettingVerticalItem
-        title={t("ME_PREF_NOTIFICATIONS_PANEL_PIN_TITLE")}
-        description={t("ME_PREF_NOTIFICATIONS_PANEL_PIN_DESC")}
-        control={
+      <SettingCard>
+        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
+          <div>
+            <div className="text-[15px] font-semibold text-label-primary">
+              {t("ME_PREF_NOTIFICATIONS_PANEL_PIN_TITLE")}
+            </div>
+            <div className="mt-1 text-callout text-label-secondary">
+              {t("ME_PREF_NOTIFICATIONS_PANEL_PIN_DESC")}
+            </div>
+          </div>
           <Switch
             checked={notificationPanelPinned}
             onChange={(checked) => setNotificationPanelPinned(Boolean(checked))}
           />
-        }
-      />
+        </div>
+      </SettingCard>
 
-      <SettingVerticalItem
-        title={t("ME_PREF_NAV_BADGE_TITLE")}
-        description={t("ME_PREF_NAV_BADGE_DESC")}
-        control={
+      <SettingCard>
+        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
+          <div>
+            <div className="text-[15px] font-semibold text-label-primary">
+              {t("ME_PREF_NAV_BADGE_TITLE")}
+            </div>
+            <div className="mt-1 text-callout text-label-secondary">
+              {t("ME_PREF_NAV_BADGE_DESC")}
+            </div>
+          </div>
           <Switch
             checked={showNotificationsBadge}
             onChange={(checked) => setShowNotificationsBadge(Boolean(checked))}
           />
-        }
-      />
+        </div>
+      </SettingCard>
 
-      <SettingVerticalItem
-        title={t("ME_PREF_MOTION_REDUCE_TITLE")}
-        description={t("ME_PREF_MOTION_REDUCE_DESC")}
-        control={
+      <SettingCard>
+        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
+          <div>
+            <div className="text-[15px] font-semibold text-label-primary">
+              {t("ME_PREF_MOTION_REDUCE_TITLE")}
+            </div>
+            <div className="mt-1 text-callout text-label-secondary">
+              {t("ME_PREF_MOTION_REDUCE_DESC")}
+            </div>
+          </div>
           <Switch
             checked={reduceMotion}
             onChange={(checked) => setReduceMotion(Boolean(checked))}
           />
-        }
-      />
+        </div>
+      </SettingCard>
     </div>
   );
 }

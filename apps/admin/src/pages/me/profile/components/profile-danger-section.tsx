@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { SettingCard, SettingCardHeader } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 
@@ -54,16 +54,18 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
 
   return (
     <>
-      <div className="flex flex-col gap-8">
-        <SettingVerticalItem
-          title={t("account:ME_DELETE_ACCOUNT_TITLE")}
-          description={t("account:ME_DELETE_ACCOUNT_DESC")}
-          control={
-            <Button danger type="primary" onClick={() => setOpen(true)} autoInsertSpace={false}>
-              {t("account:ME_DELETE_ACCOUNT_ACTION")}
-            </Button>
-          }
-        />
+      <div className="flex flex-col gap-6">
+        <SettingCard className="border-destructive/30 bg-destructive/5">
+          <SettingCardHeader
+            title={t("account:ME_DELETE_ACCOUNT_TITLE")}
+            description={t("account:ME_DELETE_ACCOUNT_DESC")}
+            action={
+              <Button danger type="primary" onClick={() => setOpen(true)} autoInsertSpace={false}>
+                {t("account:ME_DELETE_ACCOUNT_ACTION")}
+              </Button>
+            }
+          />
+        </SettingCard>
       </div>
 
       <SettingDialog

@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Avatar, Button, Input } from "antd";
+import { AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { SettingVerticalItem } from "@celestial/ui/setting-vertical-item";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
-import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { MeProfileChangeEmailDialog } from "@/pages/me/profile/components/profile-change-email-dialog";
 
@@ -31,7 +31,6 @@ export type MeProfileBasicsSectionProps = {
     displayName: string | null;
     avatarUrl: string | null;
   };
-  userId: string;
 };
 
 export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
@@ -83,115 +82,85 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
 
   return (
     <>
-      <div className="flex flex-col gap-8">
-        <SettingVerticalItem
-          title={t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
-          control={
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={displayNameDraft}
-                  onChange={(e) => {
-                    setDisplayNameDraft(e.target.value);
-                    setDisplayNameDirty(true);
-                  }}
-                  showCount
-                  maxLength={64}
-                  status={displayNameDirty && !isDisplayNameValid ? "error" : undefined}
-                  className="w-80"
-                  placeholder={t("account:ME_PROFILE_DISPLAY_NAME_PLACEHOLDER")}
-                />
-                <Button
-                  type="primary"
-                  disabled={!canSaveDisplayName || updateProfileMutation.isPending}
-                  loading={updateProfileMutation.isPending}
-                  onClick={() => setConfirmDisplayNameOpen(true)}
-                  autoInsertSpace={false}
-                >
-                  {t("settings:SETTINGS_SAVE")}
-                </Button>
-              </div>
-
-              {displayNameDirty && !isDisplayNameValid ? (
-                <div className="text-callout leading-snug text-destructive">
-                  {t("account:ME_PROFILE_DISPLAY_NAME_INVALID")}
-                </div>
-              ) : null}
-            </div>
-          }
-        />
-
-        <SettingVerticalItem
-          title={t("account:ME_PROFILE_AVATAR_TITLE")}
-          control={
-            <div className="flex items-start gap-4">
-              <Avatar
-                size={80}
-                src={resolveAssetRefToPublicUrlPath(props.profile.avatarUrl) ?? undefined}
-              >
-                {initialsFromName(displayNameFallback === "-" ? "用户" : displayNameFallback)}
-              </Avatar>
-
-              <div className="min-w-0 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <Button disabled type="default" autoInsertSpace={false}>
-                    {t("account:ME_PROFILE_AVATAR_CHANGE")}
-                  </Button>
-                  <Button disabled type="default" autoInsertSpace={false}>
-                    {t("account:ME_PROFILE_AVATAR_REMOVE")}
-                  </Button>
-                </div>
-
-                <div className="text-callout leading-snug text-label-secondary">
-                  <div>{t("account:ME_PROFILE_AVATAR_RECOMMENDED_DIMENSION")}</div>
-                  <div>{t("account:ME_PROFILE_AVATAR_RECOMMENDED_SIZE")}</div>
+      <div className="flex flex-col gap-6">
+        <SettingCard>
+          <SettingCardHeader
+            title={t("account:ME_PROFILE_PANEL_TITLE")}
+            description={t("account:ME_TAB_PROFILE_DESC")}
+          />
+          <SettingCardContent>
+            <div className="flex flex-row items-start gap-6 sm:gap-8">
+              <div className="flex flex-col gap-3 shrink-0">
+                <div className="relative">
+                  <Avatar
+                    size={80}
+                    src={resolveAssetRefToPublicUrlPath(props.profile.avatarUrl) ?? undefined}
+                    className="rounded-full ring-1 ring-border/50 ring-offset-2 ring-offset-background"
+                  >
+                    {initialsFromName(displayNameFallback === "-" ? "用户" : displayNameFallback)}
+                  </Avatar>
                 </div>
               </div>
-            </div>
-          }
-        />
 
-        <SettingVerticalItem
-          title={t("account:ME_PROFILE_EMAIL_TITLE")}
-          control={
-            <div className="flex items-center gap-2">
-              <Input value={props.profile.email ?? "-"} disabled className="w-80" />
-              <Button
-                type="default"
-                onClick={() => setChangeEmailOpen(true)}
-                autoInsertSpace={false}
-              >
-                {t("account:ME_PROFILE_EMAIL_CHANGE")}
-              </Button>
+              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                <label className="text-body font-medium text-label-primary">
+                  {t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
+                </label>
+                <div className="flex items-center gap-2 max-w-lg">
+                  <Input
+                    value={displayNameDraft}
+                    onChange={(e) => {
+                      setDisplayNameDraft(e.target.value);
+                      setDisplayNameDirty(true);
+                    }}
+                    showCount
+                    maxLength={64}
+                    status={displayNameDirty && !isDisplayNameValid ? "error" : undefined}
+                    className="h-10 text-body flex-1"
+                    placeholder={t("account:ME_PROFILE_DISPLAY_NAME_PLACEHOLDER")}
+                  />
+                  <Button
+                    type="primary"
+                    disabled={!canSaveDisplayName || updateProfileMutation.isPending}
+                    loading={updateProfileMutation.isPending}
+                    onClick={() => setConfirmDisplayNameOpen(true)}
+                    autoInsertSpace={false}
+                    className="h-10 px-5 font-medium shadow-none"
+                  >
+                    {t("settings:SETTINGS_SAVE")}
+                  </Button>
+                </div>
+                {displayNameDirty && !isDisplayNameValid && (
+                  <div className="mt-1 flex items-center gap-1.5 text-footnote text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    {t("account:ME_PROFILE_DISPLAY_NAME_INVALID")}
+                  </div>
+                )}
+              </div>
             </div>
-          }
-        />
+          </SettingCardContent>
+        </SettingCard>
 
-        <SettingVerticalItem
-          title={t("account:ME_PROFILE_USER_ID_TITLE")}
-          control={
-            <div className="flex items-center gap-2">
-              <Input value={props.userId} disabled className="w-80" />
-              <Button
-                type="default"
-                disabled={!props.userId || props.userId === "-"}
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      await copyToClipboard(props.userId);
-                      notifySuccessText(t("account:ME_PROFILE_USER_ID_COPIED"));
-                    } catch (err) {
-                      notifyError(err);
-                    }
-                  })();
-                }}
-                autoInsertSpace={false}
-              >
-                {t("account:ME_PROFILE_USER_ID_COPY")}
-              </Button>
+        <SettingCard>
+          <SettingCardContent className="flex items-center justify-between gap-4 p-6 sm:px-6">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="text-headline text-label-primary">
+                {t("account:ME_PROFILE_EMAIL_TITLE")}
+              </div>
+              <div className="text-callout text-label-secondary truncate">
+                {props.profile.email ?? "-"}
+              </div>
             </div>
-          }
-        />
+            <Button
+              type="default"
+              onClick={() => setChangeEmailOpen(true)}
+              autoInsertSpace={false}
+              className="shrink-0"
+            >
+              {t("account:ME_PROFILE_EMAIL_CHANGE")}
+            </Button>
+          </SettingCardContent>
+        </SettingCard>
       </div>
 
       <SettingDialog
@@ -240,10 +209,10 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
             </Avatar>
 
             <div className="min-w-0">
-              <div className="text-title2 font-semibold text-label-primary truncate">
+              <div className="truncate text-title2 font-semibold text-label-primary">
                 {nextDisplayNameNormalized ?? t("account:ME_PROFILE_DISPLAY_NAME_EMPTY")}
               </div>
-              <div className="mt-0.5 text-callout text-label-secondary truncate">
+              <div className="mt-0.5 truncate text-callout text-label-secondary">
                 {props.profile.email ?? "-"}
               </div>
             </div>

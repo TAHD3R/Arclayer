@@ -12,22 +12,20 @@ import { MeProfileDangerSection } from "@/pages/me/profile/components/profile-da
 import { MeProfileLinkedAccountsSection } from "@/pages/me/profile/components/profile-linked-accounts-section";
 import { useAuthStore } from "@/stores/use-auth-store";
 
-function getSearchParam(searchStr: string, key: string): string | null {
-  const raw = String(searchStr || "");
-  if (!raw) return null;
-  const m = raw.match(new RegExp(`[?&]${key}=([^&]+)`));
-  if (!m?.[1]) return null;
-  try {
-    return decodeURIComponent(m[1]);
-  } catch {
-    return m[1];
-  }
-}
+type MeProfileViewProps = {
+  /**
+   * Personal center settings are dialog-only. This component is intended to be
+   * rendered inside `MeSettingsDialog`.
+   */
+  mode?: "dialog";
+};
 
-export function MeProfileView() {
+function MeProfileViewContent() {
+  const panelVariant = "dialog";
   const { t } = useTranslation("account");
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const searchStr = useRouterState({ select: (s) => s.location.searchStr });
 
   const meQuery = useQuery({
@@ -38,26 +36,19 @@ export function MeProfileView() {
   });
 
   const profile = useMemo(() => normalizeUserProfile(meQuery.data), [meQuery.data]);
-  const userId = (meQuery.data as { id?: string } | undefined)?.id ?? "-";
 
-  const defaultCategoryKey = useMemo(() => {
-    if (searchStr.includes("linked_provider=")) return "linked-accounts";
-    const fromSearch = getSearchParam(searchStr, "category");
-    return fromSearch || undefined;
-  }, [searchStr]);
-
-  const redirect = "/me/profile?category=linked-accounts";
+  const redirect = useMemo(() => `${pathname}${searchStr}`, [pathname, searchStr]);
 
   return (
     <MeSettingsCategoryLayout
-      defaultCategoryKey={defaultCategoryKey}
+      showNav={false}
       categories={[
         {
           key: "profile",
           label: t("ME_PROFILE_PANEL_TITLE"),
           content: (
-            <MeSettingPanel title={t("ME_PROFILE_PANEL_TITLE")} showDivider>
-              <MeProfileBasicsSection profile={profile} userId={userId} />
+            <MeSettingPanel title={t("ME_PROFILE_PANEL_TITLE")} showDivider variant={panelVariant}>
+              <MeProfileBasicsSection profile={profile} />
             </MeSettingPanel>
           ),
         },
@@ -65,7 +56,11 @@ export function MeProfileView() {
           key: "linked-accounts",
           label: t("ME_LINKED_ACCOUNTS_PANEL_TITLE"),
           content: (
-            <MeSettingPanel title={t("ME_LINKED_ACCOUNTS_PANEL_TITLE")} showDivider>
+            <MeSettingPanel
+              title={t("ME_LINKED_ACCOUNTS_PANEL_TITLE")}
+              showDivider
+              variant={panelVariant}
+            >
               <MeProfileLinkedAccountsSection redirect={redirect} />
             </MeSettingPanel>
           ),
@@ -74,7 +69,7 @@ export function MeProfileView() {
           key: "danger",
           label: t("ME_DANGER_PANEL_TITLE"),
           content: (
-            <MeSettingPanel title={t("ME_DANGER_PANEL_TITLE")} showDivider>
+            <MeSettingPanel title={t("ME_DANGER_PANEL_TITLE")} showDivider variant={panelVariant}>
               <MeProfileDangerSection email={profile.email} />
             </MeSettingPanel>
           ),
@@ -82,4 +77,8 @@ export function MeProfileView() {
       ]}
     />
   );
+}
+
+export function MeProfileView(_props: MeProfileViewProps) {
+  return <MeProfileViewContent />;
 }

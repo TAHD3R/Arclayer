@@ -80,6 +80,7 @@
     "./setting-accordion-item": "./src/setting-accordion-item.tsx",
     "./setting-action-item": "./src/setting-action-item.tsx",
     "./setting-action-group": "./src/setting-action-group.tsx",
+    "./setting-card": "./src/setting-card.tsx",
     "./setting-dialog": "./src/setting-dialog.tsx",
     "./setting-overlay-footer": "./src/setting-overlay-footer.tsx",
     "./setting-panel": "./src/setting-panel.tsx",

@@ -37,6 +37,7 @@ import { queryClient } from "@/lib/query/query-client-instance";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useMeSettingsDialogStore } from "@/stores/use-me-settings-dialog-store";
 import { useSidebar } from "@celestial/ui/sidebar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import type { ThemePreference } from "@/types/stores";
@@ -239,6 +240,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const themePreference = usePreferencesStore((s) => s.themePreference);
   const locale = usePreferencesStore((s) => s.locale);
   const setLocale = usePreferencesStore((s) => s.setLocale);
+  const openMeSettingsDialog = useMeSettingsDialogStore((s) => s.openDialog);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me", sessionVersion],
@@ -270,7 +272,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     themePreference,
     locale,
     onLogout,
-    onAccountSettings: () => void navigate({ to: "/me/profile" }),
+    onAccountSettings: () => openMeSettingsDialog({ tab: "profile" }),
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });
     },

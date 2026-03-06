@@ -29,6 +29,7 @@ import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
 import { ForbiddenView } from "@/components/builtin/forbidden-page";
 import { WorkspaceSwitchDialogHost } from "@/components/layout/workspace-switch-dialog-host";
+import { MeSettingsDialogHost } from "@/components/layout/me-settings-dialog-host";
 
 const SIDEBAR_EXPANDED_WIDTH_PX = 270;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
@@ -248,6 +249,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
     >
       <RouteProgress />
       <WorkspaceSwitchDialogHost />
+      <MeSettingsDialogHost />
 
       <AdminSidebarShell
         showNavSkeleton={showNavSkeleton}

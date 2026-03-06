@@ -25,10 +25,6 @@ import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/i
 import { Route as SysSettingsIndexRouteImport } from './routes/sys/settings/index'
 import { Route as RepairMasterKeyIndexRouteImport } from './routes/repair/master-key/index'
 import { Route as OOrgIdIndexRouteImport } from './routes/o/$orgId/index'
-import { Route as MeSecurityIndexRouteImport } from './routes/me/security/index'
-import { Route as MeProfileIndexRouteImport } from './routes/me/profile/index'
-import { Route as MePreferencesIndexRouteImport } from './routes/me/preferences/index'
-import { Route as MeNotificationsIndexRouteImport } from './routes/me/notifications/index'
 import { Route as MeInboxIndexRouteImport } from './routes/me/inbox/index'
 import { Route as DevtoolsIllustrationsIndexRouteImport } from './routes/devtools/illustrations/index'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
@@ -157,34 +153,6 @@ const OOrgIdIndexRoute = OOrgIdIndexRouteImport.update({
   getParentRoute: () => OOrgIdRoute,
 } as any).lazy(() =>
   import('./routes/o/$orgId/index.lazy').then((d) => d.Route),
-)
-const MeSecurityIndexRoute = MeSecurityIndexRouteImport.update({
-  id: '/security/',
-  path: '/security/',
-  getParentRoute: () => MeRoute,
-} as any).lazy(() =>
-  import('./routes/me/security/index.lazy').then((d) => d.Route),
-)
-const MeProfileIndexRoute = MeProfileIndexRouteImport.update({
-  id: '/profile/',
-  path: '/profile/',
-  getParentRoute: () => MeRoute,
-} as any).lazy(() =>
-  import('./routes/me/profile/index.lazy').then((d) => d.Route),
-)
-const MePreferencesIndexRoute = MePreferencesIndexRouteImport.update({
-  id: '/preferences/',
-  path: '/preferences/',
-  getParentRoute: () => MeRoute,
-} as any).lazy(() =>
-  import('./routes/me/preferences/index.lazy').then((d) => d.Route),
-)
-const MeNotificationsIndexRoute = MeNotificationsIndexRouteImport.update({
-  id: '/notifications/',
-  path: '/notifications/',
-  getParentRoute: () => MeRoute,
-} as any).lazy(() =>
-  import('./routes/me/notifications/index.lazy').then((d) => d.Route),
 )
 const MeInboxIndexRoute = MeInboxIndexRouteImport.update({
   id: '/inbox/',
@@ -526,10 +494,6 @@ export interface FileRoutesByFullPath {
   '/sys/': typeof SysIndexRoute
   '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
   '/me/inbox/': typeof MeInboxIndexRoute
-  '/me/notifications/': typeof MeNotificationsIndexRoute
-  '/me/preferences/': typeof MePreferencesIndexRoute
-  '/me/profile/': typeof MeProfileIndexRoute
-  '/me/security/': typeof MeSecurityIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
@@ -582,10 +546,6 @@ export interface FileRoutesByTo {
   '/sys': typeof SysIndexRoute
   '/devtools/illustrations': typeof DevtoolsIllustrationsIndexRoute
   '/me/inbox': typeof MeInboxIndexRoute
-  '/me/notifications': typeof MeNotificationsIndexRoute
-  '/me/preferences': typeof MePreferencesIndexRoute
-  '/me/profile': typeof MeProfileIndexRoute
-  '/me/security': typeof MeSecurityIndexRoute
   '/o/$orgId': typeof OOrgIdIndexRoute
   '/repair/master-key': typeof RepairMasterKeyIndexRoute
   '/sys/settings': typeof SysSettingsIndexRoute
@@ -643,10 +603,6 @@ export interface FileRoutesById {
   '/sys/': typeof SysIndexRoute
   '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
   '/me/inbox/': typeof MeInboxIndexRoute
-  '/me/notifications/': typeof MeNotificationsIndexRoute
-  '/me/preferences/': typeof MePreferencesIndexRoute
-  '/me/profile/': typeof MeProfileIndexRoute
-  '/me/security/': typeof MeSecurityIndexRoute
   '/o/$orgId/': typeof OOrgIdIndexRoute
   '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
@@ -705,10 +661,6 @@ export interface FileRouteTypes {
     | '/sys/'
     | '/devtools/illustrations/'
     | '/me/inbox/'
-    | '/me/notifications/'
-    | '/me/preferences/'
-    | '/me/profile/'
-    | '/me/security/'
     | '/o/$orgId/'
     | '/repair/master-key/'
     | '/sys/settings/'
@@ -761,10 +713,6 @@ export interface FileRouteTypes {
     | '/sys'
     | '/devtools/illustrations'
     | '/me/inbox'
-    | '/me/notifications'
-    | '/me/preferences'
-    | '/me/profile'
-    | '/me/security'
     | '/o/$orgId'
     | '/repair/master-key'
     | '/sys/settings'
@@ -821,10 +769,6 @@ export interface FileRouteTypes {
     | '/sys/'
     | '/devtools/illustrations/'
     | '/me/inbox/'
-    | '/me/notifications/'
-    | '/me/preferences/'
-    | '/me/profile/'
-    | '/me/security/'
     | '/o/$orgId/'
     | '/repair/master-key/'
     | '/sys/settings/'
@@ -995,34 +939,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/o/$orgId/'
       preLoaderRoute: typeof OOrgIdIndexRouteImport
       parentRoute: typeof OOrgIdRoute
-    }
-    '/me/security/': {
-      id: '/me/security/'
-      path: '/security'
-      fullPath: '/me/security/'
-      preLoaderRoute: typeof MeSecurityIndexRouteImport
-      parentRoute: typeof MeRoute
-    }
-    '/me/profile/': {
-      id: '/me/profile/'
-      path: '/profile'
-      fullPath: '/me/profile/'
-      preLoaderRoute: typeof MeProfileIndexRouteImport
-      parentRoute: typeof MeRoute
-    }
-    '/me/preferences/': {
-      id: '/me/preferences/'
-      path: '/preferences'
-      fullPath: '/me/preferences/'
-      preLoaderRoute: typeof MePreferencesIndexRouteImport
-      parentRoute: typeof MeRoute
-    }
-    '/me/notifications/': {
-      id: '/me/notifications/'
-      path: '/notifications'
-      fullPath: '/me/notifications/'
-      preLoaderRoute: typeof MeNotificationsIndexRouteImport
-      parentRoute: typeof MeRoute
     }
     '/me/inbox/': {
       id: '/me/inbox/'
@@ -1296,19 +1212,11 @@ declare module '@tanstack/react-router' {
 interface MeRouteChildren {
   MeIndexRoute: typeof MeIndexRoute
   MeInboxIndexRoute: typeof MeInboxIndexRoute
-  MeNotificationsIndexRoute: typeof MeNotificationsIndexRoute
-  MePreferencesIndexRoute: typeof MePreferencesIndexRoute
-  MeProfileIndexRoute: typeof MeProfileIndexRoute
-  MeSecurityIndexRoute: typeof MeSecurityIndexRoute
 }
 
 const MeRouteChildren: MeRouteChildren = {
   MeIndexRoute: MeIndexRoute,
   MeInboxIndexRoute: MeInboxIndexRoute,
-  MeNotificationsIndexRoute: MeNotificationsIndexRoute,
-  MePreferencesIndexRoute: MePreferencesIndexRoute,
-  MeProfileIndexRoute: MeProfileIndexRoute,
-  MeSecurityIndexRoute: MeSecurityIndexRoute,
 }
 
 const MeRouteWithChildren = MeRoute._addFileChildren(MeRouteChildren)

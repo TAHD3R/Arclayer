@@ -1,6 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
-import { motion } from "motion/react";
-
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@celestial/lib/utils";
 
 export type MiniCategoryNavItem = {
@@ -23,7 +21,6 @@ export type MiniCategoryNavProps = {
   className?: string;
   itemClassName?: string;
   itemHeightClassName?: string;
-  indicatorLayoutId?: string;
   ariaLabel?: string;
   /**
    * When provided, the nav highlights the item whose anchor section is currently in view.
@@ -101,17 +98,14 @@ export function MiniCategoryNav({
   className,
   itemClassName,
   itemHeightClassName = "h-10",
-  indicatorLayoutId,
   ariaLabel,
   anchorFollow,
 }: MiniCategoryNavProps) {
-  const localId = useId();
-  const layoutId = indicatorLayoutId ?? `mini-category-indicator:${localId}`;
   const followedKey = useAnchorFollowedKey(items, anchorFollow);
   const activeKey = followedKey ?? selectedKey;
 
   return (
-    <nav aria-label={ariaLabel} className={cn("space-y-1.5", className)}>
+    <nav aria-label={ariaLabel} className={cn("space-y-2", className)}>
       {items.map((item) => {
         const isActive = item.key === activeKey;
         const isDisabled = Boolean(item.disabled);
@@ -131,14 +125,13 @@ export function MiniCategoryNav({
             className={cn(
               "relative flex w-full min-w-0 items-center rounded-lg",
               itemHeightClassName,
-              "px-2 pl-6",
-              "text-footnote",
-              "transition-[color,background-color,transform,box-shadow] duration-200 ease-out",
+              "px-4 pl-6",
+              "text-callout",
+              "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
               "motion-reduce:transition-none",
-              "text-label-secondary hover:text-label-primary",
-              "bg-transparent hover:bg-card/80 data-[active=true]:bg-accent/50",
-              "data-[active=true]:font-semibold data-[active=true]:text-foreground",
-              "data-[active=true]:translate-x-0.5",
+              "text-label-secondary hover:text-label-primary!",
+              "bg-transparent hover:bg-accent/40 data-[active=true]:bg-accent/50",
+              "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
               isDisabled
                 ? cn(
                     "opacity-60 cursor-not-allowed",
@@ -148,14 +141,6 @@ export function MiniCategoryNav({
               itemClassName,
             )}
           >
-            {isActive ? (
-              <motion.span
-                layoutId={layoutId}
-                layout="position"
-                className="absolute left-2 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-primary/60"
-                transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-              />
-            ) : null}
             <span className="min-w-0 truncate">{item.label}</span>
           </button>
         );

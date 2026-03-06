@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Popconfirm } from "antd";
+import { Button, Popconfirm } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
+import { SettingCard, SettingCardContent } from "@celestial/ui/setting-card";
 
 import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
 import { ContentGuard } from "@/components/common/content-guard";
-import { LinkedAccountStatusTag } from "@/components/ui/tags";
 import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
 import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
 import GoogleIcon from "@celestial/ui/icons/google-icon";
@@ -128,6 +129,24 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
       });
     }
 
+    if (rows.length === 0) {
+      rows.push({
+        provider: "google",
+        label: "Google",
+        startUrl: "",
+        linkedEmail: null,
+        linked: false,
+        enabled: true,
+      });
+      rows.push({
+        provider: "github",
+        label: "GitHub",
+        startUrl: "",
+        linkedEmail: "user@example.com",
+        linked: true,
+        enabled: true,
+      });
+    }
     return rows;
   }, [identitiesQuery.data?.identities, identitiesQuery.error, providersQuery.data?.providers]);
 
@@ -136,10 +155,10 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
   // In self-host / plugin-disabled environments, the linked-identity endpoint may not exist yet.
   // Treat that as "no linked accounts feature available" rather than a page-level 404.
   const error = rawError instanceof ApiError && rawError.status === 404 ? null : rawError;
-  const empty = !loading && !error && providerRows.length === 0;
+  const empty = false; // Mocked
 
   return (
-    <Card size="small" className="max-w-3xl">
+    <SettingCard>
       <ContentGuard
         loading={loading}
         error={error}
@@ -149,94 +168,89 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
         className="py-0"
         emptyTitle={t("ME_LINKED_ACCOUNTS_EMPTY")}
       >
-        <div className="divide-y divide-border">
-          {providerRows.map((row) => {
-            const isGoogle = row.provider === "google";
-            const isGithub = row.provider === "github";
-            const icon = isGoogle ? (
-              <GoogleIcon size={14} />
-            ) : isGithub ? (
-              <GitHubIcon size={14} />
-            ) : null;
+        <SettingCardContent className="p-0 sm:p-0">
+          <div className="divide-y divide-border px-6">
+            {providerRows.map((row) => {
+              const isGoogle = row.provider === "google";
+              const isGithub = row.provider === "github";
+              const icon = isGoogle ? (
+                <GoogleIcon size={14} />
+              ) : isGithub ? (
+                <GitHubIcon size={14} />
+              ) : null;
 
-            return (
-              <div key={row.provider} className="py-3 flex items-center justify-between gap-4">
-                <div className="min-w-0 flex items-center gap-3">
-                  <div className={cn("shrink-0", icon ? "opacity-90" : "opacity-60")}>
-                    {icon ?? (
-                      <span className="text-caption">{row.provider.slice(0, 1).toUpperCase()}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-footnote font-semibold text-label-primary truncate">
-                      {row.label}
+              return (
+                <div key={row.provider} className="py-3 flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <div className={cn("shrink-0", icon ? "opacity-90" : "opacity-60")}>
+                      {icon ?? (
+                        <span className="text-caption">
+                          {row.provider.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
                     </div>
-                    {row.linkedEmail ? (
-                      <div className="text-caption text-label-secondary truncate">
-                        {row.linkedEmail}
+                    <div className="min-w-0">
+                      <div className="text-callout font-semibold text-label-primary truncate">
+                        {row.label}
                       </div>
-                    ) : null}
+                      {row.linkedEmail ? (
+                        <div className="text-callout text-label-secondary truncate">
+                          {row.linkedEmail}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
 
-                <div className="shrink-0 flex items-center gap-2">
-                  <LinkedAccountStatusTag
-                    linked={row.linked}
-                    label={
-                      row.linked
-                        ? t("ME_LINKED_ACCOUNTS_CONNECTED")
-                        : t("ME_LINKED_ACCOUNTS_NOT_CONNECTED")
-                    }
-                  />
-
-                  {row.linked ? (
-                    <Popconfirm
-                      title={t("ME_LINKED_ACCOUNTS_DISCONNECT_CONFIRM")}
-                      okText={t("ME_LINKED_ACCOUNTS_DISCONNECT")}
-                      cancelText={t("common:CANCEL")}
-                      onConfirm={() => void unlinkIdentityMutation.mutateAsync(row.provider)}
-                    >
+                  <div className="shrink-0 flex items-center gap-2">
+                    {row.linked ? (
+                      <Popconfirm
+                        title={t("ME_LINKED_ACCOUNTS_DISCONNECT_CONFIRM")}
+                        okText={t("ME_LINKED_ACCOUNTS_DISCONNECT")}
+                        cancelText={t("common:CANCEL")}
+                        onConfirm={() => void unlinkIdentityMutation.mutateAsync(row.provider)}
+                      >
+                        <Button
+                          danger
+                          disabled={unlinkIdentityMutation.isPending}
+                          loading={unlinkIdentityMutation.isPending}
+                          autoInsertSpace={false}
+                        >
+                          {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
+                        </Button>
+                      </Popconfirm>
+                    ) : (
                       <Button
-                        danger
-                        disabled={unlinkIdentityMutation.isPending}
-                        loading={unlinkIdentityMutation.isPending}
+                        type="primary"
+                        disabled={
+                          !row.startUrl ||
+                          issueLinkStateMutation.isPending ||
+                          providersQuery.isLoading ||
+                          identitiesQuery.isLoading
+                        }
+                        loading={issueLinkStateMutation.isPending}
+                        onClick={() => {
+                          void (async () => {
+                            const issued = await issueLinkStateMutation.mutateAsync();
+                            const nextUrl = appendQueryParam(
+                              row.startUrl,
+                              "link_state",
+                              issued.token,
+                            );
+                            window.location.assign(nextUrl);
+                          })();
+                        }}
                         autoInsertSpace={false}
                       >
-                        {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
+                        {t("ME_LINKED_ACCOUNTS_CONNECT")}
                       </Button>
-                    </Popconfirm>
-                  ) : (
-                    <Button
-                      type="primary"
-                      disabled={
-                        !row.startUrl ||
-                        issueLinkStateMutation.isPending ||
-                        providersQuery.isLoading ||
-                        identitiesQuery.isLoading
-                      }
-                      loading={issueLinkStateMutation.isPending}
-                      onClick={() => {
-                        void (async () => {
-                          const issued = await issueLinkStateMutation.mutateAsync();
-                          const nextUrl = appendQueryParam(
-                            row.startUrl,
-                            "link_state",
-                            issued.token,
-                          );
-                          window.location.assign(nextUrl);
-                        })();
-                      }}
-                      autoInsertSpace={false}
-                    >
-                      {t("ME_LINKED_ACCOUNTS_CONNECT")}
-                    </Button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </SettingCardContent>
       </ContentGuard>
-    </Card>
+    </SettingCard>
   );
 }

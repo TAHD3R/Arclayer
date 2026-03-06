@@ -13,6 +13,7 @@ export type MeSettingsCategory = {
 export type MeSettingsCategoryLayoutProps = {
   categories: readonly MeSettingsCategory[];
   defaultCategoryKey?: string;
+  showNav?: boolean;
   className?: string;
   navClassName?: string;
   contentClassName?: string;
@@ -23,6 +24,7 @@ function buildSectionId(key: string) {
 }
 
 export function MeSettingsCategoryLayout(props: MeSettingsCategoryLayoutProps) {
+  const showNav = props.showNav ?? true;
   const reducedMotion = usePrefersReducedMotion();
   const categories = props.categories;
 
@@ -56,16 +58,28 @@ export function MeSettingsCategoryLayout(props: MeSettingsCategoryLayoutProps) {
     [categories, onCategoryChange, props.navClassName, selectedCategory],
   );
 
+  if (!showNav) {
+    return (
+      <div className={cn("min-w-0 flex flex-col gap-10 pb-3", props.contentClassName)}>
+        {categories.map((cat) => (
+          <section key={cat.key} id={buildSectionId(cat.key)}>
+            {cat.content}
+          </section>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
         "flex flex-col gap-6",
-        "md:grid md:grid-cols-[160px_minmax(0,1fr)] md:gap-8",
+        "md:grid md:grid-cols-[180px_minmax(0,1fr)] md:gap-12",
         props.className,
       )}
     >
       <aside className="md:pt-1">
-        <div className="md:sticky md:top-8">{nav}</div>
+        <div className="md:sticky md:top-12">{nav}</div>
       </aside>
 
       <div className={cn("min-w-0 flex flex-col gap-14 pb-12", props.contentClassName)}>
