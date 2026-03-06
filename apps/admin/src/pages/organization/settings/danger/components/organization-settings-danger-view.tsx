@@ -1,56 +1,74 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button, Form, Input } from "antd";
 import * as React from "react";
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getMyOrganization } from "@/api/me";
-import { deleteOrganization, leaveOrganization } from "@/api/organization-settings";
+import {
+  deleteOrganizationInScope,
+  getOrganizationDangerCapabilities,
+  leaveOrganizationInScope,
+} from "@/api/organization-settings";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
-import { SettingActionItem } from "@celestial/ui/setting-action-item";
 import { SettingActionGroup } from "@celestial/ui/setting-action-group";
+import { SettingActionItem } from "@celestial/ui/setting-action-item";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { SettingPanel } from "@celestial/ui/setting-panel";
 import { useSavingKey } from "@celestial/hooks/use-saving-key";
-import { ApiError } from "@/lib/http";
-import { notifyError } from "@/lib/notifications";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
+import { OrganizationSettingsTabs } from "../../components/organization-settings-tabs";
 import type { OrganizationSettingsTabKey } from "../../types";
 import { resolveOrganizationSettingsTabNavigation } from "../../utils";
-import { OrganizationSettingsTabs } from "../../components/organization-settings-tabs";
 
 type LeaveOrganizationDialogValues = { confirmText: string };
-
 type DeleteOrganizationDialogValues = { confirmName: string };
+
+function getBlockedReasonText(
+  code: string | null | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  if (!code) return null;
+  const key = `errors:${code}`;
+  const translated = t(key);
+  return translated === key ? code : translated;
+}
+
+function getActionDescription(
+  base: string,
+  blockedReason: string | null | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  const blocked = getBlockedReasonText(blockedReason, t);
+  return blocked ? [base, blocked] : base;
+}
 
 export function OrganizationSettingsDangerView(props: { organizationId: string }) {
   const organizationId = String(props.organizationId || "").trim();
   const tab: OrganizationSettingsTabKey = "danger";
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "errors"]);
   const navigate = useNavigate();
-  const clearAuth = useAuthStore((s) => s.clear);
+  const queryClient = useQueryClient();
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
-
   const [leaveDialogForm] = Form.useForm<LeaveOrganizationDialogValues>();
   const [deleteDialogForm] = Form.useForm<DeleteOrganizationDialogValues>();
   const { savingKey, withSavingKey } = useSavingKey();
   const [leaveDialogOpen, setLeaveDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
-  const onTabChange = React.useCallback(
-    (next: OrganizationSettingsTabKey) => {
-      void navigate({
-        ...resolveOrganizationSettingsTabNavigation(organizationId, next),
-      });
-    },
-    [navigate, organizationId],
-  );
+  const dangerQuery = useQuery({
+    queryKey: ["organization", "danger", organizationId, sessionVersion],
+    enabled: Boolean(organizationId),
+    queryFn: async () => getOrganizationDangerCapabilities(organizationId),
+    staleTime: 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
 
   const closeLeaveDialog = React.useCallback(() => {
     leaveDialogForm.resetFields();
@@ -62,35 +80,46 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
     setDeleteDialogOpen(false);
   }, [deleteDialogForm]);
 
-  const myOrgQuery = useQuery({
-    queryKey: ["me", "organization", sessionVersion],
-    queryFn: async () => getMyOrganization(),
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const isOwner = myOrgQuery.data?.membership?.role === "owner";
-  const canManageOrganization =
-    myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
+  const onTabChange = React.useCallback(
+    (next: OrganizationSettingsTabKey) => {
+      void navigate({ ...resolveOrganizationSettingsTabNavigation(organizationId, next) });
+    },
+    [navigate, organizationId],
+  );
 
   const leaveMutation = useMutation({
-    mutationFn: async (confirmText: string) => leaveOrganization(confirmText),
+    mutationFn: async (confirmText: string) =>
+      leaveOrganizationInScope(organizationId, confirmText),
     onError: (err) => notifyError(err),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (confirmName: string) => deleteOrganization(confirmName),
+    mutationFn: async (confirmName: string) =>
+      deleteOrganizationInScope(organizationId, confirmName),
     onError: (err) => notifyError(err),
   });
 
   const disabled =
-    myOrgQuery.isFetching ||
+    dangerQuery.isFetching ||
     leaveMutation.isPending ||
     deleteMutation.isPending ||
     Boolean(savingKey);
+  const danger = dangerQuery.data;
+  const canOpenLeave = Boolean(danger?.leaveAction.enabled);
+  const canOpenDelete = Boolean(danger?.deleteAction.enabled);
+  const showBasicsTab = danger?.roleCode === "owner" || danger?.roleCode === "admin";
+  const confirmLeaveText = String(danger?.confirmLeaveText || "LEAVE");
+  const confirmDeleteName = String(danger?.confirmDeleteName || "");
 
-  const persistedOrgName = String(myOrgQuery.data?.organization.name ?? "").trim();
+  const completeFlow = React.useCallback(async () => {
+    clearWorkspace();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["me"] }),
+      queryClient.invalidateQueries({ queryKey: ["organization"] }),
+      queryClient.invalidateQueries({ queryKey: ["workspace"] }),
+    ]);
+    await navigate({ to: "/", replace: true });
+  }, [clearWorkspace, navigate, queryClient]);
 
   const dialogFieldLabel = React.useCallback((title: string, description: string) => {
     return (
@@ -101,17 +130,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
     );
   }, []);
 
-  const forbiddenError = useMemo(
-    () =>
-      new ApiError({
-        status: 403,
-        message: t("common:PAGE_FORBIDDEN_DESC"),
-        error: "ORG_ADMIN_REQUIRED",
-      }),
-    [t],
-  );
-
-  if (myOrgQuery.isLoading && !myOrgQuery.data) {
+  if (dangerQuery.isLoading && !danger) {
     return (
       <DefaultPage
         title={t("settings:SETTINGS_ORG_TITLE")}
@@ -123,7 +142,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
     );
   }
 
-  if (myOrgQuery.isError) {
+  if (dangerQuery.isError) {
     return (
       <DefaultPage
         title={t("settings:SETTINGS_ORG_TITLE")}
@@ -132,21 +151,9 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
       >
         <ContentGuard
           loading={false}
-          error={myOrgQuery.error}
-          onRetry={() => void myOrgQuery.refetch()}
+          error={dangerQuery.error}
+          onRetry={() => void dangerQuery.refetch()}
         />
-      </DefaultPage>
-    );
-  }
-
-  if (!canManageOrganization) {
-    return (
-      <DefaultPage
-        title={t("settings:SETTINGS_ORG_TITLE")}
-        description={t("settings:SETTINGS_ORG_DESC")}
-        width="fixed"
-      >
-        <ContentGuard loading={false} error={forbiddenError} hideRetry />
       </DefaultPage>
     );
   }
@@ -162,8 +169,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
           value={tab}
           onValueChange={(next) => onTabChange(next as OrganizationSettingsTabKey)}
         >
-          <OrganizationSettingsTabs />
-
+          <OrganizationSettingsTabs showBasics={showBasicsTab} />
           <ChromeTabsContent value="danger">
             <SettingPanel
               title={t("settings:SETTINGS_ORG_DANGER_PANEL_TITLE")}
@@ -172,20 +178,27 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
               <SettingActionGroup>
                 <SettingActionItem
                   title={t("settings:SETTINGS_ORG_LEAVE_TITLE")}
-                  description={t("settings:SETTINGS_ORG_LEAVE_DESC")}
+                  description={getActionDescription(
+                    t("settings:SETTINGS_ORG_LEAVE_DESC"),
+                    danger?.leaveAction.blockedReason,
+                    t,
+                  )}
                   showSummary={false}
-                  disabled={disabled}
+                  disabled={disabled || !canOpenLeave}
                   onTrigger={() => {
                     leaveDialogForm.resetFields();
                     setLeaveDialogOpen(true);
                   }}
                 />
-
                 <SettingActionItem
                   title={t("settings:SETTINGS_ORG_DELETE_TITLE")}
-                  description={t("settings:SETTINGS_ORG_DELETE_DESC")}
+                  description={getActionDescription(
+                    t("settings:SETTINGS_ORG_DELETE_DESC"),
+                    danger?.deleteAction.blockedReason,
+                    t,
+                  )}
                   showSummary={false}
-                  disabled={disabled || !isOwner}
+                  disabled={disabled || !canOpenDelete}
                   onTrigger={() => {
                     deleteDialogForm.resetFields();
                     setDeleteDialogOpen(true);
@@ -211,15 +224,14 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
               <Button
                 type="primary"
                 loading={savingKey === "organization:leave"}
-                disabled={disabled}
+                disabled={disabled || !canOpenLeave}
                 onClick={() => {
                   void withSavingKey("organization:leave", async () => {
                     const values = await leaveDialogForm.validateFields();
                     await leaveMutation.mutateAsync(String(values.confirmText || "").trim());
+                    notifySuccessText(t("common:ACTION_SUCCESS"));
                     closeLeaveDialog();
-                    clearAuth();
-                    clearWorkspace();
-                    await navigate({ to: "/login", replace: true });
+                    await completeFlow();
                   });
                 }}
                 autoInsertSpace={false}
@@ -237,15 +249,10 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                 t("settings:SETTINGS_ORG_LEAVE_CONFIRM_REQUIRED"),
               )}
               rules={[
-                {
-                  required: true,
-                  message: t("settings:SETTINGS_ORG_LEAVE_CONFIRM_REQUIRED"),
-                },
+                { required: true, message: t("settings:SETTINGS_ORG_LEAVE_CONFIRM_REQUIRED") },
                 {
                   validator: async (_, value) => {
-                    if (String(value || "").trim() === "LEAVE") {
-                      return;
-                    }
+                    if (String(value || "").trim() === confirmLeaveText) return;
                     throw new Error(t("settings:SETTINGS_ORG_LEAVE_CONFIRM_MISMATCH"));
                   },
                 },
@@ -276,15 +283,14 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                 type="primary"
                 danger
                 loading={savingKey === "organization:delete"}
-                disabled={disabled || !isOwner}
+                disabled={disabled || !canOpenDelete}
                 onClick={() => {
                   void withSavingKey("organization:delete", async () => {
                     const values = await deleteDialogForm.validateFields();
                     await deleteMutation.mutateAsync(String(values.confirmName || "").trim());
+                    notifySuccessText(t("common:ACTION_SUCCESS"));
                     closeDeleteDialog();
-                    clearAuth();
-                    clearWorkspace();
-                    await navigate({ to: "/login", replace: true });
+                    await completeFlow();
                   });
                 }}
                 autoInsertSpace={false}
@@ -308,9 +314,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                 },
                 {
                   validator: async (_, value) => {
-                    if (String(value || "").trim() === persistedOrgName) {
-                      return;
-                    }
+                    if (String(value || "").trim() === confirmDeleteName) return;
                     throw new Error(t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_MISMATCH"));
                   },
                 },

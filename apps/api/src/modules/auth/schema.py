@@ -275,6 +275,26 @@ class DeleteMyAccountRequest(BaseSchema):
         return self
 
 
+class DeleteMyAccountCapabilityOut(BaseSchema):
+    """Delete-account capabilities for the current user."""
+
+    email: EmailStr | None = Field(default=None, description="Current account email if available.")
+    can_delete: bool = Field(default=False, description="Whether account deletion is currently allowed.")
+    blocked_reason: str | None = Field(
+        default=None, description="Explicit blocking reason code when deletion is not allowed."
+    )
+    required_reauth_methods: list[str] = Field(
+        default_factory=list,
+        description="Required re-auth method(s): password, 2fa, or relogin.",
+    )
+    has_password: bool = Field(default=False, description="Whether the account has a local password credential.")
+    two_factor_enabled: bool = Field(default=False, description="Whether TOTP 2FA is enabled.")
+    has_linked_oauth_identities: bool = Field(
+        default=False,
+        description="Whether the account has linked OAuth identities available for sign-in.",
+    )
+
+
 class InvitationPreviewInvitationOut(BaseSchema):
     """Invitation summary for public preview."""
 

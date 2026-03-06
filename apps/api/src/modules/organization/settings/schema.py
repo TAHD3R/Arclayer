@@ -98,3 +98,17 @@ class LeaveOrganizationResult(BaseSchema):
 class DeleteOrganizationResult(BaseSchema):
     organization_id: PublicUUID = Field(..., description="Deleted organization id.")
     deleted: bool = Field(default=True, description="Whether organization was deleted.")
+
+
+class OrganizationDangerActionOut(BaseSchema):
+    enabled: bool = Field(default=False, description="Whether the destructive action is currently allowed.")
+    blocked_reason: str | None = Field(default=None, description="Explicit blocking reason code when disabled.")
+
+
+class OrganizationDangerCapabilitiesOut(BaseSchema):
+    organization_id: PublicUUID = Field(..., description="Organization id.")
+    role_code: str = Field(..., description="Resolved organization role code for current user.")
+    confirm_leave_text: str = Field(default="LEAVE", description="Exact confirmation text required for leave.")
+    confirm_delete_name: str = Field(..., description="Exact organization name required for delete confirmation.")
+    leave_action: OrganizationDangerActionOut = Field(..., description="Capability for leaving the organization.")
+    delete_action: OrganizationDangerActionOut = Field(..., description="Capability for deleting the organization.")

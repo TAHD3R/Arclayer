@@ -1,14 +1,15 @@
 import { api } from "@/lib/http";
 import type {
-  TokenPair,
-  UserProfile,
-  UpdateMyProfilePayload,
-  RequestMyEmailChangePayload,
-  RequestMyEmailChangeOut,
   ConfirmMyEmailChangePayload,
+  DeleteMyAccountCapability,
   DeleteMyAccountPayload,
-  ResetTokenPayload,
   RegisterPayload,
+  RequestMyEmailChangeOut,
+  RequestMyEmailChangePayload,
+  ResetTokenPayload,
+  TokenPair,
+  UpdateMyProfilePayload,
+  UserProfile,
 } from "@/types/api";
 
 export async function login(payload: { identifier: string; password: string }): Promise<TokenPair> {
@@ -45,6 +46,10 @@ export async function confirmMyEmailChange(
   payload: ConfirmMyEmailChangePayload,
 ): Promise<UserProfile> {
   return api.post<UserProfile>("/auth/me/email/confirm", payload);
+}
+
+export async function getDeleteMyAccountCapabilities(): Promise<DeleteMyAccountCapability> {
+  return api.get<DeleteMyAccountCapability>("/auth/me/delete-capabilities");
 }
 
 export async function deleteMyAccount(payload: DeleteMyAccountPayload): Promise<null> {

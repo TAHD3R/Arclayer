@@ -37,3 +37,28 @@ export type WorkspaceAssignRoleResult = {
   roleCode: string;
   updatedCount: number;
 };
+
+export type LeaveWorkspaceResult = {
+  workspaceId: string;
+  membershipId: string;
+  left: boolean;
+};
+
+export type WorkspaceDeleteResult = {
+  workspaceId: string;
+  deleted: boolean;
+};
+
+export type WorkspaceDangerAction = {
+  enabled: boolean;
+  blockedReason: string | null;
+};
+
+export type WorkspaceDangerCapabilities = {
+  workspaceId: string;
+  organizationId: string;
+  confirmLeaveText: string;
+  confirmDeleteName: string;
+  leaveAction: WorkspaceDangerAction;
+  deleteAction: WorkspaceDangerAction;
+};

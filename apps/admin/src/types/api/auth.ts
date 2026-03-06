@@ -42,9 +42,23 @@ export type ConfirmMyEmailChangePayload = {
   password: string;
 };
 
+export type DeleteMyAccountReauthMethod = "password" | "2fa" | "relogin";
+
 export type DeleteMyAccountPayload = {
   email: string;
-  password: string;
+  password?: string;
+  code?: string;
+  backupCode?: string;
+};
+
+export type DeleteMyAccountCapability = {
+  email: string | null;
+  canDelete: boolean;
+  blockedReason: string | null;
+  requiredReauthMethods: DeleteMyAccountReauthMethod[];
+  hasPassword: boolean;
+  twoFactorEnabled: boolean;
+  hasLinkedOauthIdentities: boolean;
 };
 
 export type ResetTokenPayload = {

@@ -30,7 +30,12 @@ from apps.api.src.modules.organization.schema import (
     OrganizationMemberPreviewOut,
     OrganizationMembershipOut,
 )
-from apps.api.src.modules.organization.settings.router import router as organization_settings_router
+from apps.api.src.modules.organization.settings.router import (
+    router as organization_settings_router,
+)
+from apps.api.src.modules.organization.settings.router import (
+    scoped_router as organization_scoped_settings_router,
+)
 from apps.api.src.modules.organization.workspaces.router import router as organization_workspaces_router
 
 router = APIRouter(tags=["Me"])
@@ -40,6 +45,7 @@ router.include_router(organization_workspaces_router)
 router.include_router(organization_members_router)
 router.include_router(organization_rbac_router)
 router.include_router(organization_settings_router)
+router.include_router(organization_scoped_settings_router)
 router.include_router(organization_assets_router)
 router.include_router(organization_uploads_router)
 router.include_router(organization_usages_router)

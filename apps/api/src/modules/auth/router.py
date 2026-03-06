@@ -25,6 +25,7 @@ from apps.api.src.modules.assets.admin.uploads.schema import (
 )
 from apps.api.src.modules.assets.admin.uploads.service import UploadsService
 from apps.api.src.modules.assets.scope import AssetScope
+from apps.api.src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
 from apps.api.src.modules.auth.http.service import get_current_access_payload, get_current_user
 from apps.api.src.modules.auth.limits.service import (
     ACCOUNT_DELETE_RATE_LIMIT,
@@ -48,6 +49,7 @@ from apps.api.src.modules.auth.schema import (
     AvatarUploadInitRequest,
     ChangePasswordRequest,
     ConfirmMyEmailChangeRequest,
+    DeleteMyAccountCapabilityOut,
     DeleteMyAccountRequest,
     ForgotPasswordRequest,
     InvitationPreviewResult,
@@ -809,6 +811,24 @@ async def confirm_email_change(
         password=payload.password,
     )
     return Response.success(message=t("auth", "EMAIL_CHANGED", default="邮箱已更新"), data=profile)
+
+
+@router.get(
+    "/me/delete-capabilities",
+    response_model=ResponseModel[DeleteMyAccountCapabilityOut],
+    summary="Get delete-account capabilities for current user",
+)
+async def get_delete_my_account_capabilities(
+    user: User = Depends(get_current_user),
+    two_factor_service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[DeleteMyAccountCapabilityOut]:
+    service = AccountDeletionCapabilityService(settings)
+    out = await service.get_capabilities(
+        user=user,
+        two_factor_enabled=await two_factor_service.is_enabled(user_id=user.id),
+    )
+    return Response.success(data=out)
 
 
 @router.post(

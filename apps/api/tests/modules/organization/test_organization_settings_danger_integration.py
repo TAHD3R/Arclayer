@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
@@ -185,3 +186,136 @@ async def test_organization_settings_assign_leave_and_delete(
 
             # Owner membership is deleted via organization cascade.
             assert await OrgMembership.get_or_none(id=owner_orgm.id) is None
+
+
+@pytest.mark.asyncio
+async def test_organization_danger_capabilities_and_explicit_scope_routes(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+
+        org_repo = OrganizationRepository()
+        user_repo = UserRepository()
+
+        primary_org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Primary Org")
+        secondary_org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Secondary Org")
+
+        owner = await user_repo.create_user(
+            username=f"owner_{uuid4().hex[:8]}",
+            email=f"owner_{uuid4().hex[:8]}@example.com",
+            display_name="Owner",
+            password_hash=hash_password("owner_pass_123", settings.auth),
+        )
+        member = await user_repo.create_user(
+            username=f"member_{uuid4().hex[:8]}",
+            email=f"member_{uuid4().hex[:8]}@example.com",
+            display_name="Member",
+            password_hash=hash_password("member_pass_123", settings.auth),
+        )
+
+        await OrgMembership.create(
+            organization_id=primary_org.id,
+            user_id=owner.id,
+            role=OrgRole.OWNER,
+            role_code=OrgRole.OWNER.value,
+            status="active",
+        )
+        await OrgMembership.create(
+            organization_id=primary_org.id,
+            user_id=member.id,
+            role=OrgRole.MEMBER,
+            role_code=OrgRole.MEMBER.value,
+            status="active",
+        )
+        owner_orgm_secondary = await OrgMembership.create(
+            organization_id=secondary_org.id,
+            user_id=owner.id,
+            role=OrgRole.OWNER,
+            role_code=OrgRole.OWNER.value,
+            status="active",
+        )
+        member_orgm_secondary = await OrgMembership.create(
+            organization_id=secondary_org.id,
+            user_id=member.id,
+            role=OrgRole.MEMBER,
+            role_code=OrgRole.MEMBER.value,
+            status="active",
+        )
+
+        secondary_ws = await Workspace.create(
+            organization_id=secondary_org.id,
+            slug="secondary",
+            name="Secondary Workspace",
+            is_active=True,
+            created_by_user_id=owner.id,
+        )
+        await WorkspaceMembership.create(
+            workspace_id=secondary_ws.id,
+            user_id=owner.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+            invited_by_user_id=None,
+        )
+
+        current_user: User | None = member
+
+        async def _get_user() -> User:
+            assert current_user is not None
+            return current_user
+
+        async def _get_user_id() -> UUID:
+            assert current_user is not None
+            return current_user.id
+
+        app.dependency_overrides[get_current_user] = _get_user
+        app.dependency_overrides[get_current_user_id] = _get_user_id
+
+        secondary_org_pid = encode_uuid(secondary_org.id)
+
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            capability_resp = await client.get(
+                f"/api/v1/organizations/{secondary_org_pid}/settings/danger-capabilities"
+            )
+            assert capability_resp.status_code == 200, capability_resp.text
+            capability_data = capability_resp.json()["data"]
+            assert capability_data["organizationId"] == secondary_org_pid
+            assert capability_data["confirmDeleteName"] == "Secondary Org"
+            assert capability_data["leaveAction"]["enabled"] is True
+            assert capability_data["leaveAction"]["blockedReason"] is None
+            assert capability_data["deleteAction"]["enabled"] is False
+            assert capability_data["deleteAction"]["blockedReason"] == "ORG_SETTINGS_DELETE_REQUIRED"
+
+            leave_resp = await client.post(
+                f"/api/v1/organizations/{secondary_org_pid}/leave",
+                json={"confirmText": "LEAVE"},
+            )
+            assert leave_resp.status_code == 200, leave_resp.text
+            assert leave_resp.json()["data"]["left"] is True
+            assert await OrgMembership.get_or_none(id=member_orgm_secondary.id) is None
+
+            current_user = owner
+            owner_capability_resp = await client.get(
+                f"/api/v1/organizations/{secondary_org_pid}/settings/danger-capabilities"
+            )
+            assert owner_capability_resp.status_code == 200, owner_capability_resp.text
+            owner_data = owner_capability_resp.json()["data"]
+            assert owner_data["deleteAction"]["enabled"] is True
+            assert owner_data["leaveAction"]["enabled"] is False
+            assert owner_data["leaveAction"]["blockedReason"] == "ORG_OWNER_AT_LEAST_ONE_REQUIRED"
+
+            delete_resp = await client.delete(
+                f"/api/v1/organizations/{secondary_org_pid}",
+                params={"confirmName": "Secondary Org"},
+            )
+            assert delete_resp.status_code == 200, delete_resp.text
+            assert delete_resp.json()["data"]["deleted"] is True
+            assert await Organization.get_or_none(id=secondary_org.id) is None
+            assert await OrgMembership.get_or_none(id=owner_orgm_secondary.id) is None

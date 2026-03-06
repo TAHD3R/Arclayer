@@ -1,7 +1,13 @@
 import { api } from "@/lib/http";
 import { toQueryString } from "@/lib/api";
 
-import type { OrganizationAssignDefaultRoleResult, OrganizationSettingsCore } from "@/types/api";
+import type {
+  DeleteOrganizationResult,
+  LeaveOrganizationResult,
+  OrganizationAssignDefaultRoleResult,
+  OrganizationDangerCapabilities,
+  OrganizationSettingsCore,
+} from "@/types/api";
 
 export async function getOrganizationCoreSettings(): Promise<OrganizationSettingsCore> {
   return api.get<OrganizationSettingsCore>("/organizations/me/settings/core");
@@ -35,20 +41,36 @@ export async function assignOrganizationDefaultRoleToAllUsers(input: {
   );
 }
 
-export async function leaveOrganization(confirmText: string): Promise<{
-  organizationId: string;
-  membershipId: string;
-  left: boolean;
-}> {
-  return api.post<{ organizationId: string; membershipId: string; left: boolean }>(
-    "/organizations/me/leave",
-    { confirmText },
+export async function getOrganizationDangerCapabilities(
+  organizationId: string,
+): Promise<OrganizationDangerCapabilities> {
+  return api.get<OrganizationDangerCapabilities>(
+    `/organizations/${organizationId}/settings/danger-capabilities`,
   );
 }
 
-export async function deleteOrganization(
-  confirmName: string,
-): Promise<{ organizationId: string; deleted: boolean }> {
+export async function leaveOrganization(confirmText: string): Promise<LeaveOrganizationResult> {
+  return api.post<LeaveOrganizationResult>("/organizations/me/leave", { confirmText });
+}
+
+export async function leaveOrganizationInScope(
+  organizationId: string,
+  confirmText: string,
+): Promise<LeaveOrganizationResult> {
+  return api.post<LeaveOrganizationResult>(`/organizations/${organizationId}/leave`, {
+    confirmText,
+  });
+}
+
+export async function deleteOrganization(confirmName: string): Promise<DeleteOrganizationResult> {
   const query = toQueryString({ confirmName });
-  return api.delete<{ organizationId: string; deleted: boolean }>(`/organizations/me${query}`);
+  return api.delete<DeleteOrganizationResult>(`/organizations/me${query}`);
+}
+
+export async function deleteOrganizationInScope(
+  organizationId: string,
+  confirmName: string,
+): Promise<DeleteOrganizationResult> {
+  const query = toQueryString({ confirmName });
+  return api.delete<DeleteOrganizationResult>(`/organizations/${organizationId}${query}`);
 }

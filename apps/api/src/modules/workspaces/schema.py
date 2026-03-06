@@ -58,3 +58,17 @@ class LeaveWorkspaceResult(BaseSchema):
 class WorkspaceDeleteResult(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Deleted workspace id.")
     deleted: bool = Field(default=True, description="Whether workspace was deleted.")
+
+
+class WorkspaceDangerActionOut(BaseSchema):
+    enabled: bool = Field(default=False, description="Whether the destructive action is currently allowed.")
+    blocked_reason: str | None = Field(default=None, description="Explicit blocking reason code when disabled.")
+
+
+class WorkspaceDangerCapabilitiesOut(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Workspace id.")
+    organization_id: PublicUUID = Field(..., description="Organization id for the workspace.")
+    confirm_leave_text: str = Field(default="LEAVE", description="Exact confirmation text required for leave.")
+    confirm_delete_name: str = Field(..., description="Exact workspace name required for delete confirmation.")
+    leave_action: WorkspaceDangerActionOut = Field(..., description="Capability for leaving the workspace.")
+    delete_action: WorkspaceDangerActionOut = Field(..., description="Capability for deleting the workspace.")

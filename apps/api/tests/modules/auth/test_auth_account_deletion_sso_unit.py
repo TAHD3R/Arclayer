@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import BadRequest, Unauthorized
 from apps.api.src.models.organization.user import UserStatus
+from apps.api.src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
 from apps.api.src.modules.auth.service import AuthService
 
 
@@ -177,3 +178,54 @@ async def test_sso_only_account_deletion_requires_relogin_when_2fa_disabled_and_
     assert exc.value.error == "REAUTH_REQUIRED"
     assert isinstance(exc.value.meta, dict)
     assert exc.value.meta.get("methods") == ["relogin"]
+
+
+async def test_account_delete_capabilities_require_2fa_for_sso_only(monkeypatch) -> None:
+    user = FakeUser(id=uuid4(), email="demo@example.com", last_login_at=datetime.now(tz=UTC))
+
+    async def _allow_delete(*_args, **_kwargs) -> None:
+        return None
+
+    monkeypatch.setattr(
+        "apps.api.src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
+        _allow_delete,
+    )
+    service = AccountDeletionCapabilityService(get_settings())
+    service.user_repo = FakeUserRepo(user)
+    monkeypatch.setattr(service, "_has_linked_oauth_identities", _true)
+
+    out = await service.get_capabilities(user=user, two_factor_enabled=True)
+
+    assert out.can_delete is True
+    assert out.required_reauth_methods == ["2fa"]
+    assert out.has_password is False
+
+
+async def test_account_delete_capabilities_report_last_owner_block(monkeypatch) -> None:
+    user = FakeUser(id=uuid4(), email="demo@example.com", last_login_at=datetime.now(tz=UTC))
+
+    async def _raise_block(*_args, **_kwargs) -> None:
+        from apps.api.src.core.exceptions import Forbidden
+
+        raise Forbidden(message="权限不足", error="ACCOUNT_DELETE_LAST_ORG_OWNER")
+
+    monkeypatch.setattr(
+        "apps.api.src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
+        _raise_block,
+    )
+    service = AccountDeletionCapabilityService(get_settings())
+    service.user_repo = FakeUserRepo(user)
+
+    async def _false(**_kwargs) -> bool:
+        return False
+
+    monkeypatch.setattr(service, "_has_linked_oauth_identities", _false)
+    out = await service.get_capabilities(user=user, two_factor_enabled=False)
+
+    assert out.can_delete is False
+    assert out.blocked_reason == "ACCOUNT_DELETE_LAST_ORG_OWNER"
+    assert out.required_reauth_methods == ["relogin"]
+
+
+async def _true(**_kwargs) -> bool:
+    return True

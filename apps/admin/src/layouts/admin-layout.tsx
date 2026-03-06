@@ -24,6 +24,10 @@ import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import { filterNavByScope } from "@/lib/filter-nav-by-scope";
 import { parseOrganizationIdFromPath } from "@/lib/routing/organization-routing";
+import {
+  canAccessOrganizationScopedRoute,
+  canRenderAdminCenterNav as canRenderAdminCenterSidebarNav,
+} from "@/layouts/admin-center-access";
 import { SidebarInset, SidebarProvider } from "@celestial/ui/sidebar";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
@@ -35,10 +39,6 @@ const SIDEBAR_EXPANDED_WIDTH_PX = 270;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 
 type AdminCenterAccessState = "loading" | "allowed" | "forbidden" | "error" | "not-admin-center";
-
-function canEnterAdminCenter(role: string | null): boolean {
-  return role === "owner" || role === "admin";
-}
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
@@ -92,6 +92,12 @@ export function AdminLayout({ children }: PropsWithChildren) {
     meta: { silent: true },
   });
 
+  const adminCenterMembership = useMemo(() => {
+    if (!isAdminCenterRoute || !adminCenterOrgId) return null;
+    const items = adminCenterOrganizationsQuery.data?.items ?? [];
+    return items.find((it) => it.organization.id === adminCenterOrgId) ?? null;
+  }, [adminCenterOrgId, adminCenterOrganizationsQuery.data?.items, isAdminCenterRoute]);
+
   const adminCenterAccess = useMemo((): {
     state: AdminCenterAccessState;
     error: unknown | null;
@@ -102,22 +108,27 @@ export function AdminLayout({ children }: PropsWithChildren) {
     if (adminCenterOrganizationsQuery.error)
       return { state: "error", error: adminCenterOrganizationsQuery.error };
 
-    const items = adminCenterOrganizationsQuery.data?.items ?? [];
-    const match = items.find((it) => it.organization.id === adminCenterOrgId);
-    const isActive = match?.membership.status === "active";
-    const role = match?.membership.role ?? null;
-
-    if (!isActive || !canEnterAdminCenter(role)) return { state: "forbidden", error: null };
+    const membership = adminCenterMembership?.membership ?? null;
+    const allowed = canAccessOrganizationScopedRoute({
+      pathname,
+      role: membership?.role ?? null,
+      membershipStatus: membership?.status,
+    });
+    if (!allowed) return { state: "forbidden", error: null };
     return { state: "allowed", error: null };
   }, [
     adminCenterOrgId,
-    adminCenterOrganizationsQuery.data?.items,
+    adminCenterMembership?.membership,
     adminCenterOrganizationsQuery.error,
     adminCenterOrganizationsQuery.isLoading,
     isAdminCenterRoute,
+    pathname,
   ]);
 
-  const canRenderAdminCenterNav = isAdminCenterRoute && adminCenterAccess.state === "allowed";
+  const canRenderAdminCenterNav =
+    isAdminCenterRoute &&
+    canRenderAdminCenterSidebarNav(adminCenterMembership?.membership.role ?? null) &&
+    adminCenterMembership?.membership.status === "active";
   const shouldShowAdminCenterForbidden =
     isAdminCenterRoute && adminCenterAccess.state === "forbidden";
 

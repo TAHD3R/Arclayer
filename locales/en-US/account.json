@@ -170,5 +170,15 @@
   "ME_FEATURE_NOT_AVAILABLE": "Not available in current version",
   "ME_NOTIFY_COL_TYPE": "Notification Type",
   "ME_NOTIFY_COL_IN_APP": "In-App",
-  "ME_NOTIFY_COL_EMAIL": "Email"
+  "ME_NOTIFY_COL_EMAIL": "Email",
+  "ME_DELETE_ACCOUNT_DIALOG_DESC_2FA": "Enter a TOTP code or a backup recovery code to continue.",
+  "ME_DELETE_ACCOUNT_DIALOG_DESC_RELOGIN": "This account must re-login before deletion can continue.",
+  "ME_DELETE_ACCOUNT_2FA_CODE": "Verification code",
+  "ME_DELETE_ACCOUNT_2FA_CODE_PLACEHOLDER": "Enter the 6-digit code",
+  "ME_DELETE_ACCOUNT_2FA_BACKUP_CODE": "Backup recovery code",
+  "ME_DELETE_ACCOUNT_2FA_BACKUP_CODE_PLACEHOLDER": "Enter a backup recovery code",
+  "ME_DELETE_ACCOUNT_2FA_ONE_OF_REQUIRED": "Enter either a verification code or a backup recovery code",
+  "ME_DELETE_ACCOUNT_2FA_MUTUALLY_EXCLUSIVE": "Use either the verification code or the backup code, not both",
+  "ME_DELETE_ACCOUNT_RELOGIN_REQUIRED": "This account cannot complete step-up verification in this dialog. Re-login before deleting the account.",
+  "ME_DELETE_ACCOUNT_RELOGIN_ACTION": "Re-login to continue"
 }

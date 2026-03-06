@@ -1,11 +1,14 @@
 import { api } from "@/lib/http";
 import { workspacePath, toQueryString } from "@/lib/api";
 import type {
-  MyWorkspaceListResult,
   AuthzSnapshot,
+  LeaveWorkspaceResult,
+  MyWorkspaceListResult,
+  WorkspaceAssignRoleResult,
+  WorkspaceDangerCapabilities,
+  WorkspaceDeleteResult,
   WorkspaceDetail,
   WorkspaceRolePolicy,
-  WorkspaceAssignRoleResult,
 } from "@/types/api";
 
 export async function listMyWorkspaces(): Promise<MyWorkspaceListResult> {
@@ -27,21 +30,24 @@ export async function patchWorkspaceDetail(
   return api.patch<WorkspaceDetail>(workspacePath(workspaceId, ""), payload);
 }
 
+export async function getWorkspaceDangerCapabilities(
+  workspaceId: string,
+): Promise<WorkspaceDangerCapabilities> {
+  return api.get<WorkspaceDangerCapabilities>(workspacePath(workspaceId, "/danger-capabilities"));
+}
+
 export async function leaveWorkspace(
   workspaceId: string,
   confirmText: string,
-): Promise<{ workspaceId: string; membershipId: string; left: boolean }> {
-  return api.post<{ workspaceId: string; membershipId: string; left: boolean }>(
-    workspacePath(workspaceId, "/leave"),
-    { confirmText },
-  );
+): Promise<LeaveWorkspaceResult> {
+  return api.post<LeaveWorkspaceResult>(workspacePath(workspaceId, "/leave"), { confirmText });
 }
 
 export async function deleteWorkspace(
   workspaceId: string,
   confirmName: string,
-): Promise<{ workspaceId: string; deleted: boolean }> {
-  return api.delete<{ workspaceId: string; deleted: boolean }>(
+): Promise<WorkspaceDeleteResult> {
+  return api.delete<WorkspaceDeleteResult>(
     `${workspacePath(workspaceId, "")}${toQueryString({ confirmName })}`,
   );
 }

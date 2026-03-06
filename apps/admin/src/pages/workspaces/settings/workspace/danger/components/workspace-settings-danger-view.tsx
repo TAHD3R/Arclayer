@@ -4,40 +4,57 @@ import { Button, Form, Input } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { getMyOrganization } from "@/api/me";
-import { DefaultPage } from "@/components/common/default-page";
-import { ContentGuard } from "@/components/common/content-guard";
-import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
-import { SettingActionItem } from "@celestial/ui/setting-action-item";
-import { SettingActionGroup } from "@celestial/ui/setting-action-group";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { SettingPanel } from "@celestial/ui/setting-panel";
-import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { useSavingKey } from "@celestial/hooks/use-saving-key";
-import { buildOrganizationPath } from "@/lib/routing/organization-routing";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 import {
   deleteWorkspace,
-  getWorkspaceDetail,
+  getWorkspaceDangerCapabilities,
   leaveWorkspace,
   listMyWorkspaces,
 } from "@/api/workspaces";
+import { ContentGuard } from "@/components/common/content-guard";
+import { DefaultPage } from "@/components/common/default-page";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
+import { SettingActionGroup } from "@celestial/ui/setting-action-group";
+import { SettingActionItem } from "@celestial/ui/setting-action-item";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { SettingPanel } from "@celestial/ui/setting-panel";
+import { useSavingKey } from "@celestial/hooks/use-saving-key";
 
 import { WorkspaceSettingsTabs } from "../../components/workspace-settings-tabs";
 import type { DeleteWorkspaceDialogValues, LeaveWorkspaceDialogValues } from "../../types";
+import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 import { resolveWorkspaceSettingsTabNavigation } from "../../utils";
+
+function getBlockedReasonText(
+  code: string | null | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  if (!code) return null;
+  const key = `errors:${code}`;
+  const translated = t(key);
+  return translated === key ? code : translated;
+}
+
+function getActionDescription(
+  base: string,
+  blockedReason: string | null | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  const blocked = getBlockedReasonText(blockedReason, t);
+  return blocked ? [base, blocked] : base;
+}
 
 export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   const workspaceId = String(props.workspaceId || "").trim();
-  const { t } = useTranslation(["settings", "common"]);
+  const { t } = useTranslation(["settings", "common", "errors"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
+  const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const { savingKey, withSavingKey } = useSavingKey();
-
   const [leaveDialogForm] = Form.useForm<LeaveWorkspaceDialogValues>();
   const [deleteDialogForm] = Form.useForm<DeleteWorkspaceDialogValues>();
   const [leaveDialogOpen, setLeaveDialogOpen] = React.useState(false);
@@ -48,14 +65,13 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
     setCurrentWorkspaceId(workspaceId);
   }, [setCurrentWorkspaceId, workspaceId]);
 
-  const onTabChange = React.useCallback(
-    (next: WorkspaceSettingsTabKey) => {
-      void navigate({
-        ...resolveWorkspaceSettingsTabNavigation(workspaceId, next),
-      });
-    },
-    [navigate, workspaceId],
-  );
+  const dangerQuery = useQuery({
+    queryKey: ["workspace", "danger", workspaceId, sessionVersion],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => getWorkspaceDangerCapabilities(workspaceId),
+    retry: false,
+    meta: { silent: true },
+  });
 
   const closeLeaveDialog = React.useCallback(() => {
     leaveDialogForm.resetFields();
@@ -67,24 +83,12 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
     setDeleteDialogOpen(false);
   }, [deleteDialogForm]);
 
-  const detailQuery = useQuery({
-    queryKey: ["workspace", "detail", workspaceId, sessionVersion],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => getWorkspaceDetail(workspaceId),
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const myOrgQuery = useQuery({
-    queryKey: ["me", "organization", sessionVersion],
-    queryFn: async () => getMyOrganization(),
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
-  const persistedWorkspaceName = String(detailQuery.data?.name ?? "").trim();
-  const isOrgOwner = myOrgQuery.data?.membership.role === "owner";
+  const onTabChange = React.useCallback(
+    (next: WorkspaceSettingsTabKey) => {
+      void navigate({ ...resolveWorkspaceSettingsTabNavigation(workspaceId, next) });
+    },
+    [navigate, workspaceId],
+  );
 
   const leaveWorkspaceMutation = useMutation({
     mutationFn: async (confirmText: string) => leaveWorkspace(workspaceId, confirmText),
@@ -97,11 +101,28 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   });
 
   const disabled =
-    detailQuery.isFetching ||
-    myOrgQuery.isFetching ||
+    dangerQuery.isFetching ||
     leaveWorkspaceMutation.isPending ||
     deleteWorkspaceMutation.isPending ||
     Boolean(savingKey);
+  const danger = dangerQuery.data;
+  const canOpenLeave = Boolean(danger?.leaveAction.enabled);
+  const canOpenDelete = Boolean(danger?.deleteAction.enabled);
+  const confirmLeaveText = String(danger?.confirmLeaveText || "LEAVE");
+  const confirmDeleteName = String(danger?.confirmDeleteName || "");
+
+  const navigateAfterWorkspaceRemoved = React.useCallback(async () => {
+    const next = await listMyWorkspaces();
+    const nextWorkspace =
+      next.items.find((item) => item.workspaceId !== workspaceId) ?? next.items[0] ?? null;
+    if (!nextWorkspace) {
+      clearWorkspace();
+      await navigate({ to: "/", replace: true });
+      return;
+    }
+    setCurrentWorkspaceId(nextWorkspace.workspaceId);
+    await navigate({ to: `/w/${nextWorkspace.workspaceId}/settings/workspace`, replace: true });
+  }, [clearWorkspace, navigate, setCurrentWorkspaceId, workspaceId]);
 
   const dialogFieldLabel = React.useCallback((title: string, description: string) => {
     return (
@@ -112,33 +133,6 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
     );
   }, []);
 
-  const navigateAfterWorkspaceRemoved = React.useCallback(async () => {
-    const next = await listMyWorkspaces();
-    const nextWorkspace =
-      next.items.find((item) => item.workspaceId !== workspaceId) ?? next.items[0];
-
-    if (nextWorkspace) {
-      setCurrentWorkspaceId(nextWorkspace.workspaceId);
-      await navigate({ to: `/w/${nextWorkspace.workspaceId}/settings/workspace`, replace: true });
-      return;
-    }
-
-    setCurrentWorkspaceId(null);
-    const orgId = String(myOrgQuery.data?.organization.id || "").trim();
-    if (orgId) {
-      await navigate({ to: buildOrganizationPath(orgId, "/settings"), replace: true });
-      return;
-    }
-
-    await navigate({ to: "/", replace: true });
-  }, [
-    buildOrganizationPath,
-    myOrgQuery.data?.organization.id,
-    navigate,
-    setCurrentWorkspaceId,
-    workspaceId,
-  ]);
-
   return (
     <DefaultPage
       title={t("settings:SETTINGS_WORKSPACE_TITLE")}
@@ -146,14 +140,11 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
       width="fixed"
     >
       <ContentGuard
-        loading={Boolean(detailQuery.isLoading && !detailQuery.data)}
+        loading={Boolean(dangerQuery.isLoading && !danger)}
         loadingVariant="form"
-        error={
-          detailQuery.isError ? detailQuery.error : myOrgQuery.isError ? myOrgQuery.error : null
-        }
+        error={dangerQuery.error}
         onRetry={() => {
-          void detailQuery.refetch();
-          void myOrgQuery.refetch();
+          void dangerQuery.refetch();
         }}
       >
         <ChromeTabs
@@ -161,7 +152,6 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
           onValueChange={(next) => onTabChange(next as WorkspaceSettingsTabKey)}
         >
           <WorkspaceSettingsTabs />
-
           <ChromeTabsContent value="danger">
             <SettingPanel
               title={t("settings:SETTINGS_WORKSPACE_DANGER_PANEL_TITLE")}
@@ -170,20 +160,27 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
               <SettingActionGroup>
                 <SettingActionItem
                   title={t("settings:SETTINGS_WORKSPACE_LEAVE_TITLE")}
-                  description={t("settings:SETTINGS_WORKSPACE_LEAVE_DESC")}
+                  description={getActionDescription(
+                    t("settings:SETTINGS_WORKSPACE_LEAVE_DESC"),
+                    danger?.leaveAction.blockedReason,
+                    t,
+                  )}
                   showSummary={false}
-                  disabled={disabled}
+                  disabled={disabled || !canOpenLeave}
                   onTrigger={() => {
                     leaveDialogForm.resetFields();
                     setLeaveDialogOpen(true);
                   }}
                 />
-
                 <SettingActionItem
                   title={t("settings:SETTINGS_WORKSPACE_DELETE_TITLE")}
-                  description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
+                  description={getActionDescription(
+                    t("settings:SETTINGS_WORKSPACE_DELETE_DESC"),
+                    danger?.deleteAction.blockedReason,
+                    t,
+                  )}
                   showSummary={false}
-                  disabled={disabled || !isOrgOwner}
+                  disabled={disabled || !canOpenDelete}
                   onTrigger={() => {
                     deleteDialogForm.resetFields();
                     setDeleteDialogOpen(true);
@@ -209,14 +206,14 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
               <Button
                 type="primary"
                 loading={savingKey === "workspace:leave"}
-                disabled={disabled}
+                disabled={disabled || !canOpenLeave}
                 onClick={() => {
                   void withSavingKey("workspace:leave", async () => {
                     const values = await leaveDialogForm.validateFields();
                     await leaveWorkspaceMutation.mutateAsync(
                       String(values.confirmText || "").trim(),
                     );
-                    await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
+                    await queryClient.invalidateQueries({ queryKey: ["workspace"] });
                     notifySuccessText(t("common:ACTION_SUCCESS"));
                     closeLeaveDialog();
                     await navigateAfterWorkspaceRemoved();
@@ -243,9 +240,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                 },
                 {
                   validator: async (_, value) => {
-                    if (String(value || "").trim() === "LEAVE") {
-                      return;
-                    }
+                    if (String(value || "").trim() === confirmLeaveText) return;
                     throw new Error(t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_MISMATCH"));
                   },
                 },
@@ -276,14 +271,14 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                 type="primary"
                 danger
                 loading={savingKey === "workspace:delete"}
-                disabled={disabled || !isOrgOwner}
+                disabled={disabled || !canOpenDelete}
                 onClick={() => {
                   void withSavingKey("workspace:delete", async () => {
                     const values = await deleteDialogForm.validateFields();
                     await deleteWorkspaceMutation.mutateAsync(
                       String(values.confirmName || "").trim(),
                     );
-                    await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
+                    await queryClient.invalidateQueries({ queryKey: ["workspace"] });
                     notifySuccessText(t("common:ACTION_SUCCESS"));
                     closeDeleteDialog();
                     await navigateAfterWorkspaceRemoved();
@@ -310,9 +305,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                 },
                 {
                   validator: async (_, value) => {
-                    if (String(value || "").trim() === persistedWorkspaceName) {
-                      return;
-                    }
+                    if (String(value || "").trim() === confirmDeleteName) return;
                     throw new Error(t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"));
                   },
                 },

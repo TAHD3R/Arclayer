@@ -70,7 +70,7 @@ function MeProfileViewContent() {
           label: t("ME_DANGER_PANEL_TITLE"),
           content: (
             <MeSettingPanel title={t("ME_DANGER_PANEL_TITLE")} showDivider variant={panelVariant}>
-              <MeProfileDangerSection email={profile.email} />
+              <MeProfileDangerSection email={profile.email} redirect={redirect} />
             </MeSettingPanel>
           ),
         },

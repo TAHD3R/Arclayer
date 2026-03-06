@@ -16,6 +16,7 @@ from apps.api.src.modules.system.admin.router import router as workspace_admin_r
 from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.authz.router import router as workspace_authz_router
 from apps.api.src.modules.workspaces.content.router import router as workspace_content_router
+from apps.api.src.modules.workspaces.danger_service import WorkspaceDangerService
 from apps.api.src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
@@ -24,6 +25,7 @@ from apps.api.src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
     LeaveWorkspaceResult,
     MyWorkspaceListResult,
+    WorkspaceDangerCapabilitiesOut,
     WorkspaceDeleteResult,
     WorkspaceDetailOut,
     WorkspaceUpdateRequest,
@@ -77,6 +79,25 @@ async def get_workspace_detail(
     return Response.success(data=detail)
 
 
+@router.get(
+    "/workspaces/{workspace_id}/danger-capabilities",
+    response_model=ResponseModel[WorkspaceDangerCapabilitiesOut],
+    summary="Get workspace danger capabilities for current user",
+)
+async def get_workspace_danger_capabilities(
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[WorkspaceDangerCapabilitiesOut]:
+    service = WorkspaceDangerService(settings)
+    out = await service.get_capabilities(
+        organization_id=ctx.organization_id,
+        workspace_id=ctx.workspace_id,
+        user_id=user_id,
+    )
+    return Response.success(data=out)
+
+
 @router.patch(
     "/workspaces/{workspace_id}",
     response_model=ResponseModel[WorkspaceDetailOut],
@@ -124,7 +145,9 @@ async def leave_workspace(
     "/workspaces/{workspace_id}",
     response_model=ResponseModel[WorkspaceDeleteResult],
     summary="Delete workspace",
-    dependencies=[require_workspace_permission("system:settings:manage")],
+    dependencies=[
+        require_workspace_permission("system:settings:manage", error_code="WORKSPACE_SETTINGS_MANAGE_REQUIRED")
+    ],
 )
 async def delete_workspace(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),

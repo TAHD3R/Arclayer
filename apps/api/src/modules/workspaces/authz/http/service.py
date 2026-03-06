@@ -39,14 +39,13 @@ async def _ensure_creator_admin_has_admin_role(*, ctx: WorkspaceContext, user_id
         return
     if ctx.workspace_membership_id is None:
         return
-    # Creator-admin gets the workspace Owner role by default.
     admin_role = await Role.get_or_none(workspace_id=ctx.workspace_id, code="owner", is_system=True)
     if admin_role is None:
         return
     await WorkspaceMembershipRole.get_or_create(membership_id=ctx.workspace_membership_id, role_id=admin_role.id)
 
 
-def require_workspace_permission(permission: str):
+def require_workspace_permission(permission: str, *, error_code: str = "PERMISSION_DENIED"):
     """
     Workspace-scoped permission gate.
 
@@ -59,14 +58,6 @@ def require_workspace_permission(permission: str):
         user_id: UUID = Depends(get_current_user_id),
         ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     ) -> None:
-        # New workspaces can be created after app startup. In that case, RBAC bootstrap
-        # (system roles + grants) may not have run for the workspace yet, and all
-        # permission checks would incorrectly return 403.
-        #
-        # We ensure the workspace is RBAC-ready lazily here, before any role-based checks.
-        # 1) Ensure system roles exist for this workspace (new workspaces can be created at runtime).
-        # 2) Ensure system role grants exist as well (older bootstraps or test-created workspaces may have
-        #    roles but no RolePermission edges yet).
         if (
             not await Role.filter(workspace_id=ctx.workspace_id, is_system=True).exists()
             or not await RolePermission.filter(
@@ -85,10 +76,9 @@ def require_workspace_permission(permission: str):
         if not role_codes:
             raise Forbidden(
                 message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error="PERMISSION_DENIED",
+                error=error_code,
             )
 
-        # Superuser roles implicitly have all permissions.
         if await Role.filter(workspace_id=ctx.workspace_id, code__in=role_codes, is_superuser=True).exists():
             return
 
@@ -101,7 +91,7 @@ def require_workspace_permission(permission: str):
         if not ok:
             raise Forbidden(
                 message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error="PERMISSION_DENIED",
+                error=error_code,
             )
 
     return Depends(_dep)

@@ -10,6 +10,8 @@ export type {
   RequestMyEmailChangeOut,
   ConfirmMyEmailChangePayload,
   DeleteMyAccountPayload,
+  DeleteMyAccountCapability,
+  DeleteMyAccountReauthMethod,
   ResetTokenPayload,
   RegisterPayload,
 } from "./auth";
@@ -47,6 +49,10 @@ export type {
   WorkspaceDetail,
   WorkspaceRolePolicy,
   WorkspaceAssignRoleResult,
+  LeaveWorkspaceResult,
+  WorkspaceDeleteResult,
+  WorkspaceDangerAction,
+  WorkspaceDangerCapabilities,
 } from "./workspaces";
 
 // Settings
@@ -74,6 +80,10 @@ export type {
 export type {
   OrganizationSettingsCore,
   OrganizationAssignDefaultRoleResult,
+  OrganizationDangerAction,
+  OrganizationDangerCapabilities,
+  LeaveOrganizationResult,
+  DeleteOrganizationResult,
 } from "./organization-settings";
 
 // Assets
