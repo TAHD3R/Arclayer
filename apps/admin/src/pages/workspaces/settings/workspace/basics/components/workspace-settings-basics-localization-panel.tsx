@@ -3,6 +3,10 @@ import { Form, Select } from "antd";
 import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingPanel } from "@celestial/ui/setting-panel";
+import {
+  DateTimeFormatLocalizationControl,
+  TimezoneLocalizationControl,
+} from "@/components/settings/date-time-localization-controls";
 import { normalizeLocale } from "@/lib/i18n";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
@@ -108,9 +112,11 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             confirmLoading={c.savingKey === "workspace:timezone"}
             onConfirm={() =>
               void c.withSavingKey("workspace:timezone", async () => {
-                const values = await c.form.validateFields(["timezone"]);
                 await c.patchWorkspaceCoreMutation.mutateAsync({
-                  workspace_localization: { timezone: String(values.timezone) },
+                  workspace_localization: {
+                    timezone: String(c.workspaceTimezone),
+                    use_browser_timezone: c.workspaceUseBrowserTimeZone,
+                  },
                 });
               })
             }
@@ -118,10 +124,14 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
               c.isWorkspaceTimezoneDirty && c.coreQuery.data
                 ? () =>
                     void c.withSavingKey("reset:workspace:timezone", async () => {
-                      c.form.setFieldValue("timezone", c.initialWorkspaceTimezone);
+                      c.form.setFieldsValue({
+                        timezone: c.initialWorkspaceTimezone,
+                        useBrowserTimeZone: c.initialWorkspaceUseBrowserTimeZone,
+                      });
                       await c.patchWorkspaceCoreMutation.mutateAsync({
                         workspace_localization: {
                           timezone: c.initialWorkspaceTimezone,
+                          use_browser_timezone: c.initialWorkspaceUseBrowserTimeZone,
                         },
                       });
                     })
@@ -130,23 +140,18 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:workspace:timezone"}
           >
-            <Form.Item
-              name="timezone"
-              rules={[
-                {
-                  required: true,
-                  message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED"),
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                size="large"
-                options={c.timezoneOptions}
-                showSearch
-                optionFilterProp="label"
-              />
+            <Form.Item name="useBrowserTimeZone" hidden>
+              <input type="hidden" />
             </Form.Item>
+            <TimezoneLocalizationControl
+              selectValue={String(c.workspaceTimezone)}
+              switchChecked={c.workspaceUseBrowserTimeZone}
+              switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+              switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+              options={c.timezoneOptions}
+              onSelectChange={(value) => c.form.setFieldValue("timezone", value)}
+              onSwitchChange={(checked) => c.form.setFieldValue("useBrowserTimeZone", checked)}
+            />
           </SettingAccordionItem>
 
           <SettingAccordionItem
@@ -163,9 +168,11 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             confirmLoading={c.savingKey === "workspace:dateFormat"}
             onConfirm={() =>
               void c.withSavingKey("workspace:dateFormat", async () => {
-                const values = await c.form.validateFields(["dateFormat"]);
                 await c.patchWorkspaceCoreMutation.mutateAsync({
-                  workspace_localization: { date_format: String(values.dateFormat) },
+                  workspace_localization: {
+                    date_format: String(c.workspaceDateFormat),
+                    use_relative_datetime: c.workspaceUseRelativeDateTime,
+                  },
                 });
               })
             }
@@ -173,10 +180,14 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
               c.isWorkspaceDateFormatDirty && c.coreQuery.data
                 ? () =>
                     void c.withSavingKey("reset:workspace:dateFormat", async () => {
-                      c.form.setFieldValue("dateFormat", c.initialWorkspaceDateFormat);
+                      c.form.setFieldsValue({
+                        dateFormat: c.initialWorkspaceDateFormat,
+                        useRelativeDateTime: c.initialWorkspaceUseRelativeDateTime,
+                      });
                       await c.patchWorkspaceCoreMutation.mutateAsync({
                         workspace_localization: {
                           date_format: c.initialWorkspaceDateFormat,
+                          use_relative_datetime: c.initialWorkspaceUseRelativeDateTime,
                         },
                       });
                     })
@@ -185,18 +196,18 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:workspace:dateFormat"}
           >
-            <Form.Item
-              name="dateFormat"
-              rules={[
-                {
-                  required: true,
-                  message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select size="large" options={c.dateFormatOptions} />
+            <Form.Item name="useRelativeDateTime" hidden>
+              <input type="hidden" />
             </Form.Item>
+            <DateTimeFormatLocalizationControl
+              selectValue={String(c.workspaceDateFormat)}
+              switchChecked={c.workspaceUseRelativeDateTime}
+              switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+              switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
+              options={c.dateFormatOptions}
+              onSelectChange={(value) => c.form.setFieldValue("dateFormat", value)}
+              onSwitchChange={(checked) => c.form.setFieldValue("useRelativeDateTime", checked)}
+            />
           </SettingAccordionItem>
         </Accordion>
       </div>

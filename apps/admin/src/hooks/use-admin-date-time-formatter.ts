@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getOrganizationCoreSettings } from "@/api/organization-settings";
 import { getCoreSettings } from "@/api/settings";
 import type { AppLocale } from "@/lib/i18n";
-import { pickString } from "@/lib/settings/general/utils";
+import { pickBool, pickString } from "@/lib/settings/general/utils";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
+import { formatRelativeTime } from "@/lib/time/relative-time";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -28,16 +29,26 @@ type LocalizationCandidate = {
   locale?: AppLocale;
   timeZone?: string;
   dateFormat?: string;
+  useBrowserTimeZone?: boolean;
+  useRelativeDateTime?: boolean;
 };
 
 function hasCompleteLocalization(candidate: LocalizationCandidate): boolean {
-  return Boolean(candidate.locale && candidate.timeZone && candidate.dateFormat);
+  return Boolean(
+    candidate.locale &&
+    candidate.dateFormat &&
+    candidate.useBrowserTimeZone !== undefined &&
+    candidate.useRelativeDateTime !== undefined &&
+    (candidate.useBrowserTimeZone || candidate.timeZone),
+  );
 }
 
 export type AdminLocalizationSnapshot = {
   locale: AppLocale;
   timeZone: string;
   dateFormat: string | undefined;
+  useBrowserTimeZone: boolean;
+  useRelativeDateTime: boolean;
 };
 
 export type FormatDateTimeOptions = {
@@ -54,9 +65,43 @@ export type ResolveAdminLocalizationSnapshotParams = {
   browserTimeZone: string;
 };
 
+export function formatAdminDateTimeValue(params: {
+  date: Date | null;
+  localization: AdminLocalizationSnapshot;
+  options?: FormatDateTimeOptions;
+}): string {
+  const emptyValue = params.options?.emptyValue ?? "-";
+  const invalidValue = params.options?.invalidValue ?? emptyValue;
+  const includeTime = params.options?.includeTime ?? true;
+  if (!params.date) return emptyValue;
+  if (Number.isNaN(params.date.getTime())) return invalidValue;
+
+  if (includeTime && params.localization.useRelativeDateTime) {
+    const relative = formatRelativeTime(params.date, params.localization.locale);
+    return relative || invalidValue;
+  }
+
+  return formatDateTimeWithPattern({
+    date: params.date,
+    locale: params.localization.locale,
+    timeZone: params.localization.timeZone,
+    dateFormat: params.localization.dateFormat,
+    includeTime,
+  });
+}
+
 export function resolveAdminLocalizationSnapshot(
   params: ResolveAdminLocalizationSnapshotParams,
 ): AdminLocalizationSnapshot {
+  const useBrowserTimeZone =
+    params.workspaceLocalization.useBrowserTimeZone ??
+    params.organizationLocalization.useBrowserTimeZone ??
+    true;
+  const fallbackTimeZone =
+    params.workspaceLocalization.timeZone ??
+    params.organizationLocalization.timeZone ??
+    params.browserTimeZone;
+
   return {
     locale:
       params.workspaceLocalization.locale ??
@@ -64,11 +109,15 @@ export function resolveAdminLocalizationSnapshot(
       params.preferencesLocale,
     timeZone:
       params.preferencesTimeZone ??
-      params.workspaceLocalization.timeZone ??
-      params.organizationLocalization.timeZone ??
+      (useBrowserTimeZone ? params.browserTimeZone : fallbackTimeZone) ??
       params.browserTimeZone,
     dateFormat:
       params.workspaceLocalization.dateFormat ?? params.organizationLocalization.dateFormat,
+    useBrowserTimeZone,
+    useRelativeDateTime:
+      params.workspaceLocalization.useRelativeDateTime ??
+      params.organizationLocalization.useRelativeDateTime ??
+      true,
   };
 }
 
@@ -95,7 +144,13 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
       undefined;
     const timeZone = pickString(value, ["workspace_localization", "timezone"]) ?? undefined;
     const dateFormat = pickString(value, ["workspace_localization", "date_format"]) ?? undefined;
-    return { locale, timeZone, dateFormat };
+    const useBrowserTimeZone = pickBool(value, ["workspace_localization", "use_browser_timezone"]);
+    const useRelativeDateTime = pickBool(value, [
+      "workspace_localization",
+      "use_relative_datetime",
+    ]);
+
+    return { locale, timeZone, dateFormat, useBrowserTimeZone, useRelativeDateTime };
   }, [workspaceQuery.data?.value]);
 
   const shouldFetchOrganizationLocalization = useMemo(() => {
@@ -108,6 +163,8 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
     workspaceLocalization.dateFormat,
     workspaceLocalization.locale,
     workspaceLocalization.timeZone,
+    workspaceLocalization.useBrowserTimeZone,
+    workspaceLocalization.useRelativeDateTime,
     workspaceQuery.isError,
     workspaceQuery.isLoading,
   ]);
@@ -127,7 +184,18 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
     const locale = rawLocale ? (rawLocale as AppLocale) : undefined;
     const timeZone = typeof value?.timezone === "string" ? value.timezone : undefined;
     const dateFormat = typeof value?.dateFormat === "string" ? value.dateFormat : undefined;
-    return { locale, timeZone, dateFormat };
+    const useBrowserTimeZone =
+      typeof (value as { useBrowserTimeZone?: unknown } | undefined)?.useBrowserTimeZone ===
+      "boolean"
+        ? Boolean((value as { useBrowserTimeZone?: boolean }).useBrowserTimeZone)
+        : undefined;
+    const useRelativeDateTime =
+      typeof (value as { useRelativeDateTime?: unknown } | undefined)?.useRelativeDateTime ===
+      "boolean"
+        ? Boolean((value as { useRelativeDateTime?: boolean }).useRelativeDateTime)
+        : undefined;
+
+    return { locale, timeZone, dateFormat, useBrowserTimeZone, useRelativeDateTime };
   }, [organizationQuery.data?.organizationLocalization]);
 
   const localization = useMemo(() => {
@@ -142,20 +210,13 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
 
   const formatFromDate = useCallback(
     (date: Date | null, options: FormatDateTimeOptions = {}): string => {
-      const emptyValue = options.emptyValue ?? "-";
-      const invalidValue = options.invalidValue ?? emptyValue;
-      if (!date) return emptyValue;
-      if (Number.isNaN(date.getTime())) return invalidValue;
-
-      return formatDateTimeWithPattern({
+      return formatAdminDateTimeValue({
         date,
-        locale: localization.locale,
-        timeZone: localization.timeZone,
-        dateFormat: localization.dateFormat,
-        includeTime: options.includeTime ?? true,
+        localization,
+        options,
       });
     },
-    [localization.dateFormat, localization.locale, localization.timeZone],
+    [localization],
   );
 
   const formatDateTime = useCallback(

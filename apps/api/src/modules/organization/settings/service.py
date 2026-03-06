@@ -27,6 +27,8 @@ from apps.api.src.modules.organization.settings.schema import (
 _DEFAULT_ORG_LOCALE = "zh-CN"
 _DEFAULT_ORG_TIMEZONE = "Asia/Shanghai"
 _DEFAULT_ORG_DATE_FORMAT = "YYYY-MM-DD"
+_DEFAULT_ORG_USE_BROWSER_TIMEZONE = True
+_DEFAULT_ORG_USE_RELATIVE_DATETIME = True
 
 
 class OrganizationSettingsService(BaseService):
@@ -48,6 +50,12 @@ class OrganizationSettingsService(BaseService):
         date_format = (
             self._read_str(raw_value, ["organization_localization", "date_format"]) or _DEFAULT_ORG_DATE_FORMAT
         )
+        use_browser_timezone = self._read_bool(raw_value, ["organization_localization", "use_browser_timezone"])
+        if use_browser_timezone is None:
+            use_browser_timezone = _DEFAULT_ORG_USE_BROWSER_TIMEZONE
+        use_relative_datetime = self._read_bool(raw_value, ["organization_localization", "use_relative_datetime"])
+        if use_relative_datetime is None:
+            use_relative_datetime = _DEFAULT_ORG_USE_RELATIVE_DATETIME
         default_role_code = self._read_str(raw_value, ["default_role_code"]) or OrgRole.MEMBER.value
 
         return OrganizationSettingsCoreOut(
@@ -59,6 +67,8 @@ class OrganizationSettingsService(BaseService):
                 locale=locale,
                 timezone=timezone,
                 date_format=date_format,
+                use_browser_timezone=use_browser_timezone,
+                use_relative_datetime=use_relative_datetime,
             ),
             default_role_code=default_role_code,
         )
@@ -112,11 +122,13 @@ class OrganizationSettingsService(BaseService):
 
         if patch.organization_localization is not None:
             raw_localization = next_value.get("organization_localization")
-            localization: dict[str, str] = {}
+            localization: dict[str, object] = {}
             if isinstance(raw_localization, dict):
-                for key in ("locale", "timezone", "date_format"):
+                for key in ("locale", "timezone", "date_format", "use_browser_timezone", "use_relative_datetime"):
                     value = raw_localization.get(key)
                     if isinstance(value, str):
+                        localization[key] = value
+                    if isinstance(value, bool):
                         localization[key] = value
             if patch.organization_localization.locale is not None:
                 localization["locale"] = str(patch.organization_localization.locale).strip()
@@ -124,6 +136,10 @@ class OrganizationSettingsService(BaseService):
                 localization["timezone"] = str(patch.organization_localization.timezone).strip()
             if patch.organization_localization.date_format is not None:
                 localization["date_format"] = str(patch.organization_localization.date_format).strip()
+            if patch.organization_localization.use_browser_timezone is not None:
+                localization["use_browser_timezone"] = bool(patch.organization_localization.use_browser_timezone)
+            if patch.organization_localization.use_relative_datetime is not None:
+                localization["use_relative_datetime"] = bool(patch.organization_localization.use_relative_datetime)
             next_value["organization_localization"] = localization
             changed_setting = True
 
@@ -260,6 +276,17 @@ class OrganizationSettingsService(BaseService):
             return None
         normalized = current.strip()
         return normalized or None
+
+    @staticmethod
+    def _read_bool(value: dict[str, object], path: list[str]) -> bool | None:
+        current: object = value
+        for part in path:
+            if not isinstance(current, dict):
+                return None
+            current = current.get(part)
+        if not isinstance(current, bool):
+            return None
+        return current
 
     @staticmethod
     def _to_builtin_org_role(role_code: str) -> OrgRole:

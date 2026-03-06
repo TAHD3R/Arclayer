@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/constants/datetime";
+import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE, FULL_DATE_TIME_FORMAT } from "@/constants/datetime";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
 import {
   buildDateFormatOptions,
@@ -40,7 +40,9 @@ describe("localization options helpers", () => {
 
     expect(dateFormatOptions.length).toBeGreaterThan(0);
     expect(dateFormatOptions.some((item) => item.value === DEFAULT_DATE_FORMAT)).toBe(true);
+    expect(dateFormatOptions.some((item) => item.value === FULL_DATE_TIME_FORMAT)).toBe(true);
     expect(resolveDateFormatLabel("MM/DD/YYYY")).toContain("MM/DD/YYYY");
+    expect(resolveDateFormatLabel(FULL_DATE_TIME_FORMAT)).not.toBe(FULL_DATE_TIME_FORMAT);
     expect(resolveDateFormatLabel("custom-format")).toBe("custom-format");
   });
 });

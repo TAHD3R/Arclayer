@@ -7,6 +7,8 @@ export type OrganizationSettingsCore = {
     locale: string;
     timezone: string;
     dateFormat: string;
+    useBrowserTimeZone?: boolean;
+    useRelativeDateTime?: boolean;
   };
   defaultRoleCode: string;
 };

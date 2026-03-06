@@ -27,6 +27,8 @@ export type SetupDefaultsDraft = {
   timezone: string;
   locale: AppLocale;
   dateFormat: string;
+  useBrowserTimeZone: boolean;
+  useRelativeDateTime: boolean;
 };
 
 export type SetupSiteDraftPartial = Partial<SetupSiteDraft>;

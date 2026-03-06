@@ -25,7 +25,9 @@ export type GeneralSettingsFormValues = {
   defaultLocale: string;
   fallbackLocale: string;
   timezone: string;
+  useBrowserTimeZone: boolean;
   dateFormat: string;
+  useRelativeDateTime: boolean;
   seoTitlePolicyV1: TitlePolicyV1;
 
   storageProvider: StorageProvider;

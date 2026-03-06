@@ -17,10 +17,13 @@ import { ApiError } from "@/lib/http";
 import { DEFAULT_LOCALE, normalizeLocale } from "@/lib/i18n";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
+  resolveLocalizationDateFormatSummary,
+  resolveLocalizationTimeZoneSummary,
+} from "@/lib/settings/general/datetime-localization";
+import {
   buildDateFormatOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
-  resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -33,10 +36,20 @@ export type OrganizationSettingsBasicsFormValues = {
   logoUrl: string;
   locale: string;
   timezone: string;
+  useBrowserTimeZone: boolean;
   dateFormat: string;
+  useRelativeDateTime: boolean;
   defaultRoleCode: string;
   assignRoleCode: string;
 };
+
+function getBrowserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
+  } catch {
+    return DEFAULT_TIMEZONE;
+  }
+}
 
 export type OrganizationSettingsAssignRoleDialogValues = {
   confirmName: string;
@@ -118,14 +131,18 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     if (
       form.isFieldTouched("locale") ||
       form.isFieldTouched("timezone") ||
-      form.isFieldTouched("dateFormat")
+      form.isFieldTouched("dateFormat") ||
+      form.isFieldTouched("useBrowserTimeZone") ||
+      form.isFieldTouched("useRelativeDateTime")
     ) {
       return;
     }
     form.setFieldsValue({
       locale: normalizeLocale(coreQuery.data.organizationLocalization.locale || DEFAULT_LOCALE),
       timezone: coreQuery.data.organizationLocalization.timezone || DEFAULT_TIMEZONE,
+      useBrowserTimeZone: coreQuery.data.organizationLocalization.useBrowserTimeZone ?? true,
       dateFormat: coreQuery.data.organizationLocalization.dateFormat || DEFAULT_DATE_FORMAT,
+      useRelativeDateTime: coreQuery.data.organizationLocalization.useRelativeDateTime ?? true,
     });
   }, [coreQuery.data, form]);
 
@@ -144,7 +161,13 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     mutationFn: async (patch: {
       organizationName?: string;
       organizationLogoUrl?: string | null;
-      organizationLocalization?: { locale?: string; timezone?: string; dateFormat?: string };
+      organizationLocalization?: {
+        locale?: string;
+        timezone?: string;
+        dateFormat?: string;
+        useBrowserTimeZone?: boolean;
+        useRelativeDateTime?: boolean;
+      };
       defaultRoleCode?: string;
     }) => patchOrganizationCoreSettings(patch),
     onSuccess: async (data) => {
@@ -191,7 +214,8 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   }, [roleItems]);
 
   const localeOptions = useMemo(() => buildLocaleOptions(t), [t]);
-  const timezoneOptions = useMemo(() => buildTimezoneOptions(), []);
+  const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
+  const timezoneOptions = useMemo(() => buildTimezoneOptions(browserTimeZone), [browserTimeZone]);
   const dateFormatOptions = useMemo(() => buildDateFormatOptions(), []);
 
   const initialOrgName =
@@ -207,14 +231,24 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     coreQuery.data?.organizationLocalization.locale || DEFAULT_LOCALE,
   );
   const initialOrgTimezone = coreQuery.data?.organizationLocalization.timezone || DEFAULT_TIMEZONE;
+  const initialOrgUseBrowserTimeZone =
+    coreQuery.data?.organizationLocalization.useBrowserTimeZone ?? true;
   const initialOrgDateFormat =
     coreQuery.data?.organizationLocalization.dateFormat || DEFAULT_DATE_FORMAT;
+  const initialOrgUseRelativeDateTime =
+    coreQuery.data?.organizationLocalization.useRelativeDateTime ?? true;
   const initialDefaultRoleCode = coreQuery.data?.defaultRoleCode || roleItems[0]?.code || "";
 
   const orgLocale = (Form.useWatch("locale", form) as string | undefined) ?? initialOrgLocale;
   const orgTimezone = (Form.useWatch("timezone", form) as string | undefined) ?? initialOrgTimezone;
+  const orgUseBrowserTimeZone =
+    (Form.useWatch("useBrowserTimeZone", form) as boolean | undefined) ??
+    initialOrgUseBrowserTimeZone;
   const orgDateFormat =
     (Form.useWatch("dateFormat", form) as string | undefined) ?? initialOrgDateFormat;
+  const orgUseRelativeDateTime =
+    (Form.useWatch("useRelativeDateTime", form) as boolean | undefined) ??
+    initialOrgUseRelativeDateTime;
   const defaultRoleCode =
     (Form.useWatch("defaultRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
   const assignRoleCode =
@@ -222,17 +256,28 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
 
   const orgLocaleLabel =
     localeOptions.find((item) => item.value === orgLocale)?.label ?? String(orgLocale);
-  const orgTimezoneLabel =
-    timezoneOptions.find((item) => item.value === orgTimezone)?.label ?? String(orgTimezone);
-  const orgDateFormatLabel = resolveDateFormatLabel(String(orgDateFormat));
+  const orgTimezoneLabel = resolveLocalizationTimeZoneSummary({
+    timeZone: orgTimezone,
+    browserTimeZone,
+    useBrowserTimeZone: orgUseBrowserTimeZone,
+    autoLabel: t("settings:SETTINGS_TIMEZONE_AUTO_SHORT"),
+  });
+  const orgDateFormatLabel = resolveLocalizationDateFormatSummary({
+    dateFormat: String(orgDateFormat),
+    useRelativeDateTime: orgUseRelativeDateTime,
+    relativeLabel: t("settings:SETTINGS_DATETIME_RELATIVE_SHORT"),
+  });
   const defaultRoleLabel = roleLabelMap.get(String(defaultRoleCode)) ?? String(defaultRoleCode);
   const assignRoleLabel = roleLabelMap.get(String(assignRoleCode)) ?? String(assignRoleCode);
 
   const isOrgNameDirty = String(currentOrgName).trim() !== String(initialOrgName).trim();
   const isOrgLogoDirty = String(currentOrgLogoUrl).trim() !== String(initialOrgLogoUrl).trim();
   const isOrgLocaleDirty = orgLocale !== initialOrgLocale;
-  const isOrgTimezoneDirty = orgTimezone !== initialOrgTimezone;
-  const isOrgDateFormatDirty = orgDateFormat !== initialOrgDateFormat;
+  const isOrgTimezoneDirty =
+    orgTimezone !== initialOrgTimezone || orgUseBrowserTimeZone !== initialOrgUseBrowserTimeZone;
+  const isOrgDateFormatDirty =
+    orgDateFormat !== initialOrgDateFormat ||
+    orgUseRelativeDateTime !== initialOrgUseRelativeDateTime;
   const isDefaultRoleDirty = defaultRoleCode !== initialDefaultRoleCode;
 
   const forbiddenError = useMemo(
@@ -278,11 +323,15 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     currentOrgLogoUrl,
     initialOrgLocale,
     initialOrgTimezone,
+    initialOrgUseBrowserTimeZone,
     initialOrgDateFormat,
+    initialOrgUseRelativeDateTime,
     initialDefaultRoleCode,
     orgLocale,
     orgTimezone,
+    orgUseBrowserTimeZone,
     orgDateFormat,
+    orgUseRelativeDateTime,
     defaultRoleCode,
     assignRoleCode,
     orgLocaleLabel,

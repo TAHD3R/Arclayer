@@ -10,7 +10,13 @@ export async function getOrganizationCoreSettings(): Promise<OrganizationSetting
 export async function patchOrganizationCoreSettings(patch: {
   organizationName?: string;
   organizationLogoUrl?: string | null;
-  organizationLocalization?: { locale?: string; timezone?: string; dateFormat?: string };
+  organizationLocalization?: {
+    locale?: string;
+    timezone?: string;
+    dateFormat?: string;
+    useBrowserTimeZone?: boolean;
+    useRelativeDateTime?: boolean;
+  };
   defaultRoleCode?: string;
 }): Promise<OrganizationSettingsCore> {
   return api.patch<OrganizationSettingsCore>("/organizations/me/settings/core", patch);

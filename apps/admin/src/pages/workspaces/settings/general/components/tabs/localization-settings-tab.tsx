@@ -1,14 +1,22 @@
 import { Form, Select } from "antd";
 import type { FormInstance } from "antd";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 
 import {
+  DateTimeFormatLocalizationControl,
+  TimezoneLocalizationControl,
+} from "@/components/settings/date-time-localization-controls";
+import {
+  resolveLocalizationDateFormatSummary,
+  resolveLocalizationTimeZoneSummary,
+} from "@/lib/settings/general/datetime-localization";
+import {
   buildDateFormatOptions,
   buildTimezoneOptions,
-  resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
@@ -20,6 +28,14 @@ function useLocalizationField(
   name: keyof GeneralSettingsFormValues,
 ) {
   return Form.useWatch(name as string, form) as unknown;
+}
+
+function getBrowserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
 }
 
 export function LocalizationSettingsTab({
@@ -43,9 +59,16 @@ export function LocalizationSettingsTab({
     initialValues.fallbackLocale;
   const timezone =
     (useLocalizationField(form, "timezone") as string | undefined) ?? initialValues.timezone;
+  const useBrowserTimeZone =
+    (useLocalizationField(form, "useBrowserTimeZone") as boolean | undefined) ??
+    initialValues.useBrowserTimeZone;
   const dateFormat =
     (useLocalizationField(form, "dateFormat") as string | undefined) ?? initialValues.dateFormat;
+  const useRelativeDateTime =
+    (useLocalizationField(form, "useRelativeDateTime") as boolean | undefined) ??
+    initialValues.useRelativeDateTime;
 
+  const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
   const localeOptions = supportedLocales
     .map((loc) => normalizeLocaleTag(loc))
     .filter((x): x is string => Boolean(x))
@@ -55,14 +78,28 @@ export function LocalizationSettingsTab({
 
   const localeLabel =
     localeOptions.find((item) => item.value === defaultLocale)?.label ?? defaultLocale;
-  const dateFormatLabel = resolveDateFormatLabel(dateFormat);
+  const timezoneLabel = resolveLocalizationTimeZoneSummary({
+    autoLabel: t("settings:SETTINGS_TIMEZONE_AUTO_SHORT"),
+    browserTimeZone,
+    timeZone: timezone,
+    useBrowserTimeZone,
+  });
+  const dateFormatLabel = resolveLocalizationDateFormatSummary({
+    dateFormat,
+    relativeLabel: t("settings:SETTINGS_DATETIME_RELATIVE_SHORT"),
+    useRelativeDateTime,
+  });
 
   const isSupportedLocalesDirty =
     JSON.stringify(supportedLocales || []) !== JSON.stringify(initialValues.supportedLocales || []);
   const isDefaultLocaleDirty = (defaultLocale || "") !== (initialValues.defaultLocale || "");
   const isFallbackLocaleDirty = (fallbackLocale || "") !== (initialValues.fallbackLocale || "");
-  const isTimezoneDirty = (timezone || "") !== (initialValues.timezone || "");
-  const isDateFormatDirty = (dateFormat || "") !== (initialValues.dateFormat || "");
+  const isTimezoneDirty =
+    (timezone || "") !== (initialValues.timezone || "") ||
+    useBrowserTimeZone !== initialValues.useBrowserTimeZone;
+  const isDateFormatDirty =
+    (dateFormat || "") !== (initialValues.dateFormat || "") ||
+    useRelativeDateTime !== initialValues.useRelativeDateTime;
 
   const isResettingSupportedLocales = savingKey === "reset:supportedLocales";
   const isResettingDefaultLocale = savingKey === "reset:defaultLocale";
@@ -96,14 +133,30 @@ export function LocalizationSettingsTab({
 
   const resetTimezone = () =>
     withSavingKey("reset:timezone", async () => {
-      form.setFieldValue("timezone", initialValues.timezone);
-      await patch({ site_localization: { timezone: initialValues.timezone } });
+      form.setFieldsValue({
+        timezone: initialValues.timezone,
+        useBrowserTimeZone: initialValues.useBrowserTimeZone,
+      });
+      await patch({
+        site_localization: {
+          timezone: initialValues.timezone,
+          use_browser_timezone: initialValues.useBrowserTimeZone,
+        },
+      });
     });
 
   const resetDateFormat = () =>
     withSavingKey("reset:dateFormat", async () => {
-      form.setFieldValue("dateFormat", initialValues.dateFormat);
-      await patch({ site_localization: { date_format: initialValues.dateFormat } });
+      form.setFieldsValue({
+        dateFormat: initialValues.dateFormat,
+        useRelativeDateTime: initialValues.useRelativeDateTime,
+      });
+      await patch({
+        site_localization: {
+          date_format: initialValues.dateFormat,
+          use_relative_datetime: initialValues.useRelativeDateTime,
+        },
+      });
     });
 
   const saveSupportedLocales = () =>
@@ -135,13 +188,23 @@ export function LocalizationSettingsTab({
   const saveTimezone = () =>
     withSavingKey("timezone", async () => {
       const values = await form.validateFields(["timezone"]);
-      await patch({ site_localization: { timezone: String(values.timezone) } });
+      await patch({
+        site_localization: {
+          timezone: String(values.timezone),
+          use_browser_timezone: useBrowserTimeZone,
+        },
+      });
     });
 
   const saveDateFormat = () =>
     withSavingKey("dateFormat", async () => {
       const values = await form.validateFields(["dateFormat"]);
-      await patch({ site_localization: { date_format: String(values.dateFormat) } });
+      await patch({
+        site_localization: {
+          date_format: String(values.dateFormat),
+          use_relative_datetime: useRelativeDateTime,
+        },
+      });
     });
 
   return (
@@ -247,7 +310,7 @@ export function LocalizationSettingsTab({
         title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
         description={t("settings:SETTINGS_SITE_TIMEZONE_DESC")}
         showSummary
-        summary={timezone}
+        summary={timezoneLabel}
         confirmText={t("settings:SETTINGS_SAVE")}
         onConfirm={saveTimezone}
         confirmLoading={savingKey === "timezone"}
@@ -259,10 +322,22 @@ export function LocalizationSettingsTab({
         <Form.Item<GeneralSettingsFormValues>
           name="timezone"
           rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
-          style={{ marginBottom: 0 }}
+          hidden
         >
-          <Select size="large" options={timezoneOptions} showSearch optionFilterProp="label" />
+          <input type="hidden" />
         </Form.Item>
+        <Form.Item<GeneralSettingsFormValues> name="useBrowserTimeZone" hidden>
+          <input type="hidden" />
+        </Form.Item>
+        <TimezoneLocalizationControl
+          selectValue={String(timezone || "")}
+          switchChecked={useBrowserTimeZone}
+          switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+          switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+          options={timezoneOptions}
+          onSelectChange={(value) => form.setFieldValue("timezone", value)}
+          onSwitchChange={(checked) => form.setFieldValue("useBrowserTimeZone", checked)}
+        />
       </SettingAccordionItem>
 
       <SettingAccordionItem
@@ -287,10 +362,22 @@ export function LocalizationSettingsTab({
               message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
             },
           ]}
-          style={{ marginBottom: 0 }}
+          hidden
         >
-          <Select size="large" options={dateFormatOptions} />
+          <input type="hidden" />
         </Form.Item>
+        <Form.Item<GeneralSettingsFormValues> name="useRelativeDateTime" hidden>
+          <input type="hidden" />
+        </Form.Item>
+        <DateTimeFormatLocalizationControl
+          selectValue={String(dateFormat || "")}
+          switchChecked={useRelativeDateTime}
+          switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+          switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
+          options={dateFormatOptions}
+          onSelectChange={(value) => form.setFieldValue("dateFormat", value)}
+          onSwitchChange={(checked) => form.setFieldValue("useRelativeDateTime", checked)}
+        />
       </SettingAccordionItem>
     </Accordion>
   );

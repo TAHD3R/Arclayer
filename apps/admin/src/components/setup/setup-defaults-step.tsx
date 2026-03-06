@@ -5,16 +5,31 @@ import { useTranslation } from "react-i18next";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { Accordion } from "@celestial/ui/accordion";
 import { DEFAULT_TIMEZONE } from "@/constants/datetime";
+import {
+  DateTimeFormatLocalizationControl,
+  TimezoneLocalizationControl,
+} from "@/components/settings/date-time-localization-controls";
 import { type AppLocale } from "@/lib/i18n";
+import {
+  resolveLocalizationDateFormatSummary,
+  resolveLocalizationTimeZoneSummary,
+} from "@/lib/settings/general/datetime-localization";
 import {
   buildDateFormatOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
-  resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
 import type { SetupDefaultsDraft } from "@/types/stores";
 
 const SETUP_SELECT_DROPDOWN_Z_INDEX = 2600;
+
+function getBrowserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
+  } catch {
+    return DEFAULT_TIMEZONE;
+  }
+}
 
 export function SetupDefaultsStep(props: {
   form: ReturnType<typeof Form.useForm<SetupDefaultsDraft>>[0];
@@ -29,15 +44,29 @@ export function SetupDefaultsStep(props: {
   const timezone = Form.useWatch("timezone", props.form) as string | undefined;
   const locale = Form.useWatch("locale", props.form) as AppLocale | undefined;
   const dateFormat = Form.useWatch("dateFormat", props.form) as string | undefined;
+  const useBrowserTimeZone = Form.useWatch("useBrowserTimeZone", props.form) as boolean | undefined;
+  const useRelativeDateTime = Form.useWatch("useRelativeDateTime", props.form) as
+    | boolean
+    | undefined;
 
+  const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
   const localeItems = useMemo(() => buildLocaleOptions(t), [t]);
   const timezoneItems = useMemo(() => buildTimezoneOptions(timezone), [timezone]);
   const dateFormatItems = useMemo(() => buildDateFormatOptions(), []);
 
-  const currentTimezoneLabel = timezone || timezoneItems[0]?.label || DEFAULT_TIMEZONE;
+  const currentTimezoneLabel = resolveLocalizationTimeZoneSummary({
+    autoLabel: t("settings:SETTINGS_TIMEZONE_AUTO_SHORT"),
+    browserTimeZone,
+    timeZone: timezone || DEFAULT_TIMEZONE,
+    useBrowserTimeZone,
+  });
   const currentLocaleLabel =
     localeItems.find((item) => item.value === locale)?.label || localeItems[0]?.label;
-  const currentDateFormatLabel = resolveDateFormatLabel(dateFormat);
+  const currentDateFormatLabel = resolveLocalizationDateFormatSummary({
+    dateFormat,
+    relativeLabel: t("settings:SETTINGS_DATETIME_RELATIVE_SHORT"),
+    useRelativeDateTime,
+  });
 
   return (
     <Form<SetupDefaultsDraft>
@@ -61,19 +90,22 @@ export function SetupDefaultsStep(props: {
           <Form.Item<SetupDefaultsDraft>
             name="timezone"
             rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
-            style={{ marginBottom: 0 }}
+            hidden
           >
-            <Select
-              size="large"
-              className="min-w-[260px]"
-              disabled={props.disabled}
-              options={timezoneItems}
-              showSearch
-              optionFilterProp="label"
-              placement="bottomLeft"
-              dropdownStyle={{ zIndex: SETUP_SELECT_DROPDOWN_Z_INDEX }}
-            />
+            <input type="hidden" />
           </Form.Item>
+          <Form.Item<SetupDefaultsDraft> name="useBrowserTimeZone" hidden>
+            <input type="hidden" />
+          </Form.Item>
+          <TimezoneLocalizationControl
+            selectValue={String(timezone || DEFAULT_TIMEZONE)}
+            switchChecked={Boolean(useBrowserTimeZone)}
+            switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+            switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+            options={timezoneItems}
+            onSelectChange={(value) => props.form.setFieldValue("timezone", value)}
+            onSwitchChange={(checked) => props.form.setFieldValue("useBrowserTimeZone", checked)}
+          />
         </SettingAccordionItem>
 
         <SettingAccordionItem
@@ -112,18 +144,28 @@ export function SetupDefaultsStep(props: {
         >
           <Form.Item<SetupDefaultsDraft>
             name="dateFormat"
-            rules={[{ required: true, message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED") }]}
-            style={{ marginBottom: 0 }}
+            rules={[
+              {
+                required: true,
+                message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
+              },
+            ]}
+            hidden
           >
-            <Select
-              size="large"
-              className="min-w-[320px]"
-              disabled={props.disabled}
-              options={dateFormatItems}
-              placement="bottomLeft"
-              dropdownStyle={{ zIndex: SETUP_SELECT_DROPDOWN_Z_INDEX }}
-            />
+            <input type="hidden" />
           </Form.Item>
+          <Form.Item<SetupDefaultsDraft> name="useRelativeDateTime" hidden>
+            <input type="hidden" />
+          </Form.Item>
+          <DateTimeFormatLocalizationControl
+            selectValue={String(dateFormat || "")}
+            switchChecked={Boolean(useRelativeDateTime)}
+            switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+            switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
+            options={dateFormatItems}
+            onSelectChange={(value) => props.form.setFieldValue("dateFormat", value)}
+            onSwitchChange={(checked) => props.form.setFieldValue("useRelativeDateTime", checked)}
+          />
         </SettingAccordionItem>
       </Accordion>
     </Form>

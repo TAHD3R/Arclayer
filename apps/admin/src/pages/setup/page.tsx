@@ -193,14 +193,28 @@ export function SetupPage() {
     if (defaultsDraft.timezone === undefined) {
       next.timezone = detectedTz;
     }
+    if (defaultsDraft.useBrowserTimeZone === undefined) {
+      next.useBrowserTimeZone = true;
+    }
     if (defaultsDraft.dateFormat === undefined) {
       next.dateFormat = preferredLocale === "en-US" ? "MM/DD/YYYY" : "YYYY-MM-DD";
+    }
+    if (defaultsDraft.useRelativeDateTime === undefined) {
+      next.useRelativeDateTime = true;
     }
 
     if (Object.keys(next).length > 0) {
       patchDefaults(next);
     }
-  }, [defaultsDraft.dateFormat, defaultsDraft.locale, defaultsDraft.timezone, patchDefaults, step]);
+  }, [
+    defaultsDraft.dateFormat,
+    defaultsDraft.locale,
+    defaultsDraft.timezone,
+    defaultsDraft.useBrowserTimeZone,
+    defaultsDraft.useRelativeDateTime,
+    patchDefaults,
+    step,
+  ]);
 
   const stageMeta = useMemo(
     () => [
@@ -343,11 +357,15 @@ export function SetupPage() {
           locale: defaults.locale,
           timezone: defaults.timezone,
           date_format: defaults.dateFormat,
+          use_browser_timezone: defaults.useBrowserTimeZone,
+          use_relative_datetime: defaults.useRelativeDateTime,
         },
         site_localization: {
           locale: defaults.locale,
           timezone: defaults.timezone,
           date_format: defaults.dateFormat,
+          use_browser_timezone: defaults.useBrowserTimeZone,
+          use_relative_datetime: defaults.useRelativeDateTime,
         },
       };
 

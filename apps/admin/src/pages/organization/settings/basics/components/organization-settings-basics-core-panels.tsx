@@ -3,6 +3,10 @@ import { Form, Input, Select } from "antd";
 import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingPanel } from "@celestial/ui/setting-panel";
+import {
+  DateTimeFormatLocalizationControl,
+  TimezoneLocalizationControl,
+} from "@/components/settings/date-time-localization-controls";
 import { normalizeLocale } from "@/lib/i18n";
 
 import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";
@@ -150,9 +154,11 @@ export function OrganizationSettingsBasicsCorePanels(props: {
               confirmLoading={c.savingKey === "organization:timezone"}
               onConfirm={() =>
                 void c.withSavingKey("organization:timezone", async () => {
-                  const values = await c.form.validateFields(["timezone"]);
                   await c.patchCoreMutation.mutateAsync({
-                    organizationLocalization: { timezone: String(values.timezone) },
+                    organizationLocalization: {
+                      timezone: String(c.orgTimezone),
+                      useBrowserTimeZone: c.orgUseBrowserTimeZone,
+                    },
                   });
                 })
               }
@@ -160,9 +166,15 @@ export function OrganizationSettingsBasicsCorePanels(props: {
                 c.isOrgTimezoneDirty
                   ? () =>
                       void c.withSavingKey("reset:organization:timezone", async () => {
-                        c.form.setFieldValue("timezone", c.initialOrgTimezone);
+                        c.form.setFieldsValue({
+                          timezone: c.initialOrgTimezone,
+                          useBrowserTimeZone: c.initialOrgUseBrowserTimeZone,
+                        });
                         await c.patchCoreMutation.mutateAsync({
-                          organizationLocalization: { timezone: c.initialOrgTimezone },
+                          organizationLocalization: {
+                            timezone: c.initialOrgTimezone,
+                            useBrowserTimeZone: c.initialOrgUseBrowserTimeZone,
+                          },
                         });
                       })
                   : undefined
@@ -170,23 +182,23 @@ export function OrganizationSettingsBasicsCorePanels(props: {
               resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:organization:timezone"}
             >
-              <Form.Item
-                name="timezone"
-                rules={[
-                  {
-                    required: true,
-                    message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED"),
-                  },
-                ]}
-                style={{ marginBottom: 0 }}
-              >
-                <Select
-                  size="large"
-                  options={c.timezoneOptions}
-                  showSearch
-                  optionFilterProp="label"
-                />
+              <Form.Item name="useBrowserTimeZone" hidden>
+                <input type="hidden" />
               </Form.Item>
+              <TimezoneLocalizationControl
+                selectValue={String(c.orgTimezone)}
+                switchChecked={c.orgUseBrowserTimeZone}
+                switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+                switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+                options={c.timezoneOptions}
+                onSelectChange={(value) => c.form.setFieldValue("timezone", value)}
+                onSwitchChange={(checked) => {
+                  c.form.setFieldsValue({
+                    useBrowserTimeZone: checked,
+                    timezone: checked ? c.orgTimezone : c.orgTimezone,
+                  });
+                }}
+              />
             </SettingAccordionItem>
 
             <SettingAccordionItem
@@ -203,9 +215,11 @@ export function OrganizationSettingsBasicsCorePanels(props: {
               confirmLoading={c.savingKey === "organization:dateFormat"}
               onConfirm={() =>
                 void c.withSavingKey("organization:dateFormat", async () => {
-                  const values = await c.form.validateFields(["dateFormat"]);
                   await c.patchCoreMutation.mutateAsync({
-                    organizationLocalization: { dateFormat: String(values.dateFormat) },
+                    organizationLocalization: {
+                      dateFormat: String(c.orgDateFormat),
+                      useRelativeDateTime: c.orgUseRelativeDateTime,
+                    },
                   });
                 })
               }
@@ -213,10 +227,14 @@ export function OrganizationSettingsBasicsCorePanels(props: {
                 c.isOrgDateFormatDirty
                   ? () =>
                       void c.withSavingKey("reset:organization:dateFormat", async () => {
-                        c.form.setFieldValue("dateFormat", c.initialOrgDateFormat);
+                        c.form.setFieldsValue({
+                          dateFormat: c.initialOrgDateFormat,
+                          useRelativeDateTime: c.initialOrgUseRelativeDateTime,
+                        });
                         await c.patchCoreMutation.mutateAsync({
                           organizationLocalization: {
                             dateFormat: c.initialOrgDateFormat,
+                            useRelativeDateTime: c.initialOrgUseRelativeDateTime,
                           },
                         });
                       })
@@ -225,18 +243,20 @@ export function OrganizationSettingsBasicsCorePanels(props: {
               resetText={t("settings:SETTINGS_RESET")}
               resetLoading={c.savingKey === "reset:organization:dateFormat"}
             >
-              <Form.Item
-                name="dateFormat"
-                rules={[
-                  {
-                    required: true,
-                    message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
-                  },
-                ]}
-                style={{ marginBottom: 0 }}
-              >
-                <Select size="large" options={c.dateFormatOptions} />
+              <Form.Item name="useRelativeDateTime" hidden>
+                <input type="hidden" />
               </Form.Item>
+              <DateTimeFormatLocalizationControl
+                selectValue={String(c.orgDateFormat)}
+                switchChecked={c.orgUseRelativeDateTime}
+                switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+                switchDescription={t(
+                  "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC",
+                )}
+                options={c.dateFormatOptions}
+                onSelectChange={(value) => c.form.setFieldValue("dateFormat", value)}
+                onSwitchChange={(checked) => c.form.setFieldValue("useRelativeDateTime", checked)}
+              />
             </SettingAccordionItem>
           </Accordion>
         </div>

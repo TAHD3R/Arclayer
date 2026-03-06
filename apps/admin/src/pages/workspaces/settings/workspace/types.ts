@@ -7,7 +7,9 @@ export type WorkspaceSettingsFormValues = {
   iconUrl: string;
   locale: AppLocale;
   timezone: string;
+  useBrowserTimeZone: boolean;
   dateFormat: string;
+  useRelativeDateTime: boolean;
   defaultRoleCode: string;
   assignRoleCode: string;
   contentAutosaveEnabled: boolean;

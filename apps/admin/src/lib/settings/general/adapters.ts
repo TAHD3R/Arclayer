@@ -45,8 +45,12 @@ export function buildGeneralSettingsInitialValues(params: {
     pickStringArray(workspaceValue, ["site_localization", "supported_locales"]) ?? [];
   const supportedLocales = uniqLocales([...supportedLocalesInput, defaultLocale, fallbackLocale]);
   const timezone = pickString(workspaceValue, ["site_localization", "timezone"]) ?? "Asia/Shanghai";
+  const useBrowserTimeZone =
+    pickBool(workspaceValue, ["site_localization", "use_browser_timezone"]) ?? true;
   const dateFormat =
     pickString(workspaceValue, ["site_localization", "date_format"]) ?? "YYYY-MM-DD";
+  const useRelativeDateTime =
+    pickBool(workspaceValue, ["site_localization", "use_relative_datetime"]) ?? true;
 
   const seoTitlePolicyV1 = parseTitlePolicyV1(
     pickUnknown(workspaceValue, ["seo", "title_policy_v1"]),
@@ -131,7 +135,9 @@ export function buildGeneralSettingsInitialValues(params: {
     defaultLocale,
     fallbackLocale,
     timezone,
+    useBrowserTimeZone,
     dateFormat,
+    useRelativeDateTime,
     seoTitlePolicyV1,
 
     storageProvider,

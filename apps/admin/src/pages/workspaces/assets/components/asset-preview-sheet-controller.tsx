@@ -19,7 +19,7 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
@@ -52,7 +52,7 @@ export function useAssetPreviewSheetController(props: {
     [workspaceId],
   );
   const uiLocale = usePreferencesStore((s) => s.locale);
-  const workspaceLocalization = useWorkspaceLocalization();
+  const adminDateTime = useAdminDateTimeFormatter({ workspaceId });
   const { token } = theme.useToken();
   const active = props.active;
   const activeAspectRatio = active ? getSafeAspectRatio(active.aspectRatio) : 4 / 3;
@@ -102,13 +102,15 @@ export function useAssetPreviewSheetController(props: {
   const dateTime = useMemo(
     () => ({
       locale: uiLocale,
-      timezone: workspaceLocalization.localization.timezone ?? "Asia/Shanghai",
-      dateFormat: workspaceLocalization.localization.dateFormat,
+      timezone: adminDateTime.localization.timeZone,
+      dateFormat: adminDateTime.localization.dateFormat,
+      useRelativeDateTime: adminDateTime.localization.useRelativeDateTime,
     }),
     [
+      adminDateTime.localization.dateFormat,
+      adminDateTime.localization.timeZone,
+      adminDateTime.localization.useRelativeDateTime,
       uiLocale,
-      workspaceLocalization.localization.dateFormat,
-      workspaceLocalization.localization.timezone,
     ],
   );
 

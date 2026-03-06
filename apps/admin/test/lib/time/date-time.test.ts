@@ -47,4 +47,27 @@ describe("formatDateTimeWithPattern", () => {
     // UTC+8
     expect(out).toBe("2026-02-03 12:05");
   });
+
+  it("formats FULL_DATE_TIME using locale-aware absolute date time", () => {
+    const date = new Date("2026-02-03T04:05:00Z");
+    const out = formatDateTimeWithPattern({
+      date,
+      locale: "en-US",
+      timeZone: "UTC",
+      dateFormat: "FULL_DATE_TIME",
+      includeTime: true,
+    });
+
+    const expected = new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+
+    expect(out).toBe(expected);
+  });
 });

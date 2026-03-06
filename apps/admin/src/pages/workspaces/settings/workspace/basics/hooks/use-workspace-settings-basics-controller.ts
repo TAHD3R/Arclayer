@@ -11,12 +11,15 @@ import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/constants/datetime";
 import { useSavingKey } from "@celestial/hooks/use-saving-key";
 import { DEFAULT_LOCALE, normalizeLocale } from "@/lib/i18n";
 import {
+  resolveLocalizationDateFormatSummary,
+  resolveLocalizationTimeZoneSummary,
+} from "@/lib/settings/general/datetime-localization";
+import {
   buildDateFormatOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
-  resolveDateFormatLabel,
 } from "@/lib/settings/general/localization-options";
-import { pickString } from "@/lib/settings/general/utils";
+import { pickBool, pickString } from "@/lib/settings/general/utils";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
@@ -25,6 +28,14 @@ import type { AssignRoleDialogValues, WorkspaceSettingsFormValues } from "../../
 import { buildWorkspacePortalUrl, resolveWorkspaceSettingsTabNavigation } from "../../utils";
 import { buildWorkspaceRoleMetadata } from "./role-metadata";
 import { useWorkspaceSettingsBasicsMutations } from "./use-workspace-settings-basics-mutations";
+
+function getBrowserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
+  } catch {
+    return DEFAULT_TIMEZONE;
+  }
+}
 
 export function useWorkspaceSettingsBasicsController(props: { workspaceId: string }) {
   const workspaceId = String(props.workspaceId || "").trim();
@@ -102,7 +113,9 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     if (
       form.isFieldTouched("locale") ||
       form.isFieldTouched("timezone") ||
-      form.isFieldTouched("dateFormat")
+      form.isFieldTouched("dateFormat") ||
+      form.isFieldTouched("useBrowserTimeZone") ||
+      form.isFieldTouched("useRelativeDateTime")
     ) {
       return;
     }
@@ -112,8 +125,12 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
         pickString(value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
       ),
       timezone: pickString(value, ["workspace_localization", "timezone"]) ?? DEFAULT_TIMEZONE,
+      useBrowserTimeZone:
+        pickBool(value, ["workspace_localization", "use_browser_timezone"]) ?? true,
       dateFormat:
         pickString(value, ["workspace_localization", "date_format"]) ?? DEFAULT_DATE_FORMAT,
+      useRelativeDateTime:
+        pickBool(value, ["workspace_localization", "use_relative_datetime"]) ?? true,
     });
   }, [coreQuery.data, form]);
 
@@ -167,9 +184,13 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   );
   const initialWorkspaceTimezone =
     pickString(coreQuery.data?.value, ["workspace_localization", "timezone"]) ?? DEFAULT_TIMEZONE;
+  const initialWorkspaceUseBrowserTimeZone =
+    pickBool(coreQuery.data?.value, ["workspace_localization", "use_browser_timezone"]) ?? true;
   const initialWorkspaceDateFormat =
     pickString(coreQuery.data?.value, ["workspace_localization", "date_format"]) ??
     DEFAULT_DATE_FORMAT;
+  const initialWorkspaceUseRelativeDateTime =
+    pickBool(coreQuery.data?.value, ["workspace_localization", "use_relative_datetime"]) ?? true;
 
   const roleItems = rolesQuery.data?.items ?? [];
   const roleMetadata = useMemo(() => buildWorkspaceRoleMetadata(roleItems), [roleItems]);
@@ -179,17 +200,24 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     (Form.useWatch("locale", form) as string | undefined) ?? String(initialWorkspaceLocale);
   const workspaceTimezone =
     (Form.useWatch("timezone", form) as string | undefined) ?? initialWorkspaceTimezone;
+  const workspaceUseBrowserTimeZone =
+    (Form.useWatch("useBrowserTimeZone", form) as boolean | undefined) ??
+    initialWorkspaceUseBrowserTimeZone;
   const workspaceDateFormat =
     (Form.useWatch("dateFormat", form) as string | undefined) ?? initialWorkspaceDateFormat;
+  const workspaceUseRelativeDateTime =
+    (Form.useWatch("useRelativeDateTime", form) as boolean | undefined) ??
+    initialWorkspaceUseRelativeDateTime;
   const defaultRoleCode =
     (Form.useWatch("defaultRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
   const assignRoleCode =
     (Form.useWatch("assignRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
 
+  const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
   const localeOptions = useMemo(() => buildLocaleOptions(t), [t]);
   const timezoneOptions = useMemo(
-    () => buildTimezoneOptions(workspaceTimezone),
-    [workspaceTimezone],
+    () => buildTimezoneOptions(workspaceTimezone || browserTimeZone),
+    [browserTimeZone, workspaceTimezone],
   );
   const dateFormatOptions = useMemo(() => buildDateFormatOptions(), []);
 
@@ -199,10 +227,17 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
 
   const workspaceLocaleLabel =
     localeOptions.find((item) => item.value === workspaceLocale)?.label ?? workspaceLocale;
-  const workspaceTimezoneLabel =
-    timezoneOptions.find((item) => item.value === workspaceTimezone)?.label ??
-    String(workspaceTimezone);
-  const workspaceDateFormatLabel = resolveDateFormatLabel(String(workspaceDateFormat));
+  const workspaceTimezoneLabel = resolveLocalizationTimeZoneSummary({
+    timeZone: workspaceTimezone,
+    browserTimeZone,
+    useBrowserTimeZone: workspaceUseBrowserTimeZone,
+    autoLabel: t("settings:SETTINGS_TIMEZONE_AUTO_SHORT"),
+  });
+  const workspaceDateFormatLabel = resolveLocalizationDateFormatSummary({
+    dateFormat: String(workspaceDateFormat),
+    useRelativeDateTime: workspaceUseRelativeDateTime,
+    relativeLabel: t("settings:SETTINGS_DATETIME_RELATIVE_SHORT"),
+  });
   const defaultRoleLabel = roleLabelMap.get(String(defaultRoleCode)) ?? String(defaultRoleCode);
   const assignRoleLabel = roleLabelMap.get(String(assignRoleCode)) ?? String(assignRoleCode);
   const assignRoleDescription = roleDescriptionMap.get(String(assignRoleCode)) ?? null;
@@ -212,9 +247,12 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const isWorkspaceIconDirty =
     String(currentWorkspaceIconUrl || "").trim() !== String(initialWorkspaceIconUrl || "").trim();
   const isWorkspaceLocaleDirty = (workspaceLocale || "") !== String(initialWorkspaceLocale);
-  const isWorkspaceTimezoneDirty = (workspaceTimezone || "") !== (initialWorkspaceTimezone || "");
+  const isWorkspaceTimezoneDirty =
+    (workspaceTimezone || "") !== (initialWorkspaceTimezone || "") ||
+    workspaceUseBrowserTimeZone !== initialWorkspaceUseBrowserTimeZone;
   const isWorkspaceDateFormatDirty =
-    (workspaceDateFormat || "") !== (initialWorkspaceDateFormat || "");
+    (workspaceDateFormat || "") !== (initialWorkspaceDateFormat || "") ||
+    workspaceUseRelativeDateTime !== initialWorkspaceUseRelativeDateTime;
   const isDefaultRoleDirty = String(defaultRoleCode) !== String(initialDefaultRoleCode);
 
   return {
@@ -248,11 +286,15 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     currentWorkspaceIconUrl,
     initialWorkspaceLocale,
     initialWorkspaceTimezone,
+    initialWorkspaceUseBrowserTimeZone,
     initialWorkspaceDateFormat,
+    initialWorkspaceUseRelativeDateTime,
     initialDefaultRoleCode,
     workspaceLocale,
     workspaceTimezone,
+    workspaceUseBrowserTimeZone,
     workspaceDateFormat,
+    workspaceUseRelativeDateTime,
     defaultRoleCode,
     assignRoleCode,
     localeOptions,

@@ -24,6 +24,7 @@ import {
 } from "@celestial/ui/icons/document-icons";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
+import { formatRelativeTime } from "@/lib/time/relative-time";
 
 export function findTagIdByName(tags: AdminAssetTag[], name: string): string | null {
   const needle = name.trim().toLowerCase();
@@ -240,11 +241,20 @@ export function getIndexableLabel(
 export function formatCreatedAt(
   iso: string | undefined,
   fallback: string | undefined,
-  opts: { locale: string; timezone: string; dateFormat: string | undefined },
+  opts: {
+    locale: string;
+    timezone: string;
+    dateFormat: string | undefined;
+    useRelativeDateTime?: boolean;
+  },
 ): string {
   if (iso) {
     const d = new Date(iso);
     if (!Number.isNaN(d.getTime())) {
+      if (opts.useRelativeDateTime) {
+        const relative = formatRelativeTime(d, opts.locale);
+        if (relative) return relative;
+      }
       return formatDateTimeWithPattern({
         date: d,
         locale: opts.locale,

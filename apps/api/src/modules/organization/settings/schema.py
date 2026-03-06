@@ -10,16 +10,26 @@ class OrganizationLocalizationOut(BaseSchema):
     locale: str = Field(..., description="Default language for organization-level admin surfaces.")
     timezone: str = Field(..., description="Default timezone for organization-level admin surfaces.")
     date_format: str = Field(..., description="Default date format for organization-level admin surfaces.")
+    use_browser_timezone: bool = Field(default=True, description="Whether to use browser timezone by default.")
+    use_relative_datetime: bool = Field(default=True, description="Whether to display relative datetime by default.")
 
 
 class OrganizationLocalizationPatch(BaseSchema):
     locale: str | None = Field(default=None, min_length=2, max_length=32, description="Language code.")
     timezone: str | None = Field(default=None, min_length=1, max_length=128, description="Timezone name.")
     date_format: str | None = Field(default=None, min_length=1, max_length=64, description="Date format token.")
+    use_browser_timezone: bool | None = Field(default=None, description="Use browser timezone by default.")
+    use_relative_datetime: bool | None = Field(default=None, description="Use relative datetime by default.")
 
     @model_validator(mode="after")
     def _validate_any_field(self) -> OrganizationLocalizationPatch:
-        if self.locale is None and self.timezone is None and self.date_format is None:
+        if (
+            self.locale is None
+            and self.timezone is None
+            and self.date_format is None
+            and self.use_browser_timezone is None
+            and self.use_relative_datetime is None
+        ):
             raise ValueError("At least one localization field is required")
         return self
 
