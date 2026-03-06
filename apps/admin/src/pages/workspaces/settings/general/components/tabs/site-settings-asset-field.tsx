@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
 import { formatSummaryText, isValidHttpUrlOrAbsolutePath } from "@/lib/settings/general/utils";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
+import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 
 const SETTINGS_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112">
@@ -17,6 +18,7 @@ const SETTINGS_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURICom
 
 interface SiteSettingsAssetFieldProps {
   form: FormInstance<GeneralSettingsFormValues>;
+  scope: AssetScopeRef | null;
   assetFieldName: "siteLogoAssetId" | "siteFaviconAssetId";
   urlFieldName: "siteLogoUrl" | "siteFaviconUrl";
   previewUrl?: string;
@@ -32,6 +34,7 @@ interface SiteSettingsAssetFieldProps {
 
 export function SiteSettingsAssetField({
   form,
+  scope,
   assetFieldName,
   urlFieldName,
   previewUrl,
@@ -90,7 +93,12 @@ export function SiteSettingsAssetField({
           >
             {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
           </Button>
-          <Button type="primary" onClick={() => onPickerOpenChange(true)} autoInsertSpace={false}>
+          <Button
+            type="primary"
+            disabled={!scope}
+            onClick={() => onPickerOpenChange(true)}
+            autoInsertSpace={false}
+          >
             {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
           </Button>
         </div>
@@ -114,21 +122,24 @@ export function SiteSettingsAssetField({
         <Input size="large" placeholder={inputPlaceholder} allowClear />
       </Form.Item>
 
-      <AssetPickerDialog
-        open={pickerOpen}
-        onOpenChange={onPickerOpenChange}
-        mode="single"
-        value={{ assetIds: assetId ? [assetId] : [] }}
-        uploadPurpose={uploadPurpose}
-        title={pickerTitle}
-        description={pickerDescription}
-        onConfirm={({ assetIds }) => {
-          const selectedAssetId = assetIds[0];
-          if (!selectedAssetId) return;
-          form.setFieldValue(assetFieldName, selectedAssetId);
-          form.setFieldValue(urlFieldName, `/assets/${selectedAssetId}`);
-        }}
-      />
+      {scope ? (
+        <AssetPickerDialog
+          open={pickerOpen}
+          onOpenChange={onPickerOpenChange}
+          scope={scope}
+          mode="single"
+          value={{ assetIds: assetId ? [assetId] : [] }}
+          uploadPurpose={uploadPurpose}
+          title={pickerTitle}
+          description={pickerDescription}
+          onConfirm={({ assetIds }) => {
+            const selectedAssetId = assetIds[0];
+            if (!selectedAssetId) return;
+            form.setFieldValue(assetFieldName, selectedAssetId);
+            form.setFieldValue(urlFieldName, `/assets/${selectedAssetId}`);
+          }}
+        />
+      ) : null}
     </>
   );
 }

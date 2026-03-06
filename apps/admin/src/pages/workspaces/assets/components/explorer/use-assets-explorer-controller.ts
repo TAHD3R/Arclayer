@@ -1,16 +1,24 @@
 import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import { listAssetFolders, listAssetTags, listAssets } from "@/api/assets";
+import {
+  listAssetFolders,
+  listAssetTags,
+  listAssets,
+  listOrganizationAssetFolders,
+  listOrganizationAssetTags,
+  listOrganizationAssets,
+} from "@/api/assets";
 import type { AdminAssetFolder, AdminAssetSummary } from "@/types/api";
 import { filterFoldersByContentCheck } from "@/lib/assets/folder-visibility";
 import { isExplicitAssetsFilterActive } from "@/lib/assets/assets-filtering";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
+import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetsExplorerEntry, AssetsExplorerPagination } from "@/types/assets-explorer";
 import type { AssetsFilters } from "../assets-filter-popover";
 
 type UseAssetsExplorerControllerOptions = {
-  workspaceId: string | number | null;
+  scope: AssetScopeRef | null;
   pagination: AssetsExplorerPagination;
 
   purpose?: string;
@@ -43,8 +51,12 @@ type UseAssetsExplorerControllerOptions = {
 };
 
 export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOptions) {
-  const workspaceId = opts.workspaceId ? String(opts.workspaceId) : null;
+  const scope = opts.scope;
+  const scopeId = scope?.id ? String(scope.id) : null;
+  const scopeKey = scope ? assetScopeKey(scope) : null;
   const maxFolderMatchChecks = opts.maxFolderMatchChecks ?? 40;
+  const scopeSupported = scope?.type === "workspace" || scope?.type === "organization";
+  const hasScope = Boolean(scope && scopeId);
 
   // Search / filters / ordering
   const [searchInput, setSearchInput] = useState("");
@@ -85,16 +97,27 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
   );
 
   const foldersQuery = useQuery({
-    queryKey: ["assets", "folders", workspaceId],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => listAssetFolders(String(workspaceId), { size: 200 }),
+    queryKey: ["assets", "folders", scopeKey],
+    enabled: Boolean(scopeId) && scopeSupported,
+    queryFn: async () => {
+      if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
+      if (scope.type === "organization")
+        return listOrganizationAssetFolders(scopeId, { size: 200 });
+      if (scope.type === "workspace") return listAssetFolders(scopeId, { size: 200 });
+      throw new Error("ASSET_SCOPE_UNSUPPORTED");
+    },
     staleTime: 60 * 1000,
   });
 
   const tagsQuery = useQuery({
-    queryKey: ["assets", "tags", workspaceId],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => listAssetTags(String(workspaceId)),
+    queryKey: ["assets", "tags", scopeKey],
+    enabled: Boolean(scopeId) && scopeSupported,
+    queryFn: async () => {
+      if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
+      if (scope.type === "organization") return listOrganizationAssetTags(scopeId);
+      if (scope.type === "workspace") return listAssetTags(scopeId);
+      throw new Error("ASSET_SCOPE_UNSUPPORTED");
+    },
     staleTime: 60 * 1000,
   });
 
@@ -102,7 +125,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     () => [
       "assets",
       "list",
-      workspaceId,
+      scopeKey,
       {
         purpose: opts.purpose,
         q: searchQuery || undefined,
@@ -126,15 +149,15 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
       ordering,
       opts.purpose,
       searchQuery,
-      workspaceId,
+      scopeKey,
     ],
   );
 
   const infiniteAssetsQuery = useInfiniteQuery({
     queryKey: assetsListQueryKey,
     queryFn: async ({ pageParam }) =>
-      workspaceId
-        ? listAssets(String(workspaceId), {
+      scopeId && scope && scopeSupported
+        ? (scope.type === "organization" ? listOrganizationAssets : listAssets)(String(scopeId), {
             page: typeof pageParam === "number" ? pageParam : 1,
             size: 24,
             purpose: opts.purpose,
@@ -148,8 +171,10 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             tagIds: filters.tagIds,
             ordering,
           })
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
-    enabled: Boolean(workspaceId) && opts.pagination === "infinite",
+        : Promise.reject(
+            new Error(hasScope ? "ASSET_SCOPE_UNSUPPORTED" : "ASSET_SCOPE_NOT_SELECTED"),
+          ),
+    enabled: Boolean(scopeId) && scopeSupported && opts.pagination === "infinite",
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     placeholderData: keepPreviousData,
@@ -180,7 +205,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     queryKey: [
       "assets",
       "paged",
-      workspaceId,
+      scopeKey,
       {
         purpose: opts.purpose,
         q: searchQuery || undefined,
@@ -196,10 +221,10 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         size: pageSize,
       },
     ],
-    enabled: Boolean(workspaceId) && opts.pagination === "paged",
+    enabled: Boolean(scopeId) && scopeSupported && opts.pagination === "paged",
     queryFn: async () =>
-      workspaceId
-        ? listAssets(String(workspaceId), {
+      scopeId && scope && scopeSupported
+        ? (scope.type === "organization" ? listOrganizationAssets : listAssets)(String(scopeId), {
             page,
             size: pageSize,
             purpose: opts.purpose,
@@ -213,7 +238,9 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             tagIds: filters.tagIds,
             ordering,
           })
-        : Promise.reject(new Error("WORKSPACE_NOT_SELECTED")),
+        : Promise.reject(
+            new Error(hasScope ? "ASSET_SCOPE_UNSUPPORTED" : "ASSET_SCOPE_NOT_SELECTED"),
+          ),
     staleTime: 10 * 1000,
     placeholderData: (prev) => prev,
     meta: { silent: true },
@@ -266,7 +293,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
       queryKey: [
         "assets",
         "folderHasMatch",
-        workspaceId,
+        scopeKey,
         String(folder.id),
         {
           purpose: opts.purpose,
@@ -278,12 +305,14 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
           tagIds: filters.tagIds,
         },
       ],
-      enabled: Boolean(workspaceId) && visibleFolders.length > 0 && explicitFilterActive,
+      enabled:
+        Boolean(scopeId) && scopeSupported && visibleFolders.length > 0 && explicitFilterActive,
       staleTime: 30 * 1000,
       queryFn: async () => {
-        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+        if (!scopeId || !scope) throw new Error("ASSET_SCOPE_NOT_SELECTED");
         // Cheap existence check: fetch 1 item only.
-        return listAssets(String(workspaceId), {
+        const listFn = scope.type === "organization" ? listOrganizationAssets : listAssets;
+        return listFn(String(scopeId), {
           page: 1,
           size: 1,
           purpose: opts.purpose,
@@ -364,8 +393,6 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
   const total = opts.pagination === "paged" ? (pagedAssetsQuery.data?.total ?? 0) : 0;
 
   return {
-    workspaceId,
-
     searchInput,
     setSearchInput,
     searchQuery,

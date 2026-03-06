@@ -3,6 +3,8 @@ from tortoise.migrations import operations as ops
 
 
 class Migration(migrations.Migration):
+    dependencies = [("models", "0001_initial")]
+
     operations = [
         # NOTE: AdminMenuItem had a self-referential FK ("parent"). Tortoise migration state
         # requires removing the reference before deleting the model, otherwise it raises:

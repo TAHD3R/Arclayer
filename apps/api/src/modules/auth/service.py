@@ -925,12 +925,20 @@ class AuthService(BaseService):
 
     @staticmethod
     def build_user_profile(user: UserLike) -> UserProfile:
+        avatar_asset_id = getattr(user, "avatar_asset_id", None)
+        avatar_asset_uuid = UUID(str(avatar_asset_id)) if avatar_asset_id is not None else None
+        avatar_url = cast(str | None, user.avatar_url)
+        if avatar_asset_uuid is not None:
+            from apps.api.src.common.utils.public_ids import encode_uuid
+
+            avatar_url = f"/assets/{encode_uuid(avatar_asset_uuid)}"
         return UserProfile(
             id=UUID(str(user.id)),
             username=cast(str, user.username),
             email=cast(str | None, user.email),
             display_name=cast(str | None, user.display_name),
-            avatar_url=cast(str | None, user.avatar_url),
+            avatar_url=avatar_url,
+            avatar_asset_id=avatar_asset_uuid,
             is_super_admin=bool(getattr(user, "is_super_admin", False)),
         )
 
@@ -947,11 +955,52 @@ class AuthService(BaseService):
         model_fields_set = getattr(payload, "model_fields_set", set())
 
         should_update_display_name = "display_name" in model_fields_set
-        if not should_update_display_name:
+        should_update_avatar = "avatar_asset_id" in model_fields_set
+
+        if not (should_update_display_name or should_update_avatar):
             return self.build_user_profile(user)
 
-        updated = await self.user_repo.patch_profile(user, display_name=payload.display_name)
-        return self.build_user_profile(updated)
+        patch_kwargs: dict[str, object] = {}
+        avatar_asset_aligned = False
+        if should_update_display_name:
+            patch_kwargs["display_name"] = payload.display_name
+
+        if should_update_avatar:
+            next_avatar_asset_id = payload.avatar_asset_id
+            if next_avatar_asset_id is None:
+                patch_kwargs["avatar_asset_id"] = None
+                patch_kwargs["avatar_url"] = None
+            else:
+                from apps.api.src.common.constants.assets import ASSET_SCOPE_USER
+                from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord
+                from apps.api.src.modules.assets.admin.assets.binding_align import align_asset_for_binding
+                from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
+
+                scope = AssetScope(type=ASSET_SCOPE_USER, id=user.id)
+                asset = await AssetRecord.get_or_none(
+                    id=UUID(str(next_avatar_asset_id)),
+                    deleted_at=None,
+                    **scope_filter_kwargs(scope),
+                )
+                if asset is None:
+                    raise NotFound(
+                        message=t("errors", "ASSET_NOT_FOUND", default="资源不存在"), error="ASSET_NOT_FOUND"
+                    )
+                avatar_asset_aligned = await align_asset_for_binding(
+                    self.settings,
+                    scope=scope,
+                    asset_id=UUID(str(asset.id)),
+                    purpose=AssetPurpose.AVATAR,
+                )
+
+                from apps.api.src.common.utils.public_ids import encode_uuid
+
+                patch_kwargs["avatar_asset_id"] = asset.id
+                patch_kwargs["avatar_url"] = f"/assets/{encode_uuid(UUID(str(asset.id)))}"
+
+        updated = await self.user_repo.patch_profile(user, **patch_kwargs)
+        profile = self.build_user_profile(updated)
+        return profile.model_copy(update={"avatar_asset_aligned": avatar_asset_aligned})
 
     @staticmethod
     def mask_email(email: str) -> str:

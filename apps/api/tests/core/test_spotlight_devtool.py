@@ -1,14 +1,47 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from apps.api.src.config import ApplicationSettings, Settings
 from apps.api.src.core.registry import AppFactory
 
+_ASGI_TRANSPORT_HEARTBEAT_INTERVAL_SECONDS = 0.2
+
+
+async def _asgi_transport_heartbeat() -> None:
+    """
+    Periodically wake the event loop while using httpx ASGITransport.
+
+    Why:
+    - ASGITransport runs without socket I/O and does not run app lifespan in httpx 0.28.
+    - Some sync ASGI components (e.g. StaticFiles) execute in a worker thread and then
+      wake the loop via `loop.call_soon_threadsafe(...)`.
+    - Without timers, the event loop can block indefinitely and tests hang.
+    """
+
+    while True:
+        await asyncio.sleep(_ASGI_TRANSPORT_HEARTBEAT_INTERVAL_SECONDS)
+
+
+@pytest.fixture
+async def asgi_transport_heartbeat() -> AsyncIterator[None]:
+    task = asyncio.create_task(_asgi_transport_heartbeat(), name="test-asgi-transport-heartbeat")
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
 
 @pytest.mark.asyncio
-async def test_spotlight_enabled_in_development() -> None:
+async def test_spotlight_enabled_in_development(asgi_transport_heartbeat: None) -> None:
     settings = Settings(
         app_env="development",
         application=ApplicationSettings(static_enabled=False),
@@ -46,7 +79,7 @@ async def test_spotlight_disabled_in_production() -> None:
 
 
 @pytest.mark.asyncio
-async def test_spotlight_alias_redirects_to_docs() -> None:
+async def test_spotlight_alias_redirects_to_docs(asgi_transport_heartbeat: None) -> None:
     settings = Settings(
         app_env="development",
         application=ApplicationSettings(static_enabled=False),

@@ -12,6 +12,7 @@ class AssetPurpose(StrEnum):
 
     AVATAR = "avatar"
     SITE_LOGO = "site_logo"
+    WORKSPACE_ICON = "workspace_icon"
     FAVICON = "favicon"
     LIBRARY = "library"
     ATTACHMENT = "attachment"
@@ -36,7 +37,10 @@ class AssetRecord(BaseModel):
     - Physical deletion is handled by the recycle bin retention policy (default: 90 days).
     """
 
-    workspace_id = fields.UUIDField(db_index=True)
+    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    workspace_id = fields.UUIDField(null=True, db_index=True)
+    organization_id = fields.UUIDField(null=True, db_index=True)
+    user_id = fields.UUIDField(null=True, db_index=True)
     owner_user_id = fields.UUIDField(null=True, db_index=True)
     folder = fields.ForeignKeyField(
         "models.AssetFolderRecord",
@@ -45,7 +49,8 @@ class AssetRecord(BaseModel):
         on_delete=fields.SET_NULL,
     )
 
-    purpose = fields.CharEnumField(AssetPurpose, db_index=True)
+    # Keep purpose max length generous to avoid enum-growth breaking existing DB schemas.
+    purpose = fields.CharEnumField(AssetPurpose, db_index=True, max_length=64)
     visibility = fields.CharEnumField(AssetVisibility, default=AssetVisibility.PUBLIC, db_index=True)
     indexable = fields.BooleanField(default=False, db_index=True)
 

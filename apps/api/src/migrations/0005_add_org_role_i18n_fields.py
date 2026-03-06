@@ -3,6 +3,8 @@ from tortoise.migrations import operations as ops
 
 
 class Migration(migrations.Migration):
+    dependencies = [("models", "0004_add_user_two_factor_totp_antireplay")]
+
     operations = [
         ops.AddField(
             model_name="OrganizationRole",

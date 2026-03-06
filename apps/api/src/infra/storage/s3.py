@@ -319,11 +319,20 @@ class S3StorageProvider:
     async def abort_multipart_upload(self, *, object_key: str, upload_id: str) -> None:
         def _call() -> None:
             client = self._client()
-            client.abort_multipart_upload(
-                Bucket=self.bucket,
-                Key=object_key,
-                UploadId=upload_id,
-            )
+            from botocore.exceptions import ClientError  # type: ignore[import-not-found]
+
+            try:
+                client.abort_multipart_upload(
+                    Bucket=self.bucket,
+                    Key=object_key,
+                    UploadId=upload_id,
+                )
+            except ClientError as exc:
+                code = str((exc.response or {}).get("Error", {}).get("Code") or "")
+                if code == "NoSuchUpload":
+                    # Abort is idempotent: the upload may already be completed/aborted/expired.
+                    return
+                raise
 
         await asyncio.to_thread(_call)
 

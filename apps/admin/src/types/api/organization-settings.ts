@@ -1,6 +1,8 @@
 export type OrganizationSettingsCore = {
   organizationId: string;
   organizationName: string;
+  organizationLogoUrl: string | null;
+  organizationLogoAssetAligned?: boolean;
   organizationLocalization: {
     locale: string;
     timezone: string;

@@ -5,12 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { MeProfileChangeEmailDialog } from "@/pages/me/profile/components/profile-change-email-dialog";
+import { MeAvatarUploadDialog } from "@/pages/me/profile/components/profile-avatar-upload-dialog";
 
 function isValidDisplayName(value: string | null): boolean {
   if (value === null) return true;
@@ -30,6 +32,7 @@ export type MeProfileBasicsSectionProps = {
     email: string | null;
     displayName: string | null;
     avatarUrl: string | null;
+    avatarAssetId: string | null;
   };
 };
 
@@ -78,6 +81,23 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
     onError: (err) => notifyError(err),
   });
 
+  const [avatarUploadOpen, setAvatarUploadOpen] = useState(false);
+  const updateAvatarMutation = useMutation({
+    mutationFn: async (avatarAssetId: string | null) => authApi.updateMyProfile({ avatarAssetId }),
+    onSuccess: async (data, avatarAssetId) => {
+      const aligned = Boolean(data?.avatarAssetAligned);
+      notifySuccessText(
+        avatarAssetId
+          ? aligned
+            ? t("account:ME_PROFILE_AVATAR_UPDATED_ALIGNED")
+            : t("account:ME_PROFILE_AVATAR_UPDATED")
+          : t("account:ME_PROFILE_AVATAR_REMOVED"),
+      );
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
+    onError: (err) => notifyError(err),
+  });
+
   const [changeEmailOpen, setChangeEmailOpen] = useState(false);
 
   return (
@@ -91,15 +111,24 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
           <SettingCardContent>
             <div className="flex flex-row items-start gap-6 sm:gap-8">
               <div className="flex flex-col gap-3 shrink-0">
-                <div className="relative">
-                  <Avatar
-                    size={80}
-                    src={resolveAssetRefToPublicUrlPath(props.profile.avatarUrl) ?? undefined}
-                    className="rounded-full ring-1 ring-border/50 ring-offset-2 ring-offset-background"
-                  >
-                    {initialsFromName(displayNameFallback === "-" ? "用户" : displayNameFallback)}
-                  </Avatar>
-                </div>
+                <AvatarUploadSlot
+                  size={80}
+                  shape="circle"
+                  disabled={updateAvatarMutation.isPending}
+                  src={
+                    resolveAssetRefToPublicUrlPath(
+                      props.profile.avatarUrl ?? props.profile.avatarAssetId,
+                    ) ?? undefined
+                  }
+                  fallback={initialsFromName(
+                    displayNameFallback === "-" ? "用户" : displayNameFallback,
+                  )}
+                  uploadAriaLabel={t("account:ME_PROFILE_AVATAR_CHANGE")}
+                  removeAriaLabel={t("account:ME_PROFILE_AVATAR_REMOVE")}
+                  canRemove={Boolean(props.profile.avatarUrl || props.profile.avatarAssetId)}
+                  onPick={() => setAvatarUploadOpen(true)}
+                  onRemove={() => void updateAvatarMutation.mutateAsync(null)}
+                />
               </div>
 
               <div className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -230,6 +259,19 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
         open={changeEmailOpen}
         onOpenChange={setChangeEmailOpen}
         nextEmail={props.profile.email ?? ""}
+      />
+
+      <MeAvatarUploadDialog
+        open={avatarUploadOpen}
+        onOpenChange={(open) => {
+          if (updateAvatarMutation.isPending) return;
+          setAvatarUploadOpen(open);
+        }}
+        onUploaded={(assetIds) => {
+          const assetId = assetIds[0];
+          if (!assetId) return;
+          void updateAvatarMutation.mutateAsync(assetId).then(() => setAvatarUploadOpen(false));
+        }}
       />
     </>
   );

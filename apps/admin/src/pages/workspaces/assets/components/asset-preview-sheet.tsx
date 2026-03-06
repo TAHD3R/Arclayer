@@ -226,6 +226,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
               mode="single"
               currentVisibility={displayVisibility}
               currentPurpose={displayPurpose}
+              currentIndexable={Boolean(active?.indexable)}
               confirmLoading={patchAccessMutation.isPending}
               onConfirm={async (value) => {
                 await patchAccessMutation.mutateAsync(value);

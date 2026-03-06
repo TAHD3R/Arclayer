@@ -30,6 +30,7 @@ import { resolveOrganizationSettingsTabNavigation } from "../../utils";
 
 export type OrganizationSettingsBasicsFormValues = {
   name: string;
+  logoUrl: string;
   locale: string;
   timezone: string;
   dateFormat: string;
@@ -108,6 +109,12 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
 
   useEffect(() => {
     if (!coreQuery.data) return;
+    if (form.isFieldTouched("logoUrl")) return;
+    form.setFieldValue("logoUrl", coreQuery.data.organizationLogoUrl ?? "");
+  }, [coreQuery.data, form]);
+
+  useEffect(() => {
+    if (!coreQuery.data) return;
     if (
       form.isFieldTouched("locale") ||
       form.isFieldTouched("timezone") ||
@@ -136,11 +143,15 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   const patchCoreMutation = useMutation({
     mutationFn: async (patch: {
       organizationName?: string;
+      organizationLogoUrl?: string | null;
       organizationLocalization?: { locale?: string; timezone?: string; dateFormat?: string };
       defaultRoleCode?: string;
     }) => patchOrganizationCoreSettings(patch),
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    onSuccess: async (data) => {
+      const aligned = Boolean(data?.organizationLogoAssetAligned);
+      notifySuccessText(
+        aligned ? t("settings:SETTINGS_SAVED_ASSET_ALIGNED") : t("settings:SETTINGS_SAVED"),
+      );
       await queryClient.invalidateQueries({ queryKey: ["organization", "settings", "core"] });
       await queryClient.invalidateQueries({ queryKey: ["me", "organization"] });
     },
@@ -188,6 +199,10 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   const persistedOrgName = String(initialOrgName || "").trim();
   const currentOrgName = (Form.useWatch("name", form) as string | undefined) ?? initialOrgName;
 
+  const initialOrgLogoUrl = coreQuery.data?.organizationLogoUrl ?? "";
+  const currentOrgLogoUrl =
+    (Form.useWatch("logoUrl", form) as string | undefined) ?? initialOrgLogoUrl;
+
   const initialOrgLocale = normalizeLocale(
     coreQuery.data?.organizationLocalization.locale || DEFAULT_LOCALE,
   );
@@ -214,6 +229,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   const assignRoleLabel = roleLabelMap.get(String(assignRoleCode)) ?? String(assignRoleCode);
 
   const isOrgNameDirty = String(currentOrgName).trim() !== String(initialOrgName).trim();
+  const isOrgLogoDirty = String(currentOrgLogoUrl).trim() !== String(initialOrgLogoUrl).trim();
   const isOrgLocaleDirty = orgLocale !== initialOrgLocale;
   const isOrgTimezoneDirty = orgTimezone !== initialOrgTimezone;
   const isOrgDateFormatDirty = orgDateFormat !== initialOrgDateFormat;
@@ -258,6 +274,8 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     persistedOrgName,
     initialOrgName,
     currentOrgName,
+    initialOrgLogoUrl,
+    currentOrgLogoUrl,
     initialOrgLocale,
     initialOrgTimezone,
     initialOrgDateFormat,
@@ -273,6 +291,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     defaultRoleLabel,
     assignRoleLabel,
     isOrgNameDirty,
+    isOrgLogoDirty,
     isOrgLocaleDirty,
     isOrgTimezoneDirty,
     isOrgDateFormatDirty,

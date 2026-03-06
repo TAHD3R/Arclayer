@@ -48,6 +48,7 @@ export type PatchAdminAssetPayload = {
   tagIds?: string[];
   visibility?: string;
   purpose?: string;
+  indexable?: boolean;
 };
 
 export type ListAdminAssetsParams = {
@@ -122,6 +123,7 @@ export type AdminAssetsBulkUpdateRequest = {
   assetIds: string[];
   visibility?: string;
   purpose?: string;
+  indexable?: boolean;
 };
 
 export type AdminAssetsBulkUpdateOut = {
@@ -129,4 +131,5 @@ export type AdminAssetsBulkUpdateOut = {
   updatedAssetIds: string[];
   visibility?: string;
   purpose?: string;
+  indexable?: boolean;
 };

@@ -14,6 +14,9 @@ from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
 from apps.api.src.models.organization.organization import Organization
 from apps.api.src.models.organization.user import User
+from apps.api.src.modules.assets.admin.assets.org_router import router as organization_assets_router
+from apps.api.src.modules.assets.admin.uploads.org_router import router as organization_uploads_router
+from apps.api.src.modules.assets.admin.usages.org_router import router as organization_usages_router
 from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.organization.extensions.router import router as organization_extensions_router
 from apps.api.src.modules.organization.http.service import get_current_org_membership
@@ -37,6 +40,9 @@ router.include_router(organization_workspaces_router)
 router.include_router(organization_members_router)
 router.include_router(organization_rbac_router)
 router.include_router(organization_settings_router)
+router.include_router(organization_assets_router)
+router.include_router(organization_uploads_router)
+router.include_router(organization_usages_router)
 
 MAX_ORG_NAME_LENGTH = 128
 

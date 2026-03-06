@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from apps.api.src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Forbidden, NotFound
 from apps.api.src.core.i18n import t
+from apps.api.src.models.assets.asset import AssetPurpose
 from apps.api.src.models.organization.org_membership import OrgRole
+from apps.api.src.modules.assets.admin.assets.binding_align import align_asset_for_binding
+from apps.api.src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
+from apps.api.src.modules.assets.scope import AssetScope
 from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
 from apps.api.src.modules.organization.settings.leave_guard import OrganizationLeaveGuard
 from apps.api.src.modules.organization.settings.repository import OrganizationSettingsRepository
@@ -49,6 +54,7 @@ class OrganizationSettingsService(BaseService):
             organization_id=org.id,
             organization_name=org.name,
             organization_logo_url=org.logo_url,
+            organization_logo_asset_aligned=False,
             organization_localization=OrganizationLocalizationOut(
                 locale=locale,
                 timezone=timezone,
@@ -74,6 +80,7 @@ class OrganizationSettingsService(BaseService):
         )
         next_value: dict[str, object] = dict(current_value)
         changed_setting = False
+        logo_asset_aligned = False
 
         if patch.organization_name is not None:
             normalized_name = str(patch.organization_name).strip()
@@ -90,6 +97,15 @@ class OrganizationSettingsService(BaseService):
             logo_url = raw or None
             if logo_url is not None and len(logo_url) > 512:
                 raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ORG_LOGO_URL_TOO_LONG")
+            if logo_url is not None:
+                asset_uuid = try_extract_asset_uuid_from_relative_public_url(logo_url)
+                if asset_uuid is not None:
+                    logo_asset_aligned = await align_asset_for_binding(
+                        self.settings,
+                        scope=AssetScope(type=ASSET_SCOPE_ORGANIZATION, id=organization_id),
+                        asset_id=asset_uuid,
+                        purpose=AssetPurpose.SITE_LOGO,
+                    )
             if org.logo_url != logo_url:
                 org.logo_url = logo_url
                 await org.save(update_fields=["logo_url", "updated_at"])
@@ -126,7 +142,8 @@ class OrganizationSettingsService(BaseService):
                 updated_by=updated_by,
             )
 
-        return await self.get_core_detail(organization_id=organization_id)
+        out = await self.get_core_detail(organization_id=organization_id)
+        return out.model_copy(update={"organization_logo_asset_aligned": logo_asset_aligned})
 
     async def assign_default_role_to_members(
         self,

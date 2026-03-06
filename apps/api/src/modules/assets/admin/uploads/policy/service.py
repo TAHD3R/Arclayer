@@ -90,6 +90,14 @@ def build_upload_policy(
             forced_indexable=False,
         )
 
+    if p == "workspace_icon":
+        return UploadPolicy(
+            allowed_exts=_IMAGE_EXTS,
+            max_size_bytes=min(global_max_size_bytes, max_site_logo_size_bytes),
+            forced_visibility="public",
+            forced_indexable=False,
+        )
+
     if p == "favicon":
         return UploadPolicy(
             allowed_exts=_FAVICON_EXTS,

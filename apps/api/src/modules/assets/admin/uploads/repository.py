@@ -10,13 +10,14 @@ from tortoise.queryset import QuerySet
 from apps.api.src.common.protocols.tortoise import UploadPartMutableFields
 from apps.api.src.common.repositories import BaseRepository
 from apps.api.src.models.assets.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
+from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
 
 
 class UploadsRepository(BaseRepository):
     async def create_session(
         self,
         *,
-        workspace_id: UUID,
+        scope: AssetScope,
         actor_user_id: UUID,
         purpose: str,
         filename: str,
@@ -38,7 +39,6 @@ class UploadsRepository(BaseRepository):
         s3_bucket: str | None,
     ) -> UploadSessionRecord:
         return await UploadSessionRecord.create(
-            workspace_id=workspace_id,
             actor_user_id=actor_user_id,
             purpose=purpose,
             filename=filename,
@@ -59,10 +59,11 @@ class UploadsRepository(BaseRepository):
             object_key=object_key,
             multipart_upload_id=multipart_upload_id,
             s3_bucket=s3_bucket,
+            **scope_filter_kwargs(scope),
         )
 
-    async def get_session(self, *, upload_id: UUID, workspace_id: UUID) -> UploadSessionRecord | None:
-        return await UploadSessionRecord.get_or_none(id=upload_id, workspace_id=workspace_id)
+    async def get_session(self, *, upload_id: UUID, scope: AssetScope) -> UploadSessionRecord | None:
+        return await UploadSessionRecord.get_or_none(id=upload_id, **scope_filter_kwargs(scope))
 
     def query_parts(self, *, session_id: UUID) -> QuerySet[UploadPartRecord]:
         return UploadPartRecord.filter(session_id=session_id)
@@ -109,7 +110,7 @@ class UploadsRepository(BaseRepository):
         await session.save(update_fields=["status", "asset_id", "updated_at"])
         return session
 
-    async def try_mark_completing(self, *, upload_id: UUID, workspace_id: UUID) -> bool:
+    async def try_mark_completing(self, *, upload_id: UUID, scope: AssetScope) -> bool:
         """
         Atomic CAS for multi-worker correctness.
 
@@ -122,7 +123,7 @@ class UploadsRepository(BaseRepository):
         # If a worker crashes while COMPLETING, allow other workers to take over after a short TTL.
         stale_cutoff = now - timedelta(seconds=60)
 
-        base = UploadSessionRecord.filter(id=upload_id, workspace_id=workspace_id, asset_id=None)
+        base = UploadSessionRecord.filter(id=upload_id, asset_id=None, **scope_filter_kwargs(scope))
         base = base.filter(
             Q(status__in=[UploadStatus.INITIATED, UploadStatus.UPLOADING])
             | Q(status=UploadStatus.COMPLETING, updated_at__lt=stale_cutoff)

@@ -25,7 +25,7 @@ import {
 import { AssetMasonryTile } from "./asset-masonry-card";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { AssetsFilterPopover, type AssetsFilters } from "./assets-filter-popover";
-import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 
 export type AssetPickerDialogValue = {
   assetIds: string[];
@@ -36,6 +36,8 @@ type AssetPickerDialogMode = "single" | "multiple";
 export function AssetPickerDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+
+  scope: AssetScopeRef;
 
   /**
    * Select behavior. Default: single.
@@ -60,6 +62,14 @@ export function AssetPickerDialog(props: {
   uploadPurpose?: string;
 
   /**
+   * Optional purpose filter for listing existing assets in the explorer.
+   * When set, the picker will only show assets matching this purpose.
+   *
+   * Note: upload purpose and filter purpose can differ, but in most cases they should be the same.
+   */
+  filterPurpose?: string;
+
+  /**
    * Default mime filter for the explorer (e.g. "image/").
    * Can still be adjusted via filter popover if enabled in that component.
    */
@@ -80,18 +90,16 @@ export function AssetPickerDialog(props: {
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const mode: AssetPickerDialogMode = props.mode ?? "single";
   const allowUpload = props.allowUpload !== false;
 
   const explorer = useAssetsExplorerController({
-    workspaceId,
+    scope: props.scope,
     pagination: "paged",
-    // In picker scenarios we should NOT force purpose=library:
-    // - logo/favicon upload may create purpose=site_logo/favicon assets
-    // - other future pickers may select non-library assets
-    purpose: undefined,
+    // In picker scenarios we should NOT force purpose=library; allow callers to explicitly filter
+    // (e.g. org logo picker uses purpose=site_logo).
+    purpose: props.filterPurpose,
     defaultVisibility: "public",
     defaultOrdering: "-created_at",
     initialPageSize: props.pageSize ?? 12,
@@ -497,23 +505,16 @@ export function AssetPickerDialog(props: {
       </SettingDialog>
 
       <AssetUploadDialog
-        workspaceId={workspaceId ? String(workspaceId) : ""}
+        scope={props.scope}
         open={uploadOpen}
         onOpenChange={setUploadOpen}
         purpose={props.uploadPurpose}
         onUploaded={() => {
-          if (workspaceId) {
-            void queryClient.invalidateQueries({
-              queryKey: ["assets", "folders", String(workspaceId)],
-            });
-            void queryClient.invalidateQueries({
-              queryKey: ["assets", "paged", String(workspaceId)],
-            });
-            void queryClient.invalidateQueries({
-              queryKey: ["assets", "folderHasMatch", String(workspaceId)],
-            });
-            void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
-          }
+          void queryClient.invalidateQueries({ queryKey: ["assets", "folders"] });
+          void queryClient.invalidateQueries({ queryKey: ["assets", "tags"] });
+          void queryClient.invalidateQueries({ queryKey: ["assets", "paged"] });
+          void queryClient.invalidateQueries({ queryKey: ["assets", "folderHasMatch"] });
+          void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
           setUploadOpen(false);
         }}
       />

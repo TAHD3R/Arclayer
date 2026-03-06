@@ -24,6 +24,7 @@ export function WorkspaceSettingsBasicsForm(props: {
       initialValues={{
         name: c.initialWorkspaceName,
         slug: c.initialWorkspaceSlug,
+        iconUrl: c.initialWorkspaceIconUrl,
         locale: c.initialWorkspaceLocale,
         timezone: c.initialWorkspaceTimezone,
         dateFormat: c.initialWorkspaceDateFormat,

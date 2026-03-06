@@ -1,6 +1,7 @@
 export { toQueryString } from "./query-string";
 export {
   workspacePath,
+  organizationPath,
   organizationWorkspacesBasePath,
   organizationWorkspacePath,
   orgExtensionPath,

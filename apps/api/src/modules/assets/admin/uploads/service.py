@@ -8,7 +8,12 @@ from uuid import UUID
 from fastapi import BackgroundTasks
 from tortoise.exceptions import IntegrityError, OperationalError
 
-from apps.api.src.common.constants.assets import ASSET_UPLOADED_EVENT
+from apps.api.src.common.constants.assets import (
+    ASSET_SCOPE_ORGANIZATION,
+    ASSET_SCOPE_USER,
+    ASSET_SCOPE_WORKSPACE,
+    ASSET_UPLOADED_EVENT,
+)
 from apps.api.src.common.services import BaseService
 from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.common.utils.ids import uuid7
@@ -21,6 +26,7 @@ from apps.api.src.infra.storage.local import LocalStorageProvider, safe_object_k
 from apps.api.src.infra.storage.merge import merge_parts_to_file
 from apps.api.src.infra.storage.s3 import S3StorageProvider
 from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from apps.api.src.models.assets.asset_folder import AssetFolderRecord
 from apps.api.src.models.assets.upload import UploadSessionRecord, UploadStatus
 from apps.api.src.modules.assets.admin.uploads.policy.service import (
     build_upload_policy,
@@ -31,10 +37,11 @@ from apps.api.src.modules.assets.admin.uploads.policy.service import (
 from apps.api.src.modules.assets.admin.uploads.repository import UploadsRepository
 from apps.api.src.modules.assets.admin.uploads.schema import UploadPartPresignOut
 from apps.api.src.modules.assets.naming.service import (
-    build_asset_object_key,
-    build_upload_part_object_key,
+    build_scoped_asset_object_key,
+    build_scoped_upload_part_object_key,
     compute_total_parts,
 )
+from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
 from apps.api.src.plugin.event_bus import Event
 from apps.api.src.plugin.host import host as plugin_host
 from apps.api.src.settings.runtime import get_effective_settings
@@ -99,7 +106,7 @@ def normalize_visibility_and_indexable(
     - invalid visibility falls back to private.
     """
 
-    forced_public = purpose in {"avatar", "site_logo", "favicon"}
+    forced_public = purpose in {"avatar", "site_logo", "workspace_icon", "favicon"}
     if forced_public:
         return ("public", False)
 
@@ -127,11 +134,21 @@ class UploadsService(BaseService):
     def _expires_at(self) -> datetime:
         return datetime.now(tz=UTC) + timedelta(seconds=self.settings.storage.upload_session_ttl_seconds)
 
+    @staticmethod
+    def _upload_tmp_dir_key(*, scope: AssetScope, upload_id: UUID) -> str:
+        if scope.type == ASSET_SCOPE_WORKSPACE:
+            return f"workspaces/{scope.id}/uploads/{upload_id}"
+        if scope.type == ASSET_SCOPE_ORGANIZATION:
+            return f"organizations/{scope.id}/uploads/{upload_id}"
+        if scope.type == ASSET_SCOPE_USER:
+            return f"users/{scope.id}/uploads/{upload_id}"
+        raise ValueError("invalid scope")
+
     def _build_s3_provider(
         self,
         *,
         effective: Settings,
-        workspace_id: UUID,
+        scope: AssetScope,
         action: str,
         upload_id: UUID | None = None,
         part_number: int | None = None,
@@ -141,7 +158,8 @@ class UploadsService(BaseService):
         except (TypeError, ValueError) as exc:
             logger.warning(
                 "Storage provider build failed",
-                workspace_id=str(workspace_id),
+                scope_type=str(scope.type),
+                scope_id=str(scope.id),
                 upload_id=str(upload_id) if upload_id is not None else None,
                 part_number=part_number,
                 action=action,
@@ -161,7 +179,7 @@ class UploadsService(BaseService):
     async def init_upload(
         self,
         *,
-        workspace_id: UUID,
+        scope: AssetScope,
         actor_user_id: UUID,
         purpose: str,
         filename: str,
@@ -190,6 +208,11 @@ class UploadsService(BaseService):
         )
         stem = Path(normalized_filename).stem or "asset"
         slug = slugify(stem)
+
+        if target_folder_id is not None:
+            folder_exists = await AssetFolderRecord.filter(id=target_folder_id, **scope_filter_kwargs(scope)).exists()
+            if not folder_exists:
+                raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
 
         chunk_size = int(effective.storage.upload_chunk_size_mb) * 1024 * 1024
 
@@ -224,7 +247,12 @@ class UploadsService(BaseService):
         object_key: str | None = None
         s3_bucket: str | None = None
         if provider == "local":
-            object_key = build_asset_object_key(workspace_id=workspace_id, asset_id=reserved_asset_id, ext=ext)
+            object_key = build_scoped_asset_object_key(
+                scope=scope.type,
+                scope_id=scope.id,
+                asset_id=reserved_asset_id,
+                ext=ext,
+            )
         elif provider == "s3":
             # Scheme C: CDN canonical path is `/assets/{asset_id}/{slug}.{ext}`.
             # For S3, we store the object at the same path (relative, without leading slash).
@@ -232,7 +260,7 @@ class UploadsService(BaseService):
 
             provider_impl = self._build_s3_provider(
                 effective=effective,
-                workspace_id=workspace_id,
+                scope=scope,
                 action="init_upload_build_storage_provider",
             )
             # Dual-bucket strategy:
@@ -266,7 +294,7 @@ class UploadsService(BaseService):
             )
 
         return await self.repo.create_session(
-            workspace_id=workspace_id,
+            scope=scope,
             actor_user_id=actor_user_id,
             purpose=purpose,
             filename=normalized_filename,
@@ -288,8 +316,8 @@ class UploadsService(BaseService):
             s3_bucket=s3_bucket,
         )
 
-    async def get_status(self, *, upload_id: UUID, workspace_id: UUID) -> tuple[UploadSessionRecord, list[int]]:
-        session = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
+    async def get_status(self, *, upload_id: UUID, scope: AssetScope) -> tuple[UploadSessionRecord, list[int]]:
+        session = await self.repo.get_session(upload_id=upload_id, scope=scope)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
 
@@ -306,11 +334,11 @@ class UploadsService(BaseService):
         self,
         *,
         upload_id: UUID,
-        workspace_id: UUID,
+        scope: AssetScope,
         part_number: int,
         data: bytes,
     ) -> None:
-        session, _missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
+        session, _missing = await self.get_status(upload_id=upload_id, scope=scope)
         if session.storage_provider == "s3":
             raise BadRequest(
                 message=_ts("UPLOAD_DIRECT_REQUIRED", "当前存储使用直传方式，请使用 presign 接口上传"),
@@ -334,8 +362,9 @@ class UploadsService(BaseService):
                 error="UPLOAD_CHUNK_SIZE_MISMATCH",
             )
 
-        object_key = build_upload_part_object_key(
-            workspace_id=workspace_id,
+        object_key = build_scoped_upload_part_object_key(
+            scope=scope.type,
+            scope_id=scope.id,
             upload_id=upload_id,
             part_number=part_number,
         )
@@ -348,8 +377,8 @@ class UploadsService(BaseService):
         )
         await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
 
-    async def presign_part(self, *, upload_id: UUID, workspace_id: UUID, part_number: int) -> UploadPartPresignOut:
-        session, _missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
+    async def presign_part(self, *, upload_id: UUID, scope: AssetScope, part_number: int) -> UploadPartPresignOut:
+        session, _missing = await self.get_status(upload_id=upload_id, scope=scope)
         if session.storage_provider != "s3":
             raise BadRequest(
                 message=_ts("UPLOAD_PRESIGN_NOT_SUPPORTED", "当前存储不支持直传"),
@@ -365,7 +394,7 @@ class UploadsService(BaseService):
         effective = await get_effective_settings(self.settings)
         provider_impl = self._build_s3_provider(
             effective=effective,
-            workspace_id=workspace_id,
+            scope=scope,
             upload_id=upload_id,
             part_number=part_number,
             action="presign_part_build_storage_provider",
@@ -392,12 +421,12 @@ class UploadsService(BaseService):
         self,
         *,
         upload_id: UUID,
-        workspace_id: UUID,
+        scope: AssetScope,
         part_number: int,
         etag: str,
         size_bytes: int,
     ) -> None:
-        session, _missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
+        session, _missing = await self.get_status(upload_id=upload_id, scope=scope)
         if session.storage_provider != "s3":
             raise BadRequest(
                 message=_ts("UPLOAD_COMMIT_NOT_SUPPORTED", "当前存储不支持直传提交"),
@@ -438,9 +467,9 @@ class UploadsService(BaseService):
         await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
 
     async def complete(
-        self, *, upload_id: UUID, workspace_id: UUID, background_tasks: BackgroundTasks | None = None
+        self, *, upload_id: UUID, scope: AssetScope, background_tasks: BackgroundTasks | None = None
     ) -> UUID:
-        session, missing = await self.get_status(upload_id=upload_id, workspace_id=workspace_id)
+        session, missing = await self.get_status(upload_id=upload_id, scope=scope)
         if session.status == UploadStatus.COMPLETED and session.asset_id is not None:
             return session.asset_id
         if missing:
@@ -451,11 +480,11 @@ class UploadsService(BaseService):
             )
 
         # Multi-worker correctness: single-winner CAS for COMPLETING.
-        winner = await self.repo.try_mark_completing(upload_id=upload_id, workspace_id=workspace_id)
+        winner = await self.repo.try_mark_completing(upload_id=upload_id, scope=scope)
         if not winner:
             # Another worker is completing (or already completed). Wait briefly for idempotent completion.
             for _ in range(10):
-                latest = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
+                latest = await self.repo.get_session(upload_id=upload_id, scope=scope)
                 if latest is None:
                     break
                 if latest.status == UploadStatus.COMPLETED and latest.asset_id is not None:
@@ -467,20 +496,21 @@ class UploadsService(BaseService):
             raise BadRequest(message=_ts("UPLOAD_COMPLETING", "上传正在完成中，请稍后重试"), error="UPLOAD_COMPLETING")
 
         # Reload with the latest status after CAS update.
-        session = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
+        session = await self.repo.get_session(upload_id=upload_id, scope=scope)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
 
         try:
             if session.storage_provider == "s3":
-                asset_id = await self._complete_s3(session=session, workspace_id=workspace_id)
+                asset_id = await self._complete_s3(session=session, scope=scope)
             else:
-                asset_id = await self._complete_local(session=session, workspace_id=workspace_id)
+                asset_id = await self._complete_local(session=session, scope=scope)
         except UPLOAD_COMPLETION_ERRORS as exc:
             # Avoid leaving the session stuck in COMPLETING forever.
             logger.warning(
                 "Upload completion failed",
-                workspace_id=str(workspace_id),
+                scope_type=str(scope.type),
+                scope_id=str(scope.id),
                 upload_id=str(upload_id),
                 storage_provider=str(session.storage_provider),
                 action="complete_upload",
@@ -491,7 +521,8 @@ class UploadsService(BaseService):
             except UPLOAD_STATUS_RESET_ERRORS as status_exc:
                 logger.warning(
                     "Upload status reset failed after completion error",
-                    workspace_id=str(workspace_id),
+                    scope_type=str(scope.type),
+                    scope_id=str(scope.id),
                     upload_id=str(upload_id),
                     action="reset_upload_status_after_complete_error",
                     error=str(status_exc),
@@ -499,16 +530,20 @@ class UploadsService(BaseService):
             raise
 
         # Emit post-upload event for plugin processors (best-effort).
+        payload = {
+            "scope_type": str(scope.type),
+            "scope_id": str(scope.id),
+            "asset_id": str(asset_id),
+            "purpose": str(session.purpose),
+            "storage_provider": str(session.storage_provider),
+            "visibility": str(session.visibility),
+            "indexable": bool(session.indexable),
+        }
+        if scope.type == ASSET_SCOPE_WORKSPACE:
+            payload["workspace_id"] = str(scope.id)
         event = Event(
             name=ASSET_UPLOADED_EVENT,
-            payload={
-                "workspace_id": str(workspace_id),
-                "asset_id": str(asset_id),
-                "purpose": str(session.purpose),
-                "storage_provider": str(session.storage_provider),
-                "visibility": str(session.visibility),
-                "indexable": bool(session.indexable),
-            },
+            payload=payload,
             source="core",
             actor_user_id=str(session.actor_user_id),
         )
@@ -519,7 +554,8 @@ class UploadsService(BaseService):
             except UPLOAD_EVENT_PUBLISH_ERRORS as exc:
                 logger.warning(
                     "Asset uploaded event publish failed",
-                    workspace_id=str(workspace_id),
+                    scope_type=str(scope.type),
+                    scope_id=str(scope.id),
                     upload_id=str(upload_id),
                     asset_id=str(asset_id),
                     action="publish_asset_uploaded_event",
@@ -534,12 +570,14 @@ class UploadsService(BaseService):
 
         return asset_id
 
-    async def _complete_local(self, *, session: UploadSessionRecord, workspace_id: UUID) -> UUID:
+    async def _complete_local(self, *, session: UploadSessionRecord, scope: AssetScope) -> UUID:
         filename = session.filename
         ext = (session.resolved_ext or "").lstrip(".").lower() or (Path(filename).suffix.lstrip(".") or "bin").lower()
         slug = (session.resolved_slug or "").strip() or slugify(Path(filename).stem or "asset")
         asset_id = session.reserved_asset_id or uuid7()
-        object_key = session.object_key or build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext=ext)
+        object_key = session.object_key or build_scoped_asset_object_key(
+            scope=scope.type, scope_id=scope.id, asset_id=asset_id, ext=ext
+        )
 
         try:
             purpose = AssetPurpose(session.purpose)
@@ -575,7 +613,8 @@ class UploadsService(BaseService):
             except OSError as cleanup_exc:
                 logger.warning(
                     "Upload output cleanup failed after merge error",
-                    workspace_id=str(workspace_id),
+                    scope_type=str(scope.type),
+                    scope_id=str(scope.id),
                     upload_id=str(session.id),
                     asset_id=str(asset_id),
                     output_path=str(out_path),
@@ -591,7 +630,8 @@ class UploadsService(BaseService):
             except OSError as cleanup_exc:
                 logger.warning(
                     "Upload output cleanup failed after SHA256 mismatch",
-                    workspace_id=str(workspace_id),
+                    scope_type=str(scope.type),
+                    scope_id=str(scope.id),
                     upload_id=str(session.id),
                     asset_id=str(asset_id),
                     output_path=str(out_path),
@@ -611,10 +651,17 @@ class UploadsService(BaseService):
             await self.repo.mark_completed(session, asset_id=existing.id)
             return existing.id
 
+        if session.target_folder_id is not None:
+            folder_exists = await AssetFolderRecord.filter(
+                id=session.target_folder_id, **scope_filter_kwargs(scope)
+            ).exists()
+            if not folder_exists:
+                await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
+                raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
+
         try:
             asset = await AssetRecord.create(
                 id=asset_id,
-                workspace_id=workspace_id,
                 owner_user_id=session.actor_user_id,
                 folder_id=session.target_folder_id,
                 purpose=purpose,
@@ -632,6 +679,7 @@ class UploadsService(BaseService):
                 variants=None,
                 meta=None,
                 deleted_at=None,
+                **scope_filter_kwargs(scope),
             )
         except IntegrityError:
             # Another worker may have won the race and created the asset first.
@@ -649,7 +697,8 @@ class UploadsService(BaseService):
             except OSError as cleanup_exc:
                 logger.warning(
                     "Upload part cleanup failed after local completion",
-                    workspace_id=str(workspace_id),
+                    scope_type=str(scope.type),
+                    scope_id=str(scope.id),
                     upload_id=str(session.id),
                     asset_id=str(asset.id),
                     part_path=str(p),
@@ -659,11 +708,11 @@ class UploadsService(BaseService):
                 continue
         return asset.id
 
-    async def _complete_s3(self, *, session: UploadSessionRecord, workspace_id: UUID) -> UUID:
+    async def _complete_s3(self, *, session: UploadSessionRecord, scope: AssetScope) -> UUID:
         effective = await get_effective_settings(self.settings)
         provider_impl = self._build_s3_provider(
             effective=effective,
-            workspace_id=workspace_id,
+            scope=scope,
             upload_id=session.id,
             action="complete_s3_build_storage_provider",
         )
@@ -726,10 +775,17 @@ class UploadsService(BaseService):
             await self.repo.mark_completed(session, asset_id=existing.id)
             return existing.id
 
+        if session.target_folder_id is not None:
+            folder_exists = await AssetFolderRecord.filter(
+                id=session.target_folder_id, **scope_filter_kwargs(scope)
+            ).exists()
+            if not folder_exists:
+                await self.repo.set_session_status(session, status=UploadStatus.UPLOADING)
+                raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
+
         try:
             asset = await AssetRecord.create(
                 id=asset_id,
-                workspace_id=workspace_id,
                 owner_user_id=session.actor_user_id,
                 folder_id=session.target_folder_id,
                 purpose=purpose,
@@ -748,6 +804,7 @@ class UploadsService(BaseService):
                 variants=None,
                 meta=None,
                 deleted_at=None,
+                **scope_filter_kwargs(scope),
             )
         except IntegrityError:
             existing2 = await AssetRecord.get_or_none(id=asset_id)
@@ -757,8 +814,8 @@ class UploadsService(BaseService):
         await self.repo.mark_completed(session, asset_id=asset.id)
         return asset.id
 
-    async def abort(self, *, upload_id: UUID, workspace_id: UUID) -> UploadSessionRecord:
-        session = await self.repo.get_session(upload_id=upload_id, workspace_id=workspace_id)
+    async def abort(self, *, upload_id: UUID, scope: AssetScope) -> UploadSessionRecord:
+        session = await self.repo.get_session(upload_id=upload_id, scope=scope)
         if session is None:
             raise NotFound(message=_ts("UPLOAD_NOT_FOUND", "上传会话不存在"), error="UPLOAD_NOT_FOUND")
         # Best-effort: abort multipart upload if needed.
@@ -767,7 +824,7 @@ class UploadsService(BaseService):
                 effective = await get_effective_settings(self.settings)
                 provider_impl = self._build_s3_provider(
                     effective=effective,
-                    workspace_id=workspace_id,
+                    scope=scope,
                     upload_id=upload_id,
                     action="abort_multipart_upload_build_storage_provider",
                 )
@@ -784,7 +841,8 @@ class UploadsService(BaseService):
             except UPLOAD_ABORT_ERRORS as exc:
                 logger.warning(
                     "Abort multipart upload failed",
-                    workspace_id=str(workspace_id),
+                    scope_type=str(scope.type),
+                    scope_id=str(scope.id),
                     upload_id=str(upload_id),
                     storage_provider="s3",
                     action="abort_multipart_upload",
@@ -794,10 +852,10 @@ class UploadsService(BaseService):
         await self.repo.set_session_status(session, status=UploadStatus.ABORTED)
 
         # Best-effort cleanup: remove directory under tmp if present.
-        # This is safe because we scope by workspace_id and upload_id in object_key.
+        # This is safe because we scope by scope and upload_id in object_key.
         upload_dir = safe_object_key_to_path(
             self.settings.storage.local_tmp_dir,
-            f"workspaces/{workspace_id}/uploads/{upload_id}",
+            self._upload_tmp_dir_key(scope=scope, upload_id=upload_id),
         )
         try:
             if upload_dir.is_dir():
@@ -811,7 +869,8 @@ class UploadsService(BaseService):
         except OSError as exc:
             logger.warning(
                 "Upload temp directory cleanup failed on abort",
-                workspace_id=str(workspace_id),
+                scope_type=str(scope.type),
+                scope_id=str(scope.id),
                 upload_id=str(upload_id),
                 upload_dir=str(upload_dir),
                 action="abort_cleanup_upload_temp_dir",

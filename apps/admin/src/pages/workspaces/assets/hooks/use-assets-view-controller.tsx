@@ -24,6 +24,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, selectOnly, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
+import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
   DND_ROOT_ID,
@@ -35,6 +36,11 @@ export function useAssetsViewController() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const scope = useMemo<AssetScopeRef | null>(
+    () => (workspaceId ? { type: "workspace", id: String(workspaceId) } : null),
+    [workspaceId],
+  );
+  const scopeKey = scope ? assetScopeKey(scope) : null;
   const [active, setActive] = useState<AssetMasonryItem | null>(null);
   const [selection, setSelection] = useState<AssetSelectionState>(() => ({
     selectedIds: new Set(),
@@ -57,6 +63,7 @@ export function useAssetsViewController() {
   const [editAccessCurrent, setEditAccessCurrent] = useState<{
     visibility?: string;
     purpose?: string;
+    indexable?: boolean;
   }>({});
   const [folderNotEmptyInfo, setFolderNotEmptyInfo] = useState<{
     folderName: string;
@@ -72,7 +79,7 @@ export function useAssetsViewController() {
     nonce: number;
   } | null>(null);
   const explorer = useAssetsExplorerController({
-    workspaceId,
+    scope,
     pagination: "infinite",
     purpose: "library",
     // 默认只看 public：瀑布流需要 thumb/public url 才能稳定预览；
@@ -151,8 +158,7 @@ export function useAssetsViewController() {
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_MOVE_SUCCESS", { count: out.movedCount }));
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
     },
     onError: (err) => {
       notifyError(err);
@@ -166,8 +172,7 @@ export function useAssetsViewController() {
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_DELETE_SUCCESS", { count: out.deletedCount }));
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
     },
     onError: (err) => {
       notifyError(err);
@@ -191,7 +196,9 @@ export function useAssetsViewController() {
           currentVisibility !== null &&
           nextVisibility !== currentVisibility) ||
         (nextPurpose !== null && nextPurpose !== "library");
-      if (updatedIds.size > 0 && (out.visibility || out.purpose)) {
+      const hasAccessFieldChange =
+        Boolean(out.visibility || out.purpose) || typeof out.indexable !== "undefined";
+      if (updatedIds.size > 0 && hasAccessFieldChange) {
         queryClient.setQueryData(assetsListQueryKey, (old: unknown): unknown => {
           const data = old as InfiniteData<PageData<AdminAssetSummary>> | undefined;
           if (!data) return old;
@@ -203,6 +210,8 @@ export function useAssetsViewController() {
                       ...row,
                       visibility: out.visibility ?? row.visibility,
                       purpose: out.purpose ?? row.purpose,
+                      indexable:
+                        typeof out.indexable !== "undefined" ? out.indexable : row.indexable,
                     }
                   : row,
               )
@@ -220,16 +229,16 @@ export function useAssetsViewController() {
             ...prev,
             visibility: out.visibility ?? prev.visibility,
             purpose: out.purpose ?? prev.purpose,
+            indexable: typeof out.indexable !== "undefined" ? out.indexable : prev.indexable,
           };
         });
         if (willDisappearFromList) {
           setSelection((prev) => clearSelection(prev));
         }
       }
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "detail", workspaceId] });
+      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      if (scopeKey)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
     },
     onError: (err) => {
       notifyError(err);
@@ -241,8 +250,8 @@ export function useAssetsViewController() {
       return createAssetFolder(String(workspaceId), payload);
     },
     onSuccess: () => {
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", workspaceId] });
+      if (scopeKey)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
     },
     onError: (err) => {
       notifyError(err);
@@ -257,8 +266,8 @@ export function useAssetsViewController() {
       return updateAssetFolder(String(workspaceId), input.folderId, input.payload);
     },
     onSuccess: () => {
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", workspaceId] });
+      if (scopeKey)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
     },
     onError: (err) => {
       notifyError(err);
@@ -270,10 +279,9 @@ export function useAssetsViewController() {
       return deleteAssetFolder(String(workspaceId), folderId);
     },
     onSuccess: () => {
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", workspaceId] });
-      if (workspaceId)
-        void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+      if (scopeKey)
+        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
+      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
     },
     onError: (err) => {
       notifyError(err);
@@ -304,6 +312,7 @@ export function useAssetsViewController() {
       setEditAccessCurrent({
         visibility: asset?.visibility,
         purpose: asset?.purpose,
+        indexable: asset?.indexable,
       });
     } else {
       setEditAccessMode("bulk");
@@ -493,6 +502,8 @@ export function useAssetsViewController() {
     t,
     queryClient,
     workspaceId,
+    scope,
+    scopeKey,
     active,
     setActive,
     selection,

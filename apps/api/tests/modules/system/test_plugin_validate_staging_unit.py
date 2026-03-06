@@ -4,13 +4,36 @@ import io
 import json
 import time
 import zipfile
+from typing import Any, cast
 
 import pytest
-from starlette.datastructures import UploadFile
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import BadRequest
 from apps.api.src.modules.system.plugins.manager.service import PluginService
+
+
+class _MemoryUpload:
+    """
+    Minimal async UploadLike for unit tests.
+
+    Why:
+    - Starlette/FastAPI UploadFile uses threadpool-based file IO.
+    - In this repo's async test runner environment that can hang (no IO-driven loop wakeups).
+    - For unit tests we only need `filename`, `read()`, and `close()` semantics.
+    """
+
+    filename: str | None
+
+    def __init__(self, data: bytes, *, filename: str) -> None:
+        self.filename = filename
+        self._buf = io.BytesIO(data)
+
+    async def read(self, size: int = -1) -> bytes:
+        return self._buf.read(size)
+
+    async def close(self) -> None:
+        self._buf.close()
 
 
 def _build_minimal_plugin_zip_bytes(*, plugin_id: str, slug: str, entry_root: str) -> bytes:
@@ -41,7 +64,7 @@ async def test_validate_upload_to_staging_returns_token_and_manifest(plugin_root
     service = PluginService(settings, manager=None)
 
     raw = _build_minimal_plugin_zip_bytes(plugin_id="plugin-demo", slug="demo", entry_root="demo")
-    upload = UploadFile(file=io.BytesIO(raw), filename="demo.zip")
+    upload = cast(Any, _MemoryUpload(raw, filename="demo.zip"))
 
     token, sha256, size_bytes, manifest = await service.validate_upload_to_staging(file=upload, checksum=None)  # type: ignore
     assert token

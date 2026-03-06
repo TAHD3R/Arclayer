@@ -6,6 +6,7 @@ import { SettingPanel } from "@celestial/ui/setting-panel";
 import { normalizeLocale } from "@/lib/i18n";
 
 import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";
+import { OrganizationSettingsLogoAccordionItem } from "./organization-settings-logo-accordion-item";
 
 export function OrganizationSettingsBasicsCorePanels(props: {
   controller: OrganizationSettingsBasicsController;
@@ -69,6 +70,7 @@ export function OrganizationSettingsBasicsCorePanels(props: {
                 <Input size="large" placeholder={t("settings:SETTINGS_ORG_NAME_PLACEHOLDER")} />
               </Form.Item>
             </SettingAccordionItem>
+            <OrganizationSettingsLogoAccordionItem controller={c} />
           </Accordion>
         </div>
       </SettingPanel>

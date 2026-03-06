@@ -91,6 +91,8 @@ class UserRepository(BaseRepository):
         user: UserLike,
         *,
         display_name: str | None | object = _UNSET,
+        avatar_url: str | None | object = _UNSET,
+        avatar_asset_id: UUID | None | object = _UNSET,
     ) -> User:
         record = cast(User, user)
         update_fields: list[str] = []
@@ -99,6 +101,16 @@ class UserRepository(BaseRepository):
             mutable = cast(UserMutableFields, record)
             mutable.display_name = cast(str | None, display_name)
             update_fields.append("display_name")
+
+        if avatar_url is not self._UNSET:
+            mutable = cast(UserMutableFields, record)
+            mutable.avatar_url = cast(str | None, avatar_url)
+            update_fields.append("avatar_url")
+
+        if avatar_asset_id is not self._UNSET:
+            mutable = cast(UserMutableFields, record)
+            mutable.avatar_asset_id = cast(UUID | None, avatar_asset_id)
+            update_fields.append("avatar_asset_id")
 
         if not update_fields:
             return record

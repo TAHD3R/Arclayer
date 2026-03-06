@@ -23,6 +23,8 @@ export type WorkspaceDetail = {
   organizationId: string;
   slug: string;
   name: string;
+  iconUrl: string | null;
+  iconAssetAligned?: boolean;
 };
 
 export type WorkspaceRolePolicy = {

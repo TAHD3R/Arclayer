@@ -8,17 +8,21 @@ from tortoise import fields
 from apps.api.src.common.models.base import BaseModel
 
 
-# Asset folder record (workspace-scoped).
+# Asset folder record (scoped: workspace/org/user).
 class AssetFolderRecord(BaseModel):
     """
-    Asset folder (workspace-scoped in v2).
+    Asset folder (scoped in v3).
 
     Notes:
     - This is a logical organization layer for the asset library.
-    - v2: asset library is part of workspace governance, so all folder data is scoped by workspace_id.
+    - v2: asset library was workspace-scoped.
+    - v3: asset library supports workspace/org/user scopes.
     """
 
-    workspace_id = fields.UUIDField(db_index=True)
+    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    workspace_id = fields.UUIDField(null=True, db_index=True)
+    organization_id = fields.UUIDField(null=True, db_index=True)
+    user_id = fields.UUIDField(null=True, db_index=True)
     parent = fields.ForeignKeyField(
         "models.AssetFolderRecord",
         related_name="children",
@@ -35,4 +39,8 @@ class AssetFolderRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "asset_folders"
         abstract = False
-        unique_together = (("workspace_id", "parent_id", "name"),)
+        unique_together = (
+            ("workspace_id", "parent_id", "name"),
+            ("organization_id", "parent_id", "name"),
+            ("user_id", "parent_id", "name"),
+        )

@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
+from apps.api.src.modules.assets.scope import AssetScope
 
 
 def test_admin_assets_service_exposes_bulk_ops() -> None:
@@ -37,16 +38,17 @@ async def test_bulk_move_assets_validates_folder_exists(monkeypatch) -> None:
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    scope = AssetScope(type="workspace", id=uuid4())
 
     class FakeRepo:
-        async def get_folder(self, *, workspace_id, folder_id):
+        async def get_folder(self, *, scope, folder_id):
             return None
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(NotFound) as exc:
         await service.bulk_move_assets(  # type: ignore[attr-defined]
-            workspace_id=uuid4(),
+            scope=scope,
             payload=AdminAssetBulkMoveRequest(asset_ids=[uuid4()], folder_id=uuid4()),
         )
 
@@ -61,16 +63,17 @@ async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    scope = AssetScope(type="workspace", id=uuid4())
 
     deleted = {"count": 0, "ids": []}
 
     class FakeRepo:
-        async def bulk_soft_delete_assets(self, *, workspace_id, asset_ids, deleted_at, updated_at):
+        async def bulk_soft_delete_assets(self, *, scope, asset_ids, deleted_at, updated_at):
             deleted["count"] = len(asset_ids)
             deleted["ids"] = list(asset_ids)
             return len(asset_ids)
 
-        async def get_assets_by_ids(self, *, workspace_id, asset_ids):
+        async def get_assets_by_ids(self, *, scope, asset_ids):
             # Pretend all exist.
             return [{"id": x} for x in asset_ids]
 
@@ -78,7 +81,7 @@ async def test_bulk_delete_assets_marks_assets_deleted(monkeypatch) -> None:
 
     ids = [uuid4(), uuid4()]
     out = await service.bulk_delete_assets(  # type: ignore[attr-defined]
-        workspace_id=uuid4(),
+        scope=scope,
         payload=AdminAssetBulkDeleteRequest(asset_ids=ids),
     )
 
@@ -95,16 +98,17 @@ async def test_bulk_update_assets_requires_fields(monkeypatch) -> None:
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    scope = AssetScope(type="workspace", id=uuid4())
 
     class FakeRepo:
-        async def get_assets_by_ids(self, *, workspace_id, asset_ids):
+        async def get_assets_by_ids(self, *, scope, asset_ids):
             return [{"id": x} for x in asset_ids]
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(BadRequest) as exc:
         await service.bulk_update_assets(  # type: ignore[attr-defined]
-            workspace_id=uuid4(),
+            scope=scope,
             payload=AdminAssetBulkUpdateRequest(asset_ids=[uuid4()]),
         )
 
@@ -120,27 +124,28 @@ async def test_bulk_update_assets_updates_repo(monkeypatch) -> None:
 
     settings = get_settings()
     service = AdminAssetsService(settings)
+    scope = AssetScope(type="workspace", id=uuid4())
 
     called_count = 0
     called_ids: list[UUID] = []
     called_updates: dict[str, object] = {}
 
     class FakeRepo:
-        async def bulk_update_assets_fields(self, *, workspace_id, asset_ids, updates, updated_at):
+        async def bulk_update_assets_fields(self, *, scope, asset_ids, updates, updated_at):
             nonlocal called_count, called_ids, called_updates
             called_count = len(asset_ids)
             called_ids = list(asset_ids)
             called_updates = dict(updates)
             return len(asset_ids)
 
-        async def get_assets_by_ids(self, *, workspace_id, asset_ids):
+        async def get_assets_by_ids(self, *, scope, asset_ids):
             return [{"id": x} for x in asset_ids]
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     ids = [uuid4(), uuid4(), uuid4()]
     out = await service.bulk_update_assets(  # type: ignore[attr-defined]
-        workspace_id=uuid4(),
+        scope=scope,
         payload=AdminAssetBulkUpdateRequest(asset_ids=ids, visibility=AssetVisibility.PRIVATE),
     )
 

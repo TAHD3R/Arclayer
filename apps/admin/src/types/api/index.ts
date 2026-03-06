@@ -107,6 +107,7 @@ export type {
   UploadAbortOut,
   UploadPartPresignOut,
   UploadPartCommitRequest,
+  AvatarUploadInitRequest,
 } from "./uploads";
 
 // Activity & Notifications

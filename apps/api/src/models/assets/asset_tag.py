@@ -5,21 +5,24 @@ from tortoise import fields
 from apps.api.src.common.models.base import BaseModel
 
 
-# Asset tag (workspace-scoped).
+# Asset tag (scoped: workspace/org/user).
 class AssetTagRecord(BaseModel):
     """
-    Simple asset tag (workspace-scoped in v2).
+    Simple asset tag (scoped in v3).
 
     Kept minimal for now; we can extend with color/slug later.
     """
 
-    workspace_id = fields.UUIDField(db_index=True)
+    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    workspace_id = fields.UUIDField(null=True, db_index=True)
+    organization_id = fields.UUIDField(null=True, db_index=True)
+    user_id = fields.UUIDField(null=True, db_index=True)
     name = fields.CharField(max_length=64)
 
     class Meta(BaseModel.Meta):
         table = "asset_tags"
         abstract = False
-        unique_together = (("workspace_id", "name"),)
+        unique_together = (("workspace_id", "name"), ("organization_id", "name"), ("user_id", "name"))
 
 
 # Asset-to-tag link (many-to-many).

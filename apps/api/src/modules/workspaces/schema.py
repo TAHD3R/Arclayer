@@ -33,6 +33,10 @@ class WorkspaceDetailOut(BaseOut):
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     icon_url: str | None = Field(default=None, description="Workspace icon/logo URL (optional).")
+    icon_asset_aligned: bool = Field(
+        default=False,
+        description="Whether the icon asset was auto-aligned (purpose/visibility/indexable) in this response.",
+    )
 
 
 class WorkspaceUpdateRequest(BaseSchema):

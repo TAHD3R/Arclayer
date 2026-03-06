@@ -1,3 +1,9 @@
 {
-  "CSRF_FAILED": "CSRF 校验失败"
+  "CSRF_FAILED": "CSRF 校验失败",
+  "ORG_ASSETS_READ_REQUIRED": "权限不足",
+  "ORG_ASSETS_MANAGE_REQUIRED": "权限不足",
+  "ASSET_INDEXABLE_INVALID": "可索引标记不合法",
+  "ASSET_INDEXABLE_REQUIRES_PUBLIC": "仅公开资源可设置为可索引",
+  "ASSET_SYSTEM_PURPOSE_INVARIANT": "该用途的资源必须为公开且不可索引",
+  "ASSET_BULK_UPDATE_GOVERNANCE_FAILED": "部分资源不满足用途/可见性/索引规则"
 }

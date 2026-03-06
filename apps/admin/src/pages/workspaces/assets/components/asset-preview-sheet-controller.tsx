@@ -17,6 +17,7 @@ import TrashIcon from "@celestial/ui/icons/trash-icon";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
+import { assetScopeKey } from "@/lib/assets/asset-scope";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 
@@ -46,6 +47,10 @@ export function useAssetPreviewSheetController(props: {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const scopeKey = useMemo(
+    () => (workspaceId ? assetScopeKey({ type: "workspace", id: String(workspaceId) }) : null),
+    [workspaceId],
+  );
   const uiLocale = usePreferencesStore((s) => s.locale);
   const workspaceLocalization = useWorkspaceLocalization();
   const { token } = theme.useToken();
@@ -71,23 +76,23 @@ export function useAssetPreviewSheetController(props: {
   const isImage = Boolean(active?.mimeType?.startsWith("image/"));
 
   const detailQuery = useQuery({
-    queryKey: ["assets", "detail", workspaceId, active?.id],
+    queryKey: ["assets", "detail", scopeKey, active?.id],
     queryFn: async () => {
       if (!active?.id) throw new Error("missing asset id");
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return getAssetDetail(String(workspaceId), active.id);
     },
-    enabled: Boolean(workspaceId) && Boolean(active?.id),
+    enabled: Boolean(scopeKey) && Boolean(active?.id),
     staleTime: 20 * 1000,
   });
 
   const tagsQuery = useQuery({
-    queryKey: ["assets", "tags", workspaceId],
+    queryKey: ["assets", "tags", scopeKey],
     queryFn: async () => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return listAssetTags(String(workspaceId));
     },
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(scopeKey),
     staleTime: 60 * 1000,
   });
 
@@ -272,9 +277,9 @@ export function useAssetPreviewSheetController(props: {
     onSuccess: (updated) => {
       setSaveState("saved");
       dirtyRef.current = { description: false, tags: false };
-      queryClient.setQueryData(["assets", "detail", workspaceId, active?.id], updated);
+      if (scopeKey) queryClient.setQueryData(["assets", "detail", scopeKey, active?.id], updated);
       // Lists might not include description/tags today, but keep caches consistent.
-      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+      if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
       window.setTimeout(() => setSaveState("idle"), 1200);
     },
     onError: () => {
@@ -285,17 +290,17 @@ export function useAssetPreviewSheetController(props: {
   });
 
   const patchAccessMutation = useMutation({
-    mutationFn: async (payload: { visibility?: string; purpose?: string }) => {
+    mutationFn: async (payload: { visibility?: string; purpose?: string; indexable?: boolean }) => {
       if (!active?.id) throw new Error("missing asset id");
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       return patchAsset(String(workspaceId), active.id, payload);
     },
     onSuccess: (updated) => {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
-      queryClient.setQueryData(["assets", "detail", workspaceId, active?.id], updated);
+      if (scopeKey) queryClient.setQueryData(["assets", "detail", scopeKey, active?.id], updated);
       // Keep list caches in sync so the masonry tiles reflect the latest access fields immediately.
       queryClient.setQueriesData(
-        { queryKey: workspaceId ? ["assets", "list", workspaceId] : ["assets", "list"] },
+        { queryKey: scopeKey ? ["assets", "list", scopeKey] : ["assets", "list"] },
         (old: unknown): unknown => {
           const data = old as InfiniteData<PageData<AdminAssetSummary>> | undefined;
           if (!data) return old;
@@ -307,6 +312,8 @@ export function useAssetPreviewSheetController(props: {
                     ...row,
                     visibility: updated.visibility ?? row.visibility,
                     purpose: updated.purpose ?? row.purpose,
+                    indexable:
+                      typeof updated.indexable !== "undefined" ? updated.indexable : row.indexable,
                   }
                 : row,
             );
@@ -318,7 +325,7 @@ export function useAssetPreviewSheetController(props: {
           return Object.assign({}, data, { pages });
         },
       );
-      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+      if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
     },
     onError: () => {
       notifyErrorText(t("assets:ASSET_EDIT_ACCESS_FAILED"));
@@ -333,7 +340,7 @@ export function useAssetPreviewSheetController(props: {
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
-      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+      if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
       props.onClose();
     },
     onError: () => {
@@ -347,7 +354,7 @@ export function useAssetPreviewSheetController(props: {
       return createAssetTag(String(workspaceId), { name });
     },
     onSuccess: () => {
-      if (workspaceId) queryClient.invalidateQueries({ queryKey: ["assets", "tags", workspaceId] });
+      if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "tags", scopeKey] });
       notifySuccessText(t("assets:ASSET_TAG_CREATED"));
     },
     onError: () => {

@@ -48,3 +48,10 @@ export type UploadPartCommitRequest = {
   etag: string;
   sizeBytes: number;
 };
+
+export type AvatarUploadInitRequest = {
+  filename: string;
+  mime?: string | null;
+  sizeBytes: number;
+  expectedSha256?: string | null;
+};

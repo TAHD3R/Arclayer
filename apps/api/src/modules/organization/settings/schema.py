@@ -28,6 +28,10 @@ class OrganizationSettingsCoreOut(BaseSchema):
     organization_id: PublicUUID = Field(..., description="Organization id.")
     organization_name: str = Field(..., description="Organization display name.")
     organization_logo_url: str | None = Field(default=None, description="Organization logo URL (optional).")
+    organization_logo_asset_aligned: bool = Field(
+        default=False,
+        description="Whether the logo asset was auto-aligned (purpose/visibility/indexable) in this response.",
+    )
     organization_localization: OrganizationLocalizationOut = Field(
         ..., description="Organization default localization preferences."
     )

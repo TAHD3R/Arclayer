@@ -143,6 +143,7 @@ class AdminAssetBulkUpdateRequest(BaseSchema):
     asset_ids: list[PublicUUID] = Field(..., min_length=1, max_length=500, description="Asset ids to update.")
     visibility: AssetVisibility | None = Field(default=None, description="Target visibility (public/private/shared).")
     purpose: AssetPurpose | None = Field(default=None, description="Target purpose.")
+    indexable: bool | None = Field(default=None, description="Whether the asset is indexable (public only).")
 
 
 class AdminAssetBulkUpdateOut(BaseSchema):
@@ -150,6 +151,7 @@ class AdminAssetBulkUpdateOut(BaseSchema):
     updated_asset_ids: list[PublicUUID] = Field(default_factory=list, description="Updated asset ids (deduplicated).")
     visibility: AssetVisibility | None = Field(default=None, description="Applied visibility (if provided).")
     purpose: AssetPurpose | None = Field(default=None, description="Applied purpose (if provided).")
+    indexable: bool | None = Field(default=None, description="Applied indexable (if provided).")
 
 
 class AdminAssetUpdateRequest(BaseSchema):
@@ -157,6 +159,7 @@ class AdminAssetUpdateRequest(BaseSchema):
     tag_ids: list[PublicUUID] | None = Field(default=None, description="Tag ids to set (replace existing).")
     visibility: AssetVisibility | None = Field(default=None, description="Asset visibility.")
     purpose: AssetPurpose | None = Field(default=None, description="Asset purpose.")
+    indexable: bool | None = Field(default=None, description="Whether the asset is indexable (public only).")
 
 
 class AdminAssetTagCreateRequest(BaseSchema):

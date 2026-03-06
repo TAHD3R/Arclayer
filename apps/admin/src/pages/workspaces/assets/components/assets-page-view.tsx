@@ -16,7 +16,8 @@ export function AssetsPageView() {
   const {
     t,
     queryClient,
-    workspaceId,
+    scope,
+    scopeKey,
     active,
     setActive,
     setSelection,
@@ -52,6 +53,7 @@ export function AssetsPageView() {
     foldersQuery,
     tagsQuery,
     assetsQuery,
+    assetsListQueryKey,
     moreOpen,
     setMoreOpen,
     moreHovered,
@@ -153,7 +155,7 @@ export function AssetsPageView() {
         onConfirmEditAccess={async (value) => {
           const assetIds = Array.from(selectedIds);
           if (!assetIds.length) return;
-          if (!value.visibility && !value.purpose) return;
+          if (!value.visibility && !value.purpose && typeof value.indexable === "undefined") return;
           await bulkUpdateMutation.mutateAsync({ assetIds, ...value });
         }}
         createFolderOpen={createFolderOpen}
@@ -177,13 +179,17 @@ export function AssetsPageView() {
           setActive(null);
           setBulkDeleteOpen(false);
         }}
-        workspaceId={workspaceId ? String(workspaceId) : ""}
+        scope={scope}
         uploadOpen={uploadOpen}
         setUploadOpen={setUploadOpen}
         currentFolderId={currentFolderId}
         onUploaded={() => {
-          if (workspaceId)
-            void queryClient.invalidateQueries({ queryKey: ["assets", "list", workspaceId] });
+          if (scopeKey) {
+            void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
+            void queryClient.invalidateQueries({ queryKey: ["assets", "tags", scopeKey] });
+            void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+          }
+          void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
           setUploadOpen(false);
         }}
         onClearSelection={() => {

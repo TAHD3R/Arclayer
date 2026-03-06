@@ -25,6 +25,7 @@ export function OrganizationSettingsBasicsForm(props: {
       disabled={c.disabled}
       initialValues={{
         name: c.initialOrgName,
+        logoUrl: c.initialOrgLogoUrl,
         locale: c.initialOrgLocale,
         timezone: c.initialOrgTimezone,
         dateFormat: c.initialOrgDateFormat,

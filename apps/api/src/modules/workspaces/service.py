@@ -6,14 +6,19 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
+from apps.api.src.common.constants.assets import ASSET_SCOPE_WORKSPACE
 from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from apps.api.src.core.i18n import t
+from apps.api.src.models.assets.asset import AssetPurpose
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
 from apps.api.src.models.system.rbac import Role
 from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from apps.api.src.modules.assets.admin.assets.binding_align import align_asset_for_binding
+from apps.api.src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
+from apps.api.src.modules.assets.scope import AssetScope
 from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
 from apps.api.src.modules.workspaces.schema import (
     LeaveWorkspaceResult,
@@ -185,6 +190,7 @@ class WorkspaceService(BaseService):
             slug=ws.slug,
             name=ws.name,
             icon_url=ws.icon_url,
+            icon_asset_aligned=False,
         )
 
     async def update_workspace(
@@ -200,6 +206,7 @@ class WorkspaceService(BaseService):
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
         updates: dict[str, object] = {}
+        icon_asset_aligned = False
         if payload.name is not None:
             name = str(payload.name).strip()
             if not name:
@@ -235,6 +242,15 @@ class WorkspaceService(BaseService):
                     message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_ICON_URL_TOO_LONG"
                 )
             updates["icon_url"] = icon_url
+            if icon_url is not None:
+                asset_uuid = try_extract_asset_uuid_from_relative_public_url(icon_url)
+                if asset_uuid is not None:
+                    icon_asset_aligned = await align_asset_for_binding(
+                        self.settings,
+                        scope=AssetScope(type=ASSET_SCOPE_WORKSPACE, id=workspace_id),
+                        asset_id=asset_uuid,
+                        purpose=AssetPurpose.WORKSPACE_ICON,
+                    )
 
         if updates:
             for k, v in updates.items():
@@ -253,6 +269,7 @@ class WorkspaceService(BaseService):
             slug=ws.slug,
             name=ws.name,
             icon_url=ws.icon_url,
+            icon_asset_aligned=icon_asset_aligned,
         )
 
     async def leave_workspace(

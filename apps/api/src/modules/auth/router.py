@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, Query, Request
 from fastapi import Response as FastAPIResponse
 
+from apps.api.src.common.constants.assets import ASSET_SCOPE_USER
+from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.exceptions import BadRequest, Forbidden, Unauthorized
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
@@ -13,6 +15,16 @@ from apps.api.src.core.i18n import get_current_locale, t
 from apps.api.src.infra.cache.valkey import get_valkey
 from apps.api.src.infra.limiter.limiter import rate_limit
 from apps.api.src.models.organization.user import User
+from apps.api.src.modules.assets.admin.uploads.schema import (
+    UploadAbortOut,
+    UploadCompleteOut,
+    UploadInitOut,
+    UploadPartCommitRequest,
+    UploadPartPresignOut,
+    UploadStatusOut,
+)
+from apps.api.src.modules.assets.admin.uploads.service import UploadsService
+from apps.api.src.modules.assets.scope import AssetScope
 from apps.api.src.modules.auth.http.service import get_current_access_payload, get_current_user
 from apps.api.src.modules.auth.limits.service import (
     ACCOUNT_DELETE_RATE_LIMIT,
@@ -33,6 +45,7 @@ from apps.api.src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
     AcceptInvitationRequest,
+    AvatarUploadInitRequest,
     ChangePasswordRequest,
     ConfirmMyEmailChangeRequest,
     DeleteMyAccountRequest,
@@ -111,6 +124,14 @@ def _get_auth_login_service(
     auth_service = AuthService(settings, valkey=valkey)
     two_factor_service = AuthTwoFactorService(settings)
     return AuthLoginService(settings, valkey=valkey, auth_service=auth_service, two_factor=two_factor_service)
+
+
+def _get_uploads_service(settings: Settings = Depends(get_settings)) -> UploadsService:
+    return UploadsService(settings)
+
+
+def _user_asset_scope(user: User) -> AssetScope:
+    return AssetScope(type=ASSET_SCOPE_USER, id=user.id)
 
 
 def _get_refresh_cookie_domain(settings: Settings) -> str | None:
@@ -592,6 +613,154 @@ async def update_me(
 ) -> ResponseModel[UserProfile]:
     profile = await service.update_my_profile(user=user, payload=payload)
     return Response.success(message=t("auth", "PROFILE_UPDATED", default="资料已更新"), data=profile)
+
+
+@router.post(
+    "/me/avatar/uploads/init",
+    response_model=ResponseModel[UploadInitOut],
+    summary="Initialize avatar upload (current user)",
+)
+async def init_avatar_upload(
+    payload: AvatarUploadInitRequest,
+    user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+) -> ResponseModel[UploadInitOut]:
+    session = await service.init_upload(
+        scope=_user_asset_scope(user),
+        actor_user_id=user.id,
+        purpose="avatar",
+        filename=payload.filename,
+        mime=payload.mime,
+        size_bytes=payload.size_bytes,
+        expected_sha256=payload.expected_sha256,
+        requested_visibility=None,
+        requested_indexable=None,
+        target_folder_id=None,
+    )
+    return Response.success(
+        data=UploadInitOut(
+            upload_id=session.id,
+            chunk_size=session.chunk_size,
+            total_parts=session.total_parts,
+            expires_at=session.expires_at,
+            method=session.storage_provider if session.storage_provider != "s3" else "s3_multipart",
+            reserved_asset_id=session.reserved_asset_id,
+            object_key=session.object_key,
+        )
+    )
+
+
+@router.get(
+    "/me/avatar/uploads/{upload_id}",
+    response_model=ResponseModel[UploadStatusOut],
+    summary="Get avatar upload status (current user)",
+)
+async def get_avatar_upload_status(
+    upload_id: PublicUUID,
+    user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+) -> ResponseModel[UploadStatusOut]:
+    session, missing = await service.get_status(upload_id=upload_id, scope=_user_asset_scope(user))
+    return Response.success(
+        data=UploadStatusOut(
+            upload_id=session.id,
+            status=str(session.status),
+            missing_parts=missing,
+            uploaded_parts=(int(session.total_parts) - len(missing)),
+            total_parts=int(session.total_parts),
+        )
+    )
+
+
+@router.put(
+    "/me/avatar/uploads/{upload_id}/parts/{part_number}",
+    response_model=ResponseModel[None],
+    summary="Upload avatar part (current user)",
+)
+async def upload_avatar_part(
+    request: Request,
+    upload_id: PublicUUID,
+    part_number: int,
+    user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+    content_length: int | None = Header(default=None, alias="Content-Length"),
+) -> ResponseModel[None]:
+    data = await request.body()
+    if content_length is not None and content_length != len(data):
+        raise BadRequest(
+            message=t("errors", "UPLOAD_BODY_INVALID", default="上传内容不合法"), error="UPLOAD_BODY_INVALID"
+        )
+
+    await service.put_part(upload_id=upload_id, scope=_user_asset_scope(user), part_number=part_number, data=data)
+    return Response.success(data=None)
+
+
+@router.post(
+    "/me/avatar/uploads/{upload_id}/complete",
+    response_model=ResponseModel[UploadCompleteOut],
+    summary="Complete avatar upload (current user)",
+)
+async def complete_avatar_upload(
+    background_tasks: BackgroundTasks,
+    upload_id: PublicUUID,
+    user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+) -> ResponseModel[UploadCompleteOut]:
+    asset_id = await service.complete(
+        upload_id=upload_id, scope=_user_asset_scope(user), background_tasks=background_tasks
+    )
+    return Response.success(data=UploadCompleteOut(asset_id=asset_id))
+
+
+@router.post(
+    "/me/avatar/uploads/{upload_id}/abort",
+    response_model=ResponseModel[UploadAbortOut],
+    summary="Abort avatar upload (current user)",
+)
+async def abort_avatar_upload(
+    upload_id: PublicUUID,
+    user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+) -> ResponseModel[UploadAbortOut]:
+    session = await service.abort(upload_id=upload_id, scope=_user_asset_scope(user))
+    return Response.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
+
+
+@router.post(
+    "/me/avatar/uploads/{upload_id}/parts/{part_number}/presign",
+    response_model=ResponseModel[UploadPartPresignOut],
+    summary="Presign avatar upload part (current user)",
+)
+async def presign_avatar_upload_part(
+    upload_id: PublicUUID,
+    part_number: int,
+    user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+) -> ResponseModel[UploadPartPresignOut]:
+    out = await service.presign_part(upload_id=upload_id, scope=_user_asset_scope(user), part_number=part_number)
+    return Response.success(data=out)
+
+
+@router.post(
+    "/me/avatar/uploads/{upload_id}/parts/{part_number}/commit",
+    response_model=ResponseModel[None],
+    summary="Commit avatar upload part (current user)",
+)
+async def commit_avatar_upload_part(
+    upload_id: PublicUUID,
+    part_number: int,
+    payload: UploadPartCommitRequest,
+    user: User = Depends(get_current_user),
+    service: UploadsService = Depends(_get_uploads_service),
+) -> ResponseModel[None]:
+    await service.commit_part(
+        upload_id=upload_id,
+        scope=_user_asset_scope(user),
+        part_number=part_number,
+        etag=payload.etag,
+        size_bytes=payload.size_bytes,
+    )
+    return Response.success(data=None)
 
 
 @router.post(

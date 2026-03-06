@@ -17,6 +17,7 @@ import {
   type UpdateAssetFolderDialogValue,
 } from "./update-asset-folder-dialog";
 import { AssetUploadDialog } from "./asset-upload-dialog";
+import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 
 interface AssetsViewOverlaysProps {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -41,9 +42,13 @@ interface AssetsViewOverlaysProps {
   editAccessOpen: boolean;
   setEditAccessOpen: React.Dispatch<React.SetStateAction<boolean>>;
   editAccessMode: "single" | "bulk";
-  editAccessCurrent: { visibility?: string; purpose?: string };
+  editAccessCurrent: { visibility?: string; purpose?: string; indexable?: boolean };
   bulkUpdatePending: boolean;
-  onConfirmEditAccess: (value: { visibility?: string; purpose?: string }) => Promise<void>;
+  onConfirmEditAccess: (value: {
+    visibility?: string;
+    purpose?: string;
+    indexable?: boolean;
+  }) => Promise<void>;
   createFolderOpen: boolean;
   setCreateFolderOpen: React.Dispatch<React.SetStateAction<boolean>>;
   createParentLabel: string;
@@ -57,7 +62,7 @@ interface AssetsViewOverlaysProps {
   setBulkDeleteOpen: React.Dispatch<React.SetStateAction<boolean>>;
   bulkDeletePending: boolean;
   onConfirmBulkDelete: () => Promise<void>;
-  workspaceId: string;
+  scope: AssetScopeRef | null;
   uploadOpen: boolean;
   setUploadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentFolderId: string | null;
@@ -104,6 +109,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         assetCount={props.selectedCount}
         currentVisibility={props.editAccessCurrent.visibility}
         currentPurpose={props.editAccessCurrent.purpose}
+        currentIndexable={props.editAccessCurrent.indexable}
         confirmLoading={props.bulkUpdatePending}
         onConfirm={props.onConfirmEditAccess}
       />
@@ -132,13 +138,15 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         confirmLoading={props.bulkDeletePending}
         onConfirm={props.onConfirmBulkDelete}
       />
-      <AssetUploadDialog
-        workspaceId={props.workspaceId}
-        open={props.uploadOpen}
-        onOpenChange={props.setUploadOpen}
-        defaultFolderId={props.currentFolderId || undefined}
-        onUploaded={props.onUploaded}
-      />
+      {props.scope ? (
+        <AssetUploadDialog
+          scope={props.scope}
+          open={props.uploadOpen}
+          onOpenChange={props.setUploadOpen}
+          defaultFolderId={props.currentFolderId || undefined}
+          onUploaded={props.onUploaded}
+        />
+      ) : null}
       <AnimatePresence>
         {props.selectedCount > 0 ? (
           <motion.div

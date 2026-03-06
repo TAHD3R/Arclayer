@@ -22,7 +22,10 @@ class AssetUsageRecord(BaseModel):
     - `field_key` should use dot paths (e.g. `site.logo`, `seo.og_image`).
     """
 
-    workspace_id = fields.UUIDField(db_index=True)
+    # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
+    workspace_id = fields.UUIDField(null=True, db_index=True)
+    organization_id = fields.UUIDField(null=True, db_index=True)
+    user_id = fields.UUIDField(null=True, db_index=True)
 
     asset = fields.ForeignKeyField(
         "models.AssetRecord",
@@ -42,4 +45,8 @@ class AssetUsageRecord(BaseModel):
     class Meta(BaseModel.Meta):
         table = "asset_usages"
         abstract = False
-        unique_together = (("workspace_id", "entity_type", "entity_id", "field_key"),)
+        unique_together = (
+            ("workspace_id", "entity_type", "entity_id", "field_key"),
+            ("organization_id", "entity_type", "entity_id", "field_key"),
+            ("user_id", "entity_type", "entity_id", "field_key"),
+        )

@@ -18,10 +18,13 @@ export function useWorkspaceSettingsBasicsMutations(options: {
   const { workspaceId, t, queryClient } = options;
 
   const patchWorkspaceMutation = useMutation({
-    mutationFn: async (patch: { name?: string; slug?: string }) =>
+    mutationFn: async (patch: { name?: string; slug?: string; iconUrl?: string | null }) =>
       patchWorkspaceDetail(workspaceId, patch),
-    onSuccess: async () => {
-      notifySuccessText(t("settings:SETTINGS_SAVED"));
+    onSuccess: async (data) => {
+      const aligned = Boolean(data?.iconAssetAligned);
+      notifySuccessText(
+        aligned ? t("settings:SETTINGS_SAVED_ASSET_ALIGNED") : t("settings:SETTINGS_SAVED"),
+      );
       await queryClient.invalidateQueries({ queryKey: ["workspace", "detail", workspaceId] });
       await queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] });
     },

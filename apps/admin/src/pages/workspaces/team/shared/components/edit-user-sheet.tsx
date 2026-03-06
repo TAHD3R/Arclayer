@@ -60,6 +60,10 @@ export function EditUserSheet(props: {
 }) {
   const { t } = useTranslation(["team", "common"]);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const assetScope = React.useMemo(
+    () => (workspaceId ? { type: "workspace" as const, id: String(workspaceId) } : null),
+    [workspaceId],
+  );
   const [avatarPickerOpen, setAvatarPickerOpen] = React.useState(false);
   const [avatarActionOpen, setAvatarActionOpen] = React.useState(false);
   const popupContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -170,9 +174,13 @@ export function EditUserSheet(props: {
                   role="button"
                   tabIndex={0}
                   className="h-16 w-16 overflow-hidden rounded-full border border-border/60 bg-muted/20 cursor-pointer outline-none"
-                  onClick={() => setAvatarPickerOpen(true)}
+                  onClick={() => {
+                    if (!assetScope) return;
+                    setAvatarPickerOpen(true);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
+                    if (!assetScope) return;
                     setAvatarPickerOpen(true);
                   }}
                   aria-label={t("team:TEAM_FIELD_AVATAR_DESC")}
@@ -231,6 +239,7 @@ export function EditUserSheet(props: {
                           icon={<UploadCloud size={16} />}
                           onClick={() => {
                             setAvatarActionOpen(false);
+                            if (!assetScope) return;
                             setAvatarPickerOpen(true);
                           }}
                           autoInsertSpace={false}
@@ -355,24 +364,27 @@ export function EditUserSheet(props: {
         </div>
       </SheetContent>
 
-      <AssetPickerDialog
-        open={avatarPickerOpen}
-        onOpenChange={setAvatarPickerOpen}
-        mode="single"
-        value={{ assetIds: selectedAvatarAssetId ? [selectedAvatarAssetId] : [] }}
-        mimePrefix="image/"
-        uploadPurpose="avatar"
-        title={t("team:TEAM_FIELD_AVATAR")}
-        description={t("team:TEAM_FIELD_AVATAR_DESC")}
-        onConfirm={({ assetIds }) => {
-          const assetId = assetIds[0];
-          if (!assetId) return;
-          form.setValue("avatarUrl", `/assets/${assetId}`, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        }}
-      />
+      {assetScope ? (
+        <AssetPickerDialog
+          open={avatarPickerOpen}
+          onOpenChange={setAvatarPickerOpen}
+          scope={assetScope}
+          mode="single"
+          value={{ assetIds: selectedAvatarAssetId ? [selectedAvatarAssetId] : [] }}
+          mimePrefix="image/"
+          uploadPurpose="avatar"
+          title={t("team:TEAM_FIELD_AVATAR")}
+          description={t("team:TEAM_FIELD_AVATAR_DESC")}
+          onConfirm={({ assetIds }) => {
+            const assetId = assetIds[0];
+            if (!assetId) return;
+            form.setValue("avatarUrl", `/assets/${assetId}`, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          }}
+        />
+      ) : null}
     </Sheet>
   );
 }

@@ -9,6 +9,7 @@ import { SettingDialog } from "@celestial/ui/setting-dialog";
 export type UpdateAssetsAccessDialogValue = {
   visibility?: string;
   purpose?: string;
+  indexable?: boolean;
 };
 
 export type UpdateAssetsAccessDialogProps = {
@@ -20,6 +21,7 @@ export type UpdateAssetsAccessDialogProps = {
 
   currentVisibility?: string;
   currentPurpose?: string;
+  currentIndexable?: boolean;
 
   confirmLoading?: boolean;
   onConfirm: (value: UpdateAssetsAccessDialogValue) => Promise<void> | void;
@@ -34,17 +36,36 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
 
   const [visibility, setVisibility] = useState<string>(KEEP_VALUE);
   const [purpose, setPurpose] = useState<string>(KEEP_VALUE);
+  const [indexable, setIndexable] = useState<string>(KEEP_VALUE);
 
   useEffect(() => {
     if (!props.open) return;
     if (props.mode === "single") {
       setVisibility((props.currentVisibility || "public").toLowerCase());
       setPurpose((props.currentPurpose || "library").toLowerCase());
+      setIndexable(props.currentIndexable ? "true" : "false");
       return;
     }
     setVisibility(KEEP_VALUE);
     setPurpose(KEEP_VALUE);
-  }, [props.currentPurpose, props.currentVisibility, props.mode, props.open]);
+    setIndexable(KEEP_VALUE);
+  }, [
+    props.currentIndexable,
+    props.currentPurpose,
+    props.currentVisibility,
+    props.mode,
+    props.open,
+  ]);
+
+  useEffect(() => {
+    if (!props.open) return;
+    const v = String(visibility || "").toLowerCase();
+    if (props.mode === "single") {
+      if (v !== "public") setIndexable("false");
+      return;
+    }
+    if (v !== KEEP_VALUE && v !== "public") setIndexable("false");
+  }, [props.mode, props.open, visibility]);
 
   const visibilityOptions = useMemo<Option[]>(() => {
     const core: Option[] = [
@@ -61,9 +82,19 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
       { value: "library", label: t("assets:ASSET_PURPOSE_LIBRARY") },
       { value: "avatar", label: t("assets:ASSET_PURPOSE_AVATAR") },
       { value: "site_logo", label: t("assets:ASSET_PURPOSE_SITE_LOGO") },
+      { value: "workspace_icon", label: t("assets:ASSET_PURPOSE_WORKSPACE_ICON") },
       { value: "favicon", label: t("assets:ASSET_PURPOSE_FAVICON") },
       { value: "attachment", label: t("assets:ASSET_PURPOSE_ATTACHMENT") },
       { value: "article_cover", label: t("assets:ASSET_PURPOSE_ARTICLE_COVER") },
+    ];
+    if (props.mode === "single") return core;
+    return [{ value: KEEP_VALUE, label: t("assets:ASSET_EDIT_KEEP") }, ...core];
+  }, [props.mode, t]);
+
+  const indexableOptions = useMemo<Option[]>(() => {
+    const core: Option[] = [
+      { value: "false", label: t("assets:ASSET_INDEXABLE_NO") },
+      { value: "true", label: t("assets:ASSET_INDEXABLE_YES") },
     ];
     if (props.mode === "single") return core;
     return [{ value: KEEP_VALUE, label: t("assets:ASSET_EDIT_KEEP") }, ...core];
@@ -73,8 +104,8 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
   const canSubmit = useMemo(() => {
     if (disabled) return false;
     if (props.mode === "single") return true;
-    return visibility !== KEEP_VALUE || purpose !== KEEP_VALUE;
-  }, [disabled, props.mode, purpose, visibility]);
+    return visibility !== KEEP_VALUE || purpose !== KEEP_VALUE || indexable !== KEEP_VALUE;
+  }, [disabled, indexable, props.mode, purpose, visibility]);
 
   const title =
     props.mode === "single"
@@ -112,9 +143,11 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
               if (props.mode === "single") {
                 out.visibility = visibility;
                 out.purpose = purpose;
+                out.indexable = indexable === "true";
               } else {
                 if (visibility !== KEEP_VALUE) out.visibility = visibility;
                 if (purpose !== KEEP_VALUE) out.purpose = purpose;
+                if (indexable !== KEEP_VALUE) out.indexable = indexable === "true";
               }
               await props.onConfirm(out);
               props.onOpenChange(false);
@@ -151,6 +184,21 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
             value={purpose}
             options={purposeOptions}
             onChange={(v) => setPurpose(String(v))}
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+            disabled={disabled}
+          />
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">
+            {t("assets:ASSET_META_INDEXABLE")}
+          </label>
+          <div className="text-label-secondary">{t("assets:ASSET_EDIT_ACCESS_INDEXABLE_HELP")}</div>
+          <Select
+            className="w-full"
+            value={indexable}
+            options={indexableOptions}
+            onChange={(v) => setIndexable(String(v))}
             getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
             disabled={disabled}
           />

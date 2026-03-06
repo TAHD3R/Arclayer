@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.http.pagination import PageParams
-from apps.api.src.models.organization.org_membership import OrgRole
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
 from apps.api.src.models.organization.user import UserStatus
 from apps.api.src.modules.organization.members.service import OrganizationMemberService
 
@@ -81,7 +82,7 @@ async def test_list_members_can_filter_by_role_code(monkeypatch: pytest.MonkeyPa
 
     page = await service.list_members(
         organization_id=uuid4(),
-        actor_membership=SimpleNamespace(),
+        actor_membership=cast(OrgMembership, SimpleNamespace()),
         params=PageParams(page=1, size=20),
         q=None,
         ordering=None,

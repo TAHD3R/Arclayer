@@ -92,8 +92,13 @@ export function AssetsPanel() {
 
   const patchSelection = useEditorSelectionPatch();
 
+  const scope = useMemo(
+    () => (workspaceId ? { type: "workspace" as const, id: String(workspaceId) } : null),
+    [workspaceId],
+  );
+
   const explorer = useAssetsExplorerController({
-    workspaceId,
+    scope,
     pagination: "infinite",
     purpose: "library",
     defaultVisibility: "public",

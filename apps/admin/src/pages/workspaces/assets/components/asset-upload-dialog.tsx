@@ -4,11 +4,17 @@ import { useTranslation } from "react-i18next";
 
 import {
   abortUpload,
+  abortOrganizationUpload,
   commitUploadPart,
+  commitOrganizationUploadPart,
   completeUpload,
+  completeOrganizationUpload,
   initUpload,
+  initOrganizationUpload,
   presignUploadPart,
+  presignOrganizationUploadPart,
   uploadPart,
+  uploadOrganizationPart,
 } from "@/api/uploads";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import {
@@ -18,6 +24,7 @@ import {
 } from "@/pages/workspaces/assets/components/file-upload/file-upload";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@celestial/lib/utils";
+import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 
 type UploadItem = {
   id: string;
@@ -34,6 +41,60 @@ function nextLocalId(): string {
   return `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+type ScopedUploadsApi = {
+  init: (payload: Parameters<typeof initUpload>[1]) => ReturnType<typeof initUpload>;
+  abort: (uploadId: string) => Promise<void>;
+  uploadPart: (params: Omit<Parameters<typeof uploadPart>[0], "workspaceId">) => Promise<void>;
+  presignPart: (
+    params: Omit<Parameters<typeof presignUploadPart>[0], "workspaceId">,
+  ) => ReturnType<typeof presignUploadPart>;
+  commitPart: (
+    params: Omit<Parameters<typeof commitUploadPart>[0], "workspaceId">,
+  ) => Promise<void>;
+  complete: (uploadId: string) => ReturnType<typeof completeUpload>;
+};
+
+function getScopedUploadsApi(scope: AssetScopeRef): ScopedUploadsApi {
+  const rawId = String(scope.id || "").trim();
+  if (!rawId) throw new Error("ASSET_SCOPE_NOT_SELECTED");
+
+  if (scope.type === "workspace") {
+    return {
+      init: (payload) => initUpload(rawId, payload),
+      abort: async (uploadId) => {
+        await abortUpload(rawId, uploadId);
+      },
+      uploadPart: async (params) => {
+        await uploadPart({ ...params, workspaceId: rawId });
+      },
+      presignPart: (params) => presignUploadPart({ ...params, workspaceId: rawId }),
+      commitPart: async (params) => {
+        await commitUploadPart({ ...params, workspaceId: rawId });
+      },
+      complete: (uploadId) => completeUpload(rawId, uploadId),
+    };
+  }
+
+  if (scope.type === "organization") {
+    return {
+      init: (payload) => initOrganizationUpload(rawId, payload),
+      abort: async (uploadId) => {
+        await abortOrganizationUpload(rawId, uploadId);
+      },
+      uploadPart: async (params) => {
+        await uploadOrganizationPart({ ...params, organizationId: rawId });
+      },
+      presignPart: (params) => presignOrganizationUploadPart({ ...params, organizationId: rawId }),
+      commitPart: async (params) => {
+        await commitOrganizationUploadPart({ ...params, organizationId: rawId });
+      },
+      complete: (uploadId) => completeOrganizationUpload(rawId, uploadId),
+    };
+  }
+
+  throw new Error("ASSET_SCOPE_UNSUPPORTED");
+}
+
 async function runSequentially<T>(
   items: T[],
   fn: (item: T, index: number) => Promise<void>,
@@ -45,7 +106,7 @@ async function runSequentially<T>(
 }
 
 export function AssetUploadDialog(props: {
-  workspaceId: string;
+  scope: AssetScopeRef;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultFolderId?: string;
@@ -65,7 +126,7 @@ export function AssetUploadDialog(props: {
     if (p === "favicon") {
       return t("assets:ASSET_UPLOAD_DROP_HINT_FAVICON");
     }
-    if (p === "avatar" || p === "site_logo") {
+    if (p === "avatar" || p === "site_logo" || p === "workspace_icon") {
       return t("assets:ASSET_UPLOAD_DROP_HINT_IMAGE_ONLY");
     }
     return t("assets:ASSET_UPLOAD_DROP_HINT");
@@ -75,7 +136,7 @@ export function AssetUploadDialog(props: {
     if (p === "favicon") {
       return t("assets:ASSET_UPLOAD_DROP_HINT_FAVICON_DETAIL");
     }
-    if (p === "avatar" || p === "site_logo") {
+    if (p === "avatar" || p === "site_logo" || p === "workspace_icon") {
       return t("assets:ASSET_UPLOAD_DROP_HINT_IMAGE_ONLY_DETAIL");
     }
     return t("assets:ASSET_UPLOAD_DROP_HINT_DETAIL");
@@ -116,12 +177,13 @@ export function AssetUploadDialog(props: {
 
       if (!item.uploadId) return;
       try {
-        await abortUpload(props.workspaceId, item.uploadId);
+        const api = getScopedUploadsApi(props.scope);
+        await api.abort(item.uploadId);
       } catch {
         // Abort failure should not block UI cleanup.
       }
     },
-    [props.workspaceId],
+    [props.scope],
   );
 
   const removeItem = useCallback(
@@ -164,8 +226,8 @@ export function AssetUploadDialog(props: {
       });
 
       try {
-        if (!props.workspaceId) throw new Error(t("assets:ASSET_UPLOAD_FAILED_GENERIC"));
-        const init = await initUpload(props.workspaceId, {
+        const api = getScopedUploadsApi(props.scope);
+        const init = await api.init({
           purpose,
           filename: item.file.name,
           mime: item.file.type || null,
@@ -183,8 +245,7 @@ export function AssetUploadDialog(props: {
         const method = String(init.method || "local");
 
         const uploadChunkLocal = async (partNumber: number, chunk: Blob) => {
-          await uploadPart({
-            workspaceId: props.workspaceId,
+          await api.uploadPart({
             uploadId: init.uploadId,
             partNumber,
             chunk,
@@ -193,8 +254,7 @@ export function AssetUploadDialog(props: {
         };
 
         const uploadChunkS3 = async (partNumber: number, chunk: Blob) => {
-          const presign = await presignUploadPart({
-            workspaceId: props.workspaceId,
+          const presign = await api.presignPart({
             uploadId: init.uploadId,
             partNumber,
           });
@@ -208,8 +268,7 @@ export function AssetUploadDialog(props: {
           const etag = res.headers.get("etag") || res.headers.get("ETag");
           if (!etag) throw new Error(t("assets:ASSET_UPLOAD_S3_ETAG_MISSING"));
 
-          await commitUploadPart({
-            workspaceId: props.workspaceId,
+          await api.commitPart({
             uploadId: init.uploadId,
             partNumber,
             payload: { etag, sizeBytes: chunk.size },
@@ -234,7 +293,7 @@ export function AssetUploadDialog(props: {
           updateItem(item.id, { uploadedBytes, progress: Math.min(100, Math.max(0, pct)) });
         });
 
-        const done = await completeUpload(props.workspaceId, init.uploadId);
+        const done = await api.complete(init.uploadId);
         updateItem(item.id, { status: "success", progress: 100, assetId: done.assetId });
         return done.assetId;
       } catch (err) {
@@ -252,7 +311,7 @@ export function AssetUploadDialog(props: {
         controllersRef.current.delete(item.id);
       }
     },
-    [folderId, props.workspaceId, purpose, t, updateItem],
+    [folderId, props.scope, purpose, t, updateItem],
   );
 
   const startUpload = useCallback(async () => {

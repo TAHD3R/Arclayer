@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from apps.api.src.modules.assets.admin.assets.schema import AdminAssetFolderUpdateRequest
 from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
+from apps.api.src.modules.assets.scope import AssetScope
 
 
 class _Folder(BaseModel):
@@ -41,16 +42,17 @@ async def test_update_folder_requires_existing_folder() -> None:
     from apps.api.src.core.exceptions import NotFound
 
     service = AdminAssetsService(get_settings())
+    scope = AssetScope(type="workspace", id=uuid4())
 
     class FakeRepo:
-        async def get_folder(self, *, workspace_id, folder_id):
+        async def get_folder(self, *, scope, folder_id):
             return None
 
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     with pytest.raises(NotFound) as exc:
         await service.update_folder(
-            workspace_id=uuid4(),
+            scope=scope,
             folder_id=uuid4(),
             payload=AdminAssetFolderUpdateRequest(name="x"),
         )
@@ -64,23 +66,24 @@ async def test_update_folder_rejects_cycle_parent() -> None:
     from apps.api.src.core.exceptions import BadRequest
 
     workspace_id = uuid4()
+    scope = AssetScope(type="workspace", id=workspace_id)
     target_folder_id = uuid4()
     descendant_id = uuid4()
 
     service = AdminAssetsService(get_settings())
 
     class FakeRepo:
-        async def get_folder(self, *, workspace_id, folder_id):
+        async def get_folder(self, *, scope, folder_id):
             # Folder exists; parent lookup also succeeds to hit the cycle guard.
             fid = folder_id
             if fid == target_folder_id:
                 return _Folder(id=fid, parent_id=None, name="A")
             return _Folder(id=fid, parent_id=None, name="parent")
 
-        async def collect_descendant_folder_ids(self, *, workspace_id, root_folder_id):
+        async def collect_descendant_folder_ids(self, *, scope, root_folder_id):
             return [root_folder_id, descendant_id]
 
-        def query_folders(self, *, workspace_id):
+        def query_folders(self, *, scope):
             return _FakeQuery(exists_result=False)
 
         async def save_folder_updates(self, folder, *, updates):
@@ -92,7 +95,7 @@ async def test_update_folder_rejects_cycle_parent() -> None:
 
     payload = AdminAssetFolderUpdateRequest(parent_id=descendant_id)
     with pytest.raises(BadRequest) as exc:
-        await service.update_folder(workspace_id=workspace_id, folder_id=target_folder_id, payload=payload)
+        await service.update_folder(scope=scope, folder_id=target_folder_id, payload=payload)
 
     assert exc.value.error == "ASSET_FOLDER_PARENT_INVALID"
 
@@ -103,15 +106,16 @@ async def test_update_folder_rejects_duplicate_name_under_target_parent() -> Non
     from apps.api.src.core.exceptions import Conflict
 
     workspace_id = uuid4()
+    scope = AssetScope(type="workspace", id=workspace_id)
     folder_id = uuid4()
 
     service = AdminAssetsService(get_settings())
 
     class FakeRepo:
-        async def get_folder(self, *, workspace_id, folder_id):
+        async def get_folder(self, *, scope, folder_id):
             return _Folder(id=folder_id, parent_id=None, name="A")
 
-        def query_folders(self, *, workspace_id):
+        def query_folders(self, *, scope):
             # Simulate "already exists" when checking uniqueness.
             return _FakeQuery(exists_result=True)
 
@@ -124,7 +128,7 @@ async def test_update_folder_rejects_duplicate_name_under_target_parent() -> Non
 
     with pytest.raises(Conflict) as exc:
         await service.update_folder(
-            workspace_id=workspace_id,
+            scope=scope,
             folder_id=folder_id,
             payload=AdminAssetFolderUpdateRequest(name="dup"),
         )
@@ -137,6 +141,7 @@ async def test_update_folder_trims_description_and_allows_clear() -> None:
     from apps.api.src.config import get_settings
 
     workspace_id = uuid4()
+    scope = AssetScope(type="workspace", id=workspace_id)
     folder_id = uuid4()
 
     service = AdminAssetsService(get_settings())
@@ -144,10 +149,10 @@ async def test_update_folder_trims_description_and_allows_clear() -> None:
     updated: dict[str, object] = {"updates": None}
 
     class FakeRepo:
-        async def get_folder(self, *, workspace_id, folder_id):
+        async def get_folder(self, *, scope, folder_id):
             return _Folder(id=folder_id, parent_id=None, name="A", description=None)
 
-        def query_folders(self, *, workspace_id):
+        def query_folders(self, *, scope):
             return _FakeQuery(exists_result=False)
 
         async def save_folder_updates(self, folder, *, updates):
@@ -159,7 +164,7 @@ async def test_update_folder_trims_description_and_allows_clear() -> None:
     service.repo = FakeRepo()  # type: ignore[assignment]
 
     out = await service.update_folder(
-        workspace_id=workspace_id,
+        scope=scope,
         folder_id=folder_id,
         payload=AdminAssetFolderUpdateRequest(description="  hello  "),
     )
@@ -169,7 +174,7 @@ async def test_update_folder_trims_description_and_allows_clear() -> None:
     assert (updated["updates"] or {}).get("description") == "hello"
 
     out2 = await service.update_folder(
-        workspace_id=workspace_id,
+        scope=scope,
         folder_id=folder_id,
         payload=AdminAssetFolderUpdateRequest(description="   "),
     )

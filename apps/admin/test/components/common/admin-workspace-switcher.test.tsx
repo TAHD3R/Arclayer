@@ -214,6 +214,7 @@ beforeEach(() => {
     organizationId: "org-1",
     slug: "alpha",
     name: "Workspace Alpha",
+    iconUrl: null,
   });
 });
 

@@ -6,6 +6,8 @@ from apps.api.src.common.utils.ids import uuid7
 
 
 class Migration(migrations.Migration):
+    dependencies = [("models", "0002_remove_admin_menu_items")]
+
     operations = [
         ops.CreateModel(
             name="UserTwoFactor",

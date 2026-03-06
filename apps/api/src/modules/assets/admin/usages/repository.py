@@ -5,34 +5,35 @@ from uuid import UUID
 from tortoise.queryset import QuerySet
 
 from apps.api.src.models.assets.asset_usage import AssetUsageRecord
+from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
 
 
 class AdminAssetUsagesRepository:
-    def query_usages_by_asset(self, *, workspace_id: UUID, asset_id: UUID) -> QuerySet[AssetUsageRecord]:
-        return AssetUsageRecord.filter(workspace_id=workspace_id, asset_id=asset_id).order_by("-created_at")
+    def query_usages_by_asset(self, *, scope: AssetScope, asset_id: UUID) -> QuerySet[AssetUsageRecord]:
+        return AssetUsageRecord.filter(asset_id=asset_id, **scope_filter_kwargs(scope)).order_by("-created_at")
 
-    async def list_usages_by_asset(self, *, workspace_id: UUID, asset_id: UUID) -> list[AssetUsageRecord]:
-        return await self.query_usages_by_asset(workspace_id=workspace_id, asset_id=asset_id).all()
+    async def list_usages_by_asset(self, *, scope: AssetScope, asset_id: UUID) -> list[AssetUsageRecord]:
+        return await self.query_usages_by_asset(scope=scope, asset_id=asset_id).all()
 
     async def get_usage_by_ref(
         self,
         *,
-        workspace_id: UUID,
+        scope: AssetScope,
         entity_type: str,
         entity_id: str,
         field_key: str,
     ) -> AssetUsageRecord | None:
         return await AssetUsageRecord.get_or_none(
-            workspace_id=workspace_id,
             entity_type=entity_type,
             entity_id=entity_id,
             field_key=field_key,
+            **scope_filter_kwargs(scope),
         )
 
     async def upsert_usage(
         self,
         *,
-        workspace_id: UUID,
+        scope: AssetScope,
         asset_id: UUID,
         purpose: str,
         entity_type: str,
@@ -41,20 +42,20 @@ class AdminAssetUsagesRepository:
         created_by_user_id: UUID | None,
     ) -> AssetUsageRecord:
         existing = await self.get_usage_by_ref(
-            workspace_id=workspace_id,
+            scope=scope,
             entity_type=entity_type,
             entity_id=entity_id,
             field_key=field_key,
         )
         if existing is None:
             return await AssetUsageRecord.create(
-                workspace_id=workspace_id,
                 asset_id=asset_id,
                 purpose=purpose,
                 entity_type=entity_type,
                 entity_id=entity_id,
                 field_key=field_key,
                 created_by_user_id=created_by_user_id,
+                **scope_filter_kwargs(scope),
             )
 
         changed = False
@@ -74,15 +75,15 @@ class AdminAssetUsagesRepository:
     async def delete_usage_by_ref(
         self,
         *,
-        workspace_id: UUID,
+        scope: AssetScope,
         entity_type: str,
         entity_id: str,
         field_key: str,
     ) -> bool:
         deleted = await AssetUsageRecord.filter(
-            workspace_id=workspace_id,
             entity_type=entity_type,
             entity_id=entity_id,
             field_key=field_key,
+            **scope_filter_kwargs(scope),
         ).delete()
         return deleted > 0

@@ -10,13 +10,22 @@ export type UserProfile = {
   id: string;
   username: string;
   email: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  avatarAssetId: string | null;
+  avatarAssetAligned?: boolean;
   isSuperAdmin: boolean;
+  // Back-compat: some environments may still return snake_case.
+  display_name?: string | null;
+  avatar_url?: string | null;
+  avatar_asset_id?: string | null;
 };
 
 export type UpdateMyProfilePayload = {
   display_name?: string | null;
+  displayName?: string | null;
+  avatar_asset_id?: string | null;
+  avatarAssetId?: string | null;
 };
 
 export type RequestMyEmailChangePayload = {

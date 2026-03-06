@@ -8,6 +8,7 @@ import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { deleteAdminAssetUsageByRef, upsertAdminAssetUsage } from "@/api/asset-usages";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
 import type { GeneralSettingsFormValues } from "@/types/settings-general";
@@ -35,6 +36,10 @@ export function SiteSettingsTab({
 }: SiteSettingsTabProps) {
   const { t } = useTranslation();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const assetScope = useMemo<AssetScopeRef | null>(
+    () => (workspaceId ? { type: "workspace", id: String(workspaceId) } : null),
+    [workspaceId],
+  );
   const [logoPickerOpen, setLogoPickerOpen] = useState(false);
   const [faviconPickerOpen, setFaviconPickerOpen] = useState(false);
 
@@ -720,6 +725,7 @@ export function SiteSettingsTab({
         >
           <SiteSettingsAssetField
             form={form}
+            scope={assetScope}
             assetFieldName="siteLogoAssetId"
             urlFieldName="siteLogoUrl"
             previewUrl={siteLogoPreviewUrl}
@@ -751,6 +757,7 @@ export function SiteSettingsTab({
         >
           <SiteSettingsAssetField
             form={form}
+            scope={assetScope}
             assetFieldName="siteFaviconAssetId"
             urlFieldName="siteFaviconUrl"
             previewUrl={siteFaviconPreviewUrl}

@@ -1,10 +1,27 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
+
+_ASGI_CLIENT_HEARTBEAT_INTERVAL_SECONDS = 0.2
+
+
+async def _asgi_client_heartbeat() -> None:
+    """
+    Periodically wake the event loop while using httpx ASGITransport.
+
+    Why:
+    - FastAPI runs sync dependencies/endpoints in a worker threadpool.
+    - The worker thread completes by scheduling callbacks via `loop.call_soon_threadsafe(...)`.
+    - In in-process transports there may be no socket I/O, and the loop can block indefinitely.
+    """
+
+    while True:
+        await asyncio.sleep(_ASGI_CLIENT_HEARTBEAT_INTERVAL_SECONDS)
 
 
 @asynccontextmanager
@@ -26,6 +43,14 @@ async def asgi_client(
     """
 
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=raise_app_exceptions, client=client_addr)
-    async with app.router.lifespan_context(app):
-        async with httpx.AsyncClient(transport=transport, base_url=base_url) as client:
-            yield client
+    heartbeat_task = asyncio.create_task(_asgi_client_heartbeat(), name="test-asgi-client-heartbeat")
+    try:
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=transport, base_url=base_url) as client:
+                yield client
+    finally:
+        heartbeat_task.cancel()
+        try:
+            await heartbeat_task
+        except asyncio.CancelledError:
+            pass

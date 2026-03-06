@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
 
+from apps.api.src.common.constants.assets import ASSET_SCOPE_WORKSPACE
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.exceptions import BadRequest
@@ -17,6 +18,7 @@ from apps.api.src.modules.assets.admin.uploads.schema import (
     UploadStatusOut,
 )
 from apps.api.src.modules.assets.admin.uploads.service import UploadsService
+from apps.api.src.modules.assets.scope import AssetScope
 from apps.api.src.modules.auth.http.service import get_current_user
 from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
@@ -33,6 +35,10 @@ def get_uploads_service(settings: Settings = Depends(get_settings)) -> UploadsSe
     return UploadsService(settings)
 
 
+def _workspace_scope(ctx: WorkspaceContext) -> AssetScope:
+    return AssetScope(type=ASSET_SCOPE_WORKSPACE, id=ctx.workspace_id)
+
+
 @router.post(
     "/uploads/init",
     response_model=ResponseModel[UploadInitOut],
@@ -45,7 +51,7 @@ async def init_upload(
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadInitOut]:
     session = await service.init_upload(
-        workspace_id=ctx.workspace_id,
+        scope=_workspace_scope(ctx),
         actor_user_id=user.id,
         purpose=payload.purpose,
         filename=payload.filename,
@@ -80,7 +86,7 @@ async def get_upload_status(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadStatusOut]:
-    session, missing = await service.get_status(upload_id=upload_id, workspace_id=ctx.workspace_id)
+    session, missing = await service.get_status(upload_id=upload_id, scope=_workspace_scope(ctx))
     return Response.success(
         data=UploadStatusOut(
             upload_id=session.id,
@@ -114,7 +120,7 @@ async def upload_part(
             message=t("errors", "UPLOAD_BODY_INVALID", default="上传内容不合法"), error="UPLOAD_BODY_INVALID"
         )
 
-    await service.put_part(upload_id=upload_id, workspace_id=ctx.workspace_id, part_number=part_number, data=data)
+    await service.put_part(upload_id=upload_id, scope=_workspace_scope(ctx), part_number=part_number, data=data)
     return Response.success(data=None)
 
 
@@ -131,7 +137,7 @@ async def complete_upload(
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
     asset_id = await service.complete(
-        upload_id=upload_id, workspace_id=ctx.workspace_id, background_tasks=background_tasks
+        upload_id=upload_id, scope=_workspace_scope(ctx), background_tasks=background_tasks
     )
     return Response.success(data=UploadCompleteOut(asset_id=asset_id))
 
@@ -147,7 +153,7 @@ async def abort_upload(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadAbortOut]:
-    session = await service.abort(upload_id=upload_id, workspace_id=ctx.workspace_id)
+    session = await service.abort(upload_id=upload_id, scope=_workspace_scope(ctx))
     return Response.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
 
 
@@ -163,7 +169,7 @@ async def presign_upload_part(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadPartPresignOut]:
-    out = await service.presign_part(upload_id=upload_id, workspace_id=ctx.workspace_id, part_number=part_number)
+    out = await service.presign_part(upload_id=upload_id, scope=_workspace_scope(ctx), part_number=part_number)
     return Response.success(data=out)
 
 
@@ -182,7 +188,7 @@ async def commit_upload_part(
 ) -> ResponseModel[None]:
     await service.commit_part(
         upload_id=upload_id,
-        workspace_id=ctx.workspace_id,
+        scope=_workspace_scope(ctx),
         part_number=part_number,
         etag=payload.etag,
         size_bytes=payload.size_bytes,

@@ -22,7 +22,7 @@ export async function getWorkspaceDetail(workspaceId: string): Promise<Workspace
 
 export async function patchWorkspaceDetail(
   workspaceId: string,
-  payload: { name?: string; slug?: string },
+  payload: { name?: string; slug?: string; iconUrl?: string | null },
 ): Promise<WorkspaceDetail> {
   return api.patch<WorkspaceDetail>(workspacePath(workspaceId, ""), payload);
 }

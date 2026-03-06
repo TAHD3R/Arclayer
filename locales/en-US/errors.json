@@ -1,3 +1,9 @@
 {
-  "FORBIDDEN": "Forbidden"
+  "FORBIDDEN": "Forbidden",
+  "ORG_ASSETS_READ_REQUIRED": "Forbidden",
+  "ORG_ASSETS_MANAGE_REQUIRED": "Forbidden",
+  "ASSET_INDEXABLE_INVALID": "Invalid indexable flag",
+  "ASSET_INDEXABLE_REQUIRES_PUBLIC": "Only public assets can be indexable",
+  "ASSET_SYSTEM_PURPOSE_INVARIANT": "Assets with this purpose must be public and not indexable",
+  "ASSET_BULK_UPDATE_GOVERNANCE_FAILED": "Some assets violate purpose/visibility/indexable rules"
 }

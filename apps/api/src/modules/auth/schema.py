@@ -187,6 +187,11 @@ class UserProfile(BaseOut):
     email: str | None = None
     display_name: str | None = None
     avatar_url: str | None = None
+    avatar_asset_id: PublicUUID | None = None
+    avatar_asset_aligned: bool = Field(
+        default=False,
+        description="Whether the avatar asset was auto-aligned (purpose/visibility/indexable) in this response.",
+    )
     is_super_admin: bool = False
 
 
@@ -196,6 +201,11 @@ class UpdateMyProfileRequest(BaseSchema):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 
     display_name: str | None = Field(default=None, max_length=64, description="Display name.")
+    avatar_asset_id: PublicUUID | None = Field(
+        default=None,
+        description="Avatar asset id (optional).",
+        validation_alias=AliasChoices("avatar_asset_id", "avatarAssetId"),
+    )
 
     @field_validator("display_name")
     @classmethod
@@ -210,6 +220,17 @@ class UpdateMyProfileRequest(BaseSchema):
                 "Display name may only contain letters, numbers, underscore, CJK characters, space, dot and hyphen."
             )
         return normalized
+
+
+class AvatarUploadInitRequest(BaseSchema):
+    """Initialize avatar upload (current user only)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    filename: str = Field(..., min_length=1, max_length=255, description="Original file name.")
+    mime: str | None = Field(default=None, max_length=128, description="Client-provided MIME type.")
+    size_bytes: int = Field(..., ge=0, description="Total size in bytes.")
+    expected_sha256: str | None = Field(default=None, min_length=64, max_length=64, description="Expected SHA-256.")
 
 
 class RequestMyEmailChangeRequest(BaseSchema):

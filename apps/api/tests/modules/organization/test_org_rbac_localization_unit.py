@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 
 from apps.api.src.config import get_settings
+from apps.api.src.models.organization.org_rbac import OrganizationPermission, OrganizationRole
 from apps.api.src.modules.organization.rbac import service as rbac_service_module
 from apps.api.src.modules.organization.rbac.service import (
     _BUILTIN_ROLE_RULES,
@@ -52,7 +54,7 @@ async def test_organization_rbac_localize_role_uses_i18n_refs(monkeypatch: pytes
         is_builtin=True,
     )
 
-    localized = service.localize_role(role)
+    localized = service.localize_role(cast(OrganizationRole, role))
 
     assert localized["name"]
     assert localized["description"]
@@ -122,7 +124,7 @@ def test_organization_rbac_localize_permission_uses_i18n_map(monkeypatch: pytest
         description="Delete organization and all scoped settings.",
     )
 
-    localized = service.localize_permission(permission)
+    localized = service.localize_permission(cast(OrganizationPermission, permission))
 
     assert localized["name"] == "common:ORG_ROLE_PERMISSION_SETTINGS_DELETE:Delete organization"
     assert (
@@ -145,7 +147,7 @@ def test_organization_rbac_localize_permission_keeps_raw_when_no_i18n_mapping(
         description="Unknown description.",
     )
 
-    localized = service.localize_permission(permission)
+    localized = service.localize_permission(cast(OrganizationPermission, permission))
 
     assert localized["name"] == "Unknown permission"
     assert localized["description"] == "Unknown description."

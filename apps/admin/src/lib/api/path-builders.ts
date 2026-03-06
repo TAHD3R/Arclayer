@@ -19,6 +19,15 @@ export function workspacePath(workspaceId: string, path?: string): string {
   return `/workspaces/${id}${suffix}`;
 }
 
+/** Build an organization-scoped API path: `/organizations/{id}{path}`. */
+export function organizationPath(organizationId: string, path?: string): string {
+  const id = encodeURIComponent(String(organizationId));
+  const raw = String(path ?? "");
+  if (!raw) return `/organizations/${id}`;
+  const suffix = raw.startsWith("/") ? raw : `/${raw}`;
+  return `/organizations/${id}${suffix}`;
+}
+
 /** Build the base path for organization-workspace endpoints. */
 export function organizationWorkspacesBasePath(organizationId?: string): string {
   if (!organizationId) return "/organizations/me/workspaces";
