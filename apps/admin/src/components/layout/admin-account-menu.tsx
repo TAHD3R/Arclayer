@@ -1,14 +1,23 @@
 import { useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Avatar } from "antd";
 import { useTranslation } from "react-i18next";
-import { Boxes, Building2, ChevronDown, CircleHelp, Inbox, LogOut, UserCog } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Keyboard,
+  Languages,
+  LogOut,
+  Monitor,
+  Moon,
+  Sun,
+  UserCog,
+} from "lucide-react";
 import { type ReactNode } from "react";
 
 import * as authApi from "@/api/auth";
-import { getMyOrganization } from "@/api/me";
 import {
   FloatingPanelButton,
   FloatingPanelContent,
@@ -23,15 +32,16 @@ import {
   initialsFromName,
   normalizeUserProfile,
 } from "@/lib/auth/user-profile";
+import type { AppLocale } from "@/lib/i18n";
 import { queryClient } from "@/lib/query/query-client-instance";
-import {
-  buildOrganizationPath,
-  parseOrganizationIdFromPath,
-} from "@/lib/routing/organization-routing";
+import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { useWorkspaceSwitchDialogStore } from "@/stores/use-workspace-switch-dialog-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useSidebar } from "@celestial/ui/sidebar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
+import type { ThemePreference } from "@/types/stores";
+
+const SHORTCUTS_HELP_HASH = "#shortcuts";
 
 function MenuItemContent(props: { icon?: ReactNode; label: string; right?: ReactNode }) {
   return (
@@ -57,13 +67,13 @@ function AdminAccountPanelContent(props: {
   displayName: string;
   email: string | null;
   avatarUrl: string | null;
-  showOrganizationSettings: boolean;
+  themePreference: ThemePreference;
+  locale: AppLocale;
   onLogout: () => Promise<void>;
   onAccountSettings: () => Promise<void> | void;
-  onOrganizationSettings: () => Promise<void> | void;
-  onWorkspaces: () => Promise<void> | void;
-  onNotifications: () => Promise<void> | void;
-  onHelpCenter: () => Promise<void> | void;
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onLocaleChange: (next: AppLocale) => Promise<void> | void;
+  onShortcuts: () => Promise<void> | void;
 }) {
   const { t } = useTranslation("account");
   const { closeFloatingPanel } = useFloatingPanel();
@@ -106,15 +116,81 @@ function AdminAccountPanelContent(props: {
         >
           <MenuItemContent icon={<UserCog />} label={t("ACCOUNT_ACCOUNT_SETTINGS")} />
         </FloatingPanelButton>
+      </div>
 
-        {props.showOrganizationSettings ? (
-          <FloatingPanelButton
-            className={menuItemClassName}
-            onClick={() => onClickAndClose(props.onOrganizationSettings)}
-          >
-            <MenuItemContent icon={<Building2 />} label={t("ACCOUNT_ORGANIZATION_SETTINGS")} />
-          </FloatingPanelButton>
-        ) : null}
+      {divider()}
+
+      <div className="px-4 py-1 text-caption text-label-secondary">
+        {t("ACCOUNT_SETTINGS_THEME_LABEL")}
+      </div>
+
+      <div className="py-1">
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(() => props.onThemePreferenceChange("system"))}
+        >
+          <MenuItemContent
+            icon={<Monitor />}
+            label={t("ACCOUNT_THEME_SYSTEM")}
+            right={
+              props.themePreference === "system" ? <Check className="h-4 w-4 text-primary" /> : null
+            }
+          />
+        </FloatingPanelButton>
+
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(() => props.onThemePreferenceChange("light"))}
+        >
+          <MenuItemContent
+            icon={<Sun />}
+            label={t("ACCOUNT_THEME_LIGHT")}
+            right={
+              props.themePreference === "light" ? <Check className="h-4 w-4 text-primary" /> : null
+            }
+          />
+        </FloatingPanelButton>
+
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(() => props.onThemePreferenceChange("dark"))}
+        >
+          <MenuItemContent
+            icon={<Moon />}
+            label={t("ACCOUNT_THEME_DARK")}
+            right={
+              props.themePreference === "dark" ? <Check className="h-4 w-4 text-primary" /> : null
+            }
+          />
+        </FloatingPanelButton>
+      </div>
+
+      <div className="px-4 py-1 text-caption text-label-secondary">
+        {t("ACCOUNT_SETTINGS_LANGUAGE_LABEL")}
+      </div>
+
+      <div className="py-1">
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(() => props.onLocaleChange("zh-CN"))}
+        >
+          <MenuItemContent
+            icon={<Languages />}
+            label={t("ACCOUNT_LANGUAGE_ZH")}
+            right={props.locale === "zh-CN" ? <Check className="h-4 w-4 text-primary" /> : null}
+          />
+        </FloatingPanelButton>
+
+        <FloatingPanelButton
+          className={menuItemClassName}
+          onClick={() => onClickAndClose(() => props.onLocaleChange("en-US"))}
+        >
+          <MenuItemContent
+            icon={<Languages />}
+            label={t("ACCOUNT_LANGUAGE_EN")}
+            right={props.locale === "en-US" ? <Check className="h-4 w-4 text-primary" /> : null}
+          />
+        </FloatingPanelButton>
       </div>
 
       {divider()}
@@ -122,23 +198,9 @@ function AdminAccountPanelContent(props: {
       <div className="py-1">
         <FloatingPanelButton
           className={menuItemClassName}
-          onClick={() => onClickAndClose(props.onWorkspaces)}
+          onClick={() => onClickAndClose(props.onShortcuts)}
         >
-          <MenuItemContent icon={<Boxes />} label={t("ACCOUNT_WORKSPACES")} />
-        </FloatingPanelButton>
-
-        <FloatingPanelButton
-          className={menuItemClassName}
-          onClick={() => onClickAndClose(props.onNotifications)}
-        >
-          <MenuItemContent icon={<Inbox />} label={t("ACCOUNT_NOTIFICATIONS")} />
-        </FloatingPanelButton>
-
-        <FloatingPanelButton
-          className={menuItemClassName}
-          onClick={() => onClickAndClose(props.onHelpCenter)}
-        >
-          <MenuItemContent icon={<CircleHelp />} label={t("ACCOUNT_HELP_CENTER")} />
+          <MenuItemContent icon={<Keyboard />} label={t("ACCOUNT_SHORTCUTS")} />
         </FloatingPanelButton>
       </div>
 
@@ -160,22 +222,23 @@ type AdminAccountMenuModel = {
   displayName: string;
   email: string | null;
   avatarUrl: string | null;
-  canManageOrganization: boolean;
+  themePreference: ThemePreference;
+  locale: AppLocale;
   onLogout: () => Promise<void>;
   onAccountSettings: () => void;
-  onOrganizationSettings: () => void;
-  onWorkspaces: () => void;
-  onNotifications: () => void;
-  onHelpCenter: () => void;
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void>;
+  onLocaleChange: (next: AppLocale) => void;
+  onShortcuts: () => void;
 };
 
 function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const clear = useAuthStore((s) => s.clear);
-  const openWorkspaceSwitchDialog = useWorkspaceSwitchDialogStore((s) => s.openDialog);
+  const themePreference = usePreferencesStore((s) => s.themePreference);
+  const locale = usePreferencesStore((s) => s.locale);
+  const setLocale = usePreferencesStore((s) => s.setLocale);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me", sessionVersion],
@@ -193,18 +256,6 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     );
   }, [accessToken, profile.displayName, profile.email, profile.username]);
 
-  const myOrgQuery = useQuery({
-    queryKey: ["me", "organization", sessionVersion],
-    enabled: Boolean(accessToken),
-    queryFn: async () => getMyOrganization(),
-    meta: { silent: true },
-  });
-
-  const routeOrganizationId = parseOrganizationIdFromPath(pathname);
-  const currentOrganizationId = routeOrganizationId || myOrgQuery.data?.organization.id || null;
-  const canManageOrganization =
-    myOrgQuery.data?.membership?.role === "owner" || myOrgQuery.data?.membership?.role === "admin";
-
   const onLogout = async () => {
     void queryClient.cancelQueries();
     queryClient.clear();
@@ -216,25 +267,15 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     displayName,
     email: profile.email,
     avatarUrl: profile.avatarUrl ?? profile.avatarAssetId,
-    canManageOrganization,
+    themePreference,
+    locale,
     onLogout,
     onAccountSettings: () => void navigate({ to: "/me/profile" }),
-    onOrganizationSettings: () => {
-      if (!currentOrganizationId) {
-        void navigate({ to: "/" });
-        return;
-      }
-      void navigate({ to: buildOrganizationPath(currentOrganizationId, "/settings") as never });
+    onThemePreferenceChange: async (next) => {
+      await setThemePreferenceWithTransition(next, { direction: "ltr" });
     },
-    onWorkspaces: () => {
-      if (!currentOrganizationId) {
-        void navigate({ to: "/" });
-        return;
-      }
-      openWorkspaceSwitchDialog({ organizationId: currentOrganizationId });
-    },
-    onNotifications: () => void navigate({ to: "/me/inbox" }),
-    onHelpCenter: () => window.location.assign("#"),
+    onLocaleChange: (next) => setLocale(next),
+    onShortcuts: () => window.location.assign(SHORTCUTS_HELP_HASH),
   };
 }
 
@@ -306,13 +347,13 @@ export function AdminAccountMenu() {
           displayName={model.displayName}
           email={model.email}
           avatarUrl={model.avatarUrl}
-          showOrganizationSettings={model.canManageOrganization}
+          themePreference={model.themePreference}
+          locale={model.locale}
           onLogout={model.onLogout}
           onAccountSettings={model.onAccountSettings}
-          onOrganizationSettings={model.onOrganizationSettings}
-          onWorkspaces={model.onWorkspaces}
-          onNotifications={model.onNotifications}
-          onHelpCenter={model.onHelpCenter}
+          onThemePreferenceChange={model.onThemePreferenceChange}
+          onLocaleChange={model.onLocaleChange}
+          onShortcuts={model.onShortcuts}
         />
       </FloatingPanelContent>
     </FloatingPanelRoot>
