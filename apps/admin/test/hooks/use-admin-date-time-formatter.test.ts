@@ -46,7 +46,7 @@ describe("formatAdminDateTimeValue", () => {
 });
 
 describe("resolveAdminLocalizationSnapshot", () => {
-  it("prefers workspace localization when it is available", () => {
+  it("uses current UI locale while keeping workspace date settings", () => {
     const resolved = resolveAdminLocalizationSnapshot({
       workspaceLocalization: {
         locale: "zh-CN",
@@ -68,7 +68,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
     });
 
     expect(resolved).toEqual({
-      locale: "zh-CN",
+      locale: "en-US",
       timeZone: "Asia/Shanghai",
       dateFormat: "YYYY/MM/DD",
       useBrowserTimeZone: false,
@@ -76,7 +76,37 @@ describe("resolveAdminLocalizationSnapshot", () => {
     });
   });
 
-  it("falls back to organization localization when workspace is missing", () => {
+  it("prefers current UI locale over workspace locale for date text", () => {
+    const resolved = resolveAdminLocalizationSnapshot({
+      workspaceLocalization: {
+        locale: "zh-CN",
+        timeZone: "Asia/Shanghai",
+        dateFormat: "YYYY/MM/DD",
+        useBrowserTimeZone: false,
+        useRelativeDateTime: true,
+      },
+      organizationLocalization: {
+        locale: "zh-CN",
+        timeZone: "Asia/Tokyo",
+        dateFormat: "YYYY-MM-DD",
+        useBrowserTimeZone: false,
+        useRelativeDateTime: false,
+      },
+      preferencesLocale: "en-US",
+      preferencesTimeZone: null,
+      browserTimeZone: "America/Los_Angeles",
+    });
+
+    expect(resolved).toEqual({
+      locale: "en-US",
+      timeZone: "Asia/Shanghai",
+      dateFormat: "YYYY/MM/DD",
+      useBrowserTimeZone: false,
+      useRelativeDateTime: true,
+    });
+  });
+
+  it("uses current UI locale while falling back to organization date settings", () => {
     const resolved = resolveAdminLocalizationSnapshot({
       workspaceLocalization: {},
       organizationLocalization: {
@@ -92,7 +122,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
     });
 
     expect(resolved).toEqual({
-      locale: "en-US",
+      locale: "zh-CN",
       timeZone: "Asia/Tokyo",
       dateFormat: "DD/MM/YYYY",
       useBrowserTimeZone: true,
@@ -100,7 +130,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
     });
   });
 
-  it("supports per-field fallback from workspace to organization", () => {
+  it("supports per-field fallback for non-locale date settings", () => {
     const resolved = resolveAdminLocalizationSnapshot({
       workspaceLocalization: {
         locale: "zh-CN",
@@ -118,7 +148,7 @@ describe("resolveAdminLocalizationSnapshot", () => {
     });
 
     expect(resolved).toEqual({
-      locale: "zh-CN",
+      locale: "en-US",
       timeZone: "Europe/London",
       dateFormat: "YYYY-MM-DD",
       useBrowserTimeZone: false,

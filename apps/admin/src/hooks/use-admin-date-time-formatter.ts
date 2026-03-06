@@ -35,7 +35,6 @@ type LocalizationCandidate = {
 
 function hasCompleteLocalization(candidate: LocalizationCandidate): boolean {
   return Boolean(
-    candidate.locale &&
     candidate.dateFormat &&
     candidate.useBrowserTimeZone !== undefined &&
     candidate.useRelativeDateTime !== undefined &&
@@ -103,10 +102,7 @@ export function resolveAdminLocalizationSnapshot(
     params.browserTimeZone;
 
   return {
-    locale:
-      params.workspaceLocalization.locale ??
-      params.organizationLocalization.locale ??
-      params.preferencesLocale,
+    locale: params.preferencesLocale,
     timeZone:
       params.preferencesTimeZone ??
       (useBrowserTimeZone ? params.browserTimeZone : fallbackTimeZone) ??
