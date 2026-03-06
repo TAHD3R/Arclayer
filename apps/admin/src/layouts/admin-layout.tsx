@@ -41,7 +41,7 @@ function canEnterAdminCenter(role: string | null): boolean {
 }
 
 export function AdminLayout({ children }: PropsWithChildren) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -50,7 +50,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
+  const sidebarOpen = usePreferencesStore((s) => s.sidebarOpen);
   const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
+  const setSidebarOpen = usePreferencesStore((s) => s.setSidebarOpen);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const systemRuntime = useSystemRuntime();
 
@@ -75,7 +77,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       if (!text || text === i18nKey) return null;
       return text;
     };
-  }, [t]);
+  }, [i18n.resolvedLanguage, i18n.language, t]);
 
   const isWorkspaceScopeRoute = useMemo(() => {
     if (!workspaceBase) return false;
@@ -238,7 +240,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
 
   return (
     <SidebarProvider
-      defaultOpen
+      defaultOpen={sidebarOpen}
+      open={sidebarOpen}
+      onOpenChange={setSidebarOpen}
       className="h-screen"
       style={
         {

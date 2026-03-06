@@ -543,48 +543,56 @@ type SidebarMenuButtonProps = React.ComponentProps<"button"> & {
   tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>;
 
-function SidebarMenuButton({
-  asChild = false,
-  isActive = false,
-  variant = "default",
-  size = "default",
-  tooltip,
-  className,
-  ...props
-}: SidebarMenuButtonProps) {
-  const Comp = asChild ? Slot.Root : "button";
-  const { isMobile, state } = useSidebar();
+const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
+  function SidebarMenuButton(
+    {
+      asChild = false,
+      isActive = false,
+      variant = "default",
+      size = "default",
+      tooltip,
+      className,
+      ...props
+    }: SidebarMenuButtonProps,
+    ref,
+  ) {
+    const Comp = asChild ? Slot.Root : "button";
+    const { isMobile, state } = useSidebar();
 
-  const button = (
-    <HighlightItem asChild activeClassName={sidebarMenuButtonActiveVariants({ variant })}>
-      <Comp
-        data-slot="sidebar-menu-button"
-        data-sidebar="menu-button"
-        data-size={size}
-        data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      />
-    </HighlightItem>
-  );
+    const button = (
+      <HighlightItem asChild activeClassName={sidebarMenuButtonActiveVariants({ variant })}>
+        <Comp
+          ref={ref}
+          data-slot="sidebar-menu-button"
+          data-sidebar="menu-button"
+          data-size={size}
+          data-active={isActive}
+          className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+          {...props}
+        />
+      </HighlightItem>
+    );
 
-  if (!tooltip) {
-    return button;
-  }
+    if (!tooltip) {
+      return button;
+    }
 
-  if (typeof tooltip === "string") {
-    tooltip = {
-      children: tooltip,
-    };
-  }
+    if (typeof tooltip === "string") {
+      tooltip = {
+        children: tooltip,
+      };
+    }
 
-  return (
-    <Tooltip side="right" align="center">
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent hidden={state !== "collapsed" || isMobile} {...tooltip} />
-    </Tooltip>
-  );
-}
+    const tooltipKey = typeof tooltip.children === "string" ? tooltip.children : undefined;
+
+    return (
+      <Tooltip key={tooltipKey} side="right" align="center">
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent hidden={state !== "collapsed" || isMobile} {...tooltip} />
+      </Tooltip>
+    );
+  },
+);
 
 export {
   Sidebar,

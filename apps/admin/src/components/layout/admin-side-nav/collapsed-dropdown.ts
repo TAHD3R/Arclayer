@@ -1,90 +1,115 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const COLLAPSED_DROPDOWN_IDLE_CLOSE_DELAY_MS = 2000;
-const COLLAPSED_DROPDOWN_ACTIVITY_THROTTLE_MS = 150;
+const COLLAPSED_DROPDOWN_CLOSE_DELAY_MS = 160;
+const COLLAPSED_DROPDOWN_REOPEN_DELAY_MS = 180;
 
 export type CollapsedDropdownController = {
   openKey: string | null;
   isOpen: (key: string) => boolean;
   open: (key: string) => void;
   close: () => void;
+  scheduleClose: () => void;
   toggle: (key: string) => void;
   markActivity: () => void;
 };
 
 export function useCollapsedDropdownController(): CollapsedDropdownController {
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const openKeyRef = useRef<string | null>(null);
-  const idleTimerRef = useRef<number | null>(null);
-  const lastActivityAtRef = useRef<number>(0);
+  const closeTimerRef = useRef<number | null>(null);
+  const reopenTimerRef = useRef<number | null>(null);
+  const pendingOpenKeyRef = useRef<string | null>(null);
 
-  const clearIdleTimer = useCallback(() => {
-    if (idleTimerRef.current === null) return;
-    window.clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = null;
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current === null) return;
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
   }, []);
 
-  const scheduleIdleClose = useCallback(
-    (key: string) => {
-      clearIdleTimer();
-      idleTimerRef.current = window.setTimeout(() => {
-        if (openKeyRef.current !== key) return;
-        openKeyRef.current = null;
-        setOpenKey(null);
-      }, COLLAPSED_DROPDOWN_IDLE_CLOSE_DELAY_MS);
-    },
-    [clearIdleTimer],
-  );
+  const clearReopenTimer = useCallback(() => {
+    if (reopenTimerRef.current === null) return;
+    window.clearTimeout(reopenTimerRef.current);
+    reopenTimerRef.current = null;
+  }, []);
+
+  const close = useCallback(() => {
+    pendingOpenKeyRef.current = null;
+    clearCloseTimer();
+    clearReopenTimer();
+    setOpenKey(null);
+  }, [clearCloseTimer, clearReopenTimer]);
 
   const open = useCallback(
     (key: string) => {
-      openKeyRef.current = key;
-      lastActivityAtRef.current = Date.now();
-      setOpenKey(key);
-      scheduleIdleClose(key);
+      clearCloseTimer();
+      setOpenKey((currentOpenKey) => {
+        if (currentOpenKey === key) {
+          pendingOpenKeyRef.current = null;
+          clearReopenTimer();
+          return currentOpenKey;
+        }
+
+        if (pendingOpenKeyRef.current === key) {
+          return currentOpenKey;
+        }
+
+        if (currentOpenKey !== null) {
+          pendingOpenKeyRef.current = key;
+          clearReopenTimer();
+          reopenTimerRef.current = window.setTimeout(() => {
+            setOpenKey(key);
+            pendingOpenKeyRef.current = null;
+            reopenTimerRef.current = null;
+          }, COLLAPSED_DROPDOWN_REOPEN_DELAY_MS);
+          return null;
+        }
+
+        pendingOpenKeyRef.current = null;
+        clearReopenTimer();
+        return key;
+      });
     },
-    [scheduleIdleClose],
+    [clearCloseTimer, clearReopenTimer],
   );
 
-  const close = useCallback(() => {
-    openKeyRef.current = null;
-    lastActivityAtRef.current = 0;
-    clearIdleTimer();
-    setOpenKey(null);
-  }, [clearIdleTimer]);
+  const scheduleClose = useCallback(() => {
+    pendingOpenKeyRef.current = null;
+    clearCloseTimer();
+    clearReopenTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpenKey(null);
+      closeTimerRef.current = null;
+    }, COLLAPSED_DROPDOWN_CLOSE_DELAY_MS);
+  }, [clearCloseTimer, clearReopenTimer]);
 
   const toggle = useCallback(
     (key: string) => {
-      const nextKey = openKeyRef.current === key ? null : key;
-      openKeyRef.current = nextKey;
-      lastActivityAtRef.current = nextKey ? Date.now() : 0;
-      clearIdleTimer();
-      setOpenKey(nextKey);
-      if (nextKey) scheduleIdleClose(nextKey);
+      if (openKey === key) {
+        close();
+        return;
+      }
+      open(key);
     },
-    [clearIdleTimer, scheduleIdleClose],
+    [close, open, openKey],
   );
 
   const markActivity = useCallback(() => {
-    const key = openKeyRef.current;
-    if (!key) return;
-    const now = Date.now();
-    if (now - lastActivityAtRef.current < COLLAPSED_DROPDOWN_ACTIVITY_THROTTLE_MS) return;
-    lastActivityAtRef.current = now;
-    scheduleIdleClose(key);
-  }, [scheduleIdleClose]);
+    clearCloseTimer();
+  }, [clearCloseTimer]);
 
   useEffect(() => {
-    openKeyRef.current = openKey;
-  }, [openKey]);
-
-  useEffect(() => clearIdleTimer, [clearIdleTimer]);
+    return () => {
+      pendingOpenKeyRef.current = null;
+      clearCloseTimer();
+      clearReopenTimer();
+    };
+  }, [clearCloseTimer, clearReopenTimer]);
 
   return {
     openKey,
     isOpen: (key: string) => openKey === key,
     open,
     close,
+    scheduleClose,
     toggle,
     markActivity,
   };

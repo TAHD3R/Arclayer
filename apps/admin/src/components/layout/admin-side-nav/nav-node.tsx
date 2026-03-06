@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import type { OpenByParent } from "./nav-utils";
-import { getFirstDescendantTo } from "./nav-utils";
+import { findPreferredGroupTarget } from "./nav-utils";
 import { useBlockedTooltipText } from "./blocked-tooltip";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import type { ResolvedChildItem } from "./node-collapsed-group";
@@ -32,12 +32,17 @@ function resolveLabel(t: TFn, item: AdminNavItem): string {
   return item.label;
 }
 
-function resolveCollapsedChildren(t: TFn, item: AdminNavItem): ResolvedChildItem[] {
+function resolveCollapsedChildren(
+  t: TFn,
+  item: AdminNavItem,
+  activeKeys: ReadonlySet<string>,
+): ResolvedChildItem[] {
   return (item.children ?? []).map((child) => ({
     key: child.key,
     label: resolveLabel(t, child),
     to: child.to,
     disabled: Boolean(child.disabled),
+    isActive: activeKeys.has(child.key),
     Icon: child.icon,
   }));
 }
@@ -72,6 +77,7 @@ function renderExpandedGroupNode(args: {
   blockedTooltip: string | null;
   hoverDropdown: CollapsedDropdownController | null;
   collapsedChildren: readonly ResolvedChildItem[];
+  collapsedNavigateTarget: string | null;
   onNavigate: (to: string) => void;
   childNodes: ReactNode;
   onToggle: () => void;
@@ -101,6 +107,7 @@ function renderExpandedGroupNode(args: {
       blockedTooltip={args.blockedTooltip}
       hoverDropdown={args.hoverDropdown}
       collapsedChildren={args.collapsedChildren}
+      collapsedNavigateTarget={args.collapsedNavigateTarget}
       onNavigate={args.onNavigate}
       onToggle={args.onToggle}
     >
@@ -109,14 +116,21 @@ function renderExpandedGroupNode(args: {
   );
 }
 
-function renderActionNode(item: AdminNavItem, depth: number, label: string, isCollapsed: boolean) {
+function renderActionNode(args: {
+  item: AdminNavItem;
+  depth: number;
+  label: string;
+  isCollapsed: boolean;
+  hoverDropdown: CollapsedDropdownController | null;
+}) {
   return (
     <NodeAction
-      item={item}
-      depth={depth}
-      isCollapsed={isCollapsed}
-      label={label}
-      isActive={Boolean(item.isActive)}
+      item={args.item}
+      depth={args.depth}
+      isCollapsed={args.isCollapsed}
+      label={args.label}
+      isActive={Boolean(args.item.isActive)}
+      hoverDropdown={args.hoverDropdown}
     />
   );
 }
@@ -130,6 +144,7 @@ function renderLeafNode(args: {
   isSelected: boolean;
   blockedTooltip: string | null;
   openChainForKey: (key: string) => void;
+  hoverDropdown: CollapsedDropdownController | null;
 }) {
   return (
     <NodeLeaf
@@ -141,6 +156,7 @@ function renderLeafNode(args: {
       isSelected={args.isSelected}
       blockedTooltip={args.blockedTooltip}
       openChainForKey={args.openChainForKey}
+      hoverDropdown={args.hoverDropdown}
     />
   );
 }
@@ -150,8 +166,10 @@ function createExpandedGroupToggle(args: {
   isOpen: boolean;
   openChainForKey: (key: string) => void;
   navigate: (opts: NavigateOptions) => Promise<unknown>;
+  activeKeys: ReadonlySet<string>;
 }) {
-  const navTarget = args.item.children?.[0] ? getFirstDescendantTo(args.item.children[0]) : null;
+  const navTarget = findPreferredGroupTarget(args.item, args.activeKeys);
+
   return () => {
     if (args.item.disabled) return;
     const wasOpen = args.isOpen;
@@ -174,8 +192,15 @@ function NavNodeImpl(
   const blockedTooltip = useBlockedTooltipText(item, props.resolvePermissionName);
   const isTrailActive = props.activeKeys.has(item.key);
 
-  if (!hasChildren && !item.to)
-    return renderActionNode(item, props.depth, label, props.isCollapsed);
+  if (!hasChildren && !item.to) {
+    return renderActionNode({
+      item,
+      depth: props.depth,
+      label,
+      isCollapsed: props.isCollapsed,
+      hoverDropdown: props.hoverDropdown,
+    });
+  }
 
   if (!hasChildren) {
     return renderLeafNode({
@@ -187,6 +212,7 @@ function NavNodeImpl(
       isSelected: props.activeKeys.has(item.key),
       blockedTooltip,
       openChainForKey: props.openChainForKey,
+      hoverDropdown: props.hoverDropdown,
     });
   }
 
@@ -199,7 +225,8 @@ function NavNodeImpl(
     label,
     blockedTooltip,
     hoverDropdown: props.hoverDropdown,
-    collapsedChildren: resolveCollapsedChildren(t, item),
+    collapsedChildren: resolveCollapsedChildren(t, item, props.activeKeys),
+    collapsedNavigateTarget: findPreferredGroupTarget(item, props.activeKeys),
     onNavigate: (to) => void navigate({ to: to as never }),
     childNodes: renderChildNodes(props),
     onToggle: createExpandedGroupToggle({
@@ -207,6 +234,7 @@ function NavNodeImpl(
       isOpen,
       openChainForKey: props.openChainForKey,
       navigate,
+      activeKeys: props.activeKeys,
     }),
   });
 }

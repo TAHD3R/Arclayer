@@ -274,6 +274,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   fontScalePreference: null,
   fontWeightPreference: null,
   notificationPanelPinned: false,
+  sidebarOpen: true,
   showNotificationsBadge: true,
 
   setThemeMode: (mode) => {
@@ -392,6 +393,11 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     set({ notificationPanelPinned: pinned });
   },
 
+  setSidebarOpen: (open) => {
+    writeStorageItem(STORAGE_KEYS.sidebarOpen, String(open));
+    set({ sidebarOpen: Boolean(open) });
+  },
+
   setShowNotificationsBadge: (show) => {
     writeStorageItem(STORAGE_KEYS.showNotificationsBadge, String(show));
     set({ showNotificationsBadge: show });
@@ -417,6 +423,8 @@ export function initializePreferences() {
   applyLocaleToDom(initialLocaleState.locale);
 
   const notificationPanelPinned = readStorageItem(STORAGE_KEYS.notificationPanelPinned) === "true";
+  const sidebarOpenStored = readStorageItem(STORAGE_KEYS.sidebarOpen);
+  const sidebarOpen = sidebarOpenStored ? sidebarOpenStored === "true" : true;
   const timeZonePreference = normalizeTimeZonePreference(
     readStorageItem(STORAGE_KEYS.timeZonePreference),
   );
@@ -450,6 +458,7 @@ export function initializePreferences() {
     fontScalePreference,
     fontWeightPreference,
     notificationPanelPinned,
+    sidebarOpen,
     showNotificationsBadge,
   });
 

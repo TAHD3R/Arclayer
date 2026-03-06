@@ -8,6 +8,7 @@ import {
 } from "@celestial/ui/sidebar";
 
 import type { AdminNavItem } from "@/types/admin-nav";
+import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import {
   DISABLED_ITEM_CLASSNAME,
   INTERACTIVE_TRANSITION_CLASSNAME,
@@ -24,9 +25,14 @@ type NodeActionProps = {
   isCollapsed: boolean;
   label: string;
   isActive: boolean;
+  hoverDropdown: CollapsedDropdownController | null;
 };
 
-function NodeActionSub({ item, label, isActive }: Omit<NodeActionProps, "depth" | "isCollapsed">) {
+function NodeActionSub({
+  item,
+  label,
+  isActive,
+}: Omit<NodeActionProps, "depth" | "isCollapsed" | "hoverDropdown">) {
   const TrailingIcon = item.trailingIcon;
   return (
     <SidebarMenuSubItem className="group/nav-item">
@@ -64,13 +70,23 @@ function NodeActionSub({ item, label, isActive }: Omit<NodeActionProps, "depth" 
   );
 }
 
-function NodeActionRoot({ item, depth, label, isActive }: NodeActionProps) {
+function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeActionProps) {
   const Icon = item.icon;
   const TrailingIcon = item.trailingIcon;
   const showAction = depth === 0 && Boolean(item.actionRenderer);
 
   return (
-    <SidebarMenuItem className="group/nav-item">
+    <SidebarMenuItem
+      className="group/nav-item"
+      onPointerEnter={() => {
+        if (!hoverDropdown || item.disabled) return;
+        hoverDropdown.close();
+      }}
+      onFocusCapture={() => {
+        if (!hoverDropdown || item.disabled) return;
+        hoverDropdown.close();
+      }}
+    >
       <SidebarMenuButton
         isActive={isActive}
         tooltip={label}

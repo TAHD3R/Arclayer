@@ -346,6 +346,19 @@ type ExtendedChildProps = React.ComponentProps<"div"> & {
   "data-slot"?: string;
 };
 
+function mergeRefs<T>(...refs: (React.Ref<T> | undefined)[]): React.RefCallback<T> {
+  return (node) => {
+    refs.forEach((currentRef) => {
+      if (!currentRef) return;
+      if (typeof currentRef === "function") {
+        currentRef(node);
+        return;
+      }
+      (currentRef as React.RefObject<T | null>).current = node;
+    });
+  };
+}
+
 type HighlightItemProps<T extends React.ElementType = "div"> = React.ComponentProps<T> & {
   as?: T;
   children: React.ReactElement;
@@ -361,22 +374,24 @@ type HighlightItemProps<T extends React.ElementType = "div"> = React.ComponentPr
   forceUpdateBounds?: boolean;
 };
 
-function HighlightItem<T extends React.ElementType>({
-  ref,
-  as,
-  children,
-  id,
-  value,
-  className,
-  style,
-  transition,
-  disabled = false,
-  activeClassName,
-  exitDelay,
-  asChild = false,
-  forceUpdateBounds,
-  ...props
-}: HighlightItemProps<T>) {
+function HighlightItemImpl<T extends React.ElementType = "div">(
+  {
+    as,
+    children,
+    id,
+    value,
+    className,
+    style,
+    transition,
+    disabled = false,
+    activeClassName,
+    exitDelay,
+    asChild = false,
+    forceUpdateBounds,
+    ...props
+  }: HighlightItemProps<T>,
+  ref: React.ForwardedRef<HTMLElement>,
+) {
   const itemId = React.useId();
   const {
     activeValue,
@@ -491,11 +506,12 @@ function HighlightItem<T extends React.ElementType>({
 
   if (asChild) {
     if (mode === "children") {
+      const childRef = (element.props as ExtendedChildProps).ref;
       return React.cloneElement(
         element,
         {
           key: childValue,
-          ref: refCallback,
+          ref: mergeRefs(refCallback, childRef, ref),
           className: cn("relative", element.props.className),
           ...getNonOverridingDataAttributes(element, {
             ...dataAttributes,
@@ -545,13 +561,16 @@ function HighlightItem<T extends React.ElementType>({
       );
     }
 
+    const childRef = (element.props as ExtendedChildProps).ref;
+
     return React.cloneElement(element, {
-      ref: refCallback,
+      ref: mergeRefs(refCallback, childRef, ref),
       ...getNonOverridingDataAttributes(element, {
         ...dataAttributes,
         "data-slot": "motion-highlight-item",
       }),
       ...commonHandlers,
+      ...props,
     });
   }
 
@@ -607,5 +626,11 @@ function HighlightItem<T extends React.ElementType>({
     children
   );
 }
+
+const HighlightItem = React.forwardRef(HighlightItemImpl as any) as <
+  T extends React.ElementType = "div",
+>(
+  props: HighlightItemProps<T> & { ref?: React.Ref<HTMLElement> },
+) => React.ReactElement | null;
 
 export { Highlight, HighlightItem, useHighlight, type HighlightProps, type HighlightItemProps };

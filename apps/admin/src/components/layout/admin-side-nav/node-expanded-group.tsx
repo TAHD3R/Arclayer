@@ -6,6 +6,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@celestial/ui/dropdown-menu";
 import {
@@ -15,7 +17,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@celestial/ui/sidebar";
-import type { ReactNode } from "react";
+import * as React from "react";
+import type { MouseEventHandler, ReactNode } from "react";
 
 import { WithBlockedTooltip } from "./blocked-tooltip";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
@@ -47,6 +50,7 @@ function GroupChildren({ children }: { children: ReactNode }) {
 }
 
 function CollapsedGroupContent(props: {
+  label: string;
   children: readonly ResolvedChildItem[];
   hoverDropdown: CollapsedDropdownController;
   onNavigate: (to: string) => void;
@@ -56,16 +60,25 @@ function CollapsedGroupContent(props: {
       side="right"
       align="start"
       sideOffset={8}
-      className="min-w-56 data-[state=closed]:pointer-events-none"
+      className="min-w-56 gap-1 data-[state=closed]:pointer-events-none"
+      onCloseAutoFocus={(event) => event.preventDefault()}
       onPointerEnter={props.hoverDropdown.markActivity}
       onPointerMove={props.hoverDropdown.markActivity}
+      onPointerLeave={props.hoverDropdown.scheduleClose}
       onFocusCapture={props.hoverDropdown.markActivity}
+      onBlurCapture={props.hoverDropdown.scheduleClose}
       onKeyDown={props.hoverDropdown.markActivity}
+      onEscapeKeyDown={props.hoverDropdown.close}
     >
+      <DropdownMenuLabel>{props.label}</DropdownMenuLabel>
+      <DropdownMenuSeparator />
       {props.children.map((child) => (
         <DropdownMenuIconItem
           key={child.key}
           disabled={child.disabled}
+          data-active={child.isActive ? "true" : undefined}
+          aria-current={child.isActive ? "page" : undefined}
+          className="data-[active=true]:bg-accent data-[active=true]:text-accent-foreground data-[active=true]:font-semibold"
           icon={child.Icon ? <child.Icon className="size-4" aria-hidden="true" /> : undefined}
           onSelect={() => {
             props.hoverDropdown.close();
@@ -80,52 +93,61 @@ function CollapsedGroupContent(props: {
   );
 }
 
-type GroupRootButtonProps = {
+type GroupRootButtonProps = Omit<
+  React.ComponentPropsWithoutRef<typeof SidebarMenuButton>,
+  "children" | "isActive" | "tooltip"
+> & {
   item: AdminNavItem;
   label: string;
   isOpen: boolean;
   isTrailActive: boolean;
-  onClick?: () => void;
+  tooltip?: string;
 };
 
-function GroupRootButton({ item, label, isOpen, isTrailActive, onClick }: GroupRootButtonProps) {
-  const Icon = item.icon;
-  const className = cn(
-    "relative z-10",
-    NAV_ITEM_HEIGHT_CLASSNAME,
-    "rounded-lg",
-    INTERACTIVE_TRANSITION_CLASSNAME,
-    NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-    NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
-    NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-    "pl-5",
-    "group-data-[collapsible=icon]:gap-0",
-    item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
-  );
+const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps>(
+  function GroupRootButton(
+    { item, label, isOpen, isTrailActive, tooltip, ...triggerProps }: GroupRootButtonProps,
+    ref,
+  ) {
+    const Icon = item.icon;
+    const className = cn(
+      "relative z-10",
+      NAV_ITEM_HEIGHT_CLASSNAME,
+      "rounded-lg",
+      INTERACTIVE_TRANSITION_CLASSNAME,
+      NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
+      NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+      NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+      "pl-5",
+      "group-data-[collapsible=icon]:gap-0",
+      item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
+    );
 
-  return (
-    <SidebarMenuButton
-      isActive={isTrailActive}
-      tooltip={label}
-      aria-disabled={item.disabled ? "true" : undefined}
-      className={className}
-      onClick={onClick}
-    >
-      {iconSlot(0, Icon, { isActive: isTrailActive, collapseMotion: "shift" })}
-      <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-        {label}
-      </span>
-      <span className={cn("ml-auto shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-        <ChevronRightIcon
-          size={16}
-          expanded={isOpen}
-          className="shrink-0 text-label-secondary"
-          aria-hidden="true"
-        />
-      </span>
-    </SidebarMenuButton>
-  );
-}
+    return (
+      <SidebarMenuButton
+        ref={ref}
+        isActive={isTrailActive}
+        tooltip={tooltip}
+        aria-disabled={item.disabled ? "true" : undefined}
+        className={className}
+        {...triggerProps}
+      >
+        {iconSlot(0, Icon, { isActive: isTrailActive, collapseMotion: "shift" })}
+        <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+          {label}
+        </span>
+        <span className={cn("ml-auto shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+          <ChevronRightIcon
+            size={16}
+            expanded={isOpen}
+            className="shrink-0 text-label-secondary"
+            aria-hidden="true"
+          />
+        </span>
+      </SidebarMenuButton>
+    );
+  },
+);
 
 type GroupRootDropdownProps = {
   item: AdminNavItem;
@@ -137,6 +159,7 @@ type GroupRootDropdownProps = {
   dropdownOpen: boolean;
   hoverDropdown: CollapsedDropdownController | null;
   collapsedChildren: readonly ResolvedChildItem[];
+  collapsedNavigateTarget: string | null;
   onNavigate: (to: string) => void;
   onToggle: () => void;
 };
@@ -151,9 +174,23 @@ function GroupRootDropdown({
   dropdownOpen,
   hoverDropdown,
   collapsedChildren,
+  collapsedNavigateTarget,
   onNavigate,
   onToggle,
 }: GroupRootDropdownProps) {
+  const triggerTooltip = dropdownEnabled ? undefined : label;
+
+  const handleClick: MouseEventHandler<HTMLButtonElement> = () => {
+    if (item.disabled) return;
+    if (!dropdownEnabled) {
+      onToggle();
+      return;
+    }
+    hoverDropdown?.close();
+    if (!collapsedNavigateTarget) return;
+    onNavigate(collapsedNavigateTarget);
+  };
+
   return (
     <WithBlockedTooltip tooltip={blockedTooltip}>
       <DropdownMenu
@@ -173,13 +210,15 @@ function GroupRootDropdown({
           <GroupRootButton
             item={item}
             label={label}
-            isOpen={isOpen}
+            isOpen={isOpen || dropdownOpen}
             isTrailActive={isTrailActive}
-            onClick={dropdownEnabled ? undefined : onToggle}
+            tooltip={triggerTooltip}
+            onClick={handleClick}
           />
         </DropdownMenuTrigger>
         {dropdownEnabled && hoverDropdown ? (
           <CollapsedGroupContent
+            label={label}
             children={collapsedChildren}
             hoverDropdown={hoverDropdown}
             onNavigate={onNavigate}
@@ -262,6 +301,7 @@ type NodeExpandedGroupRootProps = {
   blockedTooltip: string | null;
   hoverDropdown: CollapsedDropdownController | null;
   collapsedChildren: readonly ResolvedChildItem[];
+  collapsedNavigateTarget: string | null;
   onNavigate: (to: string) => void;
   onToggle: () => void;
   children: ReactNode;
@@ -276,6 +316,7 @@ export function NodeExpandedGroupRoot({
   blockedTooltip,
   hoverDropdown,
   collapsedChildren,
+  collapsedNavigateTarget,
   onNavigate,
   onToggle,
   children,
@@ -285,7 +326,29 @@ export function NodeExpandedGroupRoot({
 
   return (
     <Collapsible open={dropdownEnabled ? false : isOpen}>
-      <SidebarMenuItem className="group/nav-item">
+      <SidebarMenuItem
+        className="group/nav-item"
+        onPointerEnter={() => {
+          if (!dropdownEnabled || !hoverDropdown || item.disabled) return;
+          hoverDropdown.open(item.key);
+        }}
+        onPointerMove={() => {
+          if (!dropdownEnabled || !hoverDropdown || item.disabled) return;
+          hoverDropdown.open(item.key);
+        }}
+        onPointerLeave={() => {
+          if (!dropdownEnabled || !hoverDropdown) return;
+          hoverDropdown.scheduleClose();
+        }}
+        onFocusCapture={() => {
+          if (!dropdownEnabled || !hoverDropdown || item.disabled) return;
+          hoverDropdown.open(item.key);
+        }}
+        onBlurCapture={() => {
+          if (!dropdownEnabled || !hoverDropdown) return;
+          hoverDropdown.scheduleClose();
+        }}
+      >
         <GroupRootDropdown
           item={item}
           label={label}
@@ -296,6 +359,7 @@ export function NodeExpandedGroupRoot({
           dropdownOpen={dropdownOpen}
           hoverDropdown={hoverDropdown}
           collapsedChildren={collapsedChildren}
+          collapsedNavigateTarget={collapsedNavigateTarget}
           onNavigate={onNavigate}
           onToggle={onToggle}
         />

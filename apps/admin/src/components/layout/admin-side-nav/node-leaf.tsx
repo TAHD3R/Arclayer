@@ -9,6 +9,7 @@ import {
 } from "@celestial/ui/sidebar";
 
 import type { AdminNavItem } from "@/types/admin-nav";
+import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import { WithBlockedTooltip } from "./blocked-tooltip";
 import {
   isExactMatch,
@@ -33,6 +34,7 @@ type NodeLeafProps = {
   isSelected: boolean;
   blockedTooltip: string | null;
   openChainForKey: (key: string) => void;
+  hoverDropdown: CollapsedDropdownController | null;
 };
 
 function NodeLeafSub({
@@ -43,7 +45,7 @@ function NodeLeafSub({
   blockedTooltip,
   openChainForKey,
   onNavigate,
-}: Omit<NodeLeafProps, "depth"> & { onNavigate: (to: string) => void }) {
+}: Omit<NodeLeafProps, "depth" | "hoverDropdown"> & { onNavigate: (to: string) => void }) {
   return (
     <SidebarMenuSubItem className="group/nav-item">
       <WithBlockedTooltip tooltip={blockedTooltip}>
@@ -89,12 +91,23 @@ function NodeLeafRoot({
   isSelected,
   blockedTooltip,
   openChainForKey,
+  hoverDropdown,
   onNavigate,
 }: NodeLeafProps & { onNavigate: (to: string) => void }) {
   const Icon = item.icon;
 
   return (
-    <SidebarMenuItem className="group/nav-item">
+    <SidebarMenuItem
+      className="group/nav-item"
+      onPointerEnter={() => {
+        if (!hoverDropdown || !item.to || item.disabled) return;
+        hoverDropdown.close();
+      }}
+      onFocusCapture={() => {
+        if (!hoverDropdown || !item.to || item.disabled) return;
+        hoverDropdown.close();
+      }}
+    >
       <WithBlockedTooltip tooltip={blockedTooltip}>
         <SidebarMenuButton
           isActive={isSelected}
@@ -110,7 +123,7 @@ function NodeLeafRoot({
             NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
             "pl-5",
             "group-data-[collapsible=icon]:gap-0",
-            item.disabled ? DISABLED_ITEM_CLASSNAME : null,
+            item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
           )}
           onClick={() => {
             openChainForKey(item.key);

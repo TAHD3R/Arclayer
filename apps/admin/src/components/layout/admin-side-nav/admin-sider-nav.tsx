@@ -117,6 +117,7 @@ function useFavoriteItems(
   items: readonly AdminNavItem[],
   favoritePaths: readonly string[],
   t: (key: string) => string,
+  language: string,
 ): FavoriteItem[] {
   return useMemo(() => {
     const resolved: FavoriteItem[] = [];
@@ -130,7 +131,7 @@ function useFavoriteItems(
       });
     }
     return resolved;
-  }, [favoritePaths, items, t]);
+  }, [favoritePaths, items, language, t]);
 }
 
 function FavoritesSection(props: {
@@ -226,7 +227,7 @@ function ItemsSection(props: {
 }
 
 export function AdminSiderNav(props: AdminSiderNavProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { state: sidebarState, isMobile } = useSidebar();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -243,7 +244,12 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
   const activeKeys = useMemo(() => new Set(activeTrail), [activeTrail]);
 
   const { openByParent, openChainForKey } = useOpenChain(navIndex);
-  const favoriteItems = useFavoriteItems(props.items, favoritePaths, t);
+  const favoriteItems = useFavoriteItems(
+    props.items,
+    favoritePaths,
+    t,
+    i18n.resolvedLanguage || i18n.language,
+  );
   const onNavigate = useCallback((to: string) => void navigate({ to: to as never }), [navigate]);
 
   return (

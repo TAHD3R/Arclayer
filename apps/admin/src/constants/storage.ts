@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   dataTableVisibility: "celestial:admin:dataTable:visibility",
   favorites: "celestial:admin:favorites",
   notificationPanelPinned: "celestial:admin:notificationPanelPinned",
+  sidebarOpen: "celestial:admin:sidebarOpen",
   showNotificationsBadge: "celestial:admin:showNotificationsBadge",
   meNotificationSubscriptions: "celestial:admin:me:notificationSubscriptions",
 } as const;

@@ -32,6 +32,31 @@ function getFirstDescendantTo(item: AdminNavItem): string | null {
   return null;
 }
 
+function findFirstActiveDescendantTo(
+  items: readonly AdminNavItem[],
+  activeKeys: ReadonlySet<string>,
+): string | null {
+  for (const item of items) {
+    if (item.children?.length) {
+      const activeChild = findFirstActiveDescendantTo(item.children, activeKeys);
+      if (activeChild) return activeChild;
+    }
+    if (item.to && !item.disabled && activeKeys.has(item.key)) {
+      return item.to;
+    }
+  }
+  return null;
+}
+
+function findPreferredGroupTarget(
+  item: AdminNavItem,
+  activeKeys: ReadonlySet<string>,
+): string | null {
+  const activeDescendant = findFirstActiveDescendantTo(item.children ?? [], activeKeys);
+  if (activeDescendant) return activeDescendant;
+  return getFirstDescendantTo(item);
+}
+
 function findActiveTrail(items: readonly AdminNavItem[], pathname: string): string[] {
   let bestScore = -1;
   let bestKeys: string[] = [];
@@ -81,6 +106,7 @@ export type OpenByParent = Record<string, string | undefined>;
 export {
   buildNavIndex,
   findActiveTrail,
+  findPreferredGroupTarget,
   getFirstDescendantTo,
   isExactMatch,
   isPrefixMatch,

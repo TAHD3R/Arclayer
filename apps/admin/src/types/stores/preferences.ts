@@ -32,6 +32,8 @@ export interface PreferencesState {
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
   notificationPanelPinned: boolean;
   setNotificationPanelPinned: (pinned: boolean) => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
   showNotificationsBadge: boolean;
   setShowNotificationsBadge: (show: boolean) => void;
 }
