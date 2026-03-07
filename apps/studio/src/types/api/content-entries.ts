@@ -36,3 +36,42 @@ export type ContentEntryRevisionOut = {
     data?: Record<string, unknown>;
   };
 };
+
+export type ContentEntryCreateIn = {
+  typeCode: string;
+  slug: string;
+  title?: string | null;
+  visibility?: ContentEntryVisibility;
+  locale?: string;
+  path?: string | null;
+  parentEntryId?: string | null;
+  sortOrder?: number;
+};
+
+export type ContentEntryDraftSaveIn = {
+  pageBlueprint?: PageBlueprint | null;
+  fieldValues?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | null;
+  expectedRevision?: number | null;
+};
+
+export type ContentEntryDraftSaveOut = {
+  entryId: string;
+  revision: number;
+  savedAtMs: number;
+};
+
+export type ContentEntryPublishIn = {
+  revision?: number | null;
+};
+
+export type ContentEntryPublishOut = {
+  entryId: string;
+  revision: number;
+  publishedAtMs: number;
+};
+
+export type ContentEntryUnpublishOut = {
+  entryId: string;
+  unpublishedAtMs: number;
+};

@@ -8,12 +8,18 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const {
   listWorkspaceContentModels,
+  listWorkspaceContentViews,
+  createWorkspaceContentView,
+  previewWorkspaceContentView,
   listWorkspaceSiteEntries,
   createWorkspaceSiteEntry,
   publishWorkspaceSiteEntry,
   unpublishWorkspaceSiteEntry,
 } = vi.hoisted(() => ({
   listWorkspaceContentModels: vi.fn(),
+  listWorkspaceContentViews: vi.fn(),
+  createWorkspaceContentView: vi.fn(),
+  previewWorkspaceContentView: vi.fn(),
   listWorkspaceSiteEntries: vi.fn(),
   createWorkspaceSiteEntry: vi.fn(),
   publishWorkspaceSiteEntry: vi.fn(),
@@ -22,6 +28,12 @@ const {
 
 vi.mock("@/api/content-models", () => ({
   listWorkspaceContentModels,
+}));
+
+vi.mock("@/api/content-views", () => ({
+  listWorkspaceContentViews,
+  createWorkspaceContentView,
+  previewWorkspaceContentView,
 }));
 
 vi.mock("@/api/workspace-site", () => ({
@@ -44,6 +56,27 @@ vi.mock("react-i18next", () => ({
           "content_library:LIBRARY_EMPTY_DESC":
             "Create or enable a content-focused model before managing entries here.",
           "content_library:LIBRARY_SWITCHER_LABEL": "Content type",
+          "content_library:LIBRARY_VIEW_SWITCHER_LABEL": "Saved view",
+          "content_library:LIBRARY_VIEW_DEFAULT_OPTION": "All entries",
+          "content_library:LIBRARY_VIEW_CREATE_ACTION": "Save view",
+          "content_library:LIBRARY_VIEW_DIALOG_TITLE": "Create saved view",
+          "content_library:LIBRARY_VIEW_DIALOG_DESC": `Save a filtered workflow view for ${String(params?.modelName ?? "this model")}.`,
+          "content_library:LIBRARY_VIEW_DIALOG_SUBMIT": "Save view",
+          "content_library:LIBRARY_VIEW_FIELD_NAME_LABEL": "View name",
+          "content_library:LIBRARY_VIEW_FIELD_NAME_DESC":
+            "Name the saved workflow your team will switch to later.",
+          "content_library:LIBRARY_VIEW_FIELD_NAME_PLACEHOLDER": "Published articles",
+          "content_library:LIBRARY_VIEW_FIELD_CODE_LABEL": "View key",
+          "content_library:LIBRARY_VIEW_FIELD_CODE_DESC":
+            "Use a stable key so the view can be referenced consistently.",
+          "content_library:LIBRARY_VIEW_FIELD_CODE_PLACEHOLDER": "published_articles",
+          "content_library:LIBRARY_VIEW_FIELD_FILTER_LABEL": "Status filter",
+          "content_library:LIBRARY_VIEW_FIELD_FILTER_DESC":
+            "Decide which lifecycle state should appear in this saved view.",
+          "content_library:LIBRARY_VIEW_FILTER_ALL": "All entries",
+          "content_library:LIBRARY_VIEW_FILTER_DRAFT": "Draft only",
+          "content_library:LIBRARY_VIEW_FILTER_PUBLISHED": "Published only",
+          "content_library:LIBRARY_VIEW_TOAST_CREATE_SUCCESS": "View created",
           "content_library:LIBRARY_TABLE_TITLE": "Title",
           "content_library:LIBRARY_TABLE_SLUG": "Slug",
           "content_library:LIBRARY_TABLE_STATUS": "Status",
@@ -190,6 +223,15 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
+    listWorkspaceContentViews.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 20,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
 
     await renderWithQuery();
 
@@ -236,11 +278,36 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
+    listWorkspaceContentViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-published",
+          code: "published_articles",
+          name: "Published articles",
+          typeCode: "article",
+          enabled: true,
+          updatedAtMs: 1741330900000,
+          dsl: {
+            filters: [{ field: "status", op: "eq", value: "published" }],
+            sort: [],
+            limit: 100,
+          },
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 20,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
 
     await renderWithQuery();
 
     expect(await screen.findByText("Content Library")).toBeInTheDocument();
     expect(await screen.findByText("Content type")).toBeInTheDocument();
+    expect(await screen.findByText("Saved view")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save view" })).toBeInTheDocument();
     expect(await screen.findByText("Total entries")).toBeInTheDocument();
     expect(await screen.findByText("Title")).toBeInTheDocument();
     expect(screen.getByText("Slug")).toBeInTheDocument();
@@ -305,6 +372,15 @@ describe("WorkspaceContentLibraryPage", () => {
         next: null,
         prev: null,
       });
+    listWorkspaceContentViews.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 20,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
     createWorkspaceSiteEntry.mockResolvedValue(undefined);
 
     await renderWithQuery();
@@ -413,6 +489,15 @@ describe("WorkspaceContentLibraryPage", () => {
         next: null,
         prev: null,
       });
+    listWorkspaceContentViews.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 20,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
     publishWorkspaceSiteEntry.mockResolvedValue({
       siteId: "site-1",
       entryId: "entry-1",
@@ -447,5 +532,129 @@ describe("WorkspaceContentLibraryPage", () => {
         slug: "hello-world",
       });
     });
+  });
+
+  test("creates a saved view and previews its filtered rows", async () => {
+    const user = userEvent.setup();
+    listWorkspaceContentModels.mockResolvedValue({
+      items: [
+        {
+          id: "model-article",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          key: "article",
+          name: "Article",
+          category: "content_library",
+          capabilities: ["versioned", "routable", "rich_text_editable", "publishable"],
+          defaultEditor: "rich_text",
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 20,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+    listWorkspaceSiteEntries.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 20,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
+    listWorkspaceContentViews
+      .mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 20,
+        pages: 0,
+        next: null,
+        prev: null,
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: "view-published",
+            code: "published_articles",
+            name: "Published articles",
+            typeCode: "article",
+            enabled: true,
+            updatedAtMs: 1741330900000,
+            dsl: {
+              filters: [{ field: "status", op: "eq", value: "all" }],
+              sort: [{ field: "updatedAt", order: "desc" }],
+              limit: 100,
+            },
+          },
+        ],
+        total: 1,
+        page: 1,
+        size: 20,
+        pages: 1,
+        next: null,
+        prev: null,
+      });
+    createWorkspaceContentView.mockResolvedValue({
+      id: "view-published",
+      code: "published_articles",
+      name: "Published articles",
+      typeCode: "article",
+      enabled: true,
+      updatedAtMs: 1741330900000,
+      dsl: {
+        filters: [],
+        sort: [{ field: "updatedAt", order: "desc" }],
+        limit: 100,
+      },
+    });
+    previewWorkspaceContentView.mockResolvedValue({
+      viewId: "view-published",
+      total: 1,
+      items: [
+        {
+          id: "entry-99",
+          entryTypeCode: "article",
+          slug: "published-hello",
+          title: "Published hello",
+          draftRevision: 5,
+          publishedRevision: 5,
+          updatedAt: "2026-03-07T09:45:00Z",
+          status: "published",
+        },
+      ],
+    });
+
+    await renderWithQuery();
+
+    await user.click(await screen.findByRole("button", { name: "Save view" }));
+    await user.type(screen.getByPlaceholderText("Published articles"), "Published articles");
+    await user.type(screen.getByPlaceholderText("published_articles"), "published_articles");
+    await user.click(screen.getAllByRole("button", { name: "Save view" })[1]!);
+
+    await waitFor(() => {
+      expect(createWorkspaceContentView).toHaveBeenCalledWith("ws-1", {
+        code: "published_articles",
+        name: "Published articles",
+        typeCode: "article",
+        enabled: true,
+        dsl: {
+          filters: [],
+          sort: [{ field: "updatedAt", order: "desc" }],
+          displayMode: "table",
+          limit: 100,
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(previewWorkspaceContentView).toHaveBeenCalledWith("ws-1", "view-published", {
+        limit: 100,
+        offset: 0,
+      });
+    });
+    expect(await screen.findByText("Published hello")).toBeInTheDocument();
   });
 });

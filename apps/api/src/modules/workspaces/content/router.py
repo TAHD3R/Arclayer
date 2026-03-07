@@ -12,8 +12,10 @@ from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.content.appearance.router import appearance_router
 from apps.api.src.modules.workspaces.content.blocks.router import blocks_router
+from apps.api.src.modules.workspaces.content.items.router import items_router
 from apps.api.src.modules.workspaces.content.models.router import models_router
 from apps.api.src.modules.workspaces.content.pages.router import pages_router
+from apps.api.src.modules.workspaces.content.route_tree.router import route_tree_router
 from apps.api.src.modules.workspaces.content.schema import (
     ContentEntryCreateIn,
     ContentEntryDeleteOut,
@@ -366,7 +368,9 @@ async def rollback_workspace_content_entry_revision(
 
 
 router.include_router(pages_router)
+router.include_router(route_tree_router)
 router.include_router(structure_router)
+router.include_router(items_router)
 router.include_router(models_router)
 router.include_router(blocks_router)
 router.include_router(views_router)

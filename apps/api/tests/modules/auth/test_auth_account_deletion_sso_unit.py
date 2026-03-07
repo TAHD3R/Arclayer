@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,8 +9,9 @@ from pydantic import BaseModel, ConfigDict
 
 from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import BadRequest, Unauthorized
-from apps.api.src.models.organization.user import UserStatus
+from apps.api.src.models.organization.user import User, UserStatus
 from apps.api.src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
+from apps.api.src.modules.auth.repository import UserRepository
 from apps.api.src.modules.auth.service import AuthService
 
 
@@ -191,10 +193,10 @@ async def test_account_delete_capabilities_require_2fa_for_sso_only(monkeypatch)
         _allow_delete,
     )
     service = AccountDeletionCapabilityService(get_settings())
-    service.user_repo = FakeUserRepo(user)
+    service.user_repo = cast(UserRepository, FakeUserRepo(user))
     monkeypatch.setattr(service, "_has_linked_oauth_identities", _true)
 
-    out = await service.get_capabilities(user=user, two_factor_enabled=True)
+    out = await service.get_capabilities(user=cast(User, user), two_factor_enabled=True)
 
     assert out.can_delete is True
     assert out.required_reauth_methods == ["2fa"]
@@ -214,13 +216,13 @@ async def test_account_delete_capabilities_report_last_owner_block(monkeypatch) 
         _raise_block,
     )
     service = AccountDeletionCapabilityService(get_settings())
-    service.user_repo = FakeUserRepo(user)
+    service.user_repo = cast(UserRepository, FakeUserRepo(user))
 
     async def _false(**_kwargs) -> bool:
         return False
 
     monkeypatch.setattr(service, "_has_linked_oauth_identities", _false)
-    out = await service.get_capabilities(user=user, two_factor_enabled=False)
+    out = await service.get_capabilities(user=cast(User, user), two_factor_enabled=False)
 
     assert out.can_delete is False
     assert out.blocked_reason == "ACCOUNT_DELETE_LAST_ORG_OWNER"

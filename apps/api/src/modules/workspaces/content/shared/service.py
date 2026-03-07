@@ -35,9 +35,6 @@ class _ContentEntryRecordView(HasWorkspaceId, HasSiteId, Protocol):
     status: str
     visibility: str
     locale: str
-    path: str | None
-    parent_entry_id: UUID | str | None
-    sort_order: int
     draft_revision: int
     published_revision: int | None
     updated_at: datetime
@@ -64,7 +61,13 @@ def to_content_type_out(record: object):
     )
 
 
-def to_content_entry_out(record: object):
+def to_content_entry_out(
+    record: object,
+    *,
+    path: str | None = None,
+    parent_entry_id: UUID | None = None,
+    sort_order: int = 0,
+):
     from apps.api.src.modules.workspaces.content.schema import (
         ContentEntryOut,
         ContentEntryStatus,
@@ -89,9 +92,9 @@ def to_content_entry_out(record: object):
         status=cast(ContentEntryStatus, str(view.status)),
         visibility=cast(ContentEntryVisibility, str(view.visibility)),
         locale=str(view.locale),
-        path=view.path,
-        parent_entry_id=(UUID(str(view.parent_entry_id)) if view.parent_entry_id is not None else None),
-        sort_order=int(view.sort_order),
+        path=path,
+        parent_entry_id=parent_entry_id,
+        sort_order=int(sort_order or 0),
         draft_revision=int(view.draft_revision),
         published_revision=view.published_revision,
         updated_at=view.updated_at,

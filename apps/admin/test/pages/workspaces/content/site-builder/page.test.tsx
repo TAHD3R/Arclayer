@@ -4,20 +4,29 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { WorkspaceSiteBuilderPage } from "@/pages/workspaces/content/site-builder/page";
+import { ApiError } from "@/lib/http";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const {
   listWorkspaceSitePagesTree,
   listWorkspaceSiteGlobalSections,
+  listWorkspaceSiteRouteTemplates,
   createWorkspaceSitePage,
+  createWorkspaceSiteRouteTemplate,
+  patchWorkspaceSiteRouteTemplate,
   publishWorkspaceSitePage,
+  repairWorkspaceSitePagesRouteTree,
   unpublishWorkspaceSitePage,
   openStudioPageEditor,
 } = vi.hoisted(() => ({
   listWorkspaceSitePagesTree: vi.fn(),
   listWorkspaceSiteGlobalSections: vi.fn(),
+  listWorkspaceSiteRouteTemplates: vi.fn(),
   createWorkspaceSitePage: vi.fn(),
+  createWorkspaceSiteRouteTemplate: vi.fn(),
+  patchWorkspaceSiteRouteTemplate: vi.fn(),
   publishWorkspaceSitePage: vi.fn(),
+  repairWorkspaceSitePagesRouteTree: vi.fn(),
   unpublishWorkspaceSitePage: vi.fn(),
   openStudioPageEditor: vi.fn(),
 }));
@@ -25,8 +34,12 @@ const {
 vi.mock("@/api/workspace-site", () => ({
   listWorkspaceSitePagesTree,
   listWorkspaceSiteGlobalSections,
+  listWorkspaceSiteRouteTemplates,
   createWorkspaceSitePage,
+  createWorkspaceSiteRouteTemplate,
+  patchWorkspaceSiteRouteTemplate,
   publishWorkspaceSitePage,
+  repairWorkspaceSitePagesRouteTree,
   unpublishWorkspaceSitePage,
 }));
 
@@ -67,6 +80,40 @@ vi.mock("react-i18next", () => ({
           "content_library:SITE_BUILDER_REVISION_PUBLISHED": "Published",
           "content_library:SITE_BUILDER_GLOBAL_ENABLED": "Enabled",
           "content_library:SITE_BUILDER_GLOBAL_DISABLED": "Disabled",
+          "content_library:SITE_BUILDER_METRIC_ROUTES": "Route templates",
+          "content_library:SITE_BUILDER_ROUTES_TITLE": "Route templates",
+          "content_library:SITE_BUILDER_ROUTES_DESC":
+            "Bind dynamic path patterns to routable content models.",
+          "content_library:SITE_BUILDER_ROUTES_EMPTY": "No route templates yet.",
+          "content_library:SITE_BUILDER_MANAGE_ROUTES": "Manage routes",
+          "content_library:SITE_BUILDER_ROUTE_ACTIVE": "Active",
+          "content_library:SITE_BUILDER_ROUTE_INACTIVE": "Inactive",
+          "content_library:SITE_BUILDER_ROUTE_ACTION_ENABLE": "Enable",
+          "content_library:SITE_BUILDER_ROUTE_ACTION_DISABLE": "Disable",
+          "content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_TITLE": "Repair page route metadata",
+          "content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_DESC":
+            "Legacy pages are missing Route/Tree metadata. Run a one-time repair to backfill and reload.",
+          "content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_ACTION": "Repair and reload",
+          "content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_TOAST_SUCCESS":
+            "Repair complete: backfilled {{routes}} routes and {{nodes}} tree nodes.",
+          "content_library:SITE_BUILDER_ROUTE_DIALOG_TITLE": "Create route template",
+          "content_library:SITE_BUILDER_ROUTE_DIALOG_DESC":
+            "Map a route pattern to a content model.",
+          "content_library:SITE_BUILDER_ROUTE_DIALOG_SUBMIT": "Create route",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_PATH_LABEL": "Path pattern",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_PATH_DESC":
+            "Use dynamic segments like /blog/:slug.",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_PATH_PLACEHOLDER": "/blog/:slug",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_LABEL": "Model key",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_DESC":
+            "Use a routable model key such as post or legal_document.",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_PLACEHOLDER": "post",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_ACTIVE_LABEL": "Active route",
+          "content_library:SITE_BUILDER_ROUTE_FIELD_ACTIVE_DESC":
+            "Inactive templates are ignored during route resolve.",
+          "content_library:SITE_BUILDER_TOAST_ROUTE_CREATE_SUCCESS": "Route template created",
+          "content_library:SITE_BUILDER_TOAST_ROUTE_ENABLED": "Route template enabled",
+          "content_library:SITE_BUILDER_TOAST_ROUTE_DISABLED": "Route template disabled",
           "content_library:SITE_BUILDER_DIALOG_TITLE": "Create page",
           "content_library:SITE_BUILDER_DIALOG_DESC": "Add a new page to your site structure.",
           "content_library:SITE_BUILDER_DIALOG_SUBMIT": "Create page",
@@ -136,7 +183,25 @@ async function renderWithQuery() {
 describe("WorkspaceSiteBuilderPage", () => {
   beforeEach(() => {
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+    listWorkspaceSitePagesTree.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 20,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
     listWorkspaceSiteGlobalSections.mockResolvedValue({ items: [] });
+    listWorkspaceSiteRouteTemplates.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 50,
+      pages: 0,
+      next: null,
+      prev: null,
+    });
   });
 
   afterEach(() => {
@@ -337,6 +402,105 @@ describe("WorkspaceSiteBuilderPage", () => {
     await user.click(await screen.findByRole("button", { name: "Unpublish" }));
     await waitFor(() => {
       expect(unpublishWorkspaceSitePage).toHaveBeenCalledWith("ws-1", "page-home");
+    });
+  });
+
+  test("creates route template from site builder routes card", async () => {
+    const user = userEvent.setup();
+    createWorkspaceSiteRouteTemplate.mockResolvedValue({
+      id: "route-1",
+      siteId: "site-1",
+      pathPattern: "/blog/:slug",
+      entryTypeId: "et-1",
+      entryTypeCode: "post",
+      isActive: true,
+    });
+
+    await renderWithQuery();
+
+    await user.click(await screen.findByRole("button", { name: "Manage routes" }));
+    await user.clear(screen.getByPlaceholderText("/blog/:slug"));
+    await user.type(screen.getByPlaceholderText("/blog/:slug"), "/blog/:slug");
+    await user.type(screen.getByPlaceholderText("post"), "post");
+    await user.click(screen.getByRole("button", { name: "Create route" }));
+
+    await waitFor(() => {
+      expect(createWorkspaceSiteRouteTemplate).toHaveBeenCalledWith("ws-1", {
+        pathPattern: "/blog/:slug",
+        entryTypeCode: "post",
+        isActive: true,
+      });
+    });
+  });
+
+  test("toggles route template active status", async () => {
+    const user = userEvent.setup();
+    listWorkspaceSiteRouteTemplates.mockResolvedValue({
+      items: [
+        {
+          id: "route-1",
+          siteId: "site-1",
+          pathPattern: "/blog/:slug",
+          entryTypeId: "et-1",
+          entryTypeCode: "post",
+          isActive: true,
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 50,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
+    patchWorkspaceSiteRouteTemplate.mockResolvedValue({
+      id: "route-1",
+      siteId: "site-1",
+      pathPattern: "/blog/:slug",
+      entryTypeId: "et-1",
+      entryTypeCode: "post",
+      isActive: false,
+    });
+
+    await renderWithQuery();
+    await user.click(await screen.findByRole("button", { name: "Disable" }));
+
+    await waitFor(() => {
+      expect(patchWorkspaceSiteRouteTemplate).toHaveBeenCalledWith("ws-1", "route-1", {
+        isActive: false,
+      });
+    });
+  });
+
+  test("offers a one-time repair when legacy pages are missing route/tree metadata", async () => {
+    const user = userEvent.setup();
+    listWorkspaceSitePagesTree.mockRejectedValueOnce(
+      new ApiError({
+        status: 409,
+        message: "Page route missing",
+        error: "PAGE_ROUTE_MISSING",
+      }),
+    );
+    repairWorkspaceSitePagesRouteTree.mockResolvedValue({
+      missingRoutes: 1,
+      missingTreeNodes: 1,
+      repairedRoutes: 1,
+      repairedTreeNodes: 1,
+      orphanParentsDetached: 0,
+    });
+
+    await renderWithQuery();
+
+    expect(await screen.findByText("Repair page route metadata")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Legacy pages are missing Route/Tree metadata. Run a one-time repair to backfill and reload.",
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("button", { name: "Repair and reload" }));
+    await waitFor(() => {
+      expect(repairWorkspaceSitePagesRouteTree).toHaveBeenCalledWith("ws-1");
     });
   });
 });

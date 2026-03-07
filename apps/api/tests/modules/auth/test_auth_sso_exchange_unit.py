@@ -10,6 +10,7 @@ from apps.api.src.config import get_settings
 from apps.api.src.core.exceptions import BadRequest
 from apps.api.src.infra.cache.valkey import ValkeyClientLike
 from apps.api.src.modules.auth.schema import TokenPair
+from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
 from apps.api.src.modules.auth.sso.repository import _valkey_getdel_best_effort, issue_exchange_code
 from apps.api.src.modules.auth.sso.schema import AuthSSOExchangePayload
 from apps.api.src.modules.auth.sso.service import AuthSSOService
@@ -114,7 +115,14 @@ class _FakeValkeyWithSyncGetDel(_FakeValkey):
 
 
 class _FakeLoginService:
-    async def issue_after_upstream_auth(self, *, user_id: UUID) -> TokenPair:
+    async def issue_after_upstream_auth(
+        self,
+        *,
+        user_id: UUID,
+        request_context: AuthRequestContext | None = None,
+        auth_method: str = "sso",
+    ) -> TokenPair:
+        _ = request_context, auth_method
         _ = user_id
         return TokenPair(
             access_token="access",

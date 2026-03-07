@@ -8,6 +8,8 @@ from apps.api.src.common.protocols.tortoise import HasWorkspaceId
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import Conflict, NotFound
 from apps.api.src.core.http.pagination import PageData
+from apps.api.src.models.content.route import ContentRouteRecord
+from apps.api.src.models.content.tree import ContentTreeNodeRecord
 from apps.api.src.models.organization.user import User
 from apps.api.src.modules.sites.schema import (
     SitePageCreateIn as ContentPageCreateIn,
@@ -40,6 +42,9 @@ from apps.api.src.modules.sites.schema import (
     SitePageRollbackOut as ContentPageRollbackOut,
 )
 from apps.api.src.modules.sites.schema import (
+    SitePageRouteTreeRepairOut as ContentPageRouteTreeRepairOut,
+)
+from apps.api.src.modules.sites.schema import (
     SitePageTreeNodeOut as ContentPageTreeNodeOut,
 )
 from apps.api.src.modules.sites.schema import (
@@ -51,6 +56,7 @@ from apps.api.src.modules.sites.schema import (
 from apps.api.src.modules.sites.schema import SitePageUserSummaryOut
 from apps.api.src.modules.sites.service import SiteService
 from apps.api.src.modules.sites.shared.service import build_pages_tree, validate_page_pathname
+from apps.api.src.modules.workspaces.content.pages.repair import repair_legacy_page_route_tree
 from apps.api.src.modules.workspaces.content.repository import WorkspaceContentRepository
 from apps.api.src.modules.workspaces.content.schema import ContentEntryRevisionOut, ContentRevisionState
 
@@ -73,14 +79,11 @@ class PageEntryTypeLike(Protocol):
 class PageEntryLike(Protocol):
     id: UUID
     title: str | None
-    path: str | None
     visibility: str
     draft_revision: int | None
     published_revision: int | None
     updated_at: datetime | None
     updated_by_user_id: UUID | None
-    parent_entry_id: UUID | None
-    sort_order: int | None
     type: PageEntryTypeLike
 
 
@@ -113,7 +116,17 @@ class PagesServiceProtocol(Protocol):
         *,
         entry: PageEntryLike,
         user_summary_by_id: dict[UUID, SitePageUserSummaryOut],
+        path: str,
+        parent_id: UUID | None,
+        sort_order: int,
     ) -> ContentPageTreeNodeOut: ...
+
+    async def _load_page_route_tree_meta(
+        self,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+    ) -> tuple[str, UUID | None, int]: ...
 
     async def _ensure_page_content_type_id(self, *, workspace_id: UUID, site_id: UUID) -> UUID: ...
 
@@ -169,6 +182,9 @@ class WorkspaceContentPagesMixin:
         *,
         entry: PageEntryLike,
         user_summary_by_id: dict[UUID, SitePageUserSummaryOut],
+        path: str,
+        parent_id: UUID | None,
+        sort_order: int,
     ) -> ContentPageTreeNodeOut:
         field_values = getattr(entry, "field_values", None)
         raw_description = field_values.get("description") if isinstance(field_values, dict) else None
@@ -179,14 +195,13 @@ class WorkspaceContentPagesMixin:
         if updated_by_user_id is not None:
             updated_by = user_summary_by_id.get(UUID(str(updated_by_user_id)))
 
-        parent_id = getattr(entry, "parent_entry_id", None)
         return ContentPageTreeNodeOut(
             id=UUID(str(entry.id)),
             title=(entry.title if isinstance(entry.title, str) else None),
             description=description,
-            path=(str(entry.path) if isinstance(entry.path, str) else "/"),
-            parent_id=(UUID(str(parent_id)) if parent_id is not None else None),
-            sort_order=int(getattr(entry, "sort_order", 0) or 0),
+            path=path,
+            parent_id=parent_id,
+            sort_order=int(sort_order or 0),
             visibility=_as_visibility(str(entry.visibility)),
             draft_revision=int(entry.draft_revision or 0),
             published_revision=(int(entry.published_revision) if entry.published_revision is not None else None),
@@ -194,6 +209,30 @@ class WorkspaceContentPagesMixin:
             updated_by=updated_by,
             children=[],
         )
+
+    async def _load_page_route_tree_meta(
+        self: PagesServiceProtocol,
+        *,
+        site_id: UUID,
+        page_id: UUID,
+    ) -> tuple[str, UUID | None, int]:
+        route = (
+            await ContentRouteRecord
+            .filter(site_id=site_id, entry_id=page_id, is_active=True)
+            .order_by("created_at", "id")
+            .first()
+        )
+        if route is None:
+            raise Conflict("Page route missing", error="PAGE_ROUTE_MISSING")
+
+        tree = await ContentTreeNodeRecord.get_or_none(site_id=site_id, entry_id=page_id)
+        if tree is None:
+            raise Conflict("Page tree node missing", error="PAGE_TREE_NODE_MISSING")
+
+        parent_raw = getattr(tree, "parent_entry_id", None)
+        parent_id = UUID(str(parent_raw)) if parent_raw is not None else None
+        sort_order = int(getattr(tree, "sort_order", 0) or 0)
+        return str(route.path), parent_id, sort_order
 
     async def _ensure_page_content_type_id(self: PagesServiceProtocol, *, workspace_id: UUID, site_id: UUID) -> UUID:
         record = await self.repo.get_type_by_kind(workspace_id=workspace_id, site_id=site_id, kind="page")
@@ -252,14 +291,14 @@ class WorkspaceContentPagesMixin:
         while cursor_id is not None:
             if cursor_id == entry_id:
                 raise Conflict("Parent cycle detected", error="PARENT_PAGE_CYCLE")
-            parent = await self.repo.get_entry_by_id(
+            node = await ContentTreeNodeRecord.get_or_none(
                 workspace_id=workspace_id,
                 site_id=site_id,
                 entry_id=cursor_id,
             )
-            if parent is None:
+            if node is None:
                 return
-            next_parent = getattr(parent, "parent_entry_id", None)
+            next_parent = getattr(node, "parent_entry_id", None)
             cursor_id = UUID(str(next_parent)) if next_parent is not None else None
 
     async def list_pages_tree(self: PagesServiceProtocol, *, site_id: UUID) -> PageData[ContentPageTreeNodeOut]:
@@ -270,15 +309,53 @@ class WorkspaceContentPagesMixin:
         await self.site_service.get_site_by_id(site_id=site_id)
 
         entries = await self.repo.list_page_entries(workspace_id=workspace_id, site_id=site_id)
+        entry_ids = [UUID(str(e.id)) for e in entries]
+
+        routes = (
+            await ContentRouteRecord
+            .filter(site_id=site_id, entry_id__in=entry_ids, is_active=True)
+            .order_by("created_at", "id")
+            .all()
+        )
+        path_by_entry_id: dict[UUID, str] = {}
+        for route in routes:
+            entry_id = UUID(str(route.entry_id))
+            if entry_id in path_by_entry_id:
+                continue
+            path_by_entry_id[entry_id] = str(route.path)
+
+        tree_nodes = await ContentTreeNodeRecord.filter(site_id=site_id, entry_id__in=entry_ids).all()
+        tree_by_entry_id = {UUID(str(node.entry_id)): node for node in tree_nodes}
+
         updated_by_user_ids = {
             UUID(str(uid)) for uid in (getattr(e, "updated_by_user_id", None) for e in entries) if uid is not None
         }
         user_summary_by_id = await self._load_page_user_summaries(user_ids=updated_by_user_ids)
 
-        nodes = [
-            self._to_page_tree_node(entry=cast(PageEntryLike, e), user_summary_by_id=user_summary_by_id)
-            for e in entries
-        ]
+        nodes: list[ContentPageTreeNodeOut] = []
+        for entry in entries:
+            entry_id = UUID(str(entry.id))
+            path = path_by_entry_id.get(entry_id)
+            if path is None:
+                raise Conflict("Page route missing", error="PAGE_ROUTE_MISSING")
+
+            tree = tree_by_entry_id.get(entry_id)
+            if tree is None:
+                raise Conflict("Page tree node missing", error="PAGE_TREE_NODE_MISSING")
+
+            parent_raw = getattr(tree, "parent_entry_id", None)
+            parent_id = UUID(str(parent_raw)) if parent_raw is not None else None
+            sort_order = int(getattr(tree, "sort_order", 0) or 0)
+
+            nodes.append(
+                self._to_page_tree_node(
+                    entry=cast(PageEntryLike, entry),
+                    user_summary_by_id=user_summary_by_id,
+                    path=path,
+                    parent_id=parent_id,
+                    sort_order=sort_order,
+                )
+            )
         tree = build_pages_tree(nodes)
 
         total = int(len(entries))
@@ -291,6 +368,32 @@ class WorkspaceContentPagesMixin:
             pages=(1 if total > 0 else 0),
             next=None,
             prev=None,
+        )
+
+    async def repair_pages_route_tree(
+        self: PagesServiceProtocol,
+        *,
+        site_id: UUID,
+    ) -> ContentPageRouteTreeRepairOut:
+        if not self.settings.database.enabled:
+            raise Conflict("Site pages require database storage", error="PAGES_DB_REQUIRED")
+
+        workspace_id = await self._resolve_workspace_id_for_site(site_id=site_id)
+        await self.site_service.get_site_by_id(site_id=site_id)
+
+        entries = await self.repo.list_page_entries(workspace_id=workspace_id, site_id=site_id)
+        entry_ids = [UUID(str(entry.id)) for entry in entries]
+        stats = await repair_legacy_page_route_tree(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            page_entry_ids=entry_ids,
+        )
+        return ContentPageRouteTreeRepairOut(
+            missing_routes=stats.missing_routes,
+            missing_tree_nodes=stats.missing_tree_nodes,
+            repaired_routes=stats.repaired_routes,
+            repaired_tree_nodes=stats.repaired_tree_nodes,
+            orphan_parents_detached=stats.orphan_parents_detached,
         )
 
     async def create_page(
@@ -351,7 +454,17 @@ class WorkspaceContentPagesMixin:
         user_summary_by_id = await self._load_page_user_summaries(
             user_ids={actor_user_id} if actor_user_id is not None else set(),
         )
-        return self._to_page_tree_node(entry=cast(PageEntryLike, created), user_summary_by_id=user_summary_by_id)
+        path, parent_id, sort_order = await self._load_page_route_tree_meta(
+            site_id=site_id,
+            page_id=UUID(str(created.id)),
+        )
+        return self._to_page_tree_node(
+            entry=cast(PageEntryLike, created),
+            user_summary_by_id=user_summary_by_id,
+            path=path,
+            parent_id=parent_id,
+            sort_order=sort_order,
+        )
 
     async def get_page(self: PagesServiceProtocol, *, site_id: UUID, page_id: UUID) -> ContentPageTreeNodeOut:
         if not self.settings.database.enabled:
@@ -364,7 +477,17 @@ class WorkspaceContentPagesMixin:
         user_summary_by_id = await self._load_page_user_summaries(
             user_ids={UUID(str(updated_by_user_id))} if updated_by_user_id is not None else set(),
         )
-        return self._to_page_tree_node(entry=cast(PageEntryLike, entry), user_summary_by_id=user_summary_by_id)
+        path, parent_id, sort_order = await self._load_page_route_tree_meta(
+            site_id=site_id,
+            page_id=UUID(str(entry.id)),
+        )
+        return self._to_page_tree_node(
+            entry=cast(PageEntryLike, entry),
+            user_summary_by_id=user_summary_by_id,
+            path=path,
+            parent_id=parent_id,
+            sort_order=sort_order,
+        )
 
     async def update_page(
         self: PagesServiceProtocol,
@@ -445,7 +568,17 @@ class WorkspaceContentPagesMixin:
         user_summary_by_id = await self._load_page_user_summaries(
             user_ids={UUID(str(updated_by_user_id))} if updated_by_user_id is not None else set(),
         )
-        return self._to_page_tree_node(entry=cast(PageEntryLike, updated), user_summary_by_id=user_summary_by_id)
+        path, parent_id, sort_order = await self._load_page_route_tree_meta(
+            site_id=site_id,
+            page_id=UUID(str(updated.id)),
+        )
+        return self._to_page_tree_node(
+            entry=cast(PageEntryLike, updated),
+            user_summary_by_id=user_summary_by_id,
+            path=path,
+            parent_id=parent_id,
+            sort_order=sort_order,
+        )
 
     async def move_page(
         self: PagesServiceProtocol,
@@ -483,7 +616,17 @@ class WorkspaceContentPagesMixin:
         user_summary_by_id = await self._load_page_user_summaries(
             user_ids={UUID(str(updated_by_user_id))} if updated_by_user_id is not None else set(),
         )
-        return self._to_page_tree_node(entry=cast(PageEntryLike, updated), user_summary_by_id=user_summary_by_id)
+        path, parent_id, sort_order = await self._load_page_route_tree_meta(
+            site_id=site_id,
+            page_id=UUID(str(updated.id)),
+        )
+        return self._to_page_tree_node(
+            entry=cast(PageEntryLike, updated),
+            user_summary_by_id=user_summary_by_id,
+            path=path,
+            parent_id=parent_id,
+            sort_order=sort_order,
+        )
 
     async def delete_page(self: PagesServiceProtocol, *, site_id: UUID, page_id: UUID) -> ContentPageDeleteOut:
         if not self.settings.database.enabled:
@@ -563,6 +706,7 @@ class WorkspaceContentPagesMixin:
 
         workspace_id = await self._resolve_workspace_id_for_site(site_id=site_id)
         entry = await self._get_page_entry(workspace_id=workspace_id, site_id=site_id, entry_id=page_id)
+        page_path, _, _ = await self._load_page_route_tree_meta(site_id=site_id, page_id=page_id)
 
         field_values: dict[str, object] = {"title": (entry.title or "")} if entry.title else {}
         base = getattr(entry, "field_values", None)
@@ -570,8 +714,7 @@ class WorkspaceContentPagesMixin:
         if isinstance(raw_description, str) and raw_description.strip():
             field_values["description"] = raw_description.strip()
         meta = payload.meta if isinstance(payload.meta, dict) else {}
-        if isinstance(entry.path, str):
-            meta = {**meta, "kind": "page", "path": entry.path}
+        meta = {**meta, "kind": "page", "path": page_path}
 
         _, revision = await self.repo.save_entry_draft(
             workspace_id=workspace_id,
@@ -586,7 +729,7 @@ class WorkspaceContentPagesMixin:
         return ContentPageDraftSaveOut(
             site_id=site_id,
             page_id=page_id,
-            path=(str(entry.path) if isinstance(entry.path, str) else "/"),
+            path=page_path,
             revision=revision.revision,
             saved_at_ms=self._now_ms(),
         )
@@ -604,6 +747,7 @@ class WorkspaceContentPagesMixin:
 
         workspace_id = await self._resolve_workspace_id_for_site(site_id=site_id)
         entry = await self._get_page_entry(workspace_id=workspace_id, site_id=site_id, entry_id=page_id)
+        page_path, _, _ = await self._load_page_route_tree_meta(site_id=site_id, page_id=page_id)
 
         _, revision = await self.repo.publish_entry(
             workspace_id=workspace_id,
@@ -615,7 +759,7 @@ class WorkspaceContentPagesMixin:
         return ContentPagePublishOut(
             site_id=site_id,
             page_id=page_id,
-            path=(str(entry.path) if isinstance(entry.path, str) else "/"),
+            path=page_path,
             revision=revision,
             published_at_ms=self._now_ms(),
         )
@@ -632,6 +776,7 @@ class WorkspaceContentPagesMixin:
 
         workspace_id = await self._resolve_workspace_id_for_site(site_id=site_id)
         entry = await self._get_page_entry(workspace_id=workspace_id, site_id=site_id, entry_id=page_id)
+        page_path, _, _ = await self._load_page_route_tree_meta(site_id=site_id, page_id=page_id)
 
         await self.repo.unpublish_entry(
             workspace_id=workspace_id,
@@ -642,7 +787,7 @@ class WorkspaceContentPagesMixin:
         return ContentPageUnpublishOut(
             site_id=site_id,
             page_id=page_id,
-            path=(str(entry.path) if isinstance(entry.path, str) else "/"),
+            path=page_path,
             unpublished_at_ms=self._now_ms(),
         )
 

@@ -150,9 +150,14 @@ function WorkspacePagesHome() {
               {t("editor:EDITOR_PAGES_DESC")}
             </Typography.Paragraph>
           </div>
-          <Button type="primary" onClick={() => setCreateOpen(true)}>
-            {t("editor:EDITOR_PAGES_CREATE")}
-          </Button>
+          <Space size={8} wrap>
+            <Link to="/w/$workspaceId/blocks/" params={{ workspaceId }}>
+              <Button>{t("editor:EDITOR_REUSABLE_BLOCKS_TITLE")}</Button>
+            </Link>
+            <Button type="primary" onClick={() => setCreateOpen(true)}>
+              {t("editor:EDITOR_PAGES_CREATE")}
+            </Button>
+          </Space>
         </div>
 
         <div className="mt-4">

@@ -705,12 +705,18 @@ class AuthService(BaseService):
         if self._coerce_token_version(user) != token_version:
             raise Unauthorized(message=self._ta("TOKEN_STALE", "Token 已失效"), error="TOKEN_STALE")
 
-        record = await store.get(jti)
-        if not record:
+        record_raw = await store.get(jti)
+        if record_raw is None:
             raise Unauthorized(
                 message=self._ta("REFRESH_NOT_FOUND", "Refresh Token 已失效"),
                 error="REFRESH_NOT_FOUND",
             )
+        if not isinstance(record_raw, dict):
+            raise Unauthorized(
+                message=self._ta("REFRESH_INVALID", "Refresh Token 无效"),
+                error="REFRESH_INVALID",
+            )
+        record = cast(dict[str, object], record_raw)
 
         status = record.get("status")
         if status != REFRESH_STATUS_ACTIVE:
@@ -761,11 +767,14 @@ class AuthService(BaseService):
         await store.mark_rotated(jti, replaced_by=new_jti)
         effective_context = request_context
         if effective_context is None:
+            raw_ip_address = record.get("ip_address")
+            raw_user_agent = record.get("user_agent")
             effective_context = AuthRequestContext(
-                ip_address=record.get("ip_address") if isinstance(record.get("ip_address"), str) else None,
-                user_agent=record.get("user_agent") if isinstance(record.get("user_agent"), str) else None,
+                ip_address=(raw_ip_address if isinstance(raw_ip_address, str) else None),
+                user_agent=(raw_user_agent if isinstance(raw_user_agent, str) else None),
             )
-        auth_method = record.get("auth_method") if isinstance(record.get("auth_method"), str) else "password"
+        raw_auth_method = record.get("auth_method")
+        auth_method = (raw_auth_method.strip() or "password") if isinstance(raw_auth_method, str) else "password"
         new_record = self._build_refresh_record(
             jti=new_jti,
             user_id=resolved_user_id,

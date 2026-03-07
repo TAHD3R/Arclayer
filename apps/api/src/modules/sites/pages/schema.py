@@ -177,4 +177,25 @@ class SitePageRollbackOut(BaseSchema):
     rolled_back_at_ms: int = Field(..., description="Rollback timestamp in milliseconds (UTC).")
 
 
+class SitePageRouteTreeRepairOut(BaseSchema):
+    """
+    Repair result for legacy page Route/Tree capability records.
+
+    Used by workspace content endpoints to backfill `content_routes` and `content_tree_nodes`
+    for existing pages when upgrading from legacy page columns.
+    """
+
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    missing_routes: int = Field(..., ge=0, description="Number of pages that were missing an active route binding.")
+    missing_tree_nodes: int = Field(..., ge=0, description="Number of pages that were missing a tree node record.")
+    repaired_routes: int = Field(..., ge=0, description="Number of route bindings repaired/created.")
+    repaired_tree_nodes: int = Field(..., ge=0, description="Number of tree nodes repaired/created.")
+    orphan_parents_detached: int = Field(
+        default=0,
+        ge=0,
+        description="Number of repaired tree nodes whose legacy parent id was missing and was normalized to null.",
+    )
+
+
 SitePageTreeNodeOut.model_rebuild()

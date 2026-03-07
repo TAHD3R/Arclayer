@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
+import { Route as WWorkspaceIdBlocksIndexRouteImport } from './routes/w/$workspaceId/blocks/index'
 import { Route as WWorkspaceIdPagesPageIdIndexRouteImport } from './routes/w/$workspaceId/pages/$pageId/index'
+import { Route as WWorkspaceIdBlocksEntryIdIndexRouteImport } from './routes/w/$workspaceId/blocks/$entryId/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +25,75 @@ const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
   path: '/w/$workspaceId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WWorkspaceIdBlocksIndexRoute = WWorkspaceIdBlocksIndexRouteImport.update({
+  id: '/w/$workspaceId/blocks/',
+  path: '/w/$workspaceId/blocks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WWorkspaceIdPagesPageIdIndexRoute =
   WWorkspaceIdPagesPageIdIndexRouteImport.update({
     id: '/w/$workspaceId/pages/$pageId/',
     path: '/w/$workspaceId/pages/$pageId/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const WWorkspaceIdBlocksEntryIdIndexRoute =
+  WWorkspaceIdBlocksEntryIdIndexRouteImport.update({
+    id: '/w/$workspaceId/blocks/$entryId/',
+    path: '/w/$workspaceId/blocks/$entryId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/w/$workspaceId/blocks/': typeof WWorkspaceIdBlocksIndexRoute
+  '/w/$workspaceId/blocks/$entryId/': typeof WWorkspaceIdBlocksEntryIdIndexRoute
   '/w/$workspaceId/pages/$pageId/': typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
+  '/w/$workspaceId/blocks': typeof WWorkspaceIdBlocksIndexRoute
+  '/w/$workspaceId/blocks/$entryId': typeof WWorkspaceIdBlocksEntryIdIndexRoute
   '/w/$workspaceId/pages/$pageId': typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
+  '/w/$workspaceId/blocks/': typeof WWorkspaceIdBlocksIndexRoute
+  '/w/$workspaceId/blocks/$entryId/': typeof WWorkspaceIdBlocksEntryIdIndexRoute
   '/w/$workspaceId/pages/$pageId/': typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/w/$workspaceId/' | '/w/$workspaceId/pages/$pageId/'
+  fullPaths:
+    | '/'
+    | '/w/$workspaceId/'
+    | '/w/$workspaceId/blocks/'
+    | '/w/$workspaceId/blocks/$entryId/'
+    | '/w/$workspaceId/pages/$pageId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/w/$workspaceId' | '/w/$workspaceId/pages/$pageId'
-  id: '__root__' | '/' | '/w/$workspaceId/' | '/w/$workspaceId/pages/$pageId/'
+  to:
+    | '/'
+    | '/w/$workspaceId'
+    | '/w/$workspaceId/blocks'
+    | '/w/$workspaceId/blocks/$entryId'
+    | '/w/$workspaceId/pages/$pageId'
+  id:
+    | '__root__'
+    | '/'
+    | '/w/$workspaceId/'
+    | '/w/$workspaceId/blocks/'
+    | '/w/$workspaceId/blocks/$entryId/'
+    | '/w/$workspaceId/pages/$pageId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
+  WWorkspaceIdBlocksIndexRoute: typeof WWorkspaceIdBlocksIndexRoute
+  WWorkspaceIdBlocksEntryIdIndexRoute: typeof WWorkspaceIdBlocksEntryIdIndexRoute
   WWorkspaceIdPagesPageIdIndexRoute: typeof WWorkspaceIdPagesPageIdIndexRoute
 }
 
@@ -76,11 +113,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/w/$workspaceId/blocks/': {
+      id: '/w/$workspaceId/blocks/'
+      path: '/w/$workspaceId/blocks'
+      fullPath: '/w/$workspaceId/blocks/'
+      preLoaderRoute: typeof WWorkspaceIdBlocksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/w/$workspaceId/pages/$pageId/': {
       id: '/w/$workspaceId/pages/$pageId/'
       path: '/w/$workspaceId/pages/$pageId'
       fullPath: '/w/$workspaceId/pages/$pageId/'
       preLoaderRoute: typeof WWorkspaceIdPagesPageIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/w/$workspaceId/blocks/$entryId/': {
+      id: '/w/$workspaceId/blocks/$entryId/'
+      path: '/w/$workspaceId/blocks/$entryId'
+      fullPath: '/w/$workspaceId/blocks/$entryId/'
+      preLoaderRoute: typeof WWorkspaceIdBlocksEntryIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -89,6 +140,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   WWorkspaceIdIndexRoute: WWorkspaceIdIndexRoute,
+  WWorkspaceIdBlocksIndexRoute: WWorkspaceIdBlocksIndexRoute,
+  WWorkspaceIdBlocksEntryIdIndexRoute: WWorkspaceIdBlocksEntryIdIndexRoute,
   WWorkspaceIdPagesPageIdIndexRoute: WWorkspaceIdPagesPageIdIndexRoute,
 }
 export const routeTree = rootRouteImport

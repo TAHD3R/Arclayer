@@ -256,9 +256,14 @@ export type {
   SiteGlobalSectionCreateIn,
   SiteGlobalSectionUpdateIn,
   SiteGlobalSectionDeleteOut,
+  SiteRouteTemplate,
+  SiteRouteTemplateCreateIn,
+  SiteRouteTemplateUpdateIn,
+  SiteRouteTemplateDeleteOut,
   SiteVisualSitemapNode,
   SiteVisualSitemapOut,
 } from "./workspace-site";
+export type { SitePageRouteTreeRepairOut } from "./site-page-repair";
 
 // Extensions platform
 export type {

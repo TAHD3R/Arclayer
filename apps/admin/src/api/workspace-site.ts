@@ -16,6 +16,7 @@ import type {
   SitePagePublishOut,
   SitePageRevisionOut,
   SitePageUnpublishOut,
+  SitePageRouteTreeRepairOut,
   SiteEntryRevisionOut,
   SiteEntryType,
   SiteEntry,
@@ -38,6 +39,10 @@ import type {
   SiteGlobalSectionCreateIn,
   SiteGlobalSectionUpdateIn,
   SiteGlobalSectionDeleteOut,
+  SiteRouteTemplate,
+  SiteRouteTemplateCreateIn,
+  SiteRouteTemplateUpdateIn,
+  SiteRouteTemplateDeleteOut,
   SiteVisualSitemapOut,
 } from "@/types/api";
 
@@ -76,6 +81,15 @@ export async function listWorkspaceSitePagesTree(
   workspaceId: string,
 ): Promise<PageData<SitePageTreeNode>> {
   return api.get<PageData<SitePageTreeNode>>(workspacePath(workspaceId, "/content/pages/tree"));
+}
+
+export async function repairWorkspaceSitePagesRouteTree(
+  workspaceId: string,
+): Promise<SitePageRouteTreeRepairOut> {
+  return api.post<SitePageRouteTreeRepairOut>(
+    workspacePath(workspaceId, "/content/pages/repair-route-tree"),
+    {},
+  );
 }
 
 export async function getWorkspaceSitePage(
@@ -333,6 +347,46 @@ export async function deleteWorkspaceSiteGlobalSection(
 ): Promise<SiteGlobalSectionDeleteOut> {
   return api.delete<SiteGlobalSectionDeleteOut>(
     workspacePath(workspaceId, `/content/structure/global-slots/${encodeURIComponent(sectionId)}`),
+  );
+}
+
+export async function listWorkspaceSiteRouteTemplates(
+  workspaceId: string,
+  params?: { page?: number; size?: number },
+): Promise<PageData<SiteRouteTemplate>> {
+  const query = toQueryString({ page: params?.page, size: params?.size });
+  return api.get<PageData<SiteRouteTemplate>>(
+    workspacePath(workspaceId, `/content/structure/routes${query}`),
+  );
+}
+
+export async function createWorkspaceSiteRouteTemplate(
+  workspaceId: string,
+  payload: SiteRouteTemplateCreateIn,
+): Promise<SiteRouteTemplate> {
+  return api.post<SiteRouteTemplate>(
+    workspacePath(workspaceId, "/content/structure/routes"),
+    payload,
+  );
+}
+
+export async function patchWorkspaceSiteRouteTemplate(
+  workspaceId: string,
+  routeTemplateId: string,
+  payload: SiteRouteTemplateUpdateIn,
+): Promise<SiteRouteTemplate> {
+  return api.patch<SiteRouteTemplate>(
+    workspacePath(workspaceId, `/content/structure/routes/${encodeURIComponent(routeTemplateId)}`),
+    payload,
+  );
+}
+
+export async function deleteWorkspaceSiteRouteTemplate(
+  workspaceId: string,
+  routeTemplateId: string,
+): Promise<SiteRouteTemplateDeleteOut> {
+  return api.delete<SiteRouteTemplateDeleteOut>(
+    workspacePath(workspaceId, `/content/structure/routes/${encodeURIComponent(routeTemplateId)}`),
   );
 }
 

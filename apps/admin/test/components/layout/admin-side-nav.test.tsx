@@ -243,7 +243,9 @@ describe("AdminSiderNav collapsed groups", () => {
 
     const activeItem = await screen.findByRole("menuitem", { name: "Invitations" });
     expect(activeItem).toHaveAttribute("data-active", "true");
-    expect(screen.getByRole("menuitem", { name: "Members" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("menuitem", { name: "Members" })).toBeVisible();
+    });
   });
 
   it("closes the collapsed group dropdown when moving onto a leaf item", async () => {

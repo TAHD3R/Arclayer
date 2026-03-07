@@ -5,9 +5,12 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.src.common.utils.public_ids import decode_public_id
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
+from apps.api.src.models.content.route import ContentRouteRecord
+from apps.api.src.models.content.tree import ContentTreeNodeRecord
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
 from apps.api.src.models.organization.user import User
 from apps.api.src.models.workspaces.workspace import Workspace
@@ -136,6 +139,15 @@ async def test_workspace_content_pages_flow_single_site_model(prepared_db, integ
             assert page["description"] == "About page"
             assert page["updatedBy"] is not None
             assert page["updatedBy"]["email"] == "owner@example.com"
+
+            site_uuid = decode_public_id(site_id)
+            page_uuid = decode_public_id(page_id)
+            route = await ContentRouteRecord.get_or_none(site_id=site_uuid, entry_id=page_uuid)
+            assert route is not None
+            assert route.path == "/about"
+            tree_node = await ContentTreeNodeRecord.get_or_none(site_id=site_uuid, entry_id=page_uuid)
+            assert tree_node is not None
+            assert tree_node.parent_entry_id is None
 
             # Save a draft revision.
             res4 = await client.post(

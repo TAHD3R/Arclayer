@@ -1,9 +1,15 @@
 import { api } from "@/lib/http";
 import type { PageData } from "@/types/api";
 import type {
+  ContentEntryCreateIn,
+  ContentEntryDraftSaveIn,
+  ContentEntryDraftSaveOut,
   ContentEntryOut,
+  ContentEntryPublishIn,
+  ContentEntryPublishOut,
   ContentEntryRevisionOut,
   ContentEntryRevisionState,
+  ContentEntryUnpublishOut,
 } from "@/types/api/content-entries";
 
 export async function listWorkspaceContentEntries(
@@ -18,6 +24,22 @@ export async function listWorkspaceContentEntries(
   return api.get<PageData<ContentEntryOut>>(`/workspaces/${workspaceId}/content/entries${query}`);
 }
 
+export async function createWorkspaceContentEntry(
+  workspaceId: string,
+  payload: ContentEntryCreateIn,
+): Promise<ContentEntryOut> {
+  return api.post<ContentEntryOut>(`/workspaces/${workspaceId}/content/entries`, payload);
+}
+
+export async function getWorkspaceContentEntry(
+  workspaceId: string,
+  entryId: string,
+): Promise<ContentEntryOut> {
+  return api.get<ContentEntryOut>(
+    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}`,
+  );
+}
+
 export async function getWorkspaceContentEntryRevision(
   workspaceId: string,
   entryId: string,
@@ -25,5 +47,37 @@ export async function getWorkspaceContentEntryRevision(
 ): Promise<ContentEntryRevisionOut> {
   return api.get<ContentEntryRevisionOut>(
     `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/revisions/${encodeURIComponent(state)}`,
+  );
+}
+
+export async function saveWorkspaceContentEntryDraft(
+  workspaceId: string,
+  entryId: string,
+  payload: ContentEntryDraftSaveIn,
+): Promise<ContentEntryDraftSaveOut> {
+  return api.post<ContentEntryDraftSaveOut>(
+    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/draft`,
+    payload,
+  );
+}
+
+export async function publishWorkspaceContentEntry(
+  workspaceId: string,
+  entryId: string,
+  payload: ContentEntryPublishIn = {},
+): Promise<ContentEntryPublishOut> {
+  return api.post<ContentEntryPublishOut>(
+    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/publish`,
+    payload,
+  );
+}
+
+export async function unpublishWorkspaceContentEntry(
+  workspaceId: string,
+  entryId: string,
+): Promise<ContentEntryUnpublishOut> {
+  return api.post<ContentEntryUnpublishOut>(
+    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/unpublish`,
+    {},
   );
 }

@@ -69,11 +69,16 @@ class AuthSessionService(BaseService):
             return None
         last_used_at = _parse_ts(record.get("last_used_at"))
         current = bool(current_session_id and current_session_id == session_id)
-        ip_address = record.get("ip_address") if isinstance(record.get("ip_address"), str) else None
-        user_agent = record.get("user_agent") if isinstance(record.get("user_agent"), str) else None
-        device_label = record.get("device_label") if isinstance(record.get("device_label"), str) else None
-        location_label = record.get("location_label") if isinstance(record.get("location_label"), str) else None
-        auth_method = record.get("auth_method") if isinstance(record.get("auth_method"), str) else None
+        raw_ip_address = record.get("ip_address")
+        ip_address = raw_ip_address if isinstance(raw_ip_address, str) else None
+        raw_user_agent = record.get("user_agent")
+        user_agent = raw_user_agent if isinstance(raw_user_agent, str) else None
+        raw_device_label = record.get("device_label")
+        device_label = raw_device_label if isinstance(raw_device_label, str) else None
+        raw_location_label = record.get("location_label")
+        location_label = raw_location_label if isinstance(raw_location_label, str) else None
+        raw_auth_method = record.get("auth_method")
+        auth_method = raw_auth_method if isinstance(raw_auth_method, str) else None
         if location_label is None:
             location_label = await self._lookup_location_label(ip_address=ip_address)
         return AuthSessionOut(

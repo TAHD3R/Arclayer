@@ -10,6 +10,7 @@ from uuid import UUID
 
 from apps.api.src.core.exceptions import NotFound
 from apps.api.src.models.content.content import ContentEntryRecord, ContentRevisionRecord
+from apps.api.src.models.content.route import ContentRouteRecord
 from apps.api.src.models.sites.site import SiteRecord
 from apps.api.src.modules.sites.shared.service import normalize_path
 
@@ -73,9 +74,19 @@ class RuntimeRepositoryMixin:
         path: str,
     ) -> ContentEntryRecord | None:
         pathname = normalize_path(path)
-        return await ContentEntryRecord.get_or_none(site_id=site_id, type__kind="page", path=pathname).prefetch_related(
-            "type"
+        route = (
+            await ContentRouteRecord
+            .filter(site_id=site_id, path=pathname, is_active=True)
+            .order_by("created_at", "id")
+            .first()
         )
+        if route is None:
+            return None
+        return await ContentEntryRecord.get_or_none(
+            id=UUID(str(route.entry_id)),
+            site_id=site_id,
+            type__kind="page",
+        ).prefetch_related("type")
 
     async def get_content_revision_by_number(self, *, entry_id: UUID, revision: int) -> ContentRevisionRecord | None:
         return await ContentRevisionRecord.get_or_none(entry_id=entry_id, revision=int(revision))

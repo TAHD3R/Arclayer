@@ -61,19 +61,7 @@ class ContentEntryRecord(BaseModel):
     visibility = fields.CharField(max_length=16, default="public")
     locale = fields.CharField(max_length=16, default="zh-CN")
 
-    # Page-specific fields (populated when ContentType.kind == "page").
-    # Kept nullable so non-page entries don't carry page routing metadata.
-    path = fields.CharField(max_length=512, null=True, db_index=True)
-    parent_entry = fields.ForeignKeyField(
-        "models.ContentEntryRecord",
-        related_name="child_entries",
-        null=True,
-        on_delete=fields.SET_NULL,
-    )
-    sort_order = fields.IntField(default=0)
-
     field_values = fields.JSONField(null=True)
-    page_blueprint = fields.JSONField(null=True)
 
     draft_revision = fields.IntField(default=0)
     published_revision = fields.IntField(null=True)

@@ -15,7 +15,11 @@ class _CapabilityProbe:
 
 
 def test_two_factor_capability_route_is_registered() -> None:
-    paths = {route.path for route in router.routes}
+    paths: set[str] = set()
+    for route in router.routes:
+        raw_path = getattr(route, "path", None)
+        if isinstance(raw_path, str):
+            paths.add(raw_path)
 
     assert "/2fa/capabilities" in paths
 

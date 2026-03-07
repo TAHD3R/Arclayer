@@ -47,6 +47,29 @@ class WorkspaceContentBlocksMixin:
         @staticmethod
         def _walk_menu_items(items: list[ContentMenuItemOut]) -> list[ContentMenuItemOut]: ...
 
+    async def _entry_contains_any_marker(
+        self,
+        *,
+        entry_id: UUID,
+        draft_revision: int,
+        published_revision: int | None,
+        markers: set[str],
+    ) -> bool:
+        revisions: list[int] = []
+        if draft_revision > 0:
+            revisions.append(int(draft_revision))
+        if published_revision is not None and int(published_revision) not in revisions:
+            revisions.append(int(published_revision))
+
+        for revision in revisions:
+            record = await self.repo.get_revision_by_number(entry_id=entry_id, revision=revision)
+            if record is None:
+                raise NotFound("Revision not found", error="CONTENT_ENTRY_REVISION_NOT_FOUND")
+            snapshot_text = json.dumps(record.snapshot, ensure_ascii=True)
+            if any(marker in snapshot_text for marker in markers):
+                return True
+        return False
+
     async def list_blocks(self, *, site_id: UUID) -> list[ContentBlockOut]:
         raw = await self._get_setting_list(site_id=site_id, namespace=CONTENT_BLOCKS_NAMESPACE)
         out: list[ContentBlockOut] = []
@@ -172,16 +195,20 @@ class WorkspaceContentBlocksMixin:
 
         entries = await self.repo.list_entries(workspace_id=workspace_id, site_id=site_id)
         for entry in entries:
-            payload = {
-                "page_blueprint": entry.page_blueprint,
-                "field_values": entry.field_values,
-            }
-            payload_text = json.dumps(payload, ensure_ascii=True)
-            if any(marker in payload_text for marker in block_markers):
+            entry_id = UUID(str(entry.id))
+            draft_revision = int(getattr(entry, "draft_revision", 0) or 0)
+            published_revision_raw = getattr(entry, "published_revision", None)
+            published_revision = int(published_revision_raw) if published_revision_raw is not None else None
+            if await self._entry_contains_any_marker(
+                entry_id=entry_id,
+                draft_revision=draft_revision,
+                published_revision=published_revision,
+                markers=block_markers,
+            ):
                 usages.append(
                     ContentBlockUsageOut(
                         source="entry",
-                        source_id=UUID(str(entry.id)),
+                        source_id=entry_id,
                         path="snapshot",
                     )
                 )

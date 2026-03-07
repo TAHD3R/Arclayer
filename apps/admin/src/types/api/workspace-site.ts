@@ -257,6 +257,29 @@ export type SiteGlobalSectionDeleteOut = {
   id: string;
 };
 
+export type SiteRouteTemplate = {
+  id: string;
+  siteId: string;
+  pathPattern: string;
+  entryTypeId: string;
+  entryTypeCode: string;
+  templatePageRevisionId?: string | null;
+  isActive: boolean;
+};
+
+export type SiteRouteTemplateCreateIn = {
+  pathPattern: string;
+  entryTypeCode: string;
+  templatePageRevisionId?: string | null;
+  isActive?: boolean;
+};
+
+export type SiteRouteTemplateUpdateIn = Partial<SiteRouteTemplateCreateIn>;
+
+export type SiteRouteTemplateDeleteOut = {
+  templateId: string;
+};
+
 export type SiteVisualSitemapNode = {
   id: string;
   title: string;

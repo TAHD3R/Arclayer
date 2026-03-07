@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Select, Table, Tag } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { Button } from "antd";
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { listWorkspaceContentModels, type ContentModelSummary } from "@/api/content-models";
+import {
+  createWorkspaceContentView,
+  listWorkspaceContentViews,
+  previewWorkspaceContentView,
+} from "@/api/content-views";
 import {
   createWorkspaceSiteEntry,
   listWorkspaceSiteEntries,
@@ -22,237 +25,24 @@ import {
   CreateContentEntryDialog,
   type CreateContentEntryInput,
 } from "./create-content-entry-dialog";
-
-type LibraryRow = {
-  id: string;
-  title: string;
-  slug: string;
-  status: "draft" | "published";
-  updatedAt: string | null;
-  draftRevision: number;
-  publishedRevision: number | null;
-  entryTypeCode: string;
-};
-
-type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
-
-const EMPTY_ROWS: LibraryRow[] = [];
-
-function useLibraryModelsQuery(workspaceId: string | null) {
-  return useQuery({
-    queryKey: ["content", "models", workspaceId],
-    enabled: Boolean(workspaceId),
-    queryFn: async () => listWorkspaceContentModels(String(workspaceId)),
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-}
-
-function mapEntryToRow(entry: {
-  id: string;
-  title?: string | null;
-  slug: string;
-  status?: string;
-  updatedAt?: string;
-  draftRevision: number;
-  publishedRevision?: number | null;
-  entryTypeCode: string;
-}): LibraryRow {
-  return {
-    id: entry.id,
-    title: entry.title || entry.slug,
-    slug: entry.slug,
-    status: entry.publishedRevision ? "published" : "draft",
-    updatedAt: entry.updatedAt ?? null,
-    draftRevision: entry.draftRevision,
-    publishedRevision: entry.publishedRevision ?? null,
-    entryTypeCode: entry.entryTypeCode,
-  };
-}
-
-function buildLibraryRows(
-  items: readonly {
-    id: string;
-    title?: string | null;
-    slug: string;
-    status?: string;
-    updatedAt?: string;
-    draftRevision: number;
-    publishedRevision?: number | null;
-    entryTypeCode: string;
-  }[],
-): LibraryRow[] {
-  return items.map(mapEntryToRow);
-}
-
-function formatRevisionValue(revision: number | null): string {
-  if (!revision) return "-";
-  return `v${revision}`;
-}
-
-function ContentLibraryMetrics(props: { rows: readonly LibraryRow[]; t: TranslationFn }) {
-  const publishedCount = props.rows.filter((row) => row.publishedRevision).length;
-  const draftOnlyCount = props.rows.length - publishedCount;
-  const metrics = [
-    { label: props.t("content_library:LIBRARY_METRIC_TOTAL"), value: props.rows.length },
-    { label: props.t("content_library:LIBRARY_METRIC_DRAFT"), value: draftOnlyCount },
-    { label: props.t("content_library:LIBRARY_METRIC_PUBLISHED"), value: publishedCount },
-  ];
-
-  return (
-    <div className="grid gap-3 md:grid-cols-3">
-      {metrics.map((metric) => (
-        <div key={metric.label} className="rounded-xl border border-border bg-muted/20 p-4">
-          <div className="text-footnote text-label-secondary">{metric.label}</div>
-          <div className="mt-2 text-title1 text-foreground">{metric.value}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ContentLibraryHeader(props: { model: ContentModelSummary; t: TranslationFn }) {
-  return (
-    <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-      <div className="min-w-0">
-        <div className="text-title2 text-foreground">{props.model.name}</div>
-        <div className="text-body text-label-secondary">
-          <span>{props.model.key}</span>
-          <span className="mx-2 text-quaternary">·</span>
-          <span>{props.model.defaultEditor}</span>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {props.model.capabilities.map((capability) => (
-          <Tag key={capability} variant="filled" className="m-0 rounded-md px-2 py-1">
-            {capability}
-          </Tag>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function buildLibraryColumns(opts: {
-  formatUpdatedAt: (value: string | null) => string;
-  processingIds: ReadonlySet<string>;
-  onPublish: (row: LibraryRow) => void;
-  onUnpublish: (row: LibraryRow) => void;
-  t: TranslationFn;
-}): ColumnsType<LibraryRow> {
-  return [
-    { title: opts.t("content_library:LIBRARY_TABLE_TITLE"), dataIndex: "title", key: "title" },
-    { title: opts.t("content_library:LIBRARY_TABLE_SLUG"), dataIndex: "slug", key: "slug" },
-    {
-      title: opts.t("content_library:LIBRARY_TABLE_STATUS"),
-      dataIndex: "status",
-      key: "status",
-      render: (_value, row) => (
-        <Tag color={row.status === "published" ? "green" : "gold"}>
-          {row.status === "published"
-            ? opts.t("content_library:LIBRARY_STATUS_PUBLISHED")
-            : opts.t("content_library:LIBRARY_STATUS_DRAFT")}
-        </Tag>
-      ),
-    },
-    {
-      title: opts.t("content_library:LIBRARY_TABLE_DRAFT_REVISION"),
-      dataIndex: "draftRevision",
-      key: "draftRevision",
-      render: (_value, row) => formatRevisionValue(row.draftRevision),
-    },
-    {
-      title: opts.t("content_library:LIBRARY_TABLE_PUBLISHED_REVISION"),
-      dataIndex: "publishedRevision",
-      key: "publishedRevision",
-      render: (_value, row) => formatRevisionValue(row.publishedRevision),
-    },
-    {
-      title: opts.t("content_library:LIBRARY_TABLE_UPDATED"),
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      render: (_value, row) => opts.formatUpdatedAt(row.updatedAt),
-    },
-    {
-      title: opts.t("content_library:LIBRARY_TABLE_ACTIONS"),
-      key: "actions",
-      render: (_value, row) => {
-        const processing = opts.processingIds.has(row.id);
-        if (row.publishedRevision) {
-          return (
-            <Button
-              size="small"
-              autoInsertSpace={false}
-              loading={processing}
-              disabled={processing}
-              onClick={() => opts.onUnpublish(row)}
-            >
-              {opts.t("content_library:LIBRARY_ACTION_UNPUBLISH")}
-            </Button>
-          );
-        }
-
-        return (
-          <Button
-            type="primary"
-            size="small"
-            autoInsertSpace={false}
-            loading={processing}
-            disabled={processing || row.draftRevision < 1}
-            onClick={() => opts.onPublish(row)}
-          >
-            {opts.t("content_library:LIBRARY_ACTION_PUBLISH")}
-          </Button>
-        );
-      },
-    },
-  ];
-}
-
-function ContentLibraryEntryTable(props: {
-  rows: readonly LibraryRow[];
-  loading: boolean;
-  processingIds: ReadonlySet<string>;
-  formatUpdatedAt: (value: string | null) => string;
-  onPublish: (row: LibraryRow) => void;
-  onUnpublish: (row: LibraryRow) => void;
-  t: TranslationFn;
-}) {
-  const columns = useMemo(
-    () =>
-      buildLibraryColumns({
-        formatUpdatedAt: props.formatUpdatedAt,
-        processingIds: props.processingIds,
-        onPublish: props.onPublish,
-        onUnpublish: props.onUnpublish,
-        t: props.t,
-      }),
-    [props.formatUpdatedAt, props.onPublish, props.onUnpublish, props.processingIds, props.t],
-  );
-
-  return (
-    <Table<LibraryRow>
-      rowKey="id"
-      columns={columns}
-      dataSource={props.rows.length ? [...props.rows] : EMPTY_ROWS}
-      loading={props.loading}
-      pagination={false}
-      locale={{ emptyText: props.t("content_library:LIBRARY_TABLE_EMPTY") }}
-    />
-  );
-}
-
-function addProcessingId(
-  current: ReadonlySet<string>,
-  rowId: string,
-  processing: boolean,
-): Set<string> {
-  const next = new Set(current);
-  if (processing) next.add(rowId);
-  else next.delete(rowId);
-  return next;
-}
+import {
+  ContentLibraryCard,
+  ContentLibraryEntryTable,
+  ContentLibraryMetrics,
+  buildLibraryRows,
+  type LibraryRow,
+} from "./content-library-table";
+import {
+  ContentLibraryToolbar,
+  DEFAULT_LIBRARY_VIEW_ID,
+  addProcessingId,
+  buildPreviewRows,
+  buildViewDsl,
+  filterLibraryModels,
+  filterLibraryViews,
+  useLibraryModelsQuery,
+} from "./content-library-views";
+import { CreateContentViewDialog, type CreateContentViewInput } from "./create-content-view-dialog";
 
 export function ContentLibraryView() {
   const { t } = useTranslation(["content_library", "nav", "common"]);
@@ -260,14 +50,19 @@ export function ContentLibraryView() {
   const queryClient = useQueryClient();
   const dateTime = useAdminDateTimeFormatter({ workspaceId });
   const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedViewId, setSelectedViewId] = useState<string>(DEFAULT_LIBRARY_VIEW_ID);
+  const [pendingViewId, setPendingViewId] = useState<string | null>(null);
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const modelsQuery = useLibraryModelsQuery(workspaceId);
 
   const libraryModels = useMemo(
-    () => (modelsQuery.data?.items ?? []).filter((item) => item.category === "content_library"),
+    () => filterLibraryModels(modelsQuery.data?.items ?? []),
     [modelsQuery.data?.items],
   );
+  const selectedModel = libraryModels.find((item) => item.key === selectedModelKey) ?? null;
+  const empty = !modelsQuery.isLoading && !modelsQuery.error && libraryModels.length === 0;
 
   useEffect(() => {
     if (!libraryModels.length) {
@@ -278,36 +73,88 @@ export function ContentLibraryView() {
     setSelectedModelKey(libraryModels[0]?.key ?? null);
   }, [libraryModels, selectedModelKey]);
 
+  useEffect(() => {
+    setSelectedViewId(DEFAULT_LIBRARY_VIEW_ID);
+    setPendingViewId(null);
+  }, [selectedModelKey]);
+
   const entriesQuery = useQuery({
     queryKey: ["content", "library", "entries", workspaceId, selectedModelKey],
     enabled: Boolean(workspaceId && selectedModelKey),
     queryFn: async () =>
-      listWorkspaceSiteEntries(String(workspaceId), {
-        entryTypeCode: String(selectedModelKey),
-      }),
+      listWorkspaceSiteEntries(String(workspaceId), { entryTypeCode: String(selectedModelKey) }),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+  const viewsQuery = useQuery({
+    queryKey: ["content", "library", "views", workspaceId, selectedModelKey],
+    enabled: Boolean(workspaceId && selectedModelKey),
+    queryFn: async () => listWorkspaceContentViews(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const selectedModel = libraryModels.find((item) => item.key === selectedModelKey) ?? null;
-  const empty = !modelsQuery.isLoading && !modelsQuery.error && libraryModels.length === 0;
-  const rows = useMemo(
-    () => buildLibraryRows(entriesQuery.data?.items ?? []),
-    [entriesQuery.data?.items],
+  const libraryViews = useMemo(
+    () => filterLibraryViews(viewsQuery.data?.items ?? [], selectedModelKey),
+    [selectedModelKey, viewsQuery.data?.items],
+  );
+  const activeSavedView = libraryViews.find((item) => item.id === selectedViewId) ?? null;
+  useEffect(() => {
+    if (!pendingViewId) return;
+    if (!libraryViews.some((item) => item.id === pendingViewId)) return;
+    setSelectedViewId(pendingViewId);
+    setPendingViewId(null);
+  }, [libraryViews, pendingViewId]);
+  useEffect(() => {
+    if (pendingViewId) return;
+    if (selectedViewId !== DEFAULT_LIBRARY_VIEW_ID && !activeSavedView) {
+      setSelectedViewId(DEFAULT_LIBRARY_VIEW_ID);
+    }
+  }, [activeSavedView, pendingViewId, selectedViewId]);
+
+  const viewPreviewQuery = useQuery({
+    queryKey: ["content", "library", "view-preview", workspaceId, selectedViewId],
+    enabled: Boolean(workspaceId && selectedViewId !== DEFAULT_LIBRARY_VIEW_ID),
+    queryFn: async () =>
+      previewWorkspaceContentView(String(workspaceId), selectedViewId, { limit: 100, offset: 0 }),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const rows =
+    selectedViewId === DEFAULT_LIBRARY_VIEW_ID
+      ? buildLibraryRows(entriesQuery.data?.items ?? [])
+      : buildPreviewRows(viewPreviewQuery.data?.items ?? []);
+  const activeDataLoading =
+    selectedViewId === DEFAULT_LIBRARY_VIEW_ID
+      ? entriesQuery.isLoading
+      : viewPreviewQuery.isLoading;
+  const activeDataError =
+    selectedViewId === DEFAULT_LIBRARY_VIEW_ID ? entriesQuery.error : viewPreviewQuery.error;
+  const viewOptions = useMemo(
+    () => [
+      { value: DEFAULT_LIBRARY_VIEW_ID, label: t("content_library:LIBRARY_VIEW_DEFAULT_OPTION") },
+      ...libraryViews.map((item) => ({ value: item.id, label: item.name })),
+    ],
+    [libraryViews, t],
   );
 
-  const setRowProcessing = (rowId: string, processing: boolean) => {
-    setProcessingIds((current) => addProcessingId(current, rowId, processing));
-  };
-
-  const invalidateEntries = async () => {
+  const invalidateLibraryQueries = async () => {
     await queryClient.invalidateQueries({
       queryKey: ["content", "library", "entries", workspaceId, selectedModelKey],
     });
+    await queryClient.invalidateQueries({
+      queryKey: ["content", "library", "views", workspaceId, selectedModelKey],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["content", "library", "view-preview", workspaceId],
+    });
   };
 
-  const createMutation = useMutation({
+  const createEntryMutation = useMutation({
     mutationFn: async (input: CreateContentEntryInput) => {
       if (!workspaceId || !selectedModel) throw new Error("CONTENT_MODEL_NOT_SELECTED");
       await createWorkspaceSiteEntry(String(workspaceId), {
@@ -318,8 +165,28 @@ export function ContentLibraryView() {
     },
     onSuccess: async () => {
       notifySuccessText(t("content_library:LIBRARY_TOAST_CREATE_SUCCESS"));
-      setDialogOpen(false);
-      await invalidateEntries();
+      setEntryDialogOpen(false);
+      await invalidateLibraryQueries();
+    },
+    onError: (error) => notifyError(error),
+  });
+
+  const createViewMutation = useMutation({
+    mutationFn: async (input: CreateContentViewInput) => {
+      if (!workspaceId || !selectedModel) throw new Error("CONTENT_MODEL_NOT_SELECTED");
+      return createWorkspaceContentView(String(workspaceId), {
+        code: input.code,
+        name: input.name,
+        typeCode: selectedModel.key,
+        enabled: true,
+        dsl: buildViewDsl(input.statusFilter),
+      });
+    },
+    onSuccess: async (view) => {
+      notifySuccessText(t("content_library:LIBRARY_VIEW_TOAST_CREATE_SUCCESS"));
+      setViewDialogOpen(false);
+      setPendingViewId(view.id);
+      await invalidateLibraryQueries();
     },
     onError: (error) => notifyError(error),
   });
@@ -327,7 +194,7 @@ export function ContentLibraryView() {
   const publishMutation = useMutation({
     mutationFn: async (row: LibraryRow) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      setRowProcessing(row.id, true);
+      setProcessingIds((current) => addProcessingId(current, row.id, true));
       try {
         return await publishWorkspaceSiteEntry(String(workspaceId), {
           entryTypeCode: row.entryTypeCode,
@@ -335,12 +202,12 @@ export function ContentLibraryView() {
           revision: row.draftRevision,
         });
       } finally {
-        setRowProcessing(row.id, false);
+        setProcessingIds((current) => addProcessingId(current, row.id, false));
       }
     },
     onSuccess: async () => {
       notifySuccessText(t("content_library:LIBRARY_TOAST_PUBLISH_SUCCESS"));
-      await invalidateEntries();
+      await invalidateLibraryQueries();
     },
     onError: (error) => notifyError(error),
   });
@@ -348,19 +215,19 @@ export function ContentLibraryView() {
   const unpublishMutation = useMutation({
     mutationFn: async (row: LibraryRow) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      setRowProcessing(row.id, true);
+      setProcessingIds((current) => addProcessingId(current, row.id, true));
       try {
         return await unpublishWorkspaceSiteEntry(String(workspaceId), {
           entryTypeCode: row.entryTypeCode,
           slug: row.slug,
         });
       } finally {
-        setRowProcessing(row.id, false);
+        setProcessingIds((current) => addProcessingId(current, row.id, false));
       }
     },
     onSuccess: async () => {
       notifySuccessText(t("content_library:LIBRARY_TOAST_UNPUBLISH_SUCCESS"));
-      await invalidateEntries();
+      await invalidateLibraryQueries();
     },
     onError: (error) => notifyError(error),
   });
@@ -377,28 +244,22 @@ export function ContentLibraryView() {
             icon={<Plus size={16} />}
             autoInsertSpace={false}
             disabled={!selectedModel}
-            onClick={() => setDialogOpen(true)}
+            onClick={() => setEntryDialogOpen(true)}
           >
             {t("content_library:LIBRARY_CREATE_ACTION")}
           </Button>
         }
         extra={
-          selectedModel ? (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-footnote text-label-secondary">
-                {t("content_library:LIBRARY_SWITCHER_LABEL")}
-              </label>
-              <Select
-                value={selectedModel.key}
-                onChange={setSelectedModelKey}
-                options={libraryModels.map((item) => ({
-                  value: item.key,
-                  label: item.name,
-                }))}
-                className="min-w-[220px]"
-              />
-            </div>
-          ) : null
+          <ContentLibraryToolbar
+            libraryModels={libraryModels}
+            selectedModel={selectedModel}
+            selectedViewId={selectedViewId}
+            viewOptions={viewOptions}
+            onCreateView={() => setViewDialogOpen(true)}
+            onModelChange={setSelectedModelKey}
+            onViewChange={setSelectedViewId}
+            t={t}
+          />
         }
       >
         <ContentGuard
@@ -413,18 +274,21 @@ export function ContentLibraryView() {
           <div className="grid gap-4">
             <ContentLibraryMetrics rows={rows} t={t} />
             {selectedModel ? (
-              <Card className="border-border shadow-none">
-                <ContentLibraryHeader model={selectedModel} t={t} />
+              <ContentLibraryCard model={selectedModel} t={t}>
                 <ContentGuard
-                  loading={entriesQuery.isLoading}
-                  error={entriesQuery.error}
+                  loading={activeDataLoading || viewsQuery.isLoading}
+                  error={activeDataError || viewsQuery.error}
                   empty={false}
-                  onRetry={() => void entriesQuery.refetch()}
+                  onRetry={() =>
+                    selectedViewId === DEFAULT_LIBRARY_VIEW_ID
+                      ? void entriesQuery.refetch()
+                      : void viewPreviewQuery.refetch()
+                  }
                   container="raw"
                 >
                   <ContentLibraryEntryTable
                     rows={rows}
-                    loading={entriesQuery.isLoading}
+                    loading={activeDataLoading}
                     processingIds={processingIds}
                     formatUpdatedAt={(value) => (value ? dateTime.formatDateTime(value) : "-")}
                     onPublish={(row) => void publishMutation.mutateAsync(row)}
@@ -432,19 +296,26 @@ export function ContentLibraryView() {
                     t={t}
                   />
                 </ContentGuard>
-              </Card>
+              </ContentLibraryCard>
             ) : null}
           </div>
         </ContentGuard>
       </DefaultPage>
 
       <CreateContentEntryDialog
-        open={dialogOpen}
+        open={entryDialogOpen}
         modelName={selectedModel?.name ?? "-"}
-        confirmLoading={createMutation.isPending}
-        onOpenChange={setDialogOpen}
+        confirmLoading={createEntryMutation.isPending}
+        onOpenChange={setEntryDialogOpen}
+        onConfirm={async (input) => createEntryMutation.mutateAsync(input)}
+      />
+      <CreateContentViewDialog
+        open={viewDialogOpen}
+        modelName={selectedModel?.name ?? "-"}
+        confirmLoading={createViewMutation.isPending}
+        onOpenChange={setViewDialogOpen}
         onConfirm={async (input) => {
-          await createMutation.mutateAsync(input);
+          await createViewMutation.mutateAsync(input);
         }}
       />
     </>

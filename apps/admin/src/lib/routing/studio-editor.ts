@@ -50,3 +50,22 @@ export function openStudioPageEditor(opts: { workspaceId: string; pageId: string
   if (typeof window === "undefined") return;
   window.location.assign(buildStudioPageEditorUrl(opts));
 }
+
+export function buildStudioReusableBlockEditorUrl(opts: {
+  workspaceId: string;
+  entryId: string;
+  adminReturnTo?: string | null;
+}): string {
+  return buildStudioUrl(
+    `/w/${encodeURIComponent(opts.workspaceId)}/blocks/${encodeURIComponent(opts.entryId)}/`,
+    opts.adminReturnTo,
+  );
+}
+
+export function openStudioReusableBlockEditor(opts: {
+  workspaceId: string;
+  entryId: string;
+}): void {
+  if (typeof window === "undefined") return;
+  window.location.assign(buildStudioReusableBlockEditorUrl(opts));
+}

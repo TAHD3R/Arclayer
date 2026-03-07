@@ -40,6 +40,9 @@ from apps.api.src.modules.sites.schema import (
     SitePageRollbackOut as ContentPageRollbackOut,
 )
 from apps.api.src.modules.sites.schema import (
+    SitePageRouteTreeRepairOut as ContentPageRouteTreeRepairOut,
+)
+from apps.api.src.modules.sites.schema import (
     SitePageTreeNodeOut as ContentPageTreeNodeOut,
 )
 from apps.api.src.modules.sites.schema import (
@@ -66,6 +69,21 @@ async def list_workspace_content_pages_tree(
     service: Annotated[WorkspaceContentService, Depends(get_workspace_content_service)],
 ) -> ResponseModel[PageData[ContentPageTreeNodeOut]]:
     data = await service.list_pages_tree(site_id=site_id)
+    return Response.success(data=data)
+
+
+@pages_router.post(
+    "/repair-route-tree",
+    response_model=ResponseModel[ContentPageRouteTreeRepairOut],
+    response_model_exclude_none=True,
+    summary="Repair legacy page route/tree records (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
+)
+async def repair_workspace_content_pages_route_tree(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    service: Annotated[WorkspaceContentService, Depends(get_workspace_content_service)],
+) -> ResponseModel[ContentPageRouteTreeRepairOut]:
+    data = await service.repair_pages_route_tree(site_id=site_id)
     return Response.success(data=data)
 
 
