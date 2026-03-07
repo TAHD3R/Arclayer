@@ -4,6 +4,7 @@ import { ApiError } from "@celestial/runtime/http";
 
 import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { HttpError, toAbortStatus } from "@/runtime/http-error";
+import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { buildPreviewHref } from "@/runtime/url-helpers";
 import { parseModeFromUrl, resolvePreviewDocument } from "@/runtime/route-entry";
 
@@ -44,6 +45,12 @@ export async function onBeforeRender(pageContext: PortalPreviewPageContextLike) 
     }
 
     const renderViewerCtx = { ...viewerCtx, mode: "preview" as const };
+    const runtimeConfig = await getPortalRuntimeConfigForSite(
+      siteCtx.siteId,
+      parsed.token
+        ? { mode: "preview", token: parsed.token, locale: renderViewerCtx.locale }
+        : { mode: "preview", locale: renderViewerCtx.locale },
+    );
 
     return {
       pageContext: {
@@ -54,6 +61,7 @@ export async function onBeforeRender(pageContext: PortalPreviewPageContextLike) 
           dataSources: resolved.dataSources,
           ...(resolved.includes ? { includes: resolved.includes } : {}),
           ...(resolved.pageMeta ? { pageMeta: resolved.pageMeta } : {}),
+          runtimeConfig,
           viewerCtx: renderViewerCtx,
           pathname: parsed.pathname,
           ...(parsed.token ? { token: parsed.token } : {}),

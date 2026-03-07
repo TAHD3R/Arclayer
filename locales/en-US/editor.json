@@ -35,6 +35,7 @@
   "EDITOR_PAGE_LOADING": "Loading draft…",
   "EDITOR_PAGE_LOAD_ERROR_TITLE": "Failed to load page",
   "EDITOR_PAGE_BACK_TO_PAGES": "Back to pages",
+  "EDITOR_PAGE_BACK_TO_ADMIN": "Back to Admin",
   "EDITOR_PAGE_DIRTY": "Unsaved changes",
   "EDITOR_PAGE_CLEAN": "In sync",
   "EDITOR_PAGE_PATH_UNKNOWN": "Unknown path",

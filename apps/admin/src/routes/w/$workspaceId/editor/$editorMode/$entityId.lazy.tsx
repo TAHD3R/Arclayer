@@ -1,7 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { WorkspaceEditorPage } from "@/pages/workspaces/editor/page";
+import { WorkspaceEditorHandoffPage } from "@/pages/workspaces/editor/handoff/page";
 
 export const Route = createLazyFileRoute("/w/$workspaceId/editor/$editorMode/$entityId")({
-  component: WorkspaceEditorPage,
+  component: WorkspaceEditorHandoffPage,
 });

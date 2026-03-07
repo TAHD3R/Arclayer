@@ -1,6 +1,4 @@
-function normalizeOrigin(origin: string): string {
-  return origin.endsWith("/") ? origin.slice(0, -1) : origin;
-}
+import { normalizeOrigin, resolveAdminOrigin } from "./admin-origin";
 
 const STUDIO_RETURN_COOKIE_NAME = "celestial:studio:return_to";
 
@@ -25,20 +23,6 @@ function setStudioReturnToCookie(value: string): void {
   if (domain) attrs.push(`domain=${domain}`);
 
   document.cookie = `${STUDIO_RETURN_COOKIE_NAME}=${encodeURIComponent(value)}; ${attrs.join("; ")}`;
-}
-
-function resolveAdminOrigin(hostname: string): string {
-  const explicit = import.meta.env.VITE_ADMIN_ORIGIN;
-  if (explicit) return normalizeOrigin(explicit);
-
-  if (hostname === "studio.celestial.localhost") return "http://app.celestial.localhost";
-  if (hostname === "app.celestial.localhost") return window.location.origin;
-
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return "http://app.celestial.localhost";
-  }
-
-  return window.location.origin;
 }
 
 function safeReturnToPath(pathname: string, search: string, hash: string): string {

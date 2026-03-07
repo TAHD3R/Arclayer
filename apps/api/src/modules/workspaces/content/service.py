@@ -15,6 +15,7 @@ from apps.api.src.modules.sites.schema import (
 from apps.api.src.modules.sites.service import SiteService
 from apps.api.src.modules.workspaces.content.appearance.service import WorkspaceContentAppearanceMixin
 from apps.api.src.modules.workspaces.content.blocks.service import WorkspaceContentBlocksMixin
+from apps.api.src.modules.workspaces.content.models.service import WorkspaceContentModelsMixin
 from apps.api.src.modules.workspaces.content.pages.service import WorkspaceContentPagesMixin
 from apps.api.src.modules.workspaces.content.repository import WorkspaceContentRepository
 from apps.api.src.modules.workspaces.content.schema import (
@@ -45,6 +46,7 @@ class WorkspaceContentService(
     WorkspaceContentPagesMixin,
     WorkspaceContentStructureMixin,
     WorkspaceContentBlocksMixin,
+    WorkspaceContentModelsMixin,
     WorkspaceContentViewsMixin,
     WorkspaceContentAppearanceMixin,
     BaseService,

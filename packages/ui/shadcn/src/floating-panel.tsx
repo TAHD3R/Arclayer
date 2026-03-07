@@ -105,72 +105,80 @@ interface FloatingPanelTriggerProps {
   "aria-label"?: string;
 }
 
-export function FloatingPanelTrigger({
-  children,
-  className,
-  title,
-  disableLayoutId = false,
-  ...buttonProps
-}: FloatingPanelTriggerProps) {
-  const { isOpen, openFloatingPanel, closeFloatingPanel, uniqueId, setTitle } = useFloatingPanel();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const suppressNextClickRef = useRef(false);
-
-  const toggleOpen = (triggerEl: HTMLButtonElement) => {
-    if (isOpen) {
-      closeFloatingPanel();
-      return;
-    }
-    openFloatingPanel(triggerEl);
-    setTitle(title);
-  };
-
-  const handleClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
-    // Pointer interactions may be handled via onPointerUp (more robust in some complex shells).
-    // Avoid double-toggle when both pointerup and click fire.
-    if (suppressNextClickRef.current) {
-      suppressNextClickRef.current = false;
-      return;
-    }
-    toggleOpen(e.currentTarget);
-  };
-
-  const handlePointerUp: React.PointerEventHandler<HTMLButtonElement> = (e) => {
-    // Only primary (left) button should toggle; keep right-click for context menus.
-    if (e.button !== 0) return;
-    if (buttonProps.disabled) return;
-
-    // Some environments can suppress click; opening on pointerup keeps behavior consistent.
-    suppressNextClickRef.current = true;
-    window.setTimeout(() => {
-      suppressNextClickRef.current = false;
-    }, 0);
-
-    toggleOpen(e.currentTarget);
-  };
-
-  return (
-    <motion.button
-      ref={triggerRef}
-      layoutId={disableLayoutId ? undefined : `floating-panel-trigger-${uniqueId}`}
-      className={cn(
-        "flex items-center",
-        "border border-border bg-background text-foreground",
-        className,
-      )}
-      {...buttonProps}
-      type="button"
-      onPointerUp={handlePointerUp}
-      onClick={handleClick}
-      data-state={isOpen ? "open" : "closed"}
-      aria-haspopup="dialog"
-      aria-expanded={isOpen}
-      aria-controls={`floating-panel-content-${uniqueId}`}
-    >
-      {children}
-    </motion.button>
-  );
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+  if (!ref) return;
+  (ref as React.MutableRefObject<T | null>).current = value;
 }
+
+export const FloatingPanelTrigger = React.forwardRef<HTMLButtonElement, FloatingPanelTriggerProps>(
+  function FloatingPanelTrigger(
+    { children, className, title, disableLayoutId = false, ...buttonProps },
+    forwardedRef,
+  ) {
+    const { isOpen, openFloatingPanel, closeFloatingPanel, uniqueId, setTitle } =
+      useFloatingPanel();
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const suppressNextClickRef = useRef(false);
+
+    const toggleOpen = (triggerEl: HTMLButtonElement) => {
+      if (isOpen) {
+        closeFloatingPanel();
+        return;
+      }
+      openFloatingPanel(triggerEl);
+      setTitle(title);
+    };
+
+    const handleClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+      if (suppressNextClickRef.current) {
+        suppressNextClickRef.current = false;
+        return;
+      }
+      toggleOpen(e.currentTarget);
+    };
+
+    const handlePointerUp: React.PointerEventHandler<HTMLButtonElement> = (e) => {
+      if (e.button !== 0) return;
+      if (buttonProps.disabled) return;
+
+      suppressNextClickRef.current = true;
+      window.setTimeout(() => {
+        suppressNextClickRef.current = false;
+      }, 0);
+
+      toggleOpen(e.currentTarget);
+    };
+
+    return (
+      <motion.button
+        ref={(node) => {
+          triggerRef.current = node;
+          assignRef(forwardedRef, node);
+        }}
+        layoutId={disableLayoutId ? undefined : `floating-panel-trigger-${uniqueId}`}
+        className={cn(
+          "flex items-center",
+          "border border-border bg-background text-foreground",
+          className,
+        )}
+        {...buttonProps}
+        type="button"
+        onPointerUp={handlePointerUp}
+        onClick={handleClick}
+        data-state={isOpen ? "open" : "closed"}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-controls={`floating-panel-content-${uniqueId}`}
+      >
+        {children}
+      </motion.button>
+    );
+  },
+);
 
 interface FloatingPanelContentProps {
   children: React.ReactNode;

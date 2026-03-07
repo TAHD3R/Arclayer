@@ -2,8 +2,10 @@ import React from "react";
 import { PageBlueprintRenderer } from "@celestial/renderer";
 
 import type { PageBlueprint, ViewerContext } from "@celestial/block-protocol";
-import type { PortalRouteMatch } from "@celestial/internal-types";
+import type { PortalRouteMatch, PortalRuntimeConfig } from "@celestial/internal-types";
 import type { ContentRefIncludesMap, DesignRenderDataSourcesV1 } from "@celestial/renderer";
+
+import { buildRuntimeSiteData } from "@/runtime/runtime-site-data";
 
 export type PortalDocumentPageProps = {
   document: PageBlueprint;
@@ -12,6 +14,7 @@ export type PortalDocumentPageProps = {
   showHydration?: boolean;
   dataSources?: DesignRenderDataSourcesV1;
   includes?: ContentRefIncludesMap;
+  runtimeConfig?: PortalRuntimeConfig;
 };
 
 export function PortalDocumentPage({
@@ -20,6 +23,7 @@ export function PortalDocumentPage({
   viewerCtx: baseViewerCtx,
   dataSources: baseDataSources,
   includes,
+  runtimeConfig,
 }: PortalDocumentPageProps) {
   const viewerCtx = React.useMemo(
     () => ({
@@ -31,6 +35,7 @@ export function PortalDocumentPage({
   );
 
   const dataSources: DesignRenderDataSourcesV1 = React.useMemo(() => {
+    const runtimeSiteData = buildRuntimeSiteData(runtimeConfig);
     const viewer = {
       ...baseDataSources?.viewer,
       locale: viewerCtx.locale,
@@ -38,14 +43,24 @@ export function PortalDocumentPage({
       ...(viewerCtx.breakpoint ? { breakpoint: viewerCtx.breakpoint } : {}),
       ...(viewerCtx.mode ? { mode: viewerCtx.mode } : {}),
     };
+    const site =
+      runtimeSiteData || baseDataSources?.site
+        ? { ...runtimeSiteData, ...baseDataSources?.site }
+        : undefined;
 
     if (!baseDataSources) {
-      return { routeParams: match.params, viewer };
+      return Object.assign({}, { routeParams: match.params, viewer }, site ? { site } : {});
     }
-    return { ...baseDataSources, routeParams: match.params, viewer };
+    return Object.assign(
+      {},
+      baseDataSources,
+      { routeParams: match.params, viewer },
+      site ? { site } : {},
+    );
   }, [
     baseDataSources,
     match.params,
+    runtimeConfig,
     viewerCtx.locale,
     viewerCtx.fallbackLocale,
     viewerCtx.breakpoint,

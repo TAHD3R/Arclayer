@@ -46,7 +46,10 @@ import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from './routes
 import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$workspaceId/settings/seo/index'
 import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from './routes/w/$workspaceId/settings/general/index'
 import { Route as WWorkspaceIdExtensionsExtensionSlugIndexRouteImport } from './routes/w/$workspaceId/extensions/$extensionSlug/index'
+import { Route as WWorkspaceIdContentSiteBuilderIndexRouteImport } from './routes/w/$workspaceId/content/site-builder/index'
 import { Route as WWorkspaceIdContentPagesIndexRouteImport } from './routes/w/$workspaceId/content/pages/index'
+import { Route as WWorkspaceIdContentModelsIndexRouteImport } from './routes/w/$workspaceId/content/models/index'
+import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/$workspaceId/content/library/index'
 import { Route as OOrgIdTeamRolesIndexRouteImport } from './routes/o/$orgId/team/roles/index'
 import { Route as OOrgIdTeamMembersIndexRouteImport } from './routes/o/$orgId/team/members/index'
 import { Route as OOrgIdTeamInvitationsIndexRouteImport } from './routes/o/$orgId/team/invitations/index'
@@ -318,6 +321,16 @@ const WWorkspaceIdExtensionsExtensionSlugIndexRoute =
       (d) => d.Route,
     ),
   )
+const WWorkspaceIdContentSiteBuilderIndexRoute =
+  WWorkspaceIdContentSiteBuilderIndexRouteImport.update({
+    id: '/content/site-builder/',
+    path: '/content/site-builder/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/content/site-builder/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const WWorkspaceIdContentPagesIndexRoute =
   WWorkspaceIdContentPagesIndexRouteImport.update({
     id: '/content/pages/',
@@ -325,6 +338,26 @@ const WWorkspaceIdContentPagesIndexRoute =
     getParentRoute: () => WWorkspaceIdRoute,
   } as any).lazy(() =>
     import('./routes/w/$workspaceId/content/pages/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdContentModelsIndexRoute =
+  WWorkspaceIdContentModelsIndexRouteImport.update({
+    id: '/content/models/',
+    path: '/content/models/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/content/models/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdContentLibraryIndexRoute =
+  WWorkspaceIdContentLibraryIndexRouteImport.update({
+    id: '/content/library/',
+    path: '/content/library/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/content/library/index.lazy').then(
       (d) => d.Route,
     ),
   )
@@ -518,7 +551,10 @@ export interface FileRoutesByFullPath {
   '/o/$orgId/team/invitations/': typeof OOrgIdTeamInvitationsIndexRoute
   '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
   '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
+  '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
+  '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
@@ -570,7 +606,10 @@ export interface FileRoutesByTo {
   '/o/$orgId/team/invitations': typeof OOrgIdTeamInvitationsIndexRoute
   '/o/$orgId/team/members': typeof OOrgIdTeamMembersIndexRoute
   '/o/$orgId/team/roles': typeof OOrgIdTeamRolesIndexRoute
+  '/w/$workspaceId/content/library': typeof WWorkspaceIdContentLibraryIndexRoute
+  '/w/$workspaceId/content/models': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/pages': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/content/site-builder': typeof WWorkspaceIdContentSiteBuilderIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   '/w/$workspaceId/settings/general': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
@@ -627,7 +666,10 @@ export interface FileRoutesById {
   '/o/$orgId/team/invitations/': typeof OOrgIdTeamInvitationsIndexRoute
   '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
   '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
+  '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
+  '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
+  '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
@@ -685,7 +727,10 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/invitations/'
     | '/o/$orgId/team/members/'
     | '/o/$orgId/team/roles/'
+    | '/w/$workspaceId/content/library/'
+    | '/w/$workspaceId/content/models/'
     | '/w/$workspaceId/content/pages/'
+    | '/w/$workspaceId/content/site-builder/'
     | '/w/$workspaceId/extensions/$extensionSlug/'
     | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/seo/'
@@ -737,7 +782,10 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/invitations'
     | '/o/$orgId/team/members'
     | '/o/$orgId/team/roles'
+    | '/w/$workspaceId/content/library'
+    | '/w/$workspaceId/content/models'
     | '/w/$workspaceId/content/pages'
+    | '/w/$workspaceId/content/site-builder'
     | '/w/$workspaceId/extensions/$extensionSlug'
     | '/w/$workspaceId/settings/general'
     | '/w/$workspaceId/settings/seo'
@@ -793,7 +841,10 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/invitations/'
     | '/o/$orgId/team/members/'
     | '/o/$orgId/team/roles/'
+    | '/w/$workspaceId/content/library/'
+    | '/w/$workspaceId/content/models/'
     | '/w/$workspaceId/content/pages/'
+    | '/w/$workspaceId/content/site-builder/'
     | '/w/$workspaceId/extensions/$extensionSlug/'
     | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/seo/'
@@ -1087,11 +1138,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/content/site-builder/': {
+      id: '/w/$workspaceId/content/site-builder/'
+      path: '/content/site-builder'
+      fullPath: '/w/$workspaceId/content/site-builder/'
+      preLoaderRoute: typeof WWorkspaceIdContentSiteBuilderIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/content/pages/': {
       id: '/w/$workspaceId/content/pages/'
       path: '/content/pages'
       fullPath: '/w/$workspaceId/content/pages/'
       preLoaderRoute: typeof WWorkspaceIdContentPagesIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/content/models/': {
+      id: '/w/$workspaceId/content/models/'
+      path: '/content/models'
+      fullPath: '/w/$workspaceId/content/models/'
+      preLoaderRoute: typeof WWorkspaceIdContentModelsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/content/library/': {
+      id: '/w/$workspaceId/content/library/'
+      path: '/content/library'
+      fullPath: '/w/$workspaceId/content/library/'
+      preLoaderRoute: typeof WWorkspaceIdContentLibraryIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
     '/o/$orgId/team/roles/': {
@@ -1282,7 +1354,10 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute
   WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute
   WWorkspaceIdEditorEditorModeEntityIdRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRoute
+  WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute
+  WWorkspaceIdContentModelsIndexRoute: typeof WWorkspaceIdContentModelsIndexRoute
   WWorkspaceIdContentPagesIndexRoute: typeof WWorkspaceIdContentPagesIndexRoute
+  WWorkspaceIdContentSiteBuilderIndexRoute: typeof WWorkspaceIdContentSiteBuilderIndexRoute
   WWorkspaceIdExtensionsExtensionSlugIndexRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
@@ -1308,7 +1383,11 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdTeamIndexRoute: WWorkspaceIdTeamIndexRoute,
   WWorkspaceIdEditorEditorModeEntityIdRoute:
     WWorkspaceIdEditorEditorModeEntityIdRoute,
+  WWorkspaceIdContentLibraryIndexRoute: WWorkspaceIdContentLibraryIndexRoute,
+  WWorkspaceIdContentModelsIndexRoute: WWorkspaceIdContentModelsIndexRoute,
   WWorkspaceIdContentPagesIndexRoute: WWorkspaceIdContentPagesIndexRoute,
+  WWorkspaceIdContentSiteBuilderIndexRoute:
+    WWorkspaceIdContentSiteBuilderIndexRoute,
   WWorkspaceIdExtensionsExtensionSlugIndexRoute:
     WWorkspaceIdExtensionsExtensionSlugIndexRoute,
   WWorkspaceIdSettingsGeneralIndexRoute: WWorkspaceIdSettingsGeneralIndexRoute,

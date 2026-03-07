@@ -132,6 +132,12 @@ export type SiteEntry = {
   entryTypeId: string;
   entryTypeCode: string;
   slug: string;
+  title?: string | null;
+  status?: string;
+  visibility?: string;
+  locale?: string;
+  path?: string | null;
+  updatedAt?: string;
   draftRevision: number;
   publishedRevision?: number | null;
 };
@@ -150,6 +156,9 @@ export type SiteEntryTypeUpdateIn = {
 export type SiteEntryCreateIn = {
   entryTypeCode: string;
   slug: string;
+  title?: string | null;
+  visibility?: "public" | "private";
+  locale?: string;
 };
 
 export type SiteEntryUpdateIn = {

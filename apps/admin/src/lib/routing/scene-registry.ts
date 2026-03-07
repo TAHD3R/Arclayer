@@ -3,19 +3,17 @@ import type { ComponentType, PropsWithChildren } from "react";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { DevLayout } from "@/layouts/dev-layout";
-import { EditorLayout } from "@/layouts/editor-layout";
 import { InviteLayout } from "@/layouts/invite-layout";
 import { SetupLayout } from "@/layouts/setup-layout";
 import {
   isAcceptInvitePath,
   isAuthScenePath,
   isDevToolsPath,
-  isEditorPath,
   isRepairPath,
   isSetupPath,
 } from "@/lib/routing/route-identity";
 
-export type SceneKey = "dev" | "setup" | "auth" | "invite" | "editor" | "admin";
+export type SceneKey = "dev" | "setup" | "auth" | "invite" | "admin";
 
 interface SceneEntry {
   key: SceneKey;
@@ -33,7 +31,6 @@ const SCENE_ENTRIES: SceneEntry[] = [
   },
   { key: "auth", layout: AuthLayout, match: isAuthScenePath },
   { key: "invite", layout: InviteLayout, match: isAcceptInvitePath },
-  { key: "editor", layout: EditorLayout, match: isEditorPath },
   { key: "admin", layout: AdminLayout, match: () => true },
 ];
 

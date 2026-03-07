@@ -52,8 +52,10 @@ import {
 import { usePreferencesStore } from "@/stores/use-preferences-store";
 import { useViewportStore } from "@/stores/use-viewport-store";
 import type { SiteRuntimeOut, WorkspacePageUpdateIn, WorkspaceSiteOut } from "@/types/api";
+import { buildAdminReturnUrl, parseStudioEntrySearch } from "@/lib/routing/admin-handoff";
 
 export const Route = createFileRoute("/w/$workspaceId/pages/$pageId/")({
+  validateSearch: (search: Record<string, unknown>) => parseStudioEntrySearch(search),
   component: WorkspacePageEditorRoute,
 });
 
@@ -298,6 +300,7 @@ function isReorderableSection(doc: PageBlueprint, nodeId: string): boolean {
 function WorkspacePageEditorRoute() {
   const { t } = useTranslation(["editor"]);
   const { workspaceId, pageId } = Route.useParams();
+  const handoffSearch = Route.useSearch();
   const qc = useQueryClient();
   const { message } = App.useApp();
 
@@ -317,6 +320,10 @@ function WorkspacePageEditorRoute() {
   const [leftPanelKey, setLeftPanelKey] = useState<"blocks" | "data" | "layers">("blocks");
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [hoveredRenderedNodeId, setHoveredRenderedNodeId] = useState<string | null>(null);
+  const adminReturnUrl = useMemo(
+    () => buildAdminReturnUrl(handoffSearch.returnTo),
+    [handoffSearch.returnTo],
+  );
   const hoverRafRef = useRef<number | null>(null);
   const [canvasRootEl, setCanvasRootEl] = useState<HTMLDivElement | null>(null);
   const [scrollerEl, setScrollerEl] = useState<HTMLDivElement | null>(null);
@@ -1134,6 +1141,16 @@ function WorkspacePageEditorRoute() {
             <Link to="/w/$workspaceId/" params={{ workspaceId }}>
               <Button size="small">{t("editor:EDITOR_PAGE_BACK_TO_PAGES")}</Button>
             </Link>
+            {adminReturnUrl ? (
+              <Button
+                size="small"
+                onClick={() => {
+                  window.location.assign(adminReturnUrl);
+                }}
+              >
+                {t("editor:EDITOR_PAGE_BACK_TO_ADMIN")}
+              </Button>
+            ) : null}
             <Typography.Text strong>{t("editor:EDITOR_PAGE_EDITOR_TITLE")}</Typography.Text>
             <Typography.Text type="secondary" className="text-caption">
               {t("editor:EDITOR_PAGE_EDITOR_SUBTITLE", { pageId })}

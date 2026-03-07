@@ -149,6 +149,9 @@ importers:
       '@bprogress/react':
         specifier: ^1.2.7
         version: 1.2.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@celestial/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../../packages/protocols/block
@@ -584,9 +587,6 @@ importers:
       '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../../protocols/block
-      react:
-        specifier: ^19.2.0
-        version: 19.2.3
     devDependencies:
       '@types/react':
         specifier: 'catalog:'
@@ -594,6 +594,12 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.9)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.3
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.3(react@19.2.3)
 
   packages/core/runtime: {}
 

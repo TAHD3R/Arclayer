@@ -42,12 +42,15 @@ import {
   toEditorHistoryState,
   undoEditorHistory,
 } from "@/views/editor/editor-document-state";
+import { buildRuntimeSiteData } from "@/runtime/runtime-site-data";
+import type { PortalRuntimeConfig } from "@celestial/internal-types";
 
 export interface EditorSiteViewProps {
   initialDocument: unknown;
   viewerCtx: ViewerContext;
   pathname: string;
   siteId: string;
+  runtimeConfig?: PortalRuntimeConfig;
 }
 
 const DEFAULT_CANVAS_STATE: EditorCanvasState = {
@@ -158,6 +161,10 @@ export function EditorSiteView(props: EditorSiteViewProps) {
   const renderCtx = React.useMemo<ViewerContext>(
     () => ({ ...viewerCtx, mode: "preview", breakpoint: breakpointFromWidth }),
     [breakpointFromWidth, viewerCtx],
+  );
+  const runtimeSiteData = React.useMemo(
+    () => buildRuntimeSiteData(props.runtimeConfig),
+    [props.runtimeConfig],
   );
 
   const syncHistoryState = React.useCallback((state: EditorHistoryState) => {
@@ -562,6 +569,7 @@ export function EditorSiteView(props: EditorSiteViewProps) {
         }}
         dataSources={{
           ...(renderCtx.routeParams ? { routeParams: renderCtx.routeParams } : {}),
+          ...(runtimeSiteData ? { site: runtimeSiteData } : {}),
           viewer: Object.assign(
             {},
             { locale: String(renderCtx.locale) },

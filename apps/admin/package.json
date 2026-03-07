@@ -19,6 +19,7 @@
   "dependencies": {
     "@ant-design/cssinjs": "catalog:",
     "@bprogress/react": "^1.2.7",
+    "@celestial/api-client": "workspace:*",
     "@celestial/block-protocol": "workspace:*",
     "@celestial/editor-bridge": "workspace:*",
     "@celestial/editor-protocol": "workspace:*",

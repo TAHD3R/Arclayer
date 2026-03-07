@@ -4,6 +4,7 @@ import { ApiError } from "@celestial/runtime/http";
 
 import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { HttpError, toAbortStatus } from "@/runtime/http-error";
+import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 import { parseModeFromUrl, resolveEditorDocument } from "@/runtime/route-entry";
 
 type PortalEditorPageContextLike = {
@@ -33,6 +34,12 @@ export async function onBeforeRender(pageContext: PortalEditorPageContextLike) {
           }
         : { pathname: parsed.pathname, siteId: siteCtx.siteId },
     );
+    const runtimeConfig = await getPortalRuntimeConfigForSite(
+      siteCtx.siteId,
+      parsed.token
+        ? { mode: "preview", token: parsed.token, locale: viewerCtx.locale }
+        : { mode: "preview", locale: viewerCtx.locale },
+    );
 
     return {
       pageContext: {
@@ -41,6 +48,7 @@ export async function onBeforeRender(pageContext: PortalEditorPageContextLike) {
           document: resolved.document,
           match: resolved.match,
           ...(resolved.pageMeta ? { pageMeta: resolved.pageMeta } : {}),
+          runtimeConfig,
           viewerCtx,
           pathname: resolved.pathname,
           siteId: parsed.siteId,

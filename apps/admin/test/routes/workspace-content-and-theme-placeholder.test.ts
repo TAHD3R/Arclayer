@@ -23,9 +23,14 @@ describe("workspace content and appearance routes", () => {
     expect(source).toContain("component: WorkspaceContentPagesPage");
   });
 
-  test("workspace content library route has been removed", () => {
-    const contentLibraryRoute = resolveSource("routes/w/$workspaceId/content/library/index.tsx");
-    expect(existsSync(contentLibraryRoute)).toBe(false);
+  test("workspace content IA routes exist", () => {
+    const siteBuilderRoute = resolveSource("routes/w/$workspaceId/content/site-builder/index.tsx");
+    const libraryRoute = resolveSource("routes/w/$workspaceId/content/library/index.tsx");
+    const modelsRoute = resolveSource("routes/w/$workspaceId/content/models/index.tsx");
+
+    expect(existsSync(siteBuilderRoute)).toBe(true);
+    expect(existsSync(libraryRoute)).toBe(true);
+    expect(existsSync(modelsRoute)).toBe(true);
   });
 
   test("workspace appearance routes have been removed", () => {
@@ -49,7 +54,7 @@ describe("workspace content and appearance routes", () => {
 
     const lazyFile = resolveSource("routes/w/$workspaceId/editor/$editorMode/$entityId.lazy.tsx");
     const lazySource = readFileSync(lazyFile, "utf-8");
-    expect(lazySource).toContain("WorkspaceEditorPage");
+    expect(lazySource).toContain("WorkspaceEditorHandoffPage");
   });
 
   test("appearance navigation route has been removed", () => {

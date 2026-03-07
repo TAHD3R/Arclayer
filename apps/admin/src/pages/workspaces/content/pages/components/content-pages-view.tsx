@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button, Input as AntInput } from "antd";
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
@@ -27,6 +26,7 @@ import {
 } from "@celestial/ui/data-table";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { openStudioPageEditor } from "@/lib/routing/studio-editor";
 import { cn } from "@celestial/lib/utils";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -82,7 +82,6 @@ export function ContentPagesView() {
   const { t } = useTranslation(["content_pages", "nav", "common"]);
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const navigate = useNavigate();
   const dateTime = useAdminDateTimeFormatter({ workspaceId });
   const dataTableId = React.useMemo(
     () => tableId(workspaceId ? String(workspaceId) : null),
@@ -126,17 +125,12 @@ export function ContentPagesView() {
   const openEditor = React.useCallback(
     (row: ContentPageRow) => {
       if (!workspaceId) return;
-      void navigate({
-        to: "/w/$workspaceId/editor/$editorMode/$entityId",
-        params: {
-          workspaceId: String(workspaceId),
-          editorMode: "page",
-          entityId: row.id,
-        },
-        search: { pathname: row.path },
+      openStudioPageEditor({
+        workspaceId: String(workspaceId),
+        pageId: row.id,
       });
     },
-    [navigate, workspaceId],
+    [workspaceId],
   );
 
   const extraQuery = React.useMemo(() => toApiFilters(filters), [filters]);

@@ -7,6 +7,7 @@ import { ensurePortalRequestContext } from "@/runtime/request-context";
 import { HttpError, toAbortStatus } from "@/runtime/http-error";
 import { joinLocalePath, resolveCookieLocale, splitLocalePrefix } from "@/runtime/locale-routing";
 import { normalizePathname, resolvePublicDocument } from "@/runtime/route-entry";
+import { getPortalRuntimeConfigForSite } from "@/runtime/runtime-config";
 
 type PortalPublicPageContextLike = {
   urlOriginal: string;
@@ -72,6 +73,10 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
       pathname: pathnameNoLocale,
       siteId: siteCtx.siteId,
     });
+    const runtimeConfig = await getPortalRuntimeConfigForSite(siteCtx.siteId, {
+      mode: "public",
+      locale: resolvedLocale,
+    });
     const renderViewerCtx = {
       ...viewerCtx,
       mode: "public" as const,
@@ -96,6 +101,7 @@ export async function onBeforeRender(pageContext: PortalPublicPageContextLike) {
           dataSources: resolved.dataSources,
           ...(resolved.includes ? { includes: resolved.includes } : {}),
           ...(resolved.pageMeta ? { pageMeta: resolved.pageMeta } : {}),
+          runtimeConfig,
           viewerCtx: renderViewerCtx,
           pathname: pathnameNoLocale,
           pathnameNoLocale,

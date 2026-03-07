@@ -157,7 +157,7 @@ export function MemberContextDialog(props: MemberContextDialogProps) {
           onValueChange={setActiveTab}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="border-b px-7 pt-4">
+          <div className="border-b px-7">
             <ChromeTabsList className="w-auto shrink-0">
               {props.tabs.map((tab) => (
                 <ChromeTabsTrigger key={tab.key} value={tab.key}>

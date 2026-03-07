@@ -1,7 +1,7 @@
 import React from "react";
 
 import type { ViewerContext } from "@celestial/block-protocol";
-import type { PortalRouteMatch } from "@celestial/internal-types";
+import type { PortalRouteMatch, PortalRuntimeConfig } from "@celestial/internal-types";
 
 import { EditorSiteView } from "@/views/editor/editor-site-view";
 
@@ -15,6 +15,7 @@ type EditorPageProps = {
   pathname: string;
   siteId: string;
   token?: string;
+  runtimeConfig?: PortalRuntimeConfig;
 };
 
 function Page(props: EditorPageProps) {
@@ -24,6 +25,7 @@ function Page(props: EditorPageProps) {
       viewerCtx={props.viewerCtx}
       pathname={props.pathname}
       siteId={props.siteId}
+      {...(props.runtimeConfig ? { runtimeConfig: props.runtimeConfig } : {})}
     />
   );
 }

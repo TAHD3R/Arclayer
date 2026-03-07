@@ -23,10 +23,6 @@ export function isRepairPath(pathname: string): boolean {
   return pathname === "/repair" || pathname.startsWith("/repair/");
 }
 
-export function isEditorPath(pathname: string): boolean {
-  return /^\/w\/[^/]+\/editor(?:\/|$)/.test(pathname);
-}
-
 export function isDevToolsPath(pathname: string): boolean {
   return /^\/devtools(?:\/|$)/.test(pathname);
 }

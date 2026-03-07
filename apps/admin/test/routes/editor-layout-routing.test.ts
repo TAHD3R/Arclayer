@@ -10,13 +10,16 @@ function resolveSource(relativePath: string) {
   return resolve(thisDir, "../../src", relativePath);
 }
 
-describe("editor layout routing", () => {
-  test("scene registry includes editor layout with correct predicate", () => {
+describe("scene layout routing", () => {
+  test("scene registry no longer assigns a dedicated editor layout", () => {
     const registrySource = readFileSync(resolveSource("lib/routing/scene-registry.ts"), "utf-8");
 
-    expect(registrySource).toContain('import { EditorLayout } from "@/layouts/editor-layout"');
-    expect(registrySource).toContain("isEditorPath");
-    expect(registrySource).toContain("layout: EditorLayout");
+    expect(registrySource).not.toContain('import { EditorLayout } from "@/layouts/editor-layout"');
+    expect(registrySource).not.toContain("isEditorPath");
+    expect(registrySource).not.toContain("layout: EditorLayout");
+    expect(registrySource).toContain(
+      'type SceneKey = "dev" | "setup" | "auth" | "invite" | "admin"',
+    );
   });
 
   test("root route uses scene registry for layout resolution", () => {
@@ -26,14 +29,12 @@ describe("editor layout routing", () => {
     expect(rootRouteSource).toContain("getSceneLayout");
   });
 
-  test("isEditorPath regex matches workspace editor paths", () => {
+  test("route identity no longer defines a dedicated editor scene predicate", () => {
     const routeIdentitySource = readFileSync(
       resolveSource("lib/routing/route-identity.ts"),
       "utf-8",
     );
 
-    expect(routeIdentitySource).toContain(
-      "return /^\\/w\\/[^/]+\\/editor(?:\\/|$)/.test(pathname)",
-    );
+    expect(routeIdentitySource).not.toContain("isEditorPath");
   });
 });

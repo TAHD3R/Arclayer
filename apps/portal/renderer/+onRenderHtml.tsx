@@ -14,7 +14,7 @@ import {
   serializeCssVarsToStyleText,
 } from "@celestial/renderer";
 import type { LocalizedString } from "@celestial/renderer";
-import type { PortalSiteContext } from "@celestial/internal-types";
+import type { PortalRuntimeConfig, PortalSiteContext } from "@celestial/internal-types";
 import type { DesignBindingExprV1, PageBlueprint, ViewerContext } from "@celestial/block-protocol";
 
 export { onRenderHtml };
@@ -32,6 +32,7 @@ type VikePageContextLike = {
     pathnameNoLocale?: string;
     resolvedLocale?: string;
     publicBasePath?: string;
+    runtimeConfig?: PortalRuntimeConfig;
   };
   Page: React.ComponentType<Record<string, unknown>>;
 };
@@ -63,12 +64,14 @@ async function onRenderHtml(pageContext: VikePageContextLike) {
     (pageContext.viewerCtx?.locale ?? "").trim() ||
     siteCtx.defaultLocale;
 
-  const runtimeConfig = await getPortalRuntimeConfigForSite(
-    siteCtx.siteId,
-    token
-      ? { mode: resolveMode, token, locale: resolvedLocaleForRuntime }
-      : { mode: resolveMode, locale: resolvedLocaleForRuntime },
-  );
+  const runtimeConfig =
+    pageContext.pageProps?.runtimeConfig ??
+    (await getPortalRuntimeConfigForSite(
+      siteCtx.siteId,
+      token
+        ? { mode: resolveMode, token, locale: resolvedLocaleForRuntime }
+        : { mode: resolveMode, locale: resolvedLocaleForRuntime },
+    ));
 
   const portalExtensions = await fetchPortalExtensionsFromApi(
     siteCtx.siteId,
