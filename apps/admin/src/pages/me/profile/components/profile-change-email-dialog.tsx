@@ -1,32 +1,66 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button, Form, Input } from "antd";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 export type MeProfileChangeEmailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nextEmail: string;
+  redirect: string;
 };
 
 type ChangeEmailFormValues = {
   newEmail: string;
   code: string;
-  password: string;
+  password?: string;
+  twoFactorCode?: string;
+  backupCode?: string;
 };
 
+function resolveEmailReauthMethods(data: unknown): string[] {
+  if (!data || typeof data !== "object") return [];
+  const camel = (data as { emailChangeRequiredReauthMethods?: string[] })
+    .emailChangeRequiredReauthMethods;
+  if (Array.isArray(camel)) return camel;
+  const snake = (data as { email_change_required_reauth_methods?: string[] })
+    .email_change_required_reauth_methods;
+  return Array.isArray(snake) ? snake : [];
+}
+
 export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProps) {
-  const { t } = useTranslation(["account", "auth", "settings"]);
+  const { t } = useTranslation(["account", "auth", "settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const [form] = Form.useForm<ChangeEmailFormValues>();
 
   const normalizedEmail = useMemo(() => String(props.nextEmail || "").trim(), [props.nextEmail]);
+
+  const capabilityQuery = useQuery({
+    queryKey: ["auth", "security-capabilities", sessionVersion],
+    queryFn: async () => authApi.getMySecurityCapabilities(),
+    retry: false,
+    staleTime: 60 * 1000,
+    meta: { silent: true },
+  });
+
+  const reauthMethods = resolveEmailReauthMethods(capabilityQuery.data);
+  const requiresPassword = reauthMethods.includes("password");
+  const requiresTwoFactor = reauthMethods.includes("2fa");
+  const requiresRelogin = reauthMethods.includes("relogin");
+
+  const dialogDescription = useMemo(() => {
+    if (requiresTwoFactor) return t("account:ME_PROFILE_EMAIL_DIALOG_DESC_2FA");
+    if (requiresRelogin) return t("account:ME_PROFILE_EMAIL_DIALOG_DESC_RELOGIN");
+    return t("account:ME_PROFILE_EMAIL_DIALOG_DESC");
+  }, [requiresRelogin, requiresTwoFactor, t]);
 
   useEffect(() => {
     if (!props.open) return;
@@ -34,6 +68,8 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
       newEmail: normalizedEmail,
       code: "",
       password: "",
+      twoFactorCode: "",
+      backupCode: "",
     });
   }, [form, normalizedEmail, props.open]);
 
@@ -50,11 +86,15 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
   });
 
   const confirmMutation = useMutation({
-    mutationFn: async (payload: { newEmail: string; code: string; password: string }) => {
+    mutationFn: async (payload: ChangeEmailFormValues) => {
       return authApi.confirmMyEmailChange({
         new_email: payload.newEmail,
         code: payload.code,
-        password: payload.password,
+        ...(requiresPassword && payload.password ? { password: payload.password } : {}),
+        ...(requiresTwoFactor && payload.twoFactorCode
+          ? { two_factor_code: payload.twoFactorCode }
+          : {}),
+        ...(requiresTwoFactor && payload.backupCode ? { backup_code: payload.backupCode } : {}),
       });
     },
     onSuccess: async () => {
@@ -74,12 +114,15 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
     props.onOpenChange(open);
   };
 
+  const saveDisabled =
+    isBusy || capabilityQuery.isLoading || capabilityQuery.isError || requiresRelogin;
+
   return (
     <SettingDialog
       open={props.open}
       onOpenChange={closeIfIdle}
       title={t("account:ME_PROFILE_EMAIL_DIALOG_TITLE")}
-      description={t("account:ME_PROFILE_EMAIL_DIALOG_DESC")}
+      description={dialogDescription}
       footer={
         <>
           <Button
@@ -90,18 +133,30 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
           >
             {t("auth:MODAL_CANCEL")}
           </Button>
+          {requiresRelogin ? (
+            <Button
+              type="primary"
+              onClick={() => {
+                closeIfIdle(false);
+                void navigate({
+                  to: "/login",
+                  search: { redirect: props.redirect },
+                  replace: true,
+                });
+              }}
+              autoInsertSpace={false}
+            >
+              {t("account:ME_PROFILE_EMAIL_RELOGIN_ACTION")}
+            </Button>
+          ) : null}
           <Button
             type="primary"
             loading={confirmMutation.isPending}
-            disabled={isBusy}
+            disabled={saveDisabled}
             onClick={() => {
               void (async () => {
                 const values = await form.validateFields();
-                await confirmMutation.mutateAsync({
-                  newEmail: values.newEmail,
-                  code: values.code,
-                  password: values.password,
-                });
+                await confirmMutation.mutateAsync(values);
               })();
             }}
             autoInsertSpace={false}
@@ -136,7 +191,7 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
               <Button
                 type="link"
                 className="px-0!"
-                disabled={isBusy}
+                disabled={isBusy || capabilityQuery.isLoading || capabilityQuery.isError}
                 onClick={() => {
                   void (async () => {
                     const values = await form.validateFields(["newEmail"]);
@@ -153,27 +208,90 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
           />
         </Form.Item>
 
-        <Form.Item
-          name="password"
-          label={t("account:ME_PROFILE_EMAIL_PASSWORD")}
-          rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-          className="mb-2"
-        >
-          <Input.Password placeholder={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")} />
-        </Form.Item>
+        {requiresPassword ? (
+          <>
+            <Form.Item
+              name="password"
+              label={t("account:ME_PROFILE_EMAIL_PASSWORD")}
+              rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
+              className="mb-2"
+            >
+              <Input.Password placeholder={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")} />
+            </Form.Item>
 
-        <Button
-          type="link"
-          className="px-0!"
-          disabled={isBusy}
-          onClick={() => {
-            closeIfIdle(false);
-            void navigate({ to: "/reset-password" });
-          }}
-          autoInsertSpace={false}
-        >
-          {t("account:ME_PROFILE_EMAIL_FORGOT_PASSWORD")}
-        </Button>
+            <Button
+              type="link"
+              className="px-0!"
+              disabled={isBusy}
+              onClick={() => {
+                closeIfIdle(false);
+                void navigate({ to: "/reset-password" });
+              }}
+              autoInsertSpace={false}
+            >
+              {t("account:ME_PROFILE_EMAIL_FORGOT_PASSWORD")}
+            </Button>
+          </>
+        ) : null}
+
+        {requiresTwoFactor ? (
+          <>
+            <Form.Item
+              name="twoFactorCode"
+              label={t("account:ME_PROFILE_EMAIL_2FA_CODE")}
+              rules={[
+                {
+                  validator: async (_, value) => {
+                    const backupCode = String(form.getFieldValue("backupCode") || "").trim();
+                    const code = String(value || "").trim();
+                    if (!code && !backupCode) {
+                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_ONE_OF_REQUIRED"));
+                    }
+                    if (code && backupCode) {
+                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_MUTUALLY_EXCLUSIVE"));
+                    }
+                  },
+                },
+              ]}
+              className="mb-4"
+            >
+              <Input placeholder={t("account:ME_PROFILE_EMAIL_2FA_CODE_PLACEHOLDER")} />
+            </Form.Item>
+            <Form.Item
+              name="backupCode"
+              label={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE")}
+              rules={[
+                {
+                  validator: async (_, value) => {
+                    const code = String(form.getFieldValue("twoFactorCode") || "").trim();
+                    const backupCode = String(value || "").trim();
+                    if (!code && !backupCode) {
+                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_ONE_OF_REQUIRED"));
+                    }
+                    if (code && backupCode) {
+                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_MUTUALLY_EXCLUSIVE"));
+                    }
+                  },
+                },
+              ]}
+              className="mb-0!"
+            >
+              <Input placeholder={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE_PLACEHOLDER")} />
+            </Form.Item>
+          </>
+        ) : null}
+
+        {requiresRelogin ? (
+          <div className="text-callout text-label-secondary">
+            {t("account:ME_PROFILE_EMAIL_RELOGIN_REQUIRED")}
+          </div>
+        ) : null}
+
+        {capabilityQuery.isError ? (
+          <div className="text-callout text-destructive mt-1">
+            {t("account:ME_PROFILE_PASSWORD_CAPABILITY_LOAD_FAILED")}
+          </div>
+        ) : null}
       </Form>
     </SettingDialog>
   );

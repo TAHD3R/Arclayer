@@ -5,10 +5,12 @@ import type {
   ConfirmMyEmailChangePayload,
   DeleteMyAccountCapability,
   DeleteMyAccountPayload,
+  MySecurityCapability,
   RegisterPayload,
   RequestMyEmailChangeOut,
   RequestMyEmailChangePayload,
   ResetTokenPayload,
+  SetMyPasswordPayload,
   TokenPair,
   TwoFactorBackupCodesResult,
   TwoFactorCapabilities,
@@ -68,6 +70,14 @@ export async function confirmMyEmailChange(
   payload: ConfirmMyEmailChangePayload,
 ): Promise<UserProfile> {
   return api.post<UserProfile>("/auth/me/email/confirm", payload);
+}
+
+export async function getMySecurityCapabilities(): Promise<MySecurityCapability> {
+  return api.get<MySecurityCapability>("/auth/me/security-capabilities");
+}
+
+export async function setMyPassword(payload: SetMyPasswordPayload): Promise<null> {
+  return api.post<null>("/auth/me/set-password", payload);
 }
 
 export async function getDeleteMyAccountCapabilities(): Promise<DeleteMyAccountCapability> {

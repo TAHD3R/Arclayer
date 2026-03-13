@@ -4,7 +4,6 @@ import { KeyRound, Mail } from "lucide-react";
 
 import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";
 import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
-import { MeSecurityChangePasswordSection } from "@/pages/me/security/components/security-change-password-section";
 import { MeSecuritySessionsSection } from "@/pages/me/security/components/security-sessions-section";
 import { MeSecurityTwoFactorSection } from "@/pages/me/security/components/security-two-factor-section";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
@@ -25,21 +24,6 @@ export function MeSecurityView(props: MeSecurityViewProps) {
     <MeSettingsCategoryLayout
       showNav={mode === "page"}
       categories={[
-        {
-          key: "password",
-          label: t("account:ME_SECURITY_PANEL_TITLE"),
-          content: (
-            <MeSettingPanel
-              title={t("account:ME_SECURITY_PANEL_TITLE")}
-              showDivider
-              variant={panelVariant}
-            >
-              <div className="flex flex-col gap-6">
-                <MeSecurityChangePasswordSection />
-              </div>
-            </MeSettingPanel>
-          ),
-        },
         {
           key: "2fa",
           label: t("account:ME_SECURITY_2FA_PANEL_TITLE"),

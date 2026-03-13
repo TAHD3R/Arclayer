@@ -9,6 +9,8 @@ export type {
   RequestMyEmailChangePayload,
   RequestMyEmailChangeOut,
   ConfirmMyEmailChangePayload,
+  MySecurityCapability,
+  SetMyPasswordPayload,
   DeleteMyAccountPayload,
   DeleteMyAccountCapability,
   DeleteMyAccountReauthMethod,

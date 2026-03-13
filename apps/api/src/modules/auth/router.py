@@ -57,12 +57,14 @@ from apps.api.src.modules.auth.schema import (
     LogoutRequest,
     MyInvitationListQuery,
     MyInvitationOut,
+    MySecurityCapabilityOut,
     RefreshRequest,
     RegisterRequest,
     RequestMyEmailChangeOut,
     RequestMyEmailChangeRequest,
     ResetPasswordRequest,
     ResetTokenPayload,
+    SetMyPasswordRequest,
     TokenPair,
     UpdateMyProfileRequest,
     UserProfile,
@@ -449,6 +451,25 @@ async def change_password(
 
 
 @router.post(
+    "/me/set-password",
+    response_model=ResponseModel[None],
+    summary="Set password for current user (OAuth-only accounts)",
+)
+async def set_my_password(
+    payload: SetMyPasswordRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[None]:
+    await service.set_password_for_current_user(
+        user_id=user.id,
+        new_password=payload.new_password,
+        code=payload.code,
+        backup_code=payload.backup_code,
+    )
+    return Response.success(message=t("auth", "PASSWORD_SET", default="密码设置成功"))
+
+
+@router.post(
     "/logout",
     response_model=ResponseModel[None],
     summary="Logout and revoke refresh tokens",
@@ -634,6 +655,19 @@ async def me(
 ) -> ResponseModel[UserProfile]:
     profile = service.build_user_profile(user)
     return Response.success(data=profile)
+
+
+@router.get(
+    "/me/security-capabilities",
+    response_model=ResponseModel[MySecurityCapabilityOut],
+    summary="Get security capabilities for current user",
+)
+async def get_my_security_capabilities(
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[MySecurityCapabilityOut]:
+    out = await service.get_my_security_capabilities(user_id=user.id)
+    return Response.success(data=out)
 
 
 @router.patch(
@@ -842,6 +876,8 @@ async def confirm_email_change(
         new_email=str(payload.new_email),
         code=payload.code,
         password=payload.password,
+        two_factor_code=payload.two_factor_code,
+        backup_code=payload.backup_code,
     )
     return Response.success(message=t("auth", "EMAIL_CHANGED", default="邮箱已更新"), data=profile)
 

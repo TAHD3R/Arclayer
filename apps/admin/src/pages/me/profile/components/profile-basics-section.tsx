@@ -13,6 +13,7 @@ import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { MeProfileChangeEmailDialog } from "@/pages/me/profile/components/profile-change-email-dialog";
+import { MeProfilePasswordSection } from "@/pages/me/profile/components/profile-password-section";
 import { uploadAvatarFile } from "@/pages/me/profile/lib/avatar-upload";
 
 function isValidDisplayName(value: string | null): boolean {
@@ -35,6 +36,7 @@ export type MeProfileBasicsSectionProps = {
     avatarUrl: string | null;
     avatarAssetId: string | null;
   };
+  redirect: string;
 };
 
 export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
@@ -221,6 +223,8 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
             </Button>
           </SettingCardContent>
         </SettingCard>
+
+        <MeProfilePasswordSection redirect={props.redirect} />
       </div>
 
       <SettingDialog
@@ -289,6 +293,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
         open={changeEmailOpen}
         onOpenChange={setChangeEmailOpen}
         nextEmail={props.profile.email ?? ""}
+        redirect={props.redirect}
       />
     </>
   );

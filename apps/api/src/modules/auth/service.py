@@ -38,6 +38,7 @@ from apps.api.src.modules.auth.schema import (
     InvitationPreviewResult,
     MyInvitationListQuery,
     MyInvitationOut,
+    MySecurityCapabilityOut,
     ResetTokenPayload,
     TokenPair,
     UpdateMyProfileRequest,
@@ -283,26 +284,29 @@ class AuthService(BaseService):
         user: User,
         new_email: str,
         code: str,
-        password: str,
+        password: str | None,
+        two_factor_code: str | None,
+        backup_code: str | None,
     ) -> UserProfile:
         new_email = new_email.strip().lower()
         code = code.strip()
 
-        # Ensure credential is loaded for password verification.
-        # `get_current_user` does not prefetch relations to keep it lightweight.
-        user_with_cred = await UserRepository().get_by_id_with_credential(cast(UUID, user.id))
+        user_with_cred = await self.user_repo.get_by_id_with_credential(cast(UUID, user.id))
         if user_with_cred is None:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
 
-        credential = cast(CredentialLike | None, getattr(user_with_cred, "credential", None))
-        if credential is None or not verify_password(password, cast(str, credential.password_hash), self.settings.auth):
-            raise Unauthorized(
-                message=self._ta("INVALID_CREDENTIALS", "账号或密码错误"),
-                error="INVALID_CREDENTIALS",
-            )
+        user_id = cast(UUID, user.id)
+        authed_by_password = self._reauth_by_password_or_raise_if_present(user=user_with_cred, password=password)
+        if not authed_by_password:
+            if await self.two_factor.is_enabled(user_id=user_id):
+                await self._reauth_by_two_factor_or_raise(
+                    user_id=user_id, code=two_factor_code, backup_code=backup_code
+                )
+            else:
+                self._reauth_by_recent_login_or_raise(user=user_with_cred)
 
         store = self._require_email_change_store()
-        record = await store.get(user_id=cast(UUID, user.id))
+        record = await store.get(user_id=user_id)
         if not record:
             raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
 
@@ -312,21 +316,21 @@ class AuthService(BaseService):
         if issued_email != new_email:
             raise BadRequest(message=self._ta("EMAIL_MISMATCH", "邮箱与验证码不匹配"), error="EMAIL_MISMATCH")
         if issued_code != code:
-            tries = await store.bump_attempts(user_id=cast(UUID, user.id))
+            tries = await store.bump_attempts(user_id=user_id)
             if tries >= 5:
-                await store.delete(user_id=cast(UUID, user.id))
+                await store.delete(user_id=user_id)
             raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
 
         if user_with_cred.email and new_email == user_with_cred.email.strip().lower():
-            await store.delete(user_id=cast(UUID, user.id))
+            await store.delete(user_id=user_id)
             raise BadRequest(message=self._ta("EMAIL_SAME", "新邮箱不能与当前邮箱相同"), error="EMAIL_SAME")
 
         if await self.user_repo.exists_email(new_email):
-            await store.delete(user_id=cast(UUID, user.id))
+            await store.delete(user_id=user_id)
             raise Conflict(message=self._ta("EMAIL_EXISTS", "邮箱已被占用"), error="EMAIL_EXISTS")
 
         await self.user_repo.set_email(user_with_cred, new_email)
-        await store.delete(user_id=cast(UUID, user.id))
+        await store.delete(user_id=user_id)
         return self.build_user_profile(user_with_cred)
 
     def _reauth_required(self, *, methods: list[str]) -> Unauthorized:
@@ -369,6 +373,61 @@ class AuthService(BaseService):
             await self.two_factor.verify_for_login(user_id=user_id, code=code, backup_code=backup_code)
         except BadRequest as exc:
             raise Unauthorized(message=exc.message, error=exc.error) from exc
+
+    @staticmethod
+    def _required_reauth_methods(*, has_password: bool, two_factor_enabled: bool) -> list[str]:
+        if has_password:
+            return ["password"]
+        if two_factor_enabled:
+            return ["2fa"]
+        return ["relogin"]
+
+    async def get_my_security_capabilities(self, *, user_id: UUID) -> MySecurityCapabilityOut:
+        user_with_cred = cast(User | None, await self.user_repo.get_by_id_with_credential(user_id))
+        if user_with_cred is None:
+            raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
+        has_password = cast(CredentialLike | None, getattr(user_with_cred, "credential", None)) is not None
+        two_factor_enabled = await self.two_factor.is_enabled(user_id=user_id)
+        return MySecurityCapabilityOut(
+            has_password=has_password,
+            two_factor_enabled=two_factor_enabled,
+            set_password_required_reauth_methods=(
+                []
+                if has_password
+                else self._required_reauth_methods(has_password=False, two_factor_enabled=two_factor_enabled)
+            ),
+            email_change_required_reauth_methods=self._required_reauth_methods(
+                has_password=has_password,
+                two_factor_enabled=two_factor_enabled,
+            ),
+        )
+
+    async def set_password_for_current_user(
+        self,
+        *,
+        user_id: UUID,
+        new_password: str,
+        code: str | None,
+        backup_code: str | None,
+    ) -> None:
+        user_with_cred = cast(User | None, await self.user_repo.get_by_id_with_credential(user_id))
+        if user_with_cred is None:
+            raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
+        if not self.user_repo.is_active(user_with_cred):
+            raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
+        if cast(CredentialLike | None, getattr(user_with_cred, "credential", None)) is not None:
+            raise Conflict(message=self._ta("PASSWORD_ALREADY_SET", "当前账号已设置密码"), error="PASSWORD_ALREADY_SET")
+
+        self._ensure_password_strength(new_password)
+        if await self.two_factor.is_enabled(user_id=user_id):
+            await self._reauth_by_two_factor_or_raise(user_id=user_id, code=code, backup_code=backup_code)
+        else:
+            self._reauth_by_recent_login_or_raise(user=user_with_cred)
+
+        await self.user_repo.set_password(user_with_cred, hash_password(new_password, self.settings.auth))
+        await self.user_repo.increment_token_version(user_with_cred)
+        if self.refresh_store is not None:
+            await self.refresh_store.revoke_all(self._coerce_user_id(user_with_cred))
 
     async def delete_my_account(
         self,

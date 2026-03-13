@@ -136,6 +136,29 @@ class ChangePasswordRequest(BaseSchema):
         return self
 
 
+class SetMyPasswordRequest(BaseSchema):
+    """Set password for current user (OAuth-only accounts)."""
+
+    new_password: str = Field(min_length=8, max_length=128, description="New password.")
+    code: str | None = Field(default=None, min_length=4, max_length=16, description="2FA TOTP code.")
+    backup_code: str | None = Field(default=None, min_length=4, max_length=64, description="2FA backup code.")
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        if not re.match(PASSWORD_REGEX, value):
+            raise ValueError("New password must contain letters and numbers, and be 8-128 characters long.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_reauth_shape(self):
+        has_totp = bool(self.code and self.code.strip())
+        has_backup = bool(self.backup_code and self.backup_code.strip())
+        if has_totp and has_backup:
+            raise ValueError("Provide exactly one of code or backup_code.")
+        return self
+
+
 class ForgotPasswordRequest(BaseSchema):
     """Forgot password request."""
 
@@ -245,12 +268,40 @@ class RequestMyEmailChangeOut(BaseSchema):
     expires_in: int = Field(..., ge=1, description="Code expires in seconds.")
 
 
+class MySecurityCapabilityOut(BaseSchema):
+    """Security capabilities for current account."""
+
+    has_password: bool = Field(default=False, description="Whether the account already has a local password.")
+    two_factor_enabled: bool = Field(default=False, description="Whether TOTP 2FA is enabled.")
+    set_password_required_reauth_methods: list[str] = Field(
+        default_factory=list,
+        description="Required re-auth method(s) to set password: 2fa or relogin.",
+    )
+    email_change_required_reauth_methods: list[str] = Field(
+        default_factory=list,
+        description="Required re-auth method(s) to confirm email change: password, 2fa, or relogin.",
+    )
+
+
 class ConfirmMyEmailChangeRequest(BaseSchema):
     """Confirm email change."""
 
     new_email: EmailStr = Field(..., description="New email address.")
     code: str = Field(min_length=4, max_length=16, description="Email verification code.")
-    password: str = Field(min_length=1, max_length=128, description="Current password.")
+    password: str | None = Field(default=None, min_length=1, max_length=128, description="Current password.")
+    two_factor_code: str | None = Field(default=None, min_length=4, max_length=16, description="2FA TOTP code.")
+    backup_code: str | None = Field(default=None, min_length=4, max_length=64, description="2FA backup code.")
+
+    @model_validator(mode="after")
+    def _validate_reauth_shape(self):
+        has_password = bool(self.password and self.password.strip())
+        has_totp = bool(self.two_factor_code and self.two_factor_code.strip())
+        has_backup = bool(self.backup_code and self.backup_code.strip())
+        if has_totp and has_backup:
+            raise ValueError("Provide exactly one of two_factor_code or backup_code.")
+        if has_password and (has_totp or has_backup):
+            raise ValueError("Provide either password or 2FA code, not both.")
+        return self
 
 
 class DeleteMyAccountRequest(BaseSchema):

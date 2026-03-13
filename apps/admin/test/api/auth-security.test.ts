@@ -10,8 +10,10 @@ vi.mock("@/lib/http", () => ({
 import { api } from "@/lib/http";
 import {
   beginTwoFactorSetup,
+  confirmMyEmailChange,
   confirmTwoFactorSetup,
   disableTwoFactor,
+  getMySecurityCapabilities,
   getTwoFactorCapabilities,
   getTwoFactorStatus,
   listMySessions,
@@ -19,6 +21,7 @@ import {
   regenerateTwoFactorBackupCodes,
   revokeMySession,
   revokeOtherSessions,
+  setMyPassword,
 } from "@/api/auth";
 import type { AuthSessionRow, TwoFactorCapabilities, TwoFactorStatus } from "@/types/api";
 
@@ -104,5 +107,34 @@ describe("api/auth security wrappers", () => {
     await listMySessions();
 
     expect(api.get).toHaveBeenCalledWith("/auth/sessions");
+  });
+
+  it("posts profile security endpoints", async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      hasPassword: false,
+      twoFactorEnabled: true,
+      setPasswordRequiredReauthMethods: ["2fa"],
+      emailChangeRequiredReauthMethods: ["2fa"],
+    });
+    vi.mocked(api.post).mockResolvedValue(null);
+
+    await getMySecurityCapabilities();
+    await setMyPassword({ new_password: "newpass1", code: "123456" });
+    await confirmMyEmailChange({
+      new_email: "next@example.com",
+      code: "654321",
+      two_factor_code: "123456",
+    });
+
+    expect(api.get).toHaveBeenCalledWith("/auth/me/security-capabilities");
+    expect(api.post).toHaveBeenNthCalledWith(1, "/auth/me/set-password", {
+      new_password: "newpass1",
+      code: "123456",
+    });
+    expect(api.post).toHaveBeenNthCalledWith(2, "/auth/me/email/confirm", {
+      new_email: "next@example.com",
+      code: "654321",
+      two_factor_code: "123456",
+    });
   });
 });

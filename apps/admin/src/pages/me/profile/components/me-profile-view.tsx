@@ -48,7 +48,7 @@ function MeProfileViewContent() {
           label: t("ME_PROFILE_PANEL_TITLE"),
           content: (
             <MeSettingPanel title={t("ME_PROFILE_PANEL_TITLE")} showDivider variant={panelVariant}>
-              <MeProfileBasicsSection profile={profile} />
+              <MeProfileBasicsSection profile={profile} redirect={redirect} />
             </MeSettingPanel>
           ),
         },
