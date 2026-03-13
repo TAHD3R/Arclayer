@@ -90,7 +90,8 @@ export async function uploadAvatarFile(file: File, signal?: AbortSignal): Promis
       sizeBytes: file.size,
       expectedSha256: null,
     });
-    uploadId = init.uploadId;
+    const activeUploadId = init.uploadId;
+    uploadId = activeUploadId;
 
     const plan = buildUploadPlan(init);
     const parts = Array.from({ length: plan.totalParts }, (_, index) => index + 1);
@@ -100,13 +101,13 @@ export async function uploadAvatarFile(file: File, signal?: AbortSignal): Promis
       const chunk = file.slice(start, end);
 
       if (plan.method === "s3_multipart") {
-        await uploadS3Part({ uploadId, partNumber, chunk, signal });
+        await uploadS3Part({ uploadId: activeUploadId, partNumber, chunk, signal });
       } else {
-        await uploadLocalPart({ uploadId, partNumber, chunk, signal });
+        await uploadLocalPart({ uploadId: activeUploadId, partNumber, chunk, signal });
       }
     });
 
-    const done = await completeAvatarUpload(uploadId);
+    const done = await completeAvatarUpload(activeUploadId);
     return done.assetId;
   } catch (error) {
     if (uploadId) {

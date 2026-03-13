@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Popconfirm } from "antd";
-import { useMemo } from "react";
+import { Button } from "antd";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SettingCard, SettingCardContent } from "@celestial/ui/setting-card";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 
 import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
@@ -129,33 +130,16 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
       });
     }
 
-    if (rows.length === 0) {
-      rows.push({
-        provider: "google",
-        label: "Google",
-        startUrl: "",
-        linkedEmail: null,
-        linked: false,
-        enabled: true,
-      });
-      rows.push({
-        provider: "github",
-        label: "GitHub",
-        startUrl: "",
-        linkedEmail: "user@example.com",
-        linked: true,
-        enabled: true,
-      });
-    }
     return rows;
   }, [identitiesQuery.data?.identities, identitiesQuery.error, providersQuery.data?.providers]);
 
   const loading = providersQuery.isLoading || identitiesQuery.isLoading;
   const rawError = providersQuery.error ?? identitiesQuery.error;
+  const [disconnectPopoverProvider, setDisconnectPopoverProvider] = useState<string | null>(null);
   // In self-host / plugin-disabled environments, the linked-identity endpoint may not exist yet.
   // Treat that as "no linked accounts feature available" rather than a page-level 404.
   const error = rawError instanceof ApiError && rawError.status === 404 ? null : rawError;
-  const empty = false; // Mocked
+  const empty = !loading && !error && providerRows.length === 0;
 
   return (
     <SettingCard>
@@ -203,24 +187,60 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
 
                   <div className="shrink-0 flex items-center gap-2">
                     {row.linked ? (
-                      <Popconfirm
-                        title={t("ME_LINKED_ACCOUNTS_DISCONNECT_CONFIRM")}
-                        okText={t("ME_LINKED_ACCOUNTS_DISCONNECT")}
-                        cancelText={t("common:CANCEL")}
-                        okButtonProps={{ danger: true, type: "primary" }}
-                        cancelButtonProps={{ type: "primary" }}
-                        onConfirm={() => void unlinkIdentityMutation.mutateAsync(row.provider)}
+                      <Popover
+                        open={disconnectPopoverProvider === row.provider}
+                        onOpenChange={(open) => {
+                          if (unlinkIdentityMutation.isPending) return;
+                          setDisconnectPopoverProvider(open ? row.provider : null);
+                        }}
                       >
-                        <Button
-                          type="primary"
-                          danger
-                          disabled={unlinkIdentityMutation.isPending}
-                          loading={unlinkIdentityMutation.isPending}
-                          autoInsertSpace={false}
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="primary"
+                            danger
+                            disabled={unlinkIdentityMutation.isPending}
+                            loading={unlinkIdentityMutation.isPending}
+                            autoInsertSpace={false}
+                          >
+                            {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
+                          </Button>
+                        </PopoverTrigger>
+
+                        <PopoverContent
+                          align="end"
+                          sideOffset={8}
+                          className="w-[320px] max-w-[min(320px,calc(100vw-2rem))] p-3"
                         >
-                          {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
-                        </Button>
-                      </Popconfirm>
+                          <div className="text-callout text-label-primary">
+                            {t("ME_LINKED_ACCOUNTS_DISCONNECT_CONFIRM")}
+                          </div>
+                          <div className="mt-3 flex items-center justify-end gap-2">
+                            <PopoverClose asChild>
+                              <Button
+                                type="text"
+                                disabled={unlinkIdentityMutation.isPending}
+                                autoInsertSpace={false}
+                              >
+                                {t("common:CANCEL")}
+                              </Button>
+                            </PopoverClose>
+                            <Button
+                              type="primary"
+                              danger
+                              disabled={unlinkIdentityMutation.isPending}
+                              loading={unlinkIdentityMutation.isPending}
+                              onClick={() => {
+                                void unlinkIdentityMutation
+                                  .mutateAsync(row.provider)
+                                  .then(() => setDisconnectPopoverProvider(null));
+                              }}
+                              autoInsertSpace={false}
+                            >
+                              {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     ) : (
                       <Button
                         type="primary"
