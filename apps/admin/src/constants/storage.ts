@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   contrastMore: "celestial:admin:contrastMore",
   fontScalePreference: "celestial:admin:fontScalePreference",
   fontWeightPreference: "celestial:admin:fontWeightPreference",
+  defaultPageFullWidth: "celestial:admin:defaultPageFullWidth",
   auth: "celestial:admin:auth",
   authChallenge: "celestial:auth:challenge",
   workspace: "celestial:admin:workspace",

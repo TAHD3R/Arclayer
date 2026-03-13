@@ -31,6 +31,8 @@ export function MePreferencesAppearanceSection() {
 
   const fontWeightPreference = usePreferencesStore((s) => s.fontWeightPreference);
   const setFontWeightPreference = usePreferencesStore((s) => s.setFontWeightPreference);
+  const defaultPageFullWidth = usePreferencesStore((s) => s.defaultPageFullWidth);
+  const setDefaultPageFullWidth = usePreferencesStore((s) => s.setDefaultPageFullWidth);
 
   const fontScale = fontScalePreference ?? 1;
   const fontWeight = fontWeightPreference ?? 400;
@@ -75,6 +77,23 @@ export function MePreferencesAppearanceSection() {
             />
           </div>
         </SettingCardContent>
+      </SettingCard>
+
+      <SettingCard>
+        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
+          <div>
+            <div className="text-callout font-semibold text-label-primary">
+              {t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_TITLE")}
+            </div>
+            <div className="mt-1 text-callout text-label-secondary">
+              {t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_DESC")}
+            </div>
+          </div>
+          <Switch
+            checked={defaultPageFullWidth}
+            onChange={(checked) => setDefaultPageFullWidth(Boolean(checked))}
+          />
+        </div>
       </SettingCard>
 
       <SettingCard>

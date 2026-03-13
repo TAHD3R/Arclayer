@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import * as authApi from "@/api/auth";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
-import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
+import { SettingCard, SettingCardContent } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
@@ -127,10 +127,6 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
     <>
       <div className="flex flex-col gap-6">
         <SettingCard>
-          <SettingCardHeader
-            title={t("account:ME_PROFILE_PANEL_TITLE")}
-            description={t("account:ME_TAB_PROFILE_DESC")}
-          />
           <SettingCardContent>
             <div className="flex flex-row items-start gap-6 sm:gap-8">
               <div className="flex flex-col gap-3 shrink-0">

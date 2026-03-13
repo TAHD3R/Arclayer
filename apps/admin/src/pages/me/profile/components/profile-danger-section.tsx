@@ -115,7 +115,7 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
   return (
     <>
       <div className="flex flex-col gap-6">
-        <SettingCard className="border-destructive/30 bg-destructive/5">
+        <SettingCard className="border-destructive/30">
           <SettingCardHeader
             title={t("account:ME_DELETE_ACCOUNT_TITLE")}
             description={actionDescription}

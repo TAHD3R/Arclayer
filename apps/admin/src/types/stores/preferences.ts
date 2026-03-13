@@ -17,6 +17,7 @@ export interface PreferencesState {
   contrastMore: boolean;
   fontScalePreference: number | null;
   fontWeightPreference: number | null;
+  defaultPageFullWidth: boolean;
   setThemeMode: (mode: ThemeMode) => void;
   setThemePreference: (preference: ThemePreference) => void;
   toggleThemeMode: () => void;
@@ -28,6 +29,7 @@ export interface PreferencesState {
   setContrastMore: (enabled: boolean) => void;
   setFontScalePreference: (scale: number | null) => void;
   setFontWeightPreference: (weight: number | null) => void;
+  setDefaultPageFullWidth: (enabled: boolean) => void;
   setEffectiveLocale: (locale: AppLocale) => void;
   cacheWorkspaceLocale: (workspaceId: string, locale: AppLocale) => void;
   notificationPanelPinned: boolean;

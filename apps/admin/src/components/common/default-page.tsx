@@ -7,6 +7,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
 import { ApiError } from "@/lib/http";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
+import { usePreferencesStore } from "@/stores/use-preference-store";
 import BookmarkIcon from "@celestial/ui/icons/bookmark-icon";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
@@ -113,11 +114,13 @@ export function DefaultPage({
   className,
   contentClassName,
 }: DefaultPageProps) {
+  const defaultPageFullWidth = usePreferencesStore((state) => state.defaultPageFullWidth);
   const contentGuardError = resolveContentGuardError(children);
   const hideHeader = shouldHideHeaderForError(contentGuardError);
+  const resolvedWidth = defaultPageFullWidth ? "full" : width;
 
   return (
-    <AdminRouteContainer width={width} className={clsx("h-full", className)}>
+    <AdminRouteContainer width={resolvedWidth} className={clsx("h-full", className)}>
       {!hideHeader && (title || description || action || extra) && (
         <header className="mb-[18px]">
           {(title || action) && (
