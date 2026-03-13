@@ -33,7 +33,6 @@ import {
   useFloatingPanel,
 } from "@celestial/ui/floating-panel";
 import { useSidebar } from "@celestial/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@celestial/ui/tooltip";
 
 import type { OrganizationWorkspace } from "@/types/api";
 
@@ -42,7 +41,6 @@ import type { OrganizationWorkspace } from "@/types/api";
 // ============================================================================
 
 const TRIGGER_HEIGHT_CLASSNAME = "!h-10";
-const DEFAULT_TOOLTIP_SIDE_OFFSET = 4;
 
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
@@ -677,79 +675,69 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
     const canGoBack = Boolean(effectiveBackWorkspaceId);
 
     return (
-      <TooltipProvider>
-        <div className={cn("w-full min-w-0", props.className)}>
-          <div
+      <div className={cn("w-full min-w-0", props.className)}>
+        <div
+          className={cn(
+            sidebarTriggerShellClassName,
+            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+          )}
+        >
+          <Button
+            type="text"
+            autoInsertSpace={false}
+            aria-label={backLabel}
             className={cn(
-              sidebarTriggerShellClassName,
-              "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+              sidebarTriggerButtonClassName,
+              !canGoBack && "opacity-60",
+              "group-data-[collapsible=icon]:!justify-center",
             )}
+            disabled={!canGoBack}
+            onClick={() => {
+              if (!effectiveBackWorkspaceId) return;
+              setCurrentWorkspaceId(effectiveBackWorkspaceId);
+              void navigate({
+                to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never,
+              });
+            }}
           >
-            <Tooltip side="bottom" sideOffset={DEFAULT_TOOLTIP_SIDE_OFFSET}>
-              <TooltipTrigger asChild>
-                <Button
-                  type="text"
-                  autoInsertSpace={false}
-                  aria-label={backLabel}
-                  className={cn(
-                    sidebarTriggerButtonClassName,
-                    !canGoBack && "opacity-60",
-                    "group-data-[collapsible=icon]:!justify-center",
-                  )}
-                  disabled={!canGoBack}
-                  onClick={() => {
-                    if (!effectiveBackWorkspaceId) return;
-                    setCurrentWorkspaceId(effectiveBackWorkspaceId);
-                    void navigate({
-                      to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never,
-                    });
-                  }}
-                >
-                  <ArrowLeft
-                    className={cn(
-                      "size-4 shrink-0 opacity-70",
-                      "group-data-[collapsible=icon]:opacity-100",
-                    )}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className={cn(
-                      "min-w-0 flex-1",
-                      NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                      "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
-                    )}
-                  >
-                    <TruncatedText
-                      text={backLabel}
-                      className="text-callout font-semibold text-foreground"
-                    />
-                  </div>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{backLabel}</TooltipContent>
-            </Tooltip>
-
-            <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
-          </div>
-
-          <div
-            className={cn(
-              "mt-0 flex justify-center overflow-hidden",
-              "h-0 opacity-0 pointer-events-none",
-              "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-              "group-data-[collapsible=icon]:mt-2",
-              "group-data-[collapsible=icon]:h-10",
-              "group-data-[collapsible=icon]:opacity-100",
-              "group-data-[collapsible=icon]:pointer-events-auto",
-            )}
-          >
-            <CollapsedCollapseButton
-              ariaLabel={t("common:SIDEBAR_TOGGLE")}
-              onClick={toggleSidebar}
+            <ArrowLeft
+              className={cn(
+                "size-4 shrink-0 opacity-70",
+                "group-data-[collapsible=icon]:opacity-100",
+              )}
+              aria-hidden="true"
             />
-          </div>
+            <div
+              className={cn(
+                "min-w-0 flex-1",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
+              )}
+            >
+              <TruncatedText
+                text={backLabel}
+                className="text-callout font-semibold text-foreground"
+              />
+            </div>
+          </Button>
+
+          <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
         </div>
-      </TooltipProvider>
+
+        <div
+          className={cn(
+            "mt-0 flex justify-center overflow-hidden",
+            "h-0 opacity-0 pointer-events-none",
+            "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+            "group-data-[collapsible=icon]:mt-2",
+            "group-data-[collapsible=icon]:h-10",
+            "group-data-[collapsible=icon]:opacity-100",
+            "group-data-[collapsible=icon]:pointer-events-auto",
+          )}
+        >
+          <CollapsedCollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+        </div>
+      </div>
     );
   }
 
@@ -759,83 +747,73 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
 
   return (
     <FloatingPanelRoot className={cn("w-full min-w-0", props.className)}>
-      <TooltipProvider>
-        <div className="min-w-0">
-          <div
+      <div className="min-w-0">
+        <div
+          className={cn(
+            sidebarTriggerShellClassName,
+            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+          )}
+        >
+          <FloatingPanelTrigger
+            title={workspaceTriggerText}
+            aria-label={label}
             className={cn(
-              sidebarTriggerShellClassName,
-              "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+              sidebarTriggerButtonClassName,
+              "w-full max-w-full overflow-hidden",
+              !canOpenPanel && "opacity-60",
             )}
+            disabled={!canOpenPanel}
           >
-            <Tooltip side="bottom" sideOffset={DEFAULT_TOOLTIP_SIDE_OFFSET}>
-              <TooltipTrigger asChild>
-                <FloatingPanelTrigger
-                  title={workspaceTriggerText}
-                  aria-label={label}
-                  className={cn(
-                    sidebarTriggerButtonClassName,
-                    "w-full max-w-full overflow-hidden",
-                    !canOpenPanel && "opacity-60",
-                  )}
-                  disabled={!canOpenPanel}
-                >
-                  <OrganizationAvatar
-                    name={workspaceTriggerText}
-                    assetRef={triggerOrganizationLogoUrl}
-                    size={32}
-                    className="shrink-0"
-                  />
-
-                  <div
-                    className={cn(
-                      "min-w-0 flex-1 overflow-hidden",
-                      NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                      "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
-                    )}
-                  >
-                    <TruncatedText
-                      text={workspaceTriggerText}
-                      className="text-callout font-semibold text-foreground"
-                    />
-                  </div>
-
-                  <ChevronDown
-                    className={cn(
-                      "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
-                      NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                    )}
-                    aria-hidden="true"
-                  />
-                </FloatingPanelTrigger>
-              </TooltipTrigger>
-              <TooltipContent>{workspaceTriggerText}</TooltipContent>
-            </Tooltip>
-
-            <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
-          </div>
-
-          <div
-            className={cn(
-              "mt-0 flex justify-center overflow-hidden",
-              "h-0 opacity-0 pointer-events-none",
-              "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-              "group-data-[collapsible=icon]:mt-2",
-              "group-data-[collapsible=icon]:h-10",
-              "group-data-[collapsible=icon]:opacity-100",
-              "group-data-[collapsible=icon]:pointer-events-auto",
-            )}
-          >
-            <CollapsedCollapseButton
-              ariaLabel={t("common:SIDEBAR_TOGGLE")}
-              onClick={toggleSidebar}
+            <OrganizationAvatar
+              name={workspaceTriggerText}
+              assetRef={triggerOrganizationLogoUrl}
+              size={32}
+              className="shrink-0"
             />
-          </div>
+
+            <div
+              className={cn(
+                "min-w-0 flex-1 overflow-hidden",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+                "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
+              )}
+            >
+              <TruncatedText
+                text={workspaceTriggerText}
+                className="text-callout font-semibold text-foreground"
+              />
+            </div>
+
+            <ChevronDown
+              className={cn(
+                "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
+                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+              )}
+              aria-hidden="true"
+            />
+          </FloatingPanelTrigger>
+
+          <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
         </div>
 
-        <FloatingPanelContent placement="bottom" offset={8} showTitle={false} className="p-0">
-          <PanelContentInner />
-        </FloatingPanelContent>
-      </TooltipProvider>
+        <div
+          className={cn(
+            "mt-0 flex justify-center overflow-hidden",
+            "h-0 opacity-0 pointer-events-none",
+            "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+            "group-data-[collapsible=icon]:mt-2",
+            "group-data-[collapsible=icon]:h-10",
+            "group-data-[collapsible=icon]:opacity-100",
+            "group-data-[collapsible=icon]:pointer-events-auto",
+          )}
+        >
+          <CollapsedCollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+        </div>
+      </div>
+
+      <FloatingPanelContent placement="bottom" offset={8} showTitle={false} className="p-0">
+        <PanelContentInner />
+      </FloatingPanelContent>
     </FloatingPanelRoot>
   );
 }

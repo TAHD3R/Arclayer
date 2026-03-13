@@ -1,4 +1,5 @@
 import type { AdminNavItem } from "@/types/admin-nav";
+import { cn } from "@celestial/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,22 @@ type NodeCollapsedGroupProps = {
   onNavigate: (to: string) => void;
 };
 
+const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
+  "relative z-10 h-10 rounded-lg text-callout text-label-secondary",
+  "transition-[color,background-color] duration-200 ease-out",
+  "hover:bg-accent/40 hover:text-label-primary",
+  "focus:bg-accent/40 focus:text-label-primary",
+  "data-[active=true]:bg-accent/40 data-[active=true]:text-label-primary",
+  "aria-[current=page]:bg-accent/50 aria-[current=page]:text-foreground aria-[current=page]:font-semibold",
+);
+
+const COLLAPSED_GROUP_LABEL_STYLE = {
+  fontSize: "var(--font-size-headline)",
+  lineHeight: "var(--line-height-headline)",
+  letterSpacing: "var(--tracking-headline)",
+  fontWeight: "var(--font-weight-headline)",
+} as const;
+
 function CollapsedGroupTrigger(props: {
   label: string;
   Icon: AdminNavItem["icon"] | undefined;
@@ -63,7 +80,7 @@ function CollapsedGroupContent(props: {
       side="right"
       align="start"
       sideOffset={8}
-      className="min-w-56 gap-1 data-[state=closed]:pointer-events-none"
+      className="min-w-56 gap-1 data-[state=closed]:pointer-events-none **:data-[slot=motion-highlight]:hidden"
       onCloseAutoFocus={(event) => event.preventDefault()}
       onPointerEnter={props.hoverDropdown.markActivity}
       onPointerMove={props.hoverDropdown.markActivity}
@@ -73,25 +90,28 @@ function CollapsedGroupContent(props: {
       onKeyDown={props.hoverDropdown.markActivity}
       onEscapeKeyDown={props.hoverDropdown.close}
     >
-      <DropdownMenuLabel>{props.label}</DropdownMenuLabel>
+      <DropdownMenuLabel className="text-label-primary" style={COLLAPSED_GROUP_LABEL_STYLE}>
+        {props.label}
+      </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      {props.children.map((child) => (
-        <DropdownMenuIconItem
-          key={child.key}
-          disabled={child.disabled}
-          data-active={child.isActive ? "true" : undefined}
-          aria-current={child.isActive ? "page" : undefined}
-          className="data-[active=true]:bg-accent data-[active=true]:text-accent-foreground data-[active=true]:font-semibold"
-          icon={child.Icon ? <child.Icon className="size-4" aria-hidden="true" /> : undefined}
-          onSelect={() => {
-            props.hoverDropdown.close();
-            if (!child.to || child.disabled) return;
-            props.onNavigate(child.to);
-          }}
-        >
-          {child.label}
-        </DropdownMenuIconItem>
-      ))}
+      <div className="flex flex-col gap-1">
+        {props.children.map((child) => (
+          <DropdownMenuIconItem
+            key={child.key}
+            disabled={child.disabled}
+            aria-current={child.isActive ? "page" : undefined}
+            className={cn(DROPDOWN_CHILD_ITEM_CLASSNAME, !child.disabled && "hover:cursor-pointer")}
+            icon={child.Icon ? <child.Icon className="size-4" aria-hidden="true" /> : undefined}
+            onSelect={() => {
+              props.hoverDropdown.close();
+              if (!child.to || child.disabled) return;
+              props.onNavigate(child.to);
+            }}
+          >
+            {child.label}
+          </DropdownMenuIconItem>
+        ))}
+      </div>
     </DropdownMenuContent>
   );
 }
