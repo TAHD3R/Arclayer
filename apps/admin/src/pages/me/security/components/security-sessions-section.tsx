@@ -29,15 +29,31 @@ type SessionFetchParams = {
 };
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+const SESSION_PLACEHOLDER_VALUES = new Set(["-", "unknown", "n/a", "null", "undefined"]);
+
+function normalizeSessionLabel(value: string | null | undefined): string | null {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return null;
+  if (SESSION_PLACEHOLDER_VALUES.has(trimmed.toLowerCase())) return null;
+  return trimmed;
+}
+
+function buildLocationLabel(session: AuthSessionRow): string {
+  const location = normalizeSessionLabel(session.locationLabel);
+  if (location) return location;
+  const ipAddress = normalizeSessionLabel(session.ipAddress);
+  return ipAddress ?? "-";
+}
 
 function mapSessionRow(session: AuthSessionRow): SessionRow {
   return {
     sessionId: session.sessionId,
     current: Boolean(session.current),
     revocable: Boolean(session.revocable),
-    device: session.deviceLabel || session.userAgent || "-",
-    ip: session.ipAddress || "-",
-    location: session.locationLabel || "-",
+    device:
+      normalizeSessionLabel(session.deviceLabel) ?? normalizeSessionLabel(session.userAgent) ?? "-",
+    ip: normalizeSessionLabel(session.ipAddress) ?? "-",
+    location: buildLocationLabel(session),
     authMethod: session.authMethod || "unknown",
     signedInAt: session.issuedAt,
     lastActiveAt: session.lastUsedAt || "",
@@ -190,7 +206,7 @@ export function MeSecuritySessionsSection() {
           />
         }
       />
-      <SettingCardContent>
+      <SettingCardContent className="min-w-0 max-w-full overflow-x-hidden">
         <SecuritySessionsTableContent
           table={controller.table.table}
           searchInput={controller.table.searchInput}
@@ -204,8 +220,6 @@ export function MeSecuritySessionsSection() {
           toolsLabels={controller.toolsLabels}
           searchPlaceholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
           emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
-          alertTitle={t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE_TITLE")}
-          alertDescription={t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE")}
         />
       </SettingCardContent>
     </SettingCard>

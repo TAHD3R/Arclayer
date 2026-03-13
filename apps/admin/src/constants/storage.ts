@@ -16,5 +16,4 @@ export const STORAGE_KEYS = {
   notificationPanelPinned: "celestial:admin:notificationPanelPinned",
   sidebarOpen: "celestial:admin:sidebarOpen",
   showNotificationsBadge: "celestial:admin:showNotificationsBadge",
-  meNotificationSubscriptions: "celestial:admin:me:notificationSubscriptions",
 } as const;

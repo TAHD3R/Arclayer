@@ -4,6 +4,8 @@ import { toQueryString, workspacePath } from "@/lib/api";
 import type {
   ListNotificationsParams,
   NotificationItem,
+  NotificationPreferenceChannel,
+  NotificationPreferences,
   NotificationPreview,
   PageData,
 } from "@/types/api";
@@ -61,4 +63,20 @@ export async function archiveNotification(
   return api.post<{ id: string; archivedAt?: string | null }>(
     `/me/notifications/${notificationId}/archive`,
   );
+}
+
+export async function getMyNotificationPreferences(): Promise<NotificationPreferences> {
+  return api.get<NotificationPreferences>("/me/notifications/preferences");
+}
+
+export async function patchMyNotificationPreference(payload: {
+  topicKey: string;
+  channel: NotificationPreferenceChannel;
+  enabled: boolean;
+}): Promise<NotificationPreferences> {
+  return api.patch<NotificationPreferences>("/me/notifications/preferences", {
+    topic_key: payload.topicKey,
+    channel: payload.channel,
+    enabled: payload.enabled,
+  });
 }

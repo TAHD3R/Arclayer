@@ -138,6 +138,10 @@ export type {
   NotificationItem,
   NotificationPreview,
   ListNotificationsParams,
+  NotificationPreferenceChannel,
+  NotificationPreferenceChannelState,
+  NotificationPreferenceTopic,
+  NotificationPreferences,
 } from "./notifications";
 
 // Users

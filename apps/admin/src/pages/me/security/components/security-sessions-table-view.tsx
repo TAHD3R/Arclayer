@@ -1,5 +1,6 @@
-import { Button, Alert } from "antd";
+import { Button } from "antd";
 import type { ColumnDef, Table as ReactTable } from "@tanstack/react-table";
+import { LogOut } from "lucide-react";
 
 import { SecurityCurrentSessionTag } from "@/components/ui/tags";
 import {
@@ -68,11 +69,12 @@ function buildTextColumn(props: {
   title: string;
   sortKey: "location" | "ip";
   className?: string;
+  defaultHidden?: boolean;
 }): ColumnDef<SessionRow, unknown> {
   return {
     accessorKey: props.key,
     header: props.title,
-    meta: { title: props.title, sortKey: props.sortKey, defaultHidden: true },
+    meta: { title: props.title, sortKey: props.sortKey, defaultHidden: props.defaultHidden },
     cell: ({ row }) => <span className={props.className}>{row.original[props.key]}</span>,
     size: props.key === "location" ? 220 : 160,
   };
@@ -94,23 +96,27 @@ function buildDateColumn(props: {
 }
 
 function buildActionColumn(props: ColumnFactoryProps): ColumnDef<SessionRow, unknown> {
+  const signOutLabel = props.t("account:ME_SECURITY_SESSIONS_KICK");
   return {
     id: "action",
     header: props.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
     meta: { title: props.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"), kind: "actions" },
     cell: ({ row }) => (
       <Button
+        aria-label={signOutLabel}
+        title={signOutLabel}
         disabled={!row.original.revocable}
         loading={props.isRevoking && props.revokingSessionId === row.original.sessionId}
         type="link"
-        className="px-0!"
+        icon={<LogOut className="h-4 w-4" />}
+        className="inline-flex items-center gap-1 px-0! text-label-secondary hover:text-label-primary"
         onClick={() => props.onRevoke(row.original.sessionId)}
         autoInsertSpace={false}
       >
-        {props.t("account:ME_SECURITY_SESSIONS_KICK")}
+        {signOutLabel}
       </Button>
     ),
-    size: 120,
+    size: 150,
   };
 }
 
@@ -127,12 +133,14 @@ export function buildSessionColumns(props: ColumnFactoryProps): ColumnDef<Sessio
       key: "location",
       title: props.t("account:ME_SECURITY_SESSIONS_COL_LOCATION"),
       sortKey: "location",
+      defaultHidden: false,
     }),
     buildTextColumn({
       key: "ip",
       title: props.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       sortKey: "ip",
       className: "font-mono text-footnote",
+      defaultHidden: true,
     }),
     {
       accessorKey: "authMethod",
@@ -140,6 +148,7 @@ export function buildSessionColumns(props: ColumnFactoryProps): ColumnDef<Sessio
       meta: {
         title: props.t("account:ME_SECURITY_SESSIONS_COL_AUTH_METHOD"),
         sortKey: "authMethod",
+        defaultHidden: true,
       },
       cell: ({ row }) => <span>{formatAuthMethod(row.original.authMethod, props.t)}</span>,
       size: 160,
@@ -172,49 +181,40 @@ type SecuritySessionsTableContentProps = {
   toolsLabels: DataTableToolsLabels;
   searchPlaceholder: string;
   emptyText: string;
-  alertTitle: string;
-  alertDescription: string;
 };
 
 export function SecuritySessionsTableContent(props: SecuritySessionsTableContentProps) {
   return (
-    <div className="grid min-w-0 gap-4">
-      <Alert
-        type="info"
-        showIcon
-        className="min-w-0"
-        title={props.alertTitle}
-        description={
-          <div className="min-w-0 break-words whitespace-normal">{props.alertDescription}</div>
-        }
-      />
-      <DataTablePresenter
-        table={props.table}
-        emptyText={props.emptyText}
-        className="min-h-0"
-        toolbar={{
-          left: (
-            <SecuritySessionsSearchToolbar
-              searchInput={props.searchInput}
-              onSearchInputChange={props.onSearchInputChange}
-              placeholder={props.searchPlaceholder}
-            />
-          ),
-          right: (
-            <SecuritySessionsToolsToolbar
-              table={props.table}
-              density={props.density}
-              onDensityChange={props.onDensityChange}
-              onRefresh={props.onRefresh}
-              refreshing={props.isFetching}
-              onResetColumnVisibility={props.onResetColumnVisibility}
-              labels={props.toolsLabels}
-            />
-          ),
-        }}
-        density={props.density}
-        refreshing={props.isFetching && !props.isLoading}
-      />
+    <div className="grid min-w-0 max-w-full gap-4">
+      <div className="min-w-0 max-w-full overflow-x-auto">
+        <DataTablePresenter
+          table={props.table}
+          emptyText={props.emptyText}
+          className="min-h-0 min-w-0 w-full"
+          toolbar={{
+            left: (
+              <SecuritySessionsSearchToolbar
+                searchInput={props.searchInput}
+                onSearchInputChange={props.onSearchInputChange}
+                placeholder={props.searchPlaceholder}
+              />
+            ),
+            right: (
+              <SecuritySessionsToolsToolbar
+                table={props.table}
+                density={props.density}
+                onDensityChange={props.onDensityChange}
+                onRefresh={props.onRefresh}
+                refreshing={props.isFetching}
+                onResetColumnVisibility={props.onResetColumnVisibility}
+                labels={props.toolsLabels}
+              />
+            ),
+          }}
+          density={props.density}
+          refreshing={props.isFetching && !props.isLoading}
+        />
+      </div>
     </div>
   );
 }

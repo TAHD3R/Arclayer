@@ -5,9 +5,15 @@ from uuid import UUID
 from apps.api.src.common.services import BaseService
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import NotFound
+from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
 from apps.api.src.core.i18n import t
+from apps.api.src.modules.system.admin.notifications.preferences import (
+    TOPIC_DEFINITIONS,
+    is_topic_channel_mutable,
+    load_user_notification_preferences,
+    save_user_notification_preference,
+)
 from apps.api.src.modules.system.admin.notifications.repository import NotificationRepository
 from apps.api.src.modules.system.admin.notifications.schema import (
     NotificationArchiveResult,
@@ -16,6 +22,10 @@ from apps.api.src.modules.system.admin.notifications.schema import (
     NotificationListQuery,
     NotificationListStatus,
     NotificationOut,
+    NotificationPreferenceChannelOut,
+    NotificationPreferencePatchIn,
+    NotificationPreferencesOut,
+    NotificationPreferenceTopicOut,
     NotificationPreviewOut,
     NotificationReadAllResult,
     NotificationReadResult,
@@ -40,6 +50,64 @@ class NotificationService(BaseService):
             unread_count=unread_count,
             items=[NotificationOut.model_validate(x, from_attributes=True) for x in items],
         )
+
+    @staticmethod
+    def _build_preferences_out(
+        *,
+        state: dict[str, dict[str, bool]],
+    ) -> NotificationPreferencesOut:
+        topics: list[NotificationPreferenceTopicOut] = []
+        for topic in TOPIC_DEFINITIONS:
+            topic_state = state.get(topic.key, {"in_app": False, "email": False})
+            topics.append(
+                NotificationPreferenceTopicOut(
+                    key=topic.key,
+                    category=topic.category,
+                    title_i18n=topic.title_i18n,
+                    description_i18n=topic.description_i18n,
+                    channels={
+                        "in_app": NotificationPreferenceChannelOut(
+                            enabled=bool(topic_state.get("in_app")),
+                            supported=topic.in_app_supported,
+                            mutable=is_topic_channel_mutable(topic, "in_app"),
+                        ),
+                        "email": NotificationPreferenceChannelOut(
+                            enabled=bool(topic_state.get("email")),
+                            supported=topic.email_supported,
+                            mutable=is_topic_channel_mutable(topic, "email"),
+                        ),
+                    },
+                )
+            )
+        return NotificationPreferencesOut(topics=topics)
+
+    async def get_notification_preferences_for_user(
+        self,
+        *,
+        user_id: UUID,
+    ) -> NotificationPreferencesOut:
+        state = await load_user_notification_preferences(user_id=user_id)
+        return self._build_preferences_out(state=state)
+
+    async def patch_notification_preference_for_user(
+        self,
+        *,
+        user_id: UUID,
+        payload: NotificationPreferencePatchIn,
+    ) -> NotificationPreferencesOut:
+        try:
+            state = await save_user_notification_preference(
+                user_id=user_id,
+                topic_key=payload.topic_key,
+                channel=payload.channel,
+                enabled=payload.enabled,
+            )
+        except ValueError as exc:
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                error=str(exc),
+            ) from exc
+        return self._build_preferences_out(state=state)
 
     async def get_unread_preview_for_user(
         self,

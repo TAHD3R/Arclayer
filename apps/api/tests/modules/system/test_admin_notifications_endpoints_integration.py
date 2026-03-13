@@ -11,7 +11,12 @@ from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
 from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
+from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.modules.auth.http.service import get_current_user_id
+from apps.api.src.modules.system.admin.notifications.preferences import (
+    NOTIFICATION_PREFERENCES_NAMESPACE,
+)
+from apps.api.src.settings.scopes import SCOPE_TYPE_USER
 
 pytestmark = pytest.mark.integration
 
@@ -349,6 +354,124 @@ async def test_me_notifications_global_endpoints(
             page2 = resp.json()["data"]
             assert page2["total"] == 1
             assert page2["items"][0]["id"] == historical_pid
+
+
+async def test_me_notification_preferences_get_and_patch(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        _, admin_user_id = await _bootstrap_admin_user(app)
+
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/v1/me/notifications/preferences")
+            assert resp.status_code == 200
+            preferences = resp.json()["data"]
+            topics = preferences["topics"]
+            assert topics
+
+            role_topic = next(
+                (item for item in topics if item["key"] == "workspace.member.roles.updated"),
+                None,
+            )
+            assert role_topic is not None
+            in_app_channel = role_topic["channels"].get("inApp") or role_topic["channels"].get("in_app")
+            email_channel = role_topic["channels"].get("email")
+            assert in_app_channel is not None
+            assert email_channel is not None
+            assert in_app_channel["enabled"] is True
+            assert in_app_channel["supported"] is True
+            assert in_app_channel["mutable"] is True
+            assert email_channel["enabled"] is False
+            assert email_channel["supported"] is False
+            assert email_channel["mutable"] is False
+
+            patch_resp = await client.patch(
+                "/api/v1/me/notifications/preferences",
+                json={
+                    "topic_key": "workspace.member.roles.updated",
+                    "channel": "in_app",
+                    "enabled": False,
+                },
+            )
+            assert patch_resp.status_code == 200
+            patched_topic = next(
+                (
+                    item
+                    for item in patch_resp.json()["data"]["topics"]
+                    if item["key"] == "workspace.member.roles.updated"
+                ),
+                None,
+            )
+            assert patched_topic is not None
+            patched_in_app_channel = patched_topic["channels"].get("inApp") or patched_topic["channels"].get("in_app")
+            assert patched_in_app_channel is not None
+            assert patched_in_app_channel["enabled"] is False
+
+            verify_resp = await client.get("/api/v1/me/notifications/preferences")
+            assert verify_resp.status_code == 200
+            verify_topic = next(
+                (
+                    item
+                    for item in verify_resp.json()["data"]["topics"]
+                    if item["key"] == "workspace.member.roles.updated"
+                ),
+                None,
+            )
+            assert verify_topic is not None
+            verify_in_app_channel = verify_topic["channels"].get("inApp") or verify_topic["channels"].get("in_app")
+            assert verify_in_app_channel is not None
+            assert verify_in_app_channel["enabled"] is False
+
+        stored = await SettingRecord.get_or_none(
+            scope_type=SCOPE_TYPE_USER,
+            scope_id=admin_user_id,
+            namespace=NOTIFICATION_PREFERENCES_NAMESPACE,
+        )
+        assert stored is not None
+        assert isinstance(stored.value, dict)
+        topics_value = stored.value.get("topics")
+        assert isinstance(topics_value, dict)
+        role_state = topics_value.get("workspace.member.roles.updated")
+        assert isinstance(role_state, dict)
+        assert role_state.get("in_app") is False
+
+
+async def test_me_notification_preferences_reject_unsupported_channel(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        await _bootstrap_admin_user(app)
+
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.patch(
+                "/api/v1/me/notifications/preferences",
+                json={
+                    "topic_key": "workspace.member.roles.updated",
+                    "channel": "email",
+                    "enabled": True,
+                },
+            )
+            assert resp.status_code == 400
+            payload = resp.json()
+            assert payload["error"] == "CHANNEL_NOT_SUPPORTED"
 
 
 # NOTE(2026-01-31): v1 org-scoped team invitation routes were removed during the v2 refactor

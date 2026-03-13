@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -83,3 +83,33 @@ class NotificationDeleteResult(BaseSchema):
 class NotificationArchiveResult(BaseSchema):
     id: PublicUUID = Field(..., description="Notification id.")
     archived_at: datetime | None = Field(default=None, description="Archived datetime (UTC).")
+
+
+class NotificationPreferenceChannelOut(BaseSchema):
+    enabled: bool = Field(..., description="Whether this channel is currently enabled.")
+    supported: bool = Field(..., description="Whether backend currently supports this channel.")
+    mutable: bool = Field(..., description="Whether current user can change this channel.")
+
+
+class NotificationPreferenceTopicOut(BaseSchema):
+    key: str = Field(..., description="Stable topic key.")
+    category: NotificationCategory = Field(..., description="Notification category for this topic.")
+    title_i18n: str = Field(..., description="i18n key for topic title.")
+    description_i18n: str = Field(..., description="i18n key for topic description.")
+    channels: dict[Literal["in_app", "email"], NotificationPreferenceChannelOut] = Field(
+        ...,
+        description="Per-channel state for this topic.",
+    )
+
+
+class NotificationPreferencesOut(BaseSchema):
+    topics: list[NotificationPreferenceTopicOut] = Field(
+        default_factory=list,
+        description="All supported notification preference topics.",
+    )
+
+
+class NotificationPreferencePatchIn(BaseSchema):
+    topic_key: str = Field(..., description="Topic key to update.")
+    channel: Literal["in_app", "email"] = Field(..., description="Channel to update.")
+    enabled: bool = Field(..., description="Target enabled value.")

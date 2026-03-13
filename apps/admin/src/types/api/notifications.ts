@@ -33,3 +33,28 @@ export type ListNotificationsParams = {
   page?: number;
   size?: number;
 };
+
+export type NotificationPreferenceChannel = "in_app" | "email";
+
+export type NotificationPreferenceChannelState = {
+  enabled: boolean;
+  supported: boolean;
+  mutable: boolean;
+  enabled_raw?: boolean;
+  supported_raw?: boolean;
+  mutable_raw?: boolean;
+};
+
+export type NotificationPreferenceTopic = {
+  key: string;
+  category: NotificationCategory;
+  titleI18n: string;
+  descriptionI18n: string;
+  channels: Record<NotificationPreferenceChannel, NotificationPreferenceChannelState>;
+  title_i18n?: string;
+  description_i18n?: string;
+};
+
+export type NotificationPreferences = {
+  topics: NotificationPreferenceTopic[];
+};

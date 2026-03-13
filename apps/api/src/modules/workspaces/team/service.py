@@ -27,6 +27,9 @@ from apps.api.src.models.workspaces.workspace import (
 from apps.api.src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
 from apps.api.src.modules.auth.repository import UserRepository
 from apps.api.src.modules.auth.tokens.service import hash_password
+from apps.api.src.modules.system.admin.notifications.preferences import (
+    is_notification_channel_enabled_for_event,
+)
 from apps.api.src.modules.workspaces.team.invites.service import WorkspaceTeamInviteMixin
 from apps.api.src.modules.workspaces.team.repository import WorkspaceTeamRepository
 from apps.api.src.modules.workspaces.team.schema import (
@@ -138,6 +141,14 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         event_name: str,
         dedupe_key: str | None,
     ) -> None:
+        in_app_enabled = await is_notification_channel_enabled_for_event(
+            user_id=recipient_user_id,
+            event_name=event_name,
+            channel="in_app",
+        )
+        if not in_app_enabled:
+            return
+
         try:
             await NotificationRecord.create(
                 workspace_id=workspace_id,

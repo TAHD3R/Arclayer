@@ -1,45 +1,14 @@
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 
-import { readStorageJson, writeStorageJson } from "@/lib/storage";
-import { STORAGE_KEYS } from "@/constants/storage";
-import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";
+import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
+import { ContentGuard } from "@/components/common/content-guard";
+import { notifyError } from "@/lib/notifications";
 import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
-import { Checkbox } from "@celestial/ui/checkbox";
-
-type TopicKey =
-  | "security.password_changed"
-  | "security.email_changed"
-  | "security.new_login"
-  | "team.invited"
-  | "team.role_changed";
-
-type SubscriptionState = Record<TopicKey, { in_app: boolean; email: boolean }>;
-
-const DEFAULT_STATE: SubscriptionState = {
-  "security.password_changed": { in_app: false, email: true },
-  "security.email_changed": { in_app: false, email: true },
-  "security.new_login": { in_app: false, email: true },
-  "team.invited": { in_app: false, email: false },
-  "team.role_changed": { in_app: false, email: false },
-};
-
-function readState(): SubscriptionState {
-  const raw = readStorageJson<Partial<SubscriptionState>>(STORAGE_KEYS.meNotificationSubscriptions);
-  const merged = { ...DEFAULT_STATE, ...(raw ?? undefined) } as SubscriptionState;
-  merged["security.password_changed"].email = true;
-  merged["security.email_changed"].email = true;
-  merged["security.new_login"].email = true;
-  merged["security.password_changed"].in_app = false;
-  merged["security.email_changed"].in_app = false;
-  merged["security.new_login"].in_app = false;
-  return merged;
-}
-
-function writeState(state: SubscriptionState) {
-  writeStorageJson(STORAGE_KEYS.meNotificationSubscriptions, state);
-}
+import type { NotificationPreferenceChannel, NotificationPreferenceTopic } from "@/types/api";
+import { SettingActionItem } from "@celestial/ui/setting-action-item";
 
 type MeNotificationSettingsViewMode = "page" | "dialog";
 
@@ -47,52 +16,120 @@ type MeNotificationSettingsPageProps = {
   mode?: MeNotificationSettingsViewMode;
 };
 
+type ChannelSection = {
+  key: NotificationPreferenceChannel;
+  title: string;
+  description: string;
+};
+
+const TOPIC_I18N_FALLBACK: Record<string, { title: string; description: string }> = {
+  "workspace.invitation.accepted": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITATION_ACCEPTED_DESC",
+  },
+  "workspace.invite.email.created": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_CREATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_CREATED_DESC",
+  },
+  "workspace.invite.email.updated": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_UPDATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_UPDATED_DESC",
+  },
+  "workspace.invite.email.renewed": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_RENEWED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_RENEWED_DESC",
+  },
+  "workspace.invite.email.revoked": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_REVOKED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_INVITE_REVOKED_DESC",
+  },
+  "workspace.member.status.updated": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_STATUS_UPDATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_STATUS_UPDATED_DESC",
+  },
+  "workspace.member.roles.updated": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_ROLES_UPDATED_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_ROLES_UPDATED_DESC",
+  },
+  "workspace.member.password.reset": {
+    title: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_PASSWORD_RESET_TITLE",
+    description: "account:ME_NOTIFY_TOPIC_WORKSPACE_MEMBER_PASSWORD_RESET_DESC",
+  },
+};
+
+function buildChannelSections(t: (key: string) => string): readonly ChannelSection[] {
+  return [
+    {
+      key: "in_app",
+      title: t("account:ME_NOTIFY_CHANNEL_IN_APP_TITLE"),
+      description: t("account:ME_NOTIFY_CHANNEL_IN_APP_DESC"),
+    },
+    {
+      key: "email",
+      title: t("account:ME_NOTIFY_EMAIL_PANEL_TITLE"),
+      description: t("account:ME_NOTIFY_EMAIL_PANEL_DESC"),
+    },
+  ] as const;
+}
+
+function resolveTopicCopy(
+  topic: NotificationPreferenceTopic,
+  t: (key: string) => string,
+): { title: string; description: string } {
+  const fallback = TOPIC_I18N_FALLBACK[topic.key];
+  const titleKey = topic.titleI18n ?? topic.title_i18n ?? fallback?.title ?? "";
+  const descriptionKey =
+    topic.descriptionI18n ?? topic.description_i18n ?? fallback?.description ?? "";
+  const resolvedTitle = titleKey ? t(titleKey) : "";
+  const resolvedDescription = descriptionKey ? t(descriptionKey) : "";
+
+  const title =
+    resolvedTitle && resolvedTitle !== titleKey
+      ? resolvedTitle
+      : fallback
+        ? t(fallback.title)
+        : t("account:ME_NOTIFY_TOPIC_GENERIC_TITLE");
+  const description =
+    resolvedDescription && resolvedDescription !== descriptionKey
+      ? resolvedDescription
+      : fallback
+        ? t(fallback.description)
+        : t("account:ME_NOTIFY_TOPIC_GENERIC_DESC");
+  return { title, description };
+}
+
+function sortTopics(topics: NotificationPreferenceTopic[]): NotificationPreferenceTopic[] {
+  return [...topics].sort((left, right) => left.key.localeCompare(right.key));
+}
+
 export function MeNotificationSettingsPage(props: MeNotificationSettingsPageProps) {
   const mode = props.mode ?? "page";
-  const panelVariant = mode === "dialog" ? "dialog" : "page";
   const { t } = useTranslation(["account", "common"]);
-  const [state, setState] = useState<SubscriptionState>(() => readState());
+  const queryClient = useQueryClient();
+  const [updatingKey, setUpdatingKey] = useState<string | null>(null);
 
+  const preferencesQuery = useQuery({
+    queryKey: ["me", "notification-preferences"],
+    queryFn: getMyNotificationPreferences,
+    staleTime: 30 * 1000,
+  });
+
+  const patchMutation = useMutation({
+    mutationFn: patchMyNotificationPreference,
+    onMutate: (variables) => {
+      setUpdatingKey(`${variables.topicKey}:${variables.channel}`);
+    },
+    onSuccess: (next) => {
+      queryClient.setQueryData(["me", "notification-preferences"], next);
+    },
+    onError: (error) => notifyError(error),
+    onSettled: () => setUpdatingKey(null),
+  });
+
+  const sections = useMemo(() => buildChannelSections(t), [t]);
   const topics = useMemo(
-    () =>
-      [
-        {
-          key: "security.password_changed" as const,
-          title: t("account:ME_NOTIFY_TOPIC_PASSWORD_CHANGED_TITLE"),
-          desc: t("account:ME_NOTIFY_TOPIC_PASSWORD_CHANGED_DESC"),
-          security: true,
-        },
-        {
-          key: "security.email_changed" as const,
-          title: t("account:ME_NOTIFY_TOPIC_EMAIL_CHANGED_TITLE"),
-          desc: t("account:ME_NOTIFY_TOPIC_EMAIL_CHANGED_DESC"),
-          security: true,
-        },
-        {
-          key: "security.new_login" as const,
-          title: t("account:ME_NOTIFY_TOPIC_NEW_LOGIN_TITLE"),
-          desc: t("account:ME_NOTIFY_TOPIC_NEW_LOGIN_DESC"),
-          security: true,
-        },
-        {
-          key: "team.invited" as const,
-          title: t("account:ME_NOTIFY_TOPIC_TEAM_INVITE_TITLE"),
-          desc: t("account:ME_NOTIFY_TOPIC_TEAM_INVITE_DESC"),
-          security: false,
-        },
-        {
-          key: "team.role_changed" as const,
-          title: t("account:ME_NOTIFY_TOPIC_ROLE_CHANGED_TITLE"),
-          desc: t("account:ME_NOTIFY_TOPIC_ROLE_CHANGED_DESC"),
-          security: false,
-        },
-      ] satisfies Array<{
-        key: TopicKey;
-        title: string;
-        desc: string;
-        security: boolean;
-      }>,
-    [t],
+    () => sortTopics(preferencesQuery.data?.topics ?? []),
+    [preferencesQuery.data?.topics],
   );
 
   return (
@@ -100,85 +137,72 @@ export function MeNotificationSettingsPage(props: MeNotificationSettingsPageProp
       showNav={mode === "page"}
       categories={[
         {
-          key: "matrix",
-          label: t("account:ME_NOTIFY_PANEL_TITLE"),
+          key: "notifications",
+          label: t("account:ME_TAB_NOTIFICATIONS"),
           content: (
-            <MeSettingPanel
-              title={t("account:ME_NOTIFY_PANEL_TITLE")}
-              description={t("account:ME_NOTIFY_PANEL_DESC")}
-              showDivider
-              variant={panelVariant}
+            <ContentGuard
+              loading={preferencesQuery.isLoading && !preferencesQuery.data}
+              error={preferencesQuery.error}
+              onRetry={() => void preferencesQuery.refetch()}
+              empty={!preferencesQuery.isLoading && !preferencesQuery.error && topics.length <= 0}
+              emptyTitle={t("common:EMPTY_TITLE")}
+              emptyDescription={t("common:EMPTY_DESC")}
             >
-              <div className="mt-4 relative isolate overflow-auto rounded-xl border border-border/80 bg-background">
-                <table className="w-full min-w-max text-callout [&_th]:whitespace-nowrap">
-                  <TableHeader className="sticky top-0 z-[2] bg-background">
-                    <TableRow className="border-border/60 hover:bg-transparent border-b">
-                      <TableHead className="sticky left-0 z-[3] w-[360px] bg-background text-left font-semibold text-label-primary tracking-wider">
-                        {t("account:ME_NOTIFY_COL_TYPE")}
-                      </TableHead>
-                      <TableHead className="min-w-[120px] text-center font-semibold text-label-primary tracking-wider">
-                        {t("account:ME_NOTIFY_COL_IN_APP")}
-                      </TableHead>
-                      <TableHead className="min-w-[120px] text-center font-semibold text-label-primary tracking-wider">
-                        {t("account:ME_NOTIFY_COL_EMAIL")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
+              <div className="flex flex-col gap-6 pt-1">
+                {sections.map((section) => (
+                  <section key={section.key} className="flex flex-col">
+                    <header className="pb-4 pt-1">
+                      <div className="text-title3 font-bold text-label-primary">
+                        {section.title}
+                      </div>
+                      <div className="mt-1 text-label-secondary">{section.description}</div>
+                    </header>
+                    <div className="h-px bg-border" />
 
-                  <TableBody>
-                    {topics.map((topic) => {
-                      const current = state[topic.key];
-                      const emailLocked = topic.security;
-                      const inAppLocked = true; // Not supported yet
+                    <div className="pt-4">
+                      <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+                        <div className="divide-y divide-border/60">
+                          {topics.map((topic) => {
+                            const channel = topic.channels[section.key];
+                            const copy = resolveTopicCopy(topic, t);
+                            const rowKey = `${topic.key}:${section.key}`;
+                            const disabled = !channel.mutable || patchMutation.isPending;
+                            const loading = updatingKey === rowKey;
 
-                      return (
-                        <TableRow
-                          key={topic.key}
-                          className="group/row border-b border-border/40 hover:bg-muted/40 last:border-b-0"
-                        >
-                          <TableCell className="sticky left-0 z-[1] w-90 bg-background group-hover/row:bg-muted/40 transition-colors">
-                            <div className="min-w-0">
-                              <div className="truncate font-semibold text-label-primary">
-                                {topic.title}
-                              </div>
-                              {topic.desc ? (
-                                <div className="mt-0.5 line-clamp-2 text-label-secondary">
-                                  {topic.desc}
-                                </div>
-                              ) : null}
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="text-center">
-                            <div className="flex justify-center">
-                              <Checkbox checked={false} disabled={inAppLocked} />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="text-center">
-                            <div className="flex justify-center">
-                              <Checkbox
-                                checked={emailLocked ? true : current.email}
-                                disabled={emailLocked}
-                                onCheckedChange={(checked) => {
-                                  if (emailLocked) return;
-                                  const next = {
-                                    ...state,
-                                    [topic.key]: { ...current, email: Boolean(checked) },
-                                  };
-                                  writeState(next);
-                                  setState(next);
-                                }}
+                            return (
+                              <SettingActionItem
+                                key={rowKey}
+                                as="div"
+                                showSummary={false}
+                                showChevron={false}
+                                title={copy.title}
+                                titleClassName="text-callout"
+                                description={copy.description}
+                                right={
+                                  <Switch
+                                    checked={channel.enabled}
+                                    disabled={disabled}
+                                    loading={loading}
+                                    onChange={(checked) => {
+                                      if (!channel.mutable) return;
+                                      void patchMutation.mutate({
+                                        topicKey: topic.key,
+                                        channel: section.key,
+                                        enabled: checked,
+                                      });
+                                    }}
+                                  />
+                                }
                               />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </table>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                ))}
               </div>
-            </MeSettingPanel>
+            </ContentGuard>
           ),
         },
       ]}

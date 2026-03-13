@@ -105,7 +105,7 @@ describe("MeSecuritySessionsSection", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_AUTH_METHOD"),
+        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_LOCATION"),
       }),
     ).toBeInTheDocument();
     expect(
@@ -126,7 +126,7 @@ describe("MeSecuritySessionsSection", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_LOCATION"),
+        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_AUTH_METHOD"),
       }),
     ).not.toBeInTheDocument();
     expect(
@@ -174,11 +174,6 @@ describe("MeSecuritySessionsSection", () => {
     );
     await user.click(
       screen.getByRole("switch", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_LOCATION"),
-      }),
-    );
-    await user.click(
-      screen.getByRole("switch", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
     );
@@ -215,18 +210,42 @@ describe("MeSecuritySessionsSection", () => {
     });
   });
 
-  it("keeps the session revocation alert constrained inside the card", async () => {
+  it("falls back to IP when location label is unavailable", async () => {
+    listMySessionsMock.mockResolvedValue({
+      items: [
+        {
+          sessionId: "sid-local",
+          current: true,
+          revocable: false,
+          issuedAt: "2026-03-07T00:00:00Z",
+          lastUsedAt: "2026-03-07T00:10:00Z",
+          ipAddress: "127.0.0.1",
+          deviceLabel: "Safari on macOS",
+          locationLabel: "-",
+          authMethod: "password",
+          userAgent: "Safari",
+        },
+      ],
+      total: 1,
+    });
+
+    renderWithQuery(<MeSecuritySessionsSection />);
+
+    const ipFallbackCells = await screen.findAllByText("127.0.0.1");
+    expect(ipFallbackCells.length).toBeGreaterThan(0);
+  });
+
+  it("removes the session revocation behavior alert", async () => {
     mockSessions();
 
     renderWithQuery(<MeSecuritySessionsSection />);
 
-    const noteTitle = await screen.findByText(
-      i18n.t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE_TITLE"),
-    );
-    const alert = noteTitle.closest(".ant-alert");
-    const description = screen.getByText(i18n.t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE"));
-
-    expect(alert).toHaveClass("min-w-0");
-    expect(description).toHaveClass("break-words");
+    await screen.findByText("Safari on macOS");
+    expect(
+      screen.queryByText(i18n.t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE_TITLE")),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE")),
+    ).not.toBeInTheDocument();
   });
 });

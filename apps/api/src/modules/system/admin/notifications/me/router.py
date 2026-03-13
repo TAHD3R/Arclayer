@@ -14,6 +14,8 @@ from apps.api.src.modules.system.admin.notifications.schema import (
     NotificationDeleteResult,
     NotificationListQuery,
     NotificationOut,
+    NotificationPreferencePatchIn,
+    NotificationPreferencesOut,
     NotificationPreviewOut,
     NotificationReadAllResult,
     NotificationReadResult,
@@ -57,6 +59,33 @@ async def get_my_unread_preview(
 ) -> ResponseModel[NotificationPreviewOut]:
     preview = await service.get_unread_preview_for_user(user_id=user_id, limit=limit)
     return Response.success(data=preview)
+
+
+@router.get(
+    "/preferences",
+    response_model=ResponseModel[NotificationPreferencesOut],
+    summary="Get my notification delivery preferences",
+)
+async def get_my_notification_preferences(
+    user_id: UUID = Depends(get_current_user_id),
+    service: NotificationService = Depends(get_notification_service),
+) -> ResponseModel[NotificationPreferencesOut]:
+    out = await service.get_notification_preferences_for_user(user_id=user_id)
+    return Response.success(data=out)
+
+
+@router.patch(
+    "/preferences",
+    response_model=ResponseModel[NotificationPreferencesOut],
+    summary="Update one notification delivery preference",
+)
+async def patch_my_notification_preference(
+    payload: NotificationPreferencePatchIn,
+    user_id: UUID = Depends(get_current_user_id),
+    service: NotificationService = Depends(get_notification_service),
+) -> ResponseModel[NotificationPreferencesOut]:
+    out = await service.patch_notification_preference_for_user(user_id=user_id, payload=payload)
+    return Response.success(data=out)
 
 
 @router.post(

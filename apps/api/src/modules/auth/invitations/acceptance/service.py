@@ -47,6 +47,9 @@ from apps.api.src.modules.auth.schema import (
     TokenPair,
 )
 from apps.api.src.modules.auth.tokens.service import hash_password
+from apps.api.src.modules.system.admin.notifications.preferences import (
+    is_notification_channel_enabled_for_event,
+)
 
 _FATAL_INVITATION_FLOW_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -436,27 +439,33 @@ class AuthInvitationAcceptanceService(BaseService):
                 if invite_enabled:
                     is_org_invite = code.startswith("oi_") or code.startswith("ol_")
                     if not is_org_invite and workspace_id is not None:
-                        await NotificationRecord.create(
-                            workspace_id=workspace_id,
-                            recipient_user_id=inviter_user_id,
-                            actor_user_id=accepted_user_id,
-                            category=NotificationCategory.TEAM,
-                            title=t(
-                                "notifications",
-                                "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
-                                default="{name} accepted the invitation",
-                                name=accepted_display_name or "新成员",
-                            ),
-                            body=t(
-                                "notifications",
-                                "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
-                                default="The user accepted the workspace invitation.",
-                            ),
-                            target_to="/settings/team/members",
-                            target_meta=None,
+                        in_app_enabled = await is_notification_channel_enabled_for_event(
+                            user_id=inviter_user_id,
                             event_name="team.invitation.accepted",
-                            dedupe_key=f"workspace.invitation.accepted:{code}",
+                            channel="in_app",
                         )
+                        if in_app_enabled:
+                            await NotificationRecord.create(
+                                workspace_id=workspace_id,
+                                recipient_user_id=inviter_user_id,
+                                actor_user_id=accepted_user_id,
+                                category=NotificationCategory.TEAM,
+                                title=t(
+                                    "notifications",
+                                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
+                                    default="{name} accepted the invitation",
+                                    name=accepted_display_name or "新成员",
+                                ),
+                                body=t(
+                                    "notifications",
+                                    "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
+                                    default="The user accepted the workspace invitation.",
+                                ),
+                                target_to="/settings/team/members",
+                                target_meta=None,
+                                event_name="team.invitation.accepted",
+                                dedupe_key=f"workspace.invitation.accepted:{code}",
+                            )
             except BaseException as exc:
                 _raise_if_fatal(exc)
                 self.logger.warning(
@@ -820,27 +829,33 @@ class AuthInvitationAcceptanceService(BaseService):
                 accepted_display_name = user.display_name or user.username
                 is_org_invite = code.startswith("oi_") or code.startswith("ol_")
                 if not is_org_invite and workspace_id is not None:
-                    await NotificationRecord.create(
-                        workspace_id=workspace_id,
-                        recipient_user_id=inviter_user_id,
-                        actor_user_id=user.id,
-                        category=NotificationCategory.TEAM,
-                        title=t(
-                            "notifications",
-                            "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
-                            default="{name} joined the workspace",
-                            name=accepted_display_name or "新成员",
-                        ),
-                        body=t(
-                            "notifications",
-                            "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
-                            default="The user accepted the workspace invitation.",
-                        ),
-                        target_to="/settings/team/members",
-                        target_meta=None,
+                    in_app_enabled = await is_notification_channel_enabled_for_event(
+                        user_id=inviter_user_id,
                         event_name="workspace.invitation.accepted",
-                        dedupe_key=f"workspace.invitation.accepted:{code}",
+                        channel="in_app",
                     )
+                    if in_app_enabled:
+                        await NotificationRecord.create(
+                            workspace_id=workspace_id,
+                            recipient_user_id=inviter_user_id,
+                            actor_user_id=user.id,
+                            category=NotificationCategory.TEAM,
+                            title=t(
+                                "notifications",
+                                "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_TITLE",
+                                default="{name} joined the workspace",
+                                name=accepted_display_name or "新成员",
+                            ),
+                            body=t(
+                                "notifications",
+                                "NOTIFICATIONS_TEAM_INVITE_ACCEPTED_BODY",
+                                default="The user accepted the workspace invitation.",
+                            ),
+                            target_to="/settings/team/members",
+                            target_meta=None,
+                            event_name="workspace.invitation.accepted",
+                            dedupe_key=f"workspace.invitation.accepted:{code}",
+                        )
             except BaseException as exc:
                 _raise_if_fatal(exc)
                 self.logger.warning(
