@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "antd";
 import { AlertCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
@@ -13,7 +13,7 @@ import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { MeProfileChangeEmailDialog } from "@/pages/me/profile/components/profile-change-email-dialog";
-import { MeAvatarUploadDialog } from "@/pages/me/profile/components/profile-avatar-upload-dialog";
+import { uploadAvatarFile } from "@/pages/me/profile/lib/avatar-upload";
 
 function isValidDisplayName(value: string | null): boolean {
   if (value === null) return true;
@@ -82,7 +82,6 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
     onError: (err) => notifyError(err),
   });
 
-  const [avatarUploadOpen, setAvatarUploadOpen] = useState(false);
   const updateAvatarMutation = useMutation({
     mutationFn: async (avatarAssetId: string | null) => authApi.updateMyProfile({ avatarAssetId }),
     onSuccess: async (data, avatarAssetId) => {
@@ -98,6 +97,27 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
     },
     onError: (err) => notifyError(err),
   });
+  const avatarUploadMutation = useMutation({
+    mutationFn: async (file: File) => uploadAvatarFile(file),
+    onError: (err) => notifyError(err),
+  });
+  const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
+  const isAvatarBusy = avatarUploadMutation.isPending || updateAvatarMutation.isPending;
+
+  const handleAvatarFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.currentTarget.value = "";
+    if (!file || isAvatarBusy) return;
+
+    void (async () => {
+      try {
+        const assetId = await avatarUploadMutation.mutateAsync(file);
+        await updateAvatarMutation.mutateAsync(assetId);
+      } catch {
+        // Errors are surfaced by mutation onError handlers.
+      }
+    })();
+  };
 
   const [changeEmailOpen, setChangeEmailOpen] = useState(false);
 
@@ -112,10 +132,18 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
           <SettingCardContent>
             <div className="flex flex-row items-start gap-6 sm:gap-8">
               <div className="flex flex-col gap-3 shrink-0">
+                <input
+                  ref={avatarFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  tabIndex={-1}
+                  onChange={handleAvatarFileChange}
+                />
                 <AvatarUploadSlot
                   size={80}
                   shape="circle"
-                  disabled={updateAvatarMutation.isPending}
+                  disabled={isAvatarBusy}
                   src={
                     resolveAssetRefToPublicUrlPath(
                       props.profile.avatarUrl ?? props.profile.avatarAssetId,
@@ -127,7 +155,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
                   uploadAriaLabel={t("account:ME_PROFILE_AVATAR_CHANGE")}
                   removeAriaLabel={t("account:ME_PROFILE_AVATAR_REMOVE")}
                   canRemove={Boolean(props.profile.avatarUrl || props.profile.avatarAssetId)}
-                  onPick={() => setAvatarUploadOpen(true)}
+                  onPick={() => avatarFileInputRef.current?.click()}
                   onRemove={() => void updateAvatarMutation.mutateAsync(null)}
                 />
               </div>
@@ -136,7 +164,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
                 <label className="text-body font-medium text-label-primary">
                   {t("account:ME_PROFILE_DISPLAY_NAME_TITLE")}
                 </label>
-                <div className="flex items-center gap-2 max-w-lg">
+                <div className="flex items-center gap-2 max-w-sm">
                   <Input
                     value={displayNameDraft}
                     onChange={(e) => {
@@ -261,19 +289,6 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
         open={changeEmailOpen}
         onOpenChange={setChangeEmailOpen}
         nextEmail={props.profile.email ?? ""}
-      />
-
-      <MeAvatarUploadDialog
-        open={avatarUploadOpen}
-        onOpenChange={(open) => {
-          if (updateAvatarMutation.isPending) return;
-          setAvatarUploadOpen(open);
-        }}
-        onUploaded={(assetIds) => {
-          const assetId = assetIds[0];
-          if (!assetId) return;
-          void updateAvatarMutation.mutateAsync(assetId).then(() => setAvatarUploadOpen(false));
-        }}
       />
     </>
   );

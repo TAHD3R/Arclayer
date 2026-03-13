@@ -16,7 +16,7 @@
   "ACCOUNT_LANGUAGE_EN": "English",
   "ME_TITLE": "Personal center",
   "ME_DESC": "Manage your profile, preferences, and security settings.",
-  "ME_TAB_PROFILE": "Profile",
+  "ME_TAB_PROFILE": "Personal Settings",
   "ME_TAB_PROFILE_DESC": "Manage your personal details and connected accounts.",
   "ME_TAB_PREFERENCES": "Preferences",
   "ME_TAB_PREFERENCES_DESC": "Customize interface appearance, localization, and accessibility.",

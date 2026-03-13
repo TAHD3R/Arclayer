@@ -23,6 +23,7 @@ type MeSettingsDialogProps = {
 type MeSettingsTabItem = {
   key: MeSettingsDialogTab;
   label: string;
+  description: string;
   icon: LucideIcon;
 };
 
@@ -33,13 +34,24 @@ const ME_SETTINGS_DIALOG_CONTENT_CLASSNAME = cn(
   "[&>div]:h-full [&>div]:min-h-0",
 );
 
-function buildTabItems(labels: Record<MeSettingsDialogTab, string>): readonly MeSettingsTabItem[] {
+function buildTabItems(
+  copy: Record<MeSettingsDialogTab, { label: string; description: string }>,
+): readonly MeSettingsTabItem[] {
   return [
-    { key: "profile", label: labels.profile, icon: UserRound },
-    { key: "preferences", label: labels.preferences, icon: SlidersHorizontal },
-    { key: "security", label: labels.security, icon: Shield },
-    { key: "notifications", label: labels.notifications, icon: Bell },
+    { key: "profile", icon: UserRound, ...copy.profile },
+    { key: "preferences", icon: SlidersHorizontal, ...copy.preferences },
+    { key: "security", icon: Shield, ...copy.security },
+    { key: "notifications", icon: Bell, ...copy.notifications },
   ] as const;
+}
+
+function getActiveTabItem(
+  items: readonly MeSettingsTabItem[],
+  activeTab: MeSettingsDialogTab,
+): MeSettingsTabItem {
+  const activeItem = items.find((item) => item.key === activeTab);
+  if (activeItem) return activeItem;
+  return items[0]!;
 }
 
 function MeSettingsDialogCloseButton(props: { onClose: () => void; label: string }) {
@@ -106,9 +118,26 @@ function MeSettingsDialogContent(props: { tab: MeSettingsDialogTab }) {
   return <MeNotificationSettingsPage mode="dialog" />;
 }
 
+function MeSettingsDialogPanelHeader(props: { title: string; description: string }) {
+  return (
+    <div data-testid="me-settings-pane-header" className="flex w-full min-w-0 flex-col gap-5">
+      <div className="min-w-0">
+        <div className="text-title2 font-semibold text-label-primary">{props.title}</div>
+        <div className="mt-1 text-body text-label-secondary">{props.description}</div>
+      </div>
+
+      <div role="separator" className="h-px bg-border" />
+    </div>
+  );
+}
+
 function MeSettingsDialogBody(props: {
   tab: MeSettingsDialogTab;
   tabItems: readonly MeSettingsTabItem[];
+  title: string;
+  description: string;
+  closeLabel: string;
+  onClose: () => void;
   onTabChange: (tab: MeSettingsDialogTab) => void;
   navAriaLabel: string;
 }) {
@@ -123,9 +152,17 @@ function MeSettingsDialogBody(props: {
         />
       </aside>
 
-      <section className="relative z-[1] flex min-h-0 flex-1 overflow-auto">
-        <div className="flex w-full min-w-0 justify-center px-[clamp(18px,5vw,60px)] py-9">
-          <div className="flex w-full max-w-[800px] min-w-0 flex-col gap-9">
+      <section className="relative z-[1] flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
+        <div className="absolute top-7 right-[clamp(18px,5vw,60px)] z-[2]">
+          <MeSettingsDialogCloseButton onClose={props.onClose} label={props.closeLabel} />
+        </div>
+
+        <div className="shrink-0 px-[clamp(18px,5vw,60px)] pt-7 pb-0">
+          <MeSettingsDialogPanelHeader title={props.title} description={props.description} />
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-auto px-[clamp(18px,5vw,60px)] py-9">
+          <div className="mx-auto flex w-full max-w-[800px] min-w-0 flex-col gap-9">
             <div role="tabpanel" className="flex min-w-0 flex-col gap-9">
               <MeSettingsDialogContent tab={props.tab} />
             </div>
@@ -140,46 +177,48 @@ export function MeSettingsDialog(props: MeSettingsDialogProps) {
   const { t } = useTranslation(["account", "common"]);
   const navAriaLabel = t("account:ME_TITLE");
   const closeLabel = t("common:CANCEL");
-  const tabDescriptions = useMemo(
-    () =>
-      ({
-        profile: t("account:ME_TAB_PROFILE_DESC"),
-        preferences: t("account:ME_TAB_PREFERENCES_DESC"),
-        security: t("account:ME_TAB_SECURITY_DESC"),
-        notifications: t("account:ME_TAB_NOTIFICATIONS_DESC"),
-      }) satisfies Record<MeSettingsDialogTab, string>,
-    [t],
-  );
-
   const tabItems = useMemo(
     () =>
       buildTabItems({
-        profile: t("account:ME_TAB_PROFILE"),
-        preferences: t("account:ME_TAB_PREFERENCES"),
-        security: t("account:ME_TAB_SECURITY"),
-        notifications: t("account:ME_TAB_NOTIFICATIONS"),
+        profile: {
+          label: t("account:ME_TAB_PROFILE"),
+          description: t("account:ME_TAB_PROFILE_DESC"),
+        },
+        preferences: {
+          label: t("account:ME_TAB_PREFERENCES"),
+          description: t("account:ME_TAB_PREFERENCES_DESC"),
+        },
+        security: {
+          label: t("account:ME_TAB_SECURITY"),
+          description: t("account:ME_TAB_SECURITY_DESC"),
+        },
+        notifications: {
+          label: t("account:ME_TAB_NOTIFICATIONS"),
+          description: t("account:ME_TAB_NOTIFICATIONS_DESC"),
+        },
       }),
     [t],
   );
-  const currentDescription = tabDescriptions[props.tab];
+  const activeTabItem = useMemo(() => getActiveTabItem(tabItems, props.tab), [tabItems, props.tab]);
 
   return (
     <ComplexDialog
       open={props.open}
       onOpenChange={props.onOpenChange}
       size="xl"
-      title={navAriaLabel}
-      description={currentDescription}
-      headerRight={
-        <MeSettingsDialogCloseButton onClose={() => props.onOpenChange(false)} label={closeLabel} />
-      }
-      headerClassName="px-7 py-5"
+      title={activeTabItem.label}
+      description={activeTabItem.description}
+      headerClassName="sr-only"
       bodyClassName="h-full min-h-0 p-0! overflow-hidden!"
       contentClassName={ME_SETTINGS_DIALOG_CONTENT_CLASSNAME}
     >
       <MeSettingsDialogBody
         tab={props.tab}
         tabItems={tabItems}
+        title={activeTabItem.label}
+        description={activeTabItem.description}
+        closeLabel={closeLabel}
+        onClose={() => props.onOpenChange(false)}
         onTabChange={props.onTabChange}
         navAriaLabel={navAriaLabel}
       />
