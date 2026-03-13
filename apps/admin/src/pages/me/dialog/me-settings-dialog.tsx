@@ -27,6 +27,15 @@ type MeSettingsTabItem = {
   icon: LucideIcon;
 };
 
+type MeSettingsTabGroup = {
+  key: "account" | "preferences";
+  label: string;
+  items: readonly MeSettingsTabItem[];
+};
+
+const ACCOUNT_TAB_KEYS: readonly MeSettingsDialogTab[] = ["profile", "security"];
+const PREFERENCES_TAB_KEYS: readonly MeSettingsDialogTab[] = ["preferences", "notifications"];
+
 const ME_SETTINGS_DIALOG_CONTENT_CLASSNAME = cn(
   "rounded-[14px]",
   "w-[90vw]! max-w-[1512px]!",
@@ -54,6 +63,37 @@ function getActiveTabItem(
   return items[0]!;
 }
 
+function indexTabItems(
+  items: readonly MeSettingsTabItem[],
+): ReadonlyMap<MeSettingsDialogTab, MeSettingsTabItem> {
+  return new Map(items.map((item) => [item.key, item] as const));
+}
+
+function pickTabItems(
+  indexedItems: ReadonlyMap<MeSettingsDialogTab, MeSettingsTabItem>,
+  keys: readonly MeSettingsDialogTab[],
+): readonly MeSettingsTabItem[] {
+  return keys.flatMap((key) => {
+    const item = indexedItems.get(key);
+    return item ? [item] : [];
+  });
+}
+
+function buildTabGroups(
+  items: readonly MeSettingsTabItem[],
+  labels: Record<MeSettingsTabGroup["key"], string>,
+): readonly MeSettingsTabGroup[] {
+  const indexedItems = indexTabItems(items);
+  return [
+    { key: "account", label: labels.account, items: pickTabItems(indexedItems, ACCOUNT_TAB_KEYS) },
+    {
+      key: "preferences",
+      label: labels.preferences,
+      items: pickTabItems(indexedItems, PREFERENCES_TAB_KEYS),
+    },
+  ] as const;
+}
+
 function MeSettingsDialogCloseButton(props: { onClose: () => void; label: string }) {
   return (
     <ButtonPrimitive
@@ -74,34 +114,47 @@ function MeSettingsDialogCloseButton(props: { onClose: () => void; label: string
 }
 
 function MeSettingsTabNavigation(props: {
-  items: readonly MeSettingsTabItem[];
+  groups: readonly MeSettingsTabGroup[];
   selectedTab: MeSettingsDialogTab;
   onTabChange: (tab: MeSettingsDialogTab) => void;
   ariaLabel: string;
 }) {
-  const navItems = useMemo(
+  const navGroups = useMemo(
     () =>
-      props.items.map((item) => {
-        const Icon = item.icon;
-        return {
-          key: item.key,
-          icon: <Icon className="h-4 w-4" aria-hidden="true" />,
-          label: item.label,
-        } as const;
-      }),
-    [props.items],
+      props.groups.map((group) => ({
+        key: group.key,
+        label: group.label,
+        items: group.items.map((item) => {
+          const Icon = item.icon;
+          return {
+            key: item.key,
+            icon: <Icon className="h-4 w-4" aria-hidden="true" />,
+            label: item.label,
+          } as const;
+        }),
+      })),
+    [props.groups],
   );
 
   return (
-    <MiniCategoryNav
-      ariaLabel={props.ariaLabel}
-      items={navItems}
-      selectedKey={props.selectedTab}
-      onSelect={(key) => props.onTabChange(key as MeSettingsDialogTab)}
-      className="px-2 py-3"
-      itemClassName="text-footnote"
-      itemHeightClassName="h-10"
-    />
+    <div className="px-4 py-8">
+      <div className="flex flex-col gap-2">
+        {navGroups.map((group) => (
+          <div key={group.key} className="space-y-1">
+            <div className="text-headline text-label-secondary">{group.label}</div>
+            <MiniCategoryNav
+              ariaLabel={`${props.ariaLabel} - ${group.label}`}
+              items={group.items}
+              selectedKey={props.selectedTab}
+              onSelect={(key) => props.onTabChange(key as MeSettingsDialogTab)}
+              className="px-0 py-0"
+              itemClassName="text-footnote"
+              itemHeightClassName="h-10"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -131,7 +184,7 @@ function MeSettingsDialogTabHeader(props: { title: string; description: string }
 
 function MeSettingsDialogBody(props: {
   tab: MeSettingsDialogTab;
-  tabItems: readonly MeSettingsTabItem[];
+  tabGroups: readonly MeSettingsTabGroup[];
   title: string;
   description: string;
   closeLabel: string;
@@ -143,7 +196,7 @@ function MeSettingsDialogBody(props: {
     <div className="flex h-full min-h-0 bg-background">
       <aside className="h-full w-[250px] shrink-0 border-r bg-muted/45">
         <MeSettingsTabNavigation
-          items={props.tabItems}
+          groups={props.tabGroups}
           selectedTab={props.tab}
           onTabChange={props.onTabChange}
           ariaLabel={props.navAriaLabel}
@@ -194,6 +247,14 @@ export function MeSettingsDialog(props: MeSettingsDialogProps) {
       }),
     [t],
   );
+  const tabGroups = useMemo(
+    () =>
+      buildTabGroups(tabItems, {
+        account: t("account:ME_TAB_GROUP_ACCOUNT"),
+        preferences: t("account:ME_TAB_GROUP_PREFERENCES"),
+      }),
+    [t, tabItems],
+  );
   const activeTabItem = useMemo(() => getActiveTabItem(tabItems, props.tab), [tabItems, props.tab]);
 
   return (
@@ -209,7 +270,7 @@ export function MeSettingsDialog(props: MeSettingsDialogProps) {
     >
       <MeSettingsDialogBody
         tab={props.tab}
-        tabItems={tabItems}
+        tabGroups={tabGroups}
         title={activeTabItem.label}
         description={activeTabItem.description}
         closeLabel={closeLabel}

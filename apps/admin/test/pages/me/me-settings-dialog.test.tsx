@@ -5,15 +5,17 @@ import { MeSettingsDialog } from "@/pages/me/dialog/me-settings-dialog";
 
 const translations: Record<string, string> = {
   "account:ME_TITLE": "Personal center",
-  "account:ME_TAB_PROFILE": "Personal Settings",
+  "account:ME_TAB_PROFILE": "Personal Info",
   "account:ME_TAB_PROFILE_DESC": "Manage personal profile and linked accounts.",
-  "account:ME_TAB_PREFERENCES": "Preferences",
+  "account:ME_TAB_PREFERENCES": "Appearance",
   "account:ME_TAB_PREFERENCES_DESC": "Customize appearance, language, and accessibility options.",
   "account:ME_TAB_SECURITY": "Security",
   "account:ME_TAB_SECURITY_DESC": "Manage password, authentication methods, and active sessions.",
   "account:ME_TAB_NOTIFICATIONS": "Notifications",
   "account:ME_TAB_NOTIFICATIONS_DESC":
     "Choose which notifications you receive and how they are delivered.",
+  "account:ME_TAB_GROUP_ACCOUNT": "account",
+  "account:ME_TAB_GROUP_PREFERENCES": "PREFERENCES",
   "common:CANCEL": "Cancel",
 };
 
@@ -70,10 +72,16 @@ describe("MeSettingsDialog", () => {
     const dialogOverlayRoot = document.querySelector("[data-overlay-root=dialog]");
     expect(dialogOverlayRoot).not.toBeNull();
     expect(dialogOverlayRoot).toHaveClass("pointer-events-auto");
-    expect(within(header).getByText("Personal Settings")).toBeInTheDocument();
+    expect(within(header).getByText("Personal Info")).toBeInTheDocument();
     expect(
       within(header).getByText("Manage personal profile and linked accounts."),
     ).toBeInTheDocument();
+    expect(screen.getByText("account")).toBeInTheDocument();
+    expect(screen.getByText("PREFERENCES")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Personal Info" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Security" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Appearance" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notifications" })).toBeInTheDocument();
     expect(within(header).queryByRole("separator")).not.toBeInTheDocument();
     expect(screen.queryByText("Personal center")).not.toBeInTheDocument();
     expect(within(header).queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
