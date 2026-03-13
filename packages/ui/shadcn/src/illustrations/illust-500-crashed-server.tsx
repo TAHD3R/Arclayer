@@ -1,81 +1,151 @@
-import { Bolt, Server, TriangleAlert, X } from "lucide-react";
-
+import { motion } from "motion/react";
+import { IllustrationWrapper } from "./illustration-wrapper";
 import type { IllustrationProps } from "./types";
-import { IllustrationAnimatedWrapper } from "./illustration-animated-wrapper";
+import { useIllustrationAnimation } from "./use-illustration-animation";
 
 export function Illust500CrashedServer(props: IllustrationProps) {
+  const { animate } = useIllustrationAnimation();
+
+  // 基础的巨石/服务器基座结构
+  const BaseMonolith = () => (
+    <g>
+      <rect
+        x="65"
+        y="30"
+        width="70"
+        height="100"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="0.8"
+      />
+      {[40, 50, 60, 70, 80, 90, 100, 110, 120].map((y) => (
+        <line
+          key={y}
+          x1="65"
+          y1={y}
+          x2="135"
+          y2={y}
+          stroke="currentColor"
+          strokeWidth="0.5"
+          strokeOpacity="0.4"
+        />
+      ))}
+      <rect
+        x="61"
+        y="26"
+        width="78"
+        height="108"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        strokeOpacity="0.2"
+      />
+    </g>
+  );
+
   return (
-    <IllustrationAnimatedWrapper {...props}>
-      <div className="relative w-full h-[320px] flex items-center justify-center">
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/5 blur-[120px]" />
+    <IllustrationWrapper {...props}>
+      <defs>
+        {/* 用锐利的锯齿形掩码切开巨石 */}
+        <mask id="left-mask">
+          <path
+            d="M 0 0 L 100 0 L 92 35 L 108 60 L 95 90 L 105 115 L 100 160 L 0 160 Z"
+            fill="white"
+          />
+        </mask>
+        <mask id="right-mask">
+          <path
+            d="M 200 0 L 100 0 L 92 35 L 108 60 L 95 90 L 105 115 L 100 160 L 200 160 Z"
+            fill="white"
+          />
+        </mask>
+      </defs>
 
-        <div className="relative z-10 w-full max-w-[520px] h-[300px]">
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-destructive/5 to-transparent opacity-70" />
-          <div className="celestial-illust-anim-pulse absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-destructive shadow-[0_0_15px_color-mix(in_srgb,var(--color-destructive)_60%,transparent)]" />
+      {/* 断裂的左半部分 */}
+      <motion.g
+        mask="url(#left-mask)"
+        initial={animate ? { x: 0, y: 0, rotate: 0 } : undefined}
+        animate={
+          animate
+            ? {
+                x: [-3, -5, -3],
+                y: [1, 2, 1],
+                rotate: [-0.5, -1.5, -0.5],
+              }
+            : undefined
+        }
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: "65px 80px" }}
+      >
+        <BaseMonolith />
+      </motion.g>
 
-          <div className="relative z-10 flex h-full items-center justify-center">
-            <div className="relative flex size-48 items-center justify-center">
-              <div className="absolute inset-0 scale-110 rounded-full bg-destructive/10 blur-xl" />
+      {/* 断裂的右半部分 (向反方向漂移) */}
+      <motion.g
+        mask="url(#right-mask)"
+        initial={animate ? { x: 0, y: 0, rotate: 0 } : undefined}
+        animate={
+          animate
+            ? {
+                x: [3, 5, 3],
+                y: [-1, -2, -1],
+                rotate: [0.5, 1.5, 0.5],
+              }
+            : undefined
+        }
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        style={{ transformOrigin: "135px 80px" }}
+      >
+        <BaseMonolith />
+      </motion.g>
 
-              <div className="relative z-10">
-                <div className="grid grid-cols-3 gap-4">
-                  {(["a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3"] as const).map((k) => {
-                    const isCenter = k === "b2";
-                    const base =
-                      "size-8 rounded backdrop-blur-sm border border-destructive/20 bg-destructive/10";
-                    const variants: Record<string, string> = {
-                      a1: "translate-y-2 -translate-x-2 rotate-12 bg-destructive/20",
-                      a2: "-translate-y-3 blur-[1px]",
-                      a3: "translate-x-4 translate-y-1 -rotate-6 bg-destructive/30 border-destructive/30 shadow-lg shadow-destructive/10",
-                      b1: "-translate-x-3 scale-90",
-                      b2: "bg-destructive text-destructive-foreground shadow-[0_0_20px_color-mix(in_srgb,var(--color-destructive)_45%,transparent)]",
-                      b3: "translate-x-3 rotate-45 scale-75 bg-destructive/20",
-                      c1: "-translate-x-1 translate-y-4 rotate-12 bg-destructive/40 border-destructive/40",
-                      c2: "translate-y-6 scale-50",
-                      c3: "translate-x-2 translate-y-2 -rotate-12 bg-destructive/30 blur-[0.5px]",
-                    };
+      {/* 缝隙中散落陨落的逻辑碎片 */}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <motion.rect
+          key={i}
+          width="1.5"
+          height="1.5"
+          fill="currentColor"
+          opacity="0.6"
+          initial={{ x: 98 + (i % 3) * 2, y: 40 + i * 15 }}
+          animate={
+            animate
+              ? {
+                  y: 160,
+                  opacity: [0, 0.8, 0],
+                  rotate: [0, 90],
+                }
+              : undefined
+          }
+          transition={{ duration: 2 + (i % 2), repeat: Infinity, delay: i * 0.3 }}
+        />
+      ))}
 
-                    return (
-                      <div
-                        key={k}
-                        className={[
-                          base,
-                          variants[k],
-                          isCenter ? "celestial-illust-anim-pulse" : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                      >
-                        {isCenter ? (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <Server className="size-4" aria-hidden="true" />
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="absolute left-0 top-1/2 h-[2px] w-full translate-y-4 translate-x-2 bg-destructive/40" />
-                <div className="absolute left-10 top-1/3 h-px w-20 -translate-x-4 bg-background/20" />
-              </div>
-
-              <TriangleAlert
-                className="celestial-illust-anim-bounce absolute right-10 top-0 size-4 text-destructive/60"
-                aria-hidden="true"
-              />
-              <Bolt
-                className="absolute bottom-4 left-4 size-3.5 text-destructive/40"
-                aria-hidden="true"
-              />
-              <X
-                className="absolute -left-2 top-10 size-3 text-destructive/30"
-                aria-hidden="true"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </IllustrationAnimatedWrapper>
+      {/* 微弱的背景网格，强调空间的绝对性 */}
+      <g opacity="0.05">
+        {[20, 40, 60, 80, 100, 120, 140, 160].map((y) => (
+          <line
+            key={`h-${y}`}
+            x1="0"
+            y1={y}
+            x2="200"
+            y2={y}
+            stroke="currentColor"
+            strokeWidth="0.5"
+          />
+        ))}
+        {[20, 40, 60, 80, 100, 120, 140, 160, 180].map((x) => (
+          <line
+            key={`v-${x}`}
+            x1={x}
+            y1="0"
+            x2={x}
+            y2="160"
+            stroke="currentColor"
+            strokeWidth="0.5"
+          />
+        ))}
+      </g>
+    </IllustrationWrapper>
   );
 }
