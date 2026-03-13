@@ -106,7 +106,7 @@ export function MeNotificationSettingsPage(props: MeNotificationSettingsPageProp
             <MeSettingPanel
               title={t("account:ME_NOTIFY_PANEL_TITLE")}
               description={t("account:ME_NOTIFY_PANEL_DESC")}
-              showDivider={false}
+              showDivider
               variant={panelVariant}
             >
               <div className="mt-4 relative isolate overflow-auto rounded-xl border border-border/80 bg-background">

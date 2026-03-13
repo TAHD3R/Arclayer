@@ -40,7 +40,7 @@ export function MePreferencesView(props: MePreferencesViewProps) {
             <MeSettingPanel
               title={t("ME_PREF_LOCALIZATION_PANEL_TITLE")}
               description={t("ME_PREF_LOCALIZATION_PANEL_DESC")}
-              showDivider={false}
+              showDivider
               variant={panelVariant}
             >
               <MePreferencesLocalizationSection />

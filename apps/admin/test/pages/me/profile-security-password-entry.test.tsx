@@ -99,6 +99,9 @@ describe("Profile password entry migration", () => {
   it("profile password card shows change-password action for password accounts", async () => {
     renderWithQuery(<MeProfilePasswordSection redirect="/me/profile" />);
     expect(
+      await screen.findByText(i18n.t("account:ME_PROFILE_PASSWORD_DESC_CHANGE")),
+    ).toBeInTheDocument();
+    expect(
       await screen.findByRole("button", {
         name: i18n.t("account:ME_SECURITY_CHANGE_PASSWORD_ACTION"),
       }),
@@ -118,6 +121,9 @@ describe("Profile password entry migration", () => {
     });
 
     renderWithQuery(<MeProfilePasswordSection redirect="/me/profile" />);
+    expect(
+      await screen.findByText(i18n.t("account:ME_PROFILE_PASSWORD_DESC_SET_2FA")),
+    ).toBeInTheDocument();
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_PROFILE_SET_PASSWORD_ACTION") }),

@@ -1,4 +1,5 @@
 import { XIcon } from "lucide-react";
+import * as React from "react";
 
 import {
   Dialog as DialogPrimitive,
@@ -22,6 +23,30 @@ import {
   type DialogCloseProps as DialogClosePrimitiveProps,
 } from "@celestial/ui/radix-primitives/radix-dialog";
 import { cn } from "@celestial/lib/utils";
+
+const ALLOWED_EXTERNAL_DIALOG_INTERACTION_SELECTOR = [
+  ".ant-select-dropdown",
+  ".ant-picker-dropdown",
+  ".ant-cascader-dropdown",
+  ".ant-dropdown",
+  ".ant-popover",
+  ".ant-tooltip",
+].join(", ");
+
+function isAllowedExternalDialogInteractionTarget(target: EventTarget | null): boolean {
+  const element =
+    target instanceof HTMLElement ? target : target instanceof Node ? target.parentElement : null;
+  if (!element) return false;
+  return element.closest(ALLOWED_EXTERNAL_DIALOG_INTERACTION_SELECTOR) instanceof HTMLElement;
+}
+
+function resolveOutsideInteractionTarget(
+  event: Parameters<NonNullable<DialogContentPrimitiveProps["onInteractOutside"]>>[0],
+): EventTarget | null {
+  const originalTarget = (event as { detail?: { originalEvent?: Event } }).detail?.originalEvent
+    ?.target;
+  return originalTarget ?? event.target;
+}
 
 type DialogProps = DialogPrimitiveProps;
 
@@ -67,14 +92,26 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onInteractOutside,
   ...props
 }: DialogContentProps) {
+  const handleInteractOutside = React.useCallback(
+    (event: Parameters<NonNullable<DialogContentPrimitiveProps["onInteractOutside"]>>[0]) => {
+      if (isAllowedExternalDialogInteractionTarget(resolveOutsideInteractionTarget(event))) {
+        event.preventDefault();
+        return;
+      }
+      onInteractOutside?.(event);
+    },
+    [onInteractOutside],
+  );
+
   return (
     <DialogPortalPrimitive>
       <DialogOverlay />
       <div
         data-overlay-root="dialog"
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <DialogContentPrimitive
           className={cn(
@@ -82,6 +119,7 @@ function DialogContent({
             "relative",
             className,
           )}
+          onInteractOutside={handleInteractOutside}
           {...props}
         >
           {children}

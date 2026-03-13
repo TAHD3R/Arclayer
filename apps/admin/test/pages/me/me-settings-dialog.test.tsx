@@ -56,7 +56,7 @@ beforeAll(() => {
 });
 
 describe("MeSettingsDialog", () => {
-  it("在右侧内容头部显示当前 tab 的 title、desc 和 divider", () => {
+  it("在右侧内容头部显示当前 tab 的 title、desc，且不渲染额外 divider", () => {
     const view = render(
       <MeSettingsDialog
         open
@@ -67,11 +67,14 @@ describe("MeSettingsDialog", () => {
     );
 
     const header = screen.getByTestId("me-settings-pane-header");
+    const dialogOverlayRoot = document.querySelector("[data-overlay-root=dialog]");
+    expect(dialogOverlayRoot).not.toBeNull();
+    expect(dialogOverlayRoot).toHaveClass("pointer-events-auto");
     expect(within(header).getByText("Personal Settings")).toBeInTheDocument();
     expect(
       within(header).getByText("Manage personal profile and linked accounts."),
     ).toBeInTheDocument();
-    expect(within(header).getByRole("separator")).toBeInTheDocument();
+    expect(within(header).queryByRole("separator")).not.toBeInTheDocument();
     expect(screen.queryByText("Personal center")).not.toBeInTheDocument();
     expect(within(header).queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();

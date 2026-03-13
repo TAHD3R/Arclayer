@@ -84,6 +84,19 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
     if (requiresSetPasswordRelogin) return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC_RELOGIN");
     return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC");
   }, [hasPassword, requiresSetPasswordRelogin, requiresSetPasswordTwoFactor, t]);
+  const cardDescription = useMemo(() => {
+    if (capabilityQuery.isError) return t("account:ME_PROFILE_PASSWORD_CAPABILITY_LOAD_FAILED");
+    if (hasPassword) return t("account:ME_PROFILE_PASSWORD_DESC_CHANGE");
+    if (requiresSetPasswordTwoFactor) return t("account:ME_PROFILE_PASSWORD_DESC_SET_2FA");
+    if (requiresSetPasswordRelogin) return t("account:ME_PROFILE_PASSWORD_DESC_SET_RELOGIN");
+    return t("account:ME_PROFILE_PASSWORD_DESC_SET");
+  }, [
+    capabilityQuery.isError,
+    hasPassword,
+    requiresSetPasswordRelogin,
+    requiresSetPasswordTwoFactor,
+    t,
+  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,11 +147,7 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
       <SettingCard>
         <SettingCardHeader
           title={cardTitle}
-          description={
-            capabilityQuery.isError
-              ? t("account:ME_PROFILE_PASSWORD_CAPABILITY_LOAD_FAILED")
-              : undefined
-          }
+          description={cardDescription}
           action={
             <Button
               type="primary"

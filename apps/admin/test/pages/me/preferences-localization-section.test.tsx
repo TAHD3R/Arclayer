@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -49,5 +49,31 @@ describe("MePreferencesLocalizationSection", () => {
 
     expect(timezoneSelect.closest(".ant-select-disabled")).not.toBeNull();
     expect(languageSelect.closest(".ant-select-disabled")).not.toBeNull();
+  });
+
+  it("mounts select dropdown to dialog overlay root inside modal overlays", async () => {
+    const user = userEvent.setup();
+    const overlayRoot = document.createElement("div");
+    const dialogContent = document.createElement("div");
+
+    overlayRoot.setAttribute("data-overlay-root", "dialog");
+    dialogContent.setAttribute("data-slot", "dialog-content");
+    overlayRoot.appendChild(dialogContent);
+    document.body.appendChild(overlayRoot);
+
+    try {
+      render(<MePreferencesLocalizationSection />, { container: dialogContent });
+
+      const [timezoneSelect] = screen.getAllByRole("combobox");
+      await user.click(timezoneSelect);
+
+      await waitFor(() => {
+        const dropdown = document.querySelector(".ant-select-dropdown");
+        expect(dropdown).not.toBeNull();
+        expect(dropdown?.parentElement).toBe(overlayRoot);
+      });
+    } finally {
+      overlayRoot.remove();
+    }
   });
 });

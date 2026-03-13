@@ -96,6 +96,15 @@ To avoid style drift across settings and management flows, use the following ove
   dialog pattern.
 - Antd `Input` (and `Input.Password` / `Input.TextArea`) `size` + `variant` must follow:
   `docs/guidelines/antd-input-guideline.md` (primary flows vs toolbars vs dense/technical).
+- Radix `Dialog` + Antd popup interop (mandatory for `Select` / `DatePicker` / dropdown-like controls):
+  - In dialog contexts, popup containers must use the shared helper
+    `getPopupContainerWithinOverlay` and mount under `[data-overlay-root=dialog]`.
+  - Do not mount popup containers under `[data-slot=dialog-content]` for form sections;
+    this causes clipping by section/dialog overflow containers and breaks dropdown placement.
+  - The dialog overlay root must keep pointer interactions enabled (`pointer-events-auto`);
+    otherwise modal pointer-event blocking can make popup options non-clickable.
+  - Outside interaction filtering for dialog dismissal must allow Antd popup surfaces
+    (for example `.ant-select-dropdown`) so selecting an option does not close/break interaction.
 
 ### 4.4 Tag usage rules (Admin, mandatory)
 

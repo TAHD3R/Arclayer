@@ -60,7 +60,7 @@ export function MeSecurityView(props: MeSecurityViewProps) {
           content: (
             <MeSettingPanel
               title={t("account:ME_SECURITY_SIGNIN_PANEL_TITLE")}
-              showDivider={false}
+              showDivider
               variant={panelVariant}
             >
               <div className="flex flex-col gap-6">

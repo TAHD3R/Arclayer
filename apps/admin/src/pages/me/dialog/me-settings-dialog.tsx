@@ -118,15 +118,13 @@ function MeSettingsDialogContent(props: { tab: MeSettingsDialogTab }) {
   return <MeNotificationSettingsPage mode="dialog" />;
 }
 
-function MeSettingsDialogPanelHeader(props: { title: string; description: string }) {
+function MeSettingsDialogTabHeader(props: { title: string; description: string }) {
   return (
-    <div data-testid="me-settings-pane-header" className="flex w-full min-w-0 flex-col gap-5">
+    <div data-testid="me-settings-pane-header" className="flex w-full min-w-0 flex-col">
       <div className="min-w-0">
         <div className="text-title2 font-semibold text-label-primary">{props.title}</div>
         <div className="mt-1 text-body text-label-secondary">{props.description}</div>
       </div>
-
-      <div role="separator" className="h-px bg-border" />
     </div>
   );
 }
@@ -157,13 +155,10 @@ function MeSettingsDialogBody(props: {
           <MeSettingsDialogCloseButton onClose={props.onClose} label={props.closeLabel} />
         </div>
 
-        <div className="shrink-0 px-[clamp(18px,5vw,60px)] pt-7 pb-0">
-          <MeSettingsDialogPanelHeader title={props.title} description={props.description} />
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-auto px-[clamp(18px,5vw,60px)] py-9">
+        <div className="min-h-0 flex-1 overflow-auto px-[clamp(18px,5vw,60px)] py-7">
           <div className="mx-auto flex w-full max-w-[800px] min-w-0 flex-col gap-9">
             <div role="tabpanel" className="flex min-w-0 flex-col gap-9">
+              <MeSettingsDialogTabHeader title={props.title} description={props.description} />
               <MeSettingsDialogContent tab={props.tab} />
             </div>
           </div>
