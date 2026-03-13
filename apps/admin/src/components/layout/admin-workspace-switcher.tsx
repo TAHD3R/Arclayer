@@ -757,6 +757,7 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
           <FloatingPanelTrigger
             title={workspaceTriggerText}
             aria-label={label}
+            disableLayoutId
             className={cn(
               sidebarTriggerButtonClassName,
               "w-full max-w-full overflow-hidden",

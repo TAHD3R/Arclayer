@@ -310,6 +310,7 @@ export function AdminAccountMenu() {
     <FloatingPanelRoot className="w-full">
       <FloatingPanelTrigger
         title={isCollapsed ? model.displayName : t("ACCOUNT_TITLE")}
+        disableLayoutId
         className={triggerClassName}
       >
         <UserAvatar

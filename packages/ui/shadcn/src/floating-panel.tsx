@@ -347,7 +347,7 @@ export function FloatingPanelContent({
               top: position ? position.top : triggerRect ? triggerRect.bottom + offset : "50%",
               transformOrigin: "top left",
             }}
-            initial={false}
+            initial="hidden"
             animate="visible"
             exit="hidden"
             variants={variants}
