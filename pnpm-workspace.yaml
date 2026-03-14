@@ -6,6 +6,7 @@ packages:
 # pnpm catalogs：用一个地方统一管理版本号，package.json 里用 `catalog:` 引用
 catalogs:
   default:
+    "shadcn": "^4.0.7"
     "@types/node": "^24.10.1"
     "@vitest/ui": "^4.0.18"
     "@types/react": "19.2.9"

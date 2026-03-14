@@ -21,15 +21,16 @@
     "docker:devtools": "docker compose --profile devtools up -d"
   },
   "devDependencies": {
+    "@types/archiver": "catalog:",
     "@types/node": "catalog:",
     "@vitest/ui": "catalog:",
-    "@types/archiver": "catalog:",
     "antd": "catalog:",
     "archiver": "catalog:",
     "lodash": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "penpal": "catalog:",
+    "shadcn": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
