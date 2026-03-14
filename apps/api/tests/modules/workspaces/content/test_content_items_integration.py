@@ -75,7 +75,6 @@ def _model_payload() -> dict:
     return {
         "key": "article",
         "name": "Article",
-        "kind": "custom",
         "fields": [
             {"key": "title", "label": "Title", "scalar": "text", "required": True},
             {"key": "body", "label": "Body", "scalar": "long_text", "required": False},

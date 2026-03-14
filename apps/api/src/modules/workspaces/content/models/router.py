@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, status
@@ -11,9 +11,14 @@ from apps.api.src.core.exceptions import NotFound
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.content.contracts.schema import ContentModelDefinitionContract, ContentModelOut
+from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentModelDefinitionContract,
+    ContentModelImpactOut,
+    ContentModelOut,
+)
 from apps.api.src.modules.workspaces.content.models.canonical_service import (
     ContentModelDefinitionPatchContract,
+    ContentModelMutationResult,
     WorkspaceContentCanonicalModelsService,
 )
 from apps.api.src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
@@ -37,10 +42,11 @@ class ContentModelMutationOut(BaseSchema):
     key: str
     name: str
     description: str | None = None
-    kind: str | None = None
+    impact: ContentModelImpactOut
 
 
-def _to_mutation_out(record: Any) -> ContentModelMutationOut:
+def _to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutationOut:
+    record = result.record
     return ContentModelMutationOut(
         id=UUID(str(record.id)),
         workspace_id=UUID(str(record.workspace_id)),
@@ -48,7 +54,7 @@ def _to_mutation_out(record: Any) -> ContentModelMutationOut:
         key=str(record.key),
         name=str(record.name),
         description=record.description,
-        kind=record.kind,
+        impact=result.impact,
     )
 
 

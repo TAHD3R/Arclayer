@@ -49,6 +49,25 @@ RelationType = Literal["one_to_one", "one_to_many", "many_to_one", "many_to_many
 ViewType = Literal["detail", "list", "table", "grid", "tree"]
 
 
+class ContentModelImpactChangeOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    code: str = Field(..., min_length=1, description="Machine-readable change code.")
+    target: str = Field(..., min_length=1, description="Schema target affected by the change.")
+    message: str = Field(..., min_length=1, description="Human-readable impact summary.")
+
+
+class ContentModelImpactOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    has_breaking_changes: bool = Field(default=False, description="Whether the model edit introduces breaking changes.")
+    breaking_changes: list[ContentModelImpactChangeOut] = Field(
+        default_factory=list,
+        description="Breaking schema changes detected for the model.",
+    )
+    warnings: list[str] = Field(default_factory=list, description="Non-blocking schema warnings.")
+
+
 class ContentModelOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -92,6 +111,37 @@ class ContentPresentationOut(BaseSchema):
 
     kind: ContentPresentationKind = Field(..., description="Presentation kind.")
     payload: dict[str, Any] | None = Field(default=None, description="Presentation payload.")
+
+
+class ContentPresentationListOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    items: list[ContentPresentationOut] = Field(default_factory=list, description="Presentation documents.")
+
+
+class ContentSeoProfileOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    meta_title: str | None = Field(default=None, max_length=256, description="Resolved SEO title.")
+    meta_description: str | None = Field(default=None, max_length=512, description="Resolved SEO description.")
+    canonical_url: str | None = Field(default=None, max_length=1024, description="Canonical URL.")
+    robots_directive: str | None = Field(default=None, max_length=128, description="Robots directive.")
+    payload: dict[str, Any] | None = Field(default=None, description="Raw SEO payload.")
+
+
+class ContentComponentBindingOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    component_key: str = Field(..., min_length=1, max_length=128, description="Component identity.")
+    binding_key: str = Field(..., min_length=1, max_length=128, description="Binding identity.")
+    binding_payload: dict[str, Any] | None = Field(default=None, description="Binding payload.")
+    sort_order: int = Field(default=0, ge=0, description="Binding order within the version.")
+
+
+class ContentComponentBindingListOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    items: list[ContentComponentBindingOut] = Field(default_factory=list, description="Component bindings.")
 
 
 class ContentVersionOut(BaseSchema):
@@ -162,8 +212,6 @@ class ContentModelDefinitionContract(BaseSchema):
     description: str | None = Field(default=None, max_length=512, description="Optional model description.")
     category: ContentModelCategory = Field(default="custom", description="Product surface grouping.")
     default_editor: ContentDefaultEditor = Field(default="form", description="Default editing mode.")
-    # Kernel contracts deliberately keep kind optional, without templateKey presets.
-    kind: str | None = Field(default=None, min_length=1, max_length=64, description="Optional model kind marker.")
     fields: list[ContentModelFieldContract] = Field(default_factory=list, description="Explicit field contracts.")
     relations: list[ContentModelRelationContract] = Field(
         default_factory=list,

@@ -5,11 +5,15 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from apps.api.src.core.exceptions import Conflict
+from apps.api.src.models.content._enums import PublishArtifactKind
+from apps.api.src.models.content.component_binding import ComponentBindingRecord
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.hierarchy_node import HierarchyNodeRecord
+from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
 from apps.api.src.models.content.published_graph import PublishedGraphRecord
 from apps.api.src.models.content.route_binding import RouteBindingRecord
+from apps.api.src.models.content.seo_profile import SEOProfileRecord
 from apps.api.src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishImpactOut
 
 
@@ -57,6 +61,23 @@ async def _load_hierarchy_map(*, site_id: UUID) -> dict[UUID, HierarchyNodeRecor
     return {row.item_id: row for row in rows}
 
 
+async def _load_seo_profile_map(*, version_ids: list[UUID]) -> dict[UUID, SEOProfileRecord]:
+    if not version_ids:
+        return {}
+    rows = await SEOProfileRecord.filter(version_id__in=version_ids).all()
+    return {row.version_id: row for row in rows}
+
+
+async def _load_component_binding_map(*, version_ids: list[UUID]) -> dict[UUID, list[ComponentBindingRecord]]:
+    if not version_ids:
+        return {}
+    rows = await ComponentBindingRecord.filter(version_id__in=version_ids).order_by("sort_order", "id").all()
+    out: dict[UUID, list[ComponentBindingRecord]] = {}
+    for row in rows:
+        out.setdefault(row.version_id, []).append(row)
+    return out
+
+
 class WorkspacePublishService:
     async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishImpactOut:
         items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id)
@@ -91,7 +112,11 @@ class WorkspacePublishService:
         item_ids = [item.id for item in items]
         version_map = await _load_published_versions(item_ids=item_ids)
         hierarchy_map = await _load_hierarchy_map(site_id=site_id)
+        version_ids = [version.id for version in version_map.values()]
+        seo_profile_map = await _load_seo_profile_map(version_ids=version_ids)
+        component_binding_map = await _load_component_binding_map(version_ids=version_ids)
         rows: list[PublishedGraphRecord] = []
+        artifact_rows: list[PublishArtifactRecord] = []
         for item in items:
             route = route_map[(item.id, item.locale)]
             version = version_map.get((item.id, int(item.published_version or 0)))
@@ -110,9 +135,78 @@ class WorkspacePublishService:
                     hierarchy_sort_order=node.sort_order if node is not None else 0,
                 )
             )
+            artifact_rows.append(
+                PublishArtifactRecord(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=item.id,
+                    version_id=version.id,
+                    artifact_kind=PublishArtifactKind.ROUTE_MANIFEST,
+                    locale=route.locale,
+                    payload={
+                        "path": route.path,
+                        "parentItemId": str(node.parent_item_id) if node and node.parent_item_id else None,
+                        "sortOrder": node.sort_order if node is not None else 0,
+                    },
+                )
+            )
+            artifact_rows.append(
+                PublishArtifactRecord(
+                    workspace_id=workspace_id,
+                    site_id=site_id,
+                    item_id=item.id,
+                    version_id=version.id,
+                    artifact_kind=PublishArtifactKind.RENDER_HINTS,
+                    locale=route.locale,
+                    payload={
+                        "modelKey": item.model_definition.key,
+                        "capabilities": item.model_definition.capabilities or [],
+                    },
+                )
+            )
+
+            seo_profile = seo_profile_map.get(version.id)
+            if seo_profile is not None:
+                artifact_rows.append(
+                    PublishArtifactRecord(
+                        workspace_id=workspace_id,
+                        site_id=site_id,
+                        item_id=item.id,
+                        version_id=version.id,
+                        artifact_kind=PublishArtifactKind.SEO_METADATA,
+                        locale=route.locale,
+                        payload=seo_profile.payload,
+                    )
+                )
+
+            bindings = component_binding_map.get(version.id, [])
+            if bindings:
+                artifact_rows.append(
+                    PublishArtifactRecord(
+                        workspace_id=workspace_id,
+                        site_id=site_id,
+                        item_id=item.id,
+                        version_id=version.id,
+                        artifact_kind=PublishArtifactKind.BINDING_MANIFEST,
+                        locale=route.locale,
+                        payload={
+                            "bindings": [
+                                {
+                                    "componentKey": binding.component_key,
+                                    "bindingKey": binding.binding_key,
+                                    "payload": binding.binding_payload,
+                                }
+                                for binding in bindings
+                            ]
+                        },
+                    )
+                )
 
         async with in_transaction() as conn:
             await PublishedGraphRecord.filter(workspace_id=workspace_id, site_id=site_id).using_db(conn).delete()
+            await PublishArtifactRecord.filter(workspace_id=workspace_id, site_id=site_id).using_db(conn).delete()
             if rows:
                 await PublishedGraphRecord.bulk_create(rows, using_db=conn)
+            if artifact_rows:
+                await PublishArtifactRecord.bulk_create(artifact_rows, using_db=conn)
         return PublishArtifactsOut(graph_nodes=len(rows), impact=impact)

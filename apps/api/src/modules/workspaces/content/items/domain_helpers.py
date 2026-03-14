@@ -20,6 +20,8 @@ from apps.api.src.modules.workspaces.content.items.input_schema import (
 )
 
 PresentationPayload = list[tuple[ContentPresentationKind, dict[str, Any] | None]]
+SEO_PRESENTATION_KIND: ContentPresentationKind = "seo"
+SLOT_MAPPING_PRESENTATION_KIND: ContentPresentationKind = "slot_mapping"
 
 VERSION_TRANSITIONS: dict[ContentVersionState, tuple[ContentVersionState, ...]] = {
     ContentVersionState.PUBLISHED: (ContentVersionState.DRAFT, ContentVersionState.SCHEDULED),
@@ -80,6 +82,39 @@ def normalize_presentations(payloads: list[ContentPresentationIn]) -> Presentati
         seen_kinds.add(payload.kind)
         normalized.append((payload.kind, payload.payload))
     return normalized
+
+
+def extract_seo_payload(payloads: PresentationPayload) -> dict[str, Any] | None:
+    for kind, payload in payloads:
+        if kind == SEO_PRESENTATION_KIND and isinstance(payload, dict):
+            return payload
+    return None
+
+
+def extract_component_bindings(payloads: PresentationPayload) -> list[dict[str, Any]]:
+    for kind, payload in payloads:
+        if kind != SLOT_MAPPING_PRESENTATION_KIND or not isinstance(payload, dict):
+            continue
+        bindings = payload.get("bindings")
+        if not isinstance(bindings, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for item in bindings:
+            if not isinstance(item, dict):
+                continue
+            component_key = item.get("componentKey")
+            binding_key = item.get("bindingKey")
+            if not isinstance(component_key, str) or not component_key.strip():
+                continue
+            if not isinstance(binding_key, str) or not binding_key.strip():
+                continue
+            out.append({
+                "component_key": component_key.strip(),
+                "binding_key": binding_key.strip(),
+                "binding_payload": item.get("payload"),
+            })
+        return out
+    return []
 
 
 def to_version_out(version: ContentVersionRecord, payloads: PresentationPayload) -> ContentVersionOut:

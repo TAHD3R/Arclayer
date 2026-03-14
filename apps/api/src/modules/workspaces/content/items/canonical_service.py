@@ -17,6 +17,8 @@ from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     build_patch_item_fields,
     build_patch_version_fields,
     ensure_expected_version,
+    extract_component_bindings,
+    extract_seo_payload,
     item_fields_for_transition,
     normalize_initial_status,
     normalize_presentations,
@@ -24,12 +26,14 @@ from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     normalize_visibility,
     status_by_published_version,
     to_item_out,
-    to_version_out,
 )
 from apps.api.src.modules.workspaces.content.items.input_schema import (
     ContentItemCreateIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
+)
+from apps.api.src.modules.workspaces.content.items.read_service import (
+    WorkspaceContentCanonicalItemReadService,
 )
 from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
 
@@ -37,6 +41,7 @@ from apps.api.src.modules.workspaces.content.items.repository import WorkspaceCo
 class WorkspaceContentCanonicalItemsService:
     def __init__(self, repo: WorkspaceContentItemsRepository) -> None:
         self.repo = repo
+        self.reads = WorkspaceContentCanonicalItemReadService(repo)
 
     async def _replace_presentations(
         self,
@@ -47,6 +52,16 @@ class WorkspaceContentCanonicalItemsService:
     ) -> None:
         try:
             await self.repo.replace_presentations(version_id=version_id, presentations=presentations, conn=conn)
+            await self.repo.replace_seo_profile(
+                version_id=version_id,
+                payload=extract_seo_payload(presentations),
+                conn=conn,
+            )
+            await self.repo.replace_component_bindings(
+                version_id=version_id,
+                bindings=extract_component_bindings(presentations),
+                conn=conn,
+            )
         except IntegrityError as exc:
             raise Conflict("Invalid presentations payload", error="CONTENT_PRESENTATION_CONFLICT") from exc
 
@@ -85,16 +100,6 @@ class WorkspaceContentCanonicalItemsService:
         if version is None:
             raise NotFound("Content version not found", error="CONTENT_ITEM_VERSION_NOT_FOUND")
         return version
-
-    async def _build_version_out(
-        self,
-        *,
-        version: ContentVersionRecord,
-        conn: BaseDBAsyncClient,
-    ) -> ContentVersionOut:
-        presentations = await self.repo.list_presentations(version_id=version.id, conn=conn)
-        normalized = [(presentation.kind, presentation.payload) for presentation in presentations]
-        return to_version_out(version, normalized)
 
     async def create_item(
         self,
@@ -177,7 +182,7 @@ class WorkspaceContentCanonicalItemsService:
                 },
                 conn=conn,
             )
-            return to_version_out(version, normalized)
+            return await self.reads.build_version_out(version=version, conn=conn)
 
     async def transition_version(
         self,
@@ -219,7 +224,7 @@ class WorkspaceContentCanonicalItemsService:
                 ),
                 conn=conn,
             )
-            return await self._build_version_out(version=version, conn=conn)
+            return await self.reads.build_version_out(version=version, conn=conn)
 
     async def patch_version(
         self,
@@ -268,4 +273,4 @@ class WorkspaceContentCanonicalItemsService:
             )
             if item_fields:
                 await self.repo.update_item_fields(item, fields=item_fields, conn=conn)
-            return await self._build_version_out(version=version, conn=conn)
+            return await self.reads.build_version_out(version=version, conn=conn)

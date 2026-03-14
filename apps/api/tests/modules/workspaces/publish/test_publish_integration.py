@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from apps.api.src.common.utils.public_ids import decode_public_id
+from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
 from apps.api.src.models.content.published_graph import PublishedGraphRecord
 from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
 
@@ -39,7 +40,16 @@ def _draft_payload(title: str) -> dict:
         "expectedVersion": 0,
         "changeSummary": "initial draft",
         "fieldsSnapshot": {"title": title},
-        "presentations": [{"kind": "form_data", "payload": {"title": title}}],
+        "presentations": [
+            {"kind": "form_data", "payload": {"title": title}},
+            {
+                "kind": "seo",
+                "payload": {
+                    "metaTitle": f"{title} | Celestial",
+                    "metaDescription": f"{title} description",
+                },
+            },
+        ],
     }
 
 
@@ -126,6 +136,13 @@ async def test_publish_builds_published_graph_from_routes_and_hierarchy(
         assert len(graph_rows) == 2
         child_row = next(row for row in graph_rows if row.item_id == child_uuid)
         assert child_row.hierarchy_parent_item_id == root_uuid
+
+        artifact_rows = await PublishArtifactRecord.filter(item_id__in=[root_uuid, child_uuid]).all()
+        assert len(artifact_rows) >= 4
+        artifact_kinds = {row.artifact_kind for row in artifact_rows}
+        assert "route_manifest" in artifact_kinds
+        assert "render_hints" in artifact_kinds
+        assert "seo_metadata" in artifact_kinds
 
 
 @pytest.mark.asyncio

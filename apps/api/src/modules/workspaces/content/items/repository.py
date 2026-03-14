@@ -6,10 +6,12 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from apps.api.src.common.repositories.base import BaseRepository
+from apps.api.src.models.content.component_binding import ComponentBindingRecord
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
 from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
+from apps.api.src.models.content.seo_profile import SEOProfileRecord
 from apps.api.src.modules.workspaces.content.contracts.schema import ContentPresentationKind
 
 
@@ -167,4 +169,70 @@ class WorkspaceContentItemsRepository(BaseRepository):
         conn: BaseDBAsyncClient | None = None,
     ) -> list[PresentationDocumentRecord]:
         query = PresentationDocumentRecord.filter(version_id=version_id).order_by("kind")
+        return list(await self.using_db(query, conn))
+
+    async def get_seo_profile(
+        self,
+        *,
+        version_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> SEOProfileRecord | None:
+        query = SEOProfileRecord.filter(version_id=version_id).first()
+        return await self.using_db(query, conn)
+
+    async def replace_seo_profile(
+        self,
+        *,
+        version_id: UUID,
+        payload: dict[str, Any] | None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        await self.using_db(SEOProfileRecord.filter(version_id=version_id), conn).delete()
+        if payload is None:
+            return
+
+        await self.create(
+            SEOProfileRecord,
+            conn=conn,
+            version_id=version_id,
+            meta_title=payload.get("metaTitle"),
+            meta_description=payload.get("metaDescription"),
+            canonical_url=payload.get("canonicalUrl"),
+            robots_directive=payload.get("robotsDirective"),
+            payload=payload,
+        )
+
+    async def replace_component_bindings(
+        self,
+        *,
+        version_id: UUID,
+        bindings: list[dict[str, Any]],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> None:
+        await self.using_db(ComponentBindingRecord.filter(version_id=version_id), conn).delete()
+        if not bindings:
+            return
+
+        rows = [
+            ComponentBindingRecord(
+                version_id=version_id,
+                component_key=str(item["component_key"]),
+                binding_key=str(item["binding_key"]),
+                binding_payload=item.get("binding_payload"),
+                sort_order=index,
+            )
+            for index, item in enumerate(bindings)
+        ]
+        if conn is None:
+            await ComponentBindingRecord.bulk_create(rows)
+            return
+        await ComponentBindingRecord.bulk_create(rows, using_db=conn)
+
+    async def list_component_bindings(
+        self,
+        *,
+        version_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ComponentBindingRecord]:
+        query = ComponentBindingRecord.filter(version_id=version_id).order_by("sort_order", "id")
         return list(await self.using_db(query, conn))

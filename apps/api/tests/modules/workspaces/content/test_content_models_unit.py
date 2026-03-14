@@ -55,6 +55,7 @@ def test_model_definition_contract_is_explicit_and_template_free() -> None:
 
     assert "templateKey" not in field_names
     assert "template_key" not in field_names
+    assert "kind" not in field_names
 
     assert "fields" in field_names
     assert "relations" in field_names
@@ -63,9 +64,18 @@ def test_model_definition_contract_is_explicit_and_template_free() -> None:
     assert "workflow" in field_names
     assert "views" in field_names
 
-    kind_field = model_contract.model_fields["kind"]
-    assert kind_field.is_required() is False
-    assert kind_field.default is None
+
+def test_model_impact_contract_surfaces_breaking_changes_and_warnings() -> None:
+    impact_fields = set(contracts_schema.ContentModelImpactOut.model_fields.keys())
+    change_fields = set(contracts_schema.ContentModelImpactChangeOut.model_fields.keys())
+
+    assert "has_breaking_changes" in impact_fields
+    assert "breaking_changes" in impact_fields
+    assert "warnings" in impact_fields
+
+    assert "code" in change_fields
+    assert "target" in change_fields
+    assert "message" in change_fields
 
 
 def test_content_item_record_does_not_persist_route_or_page_blueprint_state() -> None:

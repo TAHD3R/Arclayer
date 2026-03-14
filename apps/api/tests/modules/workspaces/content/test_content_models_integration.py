@@ -28,7 +28,6 @@ def _blank_first_create_payload() -> dict:
     return {
         "key": "article",
         "name": "Article",
-        "kind": "custom",
         "fields": [],
         "relations": [],
         "capabilities": [],
@@ -141,12 +140,14 @@ async def test_content_models_create_blank_first_payload_returns_201(
         payload = response.json()["data"]
         assert payload["key"] == "article"
         assert payload["name"] == "Article"
+        assert "kind" not in payload
 
         saved = await ContentModelDefinitionRecord.filter(key="article").first()
         assert saved is not None
         assert saved.name == "Article"
         assert saved.category == "custom"
         assert saved.default_editor == "form"
+        assert saved.kind is None
         assert saved.capabilities == []
         assert saved.routing_policy == {"mode": "none"}
         assert saved.presentation_policy is None
@@ -181,6 +182,9 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         assert patch_response.status_code == 200, patch_response.text
         patched_payload = patch_response.json()["data"]
         assert patched_payload["name"] == "Article v2"
+        assert patched_payload["impact"]["hasBreakingChanges"] is False
+        assert patched_payload["impact"]["breakingChanges"] == []
+        assert patched_payload["impact"]["warnings"] == []
 
         saved = await ContentModelDefinitionRecord.filter(key="article").first()
         assert saved is not None
@@ -226,3 +230,68 @@ async def test_content_models_rejects_template_key_or_preset_metadata_payload(
             json=payload,
         )
         assert response.status_code in {400, 422}, response.text
+
+
+@pytest.mark.asyncio
+async def test_content_models_rejects_kind_in_create_and_patch_payloads(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    create_payload = {
+        **_blank_first_create_payload(),
+        "kind": "page",
+    }
+
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        create_response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=create_payload,
+        )
+        assert create_response.status_code in {400, 422}, create_response.text
+
+        baseline_response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_blank_first_create_payload(),
+        )
+        assert baseline_response.status_code == 201, baseline_response.text
+        model_id = baseline_response.json()["data"]["id"]
+
+        patch_response = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            json={"kind": "post"},
+        )
+        assert patch_response.status_code in {400, 422}, patch_response.text
+
+
+@pytest.mark.asyncio
+async def test_content_models_patch_returns_breaking_impact_for_destructive_schema_edits(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        create_response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_blank_first_create_payload(),
+        )
+        assert create_response.status_code == 201, create_response.text
+        model_id = create_response.json()["data"]["id"]
+
+        seed_response = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            json=_explicit_update_payload(),
+        )
+        assert seed_response.status_code == 200, seed_response.text
+
+        destructive_response = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            json={
+                "fields": [],
+                "relations": [],
+            },
+        )
+        assert destructive_response.status_code == 200, destructive_response.text
+        impact = destructive_response.json()["data"]["impact"]
+        assert impact["hasBreakingChanges"] is True
+        codes = {entry["code"] for entry in impact["breakingChanges"]}
+        assert "field_removed" in codes
+        assert "relation_removed" in codes
