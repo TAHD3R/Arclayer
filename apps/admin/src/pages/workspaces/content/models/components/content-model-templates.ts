@@ -6,7 +6,7 @@ import type {
 
 import type { CreateContentModelInput } from "@/api/content-models";
 
-export type ContentModelTemplateId =
+export type LegacyContentModelTemplateId =
   | "custom"
   | "page"
   | "post"
@@ -16,8 +16,8 @@ export type ContentModelTemplateId =
   | "legal_document"
   | "reusable_block";
 
-export type ContentModelTemplatePreset = Readonly<{
-  id: ContentModelTemplateId;
+export type LegacyContentModelTemplatePreset = Readonly<{
+  id: LegacyContentModelTemplateId;
   titleKey: string;
   summaryKey: string;
   descriptionKey: string;
@@ -42,7 +42,7 @@ function createFieldSchema(fields: Array<{ key: string; label: string; type: str
 
 const TABLE_VIEW = { defaultView: "table" } as const;
 
-export const CONTENT_MODEL_TEMPLATE_PRESETS: readonly ContentModelTemplatePreset[] = [
+export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelTemplatePreset[] = [
   {
     id: "custom",
     titleKey: "content_library:MODELS_TEMPLATE_CUSTOM_TITLE",
@@ -202,17 +202,20 @@ export const CONTENT_MODEL_TEMPLATE_PRESETS: readonly ContentModelTemplatePreset
   },
 ];
 
-export function getContentModelTemplatePreset(
-  templateId: ContentModelTemplateId,
-): ContentModelTemplatePreset {
-  return (
-    CONTENT_MODEL_TEMPLATE_PRESETS.find((preset) => preset.id === templateId) ??
-    CONTENT_MODEL_TEMPLATE_PRESETS[0]
+export function getLegacyContentModelTemplatePreset(
+  templateId: LegacyContentModelTemplateId,
+): LegacyContentModelTemplatePreset {
+  const preset = LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS.find(
+    (candidate) => candidate.id === templateId,
   );
+  if (!preset) {
+    throw new Error(`Unknown legacy content model template preset: ${templateId}`);
+  }
+  return preset;
 }
 
-export function buildCreateContentModelInput(
-  preset: ContentModelTemplatePreset,
+export function buildLegacyCreateContentModelInput(
+  preset: LegacyContentModelTemplatePreset,
   translate: TranslateFn,
 ): CreateContentModelInput {
   const isCustomTemplate = preset.id === "custom";

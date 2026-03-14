@@ -21,14 +21,16 @@ export async function listWorkspaceContentEntries(
   if (params?.size) qs.set("size", String(params.size));
   if (params?.typeCode) qs.set("typeCode", String(params.typeCode));
   const query = qs.toString() ? `?${qs.toString()}` : "";
-  return api.get<PageData<ContentEntryOut>>(`/workspaces/${workspaceId}/content/entries${query}`);
+  return api.get<PageData<ContentEntryOut>>(
+    `/workspaces/${workspaceId}/legacy-content/entries${query}`,
+  );
 }
 
 export async function createWorkspaceContentEntry(
   workspaceId: string,
   payload: ContentEntryCreateIn,
 ): Promise<ContentEntryOut> {
-  return api.post<ContentEntryOut>(`/workspaces/${workspaceId}/content/entries`, payload);
+  return api.post<ContentEntryOut>(`/workspaces/${workspaceId}/legacy-content/entries`, payload);
 }
 
 export async function getWorkspaceContentEntry(
@@ -36,7 +38,7 @@ export async function getWorkspaceContentEntry(
   entryId: string,
 ): Promise<ContentEntryOut> {
   return api.get<ContentEntryOut>(
-    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}`,
+    `/workspaces/${workspaceId}/legacy-content/entries/${encodeURIComponent(entryId)}`,
   );
 }
 
@@ -46,7 +48,7 @@ export async function getWorkspaceContentEntryRevision(
   state: ContentEntryRevisionState,
 ): Promise<ContentEntryRevisionOut> {
   return api.get<ContentEntryRevisionOut>(
-    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/revisions/${encodeURIComponent(state)}`,
+    `/workspaces/${workspaceId}/legacy-content/entries/${encodeURIComponent(entryId)}/revisions/${encodeURIComponent(state)}`,
   );
 }
 
@@ -56,7 +58,7 @@ export async function saveWorkspaceContentEntryDraft(
   payload: ContentEntryDraftSaveIn,
 ): Promise<ContentEntryDraftSaveOut> {
   return api.post<ContentEntryDraftSaveOut>(
-    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/draft`,
+    `/workspaces/${workspaceId}/legacy-content/entries/${encodeURIComponent(entryId)}/draft`,
     payload,
   );
 }
@@ -67,7 +69,7 @@ export async function publishWorkspaceContentEntry(
   payload: ContentEntryPublishIn = {},
 ): Promise<ContentEntryPublishOut> {
   return api.post<ContentEntryPublishOut>(
-    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/publish`,
+    `/workspaces/${workspaceId}/legacy-content/entries/${encodeURIComponent(entryId)}/publish`,
     payload,
   );
 }
@@ -77,7 +79,7 @@ export async function unpublishWorkspaceContentEntry(
   entryId: string,
 ): Promise<ContentEntryUnpublishOut> {
   return api.post<ContentEntryUnpublishOut>(
-    `/workspaces/${workspaceId}/content/entries/${encodeURIComponent(entryId)}/unpublish`,
+    `/workspaces/${workspaceId}/legacy-content/entries/${encodeURIComponent(entryId)}/unpublish`,
     {},
   );
 }

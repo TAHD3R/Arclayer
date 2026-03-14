@@ -13,11 +13,11 @@ import {
   CONTENT_MODEL_DEFAULT_EDITOR_LABEL_KEYS,
 } from "./content-model-labels";
 import {
-  buildCreateContentModelInput,
-  CONTENT_MODEL_TEMPLATE_PRESETS,
-  getContentModelTemplatePreset,
-  type ContentModelTemplateId,
-  type ContentModelTemplatePreset,
+  buildLegacyCreateContentModelInput,
+  LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS,
+  getLegacyContentModelTemplatePreset,
+  type LegacyContentModelTemplateId,
+  type LegacyContentModelTemplatePreset,
 } from "./content-model-templates";
 
 const MODEL_KIND_OPTIONS: Array<{ value: CreateContentModelInput["kind"]; labelKey: string }> = [
@@ -34,7 +34,10 @@ const MODEL_KIND_OPTIONS: Array<{ value: CreateContentModelInput["kind"]; labelK
 type TranslateFn = (key: string) => string;
 
 function buildInitialForm(translate: TranslateFn): CreateContentModelInput {
-  return buildCreateContentModelInput(getContentModelTemplatePreset("custom"), translate);
+  return buildLegacyCreateContentModelInput(
+    getLegacyContentModelTemplatePreset("custom"),
+    translate,
+  );
 }
 
 function buildTemplateButtonClass(selected: boolean): string {
@@ -51,13 +54,13 @@ function translateKind(kind: CreateContentModelInput["kind"], translate: Transla
 
 function TemplatePicker(props: {
   disabled?: boolean;
-  onSelect: (templateId: ContentModelTemplateId) => void;
-  selectedTemplateId: ContentModelTemplateId;
+  onSelect: (templateId: LegacyContentModelTemplateId) => void;
+  selectedTemplateId: LegacyContentModelTemplateId;
   translate: TranslateFn;
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      {CONTENT_MODEL_TEMPLATE_PRESETS.map((preset) => {
+      {LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS.map((preset) => {
         const selected = preset.id === props.selectedTemplateId;
         return (
           <button
@@ -82,7 +85,7 @@ function TemplatePicker(props: {
 
 function ModelContractPreview(props: {
   form: CreateContentModelInput;
-  preset: ContentModelTemplatePreset;
+  preset: LegacyContentModelTemplatePreset;
   translate: TranslateFn;
 }) {
   const categoryLabel = props.form.category
@@ -234,12 +237,12 @@ function DialogFooter(props: {
 function CreateContentModelDialogBody(props: {
   disabled?: boolean;
   form: CreateContentModelInput;
-  selectedPreset: ContentModelTemplatePreset;
-  selectedTemplateId: ContentModelTemplateId;
+  selectedPreset: LegacyContentModelTemplatePreset;
+  selectedTemplateId: LegacyContentModelTemplateId;
   onKindChange: (kind: CreateContentModelInput["kind"]) => void;
   onKeyChange: (value: string) => void;
   onNameChange: (value: string) => void;
-  onTemplateSelect: (templateId: ContentModelTemplateId) => void;
+  onTemplateSelect: (templateId: LegacyContentModelTemplateId) => void;
   translate: TranslateFn;
 }) {
   return (
@@ -293,7 +296,8 @@ export function CreateContentModelDialog(props: {
   onConfirm: (input: CreateContentModelInput) => Promise<void>;
 }) {
   const { t } = useTranslation(["content_library", "common"]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<ContentModelTemplateId>("custom");
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<LegacyContentModelTemplateId>("custom");
   const [form, setForm] = useState<CreateContentModelInput>(() => buildInitialForm((key) => key));
 
   useEffect(() => {
@@ -303,17 +307,19 @@ export function CreateContentModelDialog(props: {
   }, [props.open]);
 
   const selectedPreset = useMemo(
-    () => getContentModelTemplatePreset(selectedTemplateId),
+    () => getLegacyContentModelTemplatePreset(selectedTemplateId),
     [selectedTemplateId],
   );
   const canSubmit = useMemo(() => {
     if (props.confirmLoading) return false;
     return form.key.trim().length > 0 && form.name.trim().length > 0;
   }, [form.key, form.name, props.confirmLoading]);
-  const handleTemplateSelect = (templateId: ContentModelTemplateId) => {
+  const handleTemplateSelect = (templateId: LegacyContentModelTemplateId) => {
     setSelectedTemplateId(templateId);
     setForm(
-      buildCreateContentModelInput(getContentModelTemplatePreset(templateId), (key) => t(key)),
+      buildLegacyCreateContentModelInput(getLegacyContentModelTemplatePreset(templateId), (key) =>
+        t(key),
+      ),
     );
   };
   const handleSubmit = async () => {

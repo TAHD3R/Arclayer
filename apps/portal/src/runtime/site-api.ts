@@ -217,9 +217,9 @@ export async function resolveRouteFromApi(
   };
 }
 
-export type ContentEntryRevisionState = "draft" | "published";
+export type LegacyContentEntryRevisionState = "draft" | "published";
 
-export type ContentEntryRevisionSnapshot = {
+export type LegacyContentEntryRevisionSnapshot = {
   /** Page blueprint for the entry revision (snapshot payload). */
   page_blueprint: PageBlueprint;
   /** Field values for the entry revision (snapshot payload). */
@@ -228,14 +228,14 @@ export type ContentEntryRevisionSnapshot = {
   meta?: Record<string, JsonValue>;
 };
 
-export async function fetchContentEntryRevision(
+export async function fetchLegacyContentEntryRevision(
   wsId: string,
   entryId: string,
-  state: ContentEntryRevisionState = "draft",
-): Promise<ContentEntryRevisionSnapshot> {
+  state: LegacyContentEntryRevisionState = "draft",
+): Promise<LegacyContentEntryRevisionSnapshot> {
   const apiPrefix = getPortalApiPrefix();
 
-  const requestPath = `${apiPrefix}/workspaces/${encodeURIComponent(wsId)}/content/entries/${encodeURIComponent(entryId)}/revisions/${encodeURIComponent(state)}`;
+  const requestPath = `${apiPrefix}/workspaces/${encodeURIComponent(wsId)}/legacy-content/entries/${encodeURIComponent(entryId)}/revisions/${encodeURIComponent(state)}`;
   const url = new URL(requestPath, "http://localhost");
 
   // Browser: fetch relative to Portal origin (requires Portal server proxy for /api/*).
@@ -287,7 +287,7 @@ export async function fetchContentEntryRevision(
       ? toJsonObject(metaUnknown as Record<string, unknown>)
       : undefined;
 
-  const out: ContentEntryRevisionSnapshot = {
+  const out: LegacyContentEntryRevisionSnapshot = {
     page_blueprint: pageBlueprintUnknown as PageBlueprint,
     field_values: fieldValues ?? {},
   };

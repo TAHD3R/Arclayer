@@ -14,12 +14,17 @@ from apps.api.src.modules.sites.domains.router import router as domains_router
 from apps.api.src.modules.system.admin.extensions.router import router as admin_extensions_router
 from apps.api.src.modules.system.admin.notifications.router import router as notifications_router
 from apps.api.src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
-from apps.api.src.modules.workspaces.content.router import router as content_router
+from apps.api.src.modules.workspaces.content.router import router as legacy_content_router
 from apps.api.src.modules.workspaces.site.router import router as site_router
 from apps.api.src.modules.workspaces.themes.router import router as themes_router
 
 
 def _route_permissions(router: APIRouter, *, path: str, method: str) -> set[str]:
+    route = _find_api_route(router, path=path, method=method)
+    return _extract_permissions(route.dependencies)
+
+
+def _find_api_route(router: APIRouter, *, path: str, method: str) -> APIRoute:
     method_norm = method.upper()
     for route in router.routes:
         if not isinstance(route, APIRoute):
@@ -28,7 +33,7 @@ def _route_permissions(router: APIRouter, *, path: str, method: str) -> set[str]
             continue
         if method_norm not in route.methods:
             continue
-        return _extract_permissions(route.dependencies)
+        return route
     raise AssertionError(f"Route not found: {method_norm} {path}")
 
 
@@ -44,6 +49,21 @@ def _extract_permissions(depends_list: list[Depends]) -> set[str]:
             if isinstance(value, str) and ":" in value:
                 permissions.add(value)
     return permissions
+
+
+def _route_dependency_call_names(router: APIRouter, *, path: str, method: str) -> set[str]:
+    route = _find_api_route(router, path=path, method=method)
+    names: set[str] = set()
+
+    def _walk(dependant: object) -> None:
+        call = getattr(dependant, "call", None)
+        if callable(call):
+            names.add(getattr(call, "__name__", str(call)))
+        for dependency in getattr(dependant, "dependencies", []) or []:
+            _walk(dependency)
+
+    _walk(route.dependant)
+    return names
 
 
 def _project_root() -> Path:
@@ -92,34 +112,44 @@ def test_workspace_catalog_i18n_keys_exist_in_locale_files() -> None:
 
 def test_content_router_uses_granular_permissions() -> None:
     list_types = _route_permissions(
-        content_router,
-        path="/workspaces/{workspace_id}/content/types",
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/types",
         method="GET",
     )
     create_type = _route_permissions(
-        content_router,
-        path="/workspaces/{workspace_id}/content/types",
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/types",
         method="POST",
     )
     publish_entry = _route_permissions(
-        content_router,
-        path="/workspaces/{workspace_id}/content/entries/{entry_id}/publish",
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/entries/{entry_id}/publish",
         method="POST",
     )
     create_page = _route_permissions(
-        content_router,
-        path="/workspaces/{workspace_id}/content/pages",
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/pages",
         method="POST",
     )
     publish_page = _route_permissions(
-        content_router,
-        path="/workspaces/{workspace_id}/content/pages/{page_id}/revisions/publish",
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/pages/{page_id}/revisions/publish",
         method="POST",
     )
     set_global_style = _route_permissions(
-        content_router,
-        path="/workspaces/{workspace_id}/content/appearance/styles/global",
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/appearance/styles/global",
         method="PUT",
+    )
+    list_types_calls = _route_dependency_call_names(
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/types",
+        method="GET",
+    )
+    get_entry_calls = _route_dependency_call_names(
+        legacy_content_router,
+        path="/workspaces/{workspace_id}/legacy-content/entries/{entry_id}",
+        method="GET",
     )
 
     assert list_types == {"system:content:read"}
@@ -131,6 +161,9 @@ def test_content_router_uses_granular_permissions() -> None:
     assert (
         "admin:access" not in list_types | create_type | publish_entry | create_page | publish_page | set_global_style
     )
+    # Runtime guard remains explicit for legacy stack during freeze period.
+    assert "require_workspace_manage_access" in list_types_calls
+    assert "require_workspace_manage_access" in get_entry_calls
 
 
 def test_site_and_theme_routers_use_granular_permissions() -> None:

@@ -6,10 +6,10 @@ import type { ContentRefIncludesMap, ResolveWarningV1 } from "@celestial/block-p
 
 import { HttpError } from "@/runtime/http-error";
 import {
-  fetchContentEntryRevision,
+  fetchLegacyContentEntryRevision,
   resolveRouteFromApi,
-  type ContentEntryRevisionSnapshot,
-  type ContentEntryRevisionState,
+  type LegacyContentEntryRevisionSnapshot,
+  type LegacyContentEntryRevisionState,
 } from "./site-api";
 
 export type ResolvedPortalRoute =
@@ -43,15 +43,15 @@ export async function resolvePortalRoute(
 export async function loadContentEntryDocument(args: {
   workspaceId: string;
   entryId: string;
-  state?: ContentEntryRevisionState;
+  state?: LegacyContentEntryRevisionState;
 }): Promise<{
   document: PageBlueprint;
   dataSources: DesignRenderDataSourcesV1;
-  snapshot: ContentEntryRevisionSnapshot;
+  snapshot: LegacyContentEntryRevisionSnapshot;
 }> {
   try {
     const state = args.state ?? "draft";
-    const snapshot = await fetchContentEntryRevision(args.workspaceId, args.entryId, state);
+    const snapshot = await fetchLegacyContentEntryRevision(args.workspaceId, args.entryId, state);
 
     const dataSources: DesignRenderDataSourcesV1 = {
       primaryEntry: {

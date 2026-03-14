@@ -10,5 +10,7 @@ export async function listWorkspaceContentTypes(
   if (params?.page) qs.set("page", String(params.page));
   if (params?.size) qs.set("size", String(params.size));
   const query = qs.toString() ? `?${qs.toString()}` : "";
-  return api.get<PageData<ContentTypeOut>>(`/workspaces/${workspaceId}/content/types${query}`);
+  return api.get<PageData<ContentTypeOut>>(
+    `/workspaces/${workspaceId}/legacy-content/types${query}`,
+  );
 }

@@ -36,6 +36,18 @@ ContentPresentationKind = Literal[
     "seo",
 ]
 
+FieldScalarType = Literal[
+    "text",
+    "long_text",
+    "number",
+    "boolean",
+    "date_time",
+    "json",
+]
+
+RelationType = Literal["one_to_one", "one_to_many", "many_to_one", "many_to_many"]
+ViewType = Literal["detail", "list", "table", "grid", "tree"]
+
 
 class ContentModelOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
@@ -90,6 +102,81 @@ class ContentVersionOut(BaseSchema):
     state: ContentVersionState = Field(..., description="Version state.")
     created_at: datetime = Field(..., description="Creation timestamp.")
     created_by_user_id: PublicUUID | None = Field(default=None, description="Creator user id.")
+    last_transition_by_user_id: PublicUUID | None = Field(
+        default=None,
+        description="Last transition actor user id.",
+    )
     fields_snapshot: dict[str, Any] = Field(default_factory=dict, description="Structured fields snapshot.")
     presentations: list[ContentPresentationOut] = Field(default_factory=list, description="Presentation snapshots.")
     change_summary: str | None = Field(default=None, max_length=512, description="Optional change summary.")
+
+
+class ContentModelFieldContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str = Field(..., min_length=1, max_length=64, description="Stable field key.")
+    label: str = Field(..., min_length=1, max_length=128, description="Field label.")
+    scalar: FieldScalarType = Field(..., description="Field scalar type.")
+    required: bool = Field(default=False, description="Whether the field must be provided.")
+    config: dict[str, Any] | None = Field(default=None, description="Field-level configuration payload.")
+
+
+class ContentModelRelationContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str = Field(..., min_length=1, max_length=64, description="Stable relation key.")
+    relation: RelationType = Field(..., description="Relation cardinality.")
+    target_model_key: str = Field(..., min_length=1, max_length=64, description="Target model key.")
+    required: bool = Field(default=False, description="Whether the relation must be provided.")
+    config: dict[str, Any] | None = Field(default=None, description="Relation-level configuration payload.")
+
+
+class ContentRoutingContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    mode: Literal["none", "single", "localized"] = Field(default="none", description="Routing behavior mode.")
+    slug_field: str | None = Field(default=None, min_length=1, max_length=64, description="Slug source field.")
+
+
+class ContentWorkflowContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    states: list[str] = Field(default_factory=list, description="Allowed workflow states.")
+    initial_state: str | None = Field(default=None, description="Initial workflow state.")
+
+
+class ContentModelViewContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str = Field(..., min_length=1, max_length=64, description="Stable view key.")
+    label: str = Field(..., min_length=1, max_length=128, description="View label.")
+    type: ViewType = Field(..., description="View type.")
+    config: dict[str, Any] | None = Field(default=None, description="View-level configuration payload.")
+
+
+class ContentModelDefinitionContract(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    key: str = Field(..., min_length=1, max_length=64, description="Stable model key.")
+    name: str = Field(..., min_length=1, max_length=128, description="Display model name.")
+    description: str | None = Field(default=None, max_length=512, description="Optional model description.")
+    # Kernel contracts deliberately keep kind optional, without templateKey presets.
+    kind: str | None = Field(default=None, min_length=1, max_length=64, description="Optional model kind marker.")
+    fields: list[ContentModelFieldContract] = Field(default_factory=list, description="Explicit field contracts.")
+    relations: list[ContentModelRelationContract] = Field(
+        default_factory=list,
+        description="Explicit relation contracts.",
+    )
+    capabilities: list[ContentModelCapability] = Field(
+        default_factory=list,
+        description="Explicit capability declarations.",
+    )
+    routing: ContentRoutingContract = Field(
+        default_factory=ContentRoutingContract,
+        description="Routing contract.",
+    )
+    workflow: ContentWorkflowContract = Field(
+        default_factory=ContentWorkflowContract,
+        description="Workflow contract.",
+    )
+    views: list[ContentModelViewContract] = Field(default_factory=list, description="View contracts.")

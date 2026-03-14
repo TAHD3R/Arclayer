@@ -1,0 +1,209 @@
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from uuid import UUID, uuid4
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from apps.api.src.common.utils.public_ids import encode_uuid
+from apps.api.src.config import get_settings
+from apps.api.src.core.database.orm import verify_db_ready
+from apps.api.src.core.registry import create_app
+from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
+from apps.api.src.models.content.model_field import ContentModelFieldRecord
+from apps.api.src.models.content.model_relation import ContentModelRelationRecord
+from apps.api.src.models.content.model_view import ContentModelViewRecord
+from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.user import User
+from apps.api.src.models.workspaces.workspace import Workspace
+from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
+from apps.api.src.modules.auth.repository import UserRepository
+from apps.api.src.modules.organization.repository import OrganizationRepository
+
+pytestmark = pytest.mark.integration
+
+
+def _blank_first_create_payload() -> dict:
+    return {
+        "key": "article",
+        "name": "Article",
+        "kind": "custom",
+        "fields": [],
+        "relations": [],
+        "capabilities": [],
+        "routing": {"mode": "none"},
+        "workflow": {"states": []},
+        "views": [],
+    }
+
+
+def _explicit_update_payload() -> dict:
+    return {
+        "name": "Article v2",
+        "description": "Updated contract",
+        "fields": [
+            {
+                "key": "title",
+                "label": "Title",
+                "scalar": "text",
+                "required": True,
+                "config": {"maxLength": 128},
+            }
+        ],
+        "relations": [
+            {
+                "key": "author",
+                "relation": "many_to_one",
+                "targetModelKey": "author",
+                "required": False,
+                "config": {"display": "inline"},
+            }
+        ],
+        "capabilities": ["versioned", "routable", "has_relations", "publishable"],
+        "routing": {"mode": "single", "slugField": "title"},
+        "workflow": {"states": ["draft", "review", "published"], "initialState": "draft"},
+        "views": [
+            {
+                "key": "table_main",
+                "label": "Main Table",
+                "type": "table",
+                "config": {"columns": ["title", "author"]},
+            }
+        ],
+    }
+
+
+@asynccontextmanager
+async def _workspace_client(prepared_db, integration_valkey_settings):
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        settings = get_settings()
+        await verify_db_ready(settings)
+
+        org_repo = OrganizationRepository()
+        user_repo = UserRepository()
+
+        org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Test Org")
+        owner = await user_repo.create_user(
+            username=f"owner_{uuid4().hex[:10]}",
+            email="owner@example.com",
+            display_name="Owner",
+            password_hash="x",
+        )
+        await OrgMembership.create(organization_id=org.id, user_id=owner.id, role=OrgRole.OWNER, status="active")
+        workspace = await Workspace.create(
+            organization_id=org.id,
+            slug=f"ws_{uuid4().hex[:8]}",
+            name="Workspace",
+            is_active=True,
+            created_by_user_id=owner.id,
+        )
+        workspace_id = encode_uuid(workspace.id)
+
+        async def _get_user() -> User:
+            return owner
+
+        async def _get_user_id() -> UUID:
+            return owner.id
+
+        app.dependency_overrides[get_current_user] = _get_user
+        app.dependency_overrides[get_current_user_id] = _get_user_id
+
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+            assert site_res.status_code == 200, site_res.text
+            yield client, workspace_id
+
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_content_models_create_blank_first_payload_returns_201(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_blank_first_create_payload(),
+        )
+        assert response.status_code == 201, response.text
+        payload = response.json()["data"]
+        assert payload["key"] == "article"
+        assert payload["name"] == "Article"
+
+        saved = await ContentModelDefinitionRecord.filter(key="article").first()
+        assert saved is not None
+        assert saved.name == "Article"
+        assert saved.capabilities == []
+        assert saved.routing_policy == {"mode": "none"}
+        assert saved.workflow_policy == {"states": []}
+
+
+@pytest.mark.asyncio
+async def test_content_models_patch_updates_explicit_contract_sections(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        create_response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_blank_first_create_payload(),
+        )
+        assert create_response.status_code == 201, create_response.text
+        model_id = create_response.json()["data"]["id"]
+
+        patch_response = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+            json=_explicit_update_payload(),
+        )
+        assert patch_response.status_code == 200, patch_response.text
+        patched_payload = patch_response.json()["data"]
+        assert patched_payload["name"] == "Article v2"
+
+        saved = await ContentModelDefinitionRecord.filter(key="article").first()
+        assert saved is not None
+        assert saved.name == "Article v2"
+        assert saved.description == "Updated contract"
+        assert saved.capabilities == ["versioned", "routable", "has_relations", "publishable"]
+        assert saved.routing_policy == {"mode": "single", "slug_field": "title"}
+        assert saved.workflow_policy == {"states": ["draft", "review", "published"], "initial_state": "draft"}
+
+        saved_fields = await ContentModelFieldRecord.filter(model_definition_id=saved.id).order_by("sort_order")
+        assert len(saved_fields) == 1
+        assert saved_fields[0].key == "title"
+        assert saved_fields[0].label == "Title"
+
+        saved_relations = await ContentModelRelationRecord.filter(model_definition_id=saved.id).order_by("sort_order")
+        assert len(saved_relations) == 1
+        assert saved_relations[0].key == "author"
+        assert saved_relations[0].target_model_key == "author"
+
+        saved_views = await ContentModelViewRecord.filter(model_definition_id=saved.id).order_by("sort_order")
+        assert len(saved_views) == 1
+        assert saved_views[0].key == "table_main"
+
+
+@pytest.mark.asyncio
+async def test_content_models_rejects_template_key_or_preset_metadata_payload(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    payload = {
+        **_blank_first_create_payload(),
+        "templateKey": "blog_post",
+        "preset": {"id": "starter", "version": 1},
+    }
+
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=payload,
+        )
+        assert response.status_code in {400, 422}, response.text
