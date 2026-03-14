@@ -13,6 +13,7 @@ import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import {
+  LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS,
   buildLegacyCreateContentModelInput,
   getLegacyContentModelTemplatePreset,
   type LegacyContentModelTemplateId,
@@ -31,6 +32,9 @@ const MODEL_KIND_OPTIONS: Array<{ value: CreateContentModelInput["kind"]; labelK
 ];
 
 type TranslateFn = (key: string) => string;
+const LEGACY_TEMPLATE_IDS = new Set(
+  LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS.map((preset) => preset.id),
+);
 
 type JsonRecord = Record<string, unknown>;
 
@@ -139,6 +143,9 @@ function createBlankDraft(): ModelEditorDraft {
 }
 
 function buildDraftFromTemplate(templateId: LegacyContentModelTemplateId, translate: TranslateFn) {
+  if (!LEGACY_TEMPLATE_IDS.has(templateId)) {
+    throw new Error(`Unknown legacy template id: ${templateId}`);
+  }
   const preset = getLegacyContentModelTemplatePreset(templateId);
   const model = buildLegacyCreateContentModelInput(preset, translate);
 

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as WWorkspaceIdBlocksIndexRouteImport } from './routes/w/$workspaceId/blocks/index'
+import { Route as WWorkspaceIdPresentationsPresentationIdIndexRouteImport } from './routes/w/$workspaceId/presentations/$presentationId/index'
 import { Route as WWorkspaceIdPagesPageIdIndexRouteImport } from './routes/w/$workspaceId/pages/$pageId/index'
 import { Route as WWorkspaceIdBlocksEntryIdIndexRouteImport } from './routes/w/$workspaceId/blocks/$entryId/index'
 
@@ -30,6 +31,12 @@ const WWorkspaceIdBlocksIndexRoute = WWorkspaceIdBlocksIndexRouteImport.update({
   path: '/w/$workspaceId/blocks/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WWorkspaceIdPresentationsPresentationIdIndexRoute =
+  WWorkspaceIdPresentationsPresentationIdIndexRouteImport.update({
+    id: '/w/$workspaceId/presentations/$presentationId/',
+    path: '/w/$workspaceId/presentations/$presentationId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const WWorkspaceIdPagesPageIdIndexRoute =
   WWorkspaceIdPagesPageIdIndexRouteImport.update({
     id: '/w/$workspaceId/pages/$pageId/',
@@ -49,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/blocks/': typeof WWorkspaceIdBlocksIndexRoute
   '/w/$workspaceId/blocks/$entryId/': typeof WWorkspaceIdBlocksEntryIdIndexRoute
   '/w/$workspaceId/pages/$pageId/': typeof WWorkspaceIdPagesPageIdIndexRoute
+  '/w/$workspaceId/presentations/$presentationId/': typeof WWorkspaceIdPresentationsPresentationIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -56,6 +64,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/blocks': typeof WWorkspaceIdBlocksIndexRoute
   '/w/$workspaceId/blocks/$entryId': typeof WWorkspaceIdBlocksEntryIdIndexRoute
   '/w/$workspaceId/pages/$pageId': typeof WWorkspaceIdPagesPageIdIndexRoute
+  '/w/$workspaceId/presentations/$presentationId': typeof WWorkspaceIdPresentationsPresentationIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -64,6 +73,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/blocks/': typeof WWorkspaceIdBlocksIndexRoute
   '/w/$workspaceId/blocks/$entryId/': typeof WWorkspaceIdBlocksEntryIdIndexRoute
   '/w/$workspaceId/pages/$pageId/': typeof WWorkspaceIdPagesPageIdIndexRoute
+  '/w/$workspaceId/presentations/$presentationId/': typeof WWorkspaceIdPresentationsPresentationIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -73,6 +83,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/blocks/'
     | '/w/$workspaceId/blocks/$entryId/'
     | '/w/$workspaceId/pages/$pageId/'
+    | '/w/$workspaceId/presentations/$presentationId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -80,6 +91,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/blocks'
     | '/w/$workspaceId/blocks/$entryId'
     | '/w/$workspaceId/pages/$pageId'
+    | '/w/$workspaceId/presentations/$presentationId'
   id:
     | '__root__'
     | '/'
@@ -87,6 +99,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/blocks/'
     | '/w/$workspaceId/blocks/$entryId/'
     | '/w/$workspaceId/pages/$pageId/'
+    | '/w/$workspaceId/presentations/$presentationId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,6 +108,7 @@ export interface RootRouteChildren {
   WWorkspaceIdBlocksIndexRoute: typeof WWorkspaceIdBlocksIndexRoute
   WWorkspaceIdBlocksEntryIdIndexRoute: typeof WWorkspaceIdBlocksEntryIdIndexRoute
   WWorkspaceIdPagesPageIdIndexRoute: typeof WWorkspaceIdPagesPageIdIndexRoute
+  WWorkspaceIdPresentationsPresentationIdIndexRoute: typeof WWorkspaceIdPresentationsPresentationIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -120,6 +134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdBlocksIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/w/$workspaceId/presentations/$presentationId/': {
+      id: '/w/$workspaceId/presentations/$presentationId/'
+      path: '/w/$workspaceId/presentations/$presentationId'
+      fullPath: '/w/$workspaceId/presentations/$presentationId/'
+      preLoaderRoute: typeof WWorkspaceIdPresentationsPresentationIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/w/$workspaceId/pages/$pageId/': {
       id: '/w/$workspaceId/pages/$pageId/'
       path: '/w/$workspaceId/pages/$pageId'
@@ -143,6 +164,8 @@ const rootRouteChildren: RootRouteChildren = {
   WWorkspaceIdBlocksIndexRoute: WWorkspaceIdBlocksIndexRoute,
   WWorkspaceIdBlocksEntryIdIndexRoute: WWorkspaceIdBlocksEntryIdIndexRoute,
   WWorkspaceIdPagesPageIdIndexRoute: WWorkspaceIdPagesPageIdIndexRoute,
+  WWorkspaceIdPresentationsPresentationIdIndexRoute:
+    WWorkspaceIdPresentationsPresentationIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

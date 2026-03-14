@@ -7,6 +7,12 @@ export type StudioEntrySearch = {
   returnTo?: string;
 };
 
+function safePresentationId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  return raw ? raw : null;
+}
+
 function safeReturnToPath(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const raw = value.trim();
@@ -19,6 +25,18 @@ export function parseStudioEntrySearch(search: Record<string, unknown>): StudioE
   const returnTo = safeReturnToPath(search.returnTo);
 
   return Object.assign({}, source ? { source } : {}, returnTo ? { returnTo } : {});
+}
+
+export function resolveStudioPresentationId(params: {
+  presentationId?: string | null;
+  pageId?: string | null;
+  entryId?: string | null;
+}): string | null {
+  return (
+    safePresentationId(params.presentationId) ||
+    safePresentationId(params.pageId) ||
+    safePresentationId(params.entryId)
+  );
 }
 
 export function buildAdminReturnUrl(returnTo: string | undefined): string | null {

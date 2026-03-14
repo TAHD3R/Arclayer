@@ -40,15 +40,37 @@ export function buildStudioPageEditorUrl(opts: {
   pageId: string;
   adminReturnTo?: string | null;
 }): string {
-  return buildStudioUrl(
-    `/w/${encodeURIComponent(opts.workspaceId)}/pages/${encodeURIComponent(opts.pageId)}/`,
-    opts.adminReturnTo,
-  );
+  // Temporary shim during content-kernel rebuild:
+  // pageId currently maps to presentationId until Admin migrates to explicit presentation identity.
+  return buildStudioPresentationEditorUrl({
+    workspaceId: opts.workspaceId,
+    presentationId: opts.pageId,
+    adminReturnTo: opts.adminReturnTo,
+  });
 }
 
 export function openStudioPageEditor(opts: { workspaceId: string; pageId: string }): void {
   if (typeof window === "undefined") return;
   window.location.assign(buildStudioPageEditorUrl(opts));
+}
+
+export function buildStudioPresentationEditorUrl(opts: {
+  workspaceId: string;
+  presentationId: string;
+  adminReturnTo?: string | null;
+}): string {
+  return buildStudioUrl(
+    `/w/${encodeURIComponent(opts.workspaceId)}/presentations/${encodeURIComponent(opts.presentationId)}/`,
+    opts.adminReturnTo,
+  );
+}
+
+export function openStudioPresentationEditor(opts: {
+  workspaceId: string;
+  presentationId: string;
+}): void {
+  if (typeof window === "undefined") return;
+  window.location.assign(buildStudioPresentationEditorUrl(opts));
 }
 
 export function buildStudioReusableBlockEditorUrl(opts: {
