@@ -42,8 +42,8 @@ from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
-    prefix="/workspaces/{workspace_id}/legacy-content",
-    tags=["Workspace: Legacy Content"],
+    prefix="/workspaces/{workspace_id}/content",
+    tags=["Workspace: Content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 
