@@ -10,11 +10,14 @@ from apps.api.src.models.content.component_binding import ComponentBindingRecord
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.hierarchy_node import HierarchyNodeRecord
+from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
 from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
 from apps.api.src.models.content.published_graph import PublishedGraphRecord
 from apps.api.src.models.content.route_binding import RouteBindingRecord
 from apps.api.src.models.content.seo_profile import SEOProfileRecord
 from apps.api.src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishImpactOut
+
+_PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST = frozenset({"seo", "slot_mapping"})
 
 
 def _has_model_capability(item: ContentItemRecord, capability: str) -> bool:
@@ -78,6 +81,19 @@ async def _load_component_binding_map(*, version_ids: list[UUID]) -> dict[UUID, 
     return out
 
 
+async def _load_component_manifest_map(*, version_ids: list[UUID]) -> dict[UUID, dict[str, object]]:
+    if not version_ids:
+        return {}
+    rows = await PresentationDocumentRecord.filter(version_id__in=version_ids).order_by("kind", "id").all()
+    out: dict[UUID, list[dict[str, object] | None]] = {}
+    for row in rows:
+        if row.kind in _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST:
+            continue
+        version_rows = out.setdefault(row.version_id, [])
+        version_rows.append({"kind": row.kind, "payload": row.payload})
+    return {version_id: {"presentations": presentations} for version_id, presentations in out.items() if presentations}
+
+
 class WorkspacePublishService:
     async def preview_impact(self, *, workspace_id: UUID, site_id: UUID) -> PublishImpactOut:
         items = await _load_publishable_items(workspace_id=workspace_id, site_id=site_id)
@@ -115,6 +131,7 @@ class WorkspacePublishService:
         version_ids = [version.id for version in version_map.values()]
         seo_profile_map = await _load_seo_profile_map(version_ids=version_ids)
         component_binding_map = await _load_component_binding_map(version_ids=version_ids)
+        component_manifest_map = await _load_component_manifest_map(version_ids=version_ids)
         rows: list[PublishedGraphRecord] = []
         artifact_rows: list[PublishArtifactRecord] = []
         for item in items:
@@ -164,6 +181,20 @@ class WorkspacePublishService:
                     },
                 )
             )
+
+            component_manifest = component_manifest_map.get(version.id)
+            if component_manifest is not None:
+                artifact_rows.append(
+                    PublishArtifactRecord(
+                        workspace_id=workspace_id,
+                        site_id=site_id,
+                        item_id=item.id,
+                        version_id=version.id,
+                        artifact_kind=PublishArtifactKind.COMPONENT_MANIFEST,
+                        locale=route.locale,
+                        payload=component_manifest,
+                    )
+                )
 
             seo_profile = seo_profile_map.get(version.id)
             if seo_profile is not None:

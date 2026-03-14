@@ -5,22 +5,51 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 
 from apps.api.src.core.exceptions import NotFound
+from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.src.models.content.component_binding import ComponentBindingRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.seo_profile import SEOProfileRecord
 from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentComponentBindingOut,
+    ContentItemOut,
     ContentPresentationOut,
     ContentSeoProfileOut,
     ContentVersionOut,
 )
-from apps.api.src.modules.workspaces.content.items.domain_helpers import to_version_out
+from apps.api.src.modules.workspaces.content.items.domain_helpers import to_item_out, to_version_out
 from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
 
 
 class WorkspaceContentCanonicalItemReadService:
     def __init__(self, repo: WorkspaceContentItemsRepository) -> None:
         self.repo = repo
+
+    async def list_items_paginated(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        params: PageParams,
+        model_key: str | None,
+    ) -> PageData[ContentItemOut]:
+        model_definition_id: UUID | None = None
+        if model_key is not None:
+            model = await self.repo.get_model_definition_by_key(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                model_key=model_key,
+            )
+            if model is None:
+                raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+            model_definition_id = model.id
+
+        items = await self.repo.list_items(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_definition_id=model_definition_id,
+        )
+        rows = [to_item_out(item, item.model_definition) for item in items]
+        return paginate_items(rows, params=params)
 
     @staticmethod
     def _to_presentation_outs(presentations: list[tuple[str, dict | None]]) -> list[ContentPresentationOut]:

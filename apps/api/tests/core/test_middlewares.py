@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 from apps.api.src.config import get_settings
@@ -142,9 +143,12 @@ async def test_csrf_middleware(monkeypatch, tmp_path: Path) -> None:
         assert response.status_code == 200
         assert "csrf_token=" in response.headers.get("set-cookie", "")
 
-        bad_post = await client.post("/csrf")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            bad_post = await client.post("/csrf")
         assert bad_post.status_code == 403
         assert bad_post.json().get("message") == "CSRF 校验失败"
+        assert not any("ORJSONResponse is deprecated" in str(item.message) for item in caught)
 
         token = client.cookies.get("csrf_token")
         assert token is not None

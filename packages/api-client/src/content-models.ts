@@ -15,6 +15,9 @@ export type ContentModelCapability =
   | "seo_managed";
 
 export type ContentDefaultEditor = "form" | "visual" | "rich_text" | "table";
+export type ContentFieldScalar = "text" | "long_text" | "number" | "boolean" | "date_time" | "json";
+export type ContentRelationKind = "one_to_one" | "one_to_many" | "many_to_one" | "many_to_many";
+export type ContentViewType = "detail" | "list" | "table" | "grid" | "tree";
 
 export type ContentModelSummary = {
   id: string;
@@ -32,4 +35,53 @@ export type ContentModelSummary = {
   presentationSchema?: Record<string, unknown> | null;
   workflowPolicy?: Record<string, unknown> | null;
   viewSchema?: Record<string, unknown> | null;
+};
+
+export type ContentModelFieldDefinition = {
+  key: string;
+  label: string;
+  scalar: ContentFieldScalar;
+  required?: boolean;
+  config?: Record<string, unknown> | null;
+};
+
+export type ContentModelRelationDefinition = {
+  key: string;
+  relation: ContentRelationKind;
+  targetModelKey: string;
+  required?: boolean;
+  config?: Record<string, unknown> | null;
+};
+
+export type ContentModelRoutingDefinition = {
+  mode: "none" | "single" | "localized";
+  slugField?: string | null;
+};
+
+export type ContentModelWorkflowDefinition = {
+  states: string[];
+  initialState?: string | null;
+};
+
+export type ContentModelViewDefinition = {
+  key: string;
+  label: string;
+  type: ContentViewType;
+  config?: Record<string, unknown> | null;
+};
+
+export type ContentModelDefinitionInput = {
+  key: string;
+  name: string;
+  description?: string | null;
+  category?: ContentModelCategory;
+  defaultEditor?: ContentDefaultEditor;
+  fields?: ContentModelFieldDefinition[];
+  relations?: ContentModelRelationDefinition[];
+  capabilities?: ContentModelCapability[];
+  routing?: ContentModelRoutingDefinition;
+  workflow?: ContentModelWorkflowDefinition;
+  views?: ContentModelViewDefinition[];
+  presentation?: Record<string, unknown> | null;
+  seo?: Record<string, unknown> | null;
 };

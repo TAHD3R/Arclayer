@@ -114,7 +114,7 @@ function isLibraryEntrySource(value: unknown): value is LibraryEntrySource {
   return (
     typeof row.id === "string" &&
     typeof row.slug === "string" &&
-    typeof row.entryTypeCode === "string" &&
-    typeof row.draftRevision === "number"
+    typeof row.modelKey === "string" &&
+    typeof row.draftVersion === "number"
   );
 }

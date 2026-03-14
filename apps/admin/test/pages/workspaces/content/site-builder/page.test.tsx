@@ -4,10 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { WorkspaceSiteBuilderPage } from "@/pages/workspaces/content/site-builder/page";
-import { ApiError } from "@/lib/http";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
+const consoleErrorSpy = vi.hoisted(() => vi.fn());
+
 const {
+  listWorkspaceContentModels,
   listSiteBuilderPagesTree,
   listSiteBuilderGlobalSections,
   listSiteBuilderRouteTemplates,
@@ -16,10 +18,10 @@ const {
   createSiteBuilderRouteTemplate,
   toggleSiteBuilderRouteTemplateActive,
   publishSiteBuilderPage,
-  repairSiteBuilderPagesRouteTree,
   unpublishSiteBuilderPage,
   openStudioPageEditor,
 } = vi.hoisted(() => ({
+  listWorkspaceContentModels: vi.fn(),
   listSiteBuilderPagesTree: vi.fn(),
   listSiteBuilderGlobalSections: vi.fn(),
   listSiteBuilderRouteTemplates: vi.fn(),
@@ -28,9 +30,12 @@ const {
   createSiteBuilderRouteTemplate: vi.fn(),
   toggleSiteBuilderRouteTemplateActive: vi.fn(),
   publishSiteBuilderPage: vi.fn(),
-  repairSiteBuilderPagesRouteTree: vi.fn(),
   unpublishSiteBuilderPage: vi.fn(),
   openStudioPageEditor: vi.fn(),
+}));
+
+vi.mock("@/api/content-models", () => ({
+  listWorkspaceContentModels,
 }));
 
 vi.mock("@/api/content/site-builder", () => ({
@@ -68,12 +73,16 @@ vi.mock("@/api/content/site-builder", () => ({
   createSiteBuilderRouteTemplate,
   toggleSiteBuilderRouteTemplateActive,
   publishSiteBuilderPage,
-  repairSiteBuilderPagesRouteTree,
   unpublishSiteBuilderPage,
 }));
 
 vi.mock("@/lib/routing/studio-editor", () => ({
   openStudioPageEditor,
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
+  notifySuccessText: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -209,18 +218,47 @@ async function renderWithQuery() {
     defaultOptions: { queries: { retry: false } },
   });
 
-  await act(async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <WorkspaceSiteBuilderPage />
-      </QueryClientProvider>,
-    );
-  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <WorkspaceSiteBuilderPage />
+    </QueryClientProvider>,
+  );
+}
+
+function expectNoActWarnings() {
+  const actWarnings = consoleErrorSpy.mock.calls.filter(
+    ([message]) => typeof message === "string" && message.includes("not wrapped in act"),
+  );
+  expect(actWarnings).toHaveLength(0);
 }
 
 describe("WorkspaceSiteBuilderPage", () => {
-  beforeEach(() => {
-    useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+  beforeEach(async () => {
+    consoleErrorSpy.mockReset();
+    vi.spyOn(console, "error").mockImplementation(consoleErrorSpy);
+    await act(async () => {
+      useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+    });
+    listWorkspaceContentModels.mockResolvedValue({
+      items: [
+        {
+          id: "model-page",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          key: "page",
+          name: "Page",
+          category: "site_builder",
+          capabilities: ["versioned", "routable", "treeable", "visual_editable"],
+          defaultEditor: "visual",
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 20,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
     listSiteBuilderPagesTree.mockResolvedValue({
       items: [],
       total: 0,
@@ -247,9 +285,13 @@ describe("WorkspaceSiteBuilderPage", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    expectNoActWarnings();
     vi.clearAllMocks();
-    useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
+    vi.restoreAllMocks();
+    await act(async () => {
+      useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
+    });
   });
 
   test("renders structure/composition/publish-impact layers and hides model-creation entry", async () => {
@@ -257,12 +299,14 @@ describe("WorkspaceSiteBuilderPage", () => {
       items: [
         {
           id: "page-home",
+          modelKey: "page",
           path: "/",
           title: "Homepage",
           children: [],
         },
         {
           id: "page-pricing",
+          modelKey: "page",
           path: "/pricing",
           title: "Pricing",
           children: [],
@@ -298,6 +342,7 @@ describe("WorkspaceSiteBuilderPage", () => {
       items: [
         {
           id: "page-home",
+          modelKey: "page",
           path: "/",
           title: "Homepage",
           children: [],
@@ -364,6 +409,7 @@ describe("WorkspaceSiteBuilderPage", () => {
       expect(createSiteBuilderPage).toHaveBeenCalledWith("ws-1", {
         title: "Pricing",
         path: "/pricing",
+        modelKey: "page",
       });
     });
     expect(await screen.findByText("Pricing")).toBeInTheDocument();
@@ -376,6 +422,7 @@ describe("WorkspaceSiteBuilderPage", () => {
         items: [
           {
             id: "page-home",
+            modelKey: "page",
             path: "/",
             title: "Homepage",
             draftRevision: 2,
@@ -394,6 +441,7 @@ describe("WorkspaceSiteBuilderPage", () => {
         items: [
           {
             id: "page-home",
+            modelKey: "page",
             path: "/",
             title: "Homepage",
             draftRevision: 2,
@@ -412,6 +460,7 @@ describe("WorkspaceSiteBuilderPage", () => {
         items: [
           {
             id: "page-home",
+            modelKey: "page",
             path: "/",
             title: "Homepage",
             draftRevision: 3,
@@ -451,17 +500,34 @@ describe("WorkspaceSiteBuilderPage", () => {
 
     await user.click(await screen.findByRole("button", { name: "Unpublish" }));
     await waitFor(() => {
-      expect(unpublishSiteBuilderPage).toHaveBeenCalledWith("ws-1", "page-home");
+      expect(unpublishSiteBuilderPage).toHaveBeenCalledWith("ws-1", "page-home", 2);
     });
   });
 
-  test("creates route template from route bindings panel", async () => {
+  test("creates route binding from route bindings panel", async () => {
     const user = userEvent.setup();
+    listSiteBuilderPagesTree.mockResolvedValue({
+      items: [
+        {
+          id: "page-home",
+          modelKey: "page",
+          path: "/",
+          title: "Homepage",
+          children: [],
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 20,
+      pages: 1,
+      next: null,
+      prev: null,
+    });
     createSiteBuilderRouteTemplate.mockResolvedValue({
       id: "route-1",
-      siteId: "site-1",
+      itemId: "page-home",
       pathPattern: "/blog/:slug",
-      entryTypeId: "et-1",
+      itemTitle: "Homepage",
       entryTypeCode: "post",
       isActive: true,
     });
@@ -471,13 +537,12 @@ describe("WorkspaceSiteBuilderPage", () => {
     await user.click(await screen.findByRole("button", { name: "Manage routes" }));
     await user.clear(screen.getByPlaceholderText("/blog/:slug"));
     await user.type(screen.getByPlaceholderText("/blog/:slug"), "/blog/:slug");
-    await user.type(screen.getByPlaceholderText("post"), "post");
     await user.click(screen.getByRole("button", { name: "Create route" }));
 
     await waitFor(() => {
       expect(createSiteBuilderRouteTemplate).toHaveBeenCalledWith("ws-1", {
         pathPattern: "/blog/:slug",
-        entryTypeCode: "post",
+        itemId: "page-home",
         isActive: true,
       });
     });
@@ -489,10 +554,10 @@ describe("WorkspaceSiteBuilderPage", () => {
       items: [
         {
           id: "route-1",
-          siteId: "site-1",
+          itemId: "page-home",
           pathPattern: "/blog/:slug",
-          entryTypeId: "et-1",
-          entryTypeCode: "post",
+          itemTitle: "Homepage",
+          entryTypeCode: "page",
           isActive: true,
         },
       ],
@@ -505,10 +570,10 @@ describe("WorkspaceSiteBuilderPage", () => {
     });
     toggleSiteBuilderRouteTemplateActive.mockResolvedValue({
       id: "route-1",
-      siteId: "site-1",
+      itemId: "page-home",
       pathPattern: "/blog/:slug",
-      entryTypeId: "et-1",
-      entryTypeCode: "post",
+      itemTitle: "Homepage",
+      entryTypeCode: "page",
       isActive: false,
     });
 
@@ -520,41 +585,17 @@ describe("WorkspaceSiteBuilderPage", () => {
         "ws-1",
         expect.objectContaining({
           id: "route-1",
+          itemId: "page-home",
           isActive: true,
         }),
       );
     });
   });
 
-  test("offers a one-time repair when legacy pages are missing route/tree metadata", async () => {
-    const user = userEvent.setup();
-    listSiteBuilderPagesTree.mockRejectedValueOnce(
-      new ApiError({
-        status: 409,
-        message: "Page route missing",
-        error: "PAGE_ROUTE_MISSING",
-      }),
-    );
-    repairSiteBuilderPagesRouteTree.mockResolvedValue({
-      missingRoutes: 1,
-      missingTreeNodes: 1,
-      repairedRoutes: 1,
-      repairedTreeNodes: 1,
-      orphanParentsDetached: 0,
-    });
-
+  test("does not surface legacy repair affordances in the rebuilt site builder", async () => {
     await renderWithQuery();
 
-    expect(await screen.findByText("Repair page route metadata")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Legacy pages are missing Route/Tree metadata. Run a one-time repair to backfill and reload.",
-      ),
-    ).toBeInTheDocument();
-
-    await user.click(await screen.findByRole("button", { name: "Repair and reload" }));
-    await waitFor(() => {
-      expect(repairSiteBuilderPagesRouteTree).toHaveBeenCalledWith("ws-1");
-    });
+    expect(screen.queryByText("Repair page route metadata")).not.toBeInTheDocument();
+    expect(screen.queryByText("Repair and reload")).not.toBeInTheDocument();
   });
 });

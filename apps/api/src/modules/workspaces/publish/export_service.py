@@ -6,16 +6,13 @@ from pathlib import Path
 from uuid import UUID
 
 from apps.api.src.core.exceptions import NotFound
-from apps.api.src.models.content.published_graph import PublishedGraphRecord
+from apps.api.src.modules.workspaces.publish.preview_service import WorkspacePublishPreviewService
 from apps.api.src.modules.workspaces.publish.schema import (
-    PublishExportArtifactOut,
     PublishExportBundleFileOut,
     PublishExportBundleOut,
     PublishExportContractOut,
-    PublishExportRoutePointerOut,
     PublishExportTarget,
 )
-from apps.api.src.modules.workspaces.publish.service import WorkspacePublishService
 
 _REPO_ROOT_DEPTH = 6
 _TEMPLATE_ROOT = Path("packages/export-targets")
@@ -27,52 +24,6 @@ def _resolve_repo_root() -> Path:
 
 def _resolve_template_dir(target: PublishExportTarget) -> Path:
     return _resolve_repo_root() / _TEMPLATE_ROOT / target.value / "template"
-
-
-def _build_tenant_id(workspace_id: UUID, site_id: UUID) -> str:
-    return f"{workspace_id}:{site_id}"
-
-
-def _build_artifact_key(row: PublishedGraphRecord) -> str:
-    return f"{row.item_id}:{row.version_id}"
-
-
-def _build_artifact_payload(row: PublishedGraphRecord) -> dict[str, object]:
-    return {
-        "itemId": str(row.item_id),
-        "versionId": str(row.version_id),
-        "locale": row.locale,
-        "routePath": row.route_path,
-        "hierarchyParentItemId": str(row.hierarchy_parent_item_id) if row.hierarchy_parent_item_id else None,
-        "hierarchySortOrder": row.hierarchy_sort_order,
-    }
-
-
-def _build_publish_contract(
-    rows: list[PublishedGraphRecord],
-    tenant_id: str,
-) -> PublishExportContractOut:
-    route_pointers: list[PublishExportRoutePointerOut] = []
-    artifacts: list[PublishExportArtifactOut] = []
-    for row in rows:
-        artifact_key = _build_artifact_key(row)
-        route_pointers.append(
-            PublishExportRoutePointerOut(
-                tenant_id=tenant_id,
-                locale=row.locale,
-                path=row.route_path,
-                artifact_key=artifact_key,
-            )
-        )
-        artifacts.append(
-            PublishExportArtifactOut(
-                tenant_id=tenant_id,
-                artifact_key=artifact_key,
-                kind="json",
-                payload=_build_artifact_payload(row),
-            )
-        )
-    return PublishExportContractOut(route_pointers=route_pointers, artifacts=artifacts)
 
 
 def _read_template_files(target: PublishExportTarget) -> list[PublishExportBundleFileOut]:
@@ -116,26 +67,8 @@ def _build_generated_files(
 
 
 class WorkspacePublishExportService:
-    def __init__(self, publish_service: WorkspacePublishService | None = None) -> None:
-        self._publish_service = publish_service or WorkspacePublishService()
-
-    async def _load_published_graph_rows(self, workspace_id: UUID, site_id: UUID) -> list[PublishedGraphRecord]:
-        rows = (
-            await PublishedGraphRecord
-            .filter(
-                workspace_id=workspace_id,
-                site_id=site_id,
-            )
-            .order_by("route_path", "locale")
-            .all()
-        )
-        if rows:
-            return rows
-        raise NotFound(
-            "Published graph artifacts are required before export",
-            error="PUBLISH_EXPORT_ARTIFACTS_MISSING",
-            meta={"workspaceId": str(workspace_id), "siteId": str(site_id)},
-        )
+    def __init__(self, preview_service: WorkspacePublishPreviewService | None = None) -> None:
+        self._preview_service = preview_service or WorkspacePublishPreviewService()
 
     async def build_export_bundle(
         self,
@@ -144,10 +77,7 @@ class WorkspacePublishExportService:
         site_id: UUID,
         target: PublishExportTarget,
     ) -> PublishExportBundleOut:
-        await self._publish_service.build_artifacts(workspace_id=workspace_id, site_id=site_id)
-        graph_rows = await self._load_published_graph_rows(workspace_id, site_id)
-        tenant_id = _build_tenant_id(workspace_id, site_id)
-        contract = _build_publish_contract(graph_rows, tenant_id)
+        contract = await self._preview_service.build_preview_contract(workspace_id=workspace_id, site_id=site_id)
         files = _read_template_files(target)
         files.extend(_build_generated_files(target, contract))
         return PublishExportBundleOut(

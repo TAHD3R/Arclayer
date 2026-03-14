@@ -11,9 +11,11 @@ from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 from apps.api.src.modules.workspaces.publish.export_service import WorkspacePublishExportService
+from apps.api.src.modules.workspaces.publish.preview_service import WorkspacePublishPreviewService
 from apps.api.src.modules.workspaces.publish.schema import (
     PublishArtifactsOut,
     PublishExportBundleOut,
+    PublishExportContractOut,
     PublishExportTarget,
     PublishImpactOut,
 )
@@ -30,10 +32,14 @@ def get_workspace_publish_service() -> WorkspacePublishService:
     return WorkspacePublishService()
 
 
+def get_workspace_publish_preview_service() -> WorkspacePublishPreviewService:
+    return WorkspacePublishPreviewService()
+
+
 def get_workspace_publish_export_service(
-    publish_service: Annotated[WorkspacePublishService, Depends(get_workspace_publish_service)],
+    preview_service: Annotated[WorkspacePublishPreviewService, Depends(get_workspace_publish_preview_service)],
 ) -> WorkspacePublishExportService:
-    return WorkspacePublishExportService(publish_service=publish_service)
+    return WorkspacePublishExportService(preview_service=preview_service)
 
 
 @router.get(
@@ -64,6 +70,21 @@ async def post_workspace_publish_artifacts(
     service: Annotated[WorkspacePublishService, Depends(get_workspace_publish_service)],
 ) -> ResponseModel[PublishArtifactsOut]:
     data = await service.build_artifacts(workspace_id=ctx.workspace_id, site_id=site_id)
+    return Response.success(data=data)
+
+
+@router.get(
+    "/preview-contract",
+    response_model=ResponseModel[PublishExportContractOut],
+    response_model_exclude_none=True,
+    summary="Read preview contract from publish artifacts",
+)
+async def get_workspace_publish_preview_contract(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[WorkspacePublishPreviewService, Depends(get_workspace_publish_preview_service)],
+) -> ResponseModel[PublishExportContractOut]:
+    data = await service.build_preview_contract(workspace_id=ctx.workspace_id, site_id=site_id)
     return Response.success(data=data)
 
 

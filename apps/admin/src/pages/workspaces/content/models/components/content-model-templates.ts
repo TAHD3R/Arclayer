@@ -21,7 +21,6 @@ export type LegacyContentModelTemplatePreset = Readonly<{
   titleKey: string;
   summaryKey: string;
   descriptionKey: string;
-  kind: CreateContentModelInput["kind"];
   defaultKey: string;
   category?: ContentModelCategory;
   defaultEditor?: ContentDefaultEditor;
@@ -48,7 +47,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_CUSTOM_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_CUSTOM_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_CUSTOM_DESCRIPTION",
-    kind: "custom",
     defaultKey: "",
   },
   {
@@ -56,7 +54,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_PAGE_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_PAGE_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_PAGE_DESCRIPTION",
-    kind: "page",
     defaultKey: "page",
     category: "site_builder",
     defaultEditor: "visual",
@@ -79,7 +76,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_POST_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_POST_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_POST_DESCRIPTION",
-    kind: "post",
     defaultKey: "post",
     category: "content_library",
     defaultEditor: "rich_text",
@@ -106,7 +102,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_AUTHOR_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_AUTHOR_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_AUTHOR_DESCRIPTION",
-    kind: "custom",
     defaultKey: "author",
     category: "content_library",
     defaultEditor: "form",
@@ -133,7 +128,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_TESTIMONIAL_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_TESTIMONIAL_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_TESTIMONIAL_DESCRIPTION",
-    kind: "custom",
     defaultKey: "testimonial",
     category: "content_library",
     defaultEditor: "form",
@@ -152,7 +146,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_PRICING_TIER_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_PRICING_TIER_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_PRICING_TIER_DESCRIPTION",
-    kind: "custom",
     defaultKey: "pricing_tier",
     category: "content_library",
     defaultEditor: "form",
@@ -170,7 +163,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_LEGAL_DOCUMENT_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_LEGAL_DOCUMENT_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_LEGAL_DOCUMENT_DESCRIPTION",
-    kind: "custom",
     defaultKey: "legal_document",
     category: "content_library",
     defaultEditor: "rich_text",
@@ -193,7 +185,6 @@ export const LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS: readonly LegacyContentModelT
     titleKey: "content_library:MODELS_TEMPLATE_REUSABLE_BLOCK_TITLE",
     summaryKey: "content_library:MODELS_TEMPLATE_REUSABLE_BLOCK_SUMMARY",
     descriptionKey: "content_library:MODELS_TEMPLATE_REUSABLE_BLOCK_DESCRIPTION",
-    kind: "block",
     defaultKey: "reusable_block",
     category: "site_builder",
     defaultEditor: "visual",
@@ -222,7 +213,6 @@ export function buildLegacyCreateContentModelInput(
   return {
     key: preset.defaultKey,
     name: preset.defaultKey ? translate(preset.titleKey) : "",
-    kind: preset.kind,
     fieldSchema: preset.fieldSchema ?? null,
     workflowPolicy: preset.workflowPolicy ?? null,
     ...(isCustomTemplate
@@ -236,7 +226,6 @@ export function buildLegacyCreateContentModelInput(
           routingSchema: preset.routingSchema ?? null,
           presentationSchema: preset.presentationSchema ?? null,
           viewSchema: preset.viewSchema ?? null,
-          templateKey: preset.id,
         }),
   };
 }

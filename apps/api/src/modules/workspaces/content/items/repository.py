@@ -81,6 +81,20 @@ class WorkspaceContentItemsRepository(BaseRepository):
         query = query.prefetch_related("model_definition").first()
         return await self.using_db(query, conn)
 
+    async def list_items(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_definition_id: UUID | None = None,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ContentItemRecord]:
+        query = ContentItemRecord.filter(workspace_id=workspace_id, site_id=site_id)
+        if model_definition_id is not None:
+            query = query.filter(model_definition_id=model_definition_id)
+        query = query.prefetch_related("model_definition").order_by("-updated_at", "-id")
+        return list(await self.using_db(query, conn))
+
     async def create_version(
         self,
         *,

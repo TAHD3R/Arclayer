@@ -45,7 +45,25 @@ def _assert_bundle_core_contract(data: dict, target: str) -> None:
     assert len(route_pointers) == 2
     assert len(artifacts) == len(route_pointers)
     assert all(pointer["artifactKey"] for pointer in route_pointers)
-    assert all(item["kind"] in {"json", "html"} for item in artifacts)
+    assert all(item["kind"] == "json" for item in artifacts)
+
+
+def _artifact_for_path(contract: dict, path: str) -> dict:
+    route = next(pointer for pointer in contract["routePointers"] if pointer["path"] == path)
+    return next(artifact for artifact in contract["artifacts"] if artifact["artifactKey"] == route["artifactKey"])
+
+
+def _assert_route_bundle(contract: dict, *, path: str, title: str) -> None:
+    artifact = _artifact_for_path(contract, path)
+    payload = artifact["payload"]
+    assert payload["route"]["path"] == path
+    assert payload["renderHints"]["modelKey"] == "page"
+    assert payload["seo"]["metaTitle"] == f"{title} | Celestial"
+    assert payload["bindings"]["bindings"][0]["componentKey"] == "hero_banner"
+    assert {presentation["kind"] for presentation in payload["components"]["presentations"]} == {
+        "form_data",
+        "visual_blueprint",
+    }
 
 
 @pytest.mark.asyncio
@@ -59,6 +77,7 @@ async def test_export_nextjs_bundle_uses_publish_contract(
         assert export_res.status_code == 200, export_res.text
         data = export_res.json()["data"]
         _assert_bundle_core_contract(data, "nextjs")
+        _assert_route_bundle(data["publishContract"], path="/about", title="About")
         file_paths = {entry["path"] for entry in data["files"]}
         assert "app/[...slug]/page.tsx" in file_paths
         assert "src/lib/published-contract.ts" in file_paths
@@ -78,6 +97,7 @@ async def test_export_sveltekit_bundle_uses_publish_contract_without_hosted_runt
         assert export_res.status_code == 200, export_res.text
         data = export_res.json()["data"]
         _assert_bundle_core_contract(data, "sveltekit")
+        _assert_route_bundle(data["publishContract"], path="/about", title="About")
         file_paths = {entry["path"] for entry in data["files"]}
         assert "src/routes/[...slug]/+page.server.ts" in file_paths
         assert "src/lib/published-contract.ts" in file_paths

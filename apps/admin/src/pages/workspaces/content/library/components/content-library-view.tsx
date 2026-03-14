@@ -5,21 +5,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  archiveWorkspaceContentItemVersion,
+  createWorkspaceContentItem,
+  listWorkspaceContentItems,
+  publishWorkspaceContentItemVersion,
+} from "@/api/content-items";
+import {
   createWorkspaceContentView,
   listWorkspaceContentViews,
   previewWorkspaceContentView,
 } from "@/api/content-views";
-import {
-  createWorkspaceSiteEntry,
-  getWorkspacePublishImpact,
-  listWorkspaceSiteEntries,
-  publishWorkspaceSiteEntry,
-  unpublishWorkspaceSiteEntry,
-} from "@/api/workspace-site";
+import { getWorkspacePublishImpact } from "@/api/content-publish";
 import { ContentGuard } from "@/components/common/content-guard";
-import { DefaultPage } from "@/components/common/default-page";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { WorkspaceContentShell } from "@/pages/workspaces/content/shared/content-shell";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import {
@@ -84,7 +84,7 @@ export function ContentLibraryView() {
     queryKey: ["content", "library", "entries", workspaceId, selectedModelKey],
     enabled: Boolean(workspaceId && selectedModelKey),
     queryFn: async () =>
-      listWorkspaceSiteEntries(String(workspaceId), { entryTypeCode: String(selectedModelKey) }),
+      listWorkspaceContentItems(String(workspaceId), { modelKey: String(selectedModelKey) }),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
@@ -167,8 +167,8 @@ export function ContentLibraryView() {
   const createEntryMutation = useMutation({
     mutationFn: async (input: CreateContentEntryInput) => {
       if (!workspaceId || !selectedModel) throw new Error("CONTENT_MODEL_NOT_SELECTED");
-      await createWorkspaceSiteEntry(String(workspaceId), {
-        entryTypeCode: selectedModel.key,
+      await createWorkspaceContentItem(String(workspaceId), {
+        modelKey: selectedModel.key,
         title: input.title,
         slug: input.slug,
       });
@@ -206,11 +206,11 @@ export function ContentLibraryView() {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       setProcessingIds((current) => addProcessingId(current, row.id, true));
       try {
-        return await publishWorkspaceSiteEntry(String(workspaceId), {
-          entryTypeCode: row.entryTypeCode,
-          slug: row.slug,
-          revision: row.draftRevision,
-        });
+        return await publishWorkspaceContentItemVersion(
+          String(workspaceId),
+          row.id,
+          row.draftVersion,
+        );
       } finally {
         setProcessingIds((current) => addProcessingId(current, row.id, false));
       }
@@ -227,10 +227,11 @@ export function ContentLibraryView() {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
       setProcessingIds((current) => addProcessingId(current, row.id, true));
       try {
-        return await unpublishWorkspaceSiteEntry(String(workspaceId), {
-          entryTypeCode: row.entryTypeCode,
-          slug: row.slug,
-        });
+        return await archiveWorkspaceContentItemVersion(
+          String(workspaceId),
+          row.id,
+          row.publishedVersion ?? row.draftVersion,
+        );
       } finally {
         setProcessingIds((current) => addProcessingId(current, row.id, false));
       }
@@ -244,7 +245,7 @@ export function ContentLibraryView() {
 
   return (
     <>
-      <DefaultPage
+      <WorkspaceContentShell
         width="fixed"
         title={t("content_library:LIBRARY_PAGE_TITLE")}
         description={t("content_library:LIBRARY_PAGE_DESC")}
@@ -323,7 +324,7 @@ export function ContentLibraryView() {
             ) : null}
           </div>
         </ContentGuard>
-      </DefaultPage>
+      </WorkspaceContentShell>
 
       <CreateContentEntryDialog
         open={entryDialogOpen}

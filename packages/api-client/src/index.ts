@@ -5,7 +5,16 @@ export type { Client as ApiClient, Config as ApiClientConfig } from "./generated
 
 export type {
   ContentDefaultEditor,
+  ContentFieldScalar,
   ContentModelCapability,
   ContentModelCategory,
+  ContentModelDefinitionInput,
+  ContentModelFieldDefinition,
+  ContentModelRelationDefinition,
   ContentModelSummary,
+  ContentModelRoutingDefinition,
+  ContentModelViewDefinition,
+  ContentRelationKind,
+  ContentViewType,
+  ContentModelWorkflowDefinition,
 } from "./content-models";

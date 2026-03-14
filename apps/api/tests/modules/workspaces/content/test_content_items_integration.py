@@ -176,6 +176,32 @@ async def test_content_items_full_workflow_with_first_class_presentations(
 
 
 @pytest.mark.asyncio
+async def test_content_items_list_is_available_from_canonical_read_endpoint(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        model_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_model_payload(),
+        )
+        assert model_res.status_code == 201, model_res.text
+
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+
+        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        assert list_res.status_code == 200, list_res.text
+        payload = list_res.json()["data"]
+        assert payload["total"] == 1
+        assert payload["items"][0]["modelKey"] == "article"
+        assert payload["items"][0]["slug"] == "hello-world"
+
+
+@pytest.mark.asyncio
 async def test_content_items_reject_direct_writes_to_published_version(
     prepared_db,
     integration_valkey_settings,

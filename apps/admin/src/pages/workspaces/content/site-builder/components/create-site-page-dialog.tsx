@@ -1,4 +1,4 @@
-import { Button, Input } from "antd";
+import { Button, Input, Select } from "antd";
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,33 +8,40 @@ import { SettingDialog } from "@celestial/ui/setting-dialog";
 export type CreateSitePageInput = {
   title: string;
   path: string;
+  modelKey: string;
 };
 
-function buildInitialForm(): CreateSitePageInput {
+function buildInitialForm(modelKey?: string): CreateSitePageInput {
   return {
     title: "",
     path: "/",
+    modelKey: modelKey ?? "",
   };
 }
 
 export function CreateSitePageDialog(props: {
   open: boolean;
   confirmLoading?: boolean;
+  modelOptions: Array<{ label: string; value: string }>;
   onOpenChange: (open: boolean) => void;
   onConfirm: (input: CreateSitePageInput) => Promise<void>;
 }) {
   const { t } = useTranslation(["content_library", "common"]);
-  const [form, setForm] = useState<CreateSitePageInput>(buildInitialForm);
+  const [form, setForm] = useState<CreateSitePageInput>(() =>
+    buildInitialForm(props.modelOptions[0]?.value),
+  );
 
   useEffect(() => {
     if (!props.open) return;
-    setForm(buildInitialForm());
-  }, [props.open]);
+    setForm(buildInitialForm(props.modelOptions[0]?.value));
+  }, [props.modelOptions, props.open]);
 
   const canSubmit = useMemo(() => {
     if (props.confirmLoading) return false;
-    return form.title.trim().length > 0 && form.path.trim().length > 0;
-  }, [form.path, form.title, props.confirmLoading]);
+    return (
+      form.title.trim().length > 0 && form.path.trim().length > 0 && form.modelKey.trim().length > 0
+    );
+  }, [form.modelKey, form.path, form.title, props.confirmLoading]);
 
   return (
     <SettingDialog
@@ -62,6 +69,7 @@ export function CreateSitePageDialog(props: {
               await props.onConfirm({
                 title: form.title.trim(),
                 path: form.path.trim(),
+                modelKey: form.modelKey.trim(),
               });
             }}
           >
@@ -71,6 +79,20 @@ export function CreateSitePageDialog(props: {
       }
     >
       <div className="grid gap-4 py-2">
+        {props.modelOptions.length > 1 ? (
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_LABEL")}
+            </label>
+            <Select
+              value={form.modelKey}
+              options={props.modelOptions}
+              onChange={(modelKey) => setForm((current) => ({ ...current, modelKey }))}
+              disabled={props.confirmLoading}
+            />
+          </div>
+        ) : null}
+
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">
             {t("content_library:SITE_BUILDER_FIELD_TITLE_LABEL")}

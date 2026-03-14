@@ -1,4 +1,4 @@
-import { Button, Input, Switch } from "antd";
+import { Button, Input, Select, Switch } from "antd";
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,14 +7,14 @@ import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 export type CreateRouteTemplateInput = {
   pathPattern: string;
-  entryTypeCode: string;
+  itemId: string;
   isActive: boolean;
 };
 
-function buildInitialForm(): CreateRouteTemplateInput {
+function buildInitialForm(itemId?: string): CreateRouteTemplateInput {
   return {
     pathPattern: "/blog/:slug",
-    entryTypeCode: "",
+    itemId: itemId ?? "",
     isActive: true,
   };
 }
@@ -22,21 +22,24 @@ function buildInitialForm(): CreateRouteTemplateInput {
 export function CreateRouteTemplateDialog(props: {
   open: boolean;
   confirmLoading?: boolean;
+  itemOptions: Array<{ label: string; value: string }>;
   onOpenChange: (open: boolean) => void;
   onConfirm: (input: CreateRouteTemplateInput) => Promise<void>;
 }) {
   const { t } = useTranslation(["content_library", "common"]);
-  const [form, setForm] = useState<CreateRouteTemplateInput>(buildInitialForm);
+  const [form, setForm] = useState<CreateRouteTemplateInput>(() =>
+    buildInitialForm(props.itemOptions[0]?.value),
+  );
 
   useEffect(() => {
     if (!props.open) return;
-    setForm(buildInitialForm());
-  }, [props.open]);
+    setForm(buildInitialForm(props.itemOptions[0]?.value));
+  }, [props.itemOptions, props.open]);
 
   const canSubmit = useMemo(() => {
     if (props.confirmLoading) return false;
-    return form.pathPattern.trim().length > 0 && form.entryTypeCode.trim().length > 0;
-  }, [form.entryTypeCode, form.pathPattern, props.confirmLoading]);
+    return form.pathPattern.trim().length > 0 && form.itemId.trim().length > 0;
+  }, [form.itemId, form.pathPattern, props.confirmLoading]);
 
   return (
     <SettingDialog
@@ -63,7 +66,7 @@ export function CreateRouteTemplateDialog(props: {
             onClick={async () => {
               await props.onConfirm({
                 pathPattern: form.pathPattern.trim(),
-                entryTypeCode: form.entryTypeCode.trim(),
+                itemId: form.itemId.trim(),
                 isActive: form.isActive,
               });
             }}
@@ -74,6 +77,20 @@ export function CreateRouteTemplateDialog(props: {
       }
     >
       <div className="grid gap-4 py-2">
+        {props.itemOptions.length > 1 ? (
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-foreground">
+              {t("content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_LABEL")}
+            </label>
+            <Select
+              value={form.itemId}
+              options={props.itemOptions}
+              onChange={(itemId) => setForm((current) => ({ ...current, itemId }))}
+              disabled={props.confirmLoading}
+            />
+          </div>
+        ) : null}
+
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">
             {t("content_library:SITE_BUILDER_ROUTE_FIELD_PATH_LABEL")}
@@ -88,23 +105,6 @@ export function CreateRouteTemplateDialog(props: {
               setForm((current) => ({ ...current, pathPattern: event.target.value }))
             }
             placeholder={t("content_library:SITE_BUILDER_ROUTE_FIELD_PATH_PLACEHOLDER")}
-            disabled={props.confirmLoading}
-          />
-        </div>
-
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground">
-            {t("content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_LABEL")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_DESC")}
-          </div>
-          <Input
-            value={form.entryTypeCode}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, entryTypeCode: event.target.value }))
-            }
-            placeholder={t("content_library:SITE_BUILDER_ROUTE_FIELD_TYPE_PLACEHOLDER")}
             disabled={props.confirmLoading}
           />
         </div>

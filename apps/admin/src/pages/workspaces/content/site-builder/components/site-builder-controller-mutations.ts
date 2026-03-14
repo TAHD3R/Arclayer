@@ -5,7 +5,6 @@ import {
   createSiteBuilderPage,
   createSiteBuilderRouteTemplate,
   publishSiteBuilderPage,
-  repairSiteBuilderPagesRouteTree,
   siteBuilderQueryKeys,
   toggleSiteBuilderRouteTemplateActive,
   unpublishSiteBuilderPage,
@@ -45,10 +44,7 @@ export function useCreateMutation(deps: SiteBuilderControllerDeps) {
   return useMutation({
     mutationFn: async (input: CreateSitePageInput) => {
       if (!deps.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      await createSiteBuilderPage(String(deps.workspaceId), {
-        title: input.title,
-        path: input.path,
-      });
+      await createSiteBuilderPage(String(deps.workspaceId), input);
     },
     onSuccess: async () => {
       notifySuccessText(deps.t("content_library:SITE_BUILDER_TOAST_CREATE_SUCCESS"));
@@ -92,9 +88,16 @@ export function useUnpublishMutation(
   return useMutation({
     mutationFn: async (page: SiteBuilderPageNode) => {
       if (!deps.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      if (!page.publishedRevision) {
+        throw new Error("SITE_BUILDER_PAGE_NOT_PUBLISHED");
+      }
       deps.setProcessingIds((current) => addProcessingId(current, page.id, true));
       try {
-        return await unpublishSiteBuilderPage(String(deps.workspaceId), page.id);
+        return await unpublishSiteBuilderPage(
+          String(deps.workspaceId),
+          page.id,
+          page.publishedRevision,
+        );
       } finally {
         deps.setProcessingIds((current) => addProcessingId(current, page.id, false));
       }
@@ -107,39 +110,13 @@ export function useUnpublishMutation(
   });
 }
 
-export function useRepairMutation(
-  deps: SiteBuilderControllerDeps,
-  refreshBuilderQueries: () => Promise<void>,
-) {
-  return useMutation({
-    mutationFn: async () => {
-      if (!deps.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return await repairSiteBuilderPagesRouteTree(String(deps.workspaceId));
-    },
-    onSuccess: async (result) => {
-      notifySuccessText(
-        deps.t("content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_TOAST_SUCCESS", {
-          routes: result.repairedRoutes,
-          nodes: result.repairedTreeNodes,
-        }),
-      );
-      await refreshBuilderQueries();
-    },
-    onError: (error) => notifyError(error),
-  });
-}
-
 export function useCreateRouteMutation(deps: SiteBuilderControllerDeps) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateRouteTemplateInput) => {
       if (!deps.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      await createSiteBuilderRouteTemplate(String(deps.workspaceId), {
-        pathPattern: input.pathPattern,
-        entryTypeCode: input.entryTypeCode,
-        isActive: input.isActive,
-      });
+      await createSiteBuilderRouteTemplate(String(deps.workspaceId), input);
     },
     onSuccess: async () => {
       notifySuccessText(deps.t("content_library:SITE_BUILDER_TOAST_ROUTE_CREATE_SUCCESS"));

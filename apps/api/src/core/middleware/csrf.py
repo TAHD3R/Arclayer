@@ -4,9 +4,8 @@ import secrets
 from collections.abc import Iterable
 
 from fastapi import Request
-from fastapi.responses import ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from apps.api.src.core.http.response import Response as ResponseBuilder
 from apps.api.src.core.i18n import get_request_locale, t
@@ -58,6 +57,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 error="CSRF_FAILED",
                 meta={"reason": "token_mismatch"},
             )
-            return ORJSONResponse(payload.model_dump(), status_code=403)
+            return JSONResponse(payload.model_dump(), status_code=403)
 
         return await call_next(request)

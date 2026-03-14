@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
+import { listWorkspaceContentModels } from "@/api/content-models";
 import {
   getSiteBuilderPublishImpact,
   listSiteBuilderGlobalSections,
@@ -10,7 +11,6 @@ import {
   type SiteBuilderPageNode,
   type SiteBuilderRouteTemplate,
 } from "@/api/content/site-builder";
-import { ApiError } from "@/lib/http";
 import { openStudioPageEditor } from "@/lib/routing/studio-editor";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -18,7 +18,6 @@ import {
   useCreateMutation,
   useCreateRouteMutation,
   usePublishMutation,
-  useRepairMutation,
   useToggleRouteMutation,
   useUnpublishMutation,
   type SiteBuilderControllerDeps,
@@ -77,8 +76,16 @@ function useSiteBuilderQueries(workspaceId: string | null) {
     retry: false,
     meta: { silent: true },
   });
+  const modelsQuery = useQuery({
+    queryKey: ["content", "models", workspaceId, "site-builder"],
+    enabled: Boolean(workspaceId),
+    queryFn: async () => listWorkspaceContentModels(String(workspaceId)),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
 
-  return { pagesQuery, globalSectionsQuery, routeTemplatesQuery, publishImpactQuery };
+  return { pagesQuery, globalSectionsQuery, routeTemplatesQuery, publishImpactQuery, modelsQuery };
 }
 
 function useRefreshBuilderQueries(workspaceId: string | null) {
@@ -115,21 +122,17 @@ export function useSiteBuilderController(t: TranslationFn) {
   const createMutation = useCreateMutation(deps);
   const publishMutation = usePublishMutation(deps, refreshBuilderQueries);
   const unpublishMutation = useUnpublishMutation(deps, refreshBuilderQueries);
-  const repairPagesRouteTreeMutation = useRepairMutation(deps, refreshBuilderQueries);
   const createRouteMutation = useCreateRouteMutation(deps);
   const toggleRouteMutation = useToggleRouteMutation(deps, refreshBuilderQueries);
-
-  const pagesRepairable = useMemo(() => {
-    const error = queries.pagesQuery.error;
-    if (!(error instanceof ApiError)) return false;
-    return error.error === "PAGE_ROUTE_MISSING" || error.error === "PAGE_TREE_NODE_MISSING";
-  }, [queries.pagesQuery.error]);
 
   const pagesTree = (queries.pagesQuery.data?.items ?? []) as SiteBuilderPageNode[];
   const globalSections = queries.globalSectionsQuery.data?.items ?? [];
   const routeTemplates = (queries.routeTemplatesQuery.data?.items ??
     []) as SiteBuilderRouteTemplate[];
   const counts = collectStructureCounts(pagesTree);
+  const siteBuilderModels = (queries.modelsQuery.data?.items ?? []).filter(
+    (item) => item.category === "site_builder",
+  );
 
   const openEditor = (page: SiteBuilderPageNode) => {
     if (!workspaceId) return;
@@ -144,16 +147,15 @@ export function useSiteBuilderController(t: TranslationFn) {
     setRouteDialogOpen,
     processingIds,
     routeProcessingIds,
-    pagesRepairable,
     pagesTree,
     globalSections,
     routeTemplates,
     counts,
     queries,
+    siteBuilderModels,
     createMutation,
     publishMutation,
     unpublishMutation,
-    repairPagesRouteTreeMutation,
     createRouteMutation,
     toggleRouteMutation,
     openEditor,

@@ -14,7 +14,6 @@ def _model_payload() -> dict:
     return {
         "key": "page",
         "name": "Page",
-        "kind": "custom",
         "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
         "relations": [],
         "capabilities": ["versioned", "publishable", "routable", "treeable"],
@@ -42,6 +41,34 @@ def _draft_payload(title: str) -> dict:
         "fieldsSnapshot": {"title": title},
         "presentations": [
             {"kind": "form_data", "payload": {"title": title}},
+            {
+                "kind": "visual_blueprint",
+                "payload": {
+                    "root": "page_root",
+                    "nodes": {
+                        "page_root": {
+                            "type": "stack",
+                            "children": ["hero"],
+                        },
+                        "hero": {
+                            "type": "hero_banner",
+                            "props": {"headline": title},
+                        },
+                    },
+                },
+            },
+            {
+                "kind": "slot_mapping",
+                "payload": {
+                    "bindings": [
+                        {
+                            "componentKey": "hero_banner",
+                            "bindingKey": "headline",
+                            "payload": {"field": "title"},
+                        }
+                    ]
+                },
+            },
             {
                 "kind": "seo",
                 "payload": {
@@ -138,9 +165,11 @@ async def test_publish_builds_published_graph_from_routes_and_hierarchy(
         assert child_row.hierarchy_parent_item_id == root_uuid
 
         artifact_rows = await PublishArtifactRecord.filter(item_id__in=[root_uuid, child_uuid]).all()
-        assert len(artifact_rows) >= 4
+        assert len(artifact_rows) >= 5
         artifact_kinds = {row.artifact_kind for row in artifact_rows}
         assert "route_manifest" in artifact_kinds
+        assert "component_manifest" in artifact_kinds
+        assert "binding_manifest" in artifact_kinds
         assert "render_hints" in artifact_kinds
         assert "seo_metadata" in artifact_kinds
 

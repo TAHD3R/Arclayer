@@ -6,8 +6,8 @@ from typing import Any
 from asgi_correlation_id import correlation_id
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import ORJSONResponse
 from pydantic import ValidationError
+from starlette.responses import JSONResponse
 from tortoise.exceptions import OperationalError
 
 from apps.api.src.config import Settings
@@ -77,7 +77,7 @@ def _build_response(
     debug: bool,
     include_details: bool = False,
     headers: dict[str, str] | None = None,
-) -> ORJSONResponse:
+) -> JSONResponse:
     # meta is used for "client-visible" structured metadata (e.g. org candidates).
     # Trace info is only included when debug is enabled to avoid leaking internals.
     out_meta: dict[str, Any] | None = None
@@ -101,13 +101,13 @@ def _build_response(
     locale = get_request_locale(request)
     message = localize_message(message, error=error, locale=locale)
     payload = Response.fail(message=message, error=error, meta=out_meta)
-    return ORJSONResponse(payload.model_dump(), status_code=status_code, headers=headers)
+    return JSONResponse(payload.model_dump(), status_code=status_code, headers=headers)
 
 
 def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     debug = settings.debug
 
-    async def _handle_internal_error(request: Request, exc: Exception) -> ORJSONResponse:
+    async def _handle_internal_error(request: Request, exc: Exception) -> JSONResponse:
         """
         A single implementation for "unexpected" errors.
 
@@ -142,11 +142,11 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         )
 
     @app.exception_handler(Exception)
-    async def unhandled_handler(request: Request, exc: Exception) -> ORJSONResponse:
+    async def unhandled_handler(request: Request, exc: Exception) -> JSONResponse:
         return await _handle_internal_error(request, exc)
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException) -> ORJSONResponse:
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         log_fields = {
             "method": request.method,
             "path": request.url.path,
@@ -182,7 +182,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         )
 
     @app.exception_handler(OperationalError)
-    async def tortoise_operational_handler(request: Request, exc: OperationalError) -> ORJSONResponse:
+    async def tortoise_operational_handler(request: Request, exc: OperationalError) -> JSONResponse:
         request.state.error_code = "DB_OPERATIONAL_ERROR"
         request.state.error_message = "Database operation failed"
         logger.exception(
@@ -201,7 +201,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         )
 
     @app.exception_handler(APIError)
-    async def api_error_handler(request: Request, exc: APIError) -> ORJSONResponse:
+    async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
         request.state.error_code = exc.error
         request.state.error_message = exc.message
         log_fields = {
@@ -227,7 +227,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
     async def request_validation_handler(
         request: Request,
         exc: RequestValidationError,
-    ) -> ORJSONResponse:
+    ) -> JSONResponse:
         request.state.error_code = "VALIDATION_ERROR"
         request.state.error_message = "Validation failed"
         return _build_response(
@@ -241,7 +241,7 @@ def init_exception_handlers(app: FastAPI, settings: Settings) -> None:
         )
 
     @app.exception_handler(ValidationError)
-    async def pydantic_validation_handler(request: Request, exc: ValidationError) -> ORJSONResponse:
+    async def pydantic_validation_handler(request: Request, exc: ValidationError) -> JSONResponse:
         request.state.error_code = "VALIDATION_ERROR"
         request.state.error_message = "Validation failed"
         return _build_response(

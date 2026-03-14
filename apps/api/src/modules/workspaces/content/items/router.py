@@ -20,6 +20,9 @@ from apps.api.src.modules.workspaces.content.items.input_schema import (
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
+from apps.api.src.modules.workspaces.content.items.read_service import (
+    WorkspaceContentCanonicalItemReadService,
+)
 from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
 from apps.api.src.modules.workspaces.content.service import WorkspaceContentService
 from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id, get_workspace_content_service
@@ -36,6 +39,35 @@ canonical_items_router = APIRouter(
 
 def get_workspace_content_canonical_items_service() -> WorkspaceContentCanonicalItemsService:
     return WorkspaceContentCanonicalItemsService(repo=WorkspaceContentItemsRepository())
+
+
+def get_workspace_content_canonical_item_reads() -> WorkspaceContentCanonicalItemReadService:
+    return WorkspaceContentCanonicalItemReadService(repo=WorkspaceContentItemsRepository())
+
+
+@canonical_items_router.get(
+    "/items",
+    response_model=ResponseModel[PageData[ContentItemOut]],
+    response_model_exclude_none=True,
+    summary="List rebuilt content items (workspace RBAC protected)",
+)
+async def list_workspace_content_items_canonical(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemReadService,
+        Depends(get_workspace_content_canonical_item_reads),
+    ],
+    params: PageParams = Depends(get_page_params),
+    model_key: Annotated[str | None, Query(alias="modelKey", description="Optional content model key filter.")] = None,
+) -> ResponseModel[PageData[ContentItemOut]]:
+    data = await service.list_items_paginated(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        params=params,
+        model_key=model_key,
+    )
+    return Response.success(data=data)
 
 
 @items_router.get(

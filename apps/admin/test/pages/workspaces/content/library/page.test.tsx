@@ -6,26 +6,28 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { WorkspaceContentLibraryPage } from "@/pages/workspaces/content/library/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
+const consoleErrorSpy = vi.hoisted(() => vi.fn());
+
 const {
   listWorkspaceContentModels,
   listWorkspaceContentViews,
   createWorkspaceContentView,
   previewWorkspaceContentView,
-  listWorkspaceSiteEntries,
+  listWorkspaceContentItems,
   getWorkspacePublishImpact,
-  createWorkspaceSiteEntry,
-  publishWorkspaceSiteEntry,
-  unpublishWorkspaceSiteEntry,
+  createWorkspaceContentItem,
+  publishWorkspaceContentItemVersion,
+  archiveWorkspaceContentItemVersion,
 } = vi.hoisted(() => ({
   listWorkspaceContentModels: vi.fn(),
   listWorkspaceContentViews: vi.fn(),
   createWorkspaceContentView: vi.fn(),
   previewWorkspaceContentView: vi.fn(),
-  listWorkspaceSiteEntries: vi.fn(),
+  listWorkspaceContentItems: vi.fn(),
   getWorkspacePublishImpact: vi.fn(),
-  createWorkspaceSiteEntry: vi.fn(),
-  publishWorkspaceSiteEntry: vi.fn(),
-  unpublishWorkspaceSiteEntry: vi.fn(),
+  createWorkspaceContentItem: vi.fn(),
+  publishWorkspaceContentItemVersion: vi.fn(),
+  archiveWorkspaceContentItemVersion: vi.fn(),
 }));
 
 vi.mock("@/api/content-models", () => ({
@@ -38,12 +40,20 @@ vi.mock("@/api/content-views", () => ({
   previewWorkspaceContentView,
 }));
 
-vi.mock("@/api/workspace-site", () => ({
-  listWorkspaceSiteEntries,
+vi.mock("@/api/content-items", () => ({
+  listWorkspaceContentItems,
+  createWorkspaceContentItem,
+  publishWorkspaceContentItemVersion,
+  archiveWorkspaceContentItemVersion,
+}));
+
+vi.mock("@/api/content-publish", () => ({
   getWorkspacePublishImpact,
-  createWorkspaceSiteEntry,
-  publishWorkspaceSiteEntry,
-  unpublishWorkspaceSiteEntry,
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
+  notifySuccessText: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -194,20 +204,29 @@ async function renderWithQuery() {
     defaultOptions: { queries: { retry: false } },
   });
 
-  await act(async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <WorkspaceContentLibraryPage />
-      </QueryClientProvider>,
-    );
-  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <WorkspaceContentLibraryPage />
+    </QueryClientProvider>,
+  );
+}
+
+function expectNoActWarnings() {
+  const actWarnings = consoleErrorSpy.mock.calls.filter(
+    ([message]) => typeof message === "string" && message.includes("not wrapped in act"),
+  );
+  expect(actWarnings).toHaveLength(0);
 }
 
 describe("WorkspaceContentLibraryPage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     installMatchMedia();
     installComputedStyle();
-    useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+    consoleErrorSpy.mockReset();
+    vi.spyOn(console, "error").mockImplementation(consoleErrorSpy);
+    await act(async () => {
+      useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+    });
     getWorkspacePublishImpact.mockResolvedValue({
       missingRoutes: [],
       unresolvedRelations: [],
@@ -215,9 +234,13 @@ describe("WorkspaceContentLibraryPage", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    expectNoActWarnings();
     vi.clearAllMocks();
-    useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
+    vi.restoreAllMocks();
+    await act(async () => {
+      useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
+    });
   });
 
   test("renders empty state when no content library models exist", async () => {
@@ -287,7 +310,7 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
-    listWorkspaceSiteEntries.mockResolvedValue({
+    listWorkspaceContentItems.mockResolvedValue({
       items: [],
       total: 0,
       page: 1,
@@ -391,7 +414,7 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
-    listWorkspaceSiteEntries
+    listWorkspaceContentItems
       .mockResolvedValueOnce({
         items: [],
         total: 0,
@@ -405,15 +428,18 @@ describe("WorkspaceContentLibraryPage", () => {
         items: [
           {
             id: "entry-1",
+            workspaceId: "ws-1",
             siteId: "site-1",
-            entryTypeId: "type-1",
-            entryTypeCode: "article",
+            modelId: "model-article",
+            modelKey: "article",
             slug: "hello-world",
             title: "Hello world",
             status: "draft",
             updatedAt: "2026-03-07T09:45:00Z",
-            draftRevision: 1,
-            publishedRevision: null,
+            visibility: "public",
+            locale: "zh-CN",
+            draftVersion: 1,
+            publishedVersion: null,
           },
         ],
         total: 1,
@@ -432,7 +458,7 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
-    createWorkspaceSiteEntry.mockResolvedValue(undefined);
+    createWorkspaceContentItem.mockResolvedValue(undefined);
 
     await renderWithQuery();
 
@@ -442,8 +468,8 @@ describe("WorkspaceContentLibraryPage", () => {
     await user.click(screen.getByRole("button", { name: "Create entry" }));
 
     await waitFor(() => {
-      expect(createWorkspaceSiteEntry).toHaveBeenCalledWith("ws-1", {
-        entryTypeCode: "article",
+      expect(createWorkspaceContentItem).toHaveBeenCalledWith("ws-1", {
+        modelKey: "article",
         title: "Hello world",
         slug: "hello-world",
       });
@@ -473,20 +499,23 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
-    listWorkspaceSiteEntries
+    listWorkspaceContentItems
       .mockResolvedValueOnce({
         items: [
           {
             id: "entry-1",
+            workspaceId: "ws-1",
             siteId: "site-1",
-            entryTypeId: "type-1",
-            entryTypeCode: "article",
+            modelId: "model-article",
+            modelKey: "article",
             slug: "hello-world",
             title: "Hello world",
             status: "draft",
             updatedAt: "2026-03-07T09:45:00Z",
-            draftRevision: 3,
-            publishedRevision: null,
+            visibility: "public",
+            locale: "zh-CN",
+            draftVersion: 3,
+            publishedVersion: null,
           },
         ],
         total: 1,
@@ -500,15 +529,18 @@ describe("WorkspaceContentLibraryPage", () => {
         items: [
           {
             id: "entry-1",
+            workspaceId: "ws-1",
             siteId: "site-1",
-            entryTypeId: "type-1",
-            entryTypeCode: "article",
+            modelId: "model-article",
+            modelKey: "article",
             slug: "hello-world",
             title: "Hello world",
             status: "published",
             updatedAt: "2026-03-07T09:45:00Z",
-            draftRevision: 3,
-            publishedRevision: 3,
+            visibility: "public",
+            locale: "zh-CN",
+            draftVersion: 3,
+            publishedVersion: 3,
           },
         ],
         total: 1,
@@ -522,15 +554,18 @@ describe("WorkspaceContentLibraryPage", () => {
         items: [
           {
             id: "entry-1",
+            workspaceId: "ws-1",
             siteId: "site-1",
-            entryTypeId: "type-1",
-            entryTypeCode: "article",
+            modelId: "model-article",
+            modelKey: "article",
             slug: "hello-world",
             title: "Hello world",
             status: "draft",
             updatedAt: "2026-03-07T09:45:00Z",
-            draftRevision: 4,
-            publishedRevision: null,
+            visibility: "public",
+            locale: "zh-CN",
+            draftVersion: 4,
+            publishedVersion: null,
           },
         ],
         total: 1,
@@ -549,39 +584,33 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
-    publishWorkspaceSiteEntry.mockResolvedValue({
-      siteId: "site-1",
-      entryId: "entry-1",
-      entryTypeCode: "article",
-      slug: "hello-world",
-      revision: 3,
-      publishedAtMs: 1741330800000,
+    publishWorkspaceContentItemVersion.mockResolvedValue({
+      itemId: "entry-1",
+      versionNumber: 3,
+      state: "published",
+      createdAt: "2026-03-07T09:45:00Z",
+      fieldsSnapshot: {},
+      presentations: [],
     });
-    unpublishWorkspaceSiteEntry.mockResolvedValue({
-      siteId: "site-1",
-      entryId: "entry-1",
-      entryTypeCode: "article",
-      slug: "hello-world",
-      unpublishedAtMs: 1741330900000,
+    archiveWorkspaceContentItemVersion.mockResolvedValue({
+      itemId: "entry-1",
+      versionNumber: 3,
+      state: "archived",
+      createdAt: "2026-03-07T09:45:00Z",
+      fieldsSnapshot: {},
+      presentations: [],
     });
 
     await renderWithQuery();
 
     await user.click(await screen.findByRole("button", { name: "Publish" }));
     await waitFor(() => {
-      expect(publishWorkspaceSiteEntry).toHaveBeenCalledWith("ws-1", {
-        entryTypeCode: "article",
-        slug: "hello-world",
-        revision: 3,
-      });
+      expect(publishWorkspaceContentItemVersion).toHaveBeenCalledWith("ws-1", "entry-1", 3);
     });
 
     await user.click(await screen.findByRole("button", { name: "Unpublish" }));
     await waitFor(() => {
-      expect(unpublishWorkspaceSiteEntry).toHaveBeenCalledWith("ws-1", {
-        entryTypeCode: "article",
-        slug: "hello-world",
-      });
+      expect(archiveWorkspaceContentItemVersion).toHaveBeenCalledWith("ws-1", "entry-1", 3);
     });
   });
 
@@ -607,7 +636,7 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
-    listWorkspaceSiteEntries.mockResolvedValue({
+    listWorkspaceContentItems.mockResolvedValue({
       items: [],
       total: 0,
       page: 1,
@@ -668,11 +697,11 @@ describe("WorkspaceContentLibraryPage", () => {
       items: [
         {
           id: "entry-99",
-          entryTypeCode: "article",
+          modelKey: "article",
           slug: "published-hello",
           title: "Published hello",
-          draftRevision: 5,
-          publishedRevision: 5,
+          draftVersion: 5,
+          publishedVersion: 5,
           updatedAt: "2026-03-07T09:45:00Z",
           status: "published",
         },

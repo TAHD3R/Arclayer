@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ContentGuard } from "@/components/common/content-guard";
-import { DefaultPage } from "@/components/common/default-page";
+import { WorkspaceContentShell } from "@/pages/workspaces/content/shared/content-shell";
 
 import { CompositionPanel } from "./composition-panel";
 import { CreateRouteTemplateDialog } from "./create-route-template-dialog";
@@ -17,10 +17,18 @@ import { useSiteBuilderController } from "./use-site-builder-controller";
 export function SiteBuilderView() {
   const { t } = useTranslation(["content_library", "nav", "common"]);
   const model = useSiteBuilderController(t);
+  const modelOptions = model.siteBuilderModels.map((item) => ({
+    value: item.key,
+    label: item.name,
+  }));
+  const pageOptions = model.pagesTree.map((page) => ({
+    value: page.id,
+    label: page.title || page.path,
+  }));
 
   return (
     <>
-      <DefaultPage
+      <WorkspaceContentShell
         width="fixed"
         title={t("nav:NAV_CONTENT_SITE_BUILDER")}
         description={t("content_library:SITE_BUILDER_PAGE_DESC")}
@@ -41,39 +49,6 @@ export function SiteBuilderView() {
           empty={false}
           onRetry={() => void model.queries.pagesQuery.refetch()}
           container="raw"
-          hideRetry={model.pagesRepairable}
-          errorTitle={
-            model.pagesRepairable
-              ? t("content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_TITLE")
-              : undefined
-          }
-          errorDescription={
-            model.pagesRepairable
-              ? t("content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_DESC")
-              : undefined
-          }
-          errorExtra={
-            model.pagesRepairable ? (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <Button
-                  type="primary"
-                  autoInsertSpace={false}
-                  loading={model.repairPagesRouteTreeMutation.isPending}
-                  disabled={model.repairPagesRouteTreeMutation.isPending}
-                  onClick={() => void model.repairPagesRouteTreeMutation.mutateAsync()}
-                >
-                  {t("content_library:SITE_BUILDER_ROUTE_TREE_REPAIR_ACTION")}
-                </Button>
-                <Button
-                  autoInsertSpace={false}
-                  disabled={model.repairPagesRouteTreeMutation.isPending}
-                  onClick={() => void model.queries.pagesQuery.refetch()}
-                >
-                  {t("common:RETRY")}
-                </Button>
-              </div>
-            ) : undefined
-          }
         >
           <div className="grid gap-4">
             <SiteBuilderMetrics
@@ -122,11 +97,12 @@ export function SiteBuilderView() {
             </div>
           </div>
         </ContentGuard>
-      </DefaultPage>
+      </WorkspaceContentShell>
 
       <CreateSitePageDialog
         open={model.dialogOpen}
         confirmLoading={model.createMutation.isPending}
+        modelOptions={modelOptions}
         onOpenChange={model.setDialogOpen}
         onConfirm={async (input) => {
           await model.createMutation.mutateAsync(input);
@@ -135,6 +111,7 @@ export function SiteBuilderView() {
       <CreateRouteTemplateDialog
         open={model.routeDialogOpen}
         confirmLoading={model.createRouteMutation.isPending}
+        itemOptions={pageOptions}
         onOpenChange={model.setRouteDialogOpen}
         onConfirm={async (input) => {
           await model.createRouteMutation.mutateAsync(input);

@@ -13,20 +13,20 @@ export type LibraryRow = {
   slug: string;
   status: "draft" | "published";
   updatedAt: string | null;
-  draftRevision: number;
-  publishedRevision: number | null;
-  entryTypeCode: string;
+  draftVersion: number;
+  publishedVersion: number | null;
+  modelKey: string;
 };
 
 export type LibraryEntrySource = {
   id: string;
   slug: string;
-  draftRevision: number;
-  entryTypeCode: string;
+  draftVersion?: number;
+  modelKey?: string;
   title?: string | null;
   status?: string;
   updatedAt?: string;
-  publishedRevision?: number | null;
+  publishedVersion?: number | null;
 };
 
 const EMPTY_ROWS: LibraryRow[] = [];
@@ -36,11 +36,11 @@ function mapEntryToRow(entry: LibraryEntrySource): LibraryRow {
     id: entry.id,
     title: entry.title || entry.slug,
     slug: entry.slug,
-    status: entry.publishedRevision ? "published" : "draft",
+    status: entry.publishedVersion ? "published" : "draft",
     updatedAt: entry.updatedAt ?? null,
-    draftRevision: entry.draftRevision,
-    publishedRevision: entry.publishedRevision ?? null,
-    entryTypeCode: entry.entryTypeCode,
+    draftVersion: entry.draftVersion ?? 0,
+    publishedVersion: entry.publishedVersion ?? null,
+    modelKey: entry.modelKey ?? "",
   };
 }
 
@@ -81,15 +81,15 @@ function buildLibraryColumns(opts: {
     },
     {
       title: opts.t("content_library:LIBRARY_TABLE_DRAFT_REVISION"),
-      dataIndex: "draftRevision",
-      key: "draftRevision",
-      render: (_value, row) => formatRevisionValue(row.draftRevision),
+      dataIndex: "draftVersion",
+      key: "draftVersion",
+      render: (_value, row) => formatRevisionValue(row.draftVersion),
     },
     {
       title: opts.t("content_library:LIBRARY_TABLE_PUBLISHED_REVISION"),
-      dataIndex: "publishedRevision",
-      key: "publishedRevision",
-      render: (_value, row) => formatRevisionValue(row.publishedRevision),
+      dataIndex: "publishedVersion",
+      key: "publishedVersion",
+      render: (_value, row) => formatRevisionValue(row.publishedVersion),
     },
     {
       title: opts.t("content_library:LIBRARY_TABLE_UPDATED"),
@@ -102,7 +102,7 @@ function buildLibraryColumns(opts: {
       key: "actions",
       render: (_value, row) => {
         const processing = opts.processingIds.has(row.id);
-        if (row.publishedRevision) {
+        if (row.publishedVersion) {
           return (
             <Button
               size="small"
@@ -122,7 +122,7 @@ function buildLibraryColumns(opts: {
             size="small"
             autoInsertSpace={false}
             loading={processing}
-            disabled={processing || row.draftRevision < 1}
+            disabled={processing || row.draftVersion < 1}
             onClick={() => opts.onPublish(row)}
           >
             {opts.t("content_library:LIBRARY_ACTION_PUBLISH")}
@@ -138,7 +138,7 @@ export function buildLibraryRows(items: readonly LibraryEntrySource[]): LibraryR
 }
 
 export function ContentLibraryMetrics(props: { rows: readonly LibraryRow[]; t: TranslationFn }) {
-  const publishedCount = props.rows.filter((row) => row.publishedRevision).length;
+  const publishedCount = props.rows.filter((row) => row.publishedVersion).length;
   const draftOnlyCount = props.rows.length - publishedCount;
   const metrics = [
     { label: props.t("content_library:LIBRARY_METRIC_TOTAL"), value: props.rows.length },
