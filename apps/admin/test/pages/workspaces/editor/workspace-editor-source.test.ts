@@ -11,12 +11,13 @@ function resolveSource(relativePath: string) {
 }
 
 describe("workspace editor source", () => {
-  test("editor route now hands presentation editing off to studio", () => {
+  test("editor route no longer depends on studio handoff helpers", () => {
     const source = readFileSync(resolveSource("pages/workspaces/editor/handoff/page.tsx"), "utf-8");
 
     expect(source).toContain("WorkspaceEditorHandoffPage");
-    expect(source).toContain("buildStudioPresentationEditorUrl");
-    expect(source).toContain('editorMode === "presentation"');
-    expect(source).toContain("window.location.replace");
+    expect(source).toContain("content_pages:EDITOR_HANDOFF_UNSUPPORTED_TITLE");
+    expect(source).not.toContain("buildStudioPresentationEditorUrl");
+    expect(source).not.toContain("buildStudioWorkspaceUrl");
+    expect(source).not.toContain("window.location.replace");
   });
 });

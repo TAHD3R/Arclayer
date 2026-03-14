@@ -130,7 +130,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
 
                 <div className="text-label-secondary">
                   {t("settings:SETTINGS_WORKSPACE_SLUG_PORTAL_HINT", {
-                    url: c.portalUrl,
+                    url: c.siteUrl,
                   })}
                 </div>
               </div>

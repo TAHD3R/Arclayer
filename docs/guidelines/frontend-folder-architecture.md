@@ -1,10 +1,10 @@
 # Frontend Folder Architecture (`apps/*`)
 
-This document defines the target frontend architecture for CelestialCMS. It is a normative guideline for Admin and Portal applications, plus cross-app shared packages.
+This document defines the target frontend architecture for CelestialCMS. It is a normative guideline for the Admin application plus shared frontend packages.
 
 ## 1. Goals
 
-- Keep Admin and Portal boundaries explicit and maintainable.
+- Keep Admin boundaries explicit and maintainable.
 - Keep UI code, data access, and runtime infrastructure responsibilities separated.
 - Enforce cross-app reuse through `packages/*` instead of copy-paste.
 - Preserve strong typing and human-readable code structure as default constraints.
@@ -14,20 +14,18 @@ This document defines the target frontend architecture for CelestialCMS. It is a
 This guideline applies to:
 
 - `apps/admin`
-- `apps/portal`
 - Cross-app shared frontend packages in `packages/*` (especially `packages/core/runtime`, `packages/internal/types`, and `packages/protocols/*`)
 
-`apps/studio` is currently out of scope for these structure rules. It may reuse patterns from Admin, but is not constrained by this document.
 
 ## 3. Canonical Layer Map
 
 | Layer | Location | Responsibility | Must Not Own |
 | --- | --- | --- | --- |
-| App routing shell | `apps/admin/src/routes` (`index.tsx` + `index.lazy.tsx`), `apps/portal/pages`, `apps/portal/renderer`, `apps/portal/server` | Route config and lazy component binding, route-level guards | Business workflow implementation, inline page rendering |
-| Feature/page composition | `apps/admin/src/pages`, `apps/portal/src/views` | Feature orchestration and page behavior | Transport/client primitives and global infra concerns |
-| Data access layer | `apps/admin/src/api`, `apps/portal/src/runtime/*api*` | API contracts, request helpers, response normalization | JSX rendering logic |
-| Shared app internals | `apps/admin/src/lib`, `apps/admin/src/hooks`, `apps/portal/src/runtime` (non-API helpers) | App-local reusable helpers | Cross-app contracts that belong in packages |
-| UI building blocks | `apps/admin/src/components`, `apps/portal/src/views` (components), `apps/portal/src/runtime` (render/runtime adapters) | Reusable UI components and presentation units | Domain persistence logic and routing policy |
+| App routing shell | `apps/admin/src/routes` (`index.tsx` + `index.lazy.tsx`) | Route config and lazy component binding, route-level guards | Business workflow implementation, inline page rendering |
+| Feature/page composition | `apps/admin/src/pages` | Feature orchestration and page behavior | Transport/client primitives and global infra concerns |
+| Data access layer | `apps/admin/src/api` | API contracts, request helpers, response normalization | JSX rendering logic |
+| Shared app internals | `apps/admin/src/lib`, `apps/admin/src/hooks` | App-local reusable helpers | Cross-app contracts that belong in packages |
+| UI building blocks | `apps/admin/src/components` | Reusable UI components and presentation units | Domain persistence logic and routing policy |
 | App state layer | `apps/admin/src/stores` | UI state only; transient app state | Mirroring server state from API responses |
 | Cross-app shared packages | `packages/core/runtime`, `packages/core/renderer`, `packages/internal/types`, `packages/protocols/*`, `packages/bridges/*`, `packages/ui/tokens` | Shared contracts, protocol, runtime primitives, theme/tokens | App-specific view logic |
 
@@ -40,7 +38,7 @@ This guideline applies to:
 - `lib/` owns local utilities that are not yet cross-app.
 - `hooks/` owns reusable React behavior hooks.
 - `stores/` owns client/UI state only (not server-state mirrors).
-- `types/` owns Admin-local types; shared types should be promoted to the appropriate `packages/*` package (Portal-specific contracts belong to `packages/internal/types`).
+- `types/` owns Admin-local types; shared types should be promoted to the appropriate `packages/*` package.
 
 ### 4.1 Admin API Data Layer Convention (`api/` + `types/api/` + `lib/api/`)
 
@@ -333,33 +331,24 @@ For patterns like `organization/team/shared/`:
 - Page-local utility/constant/type files must be named `utils.ts`, `constants.ts`, and `types.ts` (no page-level prefixes).
 - Prohibited names: `helpers.ts`, `display.ts`, `*-helpers.tsx`, `*-display.ts`.
 
-## 5. Portal Structure Rules (`apps/portal`)
-
-- `pages/` owns Vike route entries (`+Page.tsx`, `+route.ts`) and route-level selection.
-- `renderer/` owns render pipeline integration (`+onRender*`, shell wrappers).
-- `server/` owns runtime server bootstrap only.
-- `src/features/` owns page feature behavior (editor/editor-host/public rendering flows).
-- `src/runtime/` owns route resolution, runtime config, request context, and portal API wrappers.
-- `src/components/` owns reusable presentational components.
-
-## 6. Cross-App Reuse and Promotion Rules (mandatory)
+## 5. Cross-App Reuse and Promotion Rules (mandatory)
 
 ### 6.1 Promotion trigger
 
-When the same utility/type/contract appears in Admin and Portal for the second time, it must be evaluated and usually promoted to `packages/*`.
+When the same utility/type/contract appears across multiple frontend surfaces for the second time, it must be evaluated and usually promoted to `packages/*`.
 
 ### 6.2 Package placement policy
 
 - `packages/core/runtime`: runtime utilities, HTTP primitives, config/i18n helpers, no React UI dependencies.
-- `packages/internal/types`: Portal runtime contracts (route match shape, runtime config types, request context types).
+- `packages/internal/types`: shared runtime contracts (route match shape, runtime config types, request context types).
 - `packages/protocols/*`: protocol/type contracts shared by apps.
 - `packages/core/renderer` + `packages/bridges/*`: renderer core and editor bridges/adapters.
 - `packages/ui/tokens`: shared design tokens, Tailwind preset, and theme adapters.
 
 ### 6.3 Hard prohibitions
 
-- No direct source import between apps (`apps/admin` must not import from `apps/portal`, and vice versa).
-- No duplicated shared helpers across both apps when package extraction is viable.
+- No direct source import across app boundaries.
+- No duplicated shared helpers across multiple apps when package extraction is viable.
 
 ## 7. Dependency Direction Rules
 
@@ -370,13 +359,7 @@ When the same utility/type/contract appears in Admin and Portal for the second t
 - `components` may depend on hooks/lib/types/packages, but must not define transport logic.
 - `stores` must not become a mirror cache of server state already managed by React Query.
 
-### 7.2 Portal dependency flow
-
-- `pages|renderer -> features -> runtime/components -> packages/*`
-- `runtime` owns fetch-based portal API wrappers and route resolution logic.
-- `features` should consume runtime APIs instead of implementing raw transport repeatedly.
-
-### 7.3 Prohibited patterns
+### 7.2 Prohibited patterns
 
 - Business logic, API calls, complex JSX, or stateful hooks in route entry files (`routes/**/*.tsx`). Route files must only contain route configuration and lazy component binding — all rendering and behavior logic belongs in `pages/`. See section 4.3 for the full whitelist/blacklist.
 - Direct fetch calls spread across multiple page/component files when a shared API wrapper can be used.

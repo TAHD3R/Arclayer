@@ -242,7 +242,7 @@ describe("AdminSiderNav collapsed groups", () => {
     await user.hover(screen.getByRole("button", { name: "Team" }));
 
     const activeItem = await screen.findByRole("menuitem", { name: "Invitations" });
-    expect(activeItem).toHaveAttribute("data-active", "true");
+    expect(activeItem).toHaveAttribute("aria-current", "page");
     await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Members" })).toBeVisible();
     });

@@ -24,32 +24,12 @@ http:
       service: admin
       priority: 10
 
-    studio:
-      entryPoints:
-        - web
-      rule: "Host(`studio.celestial.localhost`)"
-      service: studio
-      priority: 10
-
     traefik-dashboard:
       entryPoints:
         - web
       rule: "Host(`traefik.celestial.localhost`)"
       service: api@internal
       priority: 10
-
-    portal:
-      entryPoints:
-        - web
-      # NOTE: Use the raw regexp form for HostRegexp to avoid template/placeholder compatibility
-      # surprises across Traefik versions. This matches any single-label subdomain under
-      # `*.celestial.localhost` (e.g. `philip.celestial.localhost`).
-      #
-      # Higher-priority routers (`app` / `api` / `traefik-dashboard`) still win, so those hosts won't
-      # be captured by this route.
-      rule: "HostRegexp(`^[^.]+\\.celestial\\.localhost$`)"
-      service: portal
-      priority: 1
 
   services:
     api:
@@ -63,15 +43,3 @@ http:
         passHostHeader: true
         servers:
           - url: "http://host.docker.internal:5173"
-
-    studio:
-      loadBalancer:
-        passHostHeader: true
-        servers:
-          - url: "http://host.docker.internal:5174"
-
-    portal:
-      loadBalancer:
-        passHostHeader: true
-        servers:
-          - url: "http://host.docker.internal:3100"

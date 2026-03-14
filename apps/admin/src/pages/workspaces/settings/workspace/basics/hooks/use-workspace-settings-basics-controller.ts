@@ -25,7 +25,7 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 import type { AssignRoleDialogValues, WorkspaceSettingsFormValues } from "../../types";
-import { buildWorkspacePortalUrl, resolveWorkspaceSettingsTabNavigation } from "../../utils";
+import { buildWorkspaceSiteUrl, resolveWorkspaceSettingsTabNavigation } from "../../utils";
 import { buildWorkspaceRoleMetadata } from "./role-metadata";
 import { useWorkspaceSettingsBasicsMutations } from "./use-workspace-settings-basics-mutations";
 
@@ -320,7 +320,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     localePreferenceMode,
     setEffectiveLocale,
     cacheWorkspaceLocale,
-    portalUrl: buildWorkspacePortalUrl(currentWorkspaceSlug),
+    siteUrl: buildWorkspaceSiteUrl(currentWorkspaceSlug),
   };
 }
 

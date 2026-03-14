@@ -1,7 +1,7 @@
 import { FALLBACK_PRIMARY_BEND_COLOR } from "./constants";
 
-export function resolvePortalOrigin(): string {
-  const raw = (import.meta.env.VITE_PORTAL_ORIGIN || "").trim();
+export function resolveSiteOrigin(): string {
+  const raw = (import.meta.env.VITE_SITE_ORIGIN || "").trim();
   if (raw) return raw;
   return "http://localhost:3100";
 }

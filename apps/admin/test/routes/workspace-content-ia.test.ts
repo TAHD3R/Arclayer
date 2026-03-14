@@ -32,7 +32,7 @@ describe("workspace content information architecture", () => {
     expect(source).not.toContain("disabled: true");
   });
 
-  test("workspace content routes exist for new IA entry points", () => {
+  test("workspace content routes are removed while nav definitions remain", () => {
     const siteBuilderRoute = resolveSource("routes/w/$workspaceId/content/site-builder/index.tsx");
     const siteBuilderLazyRoute = resolveSource(
       "routes/w/$workspaceId/content/site-builder/index.lazy.tsx",
@@ -42,22 +42,12 @@ describe("workspace content information architecture", () => {
     const modelsRoute = resolveSource("routes/w/$workspaceId/content/models/index.tsx");
     const modelsLazyRoute = resolveSource("routes/w/$workspaceId/content/models/index.lazy.tsx");
 
-    expect(existsSync(siteBuilderRoute)).toBe(true);
-    expect(existsSync(siteBuilderLazyRoute)).toBe(true);
-    expect(existsSync(libraryRoute)).toBe(true);
-    expect(existsSync(libraryLazyRoute)).toBe(true);
-    expect(existsSync(modelsRoute)).toBe(true);
-    expect(existsSync(modelsLazyRoute)).toBe(true);
-
-    expect(readFileSync(siteBuilderRoute, "utf-8")).toContain(
-      'createFileRoute("/w/$workspaceId/content/site-builder/")',
-    );
-    expect(readFileSync(libraryRoute, "utf-8")).toContain(
-      'createFileRoute("/w/$workspaceId/content/library/")',
-    );
-    expect(readFileSync(modelsRoute, "utf-8")).toContain(
-      'createFileRoute("/w/$workspaceId/content/models/")',
-    );
+    expect(existsSync(siteBuilderRoute)).toBe(false);
+    expect(existsSync(siteBuilderLazyRoute)).toBe(false);
+    expect(existsSync(libraryRoute)).toBe(false);
+    expect(existsSync(libraryLazyRoute)).toBe(false);
+    expect(existsSync(modelsRoute)).toBe(false);
+    expect(existsSync(modelsLazyRoute)).toBe(false);
   });
 
   test("legacy pages route no longer exists as a primary entry point", () => {

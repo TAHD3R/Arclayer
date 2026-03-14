@@ -43,12 +43,7 @@ import {
   SETUP_PROGRESS_STAGE_ORDER,
   WORKSPACE_FIELDS,
 } from "./constants";
-import {
-  resolvePrimaryBendColor,
-  resolvePortalOrigin,
-  resolveSetupDryRunFlag,
-  sleep,
-} from "./utils";
+import { resolvePrimaryBendColor, resolveSiteOrigin, resolveSetupDryRunFlag, sleep } from "./utils";
 
 export function SetupPage() {
   const { t } = useTranslation();
@@ -141,8 +136,8 @@ export function SetupPage() {
     const templateKey: SetupWorkspaceTemplate = siteDraft.templateKey || "blank";
     const displayName = (adminDraft.displayName || adminDraft.username || "").trim() || "admin";
     const slugSeed = (adminDraft.username || "").trim() || "admin";
-    const portalOrigin = resolvePortalOrigin().trim().replace(/\/+$/, "");
-    const siteUrl = siteDraft.siteUrl ?? `${portalOrigin}/w/${slugSeed}`;
+    const siteOrigin = resolveSiteOrigin().trim().replace(/\/+$/, "");
+    const siteUrl = siteDraft.siteUrl ?? `${siteOrigin}/w/${slugSeed}`;
 
     const preset = applyWorkspaceTemplatePreset({
       templateKey,
@@ -253,8 +248,8 @@ export function SetupPage() {
     const current = siteForm.getFieldsValue(true) as SetupSiteDraft;
     const displayName = (adminDraft.displayName || adminDraft.username || "").trim() || "admin";
     const slugSeed = (adminDraft.username || "").trim() || "admin";
-    const portalOrigin = resolvePortalOrigin().trim().replace(/\/+$/, "");
-    const siteUrl = (current.siteUrl || "").trim() || `${portalOrigin}/w/${slugSeed}`;
+    const siteOrigin = resolveSiteOrigin().trim().replace(/\/+$/, "");
+    const siteUrl = (current.siteUrl || "").trim() || `${siteOrigin}/w/${slugSeed}`;
 
     const preset = applyWorkspaceTemplatePreset({
       templateKey,

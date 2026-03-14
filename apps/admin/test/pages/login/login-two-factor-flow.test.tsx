@@ -70,11 +70,6 @@ vi.mock("@/lib/routing/bootstrap-routing", () => ({
   resolvePostAuthRoute: vi.fn(async () => ({ path: "/" })),
 }));
 
-vi.mock("@/lib/routing/studio-return", () => ({
-  consumeStudioReturnTo: vi.fn(() => null),
-  resolveStudioOrigin: vi.fn(() => "https://studio.example.com"),
-}));
-
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
   notifyErrorText: vi.fn(),

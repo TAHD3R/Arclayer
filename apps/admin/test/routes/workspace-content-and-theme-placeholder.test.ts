@@ -19,14 +19,19 @@ describe("workspace content and appearance routes", () => {
     expect(existsSync(lazyRoute)).toBe(false);
   });
 
-  test("workspace content IA routes exist", () => {
+  test("workspace content IA definitions remain even though route files are removed", () => {
+    const menuSource = readFileSync(resolveSource("constants/menu/workspaces.ts"), "utf-8");
     const siteBuilderRoute = resolveSource("routes/w/$workspaceId/content/site-builder/index.tsx");
     const libraryRoute = resolveSource("routes/w/$workspaceId/content/library/index.tsx");
     const modelsRoute = resolveSource("routes/w/$workspaceId/content/models/index.tsx");
 
-    expect(existsSync(siteBuilderRoute)).toBe(true);
-    expect(existsSync(libraryRoute)).toBe(true);
-    expect(existsSync(modelsRoute)).toBe(true);
+    expect(menuSource).toContain('to: "/content/site-builder"');
+    expect(menuSource).toContain('to: "/content/library"');
+    expect(menuSource).toContain('to: "/content/models"');
+
+    expect(existsSync(siteBuilderRoute)).toBe(false);
+    expect(existsSync(libraryRoute)).toBe(false);
+    expect(existsSync(modelsRoute)).toBe(false);
   });
 
   test("workspace appearance routes have been removed", () => {

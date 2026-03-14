@@ -17,7 +17,6 @@ import {
 } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
 import { resolvePostAuthRoute } from "@/lib/routing/bootstrap-routing";
-import { consumeStudioReturnTo, resolveStudioOrigin } from "@/lib/routing/studio-return";
 import {
   getActiveAuthChallenge,
   isAuthChallengeExpired,
@@ -160,25 +159,6 @@ export function useLoginPage() {
           return;
         }
         await navigate({ to: targetRedirect, replace: true });
-        return;
-      }
-
-      const studioReturnTo = consumeStudioReturnTo();
-      if (studioReturnTo) {
-        const studioOrigin = resolveStudioOrigin();
-        const refreshToken = useAuthStore.getState().refreshToken;
-        try {
-          if (refreshToken) {
-            const tokens = await authApi.refresh({ refresh_token: refreshToken });
-            useAuthStore.getState().setTokens(tokens);
-          }
-          await authApi.refreshCookie();
-        } catch {
-          notifyErrorText(t("auth:STUDIO_SESSION_REQUIRED"));
-          await navigate({ to: "/", replace: true });
-          return;
-        }
-        window.location.replace(`${studioOrigin}${studioReturnTo}`);
         return;
       }
 

@@ -232,7 +232,7 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
     expect(trigger).not.toHaveAttribute("title");
   });
 
-  it("workspace scope: trigger shows tooltip on hover", async () => {
+  it("workspace scope: trigger does not render a browser tooltip on hover", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
 
@@ -244,8 +244,7 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
     await user.hover(trigger);
     await waitFor(() => {
       const tooltip = document.querySelector('[data-slot="tooltip-content"]');
-      expect(tooltip).toBeTruthy();
-      expect(tooltip).toHaveTextContent("Workspace Alpha");
+      expect(tooltip).toBeNull();
     });
   });
 

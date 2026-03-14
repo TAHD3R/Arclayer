@@ -40,15 +40,6 @@ Design intent:
 - Admin component choice defaults
 - Admin UX/copywriting and interaction consistency
 
-### 3.2 Portal relationship
-
-Portal (`apps/portal`) uses a theme/runtime mechanism and is not governed by Admin implementation details in this document.
-
-Portal should still inherit:
-
-- The same design philosophy and personality (Section 2)
-- Basic readability and UX quality principles
-
 ## 4. Component Selection Matrix (Admin Default)
 
 These are **strong defaults** and guardrails. They are not absolute bans, but any deviation must include rationale in PR description.

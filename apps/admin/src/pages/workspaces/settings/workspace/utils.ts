@@ -24,9 +24,9 @@ export function resolveWorkspaceSettingsTabNavigation(
   };
 }
 
-export function buildWorkspacePortalUrl(workspaceSlug: string | null | undefined): string {
+export function buildWorkspaceSiteUrl(workspaceSlug: string | null | undefined): string {
   const slug = String(workspaceSlug || "").trim();
-  const origin = (import.meta.env.VITE_PORTAL_ORIGIN || "http://localhost:3100")
+  const origin = (import.meta.env.VITE_SITE_ORIGIN || "http://localhost:3100")
     .trim()
     .replace(/\/+$/, "");
   if (!slug) return origin;

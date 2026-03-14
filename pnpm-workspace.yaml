@@ -1,8 +1,6 @@
 packages:
   - "apps/api"
   - "apps/admin"
-  - "apps/portal"
-  - "apps/studio"
   - "packages/**"
 
 # pnpm catalogs：用一个地方统一管理版本号，package.json 里用 `catalog:` 引用

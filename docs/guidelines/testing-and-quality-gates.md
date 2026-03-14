@@ -1,7 +1,7 @@
 # Testing and Quality Gates (CelestialCMS)
 
 This document defines mandatory quality checks, testing scope, and merge gates.
-It is a normative guideline for backend, admin frontend, and portal frontend changes.
+It is a normative guideline for backend and admin frontend changes.
 
 ## 1. Goals
 
@@ -16,8 +16,6 @@ This guideline applies to all authored code changes in:
 
 - `apps/api`
 - `apps/admin`
-- `apps/portal`
-- `apps/studio`
 - Shared packages under `packages/*` used by the above apps
 
 ## 3. Command Execution Rules (mandatory)
@@ -55,42 +53,13 @@ Canonical command:
 
 - `pnpm admin:check`
 
-### 4.3 Portal frontend (`apps/portal`)
-
-Minimum pass conditions:
-
-- Lint
-- Format
-- Typecheck
-- Vitest suite
-
-Canonical commands:
-
-- `pnpm portal:check`
-- `pnpm --filter @celestial/portal test`
-
-### 4.4 Studio frontend (`apps/studio`)
-
-Minimum pass conditions:
-
-- Lint
-- Format
-- Typecheck
-- Vitest suite (or pass-with-no-tests suite)
-
-Canonical command:
-
-- `pnpm studio:check`
-
 ## 5. Change-Type to Required Checks Matrix
 
 | Change type | Required checks before review | Additional checks before merge |
 | --- | --- | --- |
 | Backend router/service/repository/schema | `pnpm api:check` | Integration tests if DB/cache/auth behavior changed |
-| Backend shared contract (`common`, `core/http`, error contracts) | `pnpm api:check` | Impacted frontend checks (`admin:check`, portal tests) when API shape changes |
+| Backend shared contract (`common`, `core/http`, error contracts) | `pnpm api:check` | Impacted frontend checks (`admin:check`) when API shape changes |
 | Admin UI/page/api layer | `pnpm admin:check` | `pnpm check` for cross-app or shared package impact |
-| Portal runtime/page/component | `pnpm portal:check` + portal `test` | `pnpm check` for shared package impact |
-| Studio UI/route/component | `pnpm studio:check` | `pnpm check` for shared package impact |
 | Shared packages used by multiple apps | Relevant filtered checks per consumer app | `pnpm check` |
 | i18n contract/error-code mapping | Backend + affected frontend checks | Verify both locales and error mapping behavior |
 

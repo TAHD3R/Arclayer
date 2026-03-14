@@ -149,15 +149,6 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # Portal: https://example.com/
-      - "traefik.http.routers.portal.rule=Host(`${SELFHOST_PORTAL_HOST:-example.com}`)"
-      - "traefik.http.routers.portal.entrypoints=websecure"
-      - "traefik.http.routers.portal.tls=true"
-      - "traefik.http.routers.portal.tls.certresolver=le"
-      - "traefik.http.routers.portal.middlewares=compress@docker,security-headers@docker"
-      - "traefik.http.services.portal.loadbalancer.server.url=${SELFHOST_PORTAL_UPSTREAM:-http://host.docker.internal:3100}"
-      - "traefik.http.services.portal.loadbalancer.passhostheader=true"
-
       # Admin: https://app.example.com/
       - "traefik.http.routers.admin.rule=Host(`${SELFHOST_ADMIN_HOST:-app.example.com}`)"
       - "traefik.http.routers.admin.entrypoints=websecure"
