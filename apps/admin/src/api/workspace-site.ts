@@ -4,6 +4,7 @@ import { toQueryString, workspacePath } from "@/lib/api";
 import type {
   PageData,
   WorkspaceSite,
+  WorkspacePublishImpact,
   PreviewTokenRequest,
   PreviewTokenOut,
   SiteSettingDetail,
@@ -48,6 +49,12 @@ import type {
 
 export async function getWorkspaceSite(workspaceId: string): Promise<WorkspaceSite> {
   return api.get<WorkspaceSite>(workspacePath(workspaceId, "/site"));
+}
+
+export async function getWorkspacePublishImpact(
+  workspaceId: string,
+): Promise<WorkspacePublishImpact> {
+  return api.get<WorkspacePublishImpact>(workspacePath(workspaceId, "/publish/impact"));
 }
 
 export async function issueWorkspaceSitePreviewToken(

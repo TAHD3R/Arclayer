@@ -1,0 +1,14 @@
+{
+  "name": "@celestial/delivery-hono",
+  "version": "2026.03.14-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

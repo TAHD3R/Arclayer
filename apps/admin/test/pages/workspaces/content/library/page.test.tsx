@@ -12,6 +12,7 @@ const {
   createWorkspaceContentView,
   previewWorkspaceContentView,
   listWorkspaceSiteEntries,
+  getWorkspacePublishImpact,
   createWorkspaceSiteEntry,
   publishWorkspaceSiteEntry,
   unpublishWorkspaceSiteEntry,
@@ -21,6 +22,7 @@ const {
   createWorkspaceContentView: vi.fn(),
   previewWorkspaceContentView: vi.fn(),
   listWorkspaceSiteEntries: vi.fn(),
+  getWorkspacePublishImpact: vi.fn(),
   createWorkspaceSiteEntry: vi.fn(),
   publishWorkspaceSiteEntry: vi.fn(),
   unpublishWorkspaceSiteEntry: vi.fn(),
@@ -38,6 +40,7 @@ vi.mock("@/api/content-views", () => ({
 
 vi.mock("@/api/workspace-site", () => ({
   listWorkspaceSiteEntries,
+  getWorkspacePublishImpact,
   createWorkspaceSiteEntry,
   publishWorkspaceSiteEntry,
   unpublishWorkspaceSiteEntry,
@@ -88,6 +91,16 @@ vi.mock("react-i18next", () => ({
           "content_library:LIBRARY_METRIC_TOTAL": "Total entries",
           "content_library:LIBRARY_METRIC_DRAFT": "Draft only",
           "content_library:LIBRARY_METRIC_PUBLISHED": "Published",
+          "content_library:LIBRARY_IMPACT_TITLE": "Publish blockers",
+          "content_library:LIBRARY_IMPACT_DESC":
+            "Resolve these blockers before publishing this model.",
+          "content_library:LIBRARY_IMPACT_MISSING_ROUTES": "Missing routes",
+          "content_library:LIBRARY_IMPACT_UNRESOLVED_RELATIONS": "Unresolved relations",
+          "content_library:LIBRARY_IMPACT_UNPUBLISHED_DEPENDENCIES": "Unpublished dependencies",
+          "content_library:MODELS_EDITOR_FORM": "Form editor",
+          "content_library:MODELS_EDITOR_VISUAL": "Visual editor",
+          "content_library:MODELS_EDITOR_RICH_TEXT": "Rich text editor",
+          "content_library:MODELS_EDITOR_TABLE": "Table editor",
           "content_library:LIBRARY_STATUS_DRAFT": "Draft",
           "content_library:LIBRARY_STATUS_PUBLISHED": "Published",
           "content_library:LIBRARY_ACTION_PUBLISH": "Publish",
@@ -195,6 +208,11 @@ describe("WorkspaceContentLibraryPage", () => {
     installMatchMedia();
     installComputedStyle();
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+    getWorkspacePublishImpact.mockResolvedValue({
+      missingRoutes: [],
+      unresolvedRelations: [],
+      unpublishedDependencies: [],
+    });
   });
 
   afterEach(() => {
@@ -301,6 +319,28 @@ describe("WorkspaceContentLibraryPage", () => {
       next: null,
       prev: null,
     });
+    getWorkspacePublishImpact.mockResolvedValue({
+      missingRoutes: ["missing-1", "missing-2", "missing-3", "missing-4", "missing-5", "missing-6"],
+      unresolvedRelations: [
+        "relation-1",
+        "relation-2",
+        "relation-3",
+        "relation-4",
+        "relation-5",
+        "relation-6",
+        "relation-7",
+      ],
+      unpublishedDependencies: [
+        "dependency-1",
+        "dependency-2",
+        "dependency-3",
+        "dependency-4",
+        "dependency-5",
+        "dependency-6",
+        "dependency-7",
+        "dependency-8",
+      ],
+    });
 
     await renderWithQuery();
 
@@ -308,10 +348,21 @@ describe("WorkspaceContentLibraryPage", () => {
     expect(await screen.findByText("Content type")).toBeInTheDocument();
     expect(await screen.findByText("Saved view")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save view" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getWorkspacePublishImpact).toHaveBeenCalledWith("ws-1");
+    });
     expect(await screen.findByText("Total entries")).toBeInTheDocument();
+    expect(screen.getByText("Publish blockers")).toBeInTheDocument();
+    expect(screen.getByText("Missing routes")).toBeInTheDocument();
+    expect(screen.getByText("Unresolved relations")).toBeInTheDocument();
+    expect(screen.getByText("Unpublished dependencies")).toBeInTheDocument();
+    expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
     expect(await screen.findByText("Title")).toBeInTheDocument();
     expect(screen.getByText("Slug")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText("Rich text editor")).toBeInTheDocument();
     expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Published").length).toBeGreaterThan(0);
     expect(screen.getByText("Actions")).toBeInTheDocument();

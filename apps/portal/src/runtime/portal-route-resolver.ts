@@ -5,9 +5,9 @@ import type { DesignRenderDataSourcesV1 } from "@celestial/renderer";
 import type { ContentRefIncludesMap, ResolveWarningV1 } from "@celestial/block-protocol";
 
 import { HttpError } from "@/runtime/http-error";
+import { resolveRouteFromPublishedGraph } from "@/runtime/content/graph-resolver";
 import {
   fetchLegacyContentEntryRevision,
-  resolveRouteFromApi,
   type LegacyContentEntryRevisionSnapshot,
   type LegacyContentEntryRevisionState,
 } from "./site-api";
@@ -33,8 +33,14 @@ export async function resolvePortalRoute(
 
   try {
     const opts: { mode: PortalResolveMode; token?: string } = { mode: args.mode };
-    if (args.token) opts.token = args.token;
-    return await resolveRouteFromApi(pathname, args.siteId, opts);
+    if (args.token) {
+      opts.token = args.token;
+    }
+    return await resolveRouteFromPublishedGraph(pathname, {
+      siteId: args.siteId,
+      mode: opts.mode,
+      ...(opts.token ? { token: opts.token } : {}),
+    });
   } catch (err) {
     throw toHttpError(err);
   }

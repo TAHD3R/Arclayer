@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -22,42 +22,47 @@ vi.mock("react-i18next", () => ({
       (
         ({
           "content_library:MODELS_PAGE_TITLE": "Manage your content models",
-          "content_library:MODELS_PAGE_DESC":
-            "Review the models that define your site structure and content library.",
-          "content_library:MODELS_CREATE_ACTION": "New model",
+          "content_library:MODELS_PAGE_DESC": "Review your content model contracts.",
+          "content_library:MODELS_CREATE_ACTION": "Create model from blank",
           "content_library:MODELS_EMPTY_TITLE": "No content models yet",
-          "content_library:MODELS_EMPTY_DESC":
-            "Create your first model to define reusable content structures for the workspace.",
+          "content_library:MODELS_EMPTY_DESC": "Create your first model.",
           "content_library:MODELS_DIALOG_TITLE": "Create content model",
-          "content_library:MODELS_DIALOG_DESC":
-            "Define a reusable model for your site or content operations.",
+          "content_library:MODELS_DIALOG_DESC": "Define a reusable model contract.",
           "content_library:MODELS_DIALOG_SUBMIT": "Create model",
-          "content_library:MODELS_FIELD_TEMPLATE_LABEL": "Template",
-          "content_library:MODELS_FIELD_TEMPLATE_DESC":
-            "Start from a site-building or content-ops preset.",
           "content_library:MODELS_FIELD_NAME_LABEL": "Name",
-          "content_library:MODELS_FIELD_NAME_DESC":
-            "Choose the label people will see in the workspace.",
           "content_library:MODELS_FIELD_NAME_PLACEHOLDER": "Article",
           "content_library:MODELS_FIELD_KEY_LABEL": "Key",
-          "content_library:MODELS_FIELD_KEY_DESC":
-            "Use a stable machine key for API and content binding.",
           "content_library:MODELS_FIELD_KEY_PLACEHOLDER": "article",
           "content_library:MODELS_FIELD_KIND_LABEL": "Model kind",
-          "content_library:MODELS_FIELD_KIND_DESC":
-            "Choose the closest capability preset for this model.",
+          "content_library:MODELS_FIELD_TEMPLATE_LABEL": "Template",
+          "content_library:MODELS_TEMPLATE_OPTIONAL_DESC":
+            "Optional examples. Blank-first remains primary.",
+          "content_library:MODELS_SECTION_FIELDS": "Fields schema (JSON object)",
+          "content_library:MODELS_SECTION_RELATIONS": "Relations schema (JSON object)",
+          "content_library:MODELS_SECTION_CAPABILITIES": "Capabilities",
+          "content_library:MODELS_JSON_PLACEHOLDER_FIELDS": "fields-json",
+          "content_library:MODELS_JSON_PLACEHOLDER_RELATIONS": "relations-json",
+          "content_library:MODELS_ROUTING_MODE_LABEL": "Routing mode",
+          "content_library:MODELS_ROUTING_PATTERN_LABEL": "Routing pattern",
+          "content_library:MODELS_VIEW_DEFAULT_EDITOR_LABEL": "Default editor",
+          "content_library:MODELS_VIEW_DEFAULT_LABEL": "Default view",
+          "content_library:MODELS_WORKFLOW_SCHEDULE_LABEL": "Enable schedule workflow",
+          "content_library:MODELS_IMPACT_TITLE": "Model impact preview",
+          "content_library:MODELS_IMPACT_DESC": "Review impact before save.",
+          "content_library:MODELS_IMPACT_FIELDS": "Fields",
+          "content_library:MODELS_IMPACT_RELATIONS": "Relations",
+          "content_library:MODELS_IMPACT_CAPABILITIES": "Capabilities",
           "content_library:MODELS_KIND_CUSTOM": "Custom",
-          "content_library:MODELS_KIND_POST": "Post",
           "content_library:MODELS_KIND_PAGE": "Page",
+          "content_library:MODELS_KIND_POST": "Post",
           "content_library:MODELS_KIND_COMPONENT": "Component",
           "content_library:MODELS_KIND_BLOCK": "Block",
           "content_library:MODELS_KIND_MENU": "Menu",
           "content_library:MODELS_KIND_TEMPLATE": "Template",
           "content_library:MODELS_KIND_VIEW": "View",
-          "content_library:MODELS_PREVIEW_TITLE": "Model contract preview",
-          "content_library:MODELS_PREVIEW_CAPABILITIES": "Capabilities",
-          "content_library:MODELS_PREVIEW_CAPABILITIES_EMPTY":
-            "Capabilities will follow the selected kind until you add a preset.",
+          "content_library:MODELS_TEMPLATE_CUSTOM_TITLE": "Custom",
+          "content_library:MODELS_TEMPLATE_CUSTOM_SUMMARY": "Blank model",
+          "content_library:MODELS_TOAST_CREATE_SUCCESS": "Model created",
           "content_library:MODELS_CATEGORY_SITE_BUILDER": "Site Builder",
           "content_library:MODELS_CATEGORY_CONTENT_LIBRARY": "Content Library",
           "content_library:MODELS_CATEGORY_SYSTEM": "System",
@@ -78,46 +83,6 @@ vi.mock("react-i18next", () => ({
           "content_library:MODELS_CAPABILITY_PUBLISHABLE": "Publishable",
           "content_library:MODELS_CAPABILITY_SCHEDULABLE": "Schedulable",
           "content_library:MODELS_CAPABILITY_SEO_MANAGED": "SEO managed",
-          "content_library:MODELS_TEMPLATE_CUSTOM_TITLE": "Custom",
-          "content_library:MODELS_TEMPLATE_CUSTOM_SUMMARY": "Start from an empty model contract.",
-          "content_library:MODELS_TEMPLATE_CUSTOM_DESCRIPTION":
-            "Use a custom model when you want to define the storage kind yourself.",
-          "content_library:MODELS_TEMPLATE_PAGE_TITLE": "Page",
-          "content_library:MODELS_TEMPLATE_PAGE_SUMMARY":
-            "Visual, routed, treeable pages for the site builder.",
-          "content_library:MODELS_TEMPLATE_PAGE_DESCRIPTION":
-            "Routed visual pages with layout, slots, localization, and SEO support.",
-          "content_library:MODELS_TEMPLATE_POST_TITLE": "Post",
-          "content_library:MODELS_TEMPLATE_POST_SUMMARY":
-            "Rich-text editorial entries for blogs and news.",
-          "content_library:MODELS_TEMPLATE_POST_DESCRIPTION":
-            "Editorial content with routing, SEO, publishing, and scheduling hooks.",
-          "content_library:MODELS_TEMPLATE_AUTHOR_TITLE": "Author",
-          "content_library:MODELS_TEMPLATE_AUTHOR_SUMMARY":
-            "Profiles reused across posts, layouts, and testimonials.",
-          "content_library:MODELS_TEMPLATE_AUTHOR_DESCRIPTION":
-            "Profiles used across posts, layouts, and testimonials.",
-          "content_library:MODELS_TEMPLATE_TESTIMONIAL_TITLE": "Testimonial",
-          "content_library:MODELS_TEMPLATE_TESTIMONIAL_SUMMARY":
-            "Structured social proof blocks for landing pages.",
-          "content_library:MODELS_TEMPLATE_TESTIMONIAL_DESCRIPTION":
-            "Reusable testimonial records with speaker metadata and publish control.",
-          "content_library:MODELS_TEMPLATE_PRICING_TIER_TITLE": "Pricing Tier",
-          "content_library:MODELS_TEMPLATE_PRICING_TIER_SUMMARY":
-            "Structured plans for pricing pages and comparison tables.",
-          "content_library:MODELS_TEMPLATE_PRICING_TIER_DESCRIPTION":
-            "Pricing plans with feature lists, billing metadata, and publish workflows.",
-          "content_library:MODELS_TEMPLATE_LEGAL_DOCUMENT_TITLE": "Legal Document",
-          "content_library:MODELS_TEMPLATE_LEGAL_DOCUMENT_SUMMARY":
-            "Long-form policies and legal pages with routing.",
-          "content_library:MODELS_TEMPLATE_LEGAL_DOCUMENT_DESCRIPTION":
-            "Legal documents with rich-text editing, routing, localization, and SEO.",
-          "content_library:MODELS_TEMPLATE_REUSABLE_BLOCK_TITLE": "Reusable Block",
-          "content_library:MODELS_TEMPLATE_REUSABLE_BLOCK_SUMMARY":
-            "Visual blocks reused across pages, layouts, and slots.",
-          "content_library:MODELS_TEMPLATE_REUSABLE_BLOCK_DESCRIPTION":
-            "Reusable visual sections that stay publishable and slot-aware.",
-          "content_library:MODELS_TOAST_CREATE_SUCCESS": "Model created",
           "common:CANCEL": "Cancel",
           "common:RETRY": "Retry",
         }) as Record<string, string>
@@ -173,6 +138,16 @@ async function renderWithQuery() {
   });
 }
 
+const EMPTY_LIST = {
+  items: [],
+  total: 0,
+  page: 1,
+  size: 20,
+  pages: 0,
+  next: null,
+  prev: null,
+};
+
 describe("WorkspaceContentModelsPage", () => {
   beforeEach(() => {
     useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
@@ -183,105 +158,26 @@ describe("WorkspaceContentModelsPage", () => {
     useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
   });
 
-  test("renders empty state when no models exist", async () => {
-    listWorkspaceContentModels.mockResolvedValue({
-      items: [],
-      total: 0,
-      page: 1,
-      size: 20,
-      pages: 0,
-      next: null,
-      prev: null,
-    });
+  test("renders blank-first CTA and empty state", async () => {
+    listWorkspaceContentModels.mockResolvedValue(EMPTY_LIST);
 
     await renderWithQuery();
 
     expect(await screen.findByText("Manage your content models")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Create model from blank" }),
+    ).toBeInTheDocument();
     expect(await screen.findByText("No content models yet")).toBeInTheDocument();
   });
 
-  test("renders model cards when data is available", async () => {
-    listWorkspaceContentModels.mockResolvedValue({
-      items: [
-        {
-          id: "model-page",
-          workspaceId: "ws-1",
-          siteId: "site-1",
-          key: "page",
-          name: "Page",
-          description: "Routed visual pages with layout and SEO support.",
-          category: "site_builder",
-          capabilities: ["versioned", "routable", "visual_editable"],
-          defaultEditor: "visual",
-        },
-        {
-          id: "model-article",
-          workspaceId: "ws-1",
-          siteId: "site-1",
-          key: "article",
-          name: "Article",
-          description: "Editorial entries for content operations.",
-          category: "content_library",
-          capabilities: ["versioned", "routable", "rich_text_editable"],
-          defaultEditor: "rich_text",
-        },
-      ],
-      total: 2,
-      page: 1,
-      size: 20,
-      pages: 1,
-      next: null,
-      prev: null,
-    });
-
-    await renderWithQuery();
-
-    expect(await screen.findByText("Page")).toBeInTheDocument();
-    expect(await screen.findByText("Article")).toBeInTheDocument();
-    expect(screen.getByText("Site Builder")).toBeInTheDocument();
-    expect(screen.getByText("Content Library")).toBeInTheDocument();
-    expect(
-      screen.getByText("Routed visual pages with layout and SEO support."),
-    ).toBeInTheDocument();
-  });
-
-  test("creates a model and refreshes the list", async () => {
+  test("creates a blank-first model", async () => {
     const user = userEvent.setup();
-    listWorkspaceContentModels
-      .mockResolvedValueOnce({
-        items: [],
-        total: 0,
-        page: 1,
-        size: 20,
-        pages: 0,
-        next: null,
-        prev: null,
-      })
-      .mockResolvedValueOnce({
-        items: [
-          {
-            id: "model-article",
-            workspaceId: "ws-1",
-            siteId: "site-1",
-            key: "article",
-            name: "Article",
-            category: "content_library",
-            capabilities: ["versioned", "routable", "rich_text_editable"],
-            defaultEditor: "rich_text",
-          },
-        ],
-        total: 1,
-        page: 1,
-        size: 20,
-        pages: 1,
-        next: null,
-        prev: null,
-      });
+    listWorkspaceContentModels.mockResolvedValue(EMPTY_LIST);
     createWorkspaceContentModel.mockResolvedValue(undefined);
 
     await renderWithQuery();
 
-    await user.click(await screen.findByRole("button", { name: "New model" }));
+    await user.click(await screen.findByRole("button", { name: "Create model from blank" }));
     await user.type(screen.getByPlaceholderText("Article"), "Article");
     await user.type(screen.getByPlaceholderText("article"), "article");
     await user.click(screen.getByRole("button", { name: "Create model" }));
@@ -295,91 +191,58 @@ describe("WorkspaceContentModelsPage", () => {
         workflowPolicy: null,
       });
     });
-    expect(await screen.findByText("Article")).toBeInTheDocument();
   });
 
-  test("creates a model from a preset template with explicit contract metadata", async () => {
+  test("edits fields/relations/capabilities/routing/workflow/views in one place", async () => {
     const user = userEvent.setup();
-    listWorkspaceContentModels
-      .mockResolvedValueOnce({
-        items: [],
-        total: 0,
-        page: 1,
-        size: 20,
-        pages: 0,
-        next: null,
-        prev: null,
-      })
-      .mockResolvedValueOnce({
-        items: [
-          {
-            id: "model-author",
-            workspaceId: "ws-1",
-            siteId: "site-1",
-            key: "author",
-            name: "Author",
-            description: "Profiles used across posts, layouts, and testimonials.",
-            category: "content_library",
-            capabilities: [
-              "versioned",
-              "routable",
-              "has_relations",
-              "localizable",
-              "publishable",
-              "seo_managed",
-            ],
-            defaultEditor: "form",
-          },
-        ],
-        total: 1,
-        page: 1,
-        size: 20,
-        pages: 1,
-        next: null,
-        prev: null,
-      });
+    listWorkspaceContentModels.mockResolvedValue(EMPTY_LIST);
     createWorkspaceContentModel.mockResolvedValue(undefined);
 
     await renderWithQuery();
 
-    await user.click(await screen.findByRole("button", { name: "New model" }));
-    await user.click(screen.getByRole("button", { name: /Author/ }));
+    await user.click(await screen.findByRole("button", { name: "Create model from blank" }));
+    await user.type(screen.getByPlaceholderText("Article"), "Landing Page");
+    await user.type(screen.getByPlaceholderText("article"), "landing_page");
+
+    fireEvent.change(screen.getByPlaceholderText("fields-json"), {
+      target: {
+        value: '{"version":1,"fields":[{"key":"title","label":"Title","type":"text"}]}',
+      },
+    });
+    fireEvent.change(screen.getByPlaceholderText("relations-json"), {
+      target: { value: '{"author":{"target":"author","kind":"one"}}' },
+    });
+    const routingModeInput = screen.getByPlaceholderText("none | slug_only | static_or_dynamic");
+    await user.clear(routingModeInput);
+    await user.type(routingModeInput, "slug_only");
+    await user.type(screen.getByPlaceholderText("/blog/:slug"), "/landing/:slug");
+    await user.type(screen.getByPlaceholderText("form | visual | rich_text | table"), "form");
+    await user.type(screen.getByPlaceholderText("table"), "board");
+
+    await user.click(screen.getByRole("checkbox", { name: "Publishable" }));
+    await user.click(screen.getByRole("checkbox", { name: "Enable schedule workflow" }));
+    expect(screen.getByText("Model impact preview")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create model" }));
 
     await waitFor(() => {
-      expect(createWorkspaceContentModel).toHaveBeenCalledWith("ws-1", {
-        key: "author",
-        name: "Author",
-        kind: "custom",
-        category: "content_library",
-        description: "Profiles used across posts, layouts, and testimonials.",
-        capabilities: [
-          "versioned",
-          "routable",
-          "has_relations",
-          "localizable",
-          "publishable",
-          "seo_managed",
-        ],
-        defaultEditor: "form",
-        fieldSchema: {
-          version: 1,
-          fields: [
-            { key: "display_name", label: "Display name", type: "text" },
-            { key: "bio", label: "Bio", type: "rich_text" },
-            { key: "avatar", label: "Avatar", type: "asset" },
-          ],
-        },
-        relationSchema: { posts: { target: "post", kind: "many" } },
-        routingSchema: { mode: "slug_only", pattern: "/authors/:slug" },
-        presentationSchema: { allowed: ["form_data", "seo"] },
-        workflowPolicy: null,
-        viewSchema: { defaultView: "table" },
-        templateKey: "author",
-      });
+      expect(createWorkspaceContentModel).toHaveBeenCalledWith(
+        "ws-1",
+        expect.objectContaining({
+          key: "landing_page",
+          name: "Landing Page",
+          kind: "custom",
+          capabilities: ["publishable"],
+          fieldSchema: {
+            version: 1,
+            fields: [{ key: "title", label: "Title", type: "text" }],
+          },
+          relationSchema: { author: { target: "author", kind: "one" } },
+          routingSchema: { mode: "slug_only", pattern: "/landing/:slug" },
+          defaultEditor: "form",
+          viewSchema: { defaultView: "board" },
+          workflowPolicy: { supportsSchedule: true },
+        }),
+      );
     });
-    expect(
-      await screen.findByText("Profiles used across posts, layouts, and testimonials."),
-    ).toBeInTheDocument();
   });
 });

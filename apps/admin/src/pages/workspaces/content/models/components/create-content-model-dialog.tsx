@@ -1,24 +1,23 @@
-import { Button, Input, Select, Tag } from "antd";
+import { Button, Select } from "antd";
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type {
+  ContentDefaultEditor,
+  ContentModelCapability,
+  ContentModelCategory,
+} from "@celestial/api-client";
 import type { CreateContentModelInput } from "@/api/content-models";
 import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import {
-  CONTENT_MODEL_CAPABILITY_LABEL_KEYS,
-  CONTENT_MODEL_CATEGORY_LABEL_KEYS,
-  CONTENT_MODEL_DEFAULT_EDITOR_LABEL_KEYS,
-} from "./content-model-labels";
-import {
   buildLegacyCreateContentModelInput,
-  LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS,
   getLegacyContentModelTemplatePreset,
   type LegacyContentModelTemplateId,
-  type LegacyContentModelTemplatePreset,
 } from "./content-model-templates";
+import { ModelEditorShell, type ModelEditorDraft } from "./model-editor-shell";
 
 const MODEL_KIND_OPTIONS: Array<{ value: CreateContentModelInput["kind"]; labelKey: string }> = [
   { value: "custom", labelKey: "content_library:MODELS_KIND_CUSTOM" },
@@ -33,174 +32,161 @@ const MODEL_KIND_OPTIONS: Array<{ value: CreateContentModelInput["kind"]; labelK
 
 type TranslateFn = (key: string) => string;
 
-function buildInitialForm(translate: TranslateFn): CreateContentModelInput {
-  return buildLegacyCreateContentModelInput(
-    getLegacyContentModelTemplatePreset("custom"),
-    translate,
-  );
-}
+type JsonRecord = Record<string, unknown>;
 
-function buildTemplateButtonClass(selected: boolean): string {
-  if (selected) {
-    return "rounded-2xl border border-primary bg-primary/5 p-4 text-left transition-colors";
+function toJsonText(value: unknown): string {
+  if (!value) {
+    return "";
   }
-  return "rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/30";
+  return JSON.stringify(value, null, 2);
 }
 
-function translateKind(kind: CreateContentModelInput["kind"], translate: TranslateFn): string {
-  const option = MODEL_KIND_OPTIONS.find((item) => item.value === kind);
-  return option ? translate(option.labelKey) : kind;
+function parseOptionalJsonObject(input: string, label: string): JsonRecord | null {
+  const text = input.trim();
+  if (!text) {
+    return null;
+  }
+  const parsed = JSON.parse(text) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object`);
+  }
+  return parsed as JsonRecord;
 }
 
-function TemplatePicker(props: {
-  disabled?: boolean;
-  onSelect: (templateId: LegacyContentModelTemplateId) => void;
-  selectedTemplateId: LegacyContentModelTemplateId;
-  translate: TranslateFn;
-}) {
-  return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {LEGACY_CONTENT_MODEL_TEMPLATE_PRESETS.map((preset) => {
-        const selected = preset.id === props.selectedTemplateId;
-        return (
-          <button
-            key={preset.id}
-            type="button"
-            disabled={props.disabled}
-            className={buildTemplateButtonClass(selected)}
-            onClick={() => props.onSelect(preset.id)}
-          >
-            <div className="text-body font-medium text-foreground">
-              {props.translate(preset.titleKey)}
-            </div>
-            <div className="mt-1 text-footnote text-label-secondary">
-              {props.translate(preset.summaryKey)}
-            </div>
-          </button>
-        );
-      })}
-    </div>
+function extractRoutingMode(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "none";
+  }
+  const mode = (value as Record<string, unknown>).mode;
+  return typeof mode === "string" && mode.trim() ? mode.trim() : "none";
+}
+
+function extractRoutingPattern(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "";
+  }
+  const pattern = (value as Record<string, unknown>).pattern;
+  return typeof pattern === "string" && pattern.trim() ? pattern.trim() : "";
+}
+
+function extractWorkflowSchedule(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return (value as Record<string, unknown>).supportsSchedule === true;
+}
+
+function extractDefaultView(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "";
+  }
+  const defaultView = (value as Record<string, unknown>).defaultView;
+  return typeof defaultView === "string" && defaultView.trim() ? defaultView.trim() : "";
+}
+
+function extractCategory(value: unknown): ContentModelCategory | undefined {
+  if (value === "site_builder") return "site_builder";
+  if (value === "content_library") return "content_library";
+  if (value === "system") return "system";
+  if (value === "custom") return "custom";
+  return undefined;
+}
+
+function extractDefaultEditor(value: unknown): ContentDefaultEditor | undefined {
+  if (value === "form") return "form";
+  if (value === "visual") return "visual";
+  if (value === "rich_text") return "rich_text";
+  if (value === "table") return "table";
+  return undefined;
+}
+
+function extractCapabilities(value: unknown): ContentModelCapability[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (item): item is ContentModelCapability =>
+      item === "versioned" ||
+      item === "routable" ||
+      item === "treeable" ||
+      item === "visual_editable" ||
+      item === "rich_text_editable" ||
+      item === "queryable" ||
+      item === "has_slots" ||
+      item === "has_relations" ||
+      item === "localizable" ||
+      item === "publishable" ||
+      item === "schedulable" ||
+      item === "seo_managed",
   );
 }
 
-function ModelContractPreview(props: {
-  form: CreateContentModelInput;
-  preset: LegacyContentModelTemplatePreset;
-  translate: TranslateFn;
-}) {
-  const categoryLabel = props.form.category
-    ? props.translate(CONTENT_MODEL_CATEGORY_LABEL_KEYS[props.form.category])
-    : null;
-  const editorLabel = props.form.defaultEditor
-    ? props.translate(CONTENT_MODEL_DEFAULT_EDITOR_LABEL_KEYS[props.form.defaultEditor])
-    : null;
-
-  return (
-    <div className="rounded-2xl border border-border bg-muted/20 p-4">
-      <div className="text-body font-medium text-foreground">
-        {props.translate("content_library:MODELS_PREVIEW_TITLE")}
-      </div>
-      <div className="mt-1 text-footnote text-label-secondary">
-        {props.form.description || props.translate(props.preset.descriptionKey)}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {categoryLabel ? <Tag className="m-0 rounded-md px-2 py-1">{categoryLabel}</Tag> : null}
-        {editorLabel ? <Tag className="m-0 rounded-md px-2 py-1">{editorLabel}</Tag> : null}
-        <Tag className="m-0 rounded-md px-2 py-1">
-          {translateKind(props.form.kind, props.translate)}
-        </Tag>
-      </div>
-      <div className="mt-4 grid gap-1.5">
-        <div className="text-footnote text-label-secondary">
-          {props.translate("content_library:MODELS_PREVIEW_CAPABILITIES")}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(props.form.capabilities ?? []).length ? (
-            props.form.capabilities?.map((capability) => (
-              <Tag key={capability} variant="filled" className="m-0 rounded-md px-2 py-1">
-                {props.translate(CONTENT_MODEL_CAPABILITY_LABEL_KEYS[capability])}
-              </Tag>
-            ))
-          ) : (
-            <div className="text-footnote text-label-secondary">
-              {props.translate("content_library:MODELS_PREVIEW_CAPABILITIES_EMPTY")}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+function createBlankDraft(): ModelEditorDraft {
+  return {
+    templateId: "custom",
+    name: "",
+    key: "",
+    kind: "custom",
+    description: "",
+    capabilities: [],
+    fieldSchemaText: "",
+    relationSchemaText: "",
+    routingMode: "none",
+    routingPattern: "",
+    defaultView: "",
+    workflowSupportsSchedule: false,
+  };
 }
 
-function ModelKindSelect(props: {
-  disabled?: boolean;
-  kind: CreateContentModelInput["kind"];
-  onChange: (kind: CreateContentModelInput["kind"]) => void;
-  translate: TranslateFn;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <label className="font-semibold text-foreground">
-        {props.translate("content_library:MODELS_FIELD_KIND_LABEL")}
-      </label>
-      <div className="text-footnote text-label-secondary">
-        {props.translate("content_library:MODELS_FIELD_KIND_DESC")}
-      </div>
-      <Select
-        value={props.kind}
-        options={MODEL_KIND_OPTIONS.map((item) => ({
-          value: item.value,
-          label: props.translate(item.labelKey),
-        }))}
-        onChange={props.onChange}
-        disabled={props.disabled}
-        getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-      />
-    </div>
-  );
+function buildDraftFromTemplate(templateId: LegacyContentModelTemplateId, translate: TranslateFn) {
+  const preset = getLegacyContentModelTemplatePreset(templateId);
+  const model = buildLegacyCreateContentModelInput(preset, translate);
+
+  return {
+    templateId,
+    name: model.name,
+    key: model.key,
+    kind: model.kind,
+    category: extractCategory(model.category),
+    description: model.description ?? "",
+    capabilities: extractCapabilities(model.capabilities),
+    defaultEditor: extractDefaultEditor(model.defaultEditor),
+    fieldSchemaText: toJsonText(model.fieldSchema),
+    relationSchemaText: toJsonText(model.relationSchema),
+    routingMode: extractRoutingMode(model.routingSchema),
+    routingPattern: extractRoutingPattern(model.routingSchema),
+    defaultView: extractDefaultView(model.viewSchema),
+    workflowSupportsSchedule: extractWorkflowSchedule(model.workflowPolicy),
+  } satisfies ModelEditorDraft;
 }
 
-function ModelIdentityFields(props: {
-  disabled?: boolean;
-  form: CreateContentModelInput;
-  onKeyChange: (value: string) => void;
-  onNameChange: (value: string) => void;
-  translate: TranslateFn;
-}) {
-  return (
-    <>
-      <div className="grid gap-1.5">
-        <label className="font-semibold text-foreground">
-          {props.translate("content_library:MODELS_FIELD_NAME_LABEL")}
-        </label>
-        <div className="text-footnote text-label-secondary">
-          {props.translate("content_library:MODELS_FIELD_NAME_DESC")}
-        </div>
-        <Input
-          autoFocus
-          value={props.form.name}
-          onChange={(event) => props.onNameChange(event.target.value)}
-          placeholder={props.translate("content_library:MODELS_FIELD_NAME_PLACEHOLDER")}
-          disabled={props.disabled}
-        />
-      </div>
+function buildCreateInputFromDraft(draft: ModelEditorDraft): CreateContentModelInput {
+  const fieldSchema = parseOptionalJsonObject(draft.fieldSchemaText, "fieldSchema");
+  const relationSchema = parseOptionalJsonObject(draft.relationSchemaText, "relationSchema");
+  const routingSchema =
+    draft.routingMode.trim() && draft.routingMode !== "none"
+      ? {
+          mode: draft.routingMode.trim(),
+          ...(draft.routingPattern.trim() ? { pattern: draft.routingPattern.trim() } : {}),
+        }
+      : null;
+  const viewSchema = draft.defaultView.trim() ? { defaultView: draft.defaultView.trim() } : null;
 
-      <div className="grid gap-1.5">
-        <label className="font-semibold text-foreground">
-          {props.translate("content_library:MODELS_FIELD_KEY_LABEL")}
-        </label>
-        <div className="text-footnote text-label-secondary">
-          {props.translate("content_library:MODELS_FIELD_KEY_DESC")}
-        </div>
-        <Input
-          value={props.form.key}
-          onChange={(event) => props.onKeyChange(event.target.value)}
-          placeholder={props.translate("content_library:MODELS_FIELD_KEY_PLACEHOLDER")}
-          disabled={props.disabled}
-        />
-      </div>
-    </>
-  );
+  return {
+    key: draft.key.trim(),
+    name: draft.name.trim(),
+    kind: draft.kind,
+    ...(draft.category ? { category: draft.category } : {}),
+    ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
+    ...(draft.capabilities.length ? { capabilities: draft.capabilities } : {}),
+    ...(draft.defaultEditor ? { defaultEditor: draft.defaultEditor } : {}),
+    ...(fieldSchema ? { fieldSchema } : { fieldSchema: null }),
+    ...(relationSchema ? { relationSchema } : {}),
+    ...(routingSchema ? { routingSchema } : {}),
+    ...(viewSchema ? { viewSchema } : {}),
+    workflowPolicy: draft.workflowSupportsSchedule ? { supportsSchedule: true } : null,
+    ...(draft.templateId !== "custom" ? { templateKey: draft.templateId } : {}),
+  };
 }
 
 function DialogFooter(props: {
@@ -234,61 +220,6 @@ function DialogFooter(props: {
   );
 }
 
-function CreateContentModelDialogBody(props: {
-  disabled?: boolean;
-  form: CreateContentModelInput;
-  selectedPreset: LegacyContentModelTemplatePreset;
-  selectedTemplateId: LegacyContentModelTemplateId;
-  onKindChange: (kind: CreateContentModelInput["kind"]) => void;
-  onKeyChange: (value: string) => void;
-  onNameChange: (value: string) => void;
-  onTemplateSelect: (templateId: LegacyContentModelTemplateId) => void;
-  translate: TranslateFn;
-}) {
-  return (
-    <div className="grid gap-4 py-2">
-      <div className="grid gap-1.5">
-        <label className="font-semibold text-foreground">
-          {props.translate("content_library:MODELS_FIELD_TEMPLATE_LABEL")}
-        </label>
-        <div className="text-footnote text-label-secondary">
-          {props.translate("content_library:MODELS_FIELD_TEMPLATE_DESC")}
-        </div>
-      </div>
-
-      <TemplatePicker
-        disabled={props.disabled}
-        selectedTemplateId={props.selectedTemplateId}
-        onSelect={props.onTemplateSelect}
-        translate={props.translate}
-      />
-
-      <ModelContractPreview
-        form={props.form}
-        preset={props.selectedPreset}
-        translate={props.translate}
-      />
-
-      <ModelIdentityFields
-        form={props.form}
-        disabled={props.disabled}
-        onNameChange={props.onNameChange}
-        onKeyChange={props.onKeyChange}
-        translate={props.translate}
-      />
-
-      {props.selectedTemplateId === "custom" ? (
-        <ModelKindSelect
-          kind={props.form.kind}
-          disabled={props.disabled}
-          onChange={props.onKindChange}
-          translate={props.translate}
-        />
-      ) : null}
-    </div>
-  );
-}
-
 export function CreateContentModelDialog(props: {
   open: boolean;
   confirmLoading?: boolean;
@@ -296,38 +227,24 @@ export function CreateContentModelDialog(props: {
   onConfirm: (input: CreateContentModelInput) => Promise<void>;
 }) {
   const { t } = useTranslation(["content_library", "common"]);
-  const [selectedTemplateId, setSelectedTemplateId] =
-    useState<LegacyContentModelTemplateId>("custom");
-  const [form, setForm] = useState<CreateContentModelInput>(() => buildInitialForm((key) => key));
+  const [draft, setDraft] = useState<ModelEditorDraft>(() => createBlankDraft());
 
   useEffect(() => {
-    if (!props.open) return;
-    setSelectedTemplateId("custom");
-    setForm(buildInitialForm((key) => t(key)));
+    if (!props.open) {
+      return;
+    }
+    setDraft(createBlankDraft());
   }, [props.open]);
 
-  const selectedPreset = useMemo(
-    () => getLegacyContentModelTemplatePreset(selectedTemplateId),
-    [selectedTemplateId],
-  );
   const canSubmit = useMemo(() => {
-    if (props.confirmLoading) return false;
-    return form.key.trim().length > 0 && form.name.trim().length > 0;
-  }, [form.key, form.name, props.confirmLoading]);
-  const handleTemplateSelect = (templateId: LegacyContentModelTemplateId) => {
-    setSelectedTemplateId(templateId);
-    setForm(
-      buildLegacyCreateContentModelInput(getLegacyContentModelTemplatePreset(templateId), (key) =>
-        t(key),
-      ),
-    );
-  };
+    if (props.confirmLoading) {
+      return false;
+    }
+    return draft.key.trim().length > 0 && draft.name.trim().length > 0;
+  }, [draft.key, draft.name, props.confirmLoading]);
+
   const handleSubmit = async () => {
-    await props.onConfirm({
-      ...form,
-      key: form.key.trim(),
-      name: form.name.trim(),
-    });
+    await props.onConfirm(buildCreateInputFromDraft(draft));
   };
 
   return (
@@ -346,17 +263,31 @@ export function CreateContentModelDialog(props: {
         />
       }
     >
-      <CreateContentModelDialogBody
-        form={form}
-        disabled={props.confirmLoading}
-        selectedPreset={selectedPreset}
-        selectedTemplateId={selectedTemplateId}
-        onTemplateSelect={handleTemplateSelect}
-        onNameChange={(name) => setForm((current) => ({ ...current, name }))}
-        onKeyChange={(key) => setForm((current) => ({ ...current, key }))}
-        onKindChange={(kind) => setForm((current) => ({ ...current, kind }))}
-        translate={t}
-      />
+      <div className="grid gap-4 py-2">
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground">
+            {t("content_library:MODELS_FIELD_KIND_LABEL")}
+          </label>
+          <Select
+            value={draft.kind}
+            disabled={props.confirmLoading}
+            options={MODEL_KIND_OPTIONS.map((item) => ({
+              value: item.value,
+              label: t(item.labelKey),
+            }))}
+            onChange={(kind) => setDraft((current) => ({ ...current, kind }))}
+            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+          />
+        </div>
+
+        <ModelEditorShell
+          disabled={props.confirmLoading}
+          draft={draft}
+          onDraftChange={(updater) => setDraft((current) => updater(current))}
+          onTemplateSelect={(templateId) => setDraft(buildDraftFromTemplate(templateId, t))}
+          translate={t}
+        />
+      </div>
     </SettingDialog>
   );
 }

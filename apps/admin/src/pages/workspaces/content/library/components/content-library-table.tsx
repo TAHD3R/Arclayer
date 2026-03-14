@@ -1,6 +1,9 @@
 import { Button, Card, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { ContentModelSummary } from "@/api/content-models";
+import type { WorkspacePublishImpact } from "@/types/api";
+
+import { CONTENT_MODEL_DEFAULT_EDITOR_LABEL_KEYS } from "../../models/components/content-model-labels";
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -42,8 +45,16 @@ function mapEntryToRow(entry: LibraryEntrySource): LibraryRow {
 }
 
 function formatRevisionValue(revision: number | null): string {
-  if (!revision) return "-";
+  if (revision == null) return "-";
   return `v${revision}`;
+}
+
+function formatDefaultEditorLabel(
+  defaultEditor: ContentModelSummary["defaultEditor"],
+  t: TranslationFn,
+): string {
+  if (!defaultEditor) return "-";
+  return t(CONTENT_MODEL_DEFAULT_EDITOR_LABEL_KEYS[defaultEditor]);
 }
 
 function buildLibraryColumns(opts: {
@@ -155,7 +166,7 @@ export function ContentLibraryHeader(props: { model: ContentModelSummary; t: Tra
         <div className="text-body text-label-secondary">
           <span>{props.model.key}</span>
           <span className="mx-2 text-quaternary">·</span>
-          <span>{props.model.defaultEditor}</span>
+          <span>{formatDefaultEditorLabel(props.model.defaultEditor, props.t)}</span>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -166,6 +177,47 @@ export function ContentLibraryHeader(props: { model: ContentModelSummary; t: Tra
         ))}
       </div>
     </div>
+  );
+}
+
+export function ContentLibraryPublishImpactCard(props: {
+  impact: WorkspacePublishImpact;
+  t: TranslationFn;
+}) {
+  const metrics = [
+    {
+      label: props.t("content_library:LIBRARY_IMPACT_MISSING_ROUTES"),
+      value: props.impact.missingRoutes.length,
+    },
+    {
+      label: props.t("content_library:LIBRARY_IMPACT_UNRESOLVED_RELATIONS"),
+      value: props.impact.unresolvedRelations.length,
+    },
+    {
+      label: props.t("content_library:LIBRARY_IMPACT_UNPUBLISHED_DEPENDENCIES"),
+      value: props.impact.unpublishedDependencies.length,
+    },
+  ];
+
+  return (
+    <Card className="border-border shadow-none">
+      <div className="mb-4">
+        <div className="text-title2 text-foreground">
+          {props.t("content_library:LIBRARY_IMPACT_TITLE")}
+        </div>
+        <div className="text-body text-label-secondary">
+          {props.t("content_library:LIBRARY_IMPACT_DESC")}
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="rounded-xl border border-border bg-muted/20 p-4">
+            <div className="text-footnote text-label-secondary">{metric.label}</div>
+            <div className="mt-2 text-title1 text-foreground">{metric.value}</div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

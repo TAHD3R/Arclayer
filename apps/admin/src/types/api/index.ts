@@ -227,6 +227,7 @@ export type {
 // Workspace Site
 export type {
   WorkspaceSite,
+  WorkspacePublishImpact,
   PreviewTokenRequest,
   PreviewTokenOut,
   SiteSettingDetail,

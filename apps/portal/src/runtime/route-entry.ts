@@ -40,7 +40,10 @@ export function parseModeFromUrl(urlOriginal: string): ParsedPortalMode | null {
 }
 
 export async function resolvePublicDocument(args: { pathname: string; siteId: string }) {
-  return resolvePortalRoute(args.pathname, { siteId: args.siteId, mode: "public" });
+  return resolvePortalRoute(normalizePathname(args.pathname), {
+    siteId: args.siteId,
+    mode: "public",
+  });
 }
 
 export async function resolvePreviewDocument(args: {
@@ -48,7 +51,7 @@ export async function resolvePreviewDocument(args: {
   siteId: string;
   token?: string;
 }) {
-  return resolvePortalRoute(args.pathname, {
+  return resolvePortalRoute(normalizePathname(args.pathname), {
     siteId: args.siteId,
     mode: "preview",
     ...(args.token ? { token: args.token } : {}),

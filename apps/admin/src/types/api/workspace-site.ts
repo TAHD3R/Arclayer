@@ -9,6 +9,12 @@ export type WorkspaceSite = {
   isActive: boolean;
 };
 
+export type WorkspacePublishImpact = {
+  missingRoutes: string[];
+  unresolvedRelations: string[];
+  unpublishedDependencies: string[];
+};
+
 export type PreviewTokenRequest = {
   ttlSeconds?: number;
 };

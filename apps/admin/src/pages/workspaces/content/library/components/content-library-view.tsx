@@ -11,6 +11,7 @@ import {
 } from "@/api/content-views";
 import {
   createWorkspaceSiteEntry,
+  getWorkspacePublishImpact,
   listWorkspaceSiteEntries,
   publishWorkspaceSiteEntry,
   unpublishWorkspaceSiteEntry,
@@ -29,6 +30,7 @@ import {
   ContentLibraryCard,
   ContentLibraryEntryTable,
   ContentLibraryMetrics,
+  ContentLibraryPublishImpactCard,
   buildLibraryRows,
   type LibraryRow,
 } from "./content-library-table";
@@ -91,6 +93,14 @@ export function ContentLibraryView() {
     queryKey: ["content", "library", "views", workspaceId, selectedModelKey],
     enabled: Boolean(workspaceId && selectedModelKey),
     queryFn: async () => listWorkspaceContentViews(String(workspaceId)),
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+  const publishImpactQuery = useQuery({
+    queryKey: ["content", "library", "publish-impact", workspaceId, selectedModelKey],
+    enabled: Boolean(workspaceId && selectedModelKey),
+    queryFn: async () => getWorkspacePublishImpact(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
@@ -274,29 +284,42 @@ export function ContentLibraryView() {
           <div className="grid gap-4">
             <ContentLibraryMetrics rows={rows} t={t} />
             {selectedModel ? (
-              <ContentLibraryCard model={selectedModel} t={t}>
+              <>
                 <ContentGuard
-                  loading={activeDataLoading || viewsQuery.isLoading}
-                  error={activeDataError || viewsQuery.error}
+                  loading={publishImpactQuery.isLoading}
+                  error={publishImpactQuery.error}
                   empty={false}
-                  onRetry={() =>
-                    selectedViewId === DEFAULT_LIBRARY_VIEW_ID
-                      ? void entriesQuery.refetch()
-                      : void viewPreviewQuery.refetch()
-                  }
+                  onRetry={() => void publishImpactQuery.refetch()}
                   container="raw"
                 >
-                  <ContentLibraryEntryTable
-                    rows={rows}
-                    loading={activeDataLoading}
-                    processingIds={processingIds}
-                    formatUpdatedAt={(value) => (value ? dateTime.formatDateTime(value) : "-")}
-                    onPublish={(row) => void publishMutation.mutateAsync(row)}
-                    onUnpublish={(row) => void unpublishMutation.mutateAsync(row)}
-                    t={t}
-                  />
+                  {publishImpactQuery.data ? (
+                    <ContentLibraryPublishImpactCard impact={publishImpactQuery.data} t={t} />
+                  ) : null}
                 </ContentGuard>
-              </ContentLibraryCard>
+                <ContentLibraryCard model={selectedModel} t={t}>
+                  <ContentGuard
+                    loading={activeDataLoading || viewsQuery.isLoading}
+                    error={activeDataError || viewsQuery.error}
+                    empty={false}
+                    onRetry={() =>
+                      selectedViewId === DEFAULT_LIBRARY_VIEW_ID
+                        ? void entriesQuery.refetch()
+                        : void viewPreviewQuery.refetch()
+                    }
+                    container="raw"
+                  >
+                    <ContentLibraryEntryTable
+                      rows={rows}
+                      loading={activeDataLoading}
+                      processingIds={processingIds}
+                      formatUpdatedAt={(value) => (value ? dateTime.formatDateTime(value) : "-")}
+                      onPublish={(row) => void publishMutation.mutateAsync(row)}
+                      onUnpublish={(row) => void unpublishMutation.mutateAsync(row)}
+                      t={t}
+                    />
+                  </ContentGuard>
+                </ContentLibraryCard>
+              </>
             ) : null}
           </div>
         </ContentGuard>

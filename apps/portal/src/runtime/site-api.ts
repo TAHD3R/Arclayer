@@ -32,7 +32,7 @@ function getPortalApiBaseUrlForBrowser(): string | null {
   return raw;
 }
 
-function buildPortalApiFetchInput(url: URL): string {
+export function buildPortalApiFetchInput(url: URL): string {
   const path = url.pathname + url.search;
   if (typeof window === "undefined") {
     return new URL(path, getPortalApiOriginForSsr()).toString();
@@ -770,7 +770,7 @@ function getPortalApiOriginForSsr(): string {
   );
 }
 
-async function toApiError(res: Response, fallbackMessage: string): Promise<ApiError> {
+export async function toApiError(res: Response, fallbackMessage: string): Promise<ApiError> {
   let message = fallbackMessage;
   let error: string | undefined;
   let meta: unknown;
@@ -805,7 +805,7 @@ async function toApiError(res: Response, fallbackMessage: string): Promise<ApiEr
   return new ApiError(args);
 }
 
-function parsePortalRouteMatch(input: unknown): PortalRouteMatch {
+export function parsePortalRouteMatch(input: unknown): PortalRouteMatch {
   const kindRaw = (getStringField(input, ["kind"]) ?? "").trim();
   const kind: PortalRouteMatch["kind"] =
     kindRaw === "page" ||
@@ -854,7 +854,7 @@ function getUnknownField(obj: unknown, key: string): unknown {
   return rec[key];
 }
 
-function getRecordField(obj: unknown, key: string): unknown {
+export function getRecordField(obj: unknown, key: string): unknown {
   const value = getUnknownField(obj, key);
   return value;
 }
@@ -879,7 +879,7 @@ function getNumberField(obj: unknown, keys: string[]): number | null {
   return null;
 }
 
-function getResponseData(payload: unknown): unknown {
+export function getResponseData(payload: unknown): unknown {
   const rec = getRecord(payload);
   if (!rec) return null;
   return rec.data;

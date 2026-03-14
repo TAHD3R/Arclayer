@@ -22,10 +22,14 @@ from apps.api.src.modules.workspaces.content.models.router import (
     canonical_models_router as workspace_content_models_router,
 )
 from apps.api.src.modules.workspaces.content.router import router as workspace_legacy_content_router
+from apps.api.src.modules.workspaces.content.routing.router import (
+    canonical_routing_router as workspace_content_routing_router,
+)
 from apps.api.src.modules.workspaces.danger_service import WorkspaceDangerService
 from apps.api.src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
+from apps.api.src.modules.workspaces.publish.router import router as workspace_publish_router
 from apps.api.src.modules.workspaces.rbac.router import router as workspace_rbac_router
 from apps.api.src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
@@ -53,6 +57,8 @@ router.include_router(workspace_themes_router)
 router.include_router(workspace_legacy_content_router)
 router.include_router(workspace_content_models_router)
 router.include_router(workspace_content_items_router)
+router.include_router(workspace_content_routing_router)
+router.include_router(workspace_publish_router)
 router.include_router(workspace_site_router)
 router.include_router(workspace_activity_router)
 router.include_router(workspace_extensions_router)
