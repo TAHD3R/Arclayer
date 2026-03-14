@@ -59,4 +59,14 @@ describe("workspace content information architecture", () => {
       'createFileRoute("/w/$workspaceId/content/models/")',
     );
   });
+
+  test("legacy pages route no longer exists as a primary entry point", () => {
+    const legacyPagesRoute = resolveSource("routes/w/$workspaceId/content/pages/index.tsx");
+    const legacyPagesLazyRoute = resolveSource(
+      "routes/w/$workspaceId/content/pages/index.lazy.tsx",
+    );
+
+    expect(existsSync(legacyPagesRoute)).toBe(false);
+    expect(existsSync(legacyPagesLazyRoute)).toBe(false);
+  });
 });

@@ -25,10 +25,14 @@ class ContentModelDefinitionRecord(BaseModel):
     key = fields.CharField(max_length=64, db_index=True)
     name = fields.CharField(max_length=128)
     description = fields.CharField(max_length=512, null=True)
+    category = fields.CharField(max_length=32, default="custom", db_index=True)
+    default_editor = fields.CharField(max_length=32, default="form", db_index=True)
     kind = fields.CharField(max_length=64, null=True, db_index=True)
 
     capabilities = fields.JSONField(null=True)
     routing_policy = fields.JSONField(null=True)
+    presentation_policy = fields.JSONField(null=True)
+    seo_policy = fields.JSONField(null=True)
     workflow_policy = fields.JSONField(null=True)
 
     if TYPE_CHECKING:

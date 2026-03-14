@@ -18,6 +18,7 @@ from apps.api.src.models.content._enums import (
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.hierarchy_node import HierarchyNodeRecord
+from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
 from apps.api.src.models.content.model_field import ContentModelFieldRecord
 from apps.api.src.models.content.model_relation import ContentModelRelationRecord
 from apps.api.src.models.content.model_view import ContentModelViewRecord
@@ -28,6 +29,10 @@ from apps.api.src.modules.workspaces.content.contracts import schema as contract
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_0011 = REPO_ROOT / "apps/api/src/migrations/0011_content_kernel_initial.py"
+MIGRATION_0013 = REPO_ROOT / "apps/api/src/migrations/0013_content_platform_rebuild.py"
+SEO_PROFILE_MODEL = REPO_ROOT / "apps/api/src/models/content/seo_profile.py"
+COMPONENT_BINDING_MODEL = REPO_ROOT / "apps/api/src/models/content/component_binding.py"
+PUBLISH_ARTIFACT_MODEL = REPO_ROOT / "apps/api/src/models/content/publish_artifact.py"
 
 
 def _field_names(model: type[Any]) -> set[str]:
@@ -68,6 +73,22 @@ def test_content_item_record_does_not_persist_route_or_page_blueprint_state() ->
 
     assert "path" not in item_fields
     assert "page_blueprint" not in item_fields
+    assert "field_values" not in item_fields
+
+
+def test_model_definition_record_persists_explicit_category_editor_and_policy_contracts() -> None:
+    model_fields = set(contracts_schema.ContentModelDefinitionContract.model_fields.keys())
+    record_fields = _field_names(ContentModelDefinitionRecord)
+
+    assert "category" in model_fields
+    assert "default_editor" in model_fields
+    assert "presentation" in model_fields
+    assert "seo" in model_fields
+
+    assert "category" in record_fields
+    assert "default_editor" in record_fields
+    assert "presentation_policy" in record_fields
+    assert "seo_policy" in record_fields
 
 
 def test_content_model_relation_persists_target_model_key_and_optional_target_model_definition() -> None:
@@ -139,10 +160,20 @@ def test_published_graph_points_to_version_snapshot_instead_of_item_mutable_payl
     assert getattr(version_field, "model_name", None) == "models.ContentVersionRecord"
 
 
+def test_rebuild_kernel_requires_first_class_seo_component_binding_and_publish_artifact_models() -> None:
+    assert SEO_PROFILE_MODEL.exists()
+    assert COMPONENT_BINDING_MODEL.exists()
+    assert PUBLISH_ARTIFACT_MODEL.exists()
+
+
 def test_migration_0011_matches_kernel_constraints() -> None:
     migration = MIGRATION_0011.read_text(encoding="utf-8")
 
     assert '"target_model_key"' in migration
+    assert '"category"' in migration
+    assert '"default_editor"' in migration
+    assert '"presentation_policy"' in migration
+    assert '"seo_policy"' in migration
     assert "fields.CharEnumField(ContentModelFieldType" in migration
     assert "fields.CharEnumField(ContentModelRelationType" in migration
     assert "fields.CharEnumField(ContentModelViewType" in migration
@@ -152,6 +183,7 @@ def test_migration_0011_matches_kernel_constraints() -> None:
     assert "fields.CharEnumField(ContentPresentationKind" in migration
     assert '"last_transition_by_user_id"' in migration
     assert '"unique_together": (("model_definition_id", "locale", "slug"),)' in migration
+    assert '"field_values"' not in migration
     assert '"unique_together": (("site_id", "item_id"),)' not in migration
     assert 'name="ck_content_model_fields_field_type"' in migration
     assert 'name="ck_content_model_relations_relation_type"' in migration
@@ -164,3 +196,12 @@ def test_migration_0011_matches_kernel_constraints() -> None:
     hierarchy_node_section = migration.split('name="HierarchyNodeRecord"', maxsplit=1)[1]
     hierarchy_node_section = hierarchy_node_section.split('name="PublishedGraphRecord"', maxsplit=1)[0]
     assert '"unique_together"' not in hierarchy_node_section
+
+
+def test_migration_0013_adds_rebuild_kernel_records() -> None:
+    assert MIGRATION_0013.exists()
+
+    migration = MIGRATION_0013.read_text(encoding="utf-8")
+    assert 'name="SEOProfileRecord"' in migration
+    assert 'name="ComponentBindingRecord"' in migration
+    assert 'name="PublishArtifactRecord"' in migration

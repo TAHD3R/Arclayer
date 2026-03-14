@@ -56,7 +56,6 @@ class WorkspaceContentItemsRepository(BaseRepository):
             visibility=visibility,
             draft_version=0,
             published_version=None,
-            field_values=None,
             created_by_user_id=actor_user_id,
             updated_by_user_id=actor_user_id,
         )

@@ -144,7 +144,6 @@ class WorkspaceLegacyContentImportService:
                 status=normalize_status(entry.status, report, entry.slug),
                 visibility=normalize_visibility(entry.visibility, report, entry.slug),
                 locale=entry.locale,
-                field_values=entry.field_values,
                 draft_version=entry.draft_revision,
                 published_version=entry.published_revision,
                 created_by_user_id=entry.created_by_user_id,

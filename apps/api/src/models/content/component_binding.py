@@ -1,0 +1,30 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+from uuid import UUID
+
+from tortoise import fields
+
+from apps.api.src.common.models.base import BaseModel
+
+
+class ComponentBindingRecord(BaseModel):
+    """Immutable component binding manifest scoped to a content version."""
+
+    version = fields.ForeignKeyField(
+        "models.ContentVersionRecord",
+        related_name="component_bindings",
+        on_delete=fields.CASCADE,
+    )
+    component_key = fields.CharField(max_length=128, db_index=True)
+    binding_key = fields.CharField(max_length=128, db_index=True)
+    binding_payload = fields.JSONField(null=True)
+    sort_order = fields.IntField(default=0)
+
+    if TYPE_CHECKING:
+        version_id: UUID
+
+    class Meta(BaseModel.Meta):
+        table = "content_component_bindings"
+        abstract = False
+        unique_together = (("version_id", "component_key", "binding_key"),)

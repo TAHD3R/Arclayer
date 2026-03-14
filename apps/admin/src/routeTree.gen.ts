@@ -47,7 +47,6 @@ import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$wo
 import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from './routes/w/$workspaceId/settings/general/index'
 import { Route as WWorkspaceIdExtensionsExtensionSlugIndexRouteImport } from './routes/w/$workspaceId/extensions/$extensionSlug/index'
 import { Route as WWorkspaceIdContentSiteBuilderIndexRouteImport } from './routes/w/$workspaceId/content/site-builder/index'
-import { Route as WWorkspaceIdContentPagesIndexRouteImport } from './routes/w/$workspaceId/content/pages/index'
 import { Route as WWorkspaceIdContentModelsIndexRouteImport } from './routes/w/$workspaceId/content/models/index'
 import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/$workspaceId/content/library/index'
 import { Route as OOrgIdTeamRolesIndexRouteImport } from './routes/o/$orgId/team/roles/index'
@@ -331,16 +330,6 @@ const WWorkspaceIdContentSiteBuilderIndexRoute =
       (d) => d.Route,
     ),
   )
-const WWorkspaceIdContentPagesIndexRoute =
-  WWorkspaceIdContentPagesIndexRouteImport.update({
-    id: '/content/pages/',
-    path: '/content/pages/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/content/pages/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 const WWorkspaceIdContentModelsIndexRoute =
   WWorkspaceIdContentModelsIndexRouteImport.update({
     id: '/content/models/',
@@ -553,7 +542,6 @@ export interface FileRoutesByFullPath {
   '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
-  '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
   '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
@@ -608,7 +596,6 @@ export interface FileRoutesByTo {
   '/o/$orgId/team/roles': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/content/library': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models': typeof WWorkspaceIdContentModelsIndexRoute
-  '/w/$workspaceId/content/pages': typeof WWorkspaceIdContentPagesIndexRoute
   '/w/$workspaceId/content/site-builder': typeof WWorkspaceIdContentSiteBuilderIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   '/w/$workspaceId/settings/general': typeof WWorkspaceIdSettingsGeneralIndexRoute
@@ -668,7 +655,6 @@ export interface FileRoutesById {
   '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
-  '/w/$workspaceId/content/pages/': typeof WWorkspaceIdContentPagesIndexRoute
   '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
@@ -729,7 +715,6 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/roles/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/models/'
-    | '/w/$workspaceId/content/pages/'
     | '/w/$workspaceId/content/site-builder/'
     | '/w/$workspaceId/extensions/$extensionSlug/'
     | '/w/$workspaceId/settings/general/'
@@ -784,7 +769,6 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/roles'
     | '/w/$workspaceId/content/library'
     | '/w/$workspaceId/content/models'
-    | '/w/$workspaceId/content/pages'
     | '/w/$workspaceId/content/site-builder'
     | '/w/$workspaceId/extensions/$extensionSlug'
     | '/w/$workspaceId/settings/general'
@@ -843,7 +827,6 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/roles/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/models/'
-    | '/w/$workspaceId/content/pages/'
     | '/w/$workspaceId/content/site-builder/'
     | '/w/$workspaceId/extensions/$extensionSlug/'
     | '/w/$workspaceId/settings/general/'
@@ -1145,13 +1128,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdContentSiteBuilderIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
-    '/w/$workspaceId/content/pages/': {
-      id: '/w/$workspaceId/content/pages/'
-      path: '/content/pages'
-      fullPath: '/w/$workspaceId/content/pages/'
-      preLoaderRoute: typeof WWorkspaceIdContentPagesIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
     '/w/$workspaceId/content/models/': {
       id: '/w/$workspaceId/content/models/'
       path: '/content/models'
@@ -1356,7 +1332,6 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdEditorEditorModeEntityIdRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRoute
   WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute
   WWorkspaceIdContentModelsIndexRoute: typeof WWorkspaceIdContentModelsIndexRoute
-  WWorkspaceIdContentPagesIndexRoute: typeof WWorkspaceIdContentPagesIndexRoute
   WWorkspaceIdContentSiteBuilderIndexRoute: typeof WWorkspaceIdContentSiteBuilderIndexRoute
   WWorkspaceIdExtensionsExtensionSlugIndexRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
   WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute
@@ -1385,7 +1360,6 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
     WWorkspaceIdEditorEditorModeEntityIdRoute,
   WWorkspaceIdContentLibraryIndexRoute: WWorkspaceIdContentLibraryIndexRoute,
   WWorkspaceIdContentModelsIndexRoute: WWorkspaceIdContentModelsIndexRoute,
-  WWorkspaceIdContentPagesIndexRoute: WWorkspaceIdContentPagesIndexRoute,
   WWorkspaceIdContentSiteBuilderIndexRoute:
     WWorkspaceIdContentSiteBuilderIndexRoute,
   WWorkspaceIdExtensionsExtensionSlugIndexRoute:

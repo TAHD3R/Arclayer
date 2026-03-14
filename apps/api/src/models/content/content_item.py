@@ -44,8 +44,6 @@ class ContentItemRecord(BaseModel):
     )
     locale = fields.CharField(max_length=16, default="zh-CN", db_index=True)
 
-    field_values = fields.JSONField(null=True)
-
     draft_version = fields.IntField(default=0)
     published_version = fields.IntField(null=True)
 

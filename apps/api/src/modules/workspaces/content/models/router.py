@@ -101,6 +101,29 @@ async def create_workspace_content_model(
     return Response.success(data=_to_mutation_out(record))
 
 
+@canonical_models_router.get(
+    "/models",
+    response_model=ResponseModel[PageData[ContentModelOut]],
+    response_model_exclude_none=True,
+    summary="List rebuilt content models (workspace RBAC protected)",
+)
+async def list_workspace_content_models_canonical(
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[
+        WorkspaceContentCanonicalModelsService,
+        Depends(get_workspace_content_canonical_models_service),
+    ],
+    params: PageParams = Depends(get_page_params),
+) -> ResponseModel[PageData[ContentModelOut]]:
+    data = await service.list_models_paginated(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        params=params,
+    )
+    return Response.success(data=data)
+
+
 @canonical_models_router.patch(
     "/models/{model_id}",
     response_model=ResponseModel[ContentModelMutationOut],

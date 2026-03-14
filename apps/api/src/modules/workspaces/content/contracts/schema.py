@@ -160,6 +160,8 @@ class ContentModelDefinitionContract(BaseSchema):
     key: str = Field(..., min_length=1, max_length=64, description="Stable model key.")
     name: str = Field(..., min_length=1, max_length=128, description="Display model name.")
     description: str | None = Field(default=None, max_length=512, description="Optional model description.")
+    category: ContentModelCategory = Field(default="custom", description="Product surface grouping.")
+    default_editor: ContentDefaultEditor = Field(default="form", description="Default editing mode.")
     # Kernel contracts deliberately keep kind optional, without templateKey presets.
     kind: str | None = Field(default=None, min_length=1, max_length=64, description="Optional model kind marker.")
     fields: list[ContentModelFieldContract] = Field(default_factory=list, description="Explicit field contracts.")
@@ -180,3 +182,11 @@ class ContentModelDefinitionContract(BaseSchema):
         description="Workflow contract.",
     )
     views: list[ContentModelViewContract] = Field(default_factory=list, description="View contracts.")
+    presentation: dict[str, Any] | None = Field(
+        default=None,
+        description="Presentation policy contract.",
+    )
+    seo: dict[str, Any] | None = Field(
+        default=None,
+        description="SEO policy contract.",
+    )

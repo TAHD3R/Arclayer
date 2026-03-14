@@ -11,16 +11,12 @@ function resolveSource(relativePath: string) {
 }
 
 describe("workspace content and appearance routes", () => {
-  test("workspace content pages route uses lazy-loaded content pages page", () => {
-    const source = readFileSync(
-      resolveSource("routes/w/$workspaceId/content/pages/index.lazy.tsx"),
-      "utf-8",
-    );
+  test("legacy workspace content pages route has been removed", () => {
+    const indexRoute = resolveSource("routes/w/$workspaceId/content/pages/index.tsx");
+    const lazyRoute = resolveSource("routes/w/$workspaceId/content/pages/index.lazy.tsx");
 
-    expect(source).toContain(
-      'import { WorkspaceContentPagesPage } from "@/pages/workspaces/content/pages/page"',
-    );
-    expect(source).toContain("component: WorkspaceContentPagesPage");
+    expect(existsSync(indexRoute)).toBe(false);
+    expect(existsSync(lazyRoute)).toBe(false);
   });
 
   test("workspace content IA routes exist", () => {

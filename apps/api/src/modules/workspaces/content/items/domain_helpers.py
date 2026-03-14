@@ -113,7 +113,6 @@ def item_fields_for_transition(
     next_published_version = item.published_version
     if target_state == ContentVersionState.PUBLISHED:
         next_published_version = version.version
-        fields["field_values"] = version.fields_snapshot or {}
     elif target_state == ContentVersionState.ARCHIVED and item.published_version == version.version:
         next_published_version = None
 
@@ -157,6 +156,4 @@ def build_patch_item_fields(
     item_fields_to_update: dict[str, Any] = {}
     if has_version_changes or has_presentation_changes:
         item_fields_to_update["updated_by_user_id"] = actor_user_id
-    if "fields_snapshot" in payload.model_fields_set:
-        item_fields_to_update["field_values"] = payload.fields_snapshot or {}
     return item_fields_to_update

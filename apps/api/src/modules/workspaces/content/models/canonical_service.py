@@ -7,14 +7,24 @@ from pydantic import ConfigDict, Field
 
 from apps.api.src.common.schemas import BaseSchema
 from apps.api.src.core.exceptions import Conflict
+from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
 from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentDefaultEditor,
     ContentModelCapability,
+    ContentModelCategory,
     ContentModelDefinitionContract,
     ContentModelFieldContract,
+    ContentModelOut,
     ContentModelRelationContract,
     ContentModelViewContract,
     ContentRoutingContract,
     ContentWorkflowContract,
+)
+from apps.api.src.modules.workspaces.content.models.domain_helpers import (
+    dump_contract,
+    normalize_default_editor,
+    normalize_model_category,
+    to_content_model_out,
 )
 from apps.api.src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
 
@@ -25,6 +35,8 @@ class ContentModelDefinitionPatchContract(BaseSchema):
     key: str | None = Field(default=None, min_length=1, max_length=64)
     name: str | None = Field(default=None, min_length=1, max_length=128)
     description: str | None = Field(default=None, max_length=512)
+    category: ContentModelCategory | None = None
+    default_editor: ContentDefaultEditor | None = None
     kind: str | None = Field(default=None, min_length=1, max_length=64)
     fields: list[ContentModelFieldContract] | None = None
     relations: list[ContentModelRelationContract] | None = None
@@ -32,6 +44,8 @@ class ContentModelDefinitionPatchContract(BaseSchema):
     routing: ContentRoutingContract | None = None
     workflow: ContentWorkflowContract | None = None
     views: list[ContentModelViewContract] | None = None
+    presentation: dict[str, Any] | None = None
+    seo: dict[str, Any] | None = None
 
 
 def _normalize_required_text(value: str, *, error: str) -> str:
@@ -41,12 +55,6 @@ def _normalize_required_text(value: str, *, error: str) -> str:
     return out
 
 
-def _dump_contract(payload: BaseSchema | None) -> dict[str, Any] | None:
-    if payload is None:
-        return None
-    return payload.model_dump(by_alias=False, exclude_none=True)
-
-
 def _capabilities(values: list[ContentModelCapability]) -> list[str]:
     return [str(value) for value in values]
 
@@ -54,6 +62,17 @@ def _capabilities(values: list[ContentModelCapability]) -> list[str]:
 class WorkspaceContentCanonicalModelsService:
     def __init__(self, repo: WorkspaceContentModelsRepository) -> None:
         self.repo = repo
+
+    async def list_models_paginated(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        params: PageParams,
+    ) -> PageData[ContentModelOut]:
+        records = await self.repo.list_model_definitions(workspace_id=workspace_id, site_id=site_id)
+        rows = [to_content_model_out(record) for record in records]
+        return paginate_items(rows, params=params)
 
     async def create_model(
         self,
@@ -68,10 +87,14 @@ class WorkspaceContentCanonicalModelsService:
             key=_normalize_required_text(payload.key, error="Invalid model key"),
             name=_normalize_required_text(payload.name, error="Invalid model name"),
             description=payload.description,
+            category=normalize_model_category(payload.category),
+            default_editor=normalize_default_editor(payload.default_editor),
             kind=payload.kind,
             capabilities=_capabilities(payload.capabilities),
-            routing_policy=_dump_contract(payload.routing),
-            workflow_policy=_dump_contract(payload.workflow),
+            routing_policy=dump_contract(payload.routing),
+            presentation_policy=dump_contract(payload.presentation),
+            seo_policy=dump_contract(payload.seo),
+            workflow_policy=dump_contract(payload.workflow),
             fields=payload.fields,
             relations=payload.relations,
             views=payload.views,
@@ -98,14 +121,22 @@ class WorkspaceContentCanonicalModelsService:
             updates["name"] = _normalize_required_text(payload.name, error="Invalid model name")
         if "description" in fields_set:
             updates["description"] = payload.description
+        if "category" in fields_set:
+            updates["category"] = normalize_model_category(payload.category)
+        if "default_editor" in fields_set:
+            updates["default_editor"] = normalize_default_editor(payload.default_editor)
         if "kind" in fields_set:
             updates["kind"] = payload.kind
         if "capabilities" in fields_set:
             updates["capabilities"] = _capabilities(payload.capabilities or [])
         if "routing" in fields_set:
-            updates["routing_policy"] = _dump_contract(payload.routing)
+            updates["routing_policy"] = dump_contract(payload.routing)
+        if "presentation" in fields_set:
+            updates["presentation_policy"] = dump_contract(payload.presentation)
+        if "seo" in fields_set:
+            updates["seo_policy"] = dump_contract(payload.seo)
         if "workflow" in fields_set:
-            updates["workflow_policy"] = _dump_contract(payload.workflow)
+            updates["workflow_policy"] = dump_contract(payload.workflow)
 
         return await self.repo.update_model_definition(
             workspace_id=workspace_id,

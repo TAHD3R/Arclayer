@@ -24,6 +24,21 @@ from apps.api.src.modules.workspaces.content.contracts.schema import (
 
 
 class WorkspaceContentModelsRepository(BaseRepository):
+    async def list_model_definitions(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ContentModelDefinitionRecord]:
+        qs = (
+            ContentModelDefinitionRecord
+            .filter(workspace_id=workspace_id, site_id=site_id)
+            .prefetch_related("fields", "relations", "views")
+            .order_by("name", "key")
+        )
+        return list(await self.using_db(qs, conn))
+
     async def get_model_definition(
         self,
         *,
@@ -52,9 +67,13 @@ class WorkspaceContentModelsRepository(BaseRepository):
         key: str,
         name: str,
         description: str | None,
+        category: str,
+        default_editor: str,
         kind: str | None,
         capabilities: list[str],
         routing_policy: dict[str, Any] | None,
+        presentation_policy: dict[str, Any] | None,
+        seo_policy: dict[str, Any] | None,
         workflow_policy: dict[str, Any] | None,
         fields: list[ContentModelFieldContract],
         relations: list[ContentModelRelationContract],
@@ -67,9 +86,13 @@ class WorkspaceContentModelsRepository(BaseRepository):
                 key=key,
                 name=name,
                 description=description,
+                category=category,
+                default_editor=default_editor,
                 kind=kind,
                 capabilities=capabilities,
                 routing_policy=routing_policy,
+                presentation_policy=presentation_policy,
+                seo_policy=seo_policy,
                 workflow_policy=workflow_policy,
                 using_db=conn,
             )

@@ -1,6 +1,5 @@
 export * from "./tag-base";
 export * from "./asset-tags";
-export * from "./content-page-tags";
 export * from "./count-tags";
 export * from "./debug-tags";
 export * from "./extension-tags";

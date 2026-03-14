@@ -42,6 +42,8 @@ def _explicit_update_payload() -> dict:
     return {
         "name": "Article v2",
         "description": "Updated contract",
+        "category": "content_library",
+        "defaultEditor": "rich_text",
         "fields": [
             {
                 "key": "title",
@@ -62,6 +64,8 @@ def _explicit_update_payload() -> dict:
         ],
         "capabilities": ["versioned", "routable", "has_relations", "publishable"],
         "routing": {"mode": "single", "slugField": "title"},
+        "presentation": {"allowedKinds": ["rich_text_document", "seo"]},
+        "seo": {"titleField": "title", "descriptionField": "summary"},
         "workflow": {"states": ["draft", "review", "published"], "initialState": "draft"},
         "views": [
             {
@@ -141,9 +145,20 @@ async def test_content_models_create_blank_first_payload_returns_201(
         saved = await ContentModelDefinitionRecord.filter(key="article").first()
         assert saved is not None
         assert saved.name == "Article"
+        assert saved.category == "custom"
+        assert saved.default_editor == "form"
         assert saved.capabilities == []
         assert saved.routing_policy == {"mode": "none"}
+        assert saved.presentation_policy is None
+        assert saved.seo_policy is None
         assert saved.workflow_policy == {"states": []}
+
+        list_response = await client.get(f"/api/v1/workspaces/{workspace_id}/content/models")
+        assert list_response.status_code == 200, list_response.text
+        model_payload = list_response.json()["data"]["items"][0]
+        assert model_payload["key"] == "article"
+        assert model_payload["category"] == "custom"
+        assert model_payload["defaultEditor"] == "form"
 
 
 @pytest.mark.asyncio
@@ -171,8 +186,12 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         assert saved is not None
         assert saved.name == "Article v2"
         assert saved.description == "Updated contract"
+        assert saved.category == "content_library"
+        assert saved.default_editor == "rich_text"
         assert saved.capabilities == ["versioned", "routable", "has_relations", "publishable"]
         assert saved.routing_policy == {"mode": "single", "slug_field": "title"}
+        assert saved.presentation_policy == {"allowedKinds": ["rich_text_document", "seo"]}
+        assert saved.seo_policy == {"titleField": "title", "descriptionField": "summary"}
         assert saved.workflow_policy == {"states": ["draft", "review", "published"], "initial_state": "draft"}
 
         saved_fields = await ContentModelFieldRecord.filter(model_definition_id=saved.id).order_by("sort_order")

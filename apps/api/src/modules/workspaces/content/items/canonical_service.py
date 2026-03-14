@@ -169,7 +169,6 @@ class WorkspaceContentCanonicalItemsService:
                 item,
                 fields={
                     "draft_version": next_version,
-                    "field_values": payload.fields_snapshot,
                     "status": status_by_published_version(
                         published_version=item.published_version,
                         fallback=ContentItemStatus.DRAFT,

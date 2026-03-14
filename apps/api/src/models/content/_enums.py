@@ -63,3 +63,12 @@ class ContentPresentationKind(StrEnum):
     QUERY_DEFINITION = "query_definition"
     SLOT_MAPPING = "slot_mapping"
     SEO = "seo"
+
+
+class PublishArtifactKind(StrEnum):
+    ROUTE_MANIFEST = "route_manifest"
+    COMPONENT_MANIFEST = "component_manifest"
+    BINDING_MANIFEST = "binding_manifest"
+    SEO_METADATA = "seo_metadata"
+    ASSET_MANIFEST = "asset_manifest"
+    RENDER_HINTS = "render_hints"
