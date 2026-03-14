@@ -31,7 +31,7 @@ export function buildPreviewRows(items: readonly unknown[]): LibraryRow[] {
 }
 
 export function filterLibraryModels(items: readonly ContentModelSummary[]): ContentModelSummary[] {
-  return items.filter((item) => item.category === "content_library");
+  return items.filter((item) => item.category !== "system");
 }
 
 export function filterLibraryViews(

@@ -10,28 +10,28 @@ const consoleErrorSpy = vi.hoisted(() => vi.fn());
 
 const {
   listWorkspaceContentModels,
-  listSiteBuilderPagesTree,
+  listSiteBuilderStructureTree,
   listSiteBuilderGlobalSections,
   listSiteBuilderRouteTemplates,
   getSiteBuilderPublishImpact,
-  createSiteBuilderPage,
+  createSiteBuilderStructureNode,
   createSiteBuilderRouteTemplate,
   toggleSiteBuilderRouteTemplateActive,
-  publishSiteBuilderPage,
-  unpublishSiteBuilderPage,
-  openStudioPageEditor,
+  publishSiteBuilderStructureNode,
+  unpublishSiteBuilderStructureNode,
+  openStudioPresentationEditor,
 } = vi.hoisted(() => ({
   listWorkspaceContentModels: vi.fn(),
-  listSiteBuilderPagesTree: vi.fn(),
+  listSiteBuilderStructureTree: vi.fn(),
   listSiteBuilderGlobalSections: vi.fn(),
   listSiteBuilderRouteTemplates: vi.fn(),
   getSiteBuilderPublishImpact: vi.fn(),
-  createSiteBuilderPage: vi.fn(),
+  createSiteBuilderStructureNode: vi.fn(),
   createSiteBuilderRouteTemplate: vi.fn(),
   toggleSiteBuilderRouteTemplateActive: vi.fn(),
-  publishSiteBuilderPage: vi.fn(),
-  unpublishSiteBuilderPage: vi.fn(),
-  openStudioPageEditor: vi.fn(),
+  publishSiteBuilderStructureNode: vi.fn(),
+  unpublishSiteBuilderStructureNode: vi.fn(),
+  openStudioPresentationEditor: vi.fn(),
 }));
 
 vi.mock("@/api/content-models", () => ({
@@ -40,10 +40,10 @@ vi.mock("@/api/content-models", () => ({
 
 vi.mock("@/api/content/site-builder", () => ({
   siteBuilderQueryKeys: {
-    pages: (workspaceId: string | null | undefined) => [
+    structure: (workspaceId: string | null | undefined) => [
       "content",
       "site-builder",
-      "pages",
+      "structure",
       workspaceId,
     ],
     globals: (workspaceId: string | null | undefined) => [
@@ -65,19 +65,19 @@ vi.mock("@/api/content/site-builder", () => ({
       workspaceId,
     ],
   },
-  listSiteBuilderPagesTree,
+  listSiteBuilderStructureTree,
   listSiteBuilderGlobalSections,
   listSiteBuilderRouteTemplates,
   getSiteBuilderPublishImpact,
-  createSiteBuilderPage,
+  createSiteBuilderStructureNode,
   createSiteBuilderRouteTemplate,
   toggleSiteBuilderRouteTemplateActive,
-  publishSiteBuilderPage,
-  unpublishSiteBuilderPage,
+  publishSiteBuilderStructureNode,
+  unpublishSiteBuilderStructureNode,
 }));
 
 vi.mock("@/lib/routing/studio-editor", () => ({
-  openStudioPageEditor,
+  openStudioPresentationEditor,
 }));
 
 vi.mock("@/lib/notifications", () => ({
@@ -91,21 +91,21 @@ vi.mock("react-i18next", () => ({
       const tokens = {
         "nav:NAV_CONTENT_SITE_BUILDER": "Site Builder",
         "content_library:SITE_BUILDER_PAGE_DESC":
-          "Organize the key structures that shape your site experience.",
+          "Control route structure, composition, and publish coordination from one place.",
         "content_library:SITE_BUILDER_EMPTY_DESC":
-          "Create your first page to start assembling the site builder workspace.",
-        "content_library:SITE_BUILDER_PAGES_TITLE": "Pages",
+          "Add your first route node to start assembling the site builder workspace.",
+        "content_library:SITE_BUILDER_PAGES_TITLE": "Route nodes",
         "content_library:SITE_BUILDER_GLOBALS_TITLE": "Global sections",
-        "content_library:SITE_BUILDER_METRIC_PUBLISHED": "Published pages",
-        "content_library:SITE_BUILDER_METRIC_DRAFT": "Draft pages",
+        "content_library:SITE_BUILDER_METRIC_PUBLISHED": "Published nodes",
+        "content_library:SITE_BUILDER_METRIC_DRAFT": "Draft nodes",
         "content_library:SITE_BUILDER_METRIC_ROUTES": "Route templates",
-        "content_library:SITE_BUILDER_MANAGE_PAGES": "Manage pages",
-        "content_library:SITE_BUILDER_STRUCTURE_MAP_TITLE": "Structure map",
+        "content_library:SITE_BUILDER_MANAGE_PAGES": "Add route node",
+        "content_library:SITE_BUILDER_STRUCTURE_MAP_TITLE": "Route tree",
         "content_library:SITE_BUILDER_STRUCTURE_MAP_DESC":
-          "Track page hierarchy and publish state from one place.",
+          "Track route hierarchy, presentation bindings, and publish state from one place.",
         "content_library:SITE_BUILDER_COMPOSITION_PANEL_TITLE": "Composition panel",
         "content_library:SITE_BUILDER_COMPOSITION_PANEL_DESC":
-          "Review global sections that compose every page experience.",
+          "Review shared sections and presentation assignments across the route tree.",
         "content_library:SITE_BUILDER_ROUTE_BINDINGS_TITLE": "Route bindings",
         "content_library:SITE_BUILDER_ROUTE_BINDINGS_DESC":
           "Bind dynamic route patterns to routable content models.",
@@ -119,7 +119,7 @@ vi.mock("react-i18next", () => ({
           "Unpublished dependencies",
         "content_library:SITE_BUILDER_PUBLISH_IMPACT_NONE": "No blockers in this category.",
         "content_library:SITE_BUILDER_PUBLISH_IMPACT_TOTAL": `Total blockers ${String(options?.count ?? 0)}`,
-        "content_library:SITE_BUILDER_OPEN_EDITOR": "Open editor",
+        "content_library:SITE_BUILDER_OPEN_EDITOR": "Open in Studio",
         "content_library:SITE_BUILDER_STATUS_DRAFT": "Draft",
         "content_library:SITE_BUILDER_STATUS_PUBLISHED": "Published",
         "content_library:SITE_BUILDER_ACTION_PUBLISH": "Publish",
@@ -160,17 +160,17 @@ vi.mock("react-i18next", () => ({
         "content_library:SITE_BUILDER_TOAST_ROUTE_CREATE_SUCCESS": "Route template created",
         "content_library:SITE_BUILDER_TOAST_ROUTE_ENABLED": "Route template enabled",
         "content_library:SITE_BUILDER_TOAST_ROUTE_DISABLED": "Route template disabled",
-        "content_library:SITE_BUILDER_DIALOG_TITLE": "Create page",
-        "content_library:SITE_BUILDER_DIALOG_DESC": "Add a new page to your site structure.",
-        "content_library:SITE_BUILDER_DIALOG_SUBMIT": "Create page",
+        "content_library:SITE_BUILDER_DIALOG_TITLE": "Add route node",
+        "content_library:SITE_BUILDER_DIALOG_DESC": "Add a new route node to your site structure.",
+        "content_library:SITE_BUILDER_DIALOG_SUBMIT": "Add route node",
         "content_library:SITE_BUILDER_FIELD_TITLE_LABEL": "Title",
         "content_library:SITE_BUILDER_FIELD_TITLE_DESC":
-          "Set the page label shown in navigation and tables.",
+          "Set the route node label shown in navigation and structure views.",
         "content_library:SITE_BUILDER_FIELD_TITLE_PLACEHOLDER": "Pricing",
         "content_library:SITE_BUILDER_FIELD_PATH_LABEL": "Path",
-        "content_library:SITE_BUILDER_FIELD_PATH_DESC": "Choose the route path for this page.",
+        "content_library:SITE_BUILDER_FIELD_PATH_DESC": "Choose the route path for this node.",
         "content_library:SITE_BUILDER_FIELD_PATH_PLACEHOLDER": "/pricing",
-        "content_library:SITE_BUILDER_TOAST_CREATE_SUCCESS": "Page created",
+        "content_library:SITE_BUILDER_TOAST_CREATE_SUCCESS": "Route node created",
         "common:CANCEL": "Cancel",
         "common:RETRY": "Retry",
       } as Record<string, string>;
@@ -259,7 +259,7 @@ describe("WorkspaceSiteBuilderPage", () => {
       next: null,
       prev: null,
     });
-    listSiteBuilderPagesTree.mockResolvedValue({
+    listSiteBuilderStructureTree.mockResolvedValue({
       items: [],
       total: 0,
       page: 1,
@@ -294,8 +294,8 @@ describe("WorkspaceSiteBuilderPage", () => {
     });
   });
 
-  test("renders structure/composition/publish-impact layers and hides model-creation entry", async () => {
-    listSiteBuilderPagesTree.mockResolvedValue({
+  test("renders route-tree/composition/publish-impact layers and hides model-creation entry", async () => {
+    listSiteBuilderStructureTree.mockResolvedValue({
       items: [
         {
           id: "page-home",
@@ -323,7 +323,7 @@ describe("WorkspaceSiteBuilderPage", () => {
     await renderWithQuery();
 
     expect(await screen.findByText("Site Builder")).toBeInTheDocument();
-    expect(await screen.findByText("Structure map")).toBeInTheDocument();
+    expect(await screen.findByText("Route tree")).toBeInTheDocument();
     expect(screen.getByText("Composition panel")).toBeInTheDocument();
     expect(screen.getByText("Publish impact")).toBeInTheDocument();
     expect(screen.getByText("Route bindings")).toBeInTheDocument();
@@ -337,8 +337,8 @@ describe("WorkspaceSiteBuilderPage", () => {
     expect(screen.getByText("Pricing")).toBeInTheDocument();
   });
 
-  test("opens the visual editor from a page affordance", async () => {
-    listSiteBuilderPagesTree.mockResolvedValue({
+  test("opens Studio from a presentation affordance", async () => {
+    listSiteBuilderStructureTree.mockResolvedValue({
       items: [
         {
           id: "page-home",
@@ -358,18 +358,18 @@ describe("WorkspaceSiteBuilderPage", () => {
 
     await renderWithQuery();
 
-    const buttons = await screen.findAllByRole("button", { name: "Open editor" });
+    const buttons = await screen.findAllByRole("button", { name: "Open in Studio" });
     fireEvent.click(buttons[buttons.length - 1]!);
 
-    expect(openStudioPageEditor).toHaveBeenCalledWith({
+    expect(openStudioPresentationEditor).toHaveBeenCalledWith({
       workspaceId: "ws-1",
-      pageId: "page-home",
+      presentationId: "page-home",
     });
   });
 
-  test("creates a page and refreshes the overview", async () => {
+  test("creates a route node and refreshes the overview", async () => {
     const user = userEvent.setup();
-    listSiteBuilderPagesTree
+    listSiteBuilderStructureTree
       .mockResolvedValueOnce({
         items: [],
         total: 0,
@@ -395,18 +395,19 @@ describe("WorkspaceSiteBuilderPage", () => {
         next: null,
         prev: null,
       });
-    createSiteBuilderPage.mockResolvedValue(undefined);
+    createSiteBuilderStructureNode.mockResolvedValue(undefined);
 
     await renderWithQuery();
 
-    await user.click(await screen.findByRole("button", { name: "Manage pages" }));
+    const addRouteNodeButtons = await screen.findAllByRole("button", { name: "Add route node" });
+    await user.click(addRouteNodeButtons[0]!);
     await user.type(screen.getByPlaceholderText("Pricing"), "Pricing");
     await user.clear(screen.getByPlaceholderText("/pricing"));
     await user.type(screen.getByPlaceholderText("/pricing"), "/pricing");
-    await user.click(screen.getByRole("button", { name: "Create page" }));
+    await user.click(screen.getAllByRole("button", { name: "Add route node" })[1]!);
 
     await waitFor(() => {
-      expect(createSiteBuilderPage).toHaveBeenCalledWith("ws-1", {
+      expect(createSiteBuilderStructureNode).toHaveBeenCalledWith("ws-1", {
         title: "Pricing",
         path: "/pricing",
         modelKey: "page",
@@ -415,9 +416,8 @@ describe("WorkspaceSiteBuilderPage", () => {
     expect(await screen.findByText("Pricing")).toBeInTheDocument();
   });
 
-  test("publishes and unpublishes a page from site builder structure map", async () => {
-    const user = userEvent.setup();
-    listSiteBuilderPagesTree
+  test("publishes and unpublishes a route node from the route tree", async () => {
+    listSiteBuilderStructureTree
       .mockResolvedValueOnce({
         items: [
           {
@@ -475,14 +475,14 @@ describe("WorkspaceSiteBuilderPage", () => {
         next: null,
         prev: null,
       });
-    publishSiteBuilderPage.mockResolvedValue({
+    publishSiteBuilderStructureNode.mockResolvedValue({
       siteId: "site-1",
       pageId: "page-home",
       path: "/",
       revision: 2,
       publishedAtMs: 1741330800000,
     });
-    unpublishSiteBuilderPage.mockResolvedValue({
+    unpublishSiteBuilderStructureNode.mockResolvedValue({
       siteId: "site-1",
       pageId: "page-home",
       path: "/",
@@ -491,22 +491,22 @@ describe("WorkspaceSiteBuilderPage", () => {
 
     await renderWithQuery();
 
-    await user.click(await screen.findByRole("button", { name: "Publish" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Publish" }));
     await waitFor(() => {
-      expect(publishSiteBuilderPage).toHaveBeenCalledWith("ws-1", "page-home", {
+      expect(publishSiteBuilderStructureNode).toHaveBeenCalledWith("ws-1", "page-home", {
         revision: 2,
       });
     });
 
-    await user.click(await screen.findByRole("button", { name: "Unpublish" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Unpublish" }));
     await waitFor(() => {
-      expect(unpublishSiteBuilderPage).toHaveBeenCalledWith("ws-1", "page-home", 2);
+      expect(unpublishSiteBuilderStructureNode).toHaveBeenCalledWith("ws-1", "page-home", 2);
     });
   });
 
   test("creates route binding from route bindings panel", async () => {
     const user = userEvent.setup();
-    listSiteBuilderPagesTree.mockResolvedValue({
+    listSiteBuilderStructureTree.mockResolvedValue({
       items: [
         {
           id: "page-home",

@@ -2,19 +2,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Dispatch, SetStateAction } from "react";
 
 import {
-  createSiteBuilderPage,
+  createSiteBuilderStructureNode,
   createSiteBuilderRouteTemplate,
-  publishSiteBuilderPage,
+  publishSiteBuilderStructureNode,
   siteBuilderQueryKeys,
   toggleSiteBuilderRouteTemplateActive,
-  unpublishSiteBuilderPage,
-  type SiteBuilderPageNode,
+  unpublishSiteBuilderStructureNode,
+  type SiteBuilderStructureNode,
   type SiteBuilderRouteTemplate,
 } from "@/api/content/site-builder";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import type { CreateRouteTemplateInput } from "./create-route-template-dialog";
-import type { CreateSitePageInput } from "./create-site-page-dialog";
+import type { CreateStructureNodeInput } from "./create-site-page-dialog";
 
 export type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -42,15 +42,15 @@ export function useCreateMutation(deps: SiteBuilderControllerDeps) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateSitePageInput) => {
+    mutationFn: async (input: CreateStructureNodeInput) => {
       if (!deps.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      await createSiteBuilderPage(String(deps.workspaceId), input);
+      await createSiteBuilderStructureNode(String(deps.workspaceId), input);
     },
     onSuccess: async () => {
       notifySuccessText(deps.t("content_library:SITE_BUILDER_TOAST_CREATE_SUCCESS"));
       deps.setDialogOpen(false);
       await queryClient.invalidateQueries({
-        queryKey: siteBuilderQueryKeys.pages(deps.workspaceId),
+        queryKey: siteBuilderQueryKeys.structure(deps.workspaceId),
       });
     },
     onError: (error) => notifyError(error),
@@ -62,15 +62,15 @@ export function usePublishMutation(
   refreshBuilderQueries: () => Promise<void>,
 ) {
   return useMutation({
-    mutationFn: async (page: SiteBuilderPageNode) => {
+    mutationFn: async (node: SiteBuilderStructureNode) => {
       if (!deps.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      deps.setProcessingIds((current) => addProcessingId(current, page.id, true));
+      deps.setProcessingIds((current) => addProcessingId(current, node.id, true));
       try {
-        return await publishSiteBuilderPage(String(deps.workspaceId), page.id, {
-          revision: page.draftRevision ?? undefined,
+        return await publishSiteBuilderStructureNode(String(deps.workspaceId), node.id, {
+          revision: node.draftRevision ?? undefined,
         });
       } finally {
-        deps.setProcessingIds((current) => addProcessingId(current, page.id, false));
+        deps.setProcessingIds((current) => addProcessingId(current, node.id, false));
       }
     },
     onSuccess: async () => {
@@ -86,20 +86,20 @@ export function useUnpublishMutation(
   refreshBuilderQueries: () => Promise<void>,
 ) {
   return useMutation({
-    mutationFn: async (page: SiteBuilderPageNode) => {
+    mutationFn: async (node: SiteBuilderStructureNode) => {
       if (!deps.workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      if (!page.publishedRevision) {
-        throw new Error("SITE_BUILDER_PAGE_NOT_PUBLISHED");
+      if (!node.publishedRevision) {
+        throw new Error("SITE_BUILDER_NODE_NOT_PUBLISHED");
       }
-      deps.setProcessingIds((current) => addProcessingId(current, page.id, true));
+      deps.setProcessingIds((current) => addProcessingId(current, node.id, true));
       try {
-        return await unpublishSiteBuilderPage(
+        return await unpublishSiteBuilderStructureNode(
           String(deps.workspaceId),
-          page.id,
-          page.publishedRevision,
+          node.id,
+          node.publishedRevision,
         );
       } finally {
-        deps.setProcessingIds((current) => addProcessingId(current, page.id, false));
+        deps.setProcessingIds((current) => addProcessingId(current, node.id, false));
       }
     },
     onSuccess: async () => {

@@ -6,7 +6,10 @@ import { useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
-import { buildStudioPageEditorUrl, buildStudioWorkspaceUrl } from "@/lib/routing/studio-editor";
+import {
+  buildStudioPresentationEditorUrl,
+  buildStudioWorkspaceUrl,
+} from "@/lib/routing/studio-editor";
 
 export function WorkspaceEditorHandoffPage() {
   const { t } = useTranslation(["content_pages"]);
@@ -14,29 +17,29 @@ export function WorkspaceEditorHandoffPage() {
     from: "/w/$workspaceId/editor/$editorMode/$entityId",
   });
 
-  const isPageMode = editorMode === "page";
-  const studioPageUrl = buildStudioPageEditorUrl({
+  const isPresentationMode = editorMode === "presentation";
+  const studioPresentationUrl = buildStudioPresentationEditorUrl({
     workspaceId,
-    pageId: entityId,
+    presentationId: entityId,
   });
   const studioWorkspaceUrl = buildStudioWorkspaceUrl(workspaceId);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!isPageMode) return;
-    window.location.replace(studioPageUrl);
-  }, [isPageMode, studioPageUrl]);
+    if (!isPresentationMode) return;
+    window.location.replace(studioPresentationUrl);
+  }, [isPresentationMode, studioPresentationUrl]);
 
   return (
     <DefaultPage
       width="fixed"
       title={
-        isPageMode
+        isPresentationMode
           ? t("content_pages:EDITOR_HANDOFF_TITLE")
           : t("content_pages:EDITOR_HANDOFF_UNSUPPORTED_TITLE")
       }
       description={
-        isPageMode
+        isPresentationMode
           ? t("content_pages:EDITOR_HANDOFF_DESC")
           : t("content_pages:EDITOR_HANDOFF_UNSUPPORTED_DESC")
       }
@@ -45,7 +48,7 @@ export function WorkspaceEditorHandoffPage() {
           type="primary"
           autoInsertSpace={false}
           icon={<Link2 className="size-4" aria-hidden="true" />}
-          href={isPageMode ? studioPageUrl : studioWorkspaceUrl}
+          href={isPresentationMode ? studioPresentationUrl : studioWorkspaceUrl}
         >
           {t("content_pages:EDITOR_HANDOFF_ACTION")}
         </Button>

@@ -7,7 +7,7 @@ import { WorkspaceContentShell } from "@/pages/workspaces/content/shared/content
 
 import { CompositionPanel } from "./composition-panel";
 import { CreateRouteTemplateDialog } from "./create-route-template-dialog";
-import { CreateSitePageDialog } from "./create-site-page-dialog";
+import { CreateStructureNodeDialog } from "./create-site-page-dialog";
 import { PublishImpactDrawer } from "./publish-impact-drawer";
 import { RouteBindingsPanel } from "./route-bindings-panel";
 import { SiteBuilderMetrics } from "./site-builder-metrics";
@@ -21,9 +21,9 @@ export function SiteBuilderView() {
     value: item.key,
     label: item.name,
   }));
-  const pageOptions = model.pagesTree.map((page) => ({
-    value: page.id,
-    label: page.title || page.path,
+  const structureOptions = model.structureTree.map((node) => ({
+    value: node.id,
+    label: node.title || node.path,
   }));
 
   return (
@@ -44,18 +44,18 @@ export function SiteBuilderView() {
         }
       >
         <ContentGuard
-          loading={model.queries.pagesQuery.isLoading}
-          error={model.queries.pagesQuery.error}
+          loading={model.queries.structureQuery.isLoading}
+          error={model.queries.structureQuery.error}
           empty={false}
-          onRetry={() => void model.queries.pagesQuery.refetch()}
+          onRetry={() => void model.queries.structureQuery.refetch()}
           container="raw"
         >
           <div className="grid gap-4">
             <SiteBuilderMetrics
-              draftCount={model.counts.totalPages - model.counts.publishedPages}
+              draftCount={model.counts.totalNodes - model.counts.publishedNodes}
               globalCount={model.globalSections.length}
-              pageCount={model.counts.totalPages}
-              publishedCount={model.counts.publishedPages}
+              nodeCount={model.counts.totalNodes}
+              publishedCount={model.counts.publishedNodes}
               routeCount={model.routeTemplates.length}
               t={t}
             />
@@ -68,11 +68,11 @@ export function SiteBuilderView() {
             />
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
               <StructureMap
-                pages={model.pagesTree}
+                nodes={model.structureTree}
                 processingIds={model.processingIds}
                 onOpenEditor={model.openEditor}
-                onPublish={(page) => void model.publishMutation.mutateAsync(page)}
-                onUnpublish={(page) => void model.unpublishMutation.mutateAsync(page)}
+                onPublish={(node) => void model.publishMutation.mutateAsync(node)}
+                onUnpublish={(node) => void model.unpublishMutation.mutateAsync(node)}
                 t={t}
               />
               <div className="grid gap-4">
@@ -99,7 +99,7 @@ export function SiteBuilderView() {
         </ContentGuard>
       </WorkspaceContentShell>
 
-      <CreateSitePageDialog
+      <CreateStructureNodeDialog
         open={model.dialogOpen}
         confirmLoading={model.createMutation.isPending}
         modelOptions={modelOptions}
@@ -111,7 +111,7 @@ export function SiteBuilderView() {
       <CreateRouteTemplateDialog
         open={model.routeDialogOpen}
         confirmLoading={model.createRouteMutation.isPending}
-        itemOptions={pageOptions}
+        itemOptions={structureOptions}
         onOpenChange={model.setRouteDialogOpen}
         onConfirm={async (input) => {
           await model.createRouteMutation.mutateAsync(input);

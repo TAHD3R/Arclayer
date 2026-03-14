@@ -55,21 +55,31 @@ vi.mock("@/api/content-publish", () => ({
 }));
 
 import {
-  createSiteBuilderPage,
+  createSiteBuilderStructureNode,
   createSiteBuilderRouteTemplate,
   getSiteBuilderPublishImpact,
   listSiteBuilderGlobalSections,
-  listSiteBuilderPagesTree,
+  listSiteBuilderStructureTree,
   listSiteBuilderRouteTemplates,
-  publishSiteBuilderPage,
+  publishSiteBuilderStructureNode,
   toggleSiteBuilderRouteTemplateActive,
-  unpublishSiteBuilderPage,
+  unpublishSiteBuilderStructureNode,
 } from "@/api/content/site-builder";
 
 const MODELS_PAGE = {
   items: [
-    { key: "page", category: "site_builder", name: "Page" },
-    { key: "article", category: "content_library", name: "Article" },
+    {
+      key: "page",
+      category: "site_builder",
+      name: "Page",
+      capabilities: ["routable", "visual_editable"],
+    },
+    {
+      key: "article",
+      category: "content_library",
+      name: "Article",
+      capabilities: ["routable", "rich_text_editable"],
+    },
   ],
 };
 
@@ -121,7 +131,7 @@ describe("api/content/site-builder adapter", () => {
   });
 
   it("builds the structure tree from canonical items, bindings, and hierarchy", async () => {
-    const result = await listSiteBuilderPagesTree("ws-1");
+    const result = await listSiteBuilderStructureTree("ws-1");
 
     expect(result.items).toEqual([
       {
@@ -147,6 +157,17 @@ describe("api/content/site-builder adapter", () => {
           },
         ],
       },
+      {
+        id: "article-hello",
+        title: "Hello world",
+        modelKey: "article",
+        path: "/blog/hello-world",
+        parentId: null,
+        sortOrder: 2,
+        draftRevision: 5,
+        publishedRevision: 4,
+        children: [],
+      },
     ]);
   });
 
@@ -170,10 +191,18 @@ describe("api/content/site-builder adapter", () => {
         entryTypeCode: "page",
         isActive: true,
       },
+      {
+        id: "binding-article",
+        itemId: "article-hello",
+        itemTitle: "Hello world",
+        pathPattern: "/blog/hello-world",
+        entryTypeCode: "article",
+        isActive: true,
+      },
     ]);
   });
 
-  it("creates canonical pages and route templates without workspace-site page truth", async () => {
+  it("creates canonical structure nodes and route templates without workspace-site page truth", async () => {
     createWorkspaceContentItem.mockResolvedValueOnce({
       id: "page-about",
       title: "About",
@@ -194,7 +223,7 @@ describe("api/content/site-builder adapter", () => {
       sortOrder: 0,
     });
 
-    const page = await createSiteBuilderPage("ws-1", {
+    const node = await createSiteBuilderStructureNode("ws-1", {
       title: "About",
       path: "/about",
       modelKey: "page",
@@ -210,7 +239,7 @@ describe("api/content/site-builder adapter", () => {
       isActive: true,
     });
     expect(upsertWorkspaceContentHierarchyNode).toHaveBeenCalledWith("ws-1", "page-about", {});
-    expect(page.path).toBe("/about");
+    expect(node.path).toBe("/about");
 
     upsertWorkspaceContentRouteBinding.mockResolvedValueOnce({
       id: "binding-pricing",
@@ -235,7 +264,7 @@ describe("api/content/site-builder adapter", () => {
     });
   });
 
-  it("passes publish lifecycle through canonical adapters and reads global sections from legacy-content", async () => {
+  it("passes publish lifecycle through canonical adapters and reads global sections from content structure", async () => {
     publishWorkspaceContentItemVersion.mockResolvedValueOnce({ versionNumber: 3 });
     archiveWorkspaceContentItemVersion.mockResolvedValueOnce({ versionNumber: 2 });
     upsertWorkspaceContentRouteBinding.mockResolvedValueOnce({
@@ -250,11 +279,13 @@ describe("api/content/site-builder adapter", () => {
       unpublishedDependencies: [],
     });
 
-    await expect(publishSiteBuilderPage("ws-1", "page-home", { revision: 3 })).resolves.toEqual({
+    await expect(
+      publishSiteBuilderStructureNode("ws-1", "page-home", { revision: 3 }),
+    ).resolves.toEqual({
       itemId: "page-home",
       revision: 3,
     });
-    await expect(unpublishSiteBuilderPage("ws-1", "page-home", 2)).resolves.toEqual({
+    await expect(unpublishSiteBuilderStructureNode("ws-1", "page-home", 2)).resolves.toEqual({
       itemId: "page-home",
       revision: 2,
     });
@@ -279,6 +310,6 @@ describe("api/content/site-builder adapter", () => {
     await expect(listSiteBuilderGlobalSections("ws-1")).resolves.toEqual({
       items: [{ id: "global-1" }],
     });
-    expect(apiGet).toHaveBeenCalledWith("/workspaces/ws-1/legacy-content/structure/global-slots");
+    expect(apiGet).toHaveBeenCalledWith("/workspaces/ws-1/content/structure/global-slots");
   });
 });

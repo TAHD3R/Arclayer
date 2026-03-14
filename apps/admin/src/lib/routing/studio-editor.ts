@@ -35,25 +35,6 @@ export function buildStudioWorkspaceUrl(
   return buildStudioUrl(`/w/${encodeURIComponent(workspaceId)}/`, opts?.adminReturnTo);
 }
 
-export function buildStudioPageEditorUrl(opts: {
-  workspaceId: string;
-  pageId: string;
-  adminReturnTo?: string | null;
-}): string {
-  // Temporary shim during content-kernel rebuild:
-  // pageId currently maps to presentationId until Admin migrates to explicit presentation identity.
-  return buildStudioPresentationEditorUrl({
-    workspaceId: opts.workspaceId,
-    presentationId: opts.pageId,
-    adminReturnTo: opts.adminReturnTo,
-  });
-}
-
-export function openStudioPageEditor(opts: { workspaceId: string; pageId: string }): void {
-  if (typeof window === "undefined") return;
-  window.location.assign(buildStudioPageEditorUrl(opts));
-}
-
 export function buildStudioPresentationEditorUrl(opts: {
   workspaceId: string;
   presentationId: string;

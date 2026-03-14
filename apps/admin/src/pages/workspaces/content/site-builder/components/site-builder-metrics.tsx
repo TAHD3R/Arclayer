@@ -3,13 +3,13 @@ type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 export function SiteBuilderMetrics(props: {
   draftCount: number;
   globalCount: number;
-  pageCount: number;
+  nodeCount: number;
   publishedCount: number;
   routeCount: number;
   t: TranslationFn;
 }) {
   const metrics = [
-    { label: props.t("content_library:SITE_BUILDER_PAGES_TITLE"), value: props.pageCount },
+    { label: props.t("content_library:SITE_BUILDER_PAGES_TITLE"), value: props.nodeCount },
     {
       label: props.t("content_library:SITE_BUILDER_METRIC_PUBLISHED"),
       value: props.publishedCount,

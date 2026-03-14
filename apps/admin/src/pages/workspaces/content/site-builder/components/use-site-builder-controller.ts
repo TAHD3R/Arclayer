@@ -5,13 +5,13 @@ import { listWorkspaceContentModels } from "@/api/content-models";
 import {
   getSiteBuilderPublishImpact,
   listSiteBuilderGlobalSections,
-  listSiteBuilderPagesTree,
+  listSiteBuilderStructureTree,
   listSiteBuilderRouteTemplates,
   siteBuilderQueryKeys,
-  type SiteBuilderPageNode,
+  type SiteBuilderStructureNode,
   type SiteBuilderRouteTemplate,
 } from "@/api/content/site-builder";
-import { openStudioPageEditor } from "@/lib/routing/studio-editor";
+import { openStudioPresentationEditor } from "@/lib/routing/studio-editor";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import {
@@ -25,29 +25,29 @@ import {
 } from "./site-builder-controller-mutations";
 
 type StructureCounts = {
-  totalPages: number;
-  publishedPages: number;
+  totalNodes: number;
+  publishedNodes: number;
 };
 
-function collectStructureCounts(nodes: readonly SiteBuilderPageNode[]): StructureCounts {
+function collectStructureCounts(nodes: readonly SiteBuilderStructureNode[]): StructureCounts {
   return nodes.reduce(
     (counts, node) => {
       const childCounts = collectStructureCounts(node.children ?? []);
       return {
-        totalPages: counts.totalPages + 1 + childCounts.totalPages,
-        publishedPages:
-          counts.publishedPages + (node.publishedRevision ? 1 : 0) + childCounts.publishedPages,
+        totalNodes: counts.totalNodes + 1 + childCounts.totalNodes,
+        publishedNodes:
+          counts.publishedNodes + (node.publishedRevision ? 1 : 0) + childCounts.publishedNodes,
       };
     },
-    { totalPages: 0, publishedPages: 0 },
+    { totalNodes: 0, publishedNodes: 0 },
   );
 }
 
 function useSiteBuilderQueries(workspaceId: string | null) {
-  const pagesQuery = useQuery({
-    queryKey: siteBuilderQueryKeys.pages(workspaceId),
+  const structureQuery = useQuery({
+    queryKey: siteBuilderQueryKeys.structure(workspaceId),
     enabled: Boolean(workspaceId),
-    queryFn: async () => listSiteBuilderPagesTree(String(workspaceId)),
+    queryFn: async () => listSiteBuilderStructureTree(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
@@ -85,14 +85,20 @@ function useSiteBuilderQueries(workspaceId: string | null) {
     meta: { silent: true },
   });
 
-  return { pagesQuery, globalSectionsQuery, routeTemplatesQuery, publishImpactQuery, modelsQuery };
+  return {
+    structureQuery,
+    globalSectionsQuery,
+    routeTemplatesQuery,
+    publishImpactQuery,
+    modelsQuery,
+  };
 }
 
 function useRefreshBuilderQueries(workspaceId: string | null) {
   const queryClient = useQueryClient();
 
   return async () => {
-    await queryClient.invalidateQueries({ queryKey: siteBuilderQueryKeys.pages(workspaceId) });
+    await queryClient.invalidateQueries({ queryKey: siteBuilderQueryKeys.structure(workspaceId) });
     await queryClient.invalidateQueries({ queryKey: siteBuilderQueryKeys.globals(workspaceId) });
     await queryClient.invalidateQueries({ queryKey: siteBuilderQueryKeys.routes(workspaceId) });
     await queryClient.invalidateQueries({
@@ -125,18 +131,25 @@ export function useSiteBuilderController(t: TranslationFn) {
   const createRouteMutation = useCreateRouteMutation(deps);
   const toggleRouteMutation = useToggleRouteMutation(deps, refreshBuilderQueries);
 
-  const pagesTree = (queries.pagesQuery.data?.items ?? []) as SiteBuilderPageNode[];
+  const structureTree = (queries.structureQuery.data?.items ?? []) as SiteBuilderStructureNode[];
   const globalSections = queries.globalSectionsQuery.data?.items ?? [];
   const routeTemplates = (queries.routeTemplatesQuery.data?.items ??
     []) as SiteBuilderRouteTemplate[];
-  const counts = collectStructureCounts(pagesTree);
+  const counts = collectStructureCounts(structureTree);
   const siteBuilderModels = (queries.modelsQuery.data?.items ?? []).filter(
-    (item) => item.category === "site_builder",
+    (item) =>
+      item.category !== "system" &&
+      item.capabilities.some((capability) =>
+        ["routable", "visual_editable", "rich_text_editable", "has_slots"].includes(capability),
+      ),
   );
 
-  const openEditor = (page: SiteBuilderPageNode) => {
+  const openEditor = (node: SiteBuilderStructureNode) => {
     if (!workspaceId) return;
-    openStudioPageEditor({ workspaceId: String(workspaceId), pageId: page.id });
+    openStudioPresentationEditor({
+      workspaceId: String(workspaceId),
+      presentationId: node.id,
+    });
   };
 
   return {
@@ -147,7 +160,7 @@ export function useSiteBuilderController(t: TranslationFn) {
     setRouteDialogOpen,
     processingIds,
     routeProcessingIds,
-    pagesTree,
+    structureTree,
     globalSections,
     routeTemplates,
     counts,

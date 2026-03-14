@@ -63,11 +63,11 @@ vi.mock("react-i18next", () => ({
         ({
           "content_library:LIBRARY_PAGE_TITLE": "Content Library",
           "content_library:LIBRARY_PAGE_DESC":
-            "Browse content-ready models and manage their entries from one place.",
+            "Manage records, workflow, and publish readiness across any non-system model.",
           "content_library:LIBRARY_CREATE_ACTION": "New entry",
-          "content_library:LIBRARY_EMPTY_TITLE": "No content library models yet",
+          "content_library:LIBRARY_EMPTY_TITLE": "No editable content models yet",
           "content_library:LIBRARY_EMPTY_DESC":
-            "Create or enable a content-focused model before managing entries here.",
+            "Create or enable a non-system model before managing records here.",
           "content_library:LIBRARY_SWITCHER_LABEL": "Content type",
           "content_library:LIBRARY_VIEW_SWITCHER_LABEL": "Saved view",
           "content_library:LIBRARY_VIEW_DEFAULT_OPTION": "All entries",
@@ -243,18 +243,18 @@ describe("WorkspaceContentLibraryPage", () => {
     });
   });
 
-  test("renders empty state when no content library models exist", async () => {
+  test("renders empty state when only system models exist", async () => {
     listWorkspaceContentModels.mockResolvedValue({
       items: [
         {
-          id: "model-page",
+          id: "model-system",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "page",
-          name: "Page",
-          category: "site_builder",
-          capabilities: ["versioned", "routable", "visual_editable"],
-          defaultEditor: "visual",
+          key: "internal_audit_log",
+          name: "Internal audit log",
+          category: "system",
+          capabilities: ["versioned"],
+          defaultEditor: "table",
         },
       ],
       total: 1,
@@ -276,21 +276,21 @@ describe("WorkspaceContentLibraryPage", () => {
 
     await renderWithQuery();
 
-    expect(await screen.findByText("No content library models yet")).toBeInTheDocument();
+    expect(await screen.findByText("No editable content models yet")).toBeInTheDocument();
   });
 
-  test("renders type switcher and entry table scaffold when models exist", async () => {
+  test("renders type switcher and entry table scaffold when editable models exist", async () => {
     listWorkspaceContentModels.mockResolvedValue({
       items: [
         {
-          id: "model-article",
+          id: "model-homepage",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "article",
-          name: "Article",
-          category: "content_library",
-          capabilities: ["versioned", "routable", "rich_text_editable"],
-          defaultEditor: "rich_text",
+          key: "homepage",
+          name: "Homepage",
+          category: "site_builder",
+          capabilities: ["versioned", "routable", "visual_editable"],
+          defaultEditor: "visual",
         },
         {
           id: "model-faq",
@@ -301,6 +301,16 @@ describe("WorkspaceContentLibraryPage", () => {
           category: "content_library",
           capabilities: ["versioned", "has_relations"],
           defaultEditor: "form",
+        },
+        {
+          id: "model-system",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          key: "internal_audit_log",
+          name: "Internal audit log",
+          category: "system",
+          capabilities: ["versioned"],
+          defaultEditor: "table",
         },
       ],
       total: 2,
@@ -372,6 +382,9 @@ describe("WorkspaceContentLibraryPage", () => {
     expect(await screen.findByText("Saved view")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save view" })).toBeInTheDocument();
     await waitFor(() => {
+      expect(listWorkspaceContentItems).toHaveBeenCalledWith("ws-1", { modelKey: "homepage" });
+    });
+    await waitFor(() => {
       expect(getWorkspacePublishImpact).toHaveBeenCalledWith("ws-1");
     });
     expect(await screen.findByText("Total entries")).toBeInTheDocument();
@@ -385,7 +398,7 @@ describe("WorkspaceContentLibraryPage", () => {
     expect(await screen.findByText("Title")).toBeInTheDocument();
     expect(screen.getByText("Slug")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Rich text editor")).toBeInTheDocument();
+    expect(screen.getByText("Visual editor")).toBeInTheDocument();
     expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Published").length).toBeGreaterThan(0);
     expect(screen.getByText("Actions")).toBeInTheDocument();

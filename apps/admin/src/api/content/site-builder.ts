@@ -23,8 +23,9 @@ import type {
   SiteGlobalSectionsOut,
   WorkspacePublishImpact,
 } from "@/types/api";
+import type { ContentModelSummary } from "@/api/content-models";
 
-export type SiteBuilderPageNode = {
+export type SiteBuilderStructureNode = {
   id: string;
   title?: string | null;
   modelKey: string;
@@ -33,7 +34,7 @@ export type SiteBuilderPageNode = {
   sortOrder: number;
   draftRevision: number;
   publishedRevision?: number | null;
-  children: SiteBuilderPageNode[];
+  children: SiteBuilderStructureNode[];
 };
 
 export type SiteBuilderGlobalSection = SiteGlobalSection;
@@ -49,7 +50,7 @@ export type SiteBuilderRouteTemplate = {
 
 export type SiteBuilderPublishImpact = WorkspacePublishImpact;
 
-export type SiteBuilderPageCreateIn = {
+export type SiteBuilderStructureNodeCreateIn = {
   title: string;
   path: string;
   modelKey: string;
@@ -76,10 +77,10 @@ const DEFAULT_STRUCTURE_PAGE_SIZE = 100;
 const UNBOUND_ROUTE_LABEL = "(unbound route)";
 
 export const siteBuilderQueryKeys = {
-  pages: (workspaceId: string | null | undefined) => [
+  structure: (workspaceId: string | null | undefined) => [
     "content",
     "site-builder",
-    "pages",
+    "structure",
     workspaceId,
   ],
   globals: (workspaceId: string | null | undefined) => [
@@ -102,12 +103,24 @@ export const siteBuilderQueryKeys = {
   ],
 } as const;
 
-function isSiteBuilderModelKey(modelKey: string, allowedModelKeys: ReadonlySet<string>): boolean {
+const STRUCTURE_MODEL_CAPABILITIES = [
+  "routable",
+  "visual_editable",
+  "rich_text_editable",
+  "has_slots",
+] as const;
+
+function supportsSiteStructure(model: ContentModelSummary): boolean {
+  if (model.category === "system") return false;
+  return STRUCTURE_MODEL_CAPABILITIES.some((capability) => model.capabilities.includes(capability));
+}
+
+function isStructureModelKey(modelKey: string, allowedModelKeys: ReadonlySet<string>): boolean {
   return allowedModelKeys.has(modelKey);
 }
 
-function buildSiteBuilderModelKeys(items: Array<{ key: string; category: string }>): Set<string> {
-  return new Set(items.filter((item) => item.category === "site_builder").map((item) => item.key));
+function buildStructureModelKeys(items: readonly ContentModelSummary[]): Set<string> {
+  return new Set(items.filter(supportsSiteStructure).map((item) => item.key));
 }
 
 function buildPath(routeBindings: RouteBindingOut[], itemId: string, slug: string): string {
@@ -122,10 +135,10 @@ function buildTree(
   items: ContentItemOut[],
   hierarchyNodes: HierarchyNodeOut[],
   routeBindings: RouteBindingOut[],
-): SiteBuilderPageNode[] {
+): SiteBuilderStructureNode[] {
   const hierarchyByItemId = new Map(hierarchyNodes.map((node) => [node.itemId, node]));
-  const childMap = new Map<string, SiteBuilderPageNode[]>();
-  const nodesById = new Map<string, SiteBuilderPageNode>();
+  const childMap = new Map<string, SiteBuilderStructureNode[]>();
+  const nodesById = new Map<string, SiteBuilderStructureNode>();
 
   for (const item of items) {
     const hierarchy = hierarchyByItemId.get(item.id);
@@ -142,7 +155,7 @@ function buildTree(
     });
   }
 
-  const roots: SiteBuilderPageNode[] = [];
+  const roots: SiteBuilderStructureNode[] = [];
   for (const node of nodesById.values()) {
     if (!node.parentId || !nodesById.has(node.parentId)) {
       roots.push(node);
@@ -167,9 +180,9 @@ async function loadSiteBuilderRecords(workspaceId: string) {
     listWorkspaceContentRouteBindings(workspaceId),
     listWorkspaceContentHierarchyNodes(workspaceId),
   ]);
-  const allowedModelKeys = buildSiteBuilderModelKeys(models.items ?? []);
+  const allowedModelKeys = buildStructureModelKeys(models.items ?? []);
   const filteredItems = (items.items ?? []).filter((item) =>
-    isSiteBuilderModelKey(item.modelKey, allowedModelKeys),
+    isStructureModelKey(item.modelKey, allowedModelKeys),
   );
   const filteredIds = new Set(filteredItems.map((item) => item.id));
   return {
@@ -179,9 +192,9 @@ async function loadSiteBuilderRecords(workspaceId: string) {
   };
 }
 
-export async function listSiteBuilderPagesTree(
+export async function listSiteBuilderStructureTree(
   workspaceId: string,
-): Promise<PageData<SiteBuilderPageNode>> {
+): Promise<PageData<SiteBuilderStructureNode>> {
   const records = await loadSiteBuilderRecords(workspaceId);
   const items = buildTree(records.filteredItems, records.hierarchyNodes, records.routeBindings);
   return {
@@ -197,7 +210,7 @@ export async function listSiteBuilderPagesTree(
 
 export function listSiteBuilderGlobalSections(workspaceId: string): Promise<SiteGlobalSectionsOut> {
   return api.get<SiteGlobalSectionsOut>(
-    workspacePath(workspaceId, "/legacy-content/structure/global-slots"),
+    workspacePath(workspaceId, "/content/structure/global-slots"),
   );
 }
 
@@ -232,10 +245,10 @@ export function getSiteBuilderPublishImpact(
   return getWorkspacePublishImpact(workspaceId);
 }
 
-export async function createSiteBuilderPage(
+export async function createSiteBuilderStructureNode(
   workspaceId: string,
-  payload: SiteBuilderPageCreateIn,
-): Promise<SiteBuilderPageNode> {
+  payload: SiteBuilderStructureNodeCreateIn,
+): Promise<SiteBuilderStructureNode> {
   const item = await createWorkspaceContentItem(workspaceId, {
     modelKey: payload.modelKey,
     title: payload.title,
@@ -296,24 +309,24 @@ export async function toggleSiteBuilderRouteTemplateActive(
   };
 }
 
-export async function publishSiteBuilderPage(
+export async function publishSiteBuilderStructureNode(
   workspaceId: string,
-  pageId: string,
+  itemId: string,
   payload: { revision?: number } = {},
 ): Promise<SiteBuilderPublishOut> {
   const version = await publishWorkspaceContentItemVersion(
     workspaceId,
-    pageId,
+    itemId,
     payload.revision ?? 1,
   );
-  return { itemId: pageId, revision: version.versionNumber };
+  return { itemId, revision: version.versionNumber };
 }
 
-export async function unpublishSiteBuilderPage(
+export async function unpublishSiteBuilderStructureNode(
   workspaceId: string,
-  pageId: string,
+  itemId: string,
   publishedRevision: number,
 ): Promise<SiteBuilderUnpublishOut> {
-  const version = await archiveWorkspaceContentItemVersion(workspaceId, pageId, publishedRevision);
-  return { itemId: pageId, revision: version.versionNumber };
+  const version = await archiveWorkspaceContentItemVersion(workspaceId, itemId, publishedRevision);
+  return { itemId, revision: version.versionNumber };
 }

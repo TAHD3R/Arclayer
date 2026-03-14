@@ -11,11 +11,12 @@ function resolveSource(relativePath: string) {
 }
 
 describe("workspace editor source", () => {
-  test("editor route now hands page editing off to studio", () => {
+  test("editor route now hands presentation editing off to studio", () => {
     const source = readFileSync(resolveSource("pages/workspaces/editor/handoff/page.tsx"), "utf-8");
 
     expect(source).toContain("WorkspaceEditorHandoffPage");
-    expect(source).toContain("buildStudioPageEditorUrl");
+    expect(source).toContain("buildStudioPresentationEditorUrl");
+    expect(source).toContain('editorMode === "presentation"');
     expect(source).toContain("window.location.replace");
   });
 });

@@ -5,13 +5,13 @@ import { useTranslation } from "react-i18next";
 
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
-export type CreateSitePageInput = {
+export type CreateStructureNodeInput = {
   title: string;
   path: string;
   modelKey: string;
 };
 
-function buildInitialForm(modelKey?: string): CreateSitePageInput {
+function buildInitialForm(modelKey?: string): CreateStructureNodeInput {
   return {
     title: "",
     path: "/",
@@ -19,15 +19,15 @@ function buildInitialForm(modelKey?: string): CreateSitePageInput {
   };
 }
 
-export function CreateSitePageDialog(props: {
+export function CreateStructureNodeDialog(props: {
   open: boolean;
   confirmLoading?: boolean;
   modelOptions: Array<{ label: string; value: string }>;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (input: CreateSitePageInput) => Promise<void>;
+  onConfirm: (input: CreateStructureNodeInput) => Promise<void>;
 }) {
   const { t } = useTranslation(["content_library", "common"]);
-  const [form, setForm] = useState<CreateSitePageInput>(() =>
+  const [form, setForm] = useState<CreateStructureNodeInput>(() =>
     buildInitialForm(props.modelOptions[0]?.value),
   );
 
