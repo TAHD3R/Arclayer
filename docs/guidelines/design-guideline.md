@@ -243,8 +243,8 @@ Do **not** duplicate typography values in `tailwind.config.ts`, `index.css @laye
 | `text-headline` | 16 px | 1.4 | 0 | 600 | Emphasized body, card headers |
 | `text-body` | 16 px | 1.5 | 0 | 400 | Default body text |
 | `text-callout` | 15 px | 1.45 | 0.01 em | 400 | Supplementary descriptions |
-| `text-footnote` | 13 px | 1.45 | 0.02 em | 400 | Secondary labels, table cells |
-| `text-caption` | 12 px | 1.45 | 0.02 em | 400 | Timestamps, badges, shortcuts |
+| `text-footnote` | 14 px | 1.45 | 0.02 em | 400 | Secondary labels, table cells |
+| `text-caption` | 13 px | 1.45 | 0.02 em | 400 | Timestamps, badges, shortcuts |
 
 Each semantic class automatically applies font-size, line-height, letter-spacing, and font-weight via `@theme inline`.
 

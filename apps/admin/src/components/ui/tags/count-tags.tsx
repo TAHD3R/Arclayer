@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 import { CheckSquare2, Users } from "lucide-react";
 
-import { BaseTag, lucideTagIcon } from "./tag-base";
+import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 
-type SharedProps = {
-  className?: string;
+type SharedProps = TagPresentationProps & {
   label: ReactNode;
 };
 
@@ -13,6 +12,7 @@ export function SelectedCountTag(props: SharedProps) {
     <BaseTag
       icon={lucideTagIcon(CheckSquare2)}
       className={props.className}
+      textStyle={props.textStyle}
       classNames={{ root: "!rounded-full !bg-muted" }}
     >
       {props.label}
@@ -26,6 +26,7 @@ export function UsesCountTag(props: SharedProps) {
       color="blue"
       icon={lucideTagIcon(Users)}
       className={props.className}
+      textStyle={props.textStyle}
       style={{ marginInlineEnd: 0 }}
     >
       {props.label}

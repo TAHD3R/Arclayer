@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 
-import { BaseTag, lucideTagIcon } from "./tag-base";
+import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 
-type SharedProps = {
-  className?: string;
+type SharedProps = TagPresentationProps & {
   label: ReactNode;
 };
 
@@ -12,6 +11,7 @@ export function SecurityNotConfiguredTag(props: SharedProps) {
   return (
     <BaseTag
       className={props.className}
+      textStyle={props.textStyle}
       classNames={{ root: "!rounded-full !bg-muted/40 !text-label-secondary" }}
       style={{ marginInlineEnd: 0 }}
     >
@@ -26,6 +26,7 @@ export function SecurityConfiguredTag(props: SharedProps) {
       color="green"
       icon={lucideTagIcon(CheckCircle2)}
       className={props.className}
+      textStyle={props.textStyle}
       style={{ marginInlineEnd: 0 }}
     >
       {props.label}
@@ -38,6 +39,7 @@ export function SecurityCurrentSessionTag(props: SharedProps) {
     <BaseTag
       color="blue"
       className={props.className}
+      textStyle={props.textStyle}
       classNames={{ root: "!rounded-full" }}
       style={{ marginInlineEnd: 0 }}
     >

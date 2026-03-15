@@ -5,9 +5,13 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@celestial/lib/utils";
 
 const TAG_ICON_SIZE_PX = 12;
+const TAG_TEXT_STYLE_CLASSNAMES = {
+  caption: "text-caption",
+  footnote: "text-footnote",
+} as const;
 
 export const TAG_BASE_ROOT_CLASSNAME =
-  "inline-flex items-center rounded-full border border-border px-2 py-1 text-caption font-semibold leading-none";
+  "inline-flex items-center rounded-full border border-border px-2 py-1 font-semibold leading-none";
 
 type TagSemanticClassNames = {
   root?: string;
@@ -16,22 +20,36 @@ type TagSemanticClassNames = {
 };
 
 type BaseTagColor = "default" | "green" | "blue" | "red" | "gold" | "error";
+export type BaseTagTextStyle = keyof typeof TAG_TEXT_STYLE_CLASSNAMES;
 
-type BaseTagProps = HTMLAttributes<HTMLSpanElement> & {
-  children?: ReactNode;
-  classNames?: TagSemanticClassNames;
-  closable?: boolean;
-  color?: BaseTagColor;
-  icon?: ReactNode;
-  onClose?: MouseEventHandler<HTMLElement>;
+export type TagPresentationProps = {
+  className?: string;
   style?: CSSProperties;
+  textStyle?: BaseTagTextStyle;
 };
 
-function mergeTagClassNames(overrides: TagSemanticClassNames | undefined): TagSemanticClassNames {
+type BaseTagProps = HTMLAttributes<HTMLSpanElement> &
+  TagPresentationProps & {
+    children?: ReactNode;
+    classNames?: TagSemanticClassNames;
+    closable?: boolean;
+    color?: BaseTagColor;
+    icon?: ReactNode;
+    onClose?: MouseEventHandler<HTMLElement>;
+  };
+
+function mergeTagClassNames(
+  overrides: TagSemanticClassNames | undefined,
+  textStyle: BaseTagTextStyle,
+): TagSemanticClassNames {
   return {
     root: cn(TAG_BASE_ROOT_CLASSNAME, overrides?.root),
     icon: cn("inline-flex items-center leading-none", overrides?.icon),
-    content: cn("inline-flex items-center gap-1 leading-none", overrides?.content),
+    content: cn(
+      "inline-flex items-center gap-1 leading-none",
+      TAG_TEXT_STYLE_CLASSNAMES[textStyle],
+      overrides?.content,
+    ),
   };
 }
 
@@ -65,9 +83,10 @@ export function BaseTag({
   onClose,
   className,
   style,
+  textStyle = "caption",
   ...props
 }: BaseTagProps) {
-  const mergedClassNames = mergeTagClassNames(classNames);
+  const mergedClassNames = mergeTagClassNames(classNames, textStyle);
 
   return (
     <span

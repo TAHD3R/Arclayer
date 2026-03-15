@@ -100,7 +100,7 @@ export function EmailTagsField({
         disabled={disabled}
         autoFocus={autoFocus}
         placeholder={value.length ? undefined : placeholder}
-        className="min-w-32 flex-1 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+        className="min-w-32 flex-1 bg-transparent px-1 py-1 text-footnote outline-none placeholder:text-label-secondary disabled:cursor-not-allowed"
         onChange={(event) => setDraft(event.target.value)}
         onBlur={() => {
           void commitDraft(draft);

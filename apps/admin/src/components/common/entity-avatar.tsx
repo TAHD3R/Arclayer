@@ -32,7 +32,7 @@ function EntityAvatar(props: EntityAvatarProps) {
   return (
     <div
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden bg-muted text-footnote font-medium text-muted-foreground ring-1 ring-border/60",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden bg-muted text-footnote font-medium text-label-secondary ring-1 ring-border/60",
         shapeClassName,
         props.className,
       )}

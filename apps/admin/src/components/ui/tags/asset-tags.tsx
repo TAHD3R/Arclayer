@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { CSSProperties } from "react";
 import {
   Ban,
   FileType,
@@ -12,12 +11,10 @@ import {
   Users,
 } from "lucide-react";
 
-import { BaseTag, lucideTagIcon } from "./tag-base";
+import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 
-type SharedProps = {
-  className?: string;
+type SharedProps = TagPresentationProps & {
   label: ReactNode;
-  style?: CSSProperties;
 };
 
 export function AssetMimeTag(props: SharedProps & { title?: string }) {
@@ -26,6 +23,7 @@ export function AssetMimeTag(props: SharedProps & { title?: string }) {
       icon={lucideTagIcon(FileType)}
       className={props.className}
       style={props.style}
+      textStyle={props.textStyle}
       title={props.title}
     >
       {props.label}
@@ -44,7 +42,12 @@ function visibilityIcon(visibility: string | null | undefined) {
 export function AssetVisibilityTag(props: SharedProps & { visibility: string | null | undefined }) {
   const Icon = visibilityIcon(props.visibility);
   return (
-    <BaseTag icon={lucideTagIcon(Icon)} className={props.className} style={props.style}>
+    <BaseTag
+      icon={lucideTagIcon(Icon)}
+      className={props.className}
+      style={props.style}
+      textStyle={props.textStyle}
+    >
       {props.label}
     </BaseTag>
   );
@@ -56,6 +59,7 @@ export function AssetPurposeTag(props: SharedProps & { purpose: string | null | 
       icon={lucideTagIcon(Folder)}
       className={props.className}
       style={props.style}
+      textStyle={props.textStyle}
       title={props.purpose ?? undefined}
     >
       {props.label}
@@ -71,18 +75,21 @@ export function AssetIndexableTag(props: SharedProps & { indexable: boolean | nu
         ? lucideTagIcon(Ban)
         : lucideTagIcon(HelpCircle);
   return (
-    <BaseTag icon={icon} className={props.className} style={props.style}>
+    <BaseTag
+      icon={icon}
+      className={props.className}
+      style={props.style}
+      textStyle={props.textStyle}
+    >
       {props.label}
     </BaseTag>
   );
 }
 
-type AssetUserTagChipProps = {
+type AssetUserTagChipProps = TagPresentationProps & {
   label: ReactNode;
   closable: boolean;
   onClose: ((e: React.MouseEvent<HTMLElement>) => void) | undefined;
-  className?: string;
-  style?: CSSProperties;
   children?: ReactNode;
 };
 
@@ -94,17 +101,16 @@ export function AssetUserTagChip(props: AssetUserTagChipProps) {
       onClose={props.onClose}
       className={props.className}
       style={props.style}
+      textStyle={props.textStyle}
     >
       {props.children ?? props.label}
     </BaseTag>
   );
 }
 
-type AssetAddTagActionProps = {
+type AssetAddTagActionProps = TagPresentationProps & {
   label: ReactNode;
   onClick: () => void;
-  className?: string;
-  style?: CSSProperties;
 };
 
 export function AssetAddTagActionTag(props: AssetAddTagActionProps) {
@@ -113,6 +119,7 @@ export function AssetAddTagActionTag(props: AssetAddTagActionProps) {
       icon={lucideTagIcon(TagIcon)}
       className={props.className}
       style={props.style}
+      textStyle={props.textStyle}
       classNames={{ root: "!cursor-pointer !border-dashed" }}
       onClick={props.onClick}
     >

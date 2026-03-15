@@ -3,10 +3,9 @@ import { CheckCircle2, Clock, Link2Off, Timer, UserCog } from "lucide-react";
 
 import type { OrganizationInvitation, TeamInvitation } from "@/types/api";
 
-import { BaseTag, lucideTagIcon } from "./tag-base";
+import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 
-type SharedProps = {
-  className?: string;
+type SharedProps = TagPresentationProps & {
   label: ReactNode;
 };
 
@@ -15,6 +14,7 @@ export function InvitationRoleTag(props: SharedProps) {
     <BaseTag
       icon={lucideTagIcon(UserCog)}
       className={props.className}
+      textStyle={props.textStyle}
       style={{ marginInlineEnd: 0 }}
     >
       {props.label}
@@ -43,7 +43,7 @@ export function InvitationStatusTag(
 ) {
   const { color, icon } = statusToProps(props.status);
   return (
-    <BaseTag color={color} icon={icon} className={props.className}>
+    <BaseTag color={color} icon={icon} className={props.className} textStyle={props.textStyle}>
       {props.label}
     </BaseTag>
   );
