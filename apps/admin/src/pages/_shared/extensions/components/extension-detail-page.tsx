@@ -289,7 +289,6 @@ export function ExtensionDetailPage(props: ExtensionDetailPageProps) {
           : `${t("nav:NAV_EXTENSIONS")} / ${props.extensionRef}`
       }
       description={props.extension?.description || t("common:NA")}
-      width="fixed"
       action={
         <ExtensionDetailAction
           canManage={props.canManage}

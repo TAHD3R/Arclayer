@@ -121,7 +121,6 @@ export function OrganizationTeamRolesView() {
   if (matrixQuery.isLoading && !matrixQuery.data) {
     return (
       <DefaultPage
-        width="fixed"
         title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
         description={t("common:ORG_ROLES_DESC")}
       >
@@ -133,7 +132,6 @@ export function OrganizationTeamRolesView() {
   if (matrixQuery.isError) {
     return (
       <DefaultPage
-        width="fixed"
         title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
         description={t("common:ORG_ROLES_DESC")}
       >
@@ -148,7 +146,6 @@ export function OrganizationTeamRolesView() {
 
   return (
     <DefaultPage
-      width="fixed"
       title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
       description={t("common:ORG_ROLES_DESC")}
       action={

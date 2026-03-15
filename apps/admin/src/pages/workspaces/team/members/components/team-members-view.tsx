@@ -509,7 +509,6 @@ export function TeamMembersView(props: {
     <DefaultPage
       title={t("team:TEAM_MEMBERS_TITLE")}
       description={t("team:TEAM_MEMBERS_DESC_LONG")}
-      width="fixed"
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
       action={

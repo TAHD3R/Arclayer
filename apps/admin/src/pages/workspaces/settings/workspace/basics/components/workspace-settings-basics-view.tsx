@@ -20,7 +20,6 @@ export function WorkspaceSettingsBasicsView(props: { workspaceId: string }) {
     <DefaultPage
       title={c.t("settings:SETTINGS_WORKSPACE_TITLE")}
       description={c.t("settings:SETTINGS_WORKSPACE_DESC")}
-      width="fixed"
     >
       <ContentGuard
         loading={Boolean(

@@ -95,7 +95,6 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     <DefaultPage
       title={t("nav:NAV_ASSETS")}
       description={t("assets:ASSET_PAGE_DESC")}
-      width="fixed"
       action={
         <Button onClick={() => setUploadOpen(true)}>
           <Plus size={16} />

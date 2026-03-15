@@ -17,7 +17,6 @@ type RouteTransitionProps = PropsWithChildren<{
 function DefaultRoutePending() {
   return (
     <DefaultPage
-      width="fixed"
       showFavoriteToggle={false}
       title={<Skeleton className="h-8 w-44 rounded-lg" />}
       description={

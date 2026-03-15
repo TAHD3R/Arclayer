@@ -236,11 +236,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
 
   if (!workspaceId) {
     return (
-      <DefaultPage
-        title={t("team:TEAM_ROLES_TITLE")}
-        description={t("team:TEAM_ROLES_DESC")}
-        width="fixed"
-      >
+      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
         <ContentGuard
           loading={false}
           empty
@@ -253,11 +249,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
 
   if (matrixQuery.isLoading && !matrixQuery.data) {
     return (
-      <DefaultPage
-        title={t("team:TEAM_ROLES_TITLE")}
-        description={t("team:TEAM_ROLES_DESC")}
-        width="fixed"
-      >
+      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
         <ContentGuard loading loadingVariant="table" />
       </DefaultPage>
     );
@@ -265,11 +257,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
 
   if (matrixQuery.isError) {
     return (
-      <DefaultPage
-        title={t("team:TEAM_ROLES_TITLE")}
-        description={t("team:TEAM_ROLES_DESC")}
-        width="fixed"
-      >
+      <DefaultPage title={t("team:TEAM_ROLES_TITLE")} description={t("team:TEAM_ROLES_DESC")}>
         <ContentGuard
           loading={false}
           error={matrixQuery.error}
@@ -285,7 +273,6 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
     <DefaultPage
       title={t("team:TEAM_ROLES_TITLE")}
       description={t("team:TEAM_ROLES_DESC")}
-      width="fixed"
       action={
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" />

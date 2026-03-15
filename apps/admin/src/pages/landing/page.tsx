@@ -64,7 +64,6 @@ export function LandingPage() {
 
   return (
     <DefaultPage
-      width="fixed"
       title={t("nav:NAV_ORG_WORKSPACES")}
       description={t("common:LANDING_WORKSPACE_EMPTY_DESC")}
     >

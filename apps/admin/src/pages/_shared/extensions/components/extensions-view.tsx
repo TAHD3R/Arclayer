@@ -60,7 +60,7 @@ export function ExtensionsView({ scope = "workspace", organizationId }: Extensio
   }
 
   return (
-    <DefaultPage width="full" title={pageTitle} description={pageDescription}>
+    <DefaultPage title={pageTitle} description={pageDescription}>
       <ChromeTabs defaultValue="explore">
         <ChromeTabsList>
           <ChromeTabsTrigger value="explore">{t("plugin:EXTENSION_TAB_EXPLORE")}</ChromeTabsTrigger>

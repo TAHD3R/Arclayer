@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { PropsWithChildren, ReactElement } from "react";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -29,7 +28,6 @@ vi.mock("@celestial/ui/tooltip", () => ({
 describe("DefaultPage", () => {
   beforeEach(() => {
     useFavoritesStore.setState({ paths: [] });
-    usePreferencesStore.setState({ defaultPageFullWidth: false });
   });
 
   it("uses heading-aligned title and compact favorite toggle chrome", () => {

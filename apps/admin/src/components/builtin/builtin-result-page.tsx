@@ -98,7 +98,7 @@ export function BuiltinResultPage({
   }
 
   return (
-    <AdminRouteContainer width="fixed">
+    <AdminRouteContainer>
       <div className="w-full">{content}</div>
     </AdminRouteContainer>
   );

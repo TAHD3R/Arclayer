@@ -21,10 +21,7 @@ import {
   IllustEmptyContainer,
 } from "@celestial/ui/illustrations";
 import { PageSkeleton, type PageSkeletonVariant } from "@celestial/ui/page-skeleton";
-import {
-  AdminRouteContainer,
-  type AdminRouteContainerWidth,
-} from "@/components/layout/admin-route-container";
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { Button } from "@celestial/ui/button";
 
 export type ContentGuardProps = {
@@ -44,7 +41,6 @@ export type ContentGuardProps = {
    * This keeps pending UI aligned with `DefaultPage` indentation.
    */
   container?: "raw" | "admin-route";
-  containerWidth?: AdminRouteContainerWidth;
   emptyTitle?: ReactNode;
   emptyDescription?: ReactNode;
   emptyExtra?: ReactNode;
@@ -102,7 +98,6 @@ export function ContentGuard(props: ContentGuardProps) {
   const mediaVariant = props.mediaVariant ?? "illustration";
   const wrapperClassName = props.className || (variant === "compact" ? "py-6" : "py-10");
   const container = props.container ?? "raw";
-  const containerWidth = props.containerWidth ?? "fixed";
   const emptyClassName = variant === "compact" ? "gap-4 p-4 md:p-8" : undefined;
   const titleClassName = variant === "compact" ? "text-title md:text-largetitle" : undefined;
   const descriptionClassName = variant === "compact" ? "text-footnote md:text-body" : undefined;
@@ -122,7 +117,7 @@ export function ContentGuard(props: ContentGuardProps) {
     const content = <PageSkeleton variant={props.loadingVariant ?? "form"} />;
 
     if (container === "admin-route") {
-      return <AdminRouteContainer width={containerWidth}>{content}</AdminRouteContainer>;
+      return <AdminRouteContainer>{content}</AdminRouteContainer>;
     }
 
     return <div className={wrapperClassName}>{content}</div>;
@@ -155,7 +150,7 @@ export function ContentGuard(props: ContentGuardProps) {
     );
 
     if (container === "admin-route") {
-      return <AdminRouteContainer width={containerWidth}>{content}</AdminRouteContainer>;
+      return <AdminRouteContainer>{content}</AdminRouteContainer>;
     }
 
     return <div className={wrapperClassName}>{content}</div>;
@@ -183,7 +178,7 @@ export function ContentGuard(props: ContentGuardProps) {
     );
 
     if (container === "admin-route") {
-      return <AdminRouteContainer width={containerWidth}>{content}</AdminRouteContainer>;
+      return <AdminRouteContainer>{content}</AdminRouteContainer>;
     }
 
     return <div className={wrapperClassName}>{content}</div>;

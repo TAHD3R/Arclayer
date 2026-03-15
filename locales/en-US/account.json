@@ -116,8 +116,6 @@
   "ME_DELETE_ACCOUNT_SUCCESS": "Account deleted.",
   "ME_PREF_APPEARANCE_PANEL_TITLE": "Appearance",
   "ME_PREF_APPEARANCE_PANEL_DESC": "Choose how the interface looks.",
-  "ME_PREF_DEFAULT_PAGE_FULL_WIDTH_TITLE": "Use full-width pages by default",
-  "ME_PREF_DEFAULT_PAGE_FULL_WIDTH_DESC": "When enabled, all pages using the default page container are forced into full-width layout.",
   "ME_PREF_LOCALIZATION_PANEL_TITLE": "Language & time zone",
   "ME_PREF_LOCALIZATION_PANEL_DESC": "Override workspace and organization defaults.",
   "ME_PREF_LOCALE_MODE_WORKSPACE": "Follow workspace",

@@ -138,7 +138,6 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
     <DefaultPage
       title={t("settings:SETTINGS_SITE_IDENTITY_TITLE")}
       description={t("settings:SETTINGS_SITE_IDENTITY_DESC")}
-      width="fixed"
     >
       <ContentGuard
         loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}

@@ -387,7 +387,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
                         : null
                   }
                   container="admin-route"
-                  containerWidth="fixed"
                   onRetry={
                     isWorkspaceScopeRoute
                       ? () => {

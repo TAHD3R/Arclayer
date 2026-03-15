@@ -208,7 +208,6 @@ export function IllustrationsDebugPage() {
 
   return (
     <DefaultPage
-      width="full"
       title={t("debug:ILLUSTRATIONS_DEBUG_TITLE")}
       description={t("debug:ILLUSTRATIONS_DEBUG_DESC")}
       action={

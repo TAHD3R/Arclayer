@@ -165,7 +165,6 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
       <DefaultPage
         title={t("settings:SETTINGS_ORG_TITLE")}
         description={t("settings:SETTINGS_ORG_DESC")}
-        width="fixed"
       >
         <ContentGuard loading loadingVariant="form" />
       </DefaultPage>
@@ -177,7 +176,6 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
       <DefaultPage
         title={t("settings:SETTINGS_ORG_TITLE")}
         description={t("settings:SETTINGS_ORG_DESC")}
-        width="fixed"
       >
         <ContentGuard
           loading={false}
@@ -192,7 +190,6 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
     <DefaultPage
       title={t("settings:SETTINGS_ORG_TITLE")}
       description={t("settings:SETTINGS_ORG_DESC")}
-      width="fixed"
     >
       <ContentGuard loading={false}>
         <ChromeTabs

@@ -152,8 +152,6 @@ export function MePreferencesAppearanceSection() {
   const setFontScalePreference = usePreferencesStore((s) => s.setFontScalePreference);
   const fontWeightPreference = usePreferencesStore((s) => s.fontWeightPreference);
   const setFontWeightPreference = usePreferencesStore((s) => s.setFontWeightPreference);
-  const defaultPageFullWidth = usePreferencesStore((s) => s.defaultPageFullWidth);
-  const setDefaultPageFullWidth = usePreferencesStore((s) => s.setDefaultPageFullWidth);
 
   const fontScale = fontScalePreference ?? 1;
   const fontWeight = fontWeightPreference ?? 400;
@@ -199,13 +197,6 @@ export function MePreferencesAppearanceSection() {
           </div>
         </SettingCardContent>
       </SettingCard>
-
-      <PreferenceToggleCard
-        checked={defaultPageFullWidth}
-        description={t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_DESC")}
-        onCheckedChange={setDefaultPageFullWidth}
-        title={t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_TITLE")}
-      />
 
       <PreferenceSliderCard
         alertDescription={t("ME_PREF_TEXT_SIZE_ALERT_DESC")}

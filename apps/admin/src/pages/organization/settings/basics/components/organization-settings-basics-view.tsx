@@ -13,7 +13,6 @@ export function OrganizationSettingsBasicsView(props: { organizationId: string }
       <DefaultPage
         title={c.t("settings:SETTINGS_ORG_TITLE")}
         description={c.t("settings:SETTINGS_ORG_DESC")}
-        width="fixed"
       >
         <ContentGuard loading loadingVariant="form" />
       </DefaultPage>
@@ -25,7 +24,6 @@ export function OrganizationSettingsBasicsView(props: { organizationId: string }
       <DefaultPage
         title={c.t("settings:SETTINGS_ORG_TITLE")}
         description={c.t("settings:SETTINGS_ORG_DESC")}
-        width="fixed"
       >
         <ContentGuard
           loading={false}
@@ -41,7 +39,6 @@ export function OrganizationSettingsBasicsView(props: { organizationId: string }
       <DefaultPage
         title={c.t("settings:SETTINGS_ORG_TITLE")}
         description={c.t("settings:SETTINGS_ORG_DESC")}
-        width="fixed"
       >
         <ContentGuard loading={false} error={c.forbiddenError} hideRetry />
       </DefaultPage>
@@ -52,7 +49,6 @@ export function OrganizationSettingsBasicsView(props: { organizationId: string }
     <DefaultPage
       title={c.t("settings:SETTINGS_ORG_TITLE")}
       description={c.t("settings:SETTINGS_ORG_DESC")}
-      width="fixed"
     >
       <ContentGuard
         loading={c.coreQuery.isLoading || c.rolesQuery.isLoading}

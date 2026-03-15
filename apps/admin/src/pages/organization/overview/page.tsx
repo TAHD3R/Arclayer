@@ -34,7 +34,6 @@ export function OrganizationOverviewPage() {
     <DefaultPage
       title={t("nav:NAV_ORG_OVERVIEW")}
       description={t("common:ORG_OVERVIEW_DESC")}
-      width="fixed"
       contentClassName="min-h-0"
     >
       <ContentGuard

@@ -131,7 +131,6 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
     <DefaultPage
       title={t("settings:SETTINGS_WORKSPACE_TITLE")}
       description={t("settings:SETTINGS_WORKSPACE_DESC")}
-      width="fixed"
     >
       <ContentGuard
         loading={Boolean(coreQuery.isLoading && !coreQuery.data)}

@@ -13,7 +13,6 @@ export function WorkspaceEditorHandoffPage() {
 
   return (
     <DefaultPage
-      width="fixed"
       title={t("content_pages:EDITOR_HANDOFF_UNSUPPORTED_TITLE")}
       description={
         isPresentationMode

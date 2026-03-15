@@ -273,7 +273,6 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   contrastMore: false,
   fontScalePreference: null,
   fontWeightPreference: null,
-  defaultPageFullWidth: false,
   notificationPanelPinned: false,
   sidebarOpen: true,
   showNotificationsBadge: true,
@@ -371,11 +370,6 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     set({ fontWeightPreference: next });
   },
 
-  setDefaultPageFullWidth: (enabled) => {
-    writeStorageItem(STORAGE_KEYS.defaultPageFullWidth, String(Boolean(enabled)));
-    set({ defaultPageFullWidth: Boolean(enabled) });
-  },
-
   setEffectiveLocale: (locale) => {
     if (get().localePreferenceMode !== "workspace") return;
     const next = normalizeLocale(locale);
@@ -446,7 +440,6 @@ export function initializePreferences() {
   const showNotificationsBadge = showNotificationsBadgeStored
     ? showNotificationsBadgeStored === "true"
     : true;
-  const defaultPageFullWidth = readStorageItem(STORAGE_KEYS.defaultPageFullWidth) === "true";
 
   applyReduceMotionToDom(reduceMotion);
   applyContrastToDom(contrastMore);
@@ -464,7 +457,6 @@ export function initializePreferences() {
     contrastMore,
     fontScalePreference,
     fontWeightPreference,
-    defaultPageFullWidth,
     notificationPanelPinned,
     sidebarOpen,
     showNotificationsBadge,

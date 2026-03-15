@@ -169,7 +169,6 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
     <DefaultPage
       title={t("settings:SETTINGS_WORKSPACE_TITLE")}
       description={t("settings:SETTINGS_WORKSPACE_DESC")}
-      width="fixed"
     >
       <ContentGuard
         loading={Boolean(dangerQuery.isLoading && !danger)}
