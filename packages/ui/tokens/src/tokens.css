@@ -90,6 +90,8 @@
   --sidebar-ring: var(--ring);
   --header: var(--sidebar);
   --header-foreground: var(--sidebar-foreground);
+  --header: var(--sidebar);
+  --header-foreground: var(--sidebar-foreground);
 
   --font-sans: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-serif: Georgia, serif;
@@ -151,7 +153,7 @@
   --input: hsl(206 7% 20%);
   --ring: hsl(204 88% 53%);
 
-  --sidebar: #050607;
+  --sidebar: hsl(210 8% 2%);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: hsl(0 0% 100%);
@@ -159,6 +161,8 @@
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
+  --header: var(--sidebar);
+  --header-foreground: var(--sidebar-foreground);
   --header: #050607;
   --header-foreground: var(--sidebar-foreground);
 
@@ -213,6 +217,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
   --color-header: var(--header);
   --color-header-foreground: var(--header-foreground);
 

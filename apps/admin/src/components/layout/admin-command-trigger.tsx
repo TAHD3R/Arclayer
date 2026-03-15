@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-import type { AdminCommandItem } from "@/lib/command/nav-command-items";
+import type { CommandEntry, CommandSection } from "@/lib/command/command-types";
+import { UserAvatar } from "@/components/common/entity-avatar";
+import { useClientPlatform } from "@celestial/hooks/use-client-platform";
 import { cn } from "@celestial/lib/utils";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@celestial/ui/command";
 import {
   Dialog,
@@ -20,24 +21,188 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@celestial/ui/dialog";
-import { Kbd } from "@celestial/ui/kbd";
-
+import { Kbd, KbdGroup } from "@celestial/ui/kbd";
 const MODIFIER_KEY = "k";
+const TRANSITION_CLASSNAME = cn(
+  "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
+  "motion-reduce:transition-none",
+);
 
 function isTextInputTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
-
   const tagName = target.tagName.toLowerCase();
   return tagName === "input" || tagName === "textarea" || tagName === "select";
 }
 
+function getShortcutKeys(platform: ReturnType<typeof useClientPlatform>): readonly string[] {
+  return platform === "mac" ? ["⌘", "K"] : ["Ctrl", "K"];
+}
+
+function ShortcutKeys(props: {
+  platform: ReturnType<typeof useClientPlatform>;
+  className?: string;
+  keyClassName?: string;
+}) {
+  return (
+    <KbdGroup className={cn("items-center", props.className)}>
+      {getShortcutKeys(props.platform).map((key) => (
+        <Kbd
+          key={key}
+          className={cn(
+            "h-6 min-w-6 rounded-md border border-transparent px-2.5 text-[11px] font-semibold tracking-[0.02em]",
+            props.keyClassName,
+          )}
+        >
+          {key}
+        </Kbd>
+      ))}
+    </KbdGroup>
+  );
+}
+
+function EntryShortcut(props: { shortcut: readonly string[] }) {
+  return (
+    <KbdGroup className="hidden shrink-0 gap-1.5 sm:inline-flex">
+      {props.shortcut.map((key) => (
+        <Kbd
+          key={key}
+          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-background/70 px-2 text-[10px] font-semibold uppercase tracking-[0.04em] text-label-secondary"
+        >
+          {key}
+        </Kbd>
+      ))}
+    </KbdGroup>
+  );
+}
+
+function CommandTriggerButton(props: {
+  open: boolean;
+  platform: ReturnType<typeof useClientPlatform>;
+  label: string;
+  ariaLabel: string;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <ButtonPrimitive
+      type="button"
+      tapScale={1}
+      aria-label={props.ariaLabel}
+      onClick={props.onClick}
+      data-state={props.open ? "open" : "closed"}
+      className={cn(
+        "group flex h-10 w-full items-center gap-3 rounded-xl border border-transparent",
+        "bg-accent/70 px-3.5 text-left text-footnote text-label-secondary shadow-none",
+        TRANSITION_CLASSNAME,
+        "hover:bg-accent/85 hover:text-label-primary",
+        "data-[state=open]:bg-accent data-[state=open]:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        props.className,
+      )}
+    >
+      <Search
+        className={cn(
+          "size-4 shrink-0 opacity-70",
+          TRANSITION_CLASSNAME,
+          "group-hover:opacity-100 group-hover:text-label-primary",
+          "group-data-[state=open]:opacity-100 group-data-[state=open]:text-foreground",
+        )}
+      />
+      <span className="min-w-0 flex-1 truncate">{props.label}</span>
+      <ShortcutKeys
+        platform={props.platform}
+        className={cn("ml-auto hidden shrink-0 gap-1.5 sm:inline-flex", TRANSITION_CLASSNAME)}
+        keyClassName={cn(
+          "bg-background/60 text-label-tertiary",
+          TRANSITION_CLASSNAME,
+          "group-hover:bg-background/72 group-hover:text-label-secondary",
+          "group-data-[state=open]:bg-background/84 group-data-[state=open]:text-foreground",
+        )}
+      />
+    </ButtonPrimitive>
+  );
+}
+
+function CommandResultItem(props: { item: CommandEntry; onSelect: () => void }) {
+  const Icon = props.item.icon;
+
+  return (
+    <CommandItem
+      value={[props.item.title, props.item.subtitle, props.item.meta, ...props.item.keywords].join(
+        " ",
+      )}
+      onSelect={props.onSelect}
+      className={cn(
+        "group/item items-start gap-3 rounded-xl border border-transparent px-3 py-3.5",
+        "transition-[background-color,border-color,color,transform] duration-200 ease-out",
+        "data-[selected=true]:border-border/60 data-[selected=true]:bg-accent/55 data-[selected=true]:text-foreground",
+      )}
+    >
+      {props.item.avatar ? (
+        <UserAvatar
+          name={props.item.avatar.name}
+          assetRef={props.item.avatar.assetRef}
+          size={36}
+          className="mt-0.5 ring-border/60"
+        />
+      ) : Icon ? (
+        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-background/55 text-label-primary transition-[background-color,color] duration-200 group-data-[selected=true]/item:bg-background/80 group-data-[selected=true]/item:text-foreground">
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
+      ) : null}
+
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="min-w-0 flex-1 truncate text-footnote font-semibold text-foreground">
+            {props.item.title}
+          </span>
+          {props.item.shortcut?.length ? <EntryShortcut shortcut={props.item.shortcut} /> : null}
+        </span>
+        <span className="mt-1 flex min-w-0 items-center gap-2 text-caption text-label-secondary">
+          <span className="min-w-0 flex-1 truncate">{props.item.subtitle}</span>
+          {props.item.meta ? (
+            <span className="truncate text-label-tertiary">{props.item.meta}</span>
+          ) : null}
+        </span>
+      </span>
+    </CommandItem>
+  );
+}
+
+function CommandPanelFooter(props: {
+  platform: ReturnType<typeof useClientPlatform>;
+  prefix: string;
+  suffix: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 border-t border-border/70 px-4 py-3 text-caption text-label-secondary">
+      <span>{props.prefix}</span>
+      <ShortcutKeys
+        platform={props.platform}
+        className="gap-1"
+        keyClassName="h-5 min-w-5 rounded-[5px] bg-background/70 px-2 text-[10px] font-semibold uppercase tracking-[0.04em] text-label-secondary"
+      />
+      <span>{props.suffix}</span>
+    </div>
+  );
+}
+
 export function AdminCommandTrigger(props: {
-  items: readonly AdminCommandItem[];
+  sections: readonly CommandSection[];
+  query: string;
+  onQueryChange: (query: string) => void;
+  emptyText: string;
+  onSelectEntry: (entry: CommandEntry) => void;
   className?: string;
 }) {
   const { t } = useTranslation("command");
   const [open, setOpen] = useState(false);
+  const platform = useClientPlatform();
+  const visibleSections = useMemo(
+    () => props.sections.filter((section) => section.loading || section.entries.length > 0),
+    [props.sections],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -54,69 +219,86 @@ export function AdminCommandTrigger(props: {
 
   return (
     <>
-      <ButtonPrimitive
-        type="button"
-        tapScale={1}
-        aria-label={t("COMMAND_TRIGGER_ARIA_LABEL")}
+      <CommandTriggerButton
+        open={open}
+        platform={platform}
+        label={t("COMMAND_TRIGGER_LABEL")}
+        ariaLabel={t("COMMAND_TRIGGER_ARIA_LABEL")}
         onClick={() => setOpen(true)}
-        className={cn(
-          "group flex h-10 w-full items-center gap-3 rounded-xl border border-border/60",
-          "bg-accent px-3.5 text-left text-footnote text-label-secondary",
-          "transition-[border-color,background-color,color] duration-200",
-          "hover:bg-background/80 hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          props.className,
-        )}
-      >
-        <Search className="size-4 shrink-0 opacity-75 transition-opacity group-hover:opacity-100" />
-        <span className="min-w-0 flex-1 truncate">{t("COMMAND_TRIGGER_LABEL")}</span>
-        <Kbd className="ml-auto hidden shrink-0 bg-background/70 text-label-secondary sm:inline-flex">
-          {t("COMMAND_TRIGGER_SHORTCUT")}
-        </Kbd>
-      </ButtonPrimitive>
+        className={props.className}
+      />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="overflow-hidden border-border/70 p-0 sm:max-w-2xl">
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) props.onQueryChange("");
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className={cn(
+            "self-start overflow-hidden border-border/70 p-0",
+            "mt-3 w-[640px] max-w-[calc(100vw-1.5rem)] rounded-2xl bg-popover shadow-2xl",
+          )}
+        >
           <DialogHeader className="sr-only border-0 p-0">
             <DialogTitle>{t("COMMAND_DIALOG_TITLE")}</DialogTitle>
             <DialogDescription>{t("COMMAND_DIALOG_DESCRIPTION")}</DialogDescription>
           </DialogHeader>
 
-          <Command className="bg-popover text-popover-foreground">
-            <CommandInput placeholder={t("COMMAND_INPUT_PLACEHOLDER")} />
-            <CommandList className="max-h-[26rem]">
-              <CommandEmpty>{t("COMMAND_EMPTY")}</CommandEmpty>
-              <CommandGroup heading={t("COMMAND_GROUP_NAVIGATION")}>
-                {props.items.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <CommandItem
-                      key={item.id}
-                      value={[item.title, item.description, ...item.keywords].join(" ")}
-                      onSelect={() => {
-                        setOpen(false);
-                        item.onSelect();
-                      }}
-                      className="items-start gap-3 rounded-lg px-3 py-3"
-                    >
-                      {Icon ? (
-                        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/70 text-label-primary">
-                          <Icon className="size-4" aria-hidden="true" />
-                        </span>
-                      ) : null}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-footnote font-medium text-foreground">
-                          {item.title}
-                        </span>
-                        <span className="mt-0.5 block truncate text-caption text-label-secondary">
-                          {item.description}
-                        </span>
-                      </span>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
+          <Command
+            shouldFilter={false}
+            className={cn(
+              "bg-popover text-popover-foreground",
+              "[&_[cmdk-input-wrapper]]:h-14 [&_[cmdk-input-wrapper]]:gap-2.5 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-border/70 [&_[cmdk-input-wrapper]]:px-4",
+              "[&_[cmdk-input-wrapper]]:bg-popover [&_[cmdk-input-wrapper]_svg]:mr-0 [&_[cmdk-input-wrapper]_svg]:size-5 [&_[cmdk-input-wrapper]_svg]:text-label-secondary [&_[cmdk-input-wrapper]_svg]:opacity-100",
+              "[&_[cmdk-input]]:h-14 [&_[cmdk-input]]:py-0 [&_[cmdk-input]]:text-headline [&_[cmdk-input]]:font-medium [&_[cmdk-input]]:placeholder:text-label-secondary",
+              "[&_[cmdk-list]]:max-h-[35rem] [&_[cmdk-list]]:px-3 [&_[cmdk-list]]:py-2",
+              "[&_[cmdk-group]]:p-0 [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:pb-2 [&_[cmdk-group-heading]]:pt-2.5",
+              "[&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:tracking-[0.02em] [&_[cmdk-group-heading]]:text-label-secondary",
+            )}
+          >
+            <CommandInput
+              value={props.query}
+              onValueChange={props.onQueryChange}
+              placeholder={t("COMMAND_INPUT_PLACEHOLDER")}
+            />
+            <CommandList>
+              {visibleSections.length === 0 ? (
+                <div className="px-4 py-10 text-left text-footnote text-label-secondary">
+                  {props.emptyText}
+                </div>
+              ) : null}
+              {visibleSections.map((section, index) => (
+                <div key={section.id}>
+                  {index > 0 ? <CommandSeparator className="my-2 bg-border/60" /> : null}
+                  <CommandGroup heading={section.heading}>
+                    {section.entries.map((entry) => (
+                      <CommandResultItem
+                        key={entry.id}
+                        item={entry}
+                        onSelect={() => {
+                          setOpen(false);
+                          props.onQueryChange("");
+                          props.onSelectEntry(entry);
+                        }}
+                      />
+                    ))}
+                    {section.loading && section.entries.length === 0 ? (
+                      <div className="px-3 py-3 text-footnote text-label-secondary">
+                        {t("COMMAND_LOADING_SEARCH")}
+                      </div>
+                    ) : null}
+                  </CommandGroup>
+                </div>
+              ))}
             </CommandList>
+            <CommandPanelFooter
+              platform={platform}
+              prefix={t("COMMAND_DIALOG_SHORTCUT_HINT_PREFIX")}
+              suffix={t("COMMAND_DIALOG_SHORTCUT_HINT_SUFFIX")}
+            />
           </Command>
         </DialogContent>
       </Dialog>

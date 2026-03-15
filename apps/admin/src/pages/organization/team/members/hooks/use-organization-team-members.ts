@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -48,7 +48,12 @@ type OrganizationMembersTableQuery = {
   hasWorkspace?: boolean;
 };
 
-export function useOrganizationTeamMembers() {
+export function useOrganizationTeamMembers(
+  props: {
+    initialSearchQuery?: string;
+    initialInspectMemberId?: string;
+  } = {},
+) {
   const { t } = useTranslation(["nav", "common", "team"]);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -60,6 +65,8 @@ export function useOrganizationTeamMembers() {
   const [pendingRemove, setPendingRemove] = useState<OrganizationMember | null>(null);
   const [editingRoleMember, setEditingRoleMember] = useState<OrganizationMember | null>(null);
   const [inspectingMember, setInspectingMember] = useState<OrganizationMember | null>(null);
+  const hydratedSearchRef = useRef<string | null>(null);
+  const hydratedInspectRef = useRef<string | null>(null);
   const [roleDraft, setRoleDraft] = useState<string>("");
   const dateTime = useWorkspaceDateTimeFormatter();
 
@@ -353,6 +360,23 @@ export function useOrganizationTeamMembers() {
   const table = tableHook.table;
   const pageData = tableHook.pageData;
   const empty = !tableHook.isLoading && tableHook.items.length === 0;
+
+  useEffect(() => {
+    const nextQuery = String(props.initialSearchQuery || "").trim();
+    if (!nextQuery || hydratedSearchRef.current === nextQuery) return;
+    hydratedSearchRef.current = nextQuery;
+    tableHook.setSearchInput(nextQuery);
+  }, [props.initialSearchQuery, tableHook]);
+
+  useEffect(() => {
+    const nextMemberId = String(props.initialInspectMemberId || "").trim();
+    if (!nextMemberId || hydratedInspectRef.current === nextMemberId) return;
+    const matched =
+      tableHook.items.find((member) => String(member.userId) === nextMemberId) ?? null;
+    if (!matched) return;
+    hydratedInspectRef.current = nextMemberId;
+    setInspectingMember(matched);
+  }, [props.initialInspectMemberId, tableHook.items]);
 
   const pendingRemoveIsCurrentUser =
     currentUserId !== null && pendingRemove !== null && pendingRemove.userId === currentUserId;

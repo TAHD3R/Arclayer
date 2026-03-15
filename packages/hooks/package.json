@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./use-auto-height": "./src/use-auto-height.tsx",
+    "./use-client-platform": "./src/use-client-platform.ts",
     "./use-controlled-state": "./src/use-controlled-state.tsx",
     "./use-data-state": "./src/use-data-state.ts",
     "./use-is-in-view": "./src/use-is-in-view.ts",

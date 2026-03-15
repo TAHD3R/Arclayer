@@ -1,12 +1,11 @@
 import { History, Search, Settings } from "lucide-react";
 import { describe, expect, test, vi } from "vitest";
 
-import type { AdminNavItem } from "@/constants/menu/workspaces";
-import { buildAdminNavCommandItems } from "@/lib/command/nav-command-items";
+import type { AdminNavItem } from "@/types/admin-nav";
+import { buildAdminNavCommandEntries } from "@/lib/command/nav-command-items";
 
 describe("nav-command-items", () => {
   test("builds command entries from nested nav items and prefers labelKey translation", () => {
-    const navigate = vi.fn();
     const t = vi.fn((key: string) => `translated:${key}`);
 
     const navItems: AdminNavItem[] = [
@@ -33,28 +32,28 @@ describe("nav-command-items", () => {
       },
     ];
 
-    const items = buildAdminNavCommandItems(navItems, t, navigate);
+    const items = buildAdminNavCommandEntries(navItems, t);
 
     expect(items).toHaveLength(2);
     expect(items[0]).toMatchObject({
-      id: "route:/",
+      id: "page:/",
+      key: "page:/",
+      kind: "page",
       title: "translated:nav:NAV_DASHBOARD",
-      description: "/",
-      to: "/",
+      subtitle: "/",
+      action: { type: "navigate", to: "/" },
     });
     expect(items[1]).toMatchObject({
-      id: "route:/settings/search",
+      id: "page:/settings/search",
+      key: "page:/settings/search",
+      kind: "page",
       title: "translated:nav:NAV_SEARCH",
-      description: "/settings/search",
-      to: "/settings/search",
+      subtitle: "/settings/search",
+      action: { type: "navigate", to: "/settings/search" },
     });
-
-    items[1]?.onSelect?.();
-    expect(navigate).toHaveBeenCalledWith("/settings/search");
   });
 
   test("skips disabled and non-routable nodes", () => {
-    const navigate = vi.fn();
     const t = vi.fn((key: string) => key);
 
     const navItems: AdminNavItem[] = [
@@ -79,12 +78,11 @@ describe("nav-command-items", () => {
       },
     ];
 
-    const items = buildAdminNavCommandItems(navItems, t, navigate);
+    const items = buildAdminNavCommandEntries(navItems, t);
     expect(items).toEqual([]);
   });
 
   test("deduplicates by route path", () => {
-    const navigate = vi.fn();
     const t = vi.fn((key: string) => key);
 
     const navItems: AdminNavItem[] = [
@@ -102,7 +100,7 @@ describe("nav-command-items", () => {
       },
     ];
 
-    const items = buildAdminNavCommandItems(navItems, t, navigate);
+    const items = buildAdminNavCommandEntries(navItems, t);
     expect(items).toHaveLength(1);
     expect(items[0]?.title).toBe("A");
   });

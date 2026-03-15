@@ -1,21 +1,11 @@
 import type { AdminNavItem } from "@/types/admin-nav";
+import type { CommandEntry } from "@/lib/command/command-types";
 
-export type AdminCommandItem = {
-  id: string;
-  to: string;
-  title: string;
-  description: string;
-  icon: AdminNavItem["icon"];
-  keywords: string[];
-  onSelect: () => void;
-};
-
-export function buildAdminNavCommandItems(
+export function buildAdminNavCommandEntries(
   navItems: readonly AdminNavItem[],
   t: (key: string) => string,
-  onNavigate: (to: string) => void,
-): AdminCommandItem[] {
-  const result: AdminCommandItem[] = [];
+): CommandEntry[] {
+  const result: CommandEntry[] = [];
   const seenRoutes = new Set<string>();
 
   const walk = (items: readonly AdminNavItem[]) => {
@@ -26,13 +16,28 @@ export function buildAdminNavCommandItems(
 
         seenRoutes.add(to);
         result.push({
-          id: `route:${to}`,
-          to,
+          id: `page:${to}`,
+          key: `page:${to}`,
+          kind: "page",
           title,
-          description: to,
+          subtitle: to,
+          keywords: [title, to, item.key],
           icon: item.icon,
-          keywords: [title, to],
-          onSelect: () => onNavigate(to),
+          action: {
+            type: "navigate",
+            to,
+          },
+          recent: {
+            enabled: true,
+            snapshot: {
+              key: `page:${to}`,
+              kind: "page",
+              title,
+              subtitle: to,
+              keywords: [title, to, item.key],
+              to,
+            },
+          },
         });
       }
 

@@ -241,6 +241,50 @@ export function AdminLayout({ children }: PropsWithChildren) {
     workspaceLocalization.localization.locale,
   ]);
 
+  const commandScope = useMemo(() => {
+    if (isWorkspaceScopeRoute) {
+      return {
+        kind: "workspace",
+        pathname,
+        workspaceId: workspaceId ? String(workspaceId) : null,
+        organizationId: workspaceDetailQuery.data?.organizationId ?? null,
+      } as const;
+    }
+
+    if (isAdminCenterRoute) {
+      return {
+        kind: "organization",
+        pathname,
+        workspaceId: null,
+        organizationId: adminCenterOrgId,
+      } as const;
+    }
+
+    if (isMeScopeRoute) {
+      return {
+        kind: "me",
+        pathname,
+        workspaceId: null,
+        organizationId: null,
+      } as const;
+    }
+
+    return {
+      kind: "none",
+      pathname,
+      workspaceId: null,
+      organizationId: null,
+    } as const;
+  }, [
+    adminCenterOrgId,
+    isAdminCenterRoute,
+    isMeScopeRoute,
+    isWorkspaceScopeRoute,
+    pathname,
+    workspaceDetailQuery.data?.organizationId,
+    workspaceId,
+  ]);
+
   return (
     <SidebarProvider
       defaultOpen={sidebarOpen}
@@ -261,6 +305,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
         <AdminTopbar
           navItems={mainItems}
+          commandScope={commandScope}
           notificationOpen={notificationPanelOpen}
           showNotificationsBadge={showNotificationsBadge}
           unreadCount={unreadCount}

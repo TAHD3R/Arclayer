@@ -1,3 +1,5 @@
+import { useSearch } from "@tanstack/react-router";
+
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 
@@ -7,8 +9,12 @@ import { OrganizationMembersInviteAction } from "./components/members-toolbar";
 import { useOrganizationTeamMembers } from "./hooks/use-organization-team-members";
 
 export function OrganizationTeamMembersPage() {
+  const { q, memberId } = useSearch({ from: "/o/$orgId/team/members/" });
   const { t, openInviteDialog, toolbarProps, tableState, dialogsProps } =
-    useOrganizationTeamMembers();
+    useOrganizationTeamMembers({
+      initialSearchQuery: q,
+      initialInspectMemberId: memberId,
+    });
 
   return (
     <DefaultPage

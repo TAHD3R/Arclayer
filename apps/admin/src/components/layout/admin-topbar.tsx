@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { Bell, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -7,10 +5,11 @@ import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
-import { buildAdminNavCommandItems } from "@/lib/command/nav-command-items";
+import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import { cn } from "@celestial/lib/utils";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 import { useSidebar } from "@celestial/ui/sidebar";
+import type { CommandScope } from "@/lib/command/command-types";
 
 const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
   "relative inline-flex size-10 items-center justify-center rounded-xl border border-transparent",
@@ -22,21 +21,19 @@ const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
 
 export function AdminTopbar(props: {
   navItems: readonly AdminNavItem[];
+  commandScope: CommandScope;
   notificationOpen: boolean;
   showNotificationsBadge: boolean;
   unreadCount: number;
   onNotificationToggle: () => void;
   className?: string;
 }) {
-  const navigate = useNavigate();
   const { toggleSidebar } = useSidebar();
-  const { t, i18n } = useTranslation(["command", "common", "notifications", "nav"]);
-
-  const commandItems = useMemo(() => {
-    return buildAdminNavCommandItems(props.navItems, t, (to) => {
-      void navigate({ to: to as never });
-    });
-  }, [i18n.resolvedLanguage, i18n.language, navigate, props.navItems, t]);
+  const { t } = useTranslation(["common", "notifications"]);
+  const commandPalette = useAdminCommandPalette({
+    navItems: props.navItems,
+    scope: props.commandScope,
+  });
 
   return (
     <header
@@ -61,7 +58,7 @@ export function AdminTopbar(props: {
             onClick={toggleSidebar}
             className={TOPBAR_ICON_BUTTON_CLASSNAME}
           >
-            <Menu className="size-4" aria-hidden="true" />
+            <Menu className="size-5" aria-hidden="true" />
           </ButtonPrimitive>
 
           <div className="min-w-0">
@@ -70,7 +67,13 @@ export function AdminTopbar(props: {
         </div>
 
         <div className="min-w-0 justify-self-center w-full max-w-[28rem]">
-          <AdminCommandTrigger items={commandItems} />
+          <AdminCommandTrigger
+            sections={commandPalette.sections}
+            query={commandPalette.query}
+            onQueryChange={commandPalette.setQuery}
+            emptyText={commandPalette.emptyText}
+            onSelectEntry={commandPalette.onSelectEntry}
+          />
         </div>
 
         <div className="min-w-0 flex items-center justify-end gap-2">

@@ -1,4 +1,14 @@
 import { Link } from "@tanstack/react-router";
+import { useTheme } from "next-themes";
+
+function getFullLogoSrc(resolvedTheme?: string) {
+  if (resolvedTheme === "dark") return "/logo-full-dark.svg";
+  if (resolvedTheme === "light") return "/logo-full.svg";
+  if (typeof document !== "undefined" && document.documentElement.dataset.theme === "dark") {
+    return "/logo-full-dark.svg";
+  }
+  return "/logo-full.svg";
+}
 
 export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number }) {
   const to = props.to ?? "/";
@@ -45,6 +55,7 @@ export function AdminBrandMark(props: { size?: number; productName?: string }) {
 export function AdminFullLogo(props: { to?: string; ariaLabel: string; width?: number }) {
   const to = props.to ?? "/";
   const width = props.width ?? 180;
+  const { resolvedTheme } = useTheme();
 
   return (
     <Link
@@ -54,7 +65,7 @@ export function AdminFullLogo(props: { to?: string; ariaLabel: string; width?: n
       style={{ width: width }}
     >
       <img
-        src="/logo-full.svg"
+        src={getFullLogoSrc(resolvedTheme)}
         width={width}
         className="block object-contain"
         style={{ width: width }}

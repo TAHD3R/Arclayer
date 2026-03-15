@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 
 import { DefaultPage } from "@/components/common/default-page";
@@ -11,7 +12,7 @@ import { AssetsViewHeader } from "./assets-view-header";
 import { AssetsViewMasonrySection } from "./assets-view-masonry-section";
 import { AssetsViewOverlays } from "./assets-view-overlays";
 
-export function AssetsPageView() {
+export function AssetsPageView(props: { initialSearchQuery?: string; initialAssetId?: string }) {
   const controller = useAssetsViewController();
   const {
     t,
@@ -71,6 +72,24 @@ export function AssetsPageView() {
     createParentLabel,
     openBulkDeleteDialog,
   } = controller;
+  const hydratedSearchRef = useRef<string | null>(null);
+  const hydratedAssetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const nextQuery = String(props.initialSearchQuery || "").trim();
+    if (!nextQuery || hydratedSearchRef.current === nextQuery) return;
+    hydratedSearchRef.current = nextQuery;
+    setSearchInput(nextQuery);
+  }, [props.initialSearchQuery, setSearchInput]);
+
+  useEffect(() => {
+    const nextAssetId = String(props.initialAssetId || "").trim();
+    if (!nextAssetId || hydratedAssetIdRef.current === nextAssetId) return;
+    const matched = controller.items.find((item) => String(item.id) === nextAssetId) ?? null;
+    if (!matched) return;
+    hydratedAssetIdRef.current = nextAssetId;
+    setActive(matched);
+  }, [controller.items, props.initialAssetId, setActive]);
 
   return (
     <DefaultPage

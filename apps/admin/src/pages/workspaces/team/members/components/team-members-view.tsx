@@ -64,7 +64,10 @@ import {
   teamMembersTableId,
 } from "../utils";
 
-export function TeamMembersView() {
+export function TeamMembersView(props: {
+  initialSearchQuery?: string;
+  initialInspectMemberId?: string;
+}) {
   const { t } = useTranslation(["team", "common"]);
 
   const queryClient = useQueryClient();
@@ -134,6 +137,8 @@ export function TeamMembersView() {
   const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null);
   const [editingRoleCode, setEditingRoleCode] = React.useState<string | null>(null);
   const [inspectingMember, setInspectingMember] = React.useState<TeamMember | null>(null);
+  const hydratedSearchRef = React.useRef<string | null>(null);
+  const hydratedInspectRef = React.useRef<string | null>(null);
   const canEditRoles = Boolean(editingMember) && editingMember?.membershipStatus === "active";
 
   const extraQuery = React.useMemo<TeamMemberExtraQuery>(
@@ -418,6 +423,23 @@ export function TeamMembersView() {
   const table = tableHook.table;
   const pageData = tableHook.pageData;
   const toolsLabels = React.useMemo(() => buildDataTableToolsLabels(t), [t]);
+
+  React.useEffect(() => {
+    const nextQuery = String(props.initialSearchQuery || "").trim();
+    if (!nextQuery || hydratedSearchRef.current === nextQuery) return;
+    hydratedSearchRef.current = nextQuery;
+    tableHook.setSearchInput(nextQuery);
+  }, [props.initialSearchQuery, tableHook]);
+
+  React.useEffect(() => {
+    const nextMemberId = String(props.initialInspectMemberId || "").trim();
+    if (!nextMemberId || hydratedInspectRef.current === nextMemberId) return;
+    const matched =
+      tableHook.items.find((member) => String(member.userId) === nextMemberId) ?? null;
+    if (!matched) return;
+    hydratedInspectRef.current = nextMemberId;
+    setInspectingMember(matched);
+  }, [props.initialInspectMemberId, tableHook.items]);
 
   const toolbarLeft = (
     <>

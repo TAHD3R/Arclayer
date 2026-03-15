@@ -1,5 +1,6 @@
 export * from "./use-auto-height";
 export * from "./use-controlled-state";
+export * from "./use-client-platform";
 export * from "./use-data-state";
 export * from "./use-is-in-view";
 export * from "./use-is-mobile";

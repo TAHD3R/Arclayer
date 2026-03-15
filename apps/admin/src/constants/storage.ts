@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   workspaceLocaleCache: "celestial:admin:workspaceLocaleCache",
   dataTableVisibility: "celestial:admin:dataTable:visibility",
   favorites: "celestial:admin:favorites",
+  commandRecent: "celestial:admin:commandRecent",
   notificationPanelPinned: "celestial:admin:notificationPanelPinned",
   sidebarOpen: "celestial:admin:sidebarOpen",
   showNotificationsBadge: "celestial:admin:showNotificationsBadge",
