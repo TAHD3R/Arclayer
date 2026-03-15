@@ -47,7 +47,7 @@ function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginVie
       mode="login"
       onModeChange={() => undefined}
       onLoginSubmit={() => undefined}
-      onForgotPassword={async () => undefined}
+      onForgotPasswordSubmit={async () => undefined}
       onRegisterSubmit={() => undefined}
       publicRegisterEnabled
       challenge={null}
@@ -129,6 +129,16 @@ describe("LoginView auth pane hierarchy", () => {
     expect(
       signInEntry!.compareDocumentPosition(legalCopy) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  test("renders forgot password as an inline pane instead of a dialog", () => {
+    renderLoginView({ mode: "forgot-password" });
+
+    expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
+    expect(screen.getByText("auth:FORGOT_PASSWORD_MODAL_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("auth:FIELD_ACCOUNT_LABEL")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:MODAL_SUBMIT" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" })).toBeInTheDocument();
   });
 
   test("renders two-factor pane with pane-local branding and legal copy under verify", () => {

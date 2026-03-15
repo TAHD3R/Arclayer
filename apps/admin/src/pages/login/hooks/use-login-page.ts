@@ -330,15 +330,8 @@ export function useLoginPage() {
   };
 
   const onForgotPassword = async (identifier: string) => {
-    try {
-      const payload = await forgotPasswordMutation.mutateAsync(identifier);
-      notifyInfoText(t("auth:RESET_SENT"));
-      if (payload?.reset_token) {
-        void navigate({ to: "/reset-password", search: { token: payload.reset_token } });
-      }
-    } catch {
-      // Error toast handled globally by MutationCache onError.
-    }
+    await forgotPasswordMutation.mutateAsync(identifier);
+    notifyInfoText(t("auth:RESET_SENT"));
   };
 
   const onRegisterFinish = async (values: RegisterFormValues) => {
@@ -378,7 +371,8 @@ export function useLoginPage() {
     loginLoading: loginMutation.isPending || ssoExchangeMutation.isPending,
     initialKeepSession: keepSession,
     redirect: redirectTo,
-    onForgotPassword,
+    onForgotPasswordSubmit: onForgotPassword,
+    forgotPasswordLoading: forgotPasswordMutation.isPending,
     onRegisterSubmit: onRegisterFinish,
     registerLoading: registerMutation.isPending || runtimeLoading,
     publicRegisterEnabled,

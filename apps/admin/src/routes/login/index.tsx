@@ -20,7 +20,12 @@ export const Route = createFileRoute("/login/")({
         ? search.redirect
         : undefined;
 
-    const mode = search.mode === "register" ? "register" : "login";
+    const mode =
+      search.mode === "register"
+        ? "register"
+        : search.mode === "forgot-password"
+          ? "forgot-password"
+          : "login";
 
     const oauth_code = typeof search.oauth_code === "string" ? search.oauth_code : undefined;
     const oauth_error = typeof search.oauth_error === "string" ? search.oauth_error : undefined;

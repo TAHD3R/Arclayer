@@ -1,12 +1,12 @@
 import { KeyRound, Lock } from "lucide-react";
 import { motion, type Variants } from "motion/react";
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import {
-  AuthFieldError,
   AuthInputControl,
   AuthLinkButton,
   AuthPasswordControl,
@@ -14,8 +14,17 @@ import {
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { Button } from "@celestial/ui/button";
+import { Field, FieldContent, FieldError } from "@celestial/ui/field";
+
 import { PASSWORD_PATTERN } from "../constants";
 import type { ResetPasswordFormValues, ResetPasswordViewProps } from "../types";
+import {
+  AUTH_FIELD_CLASS,
+  AUTH_INPUT_CLASS,
+  AUTH_INPUT_GROUP_CLASS,
+  AuthPaneHeader,
+  AuthPaneTitleRow,
+} from "@/pages/login/components/auth-pane-primitives";
 
 function createResetPasswordSchema(t: (key: string) => string) {
   return z
@@ -35,6 +44,25 @@ function createResetPasswordSchema(t: (key: string) => string) {
         message: t("auth:VALIDATION_PASSWORD_MISMATCH"),
       });
     });
+}
+
+function ResetPasswordField(props: {
+  title: string;
+  error?: string;
+  variants: Variants | {};
+  children: ReactNode;
+}) {
+  return (
+    <motion.div variants={props.variants}>
+      <Field className={AUTH_FIELD_CLASS}>
+        <FieldContent className="gap-2">
+          <AuthPaneTitleRow title={props.title} />
+          {props.children}
+          <FieldError>{props.error}</FieldError>
+        </FieldContent>
+      </Field>
+    </motion.div>
+  );
 }
 
 export function ResetPasswordView({
@@ -63,91 +91,99 @@ export function ResetPasswordView({
       animate="show"
       variants={{ show: reducedMotion ? {} : { transition: { staggerChildren: 0.05 } } }}
     >
-      <motion.div variants={variants}>
-        <h1 className="text-largetitle text-label-primary">
-          {t("auth:RESET_PASSWORD_PAGE_TITLE")}
-        </h1>
-        <p className="mt-2 mb-8 text-title3 font-normal text-label-secondary">
-          {t("auth:RESET_PASSWORD_PAGE_SUBTITLE")}
-        </p>
-      </motion.div>
+      <div className="grid gap-4">
+        <AuthPaneHeader
+          titleKey="auth:RESET_PASSWORD_PAGE_TITLE"
+          subtitleKey="auth:RESET_PASSWORD_PAGE_SUBTITLE"
+          variants={variants}
+        />
 
-      <form
-        className="grid gap-3"
-        autoComplete="off"
-        onSubmit={form.handleSubmit(async (values) => {
-          await onSubmit({ reset_token: values.resetToken, new_password: values.newPassword });
-        })}
-      >
-        <motion.div variants={variants} className="grid gap-1.5">
-          <AuthInputControl
-            autoComplete="off"
-            aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
-            aria-invalid={form.formState.errors.resetToken ? true : undefined}
-            placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
-            startIcon={<KeyRound size={16} />}
-            disabled={loading}
-            {...form.register("resetToken")}
-          />
-          <AuthFieldError
-            message={
+        <form
+          className="grid gap-4"
+          autoComplete="off"
+          onSubmit={form.handleSubmit(async (values) => {
+            await onSubmit({ reset_token: values.resetToken, new_password: values.newPassword });
+          })}
+        >
+          <ResetPasswordField
+            title={t("auth:FIELD_RESET_TOKEN_LABEL")}
+            error={
               form.formState.errors.resetToken?.message
                 ? String(form.formState.errors.resetToken.message)
                 : undefined
             }
-          />
-        </motion.div>
+            variants={variants}
+          >
+            <AuthInputControl
+              autoComplete="off"
+              aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
+              aria-invalid={form.formState.errors.resetToken ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
+              startIcon={<KeyRound size={16} />}
+              disabled={loading}
+              {...form.register("resetToken")}
+            />
+          </ResetPasswordField>
 
-        <motion.div variants={variants} className="grid gap-1.5">
-          <AuthPasswordControl
-            autoComplete="new-password"
-            aria-label={t("auth:FIELD_NEW_PASSWORD_LABEL")}
-            aria-invalid={form.formState.errors.newPassword ? true : undefined}
-            placeholder={t("auth:FIELD_NEW_PASSWORD_PLACEHOLDER")}
-            startIcon={<Lock size={16} />}
-            disabled={loading}
-            {...form.register("newPassword")}
-          />
-          <AuthFieldError
-            message={
+          <ResetPasswordField
+            title={t("auth:FIELD_NEW_PASSWORD_LABEL")}
+            error={
               form.formState.errors.newPassword?.message
                 ? String(form.formState.errors.newPassword.message)
                 : undefined
             }
-          />
-        </motion.div>
+            variants={variants}
+          >
+            <AuthPasswordControl
+              autoComplete="new-password"
+              aria-label={t("auth:FIELD_NEW_PASSWORD_LABEL")}
+              aria-invalid={form.formState.errors.newPassword ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_NEW_PASSWORD_PLACEHOLDER")}
+              startIcon={<Lock size={16} />}
+              disabled={loading}
+              {...form.register("newPassword")}
+            />
+          </ResetPasswordField>
 
-        <motion.div variants={variants} className="grid gap-1.5">
-          <AuthPasswordControl
-            autoComplete="new-password"
-            aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
-            aria-invalid={form.formState.errors.confirmPassword ? true : undefined}
-            placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
-            startIcon={<Lock size={16} />}
-            disabled={loading}
-            {...form.register("confirmPassword")}
-          />
-          <AuthFieldError
-            message={
+          <ResetPasswordField
+            title={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
+            error={
               form.formState.errors.confirmPassword?.message
                 ? String(form.formState.errors.confirmPassword.message)
                 : undefined
             }
-          />
-        </motion.div>
+            variants={variants}
+          >
+            <AuthPasswordControl
+              autoComplete="new-password"
+              aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
+              aria-invalid={form.formState.errors.confirmPassword ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
+              startIcon={<Lock size={16} />}
+              disabled={loading}
+              {...form.register("confirmPassword")}
+            />
+          </ResetPasswordField>
 
-        <motion.div variants={variants} className="grid gap-4">
-          <Button className="w-full" type="submit" size="lg" loading={loading}>
-            {t("auth:RESET_PASSWORD_BUTTON")}
-          </Button>
+          <motion.div variants={variants} className="grid gap-3 pt-1">
+            <Button className="w-full" type="submit" size="lg" loading={loading}>
+              {t("auth:RESET_PASSWORD_BUTTON")}
+            </Button>
 
-          <div className="text-center">
-            <AuthLinkButton onClick={onBackToLogin} type="button">
-              {t("auth:BACK_TO_LOGIN")}
-            </AuthLinkButton>
-          </div>
-        </motion.div>
-      </form>
+            <div className="text-center">
+              <AuthLinkButton onClick={onBackToLogin} type="button">
+                {t("auth:BACK_TO_LOGIN")}
+              </AuthLinkButton>
+            </div>
+          </motion.div>
+        </form>
+      </div>
     </motion.div>
   );
 }

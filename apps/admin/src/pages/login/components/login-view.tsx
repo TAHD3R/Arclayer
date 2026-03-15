@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import type { LoginMode } from "@/lib/auth/auth-mode";
 
 import type { LoginViewProps } from "../types";
-import { ForgotPasswordDialog } from "./forgot-password-dialog";
+import { ForgotPasswordPane } from "./forgot-password-pane";
 import { LoginPane } from "./login-pane";
 import { LoginTwoFactorPane } from "./login-two-factor-pane";
 import { RegisterPane } from "./register-pane";
@@ -19,7 +19,8 @@ export function LoginView({
   loginLoading = false,
   initialKeepSession = false,
   redirect,
-  onForgotPassword,
+  onForgotPasswordSubmit,
+  forgotPasswordLoading = false,
   onRegisterSubmit,
   registerLoading = false,
   publicRegisterEnabled = true,
@@ -29,10 +30,13 @@ export function LoginView({
   twoFactorLoading = false,
 }: LoginViewProps) {
   const reducedMotion = usePrefersReducedMotion();
-  const resolvedMode: LoginMode = publicRegisterEnabled ? mode : "login";
+  const resolvedMode: LoginMode = publicRegisterEnabled
+    ? mode
+    : mode === "register"
+      ? "login"
+      : mode;
   const currentPane: LoginViewPane = challenge ? "two-factor" : resolvedMode;
   const prevPaneRef = useRef<LoginViewPane>(currentPane);
-  const [forgotOpen, setForgotOpen] = useState(false);
 
   const direction =
     currentPane === prevPaneRef.current
@@ -60,14 +64,6 @@ export function LoginView({
 
   return (
     <div className="w-full">
-      <ForgotPasswordDialog
-        open={forgotOpen}
-        onOpenChange={setForgotOpen}
-        onSubmit={onForgotPassword}
-        reducedMotion={reducedMotion}
-        itemVariants={itemVariants}
-      />
-
       <MotionConfig transition={transition}>
         <div className="relative">
           <AnimatePresence mode="wait">
@@ -103,18 +99,26 @@ export function LoginView({
                   loading={loginLoading}
                   initialKeepSession={initialKeepSession}
                   redirect={redirect}
-                  onForgotPassword={() => setForgotOpen(true)}
+                  onForgotPassword={() => onModeChange("forgot-password")}
                   onSwitchToRegister={() => onModeChange("register")}
                   publicRegisterEnabled={publicRegisterEnabled}
                   reducedMotion={reducedMotion}
                   itemVariants={itemVariants}
                 />
-              ) : (
+              ) : currentPane === "register" ? (
                 <RegisterPane
                   onSubmit={onRegisterSubmit}
                   loading={registerLoading}
                   redirect={redirect}
                   onSwitchToLogin={() => onModeChange("login")}
+                  reducedMotion={reducedMotion}
+                  itemVariants={itemVariants}
+                />
+              ) : (
+                <ForgotPasswordPane
+                  onSubmit={onForgotPasswordSubmit}
+                  loading={forgotPasswordLoading}
+                  onBackToLogin={() => onModeChange("login")}
                   reducedMotion={reducedMotion}
                   itemVariants={itemVariants}
                 />

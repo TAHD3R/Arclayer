@@ -35,12 +35,12 @@ export function AuthPaneHeader(props: {
 
   return (
     <motion.div variants={props.variants} className="grid gap-3">
-      <div>
+      <div className="select-none">
         <AdminFullLogo to="/login" ariaLabel="Arclayer" width={132} />
       </div>
       <div>
-        <h1 className="text-largetitle text-label-primary">{t(props.titleKey)}</h1>
-        <p className="mt-2.5 max-w-[34ch] text-title3 font-normal text-label-secondary">
+        <h1 className="select-none text-largetitle text-label-primary">{t(props.titleKey)}</h1>
+        <p className="mt-2.5 max-w-[34ch] select-none text-title3 font-normal text-label-secondary">
           {t(props.subtitleKey)}
         </p>
       </div>

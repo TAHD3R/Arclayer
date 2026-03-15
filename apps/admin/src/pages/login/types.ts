@@ -26,7 +26,8 @@ export interface LoginViewProps {
   loginLoading?: boolean;
   initialKeepSession?: boolean;
   redirect?: string | undefined;
-  onForgotPassword: (identifier: string) => Promise<void>;
+  onForgotPasswordSubmit: (identifier: string) => Promise<void>;
+  forgotPasswordLoading?: boolean;
   onRegisterSubmit: (values: RegisterFormValues) => void;
   registerLoading?: boolean;
   publicRegisterEnabled?: boolean;
