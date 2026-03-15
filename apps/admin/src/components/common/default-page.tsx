@@ -49,12 +49,13 @@ function FavoriteToggle() {
     <Tooltip side="bottom">
       <TooltipTrigger asChild>
         <Button
+          size="sm"
           variant="ghost"
           onClick={() => toggle(pathname)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           className={clsx(
-            "inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors",
+            "inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 leading-none transition-colors",
             "text-label-secondary hover:text-foreground",
             isFavorited && "text-amber-500 hover:text-amber-600",
           )}
@@ -129,8 +130,12 @@ export function DefaultPage({
         <header className="mb-[18px]">
           {(title || action) && (
             <div className="flex items-center justify-between gap-4">
-              <div className={clsx("min-w-0 my-2", "flex justify-center items-center gap-2")}>
-                {title ? <div className="text-largetitle select-none">{title}</div> : null}
+              <div className={clsx("my-2 flex min-w-0 items-end gap-2")}>
+                {title ? (
+                  <div className="text-largetitle leading-none text-label-primary select-none">
+                    {title}
+                  </div>
+                ) : null}
                 {title && showFavoriteToggle ? <FavoriteToggle /> : null}
               </div>
 

@@ -1,14 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { useTheme } from "next-themes";
 import { cn } from "@celestial/lib/utils";
+import { usePreferencesStore } from "@/stores/use-preference-store";
+import type { ThemeMode } from "@celestial/theme/theme-mode";
 
-function getFullLogoSrc(resolvedTheme?: string) {
-  if (resolvedTheme === "dark") return "/logo-full-dark.svg";
-  if (resolvedTheme === "light") return "/logo-full.svg";
-  if (typeof document !== "undefined" && document.documentElement.dataset.theme === "dark") {
-    return "/logo-full-dark.svg";
-  }
-  return "/logo-full.svg";
+function getFullLogoSrc(themeMode: ThemeMode) {
+  return themeMode === "dark" ? "/logo-full-dark.svg" : "/logo-full.svg";
 }
 
 export function AdminLogo(props: { to?: string; ariaLabel: string; size?: number }) {
@@ -62,7 +58,7 @@ export function AdminFullLogo(props: {
 }) {
   const to = props.to ?? "/";
   const width = props.width ?? 180;
-  const { resolvedTheme } = useTheme();
+  const themeMode = usePreferencesStore((state) => state.themeMode);
 
   return (
     <Link
@@ -72,7 +68,7 @@ export function AdminFullLogo(props: {
       style={{ width: width }}
     >
       <img
-        src={getFullLogoSrc(resolvedTheme)}
+        src={getFullLogoSrc(themeMode)}
         width={width}
         className={cn("block object-contain", props.imgClassName)}
         style={{ width: width }}
