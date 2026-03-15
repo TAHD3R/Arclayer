@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { Pin, PinOff, X } from "lucide-react";
@@ -56,6 +56,12 @@ interface AdminNotificationsPanelProps {
   style?: CSSProperties;
 }
 
+function readPanelWidthFromTabsAnchor(el: HTMLDivElement | null): number | null {
+  if (!el) return null;
+  const nextWidth = Math.ceil(Math.max(el.scrollWidth, el.offsetWidth));
+  return nextWidth > 0 ? nextWidth : null;
+}
+
 export function AdminNotificationsPanel({
   isPinned,
   onPinChange,
@@ -69,12 +75,18 @@ export function AdminNotificationsPanel({
   const nowMs = useNowTick(60_000);
   const [tab, setTab] = useState<NotificationPanelTab>("unread");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const tabsWidthAnchorRef = useRef<HTMLDivElement | null>(null);
+  const [panelWidthPx, setPanelWidthPx] = useState<number | null>(null);
   // No global outside-click listener here — AdminLayout renders a transparent backdrop for closing.
 
   function NotificationPanelItemSkeleton() {
     return (
       <div
-        className={cn("flex items-start gap-2.5 px-4 py-3", "rounded-md", "bg-transparent")}
+        className={cn(
+          "flex w-full min-w-0 items-start gap-2.5 px-4 py-3",
+          "rounded-md",
+          "bg-transparent",
+        )}
         aria-hidden="true"
       >
         <div className="min-w-0 flex-1 space-y-2">
@@ -268,20 +280,38 @@ export function AdminNotificationsPanel({
         ? t("NOTIFICATIONS_EMPTY_ARCHIVED_DESC")
         : t("NOTIFICATIONS_EMPTY_ALL_DESC");
 
+  useLayoutEffect(() => {
+    const nextWidth = readPanelWidthFromTabsAnchor(tabsWidthAnchorRef.current);
+    if (!nextWidth) return;
+    setPanelWidthPx((prev) => (prev === nextWidth ? prev : nextWidth));
+  }, [i18n.language]);
+
+  const panelStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!panelWidthPx) return style;
+    return {
+      ...style,
+      width: `${panelWidthPx}px`,
+    };
+  }, [panelWidthPx, style]);
+
   const initialState = isPinned ? "open" : "closed";
 
   return (
     <motion.div
-      className={cn("flex flex-col bg-background border-r border-border shadow-lg", className)}
+      data-slot="admin-notifications-panel"
+      className={cn(
+        "flex min-w-0 flex-col bg-background border-r border-border shadow-lg",
+        className,
+      )}
       variants={PANEL_VARIANTS}
       transition={PANEL_TRANSITION}
       initial={initialState}
       animate="open"
       exit="closed"
-      style={style}
+      style={panelStyle}
     >
       {/* Header */}
-      <div className="shrink-0 border-b border-border px-4 pt-4 pb-3">
+      <div className="w-full min-w-0 shrink-0 border-b border-border px-4 pt-4 pb-3">
         <div className="flex items-center gap-1">
           <span className="min-w-0 flex-1 truncate text-title3 font-semibold">
             {t("NOTIFICATIONS_PAGE_TITLE")}
@@ -316,10 +346,14 @@ export function AdminNotificationsPanel({
       <ChromeTabs
         value={tab}
         onValueChange={(v) => setTab(v as NotificationPanelTab)}
-        className="flex min-h-0 flex-1 flex-col"
+        className="flex min-h-0 w-full min-w-0 flex-1 flex-col"
       >
-        <div className="shrink-0 border-b border-border px-2">
-          <ChromeTabsList>
+        <div data-slot="notifications-tabs-row" className="shrink-0">
+          <ChromeTabsList
+            widthMode="content"
+            wrapperRef={tabsWidthAnchorRef}
+            wrapperClassName="px-4"
+          >
             <ChromeTabsTrigger value="unread">{t("NOTIFICATIONS_TAB_UNREAD")}</ChromeTabsTrigger>
             <ChromeTabsTrigger value="all">{t("NOTIFICATIONS_TAB_ALL")}</ChromeTabsTrigger>
             <ChromeTabsTrigger value="read">{t("NOTIFICATIONS_TAB_READ")}</ChromeTabsTrigger>
@@ -333,7 +367,7 @@ export function AdminNotificationsPanel({
           <ChromeTabsContent
             key={tabValue}
             value={tabValue}
-            className="mt-0 min-h-0 flex-1 overflow-y-auto pt-0"
+            className="mt-0 min-h-0 w-full min-w-0 flex-1 overflow-y-auto pt-0"
           >
             {loading ? (
               <div className="py-2">
@@ -343,14 +377,14 @@ export function AdminNotificationsPanel({
               <ContentGuard
                 loading={false}
                 variant="compact"
-                className="py-2"
+                className="w-full min-w-0 py-2"
                 error={effectiveError}
                 onRetry={effectiveError ? () => void listQuery.refetch() : undefined}
                 empty={!effectiveError && items.length === 0}
                 emptyTitle={emptyTitle}
                 emptyDescription={emptyDescription}
               >
-                <div className="px-1 py-1">
+                <div className="w-full min-w-0 px-1 py-1">
                   {items.map((n) => (
                     <NotificationCard
                       key={n.id}
@@ -376,7 +410,7 @@ export function AdminNotificationsPanel({
       </ChromeTabs>
 
       {/* Footer */}
-      <div className="shrink-0 border-t border-border/60 p-2">
+      <div className="w-full min-w-0 shrink-0 border-t border-border/60 p-2">
         <ButtonPrimitive
           type="button"
           tapScale={1}

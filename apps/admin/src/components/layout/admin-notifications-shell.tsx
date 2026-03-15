@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
-const PANEL_WIDTH_CLASSNAME = "w-[min(100%,24rem)]";
+const PANEL_WIDTH_CLASSNAME = "w-fit max-w-full";
 
 export type AdminNotificationsShellProps = {
   open: boolean;

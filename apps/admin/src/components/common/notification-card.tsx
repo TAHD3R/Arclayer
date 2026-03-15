@@ -54,7 +54,7 @@ export function NotificationCard({
       size="sm"
       variant={isRead ? "muted" : "default"}
       className={cn(
-        "cursor-pointer rounded-md border-0 transition-[background-color,box-shadow,opacity] duration-150",
+        "w-full min-w-0 cursor-pointer rounded-md border-0 transition-[background-color,box-shadow,opacity] duration-150",
         "hover:bg-accent/40 hover:shadow-sm active:bg-accent/60",
       )}
       role="button"
@@ -89,10 +89,7 @@ export function NotificationCard({
         </ItemHeader>
         {item.body ? (
           <ItemDescription
-            className={cn(
-              "text-label-secondary! text-callout!",
-              isRead ? "text-label-secondary/80!" : undefined,
-            )}
+            className={cn(isRead ? "text-label-secondary/80!" : "text-label-secondary!")}
           >
             {item.body}
           </ItemDescription>

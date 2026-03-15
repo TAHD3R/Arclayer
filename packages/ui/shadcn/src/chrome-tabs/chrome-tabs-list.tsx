@@ -229,10 +229,23 @@ function useScrollBy(options: Readonly<{ elRef: React.RefObject<HTMLElement | nu
   );
 }
 
-type ChromeTabsListProps = React.ComponentPropsWithoutRef<typeof TabsList>;
+type ChromeTabsWidthMode = "fill" | "content";
+
+type ChromeTabsListProps = React.ComponentPropsWithoutRef<typeof TabsList> & {
+  wrapperClassName?: string;
+  wrapperRef?: React.Ref<HTMLDivElement>;
+  widthMode?: ChromeTabsWidthMode;
+};
 
 function ChromeTabsListImpl(
-  { className, children, ...rest }: ChromeTabsListProps,
+  {
+    className,
+    children,
+    widthMode = "fill",
+    wrapperClassName,
+    wrapperRef,
+    ...rest
+  }: ChromeTabsListProps,
   ref: React.ForwardedRef<React.ElementRef<typeof TabsList>>,
 ) {
   const labels = useChromeTabsLabels();
@@ -245,7 +258,14 @@ function ChromeTabsListImpl(
   const scrollBy = useScrollBy({ elRef });
 
   return (
-    <div className="relative">
+    <div
+      ref={wrapperRef}
+      className={cn(
+        "relative",
+        widthMode === "content" ? "inline-block max-w-full align-top" : undefined,
+        wrapperClassName,
+      )}
+    >
       {scrollState.canLeft ? (
         <ScrollButton
           direction="left"
@@ -264,6 +284,7 @@ function ChromeTabsListImpl(
         ref={localRef}
         className={cn(
           TABS_LIST_BASE_CLASSNAME,
+          widthMode === "content" ? "min-w-full w-max" : undefined,
           scrollState.canLeft ? "pl-10" : undefined,
           scrollState.canRight ? "pr-10" : undefined,
           className,
