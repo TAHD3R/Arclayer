@@ -92,10 +92,10 @@ function CommandTriggerButton(props: {
       onClick={props.onClick}
       data-state={props.open ? "open" : "closed"}
       className={cn(
-        "group flex h-10 w-full items-center gap-3 rounded-xl border border-transparent",
-        "bg-accent/70 px-3.5 text-left text-footnote text-label-secondary shadow-none",
+        "group flex h-10 w-full items-center gap-3 rounded-xl border border-border/50",
+        "bg-muted/85 px-3.5 text-left text-footnote text-label-secondary shadow-none",
         TRANSITION_CLASSNAME,
-        "hover:bg-accent/85 hover:text-label-primary",
+        "hover:bg-accent/70 hover:text-label-primary",
         "data-[state=open]:bg-accent data-[state=open]:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         props.className,
@@ -176,12 +176,12 @@ function CommandPanelFooter(props: {
   suffix: string;
 }) {
   return (
-    <div className="flex items-center gap-2 border-t border-border/70 px-4 py-3 text-caption text-label-secondary">
+    <div className="flex items-center gap-2 border-t border-border/70 px-4 py-3 text-callout text-label-secondary">
       <span>{props.prefix}</span>
       <ShortcutKeys
         platform={props.platform}
         className="gap-1"
-        keyClassName="h-5 min-w-5 rounded-[5px] bg-background/70 px-2 text-[10px] font-semibold uppercase tracking-[0.04em] text-label-secondary"
+        keyClassName="h-5 min-w-5 rounded-[5px] bg-background/70 px-2 text-callout uppercase tracking-[0.04em] text-label-secondary"
       />
       <span>{props.suffix}</span>
     </div>
