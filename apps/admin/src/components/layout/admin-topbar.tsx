@@ -5,6 +5,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
+import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import { cn } from "@celestial/lib/utils";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
@@ -50,7 +51,7 @@ export function AdminTopbar(props: {
           "lg:grid-cols-[minmax(0,1fr)_minmax(14rem,28rem)_minmax(0,1fr)]",
         )}
       >
-        <div className="min-w-0 flex items-center gap-3">
+        <div className="min-w-0 flex items-center gap-2.5">
           <ButtonPrimitive
             type="button"
             tapScale={1}
@@ -61,8 +62,16 @@ export function AdminTopbar(props: {
             <Menu className="size-5" aria-hidden="true" />
           </ButtonPrimitive>
 
-          <div className="min-w-0">
-            <AdminFullLogo ariaLabel="CelestialCMS" width={100} />
+          <div className="min-w-0 flex h-8 items-center">
+            <AdminFullLogo ariaLabel="CelestialCMS" width={100} className="flex h-8 items-center" />
+          </div>
+
+          <div className="min-w-0 flex-1 max-w-[13rem] xl:max-w-[15rem] 2xl:max-w-[17rem]">
+            <AdminWorkspaceSwitcher
+              variant="header"
+              showSidebarToggle={false}
+              className="min-w-0"
+            />
           </div>
         </div>
 

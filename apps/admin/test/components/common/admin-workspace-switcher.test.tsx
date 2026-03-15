@@ -269,13 +269,11 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
       name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
     });
 
-    const squareAvatar = trigger.querySelector(".ant-avatar-square");
-    expect(squareAvatar).toBeTruthy();
-
     await waitFor(() => {
-      const avatarImage = trigger.querySelector(".ant-avatar-square img");
+      const avatarImage = trigger.querySelector('img[alt="Workspace Alpha"]');
       expect(avatarImage).toBeTruthy();
       expect(avatarImage).toHaveAttribute("src", "https://example.com/org-alpha-logo.png");
+      expect(avatarImage?.parentElement).toHaveClass("rounded-md");
     });
   });
 
@@ -290,6 +288,24 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
     expect(root).toBeInTheDocument();
     expect(root).toHaveClass("relative");
     expect(root?.contains(trigger)).toBe(true);
+  });
+
+  it("header variant: uses compact trigger chrome for constrained header space", async () => {
+    renderWithQueryClient(<AdminWorkspaceSwitcher variant="header" />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+
+    expect(trigger.className).toContain("!h-8");
+    expect(trigger.className).toContain("border-transparent");
+
+    await waitFor(() => {
+      const avatar = trigger.querySelector('div[aria-label="Workspace Alpha"]');
+      expect(avatar).toBeTruthy();
+      expect(avatar).toHaveClass("rounded-md");
+      expect(avatar).toHaveStyle({ width: "24px", height: "24px" });
+    });
   });
 
   it("workspace scope: opening panel shows organizations + workspaces", async () => {
@@ -319,10 +335,10 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
     const membersButton = within(panel).getByRole("button", { name: "nav:NAV_ORG_MEMBERS" });
     expect(orgSettingsButton).toBeInTheDocument();
     expect(membersButton).toBeInTheDocument();
-    expect(orgSettingsButton.className).toContain("ant-btn-text");
-    expect(membersButton.className).toContain("ant-btn-text");
     expect(orgSettingsButton.className).toContain("font-medium");
     expect(membersButton.className).toContain("font-medium");
+    expect(orgSettingsButton.className).toContain("hover:bg-accent");
+    expect(membersButton.className).toContain("hover:bg-accent");
     expect(
       within(panel).queryByRole("button", { name: "common:ORG_MEMBERS_INVITE" }),
     ).not.toBeInTheDocument();

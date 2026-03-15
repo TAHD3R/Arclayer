@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useTheme } from "next-themes";
+import { cn } from "@celestial/lib/utils";
 
 function getFullLogoSrc(resolvedTheme?: string) {
   if (resolvedTheme === "dark") return "/logo-full-dark.svg";
@@ -52,7 +53,13 @@ export function AdminBrandMark(props: { size?: number; productName?: string }) {
   );
 }
 
-export function AdminFullLogo(props: { to?: string; ariaLabel: string; width?: number }) {
+export function AdminFullLogo(props: {
+  to?: string;
+  ariaLabel: string;
+  width?: number;
+  className?: string;
+  imgClassName?: string;
+}) {
   const to = props.to ?? "/";
   const width = props.width ?? 180;
   const { resolvedTheme } = useTheme();
@@ -61,13 +68,13 @@ export function AdminFullLogo(props: { to?: string; ariaLabel: string; width?: n
     <Link
       to={to}
       aria-label={props.ariaLabel}
-      className="inline-flex items-center justify-center"
+      className={cn("inline-flex items-center justify-center", props.className)}
       style={{ width: width }}
     >
       <img
         src={getFullLogoSrc(resolvedTheme)}
         width={width}
-        className="block object-contain"
+        className={cn("block object-contain", props.imgClassName)}
         style={{ width: width }}
         alt=""
       />

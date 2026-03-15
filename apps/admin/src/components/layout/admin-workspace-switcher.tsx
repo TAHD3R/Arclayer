@@ -40,7 +40,8 @@ import type { OrganizationWorkspace } from "@/types/api";
 // Style Constants
 // ============================================================================
 
-const TRIGGER_HEIGHT_CLASSNAME = "!h-10";
+const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
+const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-8";
 
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
@@ -93,7 +94,7 @@ const sidebarTriggerShellClassName = cn(
 );
 
 const sidebarTriggerButtonClassName = cn(
-  TRIGGER_HEIGHT_CLASSNAME,
+  SIDEBAR_TRIGGER_HEIGHT_CLASSNAME,
   "min-w-0 flex-1 group-data-[collapsible=icon]:flex-none",
   "!flex !items-center !justify-start gap-2",
   "group-data-[collapsible=icon]:gap-0",
@@ -109,17 +110,17 @@ const sidebarTriggerButtonClassName = cn(
 );
 
 const headerTriggerButtonClassName = cn(
-  TRIGGER_HEIGHT_CLASSNAME,
-  "flex w-full min-w-0 items-center gap-3 rounded-xl border border-border/70",
-  "bg-background/75 px-2.5 pr-3 text-label-secondary shadow-[0_1px_0_rgba(255,255,255,0.06)]",
+  HEADER_TRIGGER_HEIGHT_CLASSNAME,
+  "flex w-full min-w-0 items-center gap-2 rounded-lg border border-transparent",
+  "bg-transparent px-2 text-label-secondary shadow-none",
   "transition-[border-color,background-color,color] duration-200",
-  "hover:bg-accent/70 hover:text-foreground",
-  "data-[state=open]:border-border data-[state=open]:bg-accent data-[state=open]:text-foreground",
+  "hover:bg-accent/60 hover:text-foreground",
+  "data-[state=open]:border-border/60 data-[state=open]:bg-accent/70 data-[state=open]:text-foreground",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
 const collapseButtonBaseClassName = cn(
-  TRIGGER_HEIGHT_CLASSNAME,
+  SIDEBAR_TRIGGER_HEIGHT_CLASSNAME,
   "!border-0 !bg-transparent !text-label-secondary",
   "hover:!bg-accent/40 hover:!text-label-primary",
   "active:!bg-accent/50 active:!text-foreground",
@@ -816,7 +817,7 @@ export function AdminWorkspaceSwitcher({
           <OrganizationAvatar
             name={workspaceTriggerText}
             assetRef={triggerOrganizationLogoUrl}
-            size={28}
+            size={24}
             className="shrink-0"
           />
 

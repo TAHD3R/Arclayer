@@ -1,5 +1,6 @@
 import { Children, Fragment, isValidElement, type ReactNode, useState } from "react";
 import clsx from "clsx";
+import { Star } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@celestial/ui/button";
@@ -8,7 +9,6 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { ApiError } from "@/lib/http";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import BookmarkIcon from "@celestial/ui/icons/bookmark-icon";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
 
@@ -59,7 +59,14 @@ function FavoriteToggle() {
             isFavorited && "text-amber-500 hover:text-amber-600",
           )}
         >
-          <BookmarkIcon size={16} strokeWidth={2} isHovered={hovered} isFilled={isFavorited} />
+          <Star
+            size={16}
+            strokeWidth={2}
+            className={clsx(
+              "transition-colors",
+              hovered || isFavorited ? "fill-current" : "fill-transparent",
+            )}
+          />
           <span>{label}</span>
         </Button>
       </TooltipTrigger>

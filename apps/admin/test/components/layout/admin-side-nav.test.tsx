@@ -52,13 +52,14 @@ async function waitMs(ms: number) {
   });
 }
 
-function renderExpandedStructuredNav(args: {
+function renderStructuredNav(args: {
   homeItem: AdminNavItem;
   sections: readonly AdminNavSection[];
   favoriteWorkspaceBase: string;
+  open?: boolean;
 }) {
   return render(
-    <SidebarProvider defaultOpen className="h-screen">
+    <SidebarProvider open={args.open ?? true} onOpenChange={() => undefined} className="h-screen">
       <Sidebar collapsible="icon" animateOnHover={false}>
         <AdminSiderNav
           homeItem={args.homeItem}
@@ -138,21 +139,33 @@ const homeItem: AdminNavItem = {
 
 const sections: AdminNavSection[] = [
   {
-    key: "general",
-    title: "General",
+    key: "content",
+    title: "Content",
     items: [
       {
-        key: "activity",
-        label: "Activity",
+        key: "assets",
+        label: "Assets",
         icon: Activity,
-        to: "/w/ws-1/activity",
+        to: "/w/ws-1/assets",
+      },
+      {
+        key: "content.siteBuilder",
+        label: "Site Builder",
+        icon: LayoutGrid,
+        to: "/w/ws-1/content/site-builder",
       },
     ],
   },
   {
-    key: "collaboration",
-    title: "Collaboration",
+    key: "team",
+    title: "Team",
     items: [
+      {
+        key: "team.members",
+        label: "Members",
+        icon: Users,
+        to: "/w/ws-1/team/members",
+      },
       {
         key: "team.invitations",
         label: "Invitations",
@@ -348,36 +361,86 @@ describe("AdminSiderNav collapsed groups", () => {
   });
 
   it("renders dashboard above titled sections and shows starred empty state in structured mode", () => {
-    renderExpandedStructuredNav({
+    renderStructuredNav({
       homeItem,
       sections,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
     expect(screen.getByRole("button", { name: "Dashboard" })).toBeVisible();
-    expect(screen.getByText("General")).toBeVisible();
-    expect(screen.getByText("Collaboration")).toBeVisible();
-    expect(screen.getByText("en-US:NAV_STARRED_EMPTY")).toBeVisible();
+    expect(screen.queryByText("en-US:NAV_STARRED")).not.toBeInTheDocument();
+    expect(screen.getByText("Content")).toBeVisible();
+    expect(screen.getByText("Team")).toBeVisible();
   });
 
   it("toggles section items when clicking a section label", async () => {
     const user = userEvent.setup();
-    renderExpandedStructuredNav({
+    renderStructuredNav({
       homeItem,
       sections,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.getByRole("button", { name: "Activity" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "General" }));
+    await user.click(screen.getByRole("button", { name: "Content" }));
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Activity" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "General" }));
+    await user.click(screen.getByRole("button", { name: "Content" }));
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Activity" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+    });
+  });
+
+  it("shows starred only when favorites exist in structured mode", () => {
+    useFavoritesStore.setState({ paths: ["/w/ws-1/assets"] });
+
+    renderStructuredNav({
+      homeItem,
+      sections,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.getByRole("button", { name: "en-US:NAV_STARRED" })).toBeVisible();
+  });
+
+  it("keeps collapsed sections accessible in icon mode and restores section state on expand", async () => {
+    const user = userEvent.setup();
+    const view = renderStructuredNav({
+      homeItem,
+      sections,
+      favoriteWorkspaceBase: "/w/ws-1",
+      open: true,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    });
+
+    view.rerender(
+      <SidebarProvider open={false} onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav homeItem={homeItem} sections={sections} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    await waitForCollapsedRender();
+    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+
+    view.rerender(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav homeItem={homeItem} sections={sections} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
     });
   });
 });

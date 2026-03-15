@@ -48,17 +48,6 @@ function buildFavoriteLeafItems(items: readonly FavoriteNavItem[]): AdminNavItem
   }));
 }
 
-function StarredEmptyState(props: { text: string }) {
-  return (
-    <div className="ml-5 flex items-center gap-3 rounded-lg border border-border/60 px-3 py-3">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/20">
-        <Star className="size-4 text-label-secondary" aria-hidden="true" />
-      </div>
-      <p className="text-caption text-label-secondary">{props.text}</p>
-    </div>
-  );
-}
-
 function StarredTriggerButton(props: {
   hasActiveItem: boolean;
   isOpen: boolean;
@@ -126,21 +115,7 @@ function StarredLeafNodes(props: {
 function buildCollapsedItems(
   items: readonly FavoriteNavItem[],
   pathname: string,
-  emptyText: string,
 ): ResolvedChildItem[] {
-  if (items.length === 0) {
-    return [
-      {
-        key: "starred.empty",
-        label: emptyText,
-        to: undefined,
-        disabled: true,
-        isActive: false,
-        Icon: undefined,
-      },
-    ];
-  }
-
   return items.map((item) => ({
     key: item.key,
     label: item.label,
@@ -187,16 +162,12 @@ function StarredExpandedSection(props: {
         </SidebarMenu>
         <Collapsible open={open}>
           <CollapsibleContent className={STARRED_COLLAPSIBLE_CONTENT_CLASSNAME}>
-            {leafItems.length > 0 ? (
-              <StarredLeafNodes
-                items={leafItems}
-                pathname={props.pathname}
-                activeKeys={activeKeys}
-                isCollapsed={props.isCollapsed}
-              />
-            ) : (
-              <StarredEmptyState text={t("NAV_STARRED_EMPTY")} />
-            )}
+            <StarredLeafNodes
+              items={leafItems}
+              pathname={props.pathname}
+              activeKeys={activeKeys}
+              isCollapsed={props.isCollapsed}
+            />
           </CollapsibleContent>
         </Collapsible>
       </SidebarGroupContent>
@@ -223,7 +194,7 @@ export function StarredNavSection(props: {
     );
   }
 
-  const collapsedItems = buildCollapsedItems(props.items, props.pathname, t("NAV_STARRED_EMPTY"));
+  const collapsedItems = buildCollapsedItems(props.items, props.pathname);
 
   return (
     <SidebarGroup className="p-0">

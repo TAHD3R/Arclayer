@@ -1,10 +1,8 @@
 import {
-  Activity,
   Database,
   File,
   Gauge,
   Globe,
-  HardDrive,
   History,
   Image,
   Languages,
@@ -34,9 +32,9 @@ export const WORKSPACE_NAV_HOME_ITEM: AdminNavItem = {
 
 export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
   {
-    key: "general",
-    title: "General",
-    titleKey: "nav:NAV_SECTION_GENERAL",
+    key: "content",
+    title: "Content",
+    titleKey: "nav:NAV_SECTION_CONTENT",
     items: [
       {
         key: "assets",
@@ -45,20 +43,6 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
         to: "/assets",
         icon: Image,
       },
-      {
-        key: "activity",
-        label: "Activity",
-        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-        to: "/settings/maintenance/activity",
-        icon: History,
-      },
-    ],
-  },
-  {
-    key: "content",
-    title: "Content",
-    titleKey: "nav:NAV_SECTION_CONTENT",
-    items: [
       {
         key: "content.siteBuilder",
         label: "Site Builder",
@@ -83,9 +67,9 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    key: "collaboration",
-    title: "Collaboration",
-    titleKey: "nav:NAV_SECTION_COLLABORATION",
+    key: "team",
+    title: "Team",
+    titleKey: "nav:NAV_SECTION_TEAM",
     items: [
       {
         key: "settings.team.memberList",
@@ -96,7 +80,7 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         key: "settings.team.members",
-        label: "Member invitations",
+        label: "Invitations",
         labelKey: "nav:NAV_SETTINGS_TEAM_MEMBERS",
         to: "/team/invitations",
         icon: UserPlus,
@@ -108,6 +92,20 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
         to: "/team/roles",
         icon: ShieldCheck,
       },
+    ],
+  },
+  {
+    key: "workspace",
+    title: "Workspace",
+    titleKey: "nav:NAV_SECTION_WORKSPACE",
+    items: [
+      {
+        key: "activity",
+        label: "Activity",
+        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+        to: "/settings/maintenance/activity",
+        icon: History,
+      },
       {
         key: "extensions",
         label: "Extensions",
@@ -118,9 +116,9 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    key: "configuration",
-    title: "Configuration",
-    titleKey: "nav:NAV_SECTION_CONFIGURATION",
+    key: "settings",
+    title: "Settings",
+    titleKey: "nav:NAV_SECTION_SETTINGS",
     items: [
       {
         key: "settings.workspace",
@@ -149,22 +147,6 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
         labelKey: "nav:NAV_SETTINGS_SEO",
         to: "/settings/seo",
         icon: Search,
-      },
-      {
-        key: "settings.snapshots",
-        label: "Backups & rollback",
-        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_SNAPSHOTS",
-        to: "/settings/maintenance/snapshots",
-        icon: HardDrive,
-        scope: "self_host",
-      },
-      {
-        key: "settings.status",
-        label: "System status",
-        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_STATUS",
-        to: "/settings/maintenance/status",
-        icon: Activity,
-        scope: "self_host",
       },
     ],
   },

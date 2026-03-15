@@ -3,14 +3,12 @@ import { useEffect, useRef, useState } from "react";
 
 import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import {
   AdminSidebarFooterMenuSkeleton,
-  AdminSidebarHeaderSkeleton,
   AdminSidebarMainMenuSkeleton,
 } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
-import { Sidebar, SidebarContent, SidebarHeader } from "@celestial/ui/sidebar";
+import { Sidebar, SidebarContent } from "@celestial/ui/sidebar";
 import { cn } from "@celestial/lib/utils";
 
 export type AdminSidebarShellProps = {
@@ -41,27 +39,6 @@ function resolveSidebarContentPaddingPx(el: HTMLElement): { left: number; right:
   const right = Number.parseFloat(styles.paddingRight) || 0;
 
   return { left, right };
-}
-
-function AdminSidebarHeaderArea(props: { showFailureSkeleton: boolean }) {
-  return (
-    <SidebarHeader
-      className={cn(
-        "relative z-10 flex w-full items-center gap-2 px-2.5 py-2",
-        "h-14 justify-start",
-        "transition-[padding] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-      )}
-    >
-      {props.showFailureSkeleton ? (
-        <AdminSidebarHeaderSkeleton />
-      ) : (
-        <AdminWorkspaceSwitcher
-          className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-none"
-          showSidebarToggle={false}
-        />
-      )}
-    </SidebarHeader>
-  );
 }
 
 function useSidebarBottomBlurState(args: {
@@ -219,7 +196,6 @@ export function AdminSidebarShell({
       animateOnHover={false}
       className={cn("relative isolate z-40", className)}
     >
-      <AdminSidebarHeaderArea showFailureSkeleton={showFailureSkeleton} />
       <AdminSidebarContentArea
         showMenuSkeleton={showMenuSkeleton}
         showFailureSkeleton={showFailureSkeleton}

@@ -178,6 +178,7 @@ function ItemsSection(props: {
 }) {
   const hoverDropdown = useCollapsedDropdownController();
   const [open, setOpen] = useState(true);
+  const effectiveOpen = props.isCollapsed ? true : open;
 
   const content = (
     <SidebarGroupContent>
@@ -214,23 +215,23 @@ function ItemsSection(props: {
   }
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
+    <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
       <SidebarGroup className="p-0">
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             asChild
-            className="h-auto pb-1 pt-3 text-callout! uppercase tracking-widest"
+            className="h-auto pb-1 pt-3 text-footnote uppercase tracking-widest"
           >
             <ButtonPrimitive
               type="button"
               tapScale={1}
-              className="flex w-full items-center gap-2 pl-5 pr-2 text-left text-label-primary"
+              className="flex w-full items-center gap-2 pl-5 pr-2 text-left text-label-secondary"
             >
               <span className="min-w-0 flex-1 truncate">{props.title}</span>
               <span className={cn("shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
                 <ChevronRightIcon
                   size={16}
-                  expanded={open}
+                  expanded={effectiveOpen}
                   className="shrink-0 text-label-secondary"
                   aria-hidden="true"
                 />
@@ -268,12 +269,14 @@ function StructuredNavContent(props: {
           isCollapsed={props.state.collapsedMode}
         />
       ) : null}
-      <StarredNavSection
-        items={props.state.favoriteItems}
-        pathname={props.state.pathname}
-        onNavigate={props.onNavigate}
-        isCollapsed={props.state.collapsedMode}
-      />
+      {props.state.favoriteItems.length > 0 ? (
+        <StarredNavSection
+          items={props.state.favoriteItems}
+          pathname={props.state.pathname}
+          onNavigate={props.onNavigate}
+          isCollapsed={props.state.collapsedMode}
+        />
+      ) : null}
       {(props.sections ?? []).map((section) => (
         <ItemsSection
           key={section.key}
