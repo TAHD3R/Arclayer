@@ -33,9 +33,11 @@ import { setThemePreferenceWithTransition } from "@/components/ui/theme-transiti
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useMeSettingsDialogStore } from "@/stores/use-me-settings-dialog-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useSidebar } from "@celestial/ui/sidebar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import type { ThemePreference } from "@/types/stores";
+import { notifyError } from "@/lib/notifications";
 
 const SHORTCUTS_HELP_HASH = "#shortcuts";
 
@@ -228,8 +230,10 @@ type AdminAccountMenuModel = {
 function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const navigate = useNavigate();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const refreshToken = useAuthStore((s) => s.refreshToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const clear = useAuthStore((s) => s.clear);
+  const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const themePreference = usePreferencesStore((s) => s.themePreference);
   const locale = usePreferencesStore((s) => s.locale);
   const setLocale = usePreferencesStore((s) => s.setLocale);
@@ -252,10 +256,16 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
   }, [accessToken, profile.displayName, profile.email, profile.username]);
 
   const onLogout = async () => {
-    void queryClient.cancelQueries();
-    queryClient.clear();
-    clear();
-    await navigate({ to: "/login", replace: true });
+    try {
+      await authApi.logout({ refreshToken });
+      void queryClient.cancelQueries();
+      queryClient.clear();
+      clearWorkspace();
+      clear();
+      await navigate({ to: "/login", replace: true });
+    } catch (error) {
+      notifyError(error);
+    }
   };
 
   return {

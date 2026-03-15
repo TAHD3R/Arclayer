@@ -30,6 +30,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/api/auth", () => ({
   me: vi.fn(),
+  logout: vi.fn(),
 }));
 
 vi.mock("@/components/ui/theme-transition", () => ({
@@ -100,7 +101,12 @@ describe("AdminAccountMenu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    useAuthStore.setState({
+      accessToken: "token",
+      refreshToken: "refresh-token",
+      keepSession: true,
+      sessionVersion: 1,
+    });
     usePreferencesStore.setState({
       themePreference: "system",
       themeMode: "light",
@@ -115,6 +121,7 @@ describe("AdminAccountMenu", () => {
       email: "tester@example.com",
       displayName: "Tester",
     } as never);
+    vi.mocked(authApi.logout).mockResolvedValue(null);
   });
 
   it("只展示账号统一入口 + 偏好项 + 快捷键 + 退出，不再展示组织/工作区/通知/帮助入口", async () => {
@@ -148,5 +155,20 @@ describe("AdminAccountMenu", () => {
     expect(setThemePreferenceWithTransition).toHaveBeenCalledWith("dark", { direction: "ltr" });
     expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeVisible();
     expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeVisible();
+  });
+
+  it("点击退出会调用后端 logout，再清空本地登录态并跳转", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_LOGOUT" }));
+
+    await waitFor(() => {
+      expect(authApi.logout).toHaveBeenCalledWith({ refreshToken: "refresh-token" });
+    });
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(useAuthStore.getState().refreshToken).toBeNull();
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/login", replace: true });
   });
 });

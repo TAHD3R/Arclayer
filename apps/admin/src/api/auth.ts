@@ -52,6 +52,13 @@ export async function refreshCookie(): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/refresh-cookie", {}, { auth: { skipRefresh: true } });
 }
 
+export async function logout(payload?: { refreshToken?: string | null }): Promise<null> {
+  return api.post<null>(
+    "/auth/logout",
+    payload?.refreshToken ? { refresh_token: payload.refreshToken } : {},
+  );
+}
+
 export async function me(): Promise<UserProfile> {
   return api.get<UserProfile>("/auth/me");
 }

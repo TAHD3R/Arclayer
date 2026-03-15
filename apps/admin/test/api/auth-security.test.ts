@@ -17,6 +17,7 @@ import {
   getTwoFactorCapabilities,
   getTwoFactorStatus,
   listMySessions,
+  logout,
   loginTwoFactor,
   regenerateTwoFactorBackupCodes,
   revokeMySession,
@@ -99,6 +100,16 @@ describe("api/auth security wrappers", () => {
     });
     expect(api.post).toHaveBeenNthCalledWith(5, "/auth/sessions/session-1/revoke");
     expect(api.post).toHaveBeenNthCalledWith(6, "/auth/sessions/revoke-others");
+  });
+
+  it("posts logout with optional refresh token payload", async () => {
+    vi.mocked(api.post).mockResolvedValue(null);
+
+    await logout({ refreshToken: "refresh-1" });
+    await logout();
+
+    expect(api.post).toHaveBeenNthCalledWith(1, "/auth/logout", { refresh_token: "refresh-1" });
+    expect(api.post).toHaveBeenNthCalledWith(2, "/auth/logout", {});
   });
 
   it("gets session list", async () => {
