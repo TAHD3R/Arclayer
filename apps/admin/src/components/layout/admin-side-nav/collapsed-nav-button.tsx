@@ -33,7 +33,6 @@ export const CollapsedNavButton = React.forwardRef<HTMLButtonElement, CollapsedN
         type="button"
         data-active={isActive}
         aria-disabled={isDisabled ? "true" : undefined}
-        hoverScale={1}
         tapScale={1}
         className={cn(
           "relative z-10 w-full",

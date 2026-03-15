@@ -9,6 +9,7 @@ export function useSystemRuntime() {
     queryKey: ["system", "runtime"],
     queryFn: async () => getSystemRuntime(),
     staleTime: SYSTEM_RUNTIME_STALE_TIME_MS,
+    refetchOnMount: "always",
     retry: 1,
   });
 

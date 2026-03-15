@@ -379,7 +379,6 @@ export function AdminNotificationsPanel({
       <div className="shrink-0 border-t border-border/60 p-2">
         <ButtonPrimitive
           type="button"
-          hoverScale={1}
           tapScale={1}
           className={cn(
             "w-full rounded-md px-3 py-2 text-left",

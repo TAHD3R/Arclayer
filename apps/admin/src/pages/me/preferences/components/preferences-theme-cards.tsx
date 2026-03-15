@@ -123,7 +123,6 @@ export function ThemeCard(props: {
   return (
     <ButtonPrimitive
       type="button"
-      hoverScale={1}
       tapScale={1}
       onClick={props.onSelect}
       className={cn(

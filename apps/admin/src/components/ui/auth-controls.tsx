@@ -16,15 +16,16 @@ export function AuthFieldError({ message, className }: AuthFieldErrorProps) {
 }
 
 type AuthInputControlProps = React.ComponentProps<typeof InputGroupInput> & {
+  inputClassName?: string;
   startIcon?: React.ReactNode;
 };
 
 export const AuthInputControl = React.forwardRef<HTMLInputElement, AuthInputControlProps>(
-  function AuthInputControl({ className, startIcon, ...props }, ref) {
+  function AuthInputControl({ className, inputClassName, startIcon, ...props }, ref) {
     return (
       <InputGroup className={className}>
         {startIcon ? <InputGroupAddon>{startIcon}</InputGroupAddon> : null}
-        <InputGroupInput ref={ref} {...props} />
+        <InputGroupInput ref={ref} className={inputClassName} {...props} />
       </InputGroup>
     );
   },
@@ -40,12 +41,15 @@ export const AuthPasswordControl = React.forwardRef<HTMLInputElement, AuthPasswo
 
 type AuthLinkButtonProps = React.ComponentProps<typeof Button>;
 
-export function AuthLinkButton({ className, size = "default", ...props }: AuthLinkButtonProps) {
+export function AuthLinkButton({ className, size = "inline", ...props }: AuthLinkButtonProps) {
   return (
     <Button
       variant="link"
       size={size}
-      className={cn("h-auto p-0 text-footnote", className)}
+      className={cn(
+        "inline-flex items-baseline gap-0 align-baseline text-footnote leading-normal",
+        className,
+      )}
       {...props}
     />
   );

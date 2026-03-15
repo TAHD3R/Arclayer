@@ -17,7 +17,6 @@ export const DataTableToolbarAntdIconButton = React.forwardRef<
       className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
       disabled={props.disabled}
       onClick={props.onClick}
-      hoverScale={1}
       tapScale={1}
     >
       {props.children}

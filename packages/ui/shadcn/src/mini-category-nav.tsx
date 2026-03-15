@@ -126,7 +126,6 @@ export function MiniCategoryNav({
                 aria-disabled={isDisabled ? "true" : undefined}
                 disabled={isDisabled}
                 data-active={isActive ? "true" : "false"}
-                hoverScale={1}
                 tapScale={1}
                 className={cn(
                   "relative flex w-full min-w-0 items-center justify-start gap-2 rounded-lg",

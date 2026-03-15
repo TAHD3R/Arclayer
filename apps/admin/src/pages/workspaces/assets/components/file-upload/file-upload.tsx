@@ -327,7 +327,6 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
             <TooltipTrigger asChild>
               <ButtonPrimitive
                 type="button"
-                hoverScale={1}
                 tapScale={1}
                 className={cn(
                   "inline-flex size-6 items-center justify-center rounded-md text-label-secondary transition-colors",

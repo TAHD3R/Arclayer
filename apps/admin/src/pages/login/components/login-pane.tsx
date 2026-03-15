@@ -8,15 +8,23 @@ import { z } from "zod";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import {
-  AuthFieldError,
   AuthInputControl,
   AuthLinkButton,
   AuthPasswordControl,
 } from "@/components/ui/auth-controls";
 import { Checkbox } from "@celestial/ui/checkbox";
 import { Button } from "@celestial/ui/button";
+import { Field, FieldContent, FieldError } from "@celestial/ui/field";
 
 import type { LoginFormValues } from "../types";
+import {
+  AUTH_FIELD_CLASS,
+  AUTH_INPUT_CLASS,
+  AUTH_INPUT_GROUP_CLASS,
+  AuthPaneHeader,
+  AuthPaneLegal,
+  AuthPaneTitleRow,
+} from "./auth-pane-primitives";
 
 type LoginPaneProps = {
   onSubmit: (values: LoginFormValues) => void;
@@ -34,18 +42,6 @@ type LoginPaneSectionProps = {
   variants: Variants | {};
 };
 
-function LoginPaneHeader({ variants }: LoginPaneSectionProps) {
-  const { t } = useTranslation();
-  return (
-    <motion.div variants={variants}>
-      <h1 className="text-largetitle text-label-primary">{t("auth:LOGIN_PAGE_TITLE")}</h1>
-      <p className="mt-2 mb-8 text-title3 font-normal text-label-secondary">
-        {t("auth:LOGIN_PAGE_SUBTITLE")}
-      </p>
-    </motion.div>
-  );
-}
-
 type LoginPaneFormProps = LoginPaneSectionProps & {
   form: ReturnType<typeof useForm<LoginFormValues>>;
   loading: boolean;
@@ -53,61 +49,81 @@ type LoginPaneFormProps = LoginPaneSectionProps & {
   onForgotPassword: () => void;
 };
 
-function LoginPaneForm({
-  variants,
-  form,
-  loading,
-  onSubmit,
-  onForgotPassword,
-}: LoginPaneFormProps) {
+function LoginPaneForm(props: LoginPaneFormProps) {
   const { t } = useTranslation();
-  const keepSession = Boolean(form.watch("keepSession"));
-  const accountError = form.formState.errors.account?.message;
-  const passwordError = form.formState.errors.password?.message;
+  const keepSession = Boolean(props.form.watch("keepSession"));
+  const accountError = props.form.formState.errors.account?.message;
+  const passwordError = props.form.formState.errors.password?.message;
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-3" autoComplete="off">
-      <motion.div variants={variants} className="grid gap-1.5">
-        <AuthInputControl
-          autoComplete="off"
-          aria-label={t("auth:FIELD_ACCOUNT_LABEL")}
-          aria-invalid={accountError ? true : undefined}
-          placeholder={t("auth:FIELD_ACCOUNT_PLACEHOLDER")}
-          startIcon={<User size={16} />}
-          disabled={loading}
-          {...form.register("account")}
-        />
-        <AuthFieldError message={accountError ? String(accountError) : undefined} />
+    <form
+      onSubmit={props.form.handleSubmit(props.onSubmit)}
+      className="grid gap-2"
+      autoComplete="off"
+    >
+      <motion.div variants={props.variants}>
+        <Field className={AUTH_FIELD_CLASS}>
+          <FieldContent className="gap-2">
+            <AuthPaneTitleRow title={t("auth:FIELD_ACCOUNT_LABEL")} />
+            <AuthInputControl
+              autoComplete="off"
+              aria-label={t("auth:FIELD_ACCOUNT_LABEL")}
+              aria-invalid={accountError ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_ACCOUNT_PLACEHOLDER")}
+              startIcon={<User size={16} />}
+              disabled={props.loading}
+              {...props.form.register("account")}
+            />
+            <FieldError>{accountError ? String(accountError) : undefined}</FieldError>
+          </FieldContent>
+        </Field>
       </motion.div>
 
-      <motion.div variants={variants} className="grid gap-1.5">
-        <AuthPasswordControl
-          autoComplete="current-password"
-          aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-          aria-invalid={passwordError ? true : undefined}
-          placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-          startIcon={<Lock size={16} />}
-          disabled={loading}
-          {...form.register("password")}
-        />
-        <AuthFieldError message={passwordError ? String(passwordError) : undefined} />
+      <motion.div variants={props.variants}>
+        <Field className={AUTH_FIELD_CLASS}>
+          <FieldContent className="gap-2">
+            <AuthPaneTitleRow
+              title={t("auth:FIELD_PASSWORD_LABEL")}
+              action={
+                <AuthLinkButton
+                  disabled={props.loading}
+                  onClick={props.onForgotPassword}
+                  type="button"
+                >
+                  {t("auth:FORGOT_PASSWORD")}
+                </AuthLinkButton>
+              }
+            />
+            <AuthPasswordControl
+              autoComplete="current-password"
+              aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+              aria-invalid={passwordError ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+              startIcon={<Lock size={16} />}
+              disabled={props.loading}
+              {...props.form.register("password")}
+            />
+            <FieldError>{passwordError ? String(passwordError) : undefined}</FieldError>
+          </FieldContent>
+        </Field>
       </motion.div>
 
-      <motion.div variants={variants} className="mb-1 flex items-center justify-between gap-3">
+      <motion.div variants={props.variants} className="my-2">
         <label className="flex cursor-pointer items-center gap-2">
           <Checkbox
             checked={keepSession}
-            onCheckedChange={(value) => form.setValue("keepSession", Boolean(value))}
+            onCheckedChange={(value) => props.form.setValue("keepSession", Boolean(value))}
           />
           <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
         </label>
-        <AuthLinkButton disabled={loading} onClick={onForgotPassword} type="button">
-          {t("auth:FORGOT_PASSWORD")}
-        </AuthLinkButton>
       </motion.div>
 
-      <motion.div variants={variants}>
-        <Button className="w-full" type="submit" size="lg" loading={loading}>
+      <motion.div variants={props.variants} className="grid gap-3 pt-1">
+        <Button className="w-full" type="submit" size="lg" loading={props.loading}>
           {t("auth:LOGIN_BUTTON")}
         </Button>
       </motion.div>
@@ -120,37 +136,30 @@ type LoginPaneFooterProps = LoginPaneSectionProps & {
   onSwitchToRegister: () => void;
 };
 
-function LoginPaneFooter({
-  variants,
-  publicRegisterEnabled,
-  onSwitchToRegister,
-}: LoginPaneFooterProps) {
+function LoginPaneFooter(props: LoginPaneFooterProps) {
   const { t } = useTranslation();
-  if (!publicRegisterEnabled) return null;
 
   return (
-    <motion.div variants={variants} className="mt-4 text-center text-label-secondary">
-      <span>{t("auth:NO_ACCOUNT")} </span>
-      <AuthLinkButton onClick={onSwitchToRegister} type="button">
-        {t("auth:CREATE_ACCOUNT")}
-      </AuthLinkButton>
+    <motion.div
+      variants={props.variants}
+      className="grid gap-3 pt-1 text-center text-label-secondary"
+    >
+      {props.publicRegisterEnabled ? (
+        <div>
+          <span>{t("auth:NO_ACCOUNT")} </span>
+          <AuthLinkButton onClick={props.onSwitchToRegister} type="button">
+            {t("auth:CREATE_ACCOUNT")}
+          </AuthLinkButton>
+        </div>
+      ) : null}
+      <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={{}} />
     </motion.div>
   );
 }
 
-export function LoginPane({
-  onSubmit,
-  loading,
-  initialKeepSession,
-  redirect,
-  onForgotPassword,
-  onSwitchToRegister,
-  publicRegisterEnabled,
-  reducedMotion,
-  itemVariants,
-}: LoginPaneProps) {
+export function LoginPane(props: LoginPaneProps) {
   const { t } = useTranslation();
-  const variants = reducedMotion ? {} : itemVariants;
+  const variants = props.reducedMotion ? {} : props.itemVariants;
   const schema = useMemo(
     () =>
       z.object({
@@ -162,28 +171,32 @@ export function LoginPane({
   );
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { account: "", password: "", keepSession: initialKeepSession },
+    defaultValues: { account: "", password: "", keepSession: props.initialKeepSession },
     mode: "onSubmit",
   });
 
   return (
-    <>
-      <LoginPaneHeader variants={variants} />
-      <motion.div variants={variants}>
-        <AuthOauthButtons disabled={loading} redirect={redirect} />
-      </motion.div>
+    <div className="grid gap-4">
+      <AuthPaneHeader
+        titleKey="auth:LOGIN_PAGE_TITLE"
+        subtitleKey="auth:LOGIN_PAGE_SUBTITLE"
+        variants={variants}
+      />
       <LoginPaneForm
         variants={variants}
         form={form}
-        loading={loading}
-        onSubmit={onSubmit}
-        onForgotPassword={onForgotPassword}
+        loading={props.loading}
+        onSubmit={props.onSubmit}
+        onForgotPassword={props.onForgotPassword}
       />
+      <motion.div variants={variants} className="pt-1">
+        <AuthOauthButtons disabled={props.loading} redirect={props.redirect} />
+      </motion.div>
       <LoginPaneFooter
         variants={variants}
-        publicRegisterEnabled={publicRegisterEnabled}
-        onSwitchToRegister={onSwitchToRegister}
+        publicRegisterEnabled={props.publicRegisterEnabled}
+        onSwitchToRegister={props.onSwitchToRegister}
       />
-    </>
+    </div>
   );
 }

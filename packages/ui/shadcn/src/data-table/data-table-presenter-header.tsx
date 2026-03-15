@@ -147,7 +147,6 @@ function SortableHeaderCell<TData>(props: {
                 e.stopPropagation();
                 header.column.getToggleSortingHandler()?.(e);
               }}
-              hoverScale={1}
               tapScale={1}
             >
               <div className="min-w-0 truncate select-none">{content}</div>

@@ -66,7 +66,6 @@ function NodeLeafSub({
         >
           <ButtonPrimitive
             type="button"
-            hoverScale={1}
             tapScale={1}
             aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
             onClick={() => {

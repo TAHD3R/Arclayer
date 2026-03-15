@@ -69,7 +69,6 @@ export function AdminNotificationsShell(props: AdminNotificationsShellProps) {
               key="admin-notifications-backdrop"
               type="button"
               aria-label={props.closeAriaLabel}
-              hoverScale={1}
               tapScale={1}
               className={[
                 "fixed inset-y-0 right-0 z-20 bg-transparent",

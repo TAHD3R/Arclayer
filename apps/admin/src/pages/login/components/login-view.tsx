@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { useAuthLegalKey } from "@/layouts/auth-layout";
 import type { LoginMode } from "@/lib/auth/auth-mode";
 
 import type { LoginViewProps } from "../types";
@@ -58,11 +57,6 @@ export function LoginView({
     show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
     exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
   };
-
-  const { setLegalKey } = useAuthLegalKey();
-  useEffect(() => {
-    setLegalKey(currentPane === "register" ? "auth:LEGAL_REGISTER" : "auth:LEGAL_LOGIN");
-  }, [currentPane, setLegalKey]);
 
   return (
     <div className="w-full">

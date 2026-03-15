@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { CircleEllipsisIcon } from "lucide-react";
 
 import { listSSOProviders } from "@/api/auth-sso";
 import { notifyErrorText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import type { AuthSSOProvider } from "@/types/api";
 import { Button } from "@celestial/ui/button";
 import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
 import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
 import GoogleIcon from "@celestial/ui/icons/google-icon";
 import { Separator } from "@celestial/ui/separator";
+import { cn } from "@celestial/lib/utils";
 
 export interface AuthOauthButtonsProps {
   disabled?: boolean;
@@ -21,11 +24,56 @@ function normalizeProvider(value: unknown): string {
     .toLowerCase();
 }
 
+function titleizeProvider(value: string): string {
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function resolveProviderMeta(
+  provider: AuthSSOProvider,
+  t: (key: string) => string,
+  isDark: boolean,
+) {
+  const normalized = normalizeProvider(provider.provider);
+  const fallbackLabel = provider.label?.trim() || titleizeProvider(normalized);
+
+  if (normalized === "google") {
+    return {
+      provider: normalized,
+      fullLabel: t("auth:OAUTH_GOOGLE"),
+      shortLabel: "Google",
+      startUrl: String(provider.startUrl || provider.start_url || ""),
+      icon: <GoogleIcon size={14} />,
+    };
+  }
+
+  if (normalized === "github") {
+    const GitHubIcon = isDark ? GitHubDarkIcon : GitHubLightIcon;
+    return {
+      provider: normalized,
+      fullLabel: t("auth:OAUTH_GITHUB"),
+      shortLabel: "GitHub",
+      startUrl: String(provider.startUrl || provider.start_url || ""),
+      icon: <GitHubIcon size={14} />,
+    };
+  }
+
+  return {
+    provider: normalized,
+    fullLabel: fallbackLabel,
+    shortLabel: fallbackLabel,
+    startUrl: String(provider.startUrl || provider.start_url || ""),
+    icon: <CircleEllipsisIcon size={14} />,
+  };
+}
+
 export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButtonsProps) {
   const { t } = useTranslation();
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
-  const GitHubIcon = isDark ? GitHubDarkIcon : GitHubLightIcon;
 
   const providersQuery = useQuery({
     queryKey: ["auth", "sso", "providers", redirect],
@@ -34,68 +82,61 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
     retry: false,
   });
 
-  const providers = providersQuery.data?.providers ?? [];
-  const normalized = providers.map((p) => ({
-    provider: normalizeProvider(p.provider),
-    startUrl: String(p.startUrl || p.start_url || ""),
-  }));
-
-  const google = normalized.find((p) => p.provider === "google");
-  const github = normalized.find((p) => p.provider === "github");
-
-  if (!google && !github) return null;
+  const providers = (providersQuery.data?.providers ?? []).map((provider) =>
+    resolveProviderMeta(provider, t, isDark),
+  );
+  if (providers.length === 0) return null;
 
   const isBusy = disabled || providersQuery.isLoading;
+  const isSingleProvider = providers.length === 1;
+  const buttonLayoutStyle = isSingleProvider
+    ? undefined
+    : ({
+        gridTemplateColumns: `repeat(${providers.length}, minmax(0, 1fr))`,
+      } satisfies React.CSSProperties);
 
   return (
-    <>
-      <div className="flex flex-col gap-2.5">
-        {google ? (
+    <div className="grid gap-3">
+      <div className="flex items-center gap-3 py-2 text-footnote text-label-secondary">
+        <Separator className="flex-1" />
+        <span className="shrink-0">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
+        <Separator className="flex-1" />
+      </div>
+      <div
+        className={cn(
+          isSingleProvider ? "grid grid-cols-1 gap-2.5" : "grid gap-2",
+          !isSingleProvider && "items-stretch",
+        )}
+        style={buttonLayoutStyle}
+      >
+        {providers.map((provider) => (
           <Button
-            className="w-full"
+            key={provider.provider}
+            className={cn(
+              "w-full rounded-xl border-border/80 bg-background/80 shadow-none transition-colors hover:bg-accent/35",
+              isSingleProvider
+                ? "h-10 justify-center px-4"
+                : "h-10 min-w-0 justify-center px-3 text-footnote",
+            )}
             variant="outline"
-            size="lg"
+            size={isSingleProvider ? "lg" : "default"}
             disabled={isBusy}
-            aria-label={t("auth:OAUTH_GOOGLE")}
+            aria-label={provider.fullLabel}
             onClick={() => {
-              if (!google.startUrl) {
+              if (!provider.startUrl) {
                 notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
                 return;
               }
-              window.location.assign(google.startUrl);
+              window.location.assign(provider.startUrl);
             }}
           >
-            <GoogleIcon size={14} />
-            {t("auth:OAUTH_GOOGLE")}
+            <span className="shrink-0">{provider.icon}</span>
+            <span className="min-w-0 truncate">
+              {isSingleProvider ? provider.fullLabel : provider.shortLabel}
+            </span>
           </Button>
-        ) : null}
-
-        {github ? (
-          <Button
-            className="w-full"
-            variant="outline"
-            size="lg"
-            disabled={isBusy}
-            aria-label={t("auth:OAUTH_GITHUB")}
-            onClick={() => {
-              if (!github.startUrl) {
-                notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
-                return;
-              }
-              window.location.assign(github.startUrl);
-            }}
-          >
-            <GitHubIcon size={14} />
-            {t("auth:OAUTH_GITHUB")}
-          </Button>
-        ) : null}
+        ))}
       </div>
-
-      <div className="my-6 flex items-center gap-3 text-footnote text-label-secondary">
-        <Separator className="flex-1" />
-        <span>{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
-        <Separator className="flex-1" />
-      </div>
-    </>
+    </div>
   );
 }

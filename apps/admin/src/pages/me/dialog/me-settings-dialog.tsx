@@ -100,7 +100,6 @@ function MeSettingsDialogCloseButton(props: { onClose: () => void; label: string
       type="button"
       onClick={props.onClose}
       aria-label={props.label}
-      hoverScale={1}
       tapScale={1}
       className={cn(
         "inline-flex h-8 w-8 items-center justify-center rounded-full",

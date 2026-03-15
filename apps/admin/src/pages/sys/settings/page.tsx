@@ -34,6 +34,7 @@ import { Input } from "@celestial/ui/input";
 import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
 import { cn } from "@celestial/lib/utils";
+import { systemRuntimeQueryKey } from "@/lib/extensions/query-keys";
 import { useSysAuthStore } from "@/stores/use-sys-auth-store";
 import type { SysConfigDetail, SysConfigNamespaceSummary, SysConfigTestCheck } from "@/types/api";
 import { ExtensionSettingsForm } from "@/pages/_shared/extensions/components/extension-settings-form";
@@ -158,6 +159,9 @@ export function SysSettingsPage() {
       void queryClient.invalidateQueries({
         queryKey: ["sys", sysSessionVersion, "settings", "revisions", namespaceId],
       });
+      if (namespaceId === "auth") {
+        void queryClient.invalidateQueries({ queryKey: systemRuntimeQueryKey() });
+      }
     },
     onError: (err) => notifyError(err),
   });

@@ -281,7 +281,6 @@ export function NodeExpandedGroupSub({
           >
             <ButtonPrimitive
               type="button"
-              hoverScale={1}
               tapScale={1}
               onClick={onToggle}
               className="w-full justify-start text-left"

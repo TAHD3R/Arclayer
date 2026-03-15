@@ -25,7 +25,6 @@ export const DataTableDefaultIconButton = React.forwardRef<
       )}
       disabled={props.disabled}
       onClick={props.onClick}
-      hoverScale={1}
       tapScale={1}
     >
       {props.children}

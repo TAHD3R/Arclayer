@@ -59,7 +59,6 @@ function DensityCardButton(props: {
         props.active ? "border-ring bg-accent/40" : "border-border hover:bg-accent/30",
       )}
       onClick={props.onClick}
-      hoverScale={1}
       tapScale={1}
     >
       <div className="text-footnote font-medium">{props.label}</div>

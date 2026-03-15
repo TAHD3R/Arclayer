@@ -3,6 +3,7 @@ import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@celestial/ui/button";
+import { Field, FieldContent, FieldError } from "@celestial/ui/field";
 import { Input } from "@celestial/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@celestial/ui/input-otp";
 import { AuthLinkButton } from "@/components/ui/auth-controls";
@@ -10,6 +11,15 @@ import { AuthLinkButton } from "@/components/ui/auth-controls";
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
 
 import type { LoginTwoFactorFormValues } from "../types";
+import {
+  AUTH_FIELD_CLASS,
+  AUTH_OTP_GROUP_CLASS,
+  AUTH_OTP_SLOT_CLASS,
+  AUTH_PLAIN_INPUT_CLASS,
+  AuthPaneHeader,
+  AuthPaneLegal,
+  AuthPaneTitleRow,
+} from "./auth-pane-primitives";
 
 const OTP_LENGTH = 6;
 
@@ -34,16 +44,9 @@ function buildSubmitPayload(
   return { code: value };
 }
 
-export function LoginTwoFactorPane({
-  challenge,
-  loading,
-  onSubmit,
-  onBackToLogin,
-  reducedMotion,
-  itemVariants,
-}: LoginTwoFactorPaneProps) {
+export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
   const { t } = useTranslation();
-  const variants = reducedMotion ? {} : itemVariants;
+  const variants = props.reducedMotion ? {} : props.itemVariants;
   const [method, setMethod] = useState<VerificationMethod>("totp");
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +54,7 @@ export function LoginTwoFactorPane({
   useEffect(() => {
     setValue("");
     setError(null);
-  }, [method, challenge.twoFactorToken]);
+  }, [method, props.challenge.twoFactorToken]);
 
   const handleSubmit = () => {
     const payload = buildSubmitPayload(method, value);
@@ -65,7 +68,7 @@ export function LoginTwoFactorPane({
     }
 
     setError(null);
-    onSubmit(payload);
+    props.onSubmit(payload);
   };
 
   const primaryLabel =
@@ -74,53 +77,58 @@ export function LoginTwoFactorPane({
       : t("auth:TWO_FACTOR_CODE_LABEL");
 
   return (
-    <>
-      <motion.div variants={variants}>
-        <h1 className="text-largetitle text-label-primary">{t("auth:LOGIN_TWO_FACTOR_TITLE")}</h1>
-        <p className="mt-2 mb-8 text-title3 font-normal text-label-secondary">
-          {t("auth:LOGIN_TWO_FACTOR_SUBTITLE")}
-        </p>
-      </motion.div>
+    <div className="grid gap-2">
+      <AuthPaneHeader
+        titleKey="auth:LOGIN_TWO_FACTOR_TITLE"
+        subtitleKey="auth:LOGIN_TWO_FACTOR_SUBTITLE"
+        variants={variants}
+      />
 
       <motion.div variants={variants} className="grid gap-4">
-        <div className="grid gap-1.5">
-          <span className="text-callout text-label-primary">{primaryLabel}</span>
-          {method === "backup_code" ? (
-            <Input
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              aria-label={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
-              placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
-              autoComplete="one-time-code"
-              disabled={loading}
-            />
-          ) : (
-            <InputOTP
-              value={value}
-              onChange={setValue}
-              maxLength={OTP_LENGTH}
-              aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
-              inputMode="numeric"
-              disabled={loading}
-              containerClassName="justify-start"
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          )}
-          {error ? <p className="text-footnote text-destructive">{error}</p> : null}
-        </div>
+        <Field className={AUTH_FIELD_CLASS}>
+          <FieldContent className="gap-2">
+            <AuthPaneTitleRow title={primaryLabel} />
+            {method === "backup_code" ? (
+              <Input
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                aria-label={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
+                aria-invalid={error ? true : undefined}
+                className={AUTH_PLAIN_INPUT_CLASS}
+                placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
+                autoComplete="one-time-code"
+                disabled={props.loading}
+              />
+            ) : (
+              <InputOTP
+                value={value}
+                onChange={setValue}
+                maxLength={OTP_LENGTH}
+                aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
+                aria-invalid={error ? true : undefined}
+                inputMode="numeric"
+                disabled={props.loading}
+                containerClassName="justify-start"
+              >
+                <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
+                  <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
+                  <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
+                  <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
+                  <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
+                  <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
+                  <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
+                </InputOTPGroup>
+              </InputOTP>
+            )}
+            <FieldError>{error}</FieldError>
+          </FieldContent>
+        </Field>
 
-        <div className="flex flex-col gap-2">
-          <Button size="lg" loading={loading} onClick={handleSubmit}>
+        <div className="grid gap-3">
+          <Button size="lg" loading={props.loading} onClick={handleSubmit}>
             {t("auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON")}
           </Button>
+          <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />
           <AuthLinkButton
             className="justify-start"
             onClick={() => setMethod((current) => (current === "totp" ? "backup_code" : "totp"))}
@@ -130,11 +138,11 @@ export function LoginTwoFactorPane({
               ? t("auth:TWO_FACTOR_USE_BACKUP_CODE")
               : t("auth:TWO_FACTOR_USE_AUTHENTICATOR")}
           </AuthLinkButton>
-          <AuthLinkButton className="justify-start" onClick={onBackToLogin} type="button">
+          <AuthLinkButton className="justify-start" onClick={props.onBackToLogin} type="button">
             {t("auth:TWO_FACTOR_BACK_TO_PASSWORD")}
           </AuthLinkButton>
         </div>
       </motion.div>
-    </>
+    </div>
   );
 }

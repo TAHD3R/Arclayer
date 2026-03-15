@@ -106,7 +106,6 @@ export function OrganizationMemberWorkspaceList({
                 type="button"
                 key={`${workspace.workspaceId}:${workspace.membershipStatus}`}
                 disabled={!clickable}
-                hoverScale={1}
                 tapScale={1}
                 onClick={() => {
                   if (!clickable) return;

@@ -1,11 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { AnchorHTMLAttributes } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/http";
 import { LoginPage } from "@/pages/login/page";
 import { useAuthChallengeStore } from "@/stores/use-auth-challenge-store";
+
+type RuntimeState = {
+  runtime: Record<string, unknown> | null;
+  publicRegisterEnabled: boolean | null;
+};
 
 const {
   navigateMock,
@@ -14,6 +20,7 @@ const {
   applyLoginMock,
   queryClientClearMock,
   queryClientCancelQueriesMock,
+  runtimeState,
   authState,
   workspaceState,
 } = vi.hoisted(() => ({
@@ -23,6 +30,10 @@ const {
   applyLoginMock: vi.fn(),
   queryClientClearMock: vi.fn(),
   queryClientCancelQueriesMock: vi.fn(),
+  runtimeState: {
+    runtime: {} as RuntimeState["runtime"],
+    publicRegisterEnabled: true as RuntimeState["publicRegisterEnabled"],
+  },
   authState: {
     applyLogin: vi.fn(),
     keepSession: true,
@@ -39,6 +50,11 @@ let currentSearch: Record<string, unknown> = { mode: "login" };
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
   getRouteApi: () => ({ useSearch: () => currentSearch }),
+  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("@/api/auth", () => ({
@@ -59,7 +75,7 @@ vi.mock("@/components/ui/oauth-buttons", () => ({
 }));
 
 vi.mock("@/hooks/use-system-runtime", () => ({
-  useSystemRuntime: () => ({ runtime: {}, publicRegisterEnabled: true }),
+  useSystemRuntime: () => runtimeState,
 }));
 
 vi.mock("@/layouts/auth-layout", () => ({
@@ -103,6 +119,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+  Trans: ({ i18nKey }: { i18nKey: string }) => <span>{i18nKey}</span>,
 }));
 
 function renderPage() {
@@ -144,6 +161,8 @@ describe("LoginPage two-factor challenge flow", () => {
     workspaceState.setCurrentWorkspaceId.mockReset();
     useAuthChallengeStore.getState().clear();
     sessionStorage.clear();
+    runtimeState.runtime = {};
+    runtimeState.publicRegisterEnabled = true;
   });
 
   it("switches to otp pane when login returns TWO_FACTOR_REQUIRED", async () => {
@@ -190,5 +209,29 @@ describe("LoginPage two-factor challenge flow", () => {
       expect(screen.getByText("auth:LOGIN_TWO_FACTOR_TITLE")).toBeInTheDocument();
     });
     expect(screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
+  });
+
+  it("keeps public register entry visible while runtime is unresolved", async () => {
+    runtimeState.runtime = null;
+    runtimeState.publicRegisterEnabled = null;
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("auth:CREATE_ACCOUNT")).toBeInTheDocument();
+    });
+  });
+
+  it("preserves register mode while runtime is unresolved", async () => {
+    currentSearch = { mode: "register" };
+    runtimeState.runtime = null;
+    runtimeState.publicRegisterEnabled = null;
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("auth:REGISTER_PAGE_TITLE")).toBeInTheDocument();
+    });
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 });

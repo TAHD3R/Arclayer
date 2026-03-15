@@ -130,7 +130,6 @@ export function SettingActionItem(props: SettingActionItemProps) {
       onClick={() => props.onTrigger?.()}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      hoverScale={1}
       tapScale={1}
       className={cn(
         "w-full text-left",

@@ -113,8 +113,9 @@ export function useLoginPage() {
     oauth_error: oauthError,
   } = loginRouteApi.useSearch();
 
-  const publicRegisterEnabled = runtimeReady ? Boolean(runtime.publicRegisterEnabled) : false;
-  const effectiveMode = runtimeReady ? resolveLoginMode(mode, publicRegisterEnabled) : mode;
+  const publicRegisterEnabled = runtime.publicRegisterEnabled !== false;
+  const effectiveMode =
+    runtime.publicRegisterEnabled === false ? resolveLoginMode(mode, false) : mode;
 
   const loginMutation = useMutation({
     mutationFn: async (values: LoginFormValues) =>
@@ -211,14 +212,14 @@ export function useLoginPage() {
   }, [effectiveMode, navigate, redirectTo]);
 
   useEffect(() => {
-    if (!runtimeReady) return;
-    if (mode !== "register" || publicRegisterEnabled) return;
+    if (runtime.publicRegisterEnabled !== false) return;
+    if (mode !== "register") return;
     void navigate({
       to: "/login",
       search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: "login" },
       replace: true,
     });
-  }, [mode, navigate, publicRegisterEnabled, redirectTo, runtimeReady]);
+  }, [mode, navigate, redirectTo, runtime.publicRegisterEnabled]);
 
   useEffect(() => {
     if (!oauthCode) return;

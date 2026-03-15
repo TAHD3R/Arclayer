@@ -1,5 +1,6 @@
 import { Lock, Mail, User } from "lucide-react";
 import { motion, type Variants } from "motion/react";
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -8,14 +9,22 @@ import { z } from "zod";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import {
-  AuthFieldError,
   AuthInputControl,
   AuthLinkButton,
   AuthPasswordControl,
 } from "@/components/ui/auth-controls";
 import { Button } from "@celestial/ui/button";
+import { Field, FieldContent, FieldError } from "@celestial/ui/field";
 
 import type { RegisterFormValues } from "../types";
+import {
+  AUTH_FIELD_CLASS,
+  AUTH_INPUT_CLASS,
+  AUTH_INPUT_GROUP_CLASS,
+  AuthPaneHeader,
+  AuthPaneLegal,
+  AuthPaneTitleRow,
+} from "./auth-pane-primitives";
 
 type RegisterPaneProps = {
   onSubmit: (values: RegisterFormValues) => void;
@@ -30,87 +39,118 @@ type RegisterPaneSectionProps = {
   variants: Variants | {};
 };
 
-function RegisterPaneHeader({ variants }: RegisterPaneSectionProps) {
-  const { t } = useTranslation();
-  return (
-    <motion.div variants={variants}>
-      <h1 className="text-largetitle text-label-primary">{t("auth:REGISTER_PAGE_TITLE")}</h1>
-      <p className="mt-2 mb-8 text-title3 font-normal text-label-secondary">
-        {t("auth:REGISTER_PAGE_SUBTITLE")}
-      </p>
-    </motion.div>
-  );
-}
-
 type RegisterPaneFormProps = RegisterPaneSectionProps & {
   form: ReturnType<typeof useForm<RegisterFormValues>>;
   loading: boolean;
   onSubmit: (values: RegisterFormValues) => void;
 };
 
-function RegisterPaneForm({ variants, form, loading, onSubmit }: RegisterPaneFormProps) {
+function RegisterField(props: {
+  title: string;
+  error?: string;
+  variants: Variants | {};
+  children: ReactNode;
+}) {
+  return (
+    <motion.div variants={props.variants}>
+      <Field className={AUTH_FIELD_CLASS}>
+        <FieldContent className="gap-2">
+          <AuthPaneTitleRow title={props.title} />
+          {props.children}
+          <FieldError>{props.error}</FieldError>
+        </FieldContent>
+      </Field>
+    </motion.div>
+  );
+}
+
+function RegisterPaneForm(props: RegisterPaneFormProps) {
   const { t } = useTranslation();
-  const emailError = form.formState.errors.email?.message;
-  const usernameError = form.formState.errors.username?.message;
-  const passwordError = form.formState.errors.password?.message;
-  const confirmPasswordError = form.formState.errors.confirmPassword?.message;
+  const emailError = props.form.formState.errors.email?.message;
+  const usernameError = props.form.formState.errors.username?.message;
+  const passwordError = props.form.formState.errors.password?.message;
+  const confirmPasswordError = props.form.formState.errors.confirmPassword?.message;
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-3" autoComplete="off">
-      <motion.div variants={variants} className="grid gap-1.5">
+    <form
+      onSubmit={props.form.handleSubmit(props.onSubmit)}
+      className="grid gap-2"
+      autoComplete="off"
+    >
+      <RegisterField
+        title={t("auth:FIELD_EMAIL_LABEL")}
+        error={emailError ? String(emailError) : undefined}
+        variants={props.variants}
+      >
         <AuthInputControl
           autoComplete="email"
           aria-label={t("auth:FIELD_EMAIL_LABEL")}
           aria-invalid={emailError ? true : undefined}
+          className={AUTH_INPUT_GROUP_CLASS}
+          inputClassName={AUTH_INPUT_CLASS}
           placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
           startIcon={<Mail size={16} />}
-          disabled={loading}
-          {...form.register("email")}
+          disabled={props.loading}
+          {...props.form.register("email")}
         />
-        <AuthFieldError message={emailError ? String(emailError) : undefined} />
-      </motion.div>
+      </RegisterField>
 
-      <motion.div variants={variants} className="grid gap-1.5">
+      <RegisterField
+        title={t("auth:FIELD_USERNAME_LABEL")}
+        error={usernameError ? String(usernameError) : undefined}
+        variants={props.variants}
+      >
         <AuthInputControl
           autoComplete="off"
           aria-label={t("auth:FIELD_USERNAME_LABEL")}
           aria-invalid={usernameError ? true : undefined}
+          className={AUTH_INPUT_GROUP_CLASS}
+          inputClassName={AUTH_INPUT_CLASS}
           placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
           startIcon={<User size={16} />}
-          disabled={loading}
-          {...form.register("username")}
+          disabled={props.loading}
+          {...props.form.register("username")}
         />
-        <AuthFieldError message={usernameError ? String(usernameError) : undefined} />
-      </motion.div>
+      </RegisterField>
 
-      <motion.div variants={variants} className="grid gap-1.5">
+      <RegisterField
+        title={t("auth:FIELD_PASSWORD_LABEL")}
+        error={passwordError ? String(passwordError) : undefined}
+        variants={props.variants}
+      >
         <AuthPasswordControl
           autoComplete="new-password"
           aria-label={t("auth:FIELD_PASSWORD_LABEL")}
           aria-invalid={passwordError ? true : undefined}
+          className={AUTH_INPUT_GROUP_CLASS}
+          inputClassName={AUTH_INPUT_CLASS}
           placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
           startIcon={<Lock size={16} />}
-          disabled={loading}
-          {...form.register("password")}
+          disabled={props.loading}
+          {...props.form.register("password")}
         />
-        <AuthFieldError message={passwordError ? String(passwordError) : undefined} />
-      </motion.div>
+      </RegisterField>
 
-      <motion.div variants={variants} className="grid gap-1.5">
+      <RegisterField
+        title={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
+        error={confirmPasswordError ? String(confirmPasswordError) : undefined}
+        variants={props.variants}
+      >
         <AuthPasswordControl
           autoComplete="new-password"
           aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
           aria-invalid={confirmPasswordError ? true : undefined}
+          className={AUTH_INPUT_GROUP_CLASS}
+          inputClassName={AUTH_INPUT_CLASS}
           placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
           startIcon={<Lock size={16} />}
-          disabled={loading}
-          {...form.register("confirmPassword")}
+          disabled={props.loading}
+          {...props.form.register("confirmPassword")}
         />
-        <AuthFieldError message={confirmPasswordError ? String(confirmPasswordError) : undefined} />
-      </motion.div>
+      </RegisterField>
 
-      <motion.div variants={variants}>
-        <Button className="w-full" type="submit" size="lg" loading={loading}>
+      <motion.div variants={props.variants} className="grid gap-3 pt-1">
+        <Button className="w-full" type="submit" size="lg" loading={props.loading}>
           {t("auth:REGISTER_BUTTON")}
         </Button>
       </motion.div>
@@ -118,31 +158,27 @@ function RegisterPaneForm({ variants, form, loading, onSubmit }: RegisterPaneFor
   );
 }
 
-function RegisterPaneFooter({
-  variants,
-  onSwitchToLogin,
-}: RegisterPaneSectionProps & { onSwitchToLogin: () => void }) {
+function RegisterPaneFooter(props: RegisterPaneSectionProps & { onSwitchToLogin: () => void }) {
   const { t } = useTranslation();
   return (
-    <motion.div variants={variants} className="mt-4 text-center text-label-secondary">
-      <span>{t("auth:HAVE_ACCOUNT")} </span>
-      <AuthLinkButton onClick={onSwitchToLogin} type="button">
-        {t("auth:SIGN_IN")}
-      </AuthLinkButton>
+    <motion.div
+      variants={props.variants}
+      className="grid gap-3 pt-1 text-center text-label-secondary"
+    >
+      <div>
+        <span>{t("auth:HAVE_ACCOUNT")} </span>
+        <AuthLinkButton onClick={props.onSwitchToLogin} type="button">
+          {t("auth:SIGN_IN")}
+        </AuthLinkButton>
+      </div>
+      <AuthPaneLegal i18nKey="auth:LEGAL_REGISTER" variants={{}} />
     </motion.div>
   );
 }
 
-export function RegisterPane({
-  onSubmit,
-  loading,
-  redirect,
-  onSwitchToLogin,
-  reducedMotion,
-  itemVariants,
-}: RegisterPaneProps) {
+export function RegisterPane(props: RegisterPaneProps) {
   const { t } = useTranslation();
-  const variants = reducedMotion ? {} : itemVariants;
+  const variants = props.reducedMotion ? {} : props.itemVariants;
   const schema = useMemo(
     () =>
       z
@@ -172,13 +208,22 @@ export function RegisterPane({
   });
 
   return (
-    <>
-      <RegisterPaneHeader variants={variants} />
-      <motion.div variants={variants}>
-        <AuthOauthButtons disabled={loading} redirect={redirect} />
+    <div className="grid gap-4">
+      <AuthPaneHeader
+        titleKey="auth:REGISTER_PAGE_TITLE"
+        subtitleKey="auth:REGISTER_PAGE_SUBTITLE"
+        variants={variants}
+      />
+      <RegisterPaneForm
+        variants={variants}
+        form={form}
+        loading={props.loading}
+        onSubmit={props.onSubmit}
+      />
+      <motion.div variants={variants} className="pt-1">
+        <AuthOauthButtons disabled={props.loading} redirect={props.redirect} />
       </motion.div>
-      <RegisterPaneForm variants={variants} form={form} loading={loading} onSubmit={onSubmit} />
-      <RegisterPaneFooter variants={variants} onSwitchToLogin={onSwitchToLogin} />
-    </>
+      <RegisterPaneFooter variants={variants} onSwitchToLogin={props.onSwitchToLogin} />
+    </div>
   );
 }

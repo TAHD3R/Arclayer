@@ -7,25 +7,17 @@ import { Slot, type WithAsChild } from "@celestial/ui/animate-slot";
 
 type ButtonProps = WithAsChild<
   HTMLMotionProps<"button"> & {
-    hoverScale?: number;
     tapScale?: number;
   }
 >;
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { hoverScale = 1.05, tapScale = 0.95, asChild = false, ...props },
+  { tapScale = 0.95, asChild = false, ...props },
   ref,
 ) {
   const Component = asChild ? Slot : motion.button;
 
-  return (
-    <Component
-      ref={ref}
-      whileTap={{ scale: tapScale }}
-      whileHover={{ scale: hoverScale }}
-      {...props}
-    />
-  );
+  return <Component ref={ref} whileTap={{ scale: tapScale }} {...props} />;
 });
 Button.displayName = "ButtonPrimitive";
 

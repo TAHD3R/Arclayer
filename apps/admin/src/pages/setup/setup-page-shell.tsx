@@ -91,7 +91,6 @@ function SetupLaunchButton(props: {
     return (
       <ButtonPrimitive
         type="button"
-        hoverScale={1}
         tapScale={1}
         disabled
         className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-border/70 bg-muted text-label-secondary"
@@ -106,7 +105,6 @@ function SetupLaunchButton(props: {
     <ExpandableScreenTrigger className={props.submitting ? "pointer-events-none opacity-60" : ""}>
       <ButtonPrimitive
         type="button"
-        hoverScale={1}
         tapScale={1}
         className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
         aria-label={t("setup:SETUP_START_BUTTON")}

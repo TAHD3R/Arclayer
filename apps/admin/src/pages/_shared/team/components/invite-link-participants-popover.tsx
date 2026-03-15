@@ -198,7 +198,6 @@ export function InviteLinkParticipantsPopover(props: {
       <PopoverTrigger asChild>
         <ButtonPrimitive
           type="button"
-          hoverScale={1}
           tapScale={1}
           className="flex w-full items-center gap-2 min-w-0 text-left hover:opacity-90"
           aria-label={t("team:TEAM_INVITE_LINKS_ACTION_VIEW_PARTICIPANTS")}

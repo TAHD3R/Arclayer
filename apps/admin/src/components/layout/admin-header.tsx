@@ -166,7 +166,6 @@ export function AdminHeader(props: {
         <ButtonPrimitive
           type="button"
           aria-label={t("common:REFRESH")}
-          hoverScale={1}
           tapScale={1}
           onMouseEnter={() => setRefreshHovered(true)}
           onMouseLeave={() => setRefreshHovered(false)}
@@ -207,7 +206,6 @@ export function AdminHeader(props: {
                           <DropdownMenuTrigger asChild>
                             <ButtonPrimitive
                               type="button"
-                              hoverScale={1}
                               tapScale={1}
                               className={cn(breadcrumbTriggerClassName, "min-w-0")}
                             >
@@ -235,7 +233,6 @@ export function AdminHeader(props: {
                       ) : !isLast && node.to ? (
                         <ButtonPrimitive
                           type="button"
-                          hoverScale={1}
                           tapScale={1}
                           className={cn(breadcrumbTriggerClassName, "min-w-0")}
                           onClick={() => void navigate({ to: node.to as never })}

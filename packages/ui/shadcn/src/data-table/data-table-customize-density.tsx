@@ -60,7 +60,6 @@ export function DataTableDensityOptionButton(props: {
         props.active ? "bg-accent" : "border-border hover:bg-accent/25",
       )}
       onClick={props.onClick}
-      hoverScale={1}
       tapScale={1}
     >
       <div className="flex items-center justify-between gap-3">

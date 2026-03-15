@@ -62,7 +62,6 @@ function ThemeTogglerButton({
       {({ effective, resolved, toggleTheme }) => (
         <ButtonPrimitive
           type="button"
-          hoverScale={1}
           tapScale={1}
           data-slot="theme-toggler-button"
           className={cn(buttonVariants({ variant, size, className }))}
@@ -116,7 +115,6 @@ function ThemePreferenceToggleGroup({
             type="button"
             role="radio"
             aria-checked={selected}
-            hoverScale={1}
             tapScale={1}
             className={cn(
               buttonVariants({

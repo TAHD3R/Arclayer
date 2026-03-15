@@ -52,7 +52,6 @@ function NodeActionSub({
       >
         <ButtonPrimitive
           type="button"
-          hoverScale={1}
           tapScale={1}
           onClick={item.onAction}
           className="w-full justify-start text-left"

@@ -30,6 +30,103 @@ type ForgotPasswordFormValues = {
   identifier: string;
 };
 
+type ForgotPasswordDialogStep = "form" | "success";
+
+function ForgotPasswordSuccessView(props: {
+  onClose: () => void;
+  reducedMotion: boolean;
+  itemVariants: Variants;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={{ show: { transition: { staggerChildren: 0.05, delayChildren: 0.08 } } }}
+      className="grid gap-4"
+    >
+      <motion.div variants={props.reducedMotion ? {} : props.itemVariants}>
+        <DialogDescription className="text-center text-callout text-label-secondary">
+          {t("auth:FORGOT_PASSWORD_SUCCESS_DESC")}
+        </DialogDescription>
+      </motion.div>
+      <motion.div variants={props.reducedMotion ? {} : props.itemVariants}>
+        <DialogFooter>
+          <Button onClick={props.onClose}>{t("auth:MODAL_OK")}</Button>
+        </DialogFooter>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ForgotPasswordFormView(props: {
+  form: ReturnType<typeof useForm<ForgotPasswordFormValues>>;
+  loading: boolean;
+  reducedMotion: boolean;
+  itemVariants: Variants;
+  onGoToReset: () => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={{ show: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } } }}
+      className="flex flex-col gap-y-3"
+    >
+      <motion.div variants={props.reducedMotion ? {} : props.itemVariants} className="space-y-3">
+        <DialogDescription className="text-callout text-label-secondary">
+          {t("auth:FORGOT_PASSWORD_MODAL_DESC")}
+        </DialogDescription>
+      </motion.div>
+
+      <motion.form
+        variants={props.reducedMotion ? {} : props.itemVariants}
+        className="grid gap-2"
+        onSubmit={props.onSubmit}
+      >
+        <AuthInputControl
+          autoComplete="off"
+          aria-label={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
+          aria-invalid={props.form.formState.errors.identifier ? true : undefined}
+          placeholder={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
+          startIcon={<Mail size={16} />}
+          disabled={props.loading}
+          {...props.form.register("identifier")}
+        />
+        <AuthFieldError
+          message={
+            props.form.formState.errors.identifier?.message
+              ? String(props.form.formState.errors.identifier.message)
+              : undefined
+          }
+        />
+      </motion.form>
+
+      <motion.div variants={props.reducedMotion ? {} : props.itemVariants} className="text-center">
+        <AuthLinkButton disabled={props.loading} onClick={props.onGoToReset} type="button">
+          {t("auth:FORGOT_PASSWORD_MODAL_HAVE_TOKEN")}
+        </AuthLinkButton>
+      </motion.div>
+
+      <motion.div variants={props.reducedMotion ? {} : props.itemVariants}>
+        <DialogFooter>
+          <Button variant="ghost" disabled={props.loading} onClick={props.onCancel}>
+            {t("auth:MODAL_CANCEL")}
+          </Button>
+          <Button loading={props.loading} onClick={props.onSubmit}>
+            {t("auth:MODAL_SUBMIT")}
+          </Button>
+        </DialogFooter>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export function ForgotPasswordDialog({
   open,
   onOpenChange,
@@ -40,6 +137,7 @@ export function ForgotPasswordDialog({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<ForgotPasswordDialogStep>("form");
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(
       z.object({
@@ -51,7 +149,10 @@ export function ForgotPasswordDialog({
   });
 
   const handleClose = (nextOpen: boolean) => {
-    if (!nextOpen && !loading) form.reset();
+    if (!nextOpen && !loading) {
+      form.reset();
+      setStep("form");
+    }
     onOpenChange(nextOpen);
   };
 
@@ -60,11 +161,14 @@ export function ForgotPasswordDialog({
     try {
       await onSubmit(values.identifier);
       form.reset();
-      onOpenChange(false);
+      setStep("success");
     } finally {
       setLoading(false);
     }
   });
+
+  const titleKey =
+    step === "success" ? "auth:FORGOT_PASSWORD_SUCCESS_TITLE" : "auth:FORGOT_PASSWORD_MODAL_TITLE";
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -75,68 +179,28 @@ export function ForgotPasswordDialog({
         showCloseButton={!loading}
       >
         <DialogHeader>
-          <DialogTitle>{t("auth:FORGOT_PASSWORD_MODAL_TITLE")}</DialogTitle>
+          <DialogTitle>{t(titleKey)}</DialogTitle>
         </DialogHeader>
-
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } } }}
-          className="flex flex-col gap-y-3"
-        >
-          <motion.div variants={reducedMotion ? {} : itemVariants} className="space-y-3">
-            <DialogDescription className="text-callout text-label-secondary">
-              {t("auth:FORGOT_PASSWORD_MODAL_DESC")}
-            </DialogDescription>
-          </motion.div>
-
-          <motion.form
-            variants={reducedMotion ? {} : itemVariants}
-            className="grid gap-2"
-            onSubmit={handleSubmit}
-          >
-            <AuthInputControl
-              autoComplete="off"
-              aria-label={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
-              aria-invalid={form.formState.errors.identifier ? true : undefined}
-              placeholder={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
-              startIcon={<Mail size={16} />}
-              disabled={loading}
-              {...form.register("identifier")}
-            />
-            <AuthFieldError
-              message={
-                form.formState.errors.identifier?.message
-                  ? String(form.formState.errors.identifier.message)
-                  : undefined
-              }
-            />
-          </motion.form>
-
-          <motion.div variants={reducedMotion ? {} : itemVariants} className="text-center">
-            <AuthLinkButton
-              disabled={loading}
-              onClick={() => {
-                onOpenChange(false);
-                void navigate({ to: "/reset-password" });
-              }}
-              type="button"
-            >
-              {t("auth:FORGOT_PASSWORD_MODAL_HAVE_TOKEN")}
-            </AuthLinkButton>
-          </motion.div>
-
-          <motion.div variants={reducedMotion ? {} : itemVariants}>
-            <DialogFooter>
-              <Button variant="ghost" disabled={loading} onClick={() => onOpenChange(false)}>
-                {t("auth:MODAL_CANCEL")}
-              </Button>
-              <Button loading={loading} onClick={() => void handleSubmit()}>
-                {t("auth:MODAL_SUBMIT")}
-              </Button>
-            </DialogFooter>
-          </motion.div>
-        </motion.div>
+        {step === "success" ? (
+          <ForgotPasswordSuccessView
+            onClose={() => handleClose(false)}
+            reducedMotion={reducedMotion}
+            itemVariants={itemVariants}
+          />
+        ) : (
+          <ForgotPasswordFormView
+            form={form}
+            loading={loading}
+            reducedMotion={reducedMotion}
+            itemVariants={itemVariants}
+            onGoToReset={() => {
+              onOpenChange(false);
+              void navigate({ to: "/reset-password" });
+            }}
+            onCancel={() => onOpenChange(false)}
+            onSubmit={() => void handleSubmit()}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

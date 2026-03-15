@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
+import { AuthLinkButton } from "@/components/ui/auth-controls";
 import { Button } from "@celestial/ui/button";
 import {
   Dialog,
@@ -22,25 +23,15 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
 
   return (
     <>
-      <p className="text-caption text-label-secondary">
+      <p className="text-footnote leading-6 text-label-secondary">
         <Trans
           i18nKey={i18nKey}
           components={{
             terms: (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-caption text-label-primary underline"
-                onClick={() => setOpenModal("terms")}
-              />
+              <AuthLinkButton className="align-baseline" onClick={() => setOpenModal("terms")} />
             ),
             privacy: (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-caption text-label-primary underline"
-                onClick={() => setOpenModal("privacy")}
-              />
+              <AuthLinkButton className="align-baseline" onClick={() => setOpenModal("privacy")} />
             ),
           }}
         />

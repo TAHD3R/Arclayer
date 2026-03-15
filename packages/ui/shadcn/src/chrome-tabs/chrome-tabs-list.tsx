@@ -44,7 +44,6 @@ function ScrollButton({ ariaLabel, direction, onClick }: ScrollButtonProps) {
       className={cn(SCROLL_BUTTON_CLASSNAME, sideClassName)}
       aria-label={ariaLabel}
       onClick={onClick}
-      hoverScale={1}
       tapScale={1}
     >
       <Icon className="mx-auto size-4" />
