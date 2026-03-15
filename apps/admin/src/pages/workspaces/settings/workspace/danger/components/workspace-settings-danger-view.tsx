@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input } from "antd";
 import * as React from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -15,7 +15,9 @@ import { DefaultPage } from "@/components/common/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { Button } from "@celestial/ui/button";
 import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
+import { Input } from "@celestial/ui/input";
 import { SettingActionGroup } from "@celestial/ui/setting-action-group";
 import { SettingActionItem } from "@celestial/ui/setting-action-item";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
@@ -46,6 +48,25 @@ function getActionDescription(
   return blocked ? [base, blocked] : base;
 }
 
+function DialogField(props: {
+  title: string;
+  description: string;
+  placeholder: string;
+  error: string | undefined;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="grid gap-1.5">
+        <span className="font-semibold text-foreground">{props.title}</span>
+        <span className="text-label-secondary">{props.description}</span>
+      </div>
+      {props.children}
+      {props.error ? <div className="text-footnote text-destructive">{props.error}</div> : null}
+    </div>
+  );
+}
+
 export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   const workspaceId = String(props.workspaceId || "").trim();
   const { t } = useTranslation(["settings", "common", "errors"]);
@@ -55,8 +76,12 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
   const { savingKey, withSavingKey } = useSavingKey();
-  const [leaveDialogForm] = Form.useForm<LeaveWorkspaceDialogValues>();
-  const [deleteDialogForm] = Form.useForm<DeleteWorkspaceDialogValues>();
+  const leaveDialogForm = useForm<LeaveWorkspaceDialogValues>({
+    defaultValues: { confirmText: "" },
+  });
+  const deleteDialogForm = useForm<DeleteWorkspaceDialogValues>({
+    defaultValues: { confirmName: "" },
+  });
   const [leaveDialogOpen, setLeaveDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
@@ -74,12 +99,12 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   });
 
   const closeLeaveDialog = React.useCallback(() => {
-    leaveDialogForm.resetFields();
+    leaveDialogForm.reset();
     setLeaveDialogOpen(false);
   }, [leaveDialogForm]);
 
   const closeDeleteDialog = React.useCallback(() => {
-    deleteDialogForm.resetFields();
+    deleteDialogForm.reset();
     setDeleteDialogOpen(false);
   }, [deleteDialogForm]);
 
@@ -92,12 +117,12 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
 
   const leaveWorkspaceMutation = useMutation({
     mutationFn: async (confirmText: string) => leaveWorkspace(workspaceId, confirmText),
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const deleteWorkspaceMutation = useMutation({
     mutationFn: async (confirmName: string) => deleteWorkspace(workspaceId, confirmName),
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const disabled =
@@ -124,14 +149,21 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
     await navigate({ to: `/w/${nextWorkspace.workspaceId}/settings/workspace`, replace: true });
   }, [clearWorkspace, navigate, setCurrentWorkspaceId, workspaceId]);
 
-  const dialogFieldLabel = React.useCallback((title: string, description: string) => {
-    return (
-      <div className="grid gap-1.5">
-        <span className="font-semibold text-foreground">{title}</span>
-        <span className="text-label-secondary">{description}</span>
-      </div>
-    );
-  }, []);
+  const submitLeaveDialog = leaveDialogForm.handleSubmit(async (values) => {
+    await leaveWorkspaceMutation.mutateAsync(String(values.confirmText || "").trim());
+    await queryClient.invalidateQueries({ queryKey: ["workspace"] });
+    notifySuccessText(t("common:ACTION_SUCCESS"));
+    closeLeaveDialog();
+    await navigateAfterWorkspaceRemoved();
+  });
+
+  const submitDeleteDialog = deleteDialogForm.handleSubmit(async (values) => {
+    await deleteWorkspaceMutation.mutateAsync(String(values.confirmName || "").trim());
+    await queryClient.invalidateQueries({ queryKey: ["workspace"] });
+    notifySuccessText(t("common:ACTION_SUCCESS"));
+    closeDeleteDialog();
+    await navigateAfterWorkspaceRemoved();
+  });
 
   return (
     <DefaultPage
@@ -168,7 +200,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                   showSummary={false}
                   disabled={disabled || !canOpenLeave}
                   onTrigger={() => {
-                    leaveDialogForm.resetFields();
+                    leaveDialogForm.reset();
                     setLeaveDialogOpen(true);
                   }}
                 />
@@ -182,7 +214,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                   showSummary={false}
                   disabled={disabled || !canOpenDelete}
                   onTrigger={() => {
-                    deleteDialogForm.resetFields();
+                    deleteDialogForm.reset();
                     setDeleteDialogOpen(true);
                   }}
                 />
@@ -200,59 +232,47 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
           description={t("settings:SETTINGS_WORKSPACE_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeLeaveDialog} autoInsertSpace={false}>
+              <Button type="button" variant="ghost" onClick={closeLeaveDialog}>
                 {t("common:CANCEL")}
               </Button>
               <Button
-                type="primary"
+                type="button"
                 loading={savingKey === "workspace:leave"}
                 disabled={disabled || !canOpenLeave}
                 onClick={() => {
                   void withSavingKey("workspace:leave", async () => {
-                    const values = await leaveDialogForm.validateFields();
-                    await leaveWorkspaceMutation.mutateAsync(
-                      String(values.confirmText || "").trim(),
-                    );
-                    await queryClient.invalidateQueries({ queryKey: ["workspace"] });
-                    notifySuccessText(t("common:ACTION_SUCCESS"));
-                    closeLeaveDialog();
-                    await navigateAfterWorkspaceRemoved();
+                    await submitLeaveDialog();
                   });
                 }}
-                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_BUTTON")}
               </Button>
             </div>
           }
         >
-          <Form form={leaveDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
-            <Form.Item
-              name="confirmText"
-              label={dialogFieldLabel(
-                t("settings:SETTINGS_DIALOG_CONFIRM_TEXT_LABEL"),
-                t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED"),
-              )}
-              rules={[
-                {
-                  required: true,
-                  message: t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED"),
-                },
-                {
-                  validator: async (_, value) => {
-                    if (String(value || "").trim() === confirmLeaveText) return;
-                    throw new Error(t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_MISMATCH"));
-                  },
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                size="large"
+          <Controller
+            control={leaveDialogForm.control}
+            name="confirmText"
+            rules={{
+              required: t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED"),
+              validate: (value) =>
+                String(value || "").trim() === confirmLeaveText ||
+                t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_MISMATCH"),
+            }}
+            render={({ field, fieldState }) => (
+              <DialogField
+                title={t("settings:SETTINGS_DIALOG_CONFIRM_TEXT_LABEL")}
+                description={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED")}
                 placeholder={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_PLACEHOLDER")}
-              />
-            </Form.Item>
-          </Form>
+                error={fieldState.error?.message}
+              >
+                <Input
+                  {...field}
+                  placeholder={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_PLACEHOLDER")}
+                />
+              </DialogField>
+            )}
+          />
         </SettingDialog>
 
         <SettingDialog
@@ -264,60 +284,48 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
           description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeDeleteDialog} autoInsertSpace={false}>
+              <Button type="button" variant="ghost" onClick={closeDeleteDialog}>
                 {t("common:CANCEL")}
               </Button>
               <Button
-                type="primary"
-                danger
+                type="button"
+                variant="destructive"
                 loading={savingKey === "workspace:delete"}
                 disabled={disabled || !canOpenDelete}
                 onClick={() => {
                   void withSavingKey("workspace:delete", async () => {
-                    const values = await deleteDialogForm.validateFields();
-                    await deleteWorkspaceMutation.mutateAsync(
-                      String(values.confirmName || "").trim(),
-                    );
-                    await queryClient.invalidateQueries({ queryKey: ["workspace"] });
-                    notifySuccessText(t("common:ACTION_SUCCESS"));
-                    closeDeleteDialog();
-                    await navigateAfterWorkspaceRemoved();
+                    await submitDeleteDialog();
                   });
                 }}
-                autoInsertSpace={false}
               >
                 {t("common:DELETE")}
               </Button>
             </div>
           }
         >
-          <Form form={deleteDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
-            <Form.Item
-              name="confirmName"
-              label={dialogFieldLabel(
-                t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL"),
-                t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED"),
-              )}
-              rules={[
-                {
-                  required: true,
-                  message: t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED"),
-                },
-                {
-                  validator: async (_, value) => {
-                    if (String(value || "").trim() === confirmDeleteName) return;
-                    throw new Error(t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"));
-                  },
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                size="large"
+          <Controller
+            control={deleteDialogForm.control}
+            name="confirmName"
+            rules={{
+              required: t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED"),
+              validate: (value) =>
+                String(value || "").trim() === confirmDeleteName ||
+                t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"),
+            }}
+            render={({ field, fieldState }) => (
+              <DialogField
+                title={t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL")}
+                description={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED")}
                 placeholder={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_PLACEHOLDER")}
-              />
-            </Form.Item>
-          </Form>
+                error={fieldState.error?.message}
+              >
+                <Input
+                  {...field}
+                  placeholder={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_PLACEHOLDER")}
+                />
+              </DialogField>
+            )}
+          />
         </SettingDialog>
       </ContentGuard>
     </DefaultPage>

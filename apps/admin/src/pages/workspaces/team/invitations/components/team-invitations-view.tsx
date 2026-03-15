@@ -1,5 +1,4 @@
 "use client";
-import { Button as AntButton } from "antd";
 import { Link2Off, Plus, RotateCcw } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +17,7 @@ import {
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { useDataTable } from "@celestial/ui/data-table";
+import { Button } from "@celestial/ui/button";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -257,28 +257,28 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
           const canRenew = inv.status === "pending";
           return (
             <div className="flex items-center justify-end gap-2">
-              <AntButton
-                type="text"
-                icon={<RotateCcw className="size-4" />}
+              <Button
+                variant="ghost"
+                size="sm"
                 disabled={!canRenew}
                 onClick={() => {
                   setRenewExpiresInSeconds(7 * 24 * 60 * 60);
                   setRenewInvitation(inv);
                 }}
-                autoInsertSpace={false}
               >
+                <RotateCcw className="size-4" />
                 {t("team:TEAM_ACTION_RENEW")}
-              </AntButton>
-              <AntButton
-                type="text"
-                danger
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={() => {
                   setDeleteInvitation(inv);
                 }}
-                autoInsertSpace={false}
               >
+                <Link2Off className="size-4" />
                 {t("team:TEAM_ACTION_DELETE")}
-              </AntButton>
+              </Button>
             </div>
           );
         },
@@ -381,9 +381,9 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
               ? `${window.location.origin}/invitations?token=${encodeURIComponent(token)}`
               : null);
           return (
-            <AntButton
-              type="link"
-              size="small"
+            <Button
+              variant="link"
+              size="sm"
               className="font-mono text-footnote"
               onClick={() => {
                 const text = inviteUrl || code;
@@ -391,10 +391,9 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                 notifySuccessText(t("team:TEAM_ACTION_COPIED"));
               }}
               aria-label={t("team:TEAM_INVITE_LINKS_ACTION_COPY_LINK")}
-              autoInsertSpace={false}
             >
               {code}
-            </AntButton>
+            </Button>
           );
         },
       },
@@ -468,28 +467,27 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
           const canManage = !disabled;
           return (
             <div className="flex items-center justify-end gap-2">
-              <AntButton
-                type="text"
-                icon={<RotateCcw className="size-4" />}
+              <Button
+                variant="ghost"
+                size="sm"
                 disabled={!canManage}
                 onClick={() => {
                   setRenewExpiresInSeconds(7 * 24 * 60 * 60);
                   setRenewLink(link);
                 }}
-                autoInsertSpace={false}
               >
+                <RotateCcw className="size-4" />
                 {t("team:TEAM_ACTION_RENEW")}
-              </AntButton>
-              <AntButton
-                type="text"
-                danger
-                icon={<Link2Off className="size-4" />}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 disabled={!canManage}
                 onClick={() => disableLinkMutation.mutate(link.id)}
-                autoInsertSpace={false}
               >
+                <Link2Off className="size-4" />
                 {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
-              </AntButton>
+              </Button>
             </div>
           );
         },
@@ -584,17 +582,13 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   });
   const inviteAction = (
     <div className="flex items-center gap-2">
-      <AntButton onClick={() => setInviteOpen(true)} autoInsertSpace={false}>
+      <Button variant="outline" onClick={() => setInviteOpen(true)}>
         {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
-      </AntButton>
-      <AntButton
-        type="primary"
-        icon={<Plus size={16} />}
-        onClick={() => setInviteEmailOpen(true)}
-        autoInsertSpace={false}
-      >
+      </Button>
+      <Button onClick={() => setInviteEmailOpen(true)}>
+        <Plus size={16} />
         {t("common:ORG_MEMBERS_INVITE")}
-      </AntButton>
+      </Button>
     </div>
   );
   return (

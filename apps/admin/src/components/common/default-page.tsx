@@ -2,7 +2,7 @@ import { Children, Fragment, isValidElement, type ReactNode, useState } from "re
 import clsx from "clsx";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Button } from "antd";
+import { Button } from "@celestial/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
 import { ApiError } from "@/lib/http";
@@ -49,10 +49,7 @@ function FavoriteToggle() {
     <Tooltip side="bottom">
       <TooltipTrigger asChild>
         <Button
-          type="text"
-          icon={
-            <BookmarkIcon size={16} strokeWidth={2} isHovered={hovered} isFilled={isFavorited} />
-          }
+          variant="ghost"
           onClick={() => toggle(pathname)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -61,8 +58,8 @@ function FavoriteToggle() {
             "text-label-secondary hover:text-foreground",
             isFavorited && "text-amber-500 hover:text-amber-600",
           )}
-          autoInsertSpace={false}
         >
+          <BookmarkIcon size={16} strokeWidth={2} isHovered={hovered} isFilled={isFavorited} />
           <span>{label}</span>
         </Button>
       </TooltipTrigger>

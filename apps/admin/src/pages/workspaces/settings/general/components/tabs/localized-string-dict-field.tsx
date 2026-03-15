@@ -1,6 +1,17 @@
-import { Button, Checkbox, Input, Select, Space, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { cn } from "@celestial/lib/utils";
+import { Button } from "@celestial/ui/button";
+import { Checkbox } from "@celestial/ui/checkbox";
+import { Input } from "@celestial/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 
 type LocaleRow = {
   locale: string;
@@ -65,8 +76,7 @@ export function LocalizedStringDictField(props: {
       .filter((loc) => loc && !usedLocales.has(loc))
       .map((loc) => ({ value: loc, label: loc }));
   }, [supportedLocales, usedLocales, value]);
-
-  const Editor = props.multiline ? Input.TextArea : Input;
+  const [pendingLocale, setPendingLocale] = useState<string | undefined>(undefined);
 
   const setValueForLocale = (locale: string, text: string) => {
     const next = { ...value };
@@ -89,23 +99,34 @@ export function LocalizedStringDictField(props: {
     if (!loc) return;
     if (usedLocales.has(loc)) return;
     setRows((prev) => [...prev, { locale: loc }]);
+    setPendingLocale(undefined);
   };
 
   return (
-    <Space direction="vertical" size={12} className="w-full">
+    <div className="grid w-full gap-3">
       <div className="flex items-center justify-between gap-3">
-        <Typography.Text type="secondary">{t("settings:SETTINGS_I18N_LOCALES")}</Typography.Text>
+        <span className="text-footnote text-label-secondary">
+          {t("settings:SETTINGS_I18N_LOCALES")}
+        </span>
         <Select
-          placeholder={t("settings:SETTINGS_I18N_ADD_LOCALE")}
-          options={addableLocaleOptions}
-          value={undefined}
-          onChange={(v) => addLocale(String(v))}
-          style={{ minWidth: 220 }}
+          value={pendingLocale}
+          onValueChange={(value) => addLocale(String(value))}
           disabled={!addableLocaleOptions.length}
-        />
+        >
+          <SelectTrigger className="min-w-55">
+            <SelectValue placeholder={t("settings:SETTINGS_I18N_ADD_LOCALE")} />
+          </SelectTrigger>
+          <SelectContent align="end" position="popper">
+            {addableLocaleOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <Space direction="vertical" size={10} className="w-full">
+      <div className="grid w-full gap-2.5">
         {rows.map((row) => {
           const locale = row.locale;
           const isDefault = locale === defaultLocale;
@@ -113,39 +134,52 @@ export function LocalizedStringDictField(props: {
           return (
             <div key={locale} className="rounded-md border border-border p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <Typography.Text className="font-mono">{locale}</Typography.Text>
-                <Space size={10}>
-                  <Checkbox checked={isDefault} onChange={() => onDefaultLocaleChange(locale)}>
-                    {t("settings:SETTINGS_I18N_DEFAULT_LOCALE")}
-                  </Checkbox>
+                <span className="font-mono text-footnote">{locale}</span>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-footnote text-label-secondary">
+                    <Checkbox
+                      checked={isDefault}
+                      onCheckedChange={() => onDefaultLocaleChange(locale)}
+                    />
+                    <span>{t("settings:SETTINGS_I18N_DEFAULT_LOCALE")}</span>
+                  </label>
                   <Button
-                    size="small"
-                    danger
-                    type="text"
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
                     onClick={() => removeLocale(locale)}
                     disabled={isDefault}
-                    autoInsertSpace={false}
                   >
                     {t("settings:SETTINGS_I18N_REMOVE_LOCALE")}
                   </Button>
-                </Space>
+                </div>
               </div>
 
-              <Editor
-                value={currentValue}
-                placeholder={props.placeholder}
-                autoSize={props.multiline ? { minRows: 3, maxRows: 6 } : undefined}
-                onChange={(e) => setValueForLocale(locale, e.target.value)}
-              />
+              {props.multiline ? (
+                <textarea
+                  value={currentValue}
+                  placeholder={props.placeholder}
+                  rows={3}
+                  onChange={(event) => setValueForLocale(locale, event.target.value)}
+                  className={cn(
+                    "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body shadow-sm transition-colors",
+                    "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  )}
+                />
+              ) : (
+                <Input
+                  value={currentValue}
+                  placeholder={props.placeholder}
+                  onChange={(event) => setValueForLocale(locale, event.target.value)}
+                />
+              )}
             </div>
           );
         })}
-      </Space>
+      </div>
 
-      <Typography.Text type="secondary" className="text-caption">
-        {t("settings:SETTINGS_I18N_HINT")}
-      </Typography.Text>
-    </Space>
+      <span className="text-caption text-label-secondary">{t("settings:SETTINGS_I18N_HINT")}</span>
+    </div>
   );
 }
 

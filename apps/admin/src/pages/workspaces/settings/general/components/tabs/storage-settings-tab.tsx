@@ -1,25 +1,35 @@
-import { Form, Input, InputNumber, Select } from "antd";
-import type { FormInstance } from "antd";
 import * as React from "react";
+import { Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
-import { Switch } from "@celestial/ui/switch";
-
 import { Accordion } from "@celestial/ui/accordion";
+import { Input } from "@celestial/ui/input";
+import { PasswordInput } from "@celestial/ui/password-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
+import { Switch } from "@celestial/ui/switch";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingActionItem } from "@celestial/ui/setting-action-item";
 import { SettingOverlayFooter } from "@celestial/ui/setting-overlay-footer";
 import { SettingPanel } from "@celestial/ui/setting-panel";
+
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
+import { NumberInput } from "@/components/ui/number-input";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
-import type { GeneralSettingsFormValues, StorageProvider } from "@/types/settings-general";
+import type { StorageProvider } from "@/types/settings-general";
 import {
   buildS3Summary,
   formatSummaryText,
   isValidHttpUrlOrAbsolutePath,
   normalizeOptionalString,
 } from "@/lib/settings/general/utils";
+import { getFieldErrorMessage, validateFormFields } from "../form-helpers";
 
 type StorageOverlayKey = "provider" | "publicBaseUrl" | "uploadPolicy" | "s3Config";
 
@@ -27,11 +37,9 @@ type StorageSettingsTabProps = GeneralSettingsTabBaseProps & {
   coreSecrets?: Record<string, boolean>;
 };
 
-function useStorageField(
-  form: FormInstance<GeneralSettingsFormValues>,
-  name: keyof GeneralSettingsFormValues,
-) {
-  return Form.useWatch(name as string, form) as unknown;
+function FieldMessage({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <div className="text-footnote text-destructive">{message}</div>;
 }
 
 export function StorageSettingsTab({
@@ -46,35 +54,30 @@ export function StorageSettingsTab({
   const { t } = useTranslation();
 
   const storageProvider =
-    (useStorageField(form, "storageProvider") as StorageProvider | undefined) ??
+    (useWatch({ control: form.control, name: "storageProvider" }) as StorageProvider | undefined) ??
     initialValues.storageProvider;
   const storagePublicBaseUrl =
-    (useStorageField(form, "storagePublicBaseUrl") as string | undefined) ??
+    useWatch({ control: form.control, name: "storagePublicBaseUrl" }) ??
     initialValues.storagePublicBaseUrl;
-
   const uploadChunkSizeMb =
-    (useStorageField(form, "uploadChunkSizeMb") as number | undefined) ??
+    useWatch({ control: form.control, name: "uploadChunkSizeMb" }) ??
     initialValues.uploadChunkSizeMb;
   const uploadMaxFileSizeMb =
-    (useStorageField(form, "uploadMaxFileSizeMb") as number | undefined) ??
+    useWatch({ control: form.control, name: "uploadMaxFileSizeMb" }) ??
     initialValues.uploadMaxFileSizeMb;
-
   const s3EndpointUrl =
-    (useStorageField(form, "s3EndpointUrl") as string | undefined) ?? initialValues.s3EndpointUrl;
-  const s3Region =
-    (useStorageField(form, "s3Region") as string | undefined) ?? initialValues.s3Region;
-  const s3Bucket =
-    (useStorageField(form, "s3Bucket") as string | undefined) ?? initialValues.s3Bucket;
+    useWatch({ control: form.control, name: "s3EndpointUrl" }) ?? initialValues.s3EndpointUrl;
+  const s3Region = useWatch({ control: form.control, name: "s3Region" }) ?? initialValues.s3Region;
+  const s3Bucket = useWatch({ control: form.control, name: "s3Bucket" }) ?? initialValues.s3Bucket;
   const s3AccessKeyId =
-    (useStorageField(form, "s3AccessKeyId") as string | undefined) ?? initialValues.s3AccessKeyId;
+    useWatch({ control: form.control, name: "s3AccessKeyId" }) ?? initialValues.s3AccessKeyId;
   const s3SecretAccessKey =
-    (useStorageField(form, "s3SecretAccessKey") as string | undefined) ??
+    useWatch({ control: form.control, name: "s3SecretAccessKey" }) ??
     initialValues.s3SecretAccessKey;
   const s3ForcePathStyle =
-    (useStorageField(form, "s3ForcePathStyle") as boolean | undefined) ??
-    initialValues.s3ForcePathStyle;
+    useWatch({ control: form.control, name: "s3ForcePathStyle" }) ?? initialValues.s3ForcePathStyle;
   const s3PresignExpiresSeconds =
-    (useStorageField(form, "s3PresignExpiresSeconds") as number | undefined) ??
+    useWatch({ control: form.control, name: "s3PresignExpiresSeconds" }) ??
     initialValues.s3PresignExpiresSeconds;
 
   const isStorageProviderDirty = (storageProvider || "") !== (initialValues.storageProvider || "");
@@ -111,13 +114,16 @@ export function StorageSettingsTab({
 
   const resetStorageProvider = () =>
     withSavingKey("reset:storageProvider", async () => {
-      form.setFieldValue("storageProvider", initialValues.storageProvider);
+      form.setValue("storageProvider", initialValues.storageProvider, { shouldDirty: false });
       await patch({ storage: { provider: initialValues.storageProvider } });
     });
 
   const resetStoragePublicBaseUrl = () =>
     withSavingKey("reset:storagePublicBaseUrl", async () => {
-      form.setFieldValue("storagePublicBaseUrl", initialValues.storagePublicBaseUrl);
+      form.setValue("storagePublicBaseUrl", initialValues.storagePublicBaseUrl, {
+        shouldDirty: false,
+      });
+      form.clearErrors("storagePublicBaseUrl");
       await patch({
         storage: { public_base_url: normalizeOptionalString(initialValues.storagePublicBaseUrl) },
       });
@@ -125,10 +131,11 @@ export function StorageSettingsTab({
 
   const resetUploadPolicy = () =>
     withSavingKey("reset:uploadPolicy", async () => {
-      form.setFieldsValue({
-        uploadChunkSizeMb: initialValues.uploadChunkSizeMb,
-        uploadMaxFileSizeMb: initialValues.uploadMaxFileSizeMb,
+      form.setValue("uploadChunkSizeMb", initialValues.uploadChunkSizeMb, { shouldDirty: false });
+      form.setValue("uploadMaxFileSizeMb", initialValues.uploadMaxFileSizeMb, {
+        shouldDirty: false,
       });
+      form.clearErrors(["uploadChunkSizeMb", "uploadMaxFileSizeMb"]);
       await patch({
         storage: {
           upload_chunk_size_mb: initialValues.uploadChunkSizeMb,
@@ -139,15 +146,16 @@ export function StorageSettingsTab({
 
   const resetS3Config = () =>
     withSavingKey("reset:s3Config", async () => {
-      form.setFieldsValue({
-        s3EndpointUrl: initialValues.s3EndpointUrl,
-        s3Region: initialValues.s3Region,
-        s3Bucket: initialValues.s3Bucket,
-        s3AccessKeyId: initialValues.s3AccessKeyId,
-        s3SecretAccessKey: "",
-        s3ForcePathStyle: initialValues.s3ForcePathStyle,
-        s3PresignExpiresSeconds: initialValues.s3PresignExpiresSeconds,
+      form.setValue("s3EndpointUrl", initialValues.s3EndpointUrl, { shouldDirty: false });
+      form.setValue("s3Region", initialValues.s3Region, { shouldDirty: false });
+      form.setValue("s3Bucket", initialValues.s3Bucket, { shouldDirty: false });
+      form.setValue("s3AccessKeyId", initialValues.s3AccessKeyId, { shouldDirty: false });
+      form.setValue("s3SecretAccessKey", "", { shouldDirty: false });
+      form.setValue("s3ForcePathStyle", initialValues.s3ForcePathStyle, { shouldDirty: false });
+      form.setValue("s3PresignExpiresSeconds", initialValues.s3PresignExpiresSeconds, {
+        shouldDirty: false,
       });
+      form.clearErrors(["s3EndpointUrl", "s3Bucket", "s3AccessKeyId", "s3PresignExpiresSeconds"]);
       await patch({
         storage: {
           s3_endpoint_url: normalizeOptionalString(initialValues.s3EndpointUrl),
@@ -162,13 +170,13 @@ export function StorageSettingsTab({
 
   const saveStorageProvider = () =>
     withSavingKey("storageProvider", async () => {
-      const values = await form.validateFields(["storageProvider"]);
+      const values = await validateFormFields(form, ["storageProvider"]);
       await patch({ storage: { provider: values.storageProvider } });
     });
 
   const saveStoragePublicBaseUrl = () =>
     withSavingKey("storagePublicBaseUrl", async () => {
-      const values = await form.validateFields(["storagePublicBaseUrl"]);
+      const values = await validateFormFields(form, ["storagePublicBaseUrl"]);
       await patch({
         storage: { public_base_url: normalizeOptionalString(values.storagePublicBaseUrl) },
       });
@@ -176,7 +184,7 @@ export function StorageSettingsTab({
 
   const saveUploadPolicy = () =>
     withSavingKey("uploadPolicy", async () => {
-      const values = await form.validateFields(["uploadChunkSizeMb", "uploadMaxFileSizeMb"]);
+      const values = await validateFormFields(form, ["uploadChunkSizeMb", "uploadMaxFileSizeMb"]);
       await patch({
         storage: {
           upload_chunk_size_mb: Number(values.uploadChunkSizeMb),
@@ -187,7 +195,7 @@ export function StorageSettingsTab({
 
   const saveS3Config = () =>
     withSavingKey("s3Config", async () => {
-      const values = await form.validateFields([
+      const values = await validateFormFields(form, [
         "s3EndpointUrl",
         "s3Region",
         "s3Bucket",
@@ -206,11 +214,10 @@ export function StorageSettingsTab({
         s3_presign_expires_seconds: Number(values.s3PresignExpiresSeconds),
       };
 
-      // Secret 字段由 API 掩码：只有用户提供了新值时才覆盖。
       const secret = String(values.s3SecretAccessKey || "").trim();
       if (secret) {
         patchValue.s3_secret_access_key = secret;
-        form.setFieldValue("s3SecretAccessKey", "");
+        form.setValue("s3SecretAccessKey", "", { shouldDirty: false });
       }
 
       await patch({ storage: patchValue });
@@ -218,6 +225,14 @@ export function StorageSettingsTab({
 
   const overlayConfigs = React.useMemo<readonly SettingOverlayConfig<StorageOverlayKey>[]>(() => {
     const makeResetVisible = (dirty: boolean, resetting: boolean) => dirty || resetting;
+    const storageProviderError = getFieldErrorMessage(form, "storageProvider");
+    const storagePublicBaseUrlError = getFieldErrorMessage(form, "storagePublicBaseUrl");
+    const uploadMaxFileSizeError = getFieldErrorMessage(form, "uploadMaxFileSizeMb");
+    const uploadChunkSizeError = getFieldErrorMessage(form, "uploadChunkSizeMb");
+    const s3EndpointError = getFieldErrorMessage(form, "s3EndpointUrl");
+    const s3BucketError = getFieldErrorMessage(form, "s3Bucket");
+    const s3AccessKeyIdError = getFieldErrorMessage(form, "s3AccessKeyId");
+    const s3PresignExpiresError = getFieldErrorMessage(form, "s3PresignExpiresSeconds");
 
     return [
       {
@@ -240,26 +255,37 @@ export function StorageSettingsTab({
           />
         ),
         content: () => (
-          <>
-            <div className="mb-4 text-label-secondary leading-relaxed">
+          <div className="space-y-4">
+            <div className="text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_PROVIDER_DIALOG_HELP")}
             </div>
-
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="storageProvider"
-              label={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
-              rules={[{ required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select
-                size="large"
-                options={[
-                  { value: "local", label: t("settings:SETTINGS_STORAGE_PROVIDER_LOCAL") },
-                  { value: "s3", label: t("settings:SETTINGS_STORAGE_PROVIDER_S3") },
-                ]}
-              />
-            </Form.Item>
-          </>
+              rules={{ required: t("settings:SETTINGS_VALIDATION_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
+                  </div>
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t("common:SELECT")} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      <SelectItem value="local">
+                        {t("settings:SETTINGS_STORAGE_PROVIDER_LOCAL")}
+                      </SelectItem>
+                      <SelectItem value="s3">
+                        {t("settings:SETTINGS_STORAGE_PROVIDER_S3")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldMessage message={storageProviderError} />
+                </div>
+              )}
+            />
+          </div>
         ),
       },
       {
@@ -285,33 +311,34 @@ export function StorageSettingsTab({
           />
         ),
         content: () => (
-          <>
-            <div className="mb-4 text-label-secondary leading-relaxed">
+          <div className="space-y-4">
+            <div className="text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_HELP")}
             </div>
-
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="storagePublicBaseUrl"
-              label={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
-              rules={[
-                {
-                  validator: async (_rule, value: string | undefined) => {
-                    const raw = (value || "").trim();
-                    if (!raw) return;
-                    if (isValidHttpUrlOrAbsolutePath(raw)) return;
-                    throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
-                  },
+              rules={{
+                validate: (value) => {
+                  const raw = String(value || "").trim();
+                  if (!raw || isValidHttpUrlOrAbsolutePath(raw)) return true;
+                  return t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID");
                 },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                size="large"
-                placeholder={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
-                allowClear
-              />
-            </Form.Item>
-          </>
+              }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
+                  </div>
+                  <Input
+                    {...field}
+                    placeholder={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
+                  />
+                  <FieldMessage message={storagePublicBaseUrlError} />
+                </div>
+              )}
+            />
+          </div>
         ),
       },
       {
@@ -334,41 +361,74 @@ export function StorageSettingsTab({
           />
         ),
         content: () => (
-          <>
-            <div className="mb-4 text-label-secondary leading-relaxed">
+          <div className="space-y-4">
+            <div className="text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_HELP")}
             </div>
+            <Controller
+              control={form.control}
+              name="uploadMaxFileSizeMb"
+              rules={{
+                validate: (value) => {
+                  if (typeof value !== "number" || !Number.isFinite(value) || value < 1) {
+                    return t("settings:SETTINGS_VALIDATION_REQUIRED");
+                  }
+                  return true;
+                },
+              }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
+                  </div>
+                  <NumberInput value={field.value} min={1} onValueChange={field.onChange} />
+                  <FieldMessage message={uploadMaxFileSizeError} />
+                </div>
+              )}
+            />
 
-            <div className="grid grid-cols-1 gap-3">
-              <Form.Item<GeneralSettingsFormValues>
-                name="uploadMaxFileSizeMb"
-                label={t("settings:SETTINGS_STORAGE_UPLOAD_MAX_FILE_SIZE_MB_LABEL")}
-                rules={[{ required: true, type: "number", min: 1 }]}
-                style={{ marginBottom: 0 }}
+            <Accordion type="single" collapsible className="px-0">
+              <SettingAccordionItem
+                value="uploadPolicyAdvanced"
+                title={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ADVANCED_TITLE")}
+                description={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ADVANCED_DESC")}
+                disabled={disabled}
+                keepRendered
               >
-                <InputNumber size="large" min={1} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Accordion type="single" collapsible className="px-0">
-                <SettingAccordionItem
-                  value="uploadPolicyAdvanced"
-                  title={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ADVANCED_TITLE")}
-                  description={t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_ADVANCED_DESC")}
-                  disabled={disabled}
-                  keepRendered
-                >
-                  <Form.Item<GeneralSettingsFormValues>
-                    name="uploadChunkSizeMb"
-                    label={t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
-                    rules={[{ required: true, type: "number", min: 1, max: 128 }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber size="large" min={1} max={128} style={{ width: "100%" }} />
-                  </Form.Item>
-                </SettingAccordionItem>
-              </Accordion>
-            </div>
-          </>
+                <Controller
+                  control={form.control}
+                  name="uploadChunkSizeMb"
+                  rules={{
+                    validate: (value) => {
+                      if (
+                        typeof value !== "number" ||
+                        !Number.isFinite(value) ||
+                        value < 1 ||
+                        value > 128
+                      ) {
+                        return t("settings:SETTINGS_VALIDATION_REQUIRED");
+                      }
+                      return true;
+                    },
+                  }}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <div className="text-footnote font-medium">
+                        {t("settings:SETTINGS_STORAGE_UPLOAD_CHUNK_SIZE_MB_LABEL")}
+                      </div>
+                      <NumberInput
+                        value={field.value}
+                        min={1}
+                        max={128}
+                        onValueChange={field.onChange}
+                      />
+                      <FieldMessage message={uploadChunkSizeError} />
+                    </div>
+                  )}
+                />
+              </SettingAccordionItem>
+            </Accordion>
+          </div>
         ),
       },
       {
@@ -391,101 +451,163 @@ export function StorageSettingsTab({
           />
         ),
         content: () => (
-          <>
-            <div className="mb-4 text-label-secondary leading-relaxed">
+          <div className="space-y-4">
+            <div className="text-label-secondary leading-relaxed">
               {t("settings:SETTINGS_STORAGE_S3_CONFIG_SHEET_HELP")}
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
-              <Form.Item<GeneralSettingsFormValues>
-                name="s3EndpointUrl"
-                label={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
-                rules={[
-                  {
-                    validator: async (_rule, value: string | undefined) => {
-                      const raw = (value || "").trim();
-                      if (!raw) throw new Error(t("settings:SETTINGS_VALIDATION_REQUIRED"));
-                      try {
-                        const url = new URL(raw);
-                        if (url.protocol !== "http:" && url.protocol !== "https:") {
-                          throw new Error("invalid protocol");
-                        }
-                      } catch {
-                        throw new Error(t("settings:SETTINGS_STORAGE_VALIDATION_URL_INVALID"));
-                      }
-                    },
-                  },
-                ]}
-                style={{ marginBottom: 0 }}
-              >
-                <Input
-                  size="large"
-                  placeholder={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
-                  allowClear
-                />
-              </Form.Item>
+            <Controller
+              control={form.control}
+              name="s3EndpointUrl"
+              rules={{
+                validate: (value) => {
+                  const raw = String(value || "").trim();
+                  if (!raw) return t("settings:SETTINGS_VALIDATION_REQUIRED");
+                  try {
+                    const url = new URL(raw);
+                    if (url.protocol !== "http:" && url.protocol !== "https:") {
+                      throw new Error("invalid protocol");
+                    }
+                    return true;
+                  } catch {
+                    return t("settings:SETTINGS_STORAGE_VALIDATION_URL_INVALID");
+                  }
+                },
+              }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_LABEL")}
+                  </div>
+                  <Input
+                    {...field}
+                    placeholder={t("settings:SETTINGS_STORAGE_S3_ENDPOINT_URL_PLACEHOLDER")}
+                  />
+                  <FieldMessage message={s3EndpointError} />
+                </div>
+              )}
+            />
 
-              <Form.Item<GeneralSettingsFormValues>
-                name="s3Region"
-                label={t("settings:SETTINGS_STORAGE_S3_REGION_LABEL")}
-                style={{ marginBottom: 0 }}
-              >
-                <Input size="large" allowClear />
-              </Form.Item>
+            <Controller
+              control={form.control}
+              name="s3Region"
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_S3_REGION_LABEL")}
+                  </div>
+                  <Input {...field} />
+                </div>
+              )}
+            />
 
-              <Form.Item<GeneralSettingsFormValues>
-                name="s3Bucket"
-                label={t("settings:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
-                rules={[{ required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") }]}
-                style={{ marginBottom: 0 }}
-              >
-                <Input size="large" allowClear />
-              </Form.Item>
+            <Controller
+              control={form.control}
+              name="s3Bucket"
+              rules={{ required: t("settings:SETTINGS_VALIDATION_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
+                  </div>
+                  <Input {...field} />
+                  <FieldMessage message={s3BucketError} />
+                </div>
+              )}
+            />
 
-              <Form.Item<GeneralSettingsFormValues>
-                name="s3AccessKeyId"
-                label={t("settings:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
-                rules={[{ required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") }]}
-                style={{ marginBottom: 0 }}
-              >
-                <Input size="large" allowClear />
-              </Form.Item>
+            <Controller
+              control={form.control}
+              name="s3AccessKeyId"
+              rules={{ required: t("settings:SETTINGS_VALIDATION_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_S3_ACCESS_KEY_ID_LABEL")}
+                  </div>
+                  <Input {...field} />
+                  <FieldMessage message={s3AccessKeyIdError} />
+                </div>
+              )}
+            />
 
-              <Form.Item<GeneralSettingsFormValues>
-                name="s3SecretAccessKey"
-                label={t("settings:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
-                style={{ marginBottom: 0 }}
-              >
-                <Input.Password size="large" placeholder="••••••••" />
-              </Form.Item>
+            <Controller
+              control={form.control}
+              name="s3SecretAccessKey"
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-footnote font-medium">
+                      {t("settings:SETTINGS_STORAGE_S3_SECRET_ACCESS_KEY_LABEL")}
+                    </div>
+                    <div className="text-caption text-label-secondary">
+                      {hasS3Secret
+                        ? t("settings:SETTINGS_STORAGE_S3_SECRET_SET")
+                        : t("settings:SETTINGS_STORAGE_S3_SECRET_NOT_SET")}
+                    </div>
+                  </div>
+                  <PasswordInput
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    placeholder="••••••••"
+                  />
+                </div>
+              )}
+            />
 
-              <Form.Item<GeneralSettingsFormValues>
-                name="s3ForcePathStyle"
-                label={t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
-                style={{ marginBottom: 0 }}
-              >
-                <Switch
-                  checked={Boolean(s3ForcePathStyle)}
-                  onCheckedChange={(v) => form.setFieldValue("s3ForcePathStyle", v)}
-                />
-              </Form.Item>
+            <Controller
+              control={form.control}
+              name="s3ForcePathStyle"
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
+                  </div>
+                  <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
+                </div>
+              )}
+            />
 
-              <Form.Item<GeneralSettingsFormValues>
-                name="s3PresignExpiresSeconds"
-                label={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
-                rules={[{ required: true, type: "number", min: 60, max: 86400 }]}
-                style={{ marginBottom: 0 }}
-              >
-                <InputNumber size="large" min={60} max={86400} style={{ width: "100%" }} />
-              </Form.Item>
-            </div>
-          </>
+            <Controller
+              control={form.control}
+              name="s3PresignExpiresSeconds"
+              rules={{
+                validate: (value) => {
+                  if (
+                    typeof value !== "number" ||
+                    !Number.isFinite(value) ||
+                    value < 60 ||
+                    value > 86400
+                  ) {
+                    return t("settings:SETTINGS_VALIDATION_REQUIRED");
+                  }
+                  return true;
+                },
+              }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
+                  </div>
+                  <NumberInput
+                    value={field.value}
+                    min={60}
+                    max={86400}
+                    onValueChange={field.onChange}
+                  />
+                  <FieldMessage message={s3PresignExpiresError} />
+                </div>
+              )}
+            />
+          </div>
         ),
       },
     ] as const;
   }, [
+    coreSecrets,
     disabled,
     form,
+    hasS3Secret,
     isResettingS3Config,
     isResettingStorageProvider,
     isResettingStoragePublicBaseUrl,

@@ -1,8 +1,9 @@
-import { Button, Pagination } from "antd";
 import { MoreVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { ContentGuard } from "@/components/common/content-guard";
+import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,12 +61,9 @@ export function ExtensionsInstalledTab({
             actions={
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<MoreVertical className="size-3.5" />}
-                    autoInsertSpace={false}
-                  />
+                  <Button variant="ghost" size="icon-sm">
+                    <MoreVertical className="size-3.5" />
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {buildMenuItems(p).map((item) =>
@@ -92,13 +90,13 @@ export function ExtensionsInstalledTab({
 
       {total > pageSize ? (
         <div className="mt-6 flex justify-end">
-          <Pagination
-            current={page}
-            pageSize={pageSize}
+          <DataPaginationControls
+            page={page}
+            size={pageSize}
             total={total}
-            onChange={onPageChange}
-            showSizeChanger={false}
-            showTotal={(n) => t("plugin:PLUGIN_CENTER_PAGINATION_TOTAL", { total: n })}
+            onChange={(nextPage) => onPageChange(nextPage)}
+            pageSizeOptions={[pageSize]}
+            t={t}
           />
         </div>
       ) : null}

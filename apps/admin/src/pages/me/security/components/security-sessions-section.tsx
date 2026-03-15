@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Button } from "antd";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
@@ -13,6 +12,7 @@ import {
   useDataTableDensityPreference,
   type PageData,
 } from "@celestial/ui/data-table";
+import { Button } from "@celestial/ui/button";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 
 import {
@@ -142,13 +142,7 @@ function useSessionRevocationMutations(
 
 function SessionsAction(props: { loading: boolean; onClick: () => void; label: string }) {
   return (
-    <Button
-      danger
-      type="primary"
-      loading={props.loading}
-      onClick={props.onClick}
-      autoInsertSpace={false}
-    >
+    <Button variant="destructive" loading={props.loading} onClick={props.onClick}>
       {props.label}
     </Button>
   );

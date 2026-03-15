@@ -1,9 +1,12 @@
-import { Button, Form, Input } from "antd";
 import { UserCog } from "lucide-react";
 import { useCallback } from "react";
 
+import { Button } from "@celestial/ui/button";
+import { Form } from "@celestial/ui/form";
+import { Input } from "@celestial/ui/input";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
+import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";
 
 function dialogFieldLabel(title: string, description: string) {
@@ -20,18 +23,27 @@ export function OrganizationSettingsAssignRoleDialog(props: {
 }) {
   const c = props.controller;
   const { t } = c;
+  const confirmNameField = c.assignRoleDialogForm.register("confirmName", {
+    required: t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_REQUIRED"),
+    validate: (value) =>
+      String(value || "").trim() === c.persistedOrgName
+        ? true
+        : t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_MISMATCH"),
+  });
 
-  const handleConfirm = useCallback(() => {
-    void c.withSavingKey("organization:assignRoleAll", async () => {
-      const roleValues = await c.form.validateFields(["assignRoleCode"]);
-      const values = await c.assignRoleDialogForm.validateFields();
-      await c.assignRoleMutation.mutateAsync({
-        roleCode: String(roleValues.assignRoleCode),
-        confirmName: String(values.confirmName || "").trim(),
+  const handleConfirm = useCallback(
+    c.assignRoleDialogForm.handleSubmit(async (values) => {
+      void c.withSavingKey("organization:assignRoleAll", async () => {
+        const roleValues = await validateFormFields(c.form, ["assignRoleCode"]);
+        await c.assignRoleMutation.mutateAsync({
+          roleCode: String(roleValues.assignRoleCode),
+          confirmName: String(values.confirmName || "").trim(),
+        });
+        c.closeAssignRoleDialog();
       });
-      c.closeAssignRoleDialog();
-    });
-  }, [c]);
+    }),
+    [c],
+  );
 
   return (
     <SettingDialog
@@ -43,58 +55,44 @@ export function OrganizationSettingsAssignRoleDialog(props: {
       description={t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_DESC")}
       footer={
         <div className="flex w-full justify-end gap-2">
-          <Button type="text" onClick={c.closeAssignRoleDialog} autoInsertSpace={false}>
+          <Button type="button" variant="ghost" onClick={c.closeAssignRoleDialog}>
             {t("common:CANCEL")}
           </Button>
           <Button
-            autoInsertSpace={false}
-            type="primary"
-            icon={<UserCog className="size-4" aria-hidden="true" />}
+            type="button"
             loading={c.savingKey === "organization:assignRoleAll"}
             disabled={c.disabled || !c.isOwner || c.roleOptions.length === 0}
-            onClick={handleConfirm}
+            onClick={() => void handleConfirm()}
           >
-            {t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM")}
+            <span className="inline-flex items-center gap-2">
+              <UserCog className="size-4" aria-hidden="true" />
+              {t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM")}
+            </span>
           </Button>
         </div>
       }
     >
-      <Form
-        form={c.assignRoleDialogForm}
-        layout="vertical"
-        requiredMark={false}
-        autoComplete="off"
-        className="grid gap-4 py-2"
-      >
-        <Form.Item
-          name="confirmName"
-          label={dialogFieldLabel(
-            t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL"),
-            t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_DIALOG_CONFIRM_DESC", {
-              role: c.assignRoleLabel,
-            }),
-          )}
-          rules={[
-            {
-              required: true,
-              message: t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_REQUIRED"),
-            },
-            {
-              validator: async (_, value) => {
-                if (String(value || "").trim() === c.persistedOrgName) {
-                  return;
-                }
-                throw new Error(t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_MISMATCH"));
-              },
-            },
-          ]}
-          style={{ marginBottom: 0 }}
-        >
-          <Input
-            size="large"
-            placeholder={t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_PLACEHOLDER")}
-          />
-        </Form.Item>
+      <Form {...c.assignRoleDialogForm}>
+        <div className="grid gap-4 py-2">
+          <label className="grid gap-2">
+            {dialogFieldLabel(
+              t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL"),
+              t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_DIALOG_CONFIRM_DESC", {
+                role: c.assignRoleLabel,
+              }),
+            )}
+            <Input
+              {...confirmNameField}
+              placeholder={t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM_NAME_PLACEHOLDER")}
+              aria-invalid={
+                getFieldErrorMessage(c.assignRoleDialogForm, "confirmName") ? true : undefined
+              }
+            />
+            <div className="text-footnote text-destructive">
+              {getFieldErrorMessage(c.assignRoleDialogForm, "confirmName")}
+            </div>
+          </label>
+        </div>
       </Form>
     </SettingDialog>
   );

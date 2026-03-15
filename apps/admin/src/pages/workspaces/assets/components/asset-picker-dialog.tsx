@@ -1,11 +1,12 @@
-import type { InputRef } from "antd";
-import { Button, Input, Masonry, Pagination } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
-import { Search, UploadCloud } from "lucide-react";
+import { Masonry } from "masonic";
+import { Search, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@celestial/lib/utils";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import { LoaderOne } from "@celestial/ui/loader";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { AssetUploadDialog } from "./asset-upload-dialog";
@@ -26,6 +27,7 @@ import { AssetMasonryTile } from "./asset-masonry-card";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { AssetsFilterPopover, type AssetsFilters } from "./assets-filter-popover";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
+import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 
 export type AssetPickerDialogValue = {
   assetIds: string[];
@@ -218,7 +220,7 @@ export function AssetPickerDialog(props: {
     confirmSelectionAndClose(new Set([asset.id]));
   };
 
-  const searchInputRef = useRef<InputRef>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
     if (!props.open) return;
     // Focus search input for faster workflows (especially in editor insertion).
@@ -256,24 +258,22 @@ export function AssetPickerDialog(props: {
           <>
             {props.allowClear ? (
               <Button
-                danger
+                variant="destructive"
                 onClick={() => {
                   props.onConfirm({ assetIds: [] });
                   props.onOpenChange(false);
                 }}
-                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
               </Button>
             ) : null}
-            <Button type="text" onClick={() => props.onOpenChange(false)} autoInsertSpace={false}>
+            <Button variant="outline" onClick={() => props.onOpenChange(false)}>
               {t("common:CANCEL")}
             </Button>
             <Button
-              type="primary"
+              variant="default"
               disabled={selectedIds.size <= 0}
               onClick={() => confirmSelectionAndClose()}
-              autoInsertSpace={false}
             >
               {t("common:CONFIRM")}
             </Button>
@@ -291,16 +291,27 @@ export function AssetPickerDialog(props: {
                 <div className="text-label-secondary">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
                 </div>
-                <Input
-                  className="w-full max-w-[320px]"
-                  ref={searchInputRef}
-                  allowClear
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
-                  variant="filled"
-                  prefix={<Search size={16} className="text-label-secondary" />}
-                />
+                <div className="relative w-full max-w-[320px]">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-label-secondary" />
+                  <Input
+                    className="w-full pl-9 pr-9"
+                    ref={searchInputRef}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+                  />
+                  {searchInput ? (
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="absolute top-1/2 right-1.5 -translate-y-1/2"
+                      onClick={() => setSearchInput("")}
+                      aria-label={t("common:CLEAR")}
+                    >
+                      <X size={14} />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 self-end">
@@ -323,13 +334,8 @@ export function AssetPickerDialog(props: {
 
             <div className="flex items-center gap-2">
               {allowUpload ? (
-                <Button
-                  type="primary"
-                  icon={<UploadCloud size={16} />}
-                  onClick={() => setUploadOpen(true)}
-                  disabled={isFetching}
-                  autoInsertSpace={false}
-                >
+                <Button variant="default" onClick={() => setUploadOpen(true)} disabled={isFetching}>
+                  <UploadCloud size={16} />
                   {t("assets:ASSET_ACTION_UPLOAD")}
                 </Button>
               ) : null}
@@ -339,12 +345,12 @@ export function AssetPickerDialog(props: {
           {/* Breadcrumbs */}
           <div className="px-6 flex items-center gap-2 text-footnote">
             <Button
-              type="text"
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setCurrentFolderId(null);
                 setFocusedFolderId(null);
               }}
-              autoInsertSpace={false}
             >
               {t("assets:ASSET_BREADCRUMB_ROOT")}
             </Button>
@@ -352,13 +358,12 @@ export function AssetPickerDialog(props: {
               <div key={String(f.id)} className="flex items-center gap-2">
                 <span className="text-label-secondary">/</span>
                 <Button
-                  type="text"
-                  size="small"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setCurrentFolderId(String(f.id));
                     setFocusedFolderId(null);
                   }}
-                  autoInsertSpace={false}
                 >
                   {f.name}
                 </Button>
@@ -389,9 +394,6 @@ export function AssetPickerDialog(props: {
               </div>
             ) : (
               <Masonry
-                gutter={[16, 16]}
-                columns={{ xs: 1, sm: 2, md: 3, xl: 4, xxl: 5 }}
-                fresh
                 items={masonryEntries.map((it) => ({
                   key:
                     it.kind === "asset"
@@ -401,7 +403,15 @@ export function AssetPickerDialog(props: {
                         : "folder:__up__",
                   data: it,
                 }))}
-                itemRender={(info) => {
+                itemKey={(item) => item.key}
+                columnWidth={220}
+                columnGutter={16}
+                rowGutter={16}
+                maxColumnCount={5}
+                itemHeightEstimate={320}
+                overscanBy={1}
+                render={({ data }) => {
+                  const info = data;
                   const entry = info.data as PickerMasonryEntry;
                   if (entry.kind === "folderUp") {
                     return (
@@ -485,14 +495,14 @@ export function AssetPickerDialog(props: {
             <div className="text-caption text-label-secondary">
               {isFetching ? t("common:LOADING") : null}
             </div>
-            <Pagination
-              size="small"
-              showSizeChanger
-              current={page}
-              pageSize={pageSize}
+            <DataPaginationControls
+              page={page}
+              size={pageSize}
               total={total}
+              t={t}
+              pageSizeOptions={[12, 24, 48, 96]}
               onChange={(nextPage, nextSize) => {
-                if (typeof nextSize === "number" && nextSize !== pageSize) {
+                if (nextSize !== pageSize) {
                   setPageSize(nextSize);
                   setPage(1);
                   return;

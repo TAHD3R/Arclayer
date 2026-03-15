@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Button } from "antd";
 import {
   ArrowLeft,
   Check,
@@ -32,6 +31,7 @@ import {
   FloatingPanelTrigger,
   useFloatingPanel,
 } from "@celestial/ui/floating-panel";
+import { Button } from "@celestial/ui/button";
 import { useSidebar } from "@celestial/ui/sidebar";
 
 import type { OrganizationWorkspace } from "@/types/api";
@@ -159,9 +159,9 @@ type OrganizationOption = {
 function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
   return (
     <Button
-      htmlType="button"
-      type="text"
-      autoInsertSpace={false}
+      type="button"
+      variant="ghost"
+      size="icon"
       className={cn(collapseButtonClassName, props.className)}
       aria-label={props.ariaLabel}
       onClick={(e) => {
@@ -177,9 +177,9 @@ function CollapseButton(props: { ariaLabel: string; onClick: () => void; classNa
 function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void }) {
   return (
     <Button
-      htmlType="button"
-      type="text"
-      autoInsertSpace={false}
+      type="button"
+      variant="ghost"
+      size="icon"
       className={collapsedCollapseButtonClassName}
       aria-label={props.ariaLabel}
       onClick={props.onClick}
@@ -223,25 +223,23 @@ function OrgActionsSection(props: { onMembers: () => void; onSettings: () => voi
   return (
     <div className="flex items-center gap-2">
       <Button
-        htmlType="button"
-        type="text"
-        size="small"
-        autoInsertSpace={false}
-        icon={<Settings className="h-3.5 w-3.5" aria-hidden="true" />}
+        type="button"
+        variant="ghost"
+        size="sm"
         className="font-medium"
         onClick={props.onSettings}
       >
+        <Settings className="h-3.5 w-3.5" aria-hidden="true" />
         {t("common:WORKSPACE_SWITCHER_ORG_SETTINGS")}
       </Button>
       <Button
-        htmlType="button"
-        type="text"
-        size="small"
-        autoInsertSpace={false}
-        icon={<Users className="h-3.5 w-3.5" aria-hidden="true" />}
+        type="button"
+        variant="ghost"
+        size="sm"
         className="font-medium"
         onClick={props.onMembers}
       >
+        <Users className="h-3.5 w-3.5" aria-hidden="true" />
         {t("nav:NAV_ORG_MEMBERS")}
       </Button>
     </div>
@@ -683,8 +681,8 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
           )}
         >
           <Button
-            type="text"
-            autoInsertSpace={false}
+            type="button"
+            variant="ghost"
             aria-label={backLabel}
             className={cn(
               sidebarTriggerButtonClassName,

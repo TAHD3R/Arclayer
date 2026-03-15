@@ -5,7 +5,6 @@ import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { Pin, PinOff, X } from "lucide-react";
 import { motion } from "motion/react";
-import { Button } from "antd";
 
 import { archiveNotification, listNotifications, markNotificationRead } from "@/api/notifications";
 import type { NotificationItem } from "@/types/api";
@@ -20,6 +19,7 @@ import {
   ChromeTabsContent,
 } from "@celestial/ui/chrome-tabs";
 import { LoaderOne } from "@celestial/ui/loader";
+import { Button } from "@celestial/ui/button";
 import { useNowTick } from "@celestial/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
@@ -287,25 +287,27 @@ export function AdminNotificationsPanel({
             {t("NOTIFICATIONS_PAGE_TITLE")}
           </span>
           <Button
-            type="text"
-            icon={
-              isPinned ? (
-                <PinOff className="size-4" aria-hidden="true" />
-              ) : (
-                <Pin className="size-4" aria-hidden="true" />
-              )
-            }
+            type="button"
+            variant="ghost"
+            size="icon"
             aria-label={isPinned ? t("NOTIFICATIONS_PANEL_UNPIN") : t("NOTIFICATIONS_PANEL_PIN")}
             onClick={() => onPinChange(!isPinned)}
-            autoInsertSpace={false}
-          />
+          >
+            {isPinned ? (
+              <PinOff className="size-4" aria-hidden="true" />
+            ) : (
+              <Pin className="size-4" aria-hidden="true" />
+            )}
+          </Button>
           <Button
-            type="text"
-            icon={<X className="size-4" aria-hidden="true" />}
+            type="button"
+            variant="ghost"
+            size="icon"
             aria-label={t("NOTIFICATIONS_PANEL_CLOSE")}
             onClick={onClose}
-            autoInsertSpace={false}
-          />
+          >
+            <X className="size-4" aria-hidden="true" />
+          </Button>
         </div>
         <p className="mt-0.5 text-label-secondary">{t("NOTIFICATIONS_PANEL_DESC")}</p>
       </div>

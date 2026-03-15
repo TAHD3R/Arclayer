@@ -1,12 +1,12 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Button as AntButton, Form } from "antd";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { OrganizationWorkspace } from "@/types/api";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { Button } from "@celestial/ui/button";
 import { ComplexDialog } from "@celestial/ui/complex-dialog";
 import { ChromeTabsContent } from "@celestial/ui/chrome-tabs";
 
@@ -47,7 +47,8 @@ type Controller = {
   setViewMode: Dispatch<SetStateAction<OrganizationWorkspacesViewMode>>;
   createOpen: boolean;
   setCreateOpen: Dispatch<SetStateAction<boolean>>;
-  createForm: ReturnType<typeof Form.useForm<CreateWorkspaceFormValues>>[0];
+  createValues: CreateWorkspaceFormValues;
+  setCreateValues: Dispatch<SetStateAction<CreateWorkspaceFormValues>>;
   confirmArchive: OrganizationWorkspace | null;
   setConfirmArchive: Dispatch<SetStateAction<OrganizationWorkspace | null>>;
   confirmDelete: OrganizationWorkspace | null;
@@ -126,10 +127,13 @@ function useOrganizationWorkspacesDialogController(args: {
   const [tab, setTab] = useState<OrganizationWorkspacesTab>(args.initialTab);
   const [viewMode, setViewMode] = useState<OrganizationWorkspacesViewMode>("card");
   const [createOpen, setCreateOpen] = useState(false);
+  const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>({
+    name: "",
+    description: "",
+  });
   const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
-  const [createForm] = Form.useForm<CreateWorkspaceFormValues>();
 
   useEffect(() => {
     if (args.open && args.autoOpenCreate) setCreateOpen(true);
@@ -154,7 +158,7 @@ function useOrganizationWorkspacesDialogController(args: {
     t,
     onCreateSuccess: () => {
       setCreateOpen(false);
-      createForm.resetFields();
+      setCreateValues({ name: "", description: "" });
     },
     onArchiveSuccess: () => setConfirmArchive(null),
     onDeleteSuccess: () => {
@@ -209,7 +213,8 @@ function useOrganizationWorkspacesDialogController(args: {
     setViewMode,
     createOpen,
     setCreateOpen,
-    createForm,
+    createValues,
+    setCreateValues,
     confirmArchive,
     setConfirmArchive,
     confirmDelete,
@@ -241,14 +246,10 @@ function DialogHeaderActions(props: {
         value={props.viewMode}
         onChange={props.onViewModeChange}
       />
-      <AntButton
-        type="primary"
-        icon={<Plus size={16} />}
-        onClick={props.onCreateClick}
-        autoInsertSpace={false}
-      >
+      <Button variant="default" onClick={props.onCreateClick}>
+        <Plus size={16} />
         {props.t("common:ORG_WORKSPACES_CREATE")}
-      </AntButton>
+      </Button>
     </div>
   );
 }
@@ -359,7 +360,8 @@ function OrganizationWorkspacesDialogModals(props: {
   createDialog: {
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
-    form: ReturnType<typeof Form.useForm<CreateWorkspaceFormValues>>[0];
+    values: CreateWorkspaceFormValues;
+    setValues: Dispatch<SetStateAction<CreateWorkspaceFormValues>>;
     pending: boolean;
     onSubmit: (values: CreateWorkspaceFormValues) => Promise<void>;
   };
@@ -442,7 +444,8 @@ export function OrganizationWorkspacesDialog({
         createDialog={{
           open: c.createOpen,
           setOpen: c.setCreateOpen,
-          form: c.createForm,
+          values: c.createValues,
+          setValues: c.setCreateValues,
           pending: c.mutations.createMutation.isPending,
           onSubmit: async (values) => {
             await c.mutations.createMutation.mutateAsync(values);

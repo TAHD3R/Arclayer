@@ -1,6 +1,6 @@
-import { Avatar, type AvatarProps } from "antd";
 import type { CSSProperties } from "react";
 
+import { cn } from "@celestial/lib/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
 
@@ -9,7 +9,7 @@ type EntityAvatarShape = "circle" | "square";
 type EntityAvatarProps = {
   name?: string | null;
   assetRef?: string | null;
-  size?: AvatarProps["size"];
+  size?: number;
   className?: string;
   style?: CSSProperties;
   fallbackLabel: string;
@@ -26,17 +26,25 @@ function resolveAvatarName(name: string | null | undefined, fallbackLabel: strin
 function EntityAvatar(props: EntityAvatarProps) {
   const label = resolveAvatarName(props.name, props.fallbackLabel);
   const src = resolveAssetRefToPublicUrlPath(props.assetRef) ?? undefined;
+  const size = props.size ?? 32;
+  const shapeClassName = props.shape === "circle" ? "rounded-full" : "rounded-md";
 
   return (
-    <Avatar
-      size={props.size}
-      shape={props.shape}
-      className={props.className}
-      style={props.style}
-      src={src}
+    <div
+      className={cn(
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden bg-muted text-footnote font-medium text-muted-foreground ring-1 ring-border/60",
+        shapeClassName,
+        props.className,
+      )}
+      style={{ width: size, height: size, ...props.style }}
+      aria-label={label}
     >
-      {initialsFromName(label)}
-    </Avatar>
+      {src ? (
+        <img src={src} alt={label} className="size-full object-cover" />
+      ) : (
+        <span>{initialsFromName(label)}</span>
+      )}
+    </div>
   );
 }
 

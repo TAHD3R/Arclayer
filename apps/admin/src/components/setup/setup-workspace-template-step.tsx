@@ -1,12 +1,15 @@
-import { Button, Card, Form, Input } from "antd";
 import { Check, FileText, Globe, Newspaper } from "lucide-react";
 import { type ComponentType, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { UseFormReturn } from "react-hook-form";
 import clsx from "clsx";
 
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { Accordion } from "@celestial/ui/accordion";
+import { Button } from "@celestial/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@celestial/ui/card";
 import { SETUP_WORKSPACE_TEMPLATE_KEYS } from "@/lib/setup-template";
+import { SetupFieldShell, SetupInputControl, SetupTextarea } from "./setup-form-controls";
 import type { SetupSiteDraft, SetupWorkspaceTemplate } from "@/types/stores";
 
 const TEMPLATE_ICON: Record<SetupWorkspaceTemplate, ComponentType<{ size?: number }>> = {
@@ -16,19 +19,12 @@ const TEMPLATE_ICON: Record<SetupWorkspaceTemplate, ComponentType<{ size?: numbe
 };
 
 export function SetupWorkspaceTemplateStep(props: {
-  form: ReturnType<typeof Form.useForm<SetupSiteDraft>>[0];
+  form: UseFormReturn<SetupSiteDraft>;
   disabled?: boolean;
-  onValuesChange: (changed: Partial<SetupSiteDraft>, values: Partial<SetupSiteDraft>) => void;
   onTemplateSelect: (templateKey: SetupWorkspaceTemplate) => void;
 }) {
   const { t } = useTranslation();
-  const selectedTemplate = Form.useWatch("templateKey", props.form) as
-    | SetupWorkspaceTemplate
-    | undefined;
-  const workspaceName = Form.useWatch("workspaceName", props.form) as string | undefined;
-  const siteName = Form.useWatch("siteName", props.form) as string | undefined;
-  const siteUrl = Form.useWatch("siteUrl", props.form) as string | undefined;
-  const siteDescription = Form.useWatch("siteDescription", props.form) as string | undefined;
+  const values = props.form.watch();
 
   const templateItems = useMemo(
     () =>
@@ -41,18 +37,11 @@ export function SetupWorkspaceTemplateStep(props: {
   );
 
   return (
-    <Form<SetupSiteDraft>
-      form={props.form}
-      layout="vertical"
-      requiredMark={false}
-      autoComplete="off"
-      disabled={props.disabled}
-      onValuesChange={props.onValuesChange}
-    >
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3" style={{ marginBottom: 18 }}>
+    <div className="grid gap-5">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {templateItems.map((template) => {
           const Icon = TEMPLATE_ICON[template.key];
-          const selected = selectedTemplate === template.key;
+          const selected = values.templateKey === template.key;
 
           return (
             <Card
@@ -61,117 +50,52 @@ export function SetupWorkspaceTemplateStep(props: {
                 "cursor-pointer border transition-all duration-200 shadow-xs hover:shadow-sm",
                 selected ? "border-primary bg-primary/7" : "border-border/70",
               )}
-              styles={{ body: { paddingTop: 14, paddingBottom: 14 } }}
-              cover={
-                <div className="h-28 border-b border-border/50 bg-muted/35">
-                  {/* Template cover image placeholder (to be replaced with real preview image). */}
-                </div>
-              }
-              actions={[
-                <Button
-                  key={`${template.key}-action`}
-                  type="text"
-                  autoInsertSpace={false}
-                  aria-label={template.title}
+              onClick={() => props.onTemplateSelect(template.key)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                props.onTemplateSelect(template.key);
+              }}
+              aria-label={template.title}
+            >
+              <div className="h-28 border-b border-border/50 bg-muted/35" />
+              <CardHeader className="pb-4">
+                <CardTitle
                   className={clsx(
-                    "inline-flex cursor-pointer items-center gap-1 text-body font-medium",
-                    selected ? "text-primary" : undefined,
+                    "flex items-center gap-2 text-headline",
+                    selected && "text-primary",
                   )}
-                  icon={
-                    <span className="inline-flex items-center gap-1">
-                      <Icon size={16} />
-                      {selected ? <Check size={16} /> : null}
-                    </span>
-                  }
-                  onClick={() => props.onTemplateSelect(template.key)}
+                >
+                  <Icon size={16} />
+                  {template.title}
+                  {selected ? <Check size={16} /> : null}
+                </CardTitle>
+                <CardDescription
+                  className={clsx(
+                    "text-callout",
+                    selected ? "text-primary/85" : "text-label-secondary",
+                  )}
+                >
+                  {template.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Button
+                  type="button"
+                  variant={selected ? "secondary" : "ghost"}
+                  className="w-full justify-center"
                 >
                   {selected
                     ? t("setup:SETUP_TEMPLATE_SELECTED_ACTION")
                     : t("setup:SETUP_TEMPLATE_SELECT_ACTION")}
-                </Button>,
-              ]}
-              onClick={() => props.onTemplateSelect(template.key)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  props.onTemplateSelect(template.key);
-                }
-              }}
-              aria-label={template.title}
-            >
-              <Card.Meta
-                title={
-                  <span className={clsx("text-headline", selected ? "text-primary" : undefined)}>
-                    {template.title}
-                  </span>
-                }
-                description={
-                  <span
-                    className={clsx(
-                      "text-callout",
-                      selected ? "text-primary/85" : "text-label-secondary",
-                    )}
-                  >
-                    {template.description}
-                  </span>
-                }
-              />
+                </Button>
+              </CardContent>
             </Card>
           );
         })}
       </div>
-
-      <Form.Item<SetupSiteDraft>
-        name="templateKey"
-        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TEMPLATE_REQUIRED") }]}
-        style={{ marginBottom: 12 }}
-      >
-        <Input type="hidden" />
-      </Form.Item>
-
-      {/* Hidden items register fields for antd validation. */}
-      <Form.Item<SetupSiteDraft>
-        name="workspaceName"
-        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_WORKSPACE_NAME_REQUIRED") }]}
-        hidden
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item<SetupSiteDraft>
-        name="siteName"
-        rules={[{ required: true, message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED") }]}
-        hidden
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item<SetupSiteDraft>
-        name="siteUrl"
-        rules={[
-          { required: true, message: t("setup:SETUP_VALIDATION_SITE_URL_REQUIRED") },
-          {
-            validator: async (_rule, value: string | undefined) => {
-              const raw = (value || "").trim();
-              if (!raw) return;
-              try {
-                const url = new URL(raw);
-                if (url.protocol !== "http:" && url.protocol !== "https:") {
-                  throw new Error("protocol");
-                }
-              } catch {
-                throw new Error(t("setup:SETUP_VALIDATION_SITE_URL_INVALID"));
-              }
-            },
-          },
-        ]}
-        hidden
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item<SetupSiteDraft> name="siteDescription" hidden>
-        <Input />
-      </Form.Item>
 
       <Accordion type="single" collapsible className="px-0">
         <SettingAccordionItem
@@ -179,22 +103,24 @@ export function SetupWorkspaceTemplateStep(props: {
           title={t("setup:SETUP_FIELD_WORKSPACE_NAME_LABEL")}
           description={t("setup:SETUP_FIELD_WORKSPACE_NAME_DESC")}
           showSummary
-          summary={workspaceName || "-"}
+          summary={values.workspaceName || "-"}
           disabled={props.disabled}
         >
-          <Input
-            autoComplete="off"
-            aria-label={t("setup:SETUP_FIELD_WORKSPACE_NAME_LABEL")}
-            placeholder={t("setup:SETUP_FIELD_WORKSPACE_NAME_PLACEHOLDER")}
-            size="large"
-            variant="filled"
-            value={workspaceName}
-            onChange={(e) => {
-              const next = e.target.value;
-              props.form.setFieldValue("workspaceName", next);
-              props.onValuesChange({ workspaceName: next }, props.form.getFieldsValue(true));
-            }}
-          />
+          <SetupFieldShell
+            error={
+              props.form.formState.errors.workspaceName?.message
+                ? String(props.form.formState.errors.workspaceName.message)
+                : undefined
+            }
+          >
+            <SetupInputControl
+              autoComplete="off"
+              aria-label={t("setup:SETUP_FIELD_WORKSPACE_NAME_LABEL")}
+              placeholder={t("setup:SETUP_FIELD_WORKSPACE_NAME_PLACEHOLDER")}
+              disabled={props.disabled}
+              {...props.form.register("workspaceName")}
+            />
+          </SetupFieldShell>
         </SettingAccordionItem>
 
         <SettingAccordionItem
@@ -202,22 +128,24 @@ export function SetupWorkspaceTemplateStep(props: {
           title={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
           description={t("setup:SETUP_FIELD_SITE_NAME_DESC")}
           showSummary
-          summary={siteName || "-"}
+          summary={values.siteName || "-"}
           disabled={props.disabled}
         >
-          <Input
-            autoComplete="off"
-            aria-label={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
-            placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
-            size="large"
-            variant="filled"
-            value={siteName}
-            onChange={(e) => {
-              const next = e.target.value;
-              props.form.setFieldValue("siteName", next);
-              props.onValuesChange({ siteName: next }, props.form.getFieldsValue(true));
-            }}
-          />
+          <SetupFieldShell
+            error={
+              props.form.formState.errors.siteName?.message
+                ? String(props.form.formState.errors.siteName.message)
+                : undefined
+            }
+          >
+            <SetupInputControl
+              autoComplete="off"
+              aria-label={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
+              placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
+              disabled={props.disabled}
+              {...props.form.register("siteName")}
+            />
+          </SetupFieldShell>
         </SettingAccordionItem>
 
         <SettingAccordionItem
@@ -225,22 +153,24 @@ export function SetupWorkspaceTemplateStep(props: {
           title={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
           description={t("setup:SETUP_FIELD_SITE_URL_DESC")}
           showSummary
-          summary={siteUrl || "-"}
+          summary={values.siteUrl || "-"}
           disabled={props.disabled}
         >
-          <Input
-            autoComplete="off"
-            aria-label={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
-            placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")}
-            size="large"
-            variant="filled"
-            value={siteUrl}
-            onChange={(e) => {
-              const next = e.target.value;
-              props.form.setFieldValue("siteUrl", next);
-              props.onValuesChange({ siteUrl: next }, props.form.getFieldsValue(true));
-            }}
-          />
+          <SetupFieldShell
+            error={
+              props.form.formState.errors.siteUrl?.message
+                ? String(props.form.formState.errors.siteUrl.message)
+                : undefined
+            }
+          >
+            <SetupInputControl
+              autoComplete="off"
+              aria-label={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
+              placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")}
+              disabled={props.disabled}
+              {...props.form.register("siteUrl")}
+            />
+          </SetupFieldShell>
         </SettingAccordionItem>
 
         <SettingAccordionItem
@@ -248,29 +178,29 @@ export function SetupWorkspaceTemplateStep(props: {
           title={t("setup:SETUP_FIELD_SITE_DESC_LABEL")}
           description={t("setup:SETUP_FIELD_SITE_DESC_DESC")}
           showSummary
-          summary={siteDescription || "-"}
+          summary={values.siteDescription || "-"}
           disabled={props.disabled}
         >
-          <Input.TextArea
-            autoSize={{ minRows: 3, maxRows: 5 }}
-            aria-label={t("setup:SETUP_FIELD_SITE_DESC_LABEL")}
-            placeholder={t("setup:SETUP_FIELD_SITE_DESC_PLACEHOLDER")}
-            maxLength={160}
-            allowClear
-            variant="filled"
-            showCount={{ formatter: ({ count }) => `${count}/160` }}
-            value={siteDescription}
-            onChange={(e) => {
-              const next = e.target.value;
-              props.form.setFieldValue("siteDescription", next);
-              props.onValuesChange({ siteDescription: next }, props.form.getFieldsValue(true));
-            }}
-          />
+          <SetupFieldShell
+            error={
+              props.form.formState.errors.siteDescription?.message
+                ? String(props.form.formState.errors.siteDescription.message)
+                : undefined
+            }
+          >
+            <SetupTextarea
+              aria-label={t("setup:SETUP_FIELD_SITE_DESC_LABEL")}
+              placeholder={t("setup:SETUP_FIELD_SITE_DESC_PLACEHOLDER")}
+              maxLength={160}
+              disabled={props.disabled}
+              {...props.form.register("siteDescription")}
+            />
+            <div className="flex items-center justify-end text-caption text-label-secondary">
+              {`${(values.siteDescription || "").length}/160`}
+            </div>
+          </SetupFieldShell>
         </SettingAccordionItem>
       </Accordion>
-
-      {/* Prevent Enter key from moving steps unexpectedly. */}
-      <Button htmlType="submit" style={{ display: "none" }} autoInsertSpace={false} />
-    </Form>
+    </div>
   );
 }

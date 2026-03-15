@@ -26,6 +26,12 @@ export function isValidHttpUrlOrAbsolutePath(value: string): boolean {
   }
 }
 
+export function isValidEmail(value: string): boolean {
+  const raw = (value || "").trim();
+  if (!raw) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+}
+
 export function formatSummaryText(value: string | undefined, maxLen = 48): string {
   const raw = (value || "").trim();
   if (!raw) return "-";

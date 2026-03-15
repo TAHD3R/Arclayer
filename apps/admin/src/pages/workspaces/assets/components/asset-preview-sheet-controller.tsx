@@ -1,5 +1,3 @@
-import type { InputRef } from "antd";
-import { theme } from "antd";
 import { Download, ExternalLink, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,7 +51,6 @@ export function useAssetPreviewSheetController(props: {
   );
   const uiLocale = usePreferencesStore((s) => s.locale);
   const adminDateTime = useAdminDateTimeFormatter({ workspaceId });
-  const { token } = theme.useToken();
   const active = props.active;
   const activeAspectRatio = active ? getSafeAspectRatio(active.aspectRatio) : 4 / 3;
   const [previewAspectRatio, setPreviewAspectRatio] = useState<number | null>(null);
@@ -209,8 +206,8 @@ export function useAssetPreviewSheetController(props: {
   const [inputValue, setInputValue] = useState("");
   const [editInputIndex, setEditInputIndex] = useState(-1);
   const [editInputValue, setEditInputValue] = useState("");
-  const inputRef = useRef<InputRef>(null);
-  const editInputRef = useRef<InputRef>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const editInputRef = useRef<HTMLInputElement | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editAccessOpen, setEditAccessOpen] = useState(false);
@@ -470,7 +467,6 @@ export function useAssetPreviewSheetController(props: {
   return {
     t,
     workspaceId,
-    token,
     active,
     activeAspectRatio,
     previewAspectRatio,

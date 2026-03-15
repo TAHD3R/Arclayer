@@ -1,13 +1,9 @@
-import { Form } from "antd";
-
+import { Form } from "@celestial/ui/form";
 import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
 
 import type { OrganizationSettingsTabKey } from "../../types";
 import { OrganizationSettingsTabs } from "../../components/organization-settings-tabs";
-import type {
-  OrganizationSettingsBasicsController,
-  OrganizationSettingsBasicsFormValues,
-} from "../hooks/use-organization-settings-basics-controller";
+import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";
 import { OrganizationSettingsBasicsAccessPanel } from "./organization-settings-basics-access-panel";
 import { OrganizationSettingsBasicsCorePanels } from "./organization-settings-basics-core-panels";
 
@@ -17,22 +13,7 @@ export function OrganizationSettingsBasicsForm(props: {
   const c = props.controller;
 
   return (
-    <Form<OrganizationSettingsBasicsFormValues>
-      form={c.form}
-      layout="vertical"
-      requiredMark={false}
-      autoComplete="off"
-      disabled={c.disabled}
-      initialValues={{
-        name: c.initialOrgName,
-        logoUrl: c.initialOrgLogoUrl,
-        locale: c.initialOrgLocale,
-        timezone: c.initialOrgTimezone,
-        dateFormat: c.initialOrgDateFormat,
-        defaultRoleCode: c.initialDefaultRoleCode,
-        assignRoleCode: c.initialDefaultRoleCode,
-      }}
-    >
+    <Form {...c.form}>
       <ChromeTabs
         value={c.tab}
         onValueChange={(next) => c.onTabChange(next as OrganizationSettingsTabKey)}

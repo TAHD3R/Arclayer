@@ -1,4 +1,3 @@
-import { Button as AntButton, Spin } from "antd";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -7,6 +6,8 @@ import {
 } from "@celestial/ui/dropdown-menu";
 import { MoreVertical, Trash2 } from "lucide-react";
 
+import { Button } from "@celestial/ui/button";
+import { Spinner } from "@celestial/ui/spinner";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
 import { Checkbox } from "@celestial/ui/checkbox";
 
@@ -51,13 +52,14 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                       {role.isSystem ? null : (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <AntButton
-                              type="text"
-                              className="!h-8 !w-8 !p-0"
-                              icon={<MoreVertical className="h-4 w-4" />}
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="h-8 w-8 p-0"
                               aria-label={t("team:TEAM_USER_ACTIONS")}
-                              autoInsertSpace={false}
-                            />
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuIconItem
@@ -104,7 +106,7 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                   <TableCell key={key} className="text-center">
                     <div className="flex justify-center">
                       {togglingKey === key ? (
-                        <Spin size="small" />
+                        <Spinner className="size-4" />
                       ) : (
                         <Checkbox
                           checked={granted}

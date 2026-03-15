@@ -1,5 +1,4 @@
-import { Button as AntButton, Input as AntInput, Pagination } from "antd";
-import { Eye, MoreVertical, Plus, Search, UserCheck, UserCog, UserX } from "lucide-react";
+import { Eye, MoreVertical, Plus, Search, UserCheck, UserCog, UserX, X } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -19,6 +18,7 @@ import { MemberIdentityCell } from "@/pages/_shared/team/components/member-ident
 import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
+import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import {
@@ -26,6 +26,7 @@ import {
   useDataTableDensityPreference,
   useDataTable,
 } from "@celestial/ui/data-table";
+import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -33,6 +34,12 @@ import {
   DropdownMenuIconItem,
   DropdownMenuSeparator,
 } from "@celestial/ui/dropdown-menu";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { TeamMembersFilterPopover } from "@/pages/workspaces/team/shared/components/team-members-filter-popover";
 import {
@@ -237,13 +244,9 @@ export function TeamMembersView() {
               <div className="ml-auto pl-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <AntButton
-                      type="text"
-                      shape="circle"
-                      aria-label={t("team:TEAM_USER_ACTIONS")}
-                      icon={<MoreVertical className="size-4" />}
-                      autoInsertSpace={false}
-                    />
+                    <Button variant="ghost" size="icon-sm" aria-label={t("team:TEAM_USER_ACTIONS")}>
+                      <MoreVertical className="size-4" />
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuIconItem
@@ -418,15 +421,27 @@ export function TeamMembersView() {
 
   const toolbarLeft = (
     <>
-      <AntInput
-        value={tableHook.searchInput}
-        onChange={(e) => tableHook.setSearchInput(e.target.value)}
-        placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
-        allowClear
-        variant="filled"
-        prefix={<Search className="size-4 text-label-secondary" />}
-        style={{ width: 360, maxWidth: "100%" }}
-      />
+      <InputGroup className="w-[min(100%,22.5rem)]">
+        <InputGroupAddon>
+          <Search className="size-4 text-label-secondary" />
+        </InputGroupAddon>
+        <InputGroupInput
+          value={tableHook.searchInput}
+          onChange={(e) => tableHook.setSearchInput(e.target.value)}
+          placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
+        />
+        {tableHook.searchInput ? (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              aria-label={t("common:CLEAR")}
+              size="icon-xs"
+              onClick={() => tableHook.setSearchInput("")}
+            >
+              <X className="size-3.5" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
 
       <TeamMembersFilterPopover
         value={{
@@ -476,14 +491,10 @@ export function TeamMembersView() {
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
       action={
-        <AntButton
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setInviteOpen(true)}
-          autoInsertSpace={false}
-        >
+        <Button onClick={() => setInviteOpen(true)}>
+          <Plus size={16} />
           {t("team:TEAM_INVITE_MEMBER")}
-        </AntButton>
+        </Button>
       }
     >
       <ContentGuard
@@ -558,17 +569,13 @@ export function TeamMembersView() {
                 end: Math.min(pageData.page * pageData.size, pageData.total),
               })}
             </div>
-            <Pagination
-              current={pageData.page}
-              pageSize={pageData.size}
+            <DataPaginationControls
+              page={pageData.page}
+              size={pageData.size}
               total={pageData.total}
-              showSizeChanger
-              pageSizeOptions={[10, 20, 50, 100]}
+              t={t}
               onChange={(nextPage, nextSize) => {
-                if (
-                  typeof nextSize === "number" &&
-                  nextSize !== table.getState().pagination.pageSize
-                ) {
+                if (nextSize !== table.getState().pagination.pageSize) {
                   table.setPageSize(nextSize);
                 }
                 table.setPageIndex(Math.max(0, nextPage - 1));

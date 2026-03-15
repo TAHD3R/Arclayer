@@ -1,7 +1,7 @@
-import { Button as AntButton } from "antd";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
+import { Button } from "@celestial/ui/button";
 import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
 import { OrgMembershipStatusTag, OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
@@ -89,13 +89,14 @@ export function createOrganizationMemberColumns({
             <div className="ml-auto pl-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <AntButton
-                    type="text"
-                    className="h-8! w-8! p-0!"
-                    icon={<MoreVertical className="size-4" />}
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="h-8 w-8 p-0"
                     aria-label={t("team:TEAM_USER_ACTIONS")}
-                    autoInsertSpace={false}
-                  />
+                  >
+                    <MoreVertical className="size-4" />
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuIconItem

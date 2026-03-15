@@ -1,4 +1,3 @@
-import { Button } from "antd";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +15,7 @@ import {
   uploadPart,
   uploadOrganizationPart,
 } from "@/api/uploads";
+import { Button } from "@celestial/ui/button";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import {
   FileUpload,
@@ -370,19 +370,13 @@ export function AssetUploadDialog(props: {
       footer={
         <>
           <Button
-            type="text"
+            variant="ghost"
             onClick={() => void abortAllAndClose()}
             disabled={isUploading && !hasUploading}
-            autoInsertSpace={false}
           >
             {t("assets:ASSET_UPLOAD_ACTION_CANCEL")}
           </Button>
-          <Button
-            type="primary"
-            disabled={!canStart || isUploading}
-            onClick={() => void startUpload()}
-            autoInsertSpace={false}
-          >
+          <Button disabled={!canStart || isUploading} onClick={() => void startUpload()}>
             {isUploading
               ? t("assets:ASSET_UPLOAD_ACTION_UPLOADING")
               : t("assets:ASSET_UPLOAD_ACTION_START")}

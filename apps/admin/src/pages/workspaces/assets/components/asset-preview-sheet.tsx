@@ -1,4 +1,3 @@
-import { Button, Descriptions, Flex, Input, Tooltip } from "antd";
 import { EllipsisVertical, Plus } from "lucide-react";
 import {
   Accordion,
@@ -62,10 +61,32 @@ import {
   useAssetPreviewSheetController,
   type AssetMoreMenuItem,
 } from "./asset-preview-sheet-controller";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
+
+type AssetMetadataItem = {
+  key: string;
+  label: string;
+  content: React.ReactNode;
+};
+
+function AssetMetadataGrid(props: { items: AssetMetadataItem[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {props.items.map((item) => (
+        <div key={item.key} className="space-y-1.5">
+          <div className="text-caption text-label-secondary">{item.label}</div>
+          <div className="min-h-6 text-footnote text-foreground">{item.content}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onClose: () => void }) {
   const {
     t,
-    token,
     active,
     activeAspectRatio,
     previewAspectRatio,
@@ -190,11 +211,13 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        type="text"
-                        icon={<EllipsisVertical size={18} />}
-                        style={{ width: 36, height: 36, paddingInline: 0 }}
-                        autoInsertSpace={false}
-                      />
+                        variant="ghost"
+                        size="icon"
+                        className="size-9"
+                        aria-label={t("common:MORE")}
+                      >
+                        <EllipsisVertical size={18} />
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {moreMenuItems.map((item, idx) => {
@@ -287,15 +310,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                         {t("assets:ASSET_META_TITLE")}
                       </AccordionTrigger>
                       <AccordionContent className="px-2">
-                        <Descriptions
-                          size="small"
-                          layout="vertical"
-                          column={2}
+                        <AssetMetadataGrid
                           items={[
                             {
                               key: "mime",
                               label: t("assets:ASSET_META_MIME"),
-                              children: (
+                              content: (
                                 <AssetMimeTag
                                   title={active.mimeType || undefined}
                                   label={getMimeLabel(active.mimeType, t)}
@@ -305,12 +325,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "size",
                               label: t("assets:ASSET_META_SIZE"),
-                              children: active.sizeText || "-",
+                              content: active.sizeText || "-",
                             },
                             {
                               key: "createdAt",
                               label: t("assets:ASSET_META_CREATED_AT"),
-                              children: formatCreatedAt(
+                              content: formatCreatedAt(
                                 active.createdAt,
                                 active.createdAtText,
                                 dateTime,
@@ -319,7 +339,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "visibility",
                               label: t("assets:ASSET_META_VISIBILITY"),
-                              children: (
+                              content: (
                                 <AssetVisibilityTag
                                   visibility={displayVisibility}
                                   label={getVisibilityLabel(displayVisibility, t)}
@@ -355,19 +375,23 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                               {t("assets:ASSET_TAG_FIELD_TITLE")}
                             </div>
                           </div>
-                          <Flex gap="small" align="center" wrap>
+                          <div className="flex flex-wrap items-center gap-2">
                             {selectedTags.map((tag, index) => {
                               if (editInputIndex === index) {
                                 return (
                                   <Input
                                     ref={editInputRef}
                                     key={`${tag.id}:edit`}
-                                    size="small"
                                     style={tagInputStyle}
+                                    className="h-[22px] w-[88px] px-2 text-caption"
                                     value={editInputValue}
                                     onChange={(e) => setEditInputValue(e.target.value)}
-                                    onBlur={confirmEditTag}
-                                    onPressEnter={confirmEditTag}
+                                    onBlur={() => void confirmEditTag()}
+                                    onKeyDown={(event) => {
+                                      if (event.key !== "Enter") return;
+                                      event.preventDefault();
+                                      void confirmEditTag();
+                                    }}
                                   />
                                 );
                               }
@@ -395,8 +419,9 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                                 </AssetUserTagChip>
                               );
                               return isLongTag ? (
-                                <Tooltip title={tag.name} key={tag.id}>
-                                  {tagElem}
+                                <Tooltip key={tag.id}>
+                                  <TooltipTrigger asChild>{tagElem}</TooltipTrigger>
+                                  <TooltipContent>{tag.name}</TooltipContent>
                                 </Tooltip>
                               ) : (
                                 tagElem
@@ -406,30 +431,30 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                               <Input
                                 ref={inputRef}
                                 type="text"
-                                size="small"
                                 style={tagInputStyle}
+                                className="h-[22px] w-[88px] px-2 text-caption"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                onBlur={confirmAddTag}
-                                onPressEnter={confirmAddTag}
+                                onBlur={() => void confirmAddTag()}
+                                onKeyDown={(event) => {
+                                  if (event.key !== "Enter") return;
+                                  event.preventDefault();
+                                  void confirmAddTag();
+                                }}
                               />
                             ) : (
                               <AssetAddTagActionTag
+                                className="bg-background hover:bg-accent/50"
                                 label={
                                   <span className="inline-flex items-center gap-1 whitespace-nowrap">
                                     <Plus size={14} />
                                     <span>{t("assets:ASSET_TAG_NEW")}</span>
                                   </span>
                                 }
-                                style={{
-                                  height: 22,
-                                  background: token.colorBgContainer,
-                                  cursor: "pointer",
-                                }}
                                 onClick={() => setInputVisible(true)}
                               />
                             )}
-                          </Flex>
+                          </div>
                           {saveState !== "idle" ? (
                             <div className="mt-1 text-caption text-label-secondary">
                               {saveState === "saving"
@@ -510,15 +535,12 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                         {t("assets:ASSET_META_ADVANCED_TITLE")}
                       </AccordionTrigger>
                       <AccordionContent className="px-2">
-                        <Descriptions
-                          size="small"
-                          layout="vertical"
-                          column={2}
+                        <AssetMetadataGrid
                           items={[
                             {
                               key: "purpose",
                               label: t("assets:ASSET_META_PURPOSE"),
-                              children: (
+                              content: (
                                 <AssetPurposeTag
                                   purpose={displayPurpose}
                                   label={getPurposeLabel(displayPurpose, t)}
@@ -528,7 +550,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "indexable",
                               label: t("assets:ASSET_META_INDEXABLE"),
-                              children: (
+                              content: (
                                 <AssetIndexableTag
                                   indexable={active.indexable}
                                   label={getIndexableLabel(active.indexable, t)}
@@ -538,7 +560,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "id",
                               label: t("assets:ASSET_META_ID"),
-                              children: (
+                              content: (
                                 <span className="font-mono text-caption break-all">
                                   {active.id}
                                 </span>
@@ -547,7 +569,7 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
                             {
                               key: "sha256",
                               label: t("assets:ASSET_META_SHA256"),
-                              children: (
+                              content: (
                                 <span className="font-mono text-caption break-all">
                                   {active.checksumSha256 || "-"}
                                 </span>
@@ -572,17 +594,15 @@ export function AssetPreviewSheet(props: { active: AssetMasonryItem | null; onCl
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <Button type="text" disabled={deleteMutation.isPending} autoInsertSpace={false}>
+              <Button variant="outline" disabled={deleteMutation.isPending}>
                 {t("assets:ASSET_DELETE_CANCEL")}
               </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
               <Button
-                type="primary"
-                danger
+                variant="destructive"
                 loading={deleteMutation.isPending}
                 onClick={() => deleteMutation.mutate()}
-                autoInsertSpace={false}
               >
                 {deleteMutation.isPending
                   ? t("assets:ASSET_DELETE_DELETING")

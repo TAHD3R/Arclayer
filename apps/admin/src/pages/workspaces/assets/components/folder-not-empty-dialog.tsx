@@ -1,4 +1,3 @@
-import { Button } from "antd";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -10,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@celestial/ui/alert-dialog";
 import { AlertDialogCancel as AlertDialogCancelPrimitive } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
 
 export type FolderNotEmptyDialogProps = {
   open: boolean;
@@ -41,9 +41,7 @@ export function FolderNotEmptyDialog(props: FolderNotEmptyDialogProps) {
 
         <AlertDialogFooter className="mt-6">
           <AlertDialogCancelPrimitive asChild>
-            <Button type="primary" autoInsertSpace={false}>
-              {t("common:CONFIRM")}
-            </Button>
+            <Button>{t("common:CONFIRM")}</Button>
           </AlertDialogCancelPrimitive>
         </AlertDialogFooter>
       </AlertDialogContent>

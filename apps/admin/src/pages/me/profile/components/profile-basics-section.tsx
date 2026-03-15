@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button, Input } from "antd";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +8,8 @@ import { UserAvatar } from "@/components/common/entity-avatar";
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
 import { SettingCard, SettingCardContent } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { initialsFromName } from "@/lib/auth/user-profile";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -169,24 +170,24 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
                       setDisplayNameDraft(e.target.value);
                       setDisplayNameDirty(true);
                     }}
-                    showCount
                     maxLength={64}
-                    status={displayNameDirty && !isDisplayNameValid ? "error" : undefined}
-                    className="h-10 text-body flex-1"
+                    aria-invalid={displayNameDirty && !isDisplayNameValid}
+                    className="h-10 flex-1 text-body"
                     placeholder={t("account:ME_PROFILE_DISPLAY_NAME_PLACEHOLDER")}
                   />
                   {hasDisplayNameChanged || updateProfileMutation.isPending ? (
                     <Button
-                      type="primary"
                       disabled={!canSaveDisplayName || updateProfileMutation.isPending}
                       loading={updateProfileMutation.isPending}
                       onClick={() => setConfirmDisplayNameOpen(true)}
-                      autoInsertSpace={false}
                       className="h-10 px-5 font-medium shadow-none"
                     >
                       {t("settings:SETTINGS_SAVE")}
                     </Button>
                   ) : null}
+                </div>
+                <div className="text-footnote text-label-secondary">
+                  {`${displayNameDraft.length}/64`}
                 </div>
                 {displayNameDirty && !isDisplayNameValid && (
                   <div className="mt-1 flex items-center gap-1.5 text-footnote text-destructive">
@@ -209,12 +210,7 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
                 {props.profile.email ?? "-"}
               </div>
             </div>
-            <Button
-              type="primary"
-              onClick={() => setChangeEmailOpen(true)}
-              autoInsertSpace={false}
-              className="shrink-0"
-            >
+            <Button onClick={() => setChangeEmailOpen(true)} className="shrink-0">
               {t("account:ME_PROFILE_EMAIL_CHANGE")}
             </Button>
           </SettingCardContent>
@@ -234,21 +230,18 @@ export function MeProfileBasicsSection(props: MeProfileBasicsSectionProps) {
         footer={
           <>
             <Button
-              type="text"
+              variant="ghost"
               disabled={updateProfileMutation.isPending}
               onClick={() => setConfirmDisplayNameOpen(false)}
-              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
             </Button>
             <Button
-              type="primary"
               disabled={!canSaveDisplayName}
               loading={updateProfileMutation.isPending}
               onClick={() => {
                 void updateProfileMutation.mutateAsync({ display_name: nextDisplayNameNormalized });
               }}
-              autoInsertSpace={false}
             >
               {t("settings:SETTINGS_SAVE")}
             </Button>

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Input } from "antd";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
@@ -8,6 +7,12 @@ import type { OrganizationMemberWorkspace } from "@/types/api";
 import { TeamRoleTag } from "@/components/ui/tags";
 import { cn } from "@celestial/lib/utils";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 
 export type ResolvedMemberWorkspace = OrganizationMemberWorkspace & {
   description?: string | null;
@@ -63,14 +68,27 @@ export function OrganizationMemberWorkspaceList({
   return (
     <div className={cn("space-y-3", className)}>
       {searchable ? (
-        <Input
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder={t("common:ORG_MEMBERS_WORKSPACE_SEARCH_PLACEHOLDER")}
-          allowClear
-          variant="filled"
-          prefix={<Search className="size-4 text-label-secondary" />}
-        />
+        <InputGroup>
+          <InputGroupAddon>
+            <Search className="size-4 text-label-secondary" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder={t("common:ORG_MEMBERS_WORKSPACE_SEARCH_PLACEHOLDER")}
+          />
+          {searchInput ? (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={t("common:CLEAR")}
+                size="icon-xs"
+                onClick={() => setSearchInput("")}
+              >
+                <X className="size-3.5" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
       ) : null}
 
       {!filtered.length ? (

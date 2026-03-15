@@ -1,12 +1,17 @@
 import { Controller, useForm } from "react-hook-form";
-import { Button as AntButton, Form, Select } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 import { z } from "zod";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
-import { EmailInputTag } from "@/components/ui/tags";
 
+import { EmailTagsField } from "@/components/ui/email-tags-field";
+import { Button } from "@celestial/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 
@@ -150,158 +155,112 @@ export function InviteOrganizationMemberDialog(props: {
       contentClassName="sm:max-w-xl"
       footer={
         <>
-          <AntButton
-            type="text"
+          <Button
+            variant="ghost"
             onClick={() => props.onOpenChange(false)}
             disabled={props.loading}
-            autoInsertSpace={false}
           >
             {t("common:CANCEL")}
-          </AntButton>
-          <AntButton
-            type="primary"
-            loading={props.loading}
-            onClick={() => void onSubmit()}
-            autoInsertSpace={false}
-          >
+          </Button>
+          <Button loading={props.loading} onClick={() => void onSubmit()}>
             {t("common:CONFIRM")}
-          </AntButton>
+          </Button>
         </>
       }
     >
-      <Form
-        layout="vertical"
-        requiredMark={false}
-        className="py-1"
-        onFinish={() => void onSubmit()}
-      >
-        <Form.Item
-          label={
-            <div className="grid gap-1.5">
-              <span className="font-semibold text-foreground">
-                {t("team:TEAM_INVITE_FIELD_TO")}
-              </span>
-              <span className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</span>
-            </div>
-          }
-          validateStatus={emailHasError ? "error" : undefined}
-          help={emailError || null}
-          className="!mb-4"
-        >
+      <form className="grid gap-4 py-2" onSubmit={onSubmit}>
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground" htmlFor="org-invite-emails">
+            {t("team:TEAM_INVITE_FIELD_TO")}
+          </label>
+          <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
           <Controller
             control={form.control}
             name="emails"
             render={() => (
-              <Select
-                mode="tags"
-                suffixIcon={false}
-                open={false}
-                tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
-                autoFocus
-                placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+              <EmailTagsField
+                id="org-invite-emails"
                 value={emailTags}
-                onChange={(next) => {
-                  form.setValue("emails", normalizeEmailList(next.map((value) => String(value))), {
+                placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+                invalidMessageByValue={invalidEmailMessageByValue}
+                disabled={props.loading}
+                autoFocus
+                onChange={(next) =>
+                  form.setValue("emails", normalizeEmailList(next), {
                     shouldDirty: true,
                     shouldValidate: true,
-                  });
-                }}
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                options={[]}
-                notFoundContent={null}
-                disabled={props.loading}
-                tagRender={(tagProps) => {
-                  const value = String(tagProps.value || "").trim();
-                  const message = invalidEmailMessageByValue.get(value) ?? null;
-
-                  const tag = (
-                    <EmailInputTag
-                      invalid={Boolean(message)}
-                      closable={Boolean(tagProps.closable)}
-                      onClose={tagProps.onClose}
-                      className="!mr-0"
-                      label={tagProps.label}
-                    />
-                  );
-
-                  return message ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>{tag}</TooltipTrigger>
-                      <TooltipContent>{message}</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    tag
-                  );
-                }}
+                  })
+                }
               />
             )}
           />
-        </Form.Item>
+          {emailHasError && emailError ? (
+            <div className="text-footnote text-destructive">{emailError}</div>
+          ) : null}
+        </div>
 
-        <Form.Item
-          label={
-            <div className="grid gap-1.5">
-              <span className="font-semibold text-foreground">
-                {t("team:TEAM_INVITE_FIELD_ROLE")}
-              </span>
-              <span className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</span>
-            </div>
-          }
-          validateStatus={roleError ? "error" : undefined}
-          help={roleError || null}
-          className="!mb-4"
-        >
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground" htmlFor="org-invite-role">
+            {t("team:TEAM_INVITE_FIELD_ROLE")}
+          </label>
+          <div className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
           <Controller
             control={form.control}
             name="roleCode"
             render={({ field }) => (
               <Select
-                {...field}
-                showSearch
-                optionFilterProp="label"
                 value={field.value || selectedRoleCode || undefined}
-                onChange={(next) => field.onChange(String(next))}
-                options={props.roleOptions}
-                placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                onValueChange={(next) => field.onChange(String(next))}
                 disabled={props.loading}
-                className="w-full"
-              />
+              >
+                <SelectTrigger id="org-invite-role" className="w-full">
+                  <SelectValue placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")} />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  {props.roleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           />
-        </Form.Item>
+          {roleError ? <div className="text-footnote text-destructive">{roleError}</div> : null}
+        </div>
 
-        <Form.Item
-          label={
-            <div className="grid gap-1.5">
-              <span className="font-semibold text-foreground">
-                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-              </span>
-              <span className="text-label-secondary">
-                {t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}
-              </span>
-            </div>
-          }
-          validateStatus={expiresError ? "error" : undefined}
-          help={expiresError || null}
-          className="mb-0!"
-        >
+        <div className="grid gap-1.5">
+          <label className="font-semibold text-foreground" htmlFor="org-invite-expires">
+            {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+          </label>
+          <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
           <Controller
             control={form.control}
             name="expiresInSeconds"
             render={({ field }) => (
               <Select
-                value={field.value}
-                onChange={(next) => field.onChange(next)}
-                options={expiresOptions}
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
+                value={String(field.value)}
+                onValueChange={(next) => field.onChange(next === "null" ? null : Number(next))}
                 disabled={props.loading}
-                className="w-full"
-              />
+              >
+                <SelectTrigger id="org-invite-expires" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  {expiresOptions.map((option) => (
+                    <SelectItem key={String(option.value)} value={String(option.value)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           />
-        </Form.Item>
-      </Form>
+          {expiresError ? (
+            <div className="text-footnote text-destructive">{expiresError}</div>
+          ) : null}
+        </div>
+      </form>
     </SettingDialog>
   );
 }

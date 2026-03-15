@@ -1,5 +1,5 @@
-import type { FormInstance } from "antd";
 import type { TitlePolicyV1 } from "@celestial/internal-types";
+import type { UseFormReturn } from "react-hook-form";
 
 export type StorageProvider = "local" | "s3";
 
@@ -62,12 +62,14 @@ export type GeneralSettingsFormValues = {
   notificationInviteEnabled: boolean;
 };
 
+export type GeneralSettingsFormController = UseFormReturn<GeneralSettingsFormValues>;
+
 export type GeneralSettingsPatchFn = (patch: Record<string, unknown>) => Promise<void>;
 
 export type WithSavingKeyFn = (key: string, fn: () => Promise<void>) => Promise<void>;
 
 export type GeneralSettingsTabBaseProps = {
-  form: FormInstance<GeneralSettingsFormValues>;
+  form: GeneralSettingsFormController;
   initialValues: GeneralSettingsFormValues;
   disabled: boolean;
   savingKey: string | null;

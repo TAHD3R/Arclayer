@@ -1,8 +1,8 @@
-import { Form } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { useForm } from "react-hook-form";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
 import { DefaultPage } from "@/components/common/default-page";
@@ -12,6 +12,7 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@celestial/ui/chrome-tabs";
+import { Form } from "@celestial/ui/form";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
 import { useSavingKey } from "@celestial/hooks/use-saving-key";
@@ -56,7 +57,6 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [form] = Form.useForm<GeneralSettingsFormValues>();
   const { savingKey, withSavingKey } = useSavingKey();
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const workspaceId = workspaceIdOverride ?? workspaceIdFromStore;
@@ -77,10 +77,15 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
     [workspaceCoreQuery.data],
   );
 
+  const form = useForm<GeneralSettingsFormValues>({
+    defaultValues: initialValues,
+    mode: "onSubmit",
+  });
+
   useEffect(() => {
     if (!workspaceCoreQuery.data) return;
-    if (form.isFieldsTouched()) return;
-    form.setFieldsValue(initialValues);
+    if (form.formState.isDirty) return;
+    form.reset(initialValues);
   }, [form, initialValues, workspaceCoreQuery.data]);
 
   const saveWorkspaceMutation = useMutation({
@@ -141,14 +146,7 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
         error={loadError}
         onRetry={loadError ? () => void workspaceCoreQuery.refetch() : undefined}
       >
-        <Form<GeneralSettingsFormValues>
-          form={form}
-          layout="vertical"
-          requiredMark={false}
-          autoComplete="off"
-          disabled={workspaceDisabled}
-          initialValues={initialValues}
-        >
+        <Form {...form}>
           <ChromeTabs
             value={activeTab}
             onValueChange={(next) => {

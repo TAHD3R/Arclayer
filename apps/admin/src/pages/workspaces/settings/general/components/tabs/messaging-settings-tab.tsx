@@ -1,35 +1,32 @@
-import { Button, Form, Input, InputNumber } from "antd";
-import type { FormInstance } from "antd";
 import * as React from "react";
+import { Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@celestial/ui/accordion";
+import { Button } from "@celestial/ui/button";
 import { Checkbox } from "@celestial/ui/checkbox";
+import { Input } from "@celestial/ui/input";
+import { PasswordInput } from "@celestial/ui/password-input";
 import { Switch } from "@celestial/ui/switch";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingActionItem } from "@celestial/ui/setting-action-item";
 import { SettingOverlayFooter } from "@celestial/ui/setting-overlay-footer";
 import { SettingPanel } from "@celestial/ui/setting-panel";
+
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
+import { NumberInput } from "@/components/ui/number-input";
 import { sendTestEmail } from "@/api/mail";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
-import type { GeneralSettingsFormValues } from "@/types/settings-general";
 import { normalizeOptionalString } from "@/lib/settings/general/utils";
+import { getFieldErrorMessage, validateFormFields } from "../form-helpers";
 
 type OverlayKey = "mailConfig";
 
 type MessagingSettingsTabProps = GeneralSettingsTabBaseProps & {
   coreSecrets?: Record<string, boolean>;
 };
-
-function useField<T>(
-  form: FormInstance<GeneralSettingsFormValues>,
-  name: keyof GeneralSettingsFormValues,
-): T | undefined {
-  return Form.useWatch(name as string, form) as unknown as T | undefined;
-}
 
 function buildMailConfigSummary(params: {
   enabled: boolean;
@@ -42,6 +39,11 @@ function buildMailConfigSummary(params: {
   const port = Number.isFinite(params.port) ? params.port : "-";
   const from = (params.from || "").trim() || "-";
   return `${host}:${port} · ${from}`;
+}
+
+function FieldMessage({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <div className="text-footnote text-destructive">{message}</div>;
 }
 
 export function MessagingSettingsTab({
@@ -57,20 +59,18 @@ export function MessagingSettingsTab({
   const [testRecipient, setTestRecipient] = React.useState("");
   const [isTestingEmail, setIsTestingEmail] = React.useState(false);
 
-  const mailEnabled = useField<boolean>(form, "mailEnabled") ?? initialValues.mailEnabled;
-
-  const mailServer = useField<string>(form, "mailServer") ?? initialValues.mailServer;
-  const mailPort = useField<number>(form, "mailPort") ?? initialValues.mailPort;
-  const mailFrom = useField<string>(form, "mailFrom") ?? initialValues.mailFrom;
-
-  const mailStarttls = useField<boolean>(form, "mailStarttls") ?? initialValues.mailStarttls;
-  const mailSslTls = useField<boolean>(form, "mailSslTls") ?? initialValues.mailSslTls;
-
+  const mailEnabled =
+    useWatch({ control: form.control, name: "mailEnabled" }) ?? initialValues.mailEnabled;
+  const mailServer =
+    useWatch({ control: form.control, name: "mailServer" }) ?? initialValues.mailServer;
+  const mailPort = useWatch({ control: form.control, name: "mailPort" }) ?? initialValues.mailPort;
+  const mailFrom = useWatch({ control: form.control, name: "mailFrom" }) ?? initialValues.mailFrom;
   const mailEnabledTemplates =
-    useField<string[]>(form, "mailEnabledTemplates") ?? initialValues.mailEnabledTemplates;
-
+    useWatch({ control: form.control, name: "mailEnabledTemplates" }) ??
+    initialValues.mailEnabledTemplates;
   const inviteNotificationsEnabled =
-    useField<boolean>(form, "notificationInviteEnabled") ?? initialValues.notificationInviteEnabled;
+    useWatch({ control: form.control, name: "notificationInviteEnabled" }) ??
+    initialValues.notificationInviteEnabled;
 
   const isTogglingMailEnabled = savingKey === "mail.enabled";
   const isSavingMailConfig = savingKey === "mail.config";
@@ -90,13 +90,13 @@ export function MessagingSettingsTab({
 
   const setMailEnabled = (next: boolean) =>
     withSavingKey("mail.enabled", async () => {
-      form.setFieldValue("mailEnabled", next);
+      form.setValue("mailEnabled", next, { shouldDirty: true });
       await patch({ mail: { enabled: Boolean(next) } });
     });
 
   const saveMailConfig = () =>
     withSavingKey("mail.config", async () => {
-      const values = await form.validateFields([
+      const values = await validateFormFields(form, [
         "mailServer",
         "mailPort",
         "mailUsername",
@@ -117,11 +117,10 @@ export function MessagingSettingsTab({
         ssl_tls: Boolean(values.mailSslTls),
       };
 
-      // Secret fields never show existing value. Only overwrite when user provides a new value.
       const secret = String(values.mailPassword || "").trim();
       if (secret) {
         patchValue.password = secret;
-        form.setFieldValue("mailPassword", "");
+        form.setValue("mailPassword", "", { shouldDirty: false });
       }
 
       await patch({ mail: patchValue });
@@ -129,16 +128,22 @@ export function MessagingSettingsTab({
 
   const resetMailConfig = () =>
     withSavingKey("reset:mail.config", async () => {
-      form.setFieldsValue({
-        mailServer: initialValues.mailServer,
-        mailPort: initialValues.mailPort,
-        mailUsername: initialValues.mailUsername,
-        mailPassword: "",
-        mailFrom: initialValues.mailFrom,
-        mailFromName: initialValues.mailFromName,
-        mailStarttls: initialValues.mailStarttls,
-        mailSslTls: initialValues.mailSslTls,
-      });
+      form.setValue("mailServer", initialValues.mailServer, { shouldDirty: false });
+      form.setValue("mailPort", initialValues.mailPort, { shouldDirty: false });
+      form.setValue("mailUsername", initialValues.mailUsername, { shouldDirty: false });
+      form.setValue("mailPassword", "", { shouldDirty: false });
+      form.setValue("mailFrom", initialValues.mailFrom, { shouldDirty: false });
+      form.setValue("mailFromName", initialValues.mailFromName, { shouldDirty: false });
+      form.setValue("mailStarttls", initialValues.mailStarttls, { shouldDirty: false });
+      form.setValue("mailSslTls", initialValues.mailSslTls, { shouldDirty: false });
+      form.clearErrors([
+        "mailServer",
+        "mailPort",
+        "mailUsername",
+        "mailPassword",
+        "mailFrom",
+        "mailFromName",
+      ]);
       await patch({
         mail: {
           server: initialValues.mailServer,
@@ -154,11 +159,10 @@ export function MessagingSettingsTab({
 
   const saveMailTemplates = () =>
     withSavingKey("mail.templates", async () => {
-      const values = await form.validateFields(["mailEnabledTemplates"]);
       await patch({
         mail: {
           preferences: {
-            enabled_templates: (values.mailEnabledTemplates || []) as string[],
+            enabled_templates: form.getValues("mailEnabledTemplates") || [],
           },
         },
       });
@@ -166,7 +170,9 @@ export function MessagingSettingsTab({
 
   const resetMailTemplates = () =>
     withSavingKey("reset:mail.templates", async () => {
-      form.setFieldValue("mailEnabledTemplates", initialValues.mailEnabledTemplates);
+      form.setValue("mailEnabledTemplates", initialValues.mailEnabledTemplates, {
+        shouldDirty: false,
+      });
       await patch({
         mail: {
           preferences: {
@@ -178,17 +184,18 @@ export function MessagingSettingsTab({
 
   const saveNotificationTypes = () =>
     withSavingKey("notifications.types", async () => {
-      const values = await form.validateFields(["notificationInviteEnabled"]);
       await patch({
         notifications: {
-          invite_enabled: Boolean(values.notificationInviteEnabled),
+          invite_enabled: Boolean(form.getValues("notificationInviteEnabled")),
         },
       });
     });
 
   const resetNotificationTypes = () =>
     withSavingKey("reset:notifications.types", async () => {
-      form.setFieldValue("notificationInviteEnabled", initialValues.notificationInviteEnabled);
+      form.setValue("notificationInviteEnabled", initialValues.notificationInviteEnabled, {
+        shouldDirty: false,
+      });
       await patch({
         notifications: {
           invite_enabled: Boolean(initialValues.notificationInviteEnabled),
@@ -197,6 +204,11 @@ export function MessagingSettingsTab({
     });
 
   const overlayConfigs = React.useMemo<readonly SettingOverlayConfig<OverlayKey>[]>(() => {
+    const mailServerError = getFieldErrorMessage(form, "mailServer");
+    const mailPortError = getFieldErrorMessage(form, "mailPort");
+    const mailFromError = getFieldErrorMessage(form, "mailFrom");
+    const mailFromNameError = getFieldErrorMessage(form, "mailFromName");
+
     return [
       {
         key: "mailConfig",
@@ -219,89 +231,146 @@ export function MessagingSettingsTab({
         ),
         content: () => (
           <div className="space-y-6">
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="mailServer"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_SERVER")}
-              rules={[{ required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size="large" placeholder="smtp.example.com" />
-            </Form.Item>
+              rules={{ required: t("settings:SETTINGS_VALIDATION_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_MESSAGING_MAIL_SERVER")}
+                  </div>
+                  <Input {...field} placeholder="smtp.example.com" autoComplete="off" />
+                  <FieldMessage message={mailServerError} />
+                </div>
+              )}
+            />
 
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="mailPort"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_PORT")}
-              rules={[{ required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") }]}
-              style={{ marginBottom: 0 }}
-            >
-              <InputNumber size="large" className="w-full" min={1} max={65535} />
-            </Form.Item>
+              rules={{
+                validate: (value) => {
+                  if (typeof value !== "number" || !Number.isFinite(value)) {
+                    return t("settings:SETTINGS_VALIDATION_REQUIRED");
+                  }
+                  if (value < 1 || value > 65535) {
+                    return t("settings:SETTINGS_VALIDATION_REQUIRED");
+                  }
+                  return true;
+                },
+              }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_MESSAGING_MAIL_PORT")}
+                  </div>
+                  <NumberInput
+                    value={field.value}
+                    min={1}
+                    max={65535}
+                    onValueChange={field.onChange}
+                    placeholder="587"
+                  />
+                  <FieldMessage message={mailPortError} />
+                </div>
+              )}
+            />
 
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="mailUsername"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_USERNAME")}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size="large" placeholder="username (optional)" autoComplete="off" />
-            </Form.Item>
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_MESSAGING_MAIL_USERNAME")}
+                  </div>
+                  <Input {...field} placeholder="username (optional)" autoComplete="off" />
+                </div>
+              )}
+            />
 
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="mailPassword"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD")}
-              extra={
-                hasMailPasswordSecret
-                  ? t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_SET")
-                  : t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_NOT_SET")
-              }
-              style={{ marginBottom: 0 }}
-            >
-              <Input.Password
-                size="large"
-                autoComplete="new-password"
-                placeholder={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER")}
-              />
-            </Form.Item>
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-footnote font-medium">
+                      {t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD")}
+                    </div>
+                    <div className="text-caption text-label-secondary">
+                      {hasMailPasswordSecret
+                        ? t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_SET")
+                        : t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_SECRET_NOT_SET")}
+                    </div>
+                  </div>
+                  <PasswordInput
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    autoComplete="new-password"
+                    placeholder={t("settings:SETTINGS_MESSAGING_MAIL_PASSWORD_PLACEHOLDER")}
+                  />
+                </div>
+              )}
+            />
 
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="mailFrom"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_FROM")}
-              rules={[{ required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size="large" placeholder="noreply@example.com" />
-            </Form.Item>
+              rules={{ required: t("settings:SETTINGS_VALIDATION_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_MESSAGING_MAIL_FROM")}
+                  </div>
+                  <Input {...field} placeholder="noreply@example.com" />
+                  <FieldMessage message={mailFromError} />
+                </div>
+              )}
+            />
 
-            <Form.Item<GeneralSettingsFormValues>
+            <Controller
+              control={form.control}
               name="mailFromName"
-              label={t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}
-              rules={[{ required: true, message: t("settings:SETTINGS_VALIDATION_REQUIRED") }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size="large" placeholder="Celestial CMS" />
-            </Form.Item>
+              rules={{ required: t("settings:SETTINGS_VALIDATION_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <div className="text-footnote font-medium">
+                    {t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}
+                  </div>
+                  <Input {...field} placeholder="Celestial CMS" />
+                  <FieldMessage message={mailFromNameError} />
+                </div>
+              )}
+            />
 
             <div className="grid grid-cols-2 gap-3">
-              <Form.Item<GeneralSettingsFormValues>
+              <Controller
+                control={form.control}
                 name="mailStarttls"
-                label={t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}
-                style={{ marginBottom: 0 }}
-              >
-                <Switch
-                  checked={mailStarttls}
-                  onCheckedChange={(v) => form.setFieldValue("mailStarttls", v)}
-                />
-              </Form.Item>
+                render={({ field }) => (
+                  <div className="space-y-2">
+                    <div className="text-footnote font-medium">
+                      {t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}
+                    </div>
+                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
+                  </div>
+                )}
+              />
 
-              <Form.Item<GeneralSettingsFormValues>
+              <Controller
+                control={form.control}
                 name="mailSslTls"
-                label={t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}
-                style={{ marginBottom: 0 }}
-              >
-                <Switch
-                  checked={mailSslTls}
-                  onCheckedChange={(v) => form.setFieldValue("mailSslTls", v)}
-                />
-              </Form.Item>
+                render={({ field }) => (
+                  <div className="space-y-2">
+                    <div className="text-footnote font-medium">
+                      {t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}
+                    </div>
+                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
+                  </div>
+                )}
+              />
             </div>
 
             <div className="rounded-lg border bg-muted/20 p-4">
@@ -314,14 +383,13 @@ export function MessagingSettingsTab({
 
               <div className="mt-3 flex items-center gap-2">
                 <Input
-                  size="large"
                   value={testRecipient}
-                  onChange={(e) => setTestRecipient(e.target.value)}
+                  onChange={(event) => setTestRecipient(event.target.value)}
                   placeholder={t("settings:SETTINGS_MESSAGING_MAIL_TEST_PLACEHOLDER")}
                   autoComplete="off"
                 />
                 <Button
-                  type="primary"
+                  type="button"
                   loading={isTestingEmail}
                   disabled={disabled || !mailEnabled || !String(testRecipient || "").trim()}
                   onClick={() => {
@@ -332,10 +400,9 @@ export function MessagingSettingsTab({
                       .then(() =>
                         notifySuccessText(t("settings:SETTINGS_MESSAGING_MAIL_TEST_SUCCESS")),
                       )
-                      .catch((err) => notifyError(err))
+                      .catch((error) => notifyError(error))
                       .finally(() => setIsTestingEmail(false));
                   }}
-                  autoInsertSpace={false}
                 >
                   {t("settings:SETTINGS_MESSAGING_MAIL_TEST_ACTION")}
                 </Button>
@@ -347,15 +414,16 @@ export function MessagingSettingsTab({
     ] as const;
   }, [
     disabled,
+    form,
     hasMailPasswordSecret,
-    isTestingEmail,
     isResettingMailConfig,
     isSavingMailConfig,
+    isTestingEmail,
     mailEnabled,
     resetMailConfig,
     saveMailConfig,
-    testRecipient,
     t,
+    testRecipient,
   ]);
 
   const overlays = useSettingOverlays(overlayConfigs);
@@ -363,7 +431,6 @@ export function MessagingSettingsTab({
   const mailTemplatesSummary = t("settings:SETTINGS_MESSAGING_SELECTED_COUNT", {
     count: mailEnabledTemplates.length,
   });
-
   const notificationSummary = inviteNotificationsEnabled
     ? t("settings:SETTINGS_MESSAGING_ENABLED")
     : t("settings:SETTINGS_MESSAGING_DISABLED");
@@ -375,7 +442,7 @@ export function MessagingSettingsTab({
         description={t("settings:SETTINGS_MESSAGING_MAIL_PANEL_DESC")}
         bordered={false}
       >
-        <div className="rounded-xl bg-background divide-y">
+        <div className="divide-y rounded-xl bg-background">
           <SettingActionItem
             as="div"
             title={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_TITLE")}
@@ -391,7 +458,7 @@ export function MessagingSettingsTab({
                 checked={mailEnabled}
                 disabled={disabled || isTogglingMailEnabled}
                 onCheckedChange={(checked) => void setMailEnabled(Boolean(checked))}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
               />
             }
           />
@@ -424,55 +491,52 @@ export function MessagingSettingsTab({
                   resetLoading={isResettingMailTemplates}
                   disabled={disabled}
                 >
-                  <Form.Item<GeneralSettingsFormValues>
-                    name="mailEnabledTemplates"
-                    style={{ marginBottom: 0 }}
-                  >
-                    <div className="w-full flex flex-col gap-2">
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <Checkbox
-                          checked={(mailEnabledTemplates || []).includes("registration_prompt")}
-                          onCheckedChange={(checked) => {
-                            const next = checked
-                              ? [...(mailEnabledTemplates || []), "registration_prompt"]
-                              : (mailEnabledTemplates || []).filter(
-                                  (v) => v !== "registration_prompt",
-                                );
-                            form.setFieldValue("mailEnabledTemplates", next);
-                          }}
-                          className="mt-0.5"
-                        />
-                        <div className="flex flex-col">
-                          <div className="font-medium">
-                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
-                          </div>
-                          <div className="text-label-secondary">
-                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
-                          </div>
+                  <div className="flex w-full flex-col gap-2">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <Checkbox
+                        checked={(mailEnabledTemplates || []).includes("registration_prompt")}
+                        onCheckedChange={(checked) => {
+                          const next = checked
+                            ? [...(mailEnabledTemplates || []), "registration_prompt"]
+                            : (mailEnabledTemplates || []).filter(
+                                (value) => value !== "registration_prompt",
+                              );
+                          form.setValue("mailEnabledTemplates", next, { shouldDirty: true });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <div className="flex flex-col">
+                        <div className="font-medium">
+                          {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
                         </div>
-                      </label>
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <Checkbox
-                          checked={(mailEnabledTemplates || []).includes("welcome_email")}
-                          onCheckedChange={(checked) => {
-                            const next = checked
-                              ? [...(mailEnabledTemplates || []), "welcome_email"]
-                              : (mailEnabledTemplates || []).filter((v) => v !== "welcome_email");
-                            form.setFieldValue("mailEnabledTemplates", next);
-                          }}
-                          className="mt-0.5"
-                        />
-                        <div className="flex flex-col">
-                          <div className="font-medium">
-                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
-                          </div>
-                          <div className="text-label-secondary">
-                            {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
-                          </div>
+                        <div className="text-label-secondary">
+                          {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
                         </div>
-                      </label>
-                    </div>
-                  </Form.Item>
+                      </div>
+                    </label>
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <Checkbox
+                        checked={(mailEnabledTemplates || []).includes("welcome_email")}
+                        onCheckedChange={(checked) => {
+                          const next = checked
+                            ? [...(mailEnabledTemplates || []), "welcome_email"]
+                            : (mailEnabledTemplates || []).filter(
+                                (value) => value !== "welcome_email",
+                              );
+                          form.setValue("mailEnabledTemplates", next, { shouldDirty: true });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <div className="flex flex-col">
+                        <div className="font-medium">
+                          {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
+                        </div>
+                        <div className="text-label-secondary">
+                          {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
+                        </div>
+                      </div>
+                    </label>
+                  </div>
                 </SettingAccordionItem>
               </Accordion>
             </>
@@ -485,7 +549,7 @@ export function MessagingSettingsTab({
         description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_PANEL_DESC")}
         bordered={false}
       >
-        <div className="rounded-xl bg-background divide-y">
+        <div className="divide-y rounded-xl bg-background">
           <Accordion type="single" collapsible className="px-0">
             <SettingAccordionItem
               value="notificationTypes"
@@ -504,26 +568,25 @@ export function MessagingSettingsTab({
               resetLoading={isResettingNotificationTypes}
               disabled={disabled}
             >
-              <Form.Item<GeneralSettingsFormValues>
-                name="notificationInviteEnabled"
-                style={{ marginBottom: 0 }}
-              >
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <Checkbox
-                    checked={Boolean(inviteNotificationsEnabled)}
-                    onCheckedChange={(v) => form.setFieldValue("notificationInviteEnabled", v)}
-                    className="mt-0.5"
-                  />
-                  <div className="flex flex-col">
-                    <div className="font-medium">
-                      {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
-                    </div>
-                    <div className="text-label-secondary">
-                      {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
-                    </div>
+              <label className="flex cursor-pointer items-start gap-3">
+                <Checkbox
+                  checked={Boolean(inviteNotificationsEnabled)}
+                  onCheckedChange={(value) =>
+                    form.setValue("notificationInviteEnabled", Boolean(value), {
+                      shouldDirty: true,
+                    })
+                  }
+                  className="mt-0.5"
+                />
+                <div className="flex flex-col">
+                  <div className="font-medium">
+                    {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
                   </div>
-                </label>
-              </Form.Item>
+                  <div className="text-label-secondary">
+                    {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
+                  </div>
+                </div>
+              </label>
             </SettingAccordionItem>
           </Accordion>
         </div>

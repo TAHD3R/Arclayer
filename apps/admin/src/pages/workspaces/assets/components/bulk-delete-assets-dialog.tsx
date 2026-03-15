@@ -1,4 +1,3 @@
-import { Button } from "antd";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -13,6 +12,7 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
 
 export type BulkDeleteAssetsDialogProps = {
   open: boolean;
@@ -39,20 +39,18 @@ export function BulkDeleteAssetsDialog(props: BulkDeleteAssetsDialogProps) {
 
         <AlertDialogFooter>
           <AlertDialogCancelPrimitive asChild>
-            <Button type="text" disabled={Boolean(props.confirmLoading)} autoInsertSpace={false}>
+            <Button variant="ghost" disabled={Boolean(props.confirmLoading)}>
               {t("common:CANCEL")}
             </Button>
           </AlertDialogCancelPrimitive>
           <AlertDialogActionPrimitive asChild>
             <Button
-              type="primary"
-              danger
+              variant="destructive"
               loading={props.confirmLoading}
               disabled={props.assetCount <= 0}
               onClick={async () => {
                 await props.onConfirm();
               }}
-              autoInsertSpace={false}
             >
               {t("assets:ASSET_BULK_DELETE_CONFIRM")}
             </Button>

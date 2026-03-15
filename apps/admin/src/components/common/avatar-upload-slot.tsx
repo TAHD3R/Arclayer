@@ -1,27 +1,23 @@
-import { Avatar, Button } from "antd";
 import { Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@celestial/lib/utils";
+import { Button } from "@celestial/ui/button";
 import { LoaderOne } from "@celestial/ui/loader";
+import { OrganizationAvatar } from "./entity-avatar";
 
 export type AvatarUploadSlotProps = {
   src?: string | null;
   fallback: ReactNode;
-
   shape?: "circle" | "square";
   size?: number;
-
   disabled?: boolean;
   loading?: boolean;
   onPick: () => void;
-
   onRemove?: () => void;
   canRemove?: boolean;
-
   uploadAriaLabel: string;
   removeAriaLabel: string;
-
   className?: string;
 };
 
@@ -46,22 +42,29 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
           isBusy ? "cursor-not-allowed opacity-70" : "cursor-pointer",
         )}
       >
-        <Avatar
+        <OrganizationAvatar
+          name={typeof props.fallback === "string" ? props.fallback : undefined}
+          assetRef={props.src ?? undefined}
           size={size}
-          shape={shape}
-          src={props.src ?? undefined}
-          className="bg-muted/20 ring-1 ring-border/60"
-        >
-          {props.fallback}
-        </Avatar>
+          className={cn("bg-muted/20 text-foreground ring-1 ring-border/60", radiusClass)}
+        />
+        {!props.src ? (
+          <span
+            className={cn(
+              "pointer-events-none absolute inset-0 flex items-center justify-center text-foreground",
+              radiusClass,
+            )}
+          >
+            {props.fallback}
+          </span>
+        ) : null}
       </button>
 
       {props.loading ? (
         <div
           className={cn(
-            "absolute inset-0 grid place-items-center",
+            "absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-[1px]",
             radiusClass,
-            "bg-background/40 backdrop-blur-[1px]",
           )}
         >
           <LoaderOne />
@@ -71,20 +74,18 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
       {canRemove ? (
         <Button
           aria-label={props.removeAriaLabel}
-          shape="circle"
-          size="small"
-          danger
-          type="primary"
-          autoInsertSpace={false}
+          size="icon-xs"
+          variant="destructive"
           disabled={isBusy}
-          icon={<Trash2 className="size-3.5" aria-hidden="true" />}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          className="absolute -bottom-1 -right-1 rounded-full shadow-sm"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
             props.onRemove?.();
           }}
-          className="absolute -bottom-1 -right-1 shadow-sm"
-        />
+        >
+          <Trash2 className="size-3.5" aria-hidden="true" />
+        </Button>
       ) : null}
     </div>
   );

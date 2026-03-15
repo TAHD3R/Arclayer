@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Button as AntButton } from "antd";
 import { Link2Off, RotateCcw } from "lucide-react";
 
+import { Button } from "@celestial/ui/button";
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";
 import { renderUserLabel } from "@/pages/_shared/team/components/user-label";
@@ -138,22 +138,18 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         header: "",
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
-            <AntButton
-              type="text"
-              icon={<RotateCcw className="size-4" />}
-              onClick={() => onOpenRenewInvitation(row.original)}
-              autoInsertSpace={false}
-            >
+            <Button variant="ghost" size="sm" onClick={() => onOpenRenewInvitation(row.original)}>
+              <RotateCcw className="size-4" />
               {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
-            <AntButton
-              type="text"
-              danger
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
               onClick={() => onOpenRevokeInvitation(row.original)}
-              autoInsertSpace={false}
             >
               {t("team:TEAM_ACTION_DELETE")}
-            </AntButton>
+            </Button>
           </div>
         ),
       },
@@ -274,14 +270,9 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         cell: ({ row }) => {
           const text = row.original.inviteUrl || row.original.displayCode;
           return (
-            <AntButton
-              type="link"
-              className="font-mono"
-              onClick={() => onCopyLinkText(text)}
-              autoInsertSpace={false}
-            >
+            <Button variant="link" className="font-mono" onClick={() => onCopyLinkText(text)}>
               {row.original.displayCode}
-            </AntButton>
+            </Button>
           );
         },
       },
@@ -349,23 +340,19 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
         header: "",
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
-            <AntButton
-              type="text"
-              icon={<RotateCcw className="size-4" />}
-              onClick={() => onOpenRenewLink(row.original)}
-              autoInsertSpace={false}
-            >
+            <Button variant="ghost" size="sm" onClick={() => onOpenRenewLink(row.original)}>
+              <RotateCcw className="size-4" />
               {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
-            <AntButton
-              type="text"
-              danger
-              icon={<Link2Off className="size-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
               onClick={() => onOpenDisableLink(row.original)}
-              autoInsertSpace={false}
             >
+              <Link2Off className="size-4" />
               {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
-            </AntButton>
+            </Button>
           </div>
         ),
       },

@@ -1,4 +1,3 @@
-import { Button, Card, Segmented, Space, message } from "antd";
 import type { ComponentType, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +5,7 @@ import { useRouter } from "@tanstack/react-router";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { DebugHttpStatusTag, ReducedMotionTag } from "@/components/ui/tags";
+import { notifyInfoText } from "@/lib/notifications";
 import {
   Illust401LockedTerminal,
   Illust403ForbiddenGateway,
@@ -24,6 +24,9 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@celestial/ui/empty";
+import { Button } from "@celestial/ui/button";
+import { Card } from "@celestial/ui/card";
+import { ToggleGroup, ToggleGroupItem } from "@celestial/ui/toggle-group";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@celestial/lib/utils";
 
@@ -81,7 +84,7 @@ export function IllustrationsDebugPage() {
   const [previewWidth, setPreviewWidth] = useState<PreviewWidth>(360);
 
   const toastAction = () => {
-    message.info(t("debug:ILLUSTRATIONS_ACTION_TOAST"));
+    notifyInfoText(t("debug:ILLUSTRATIONS_ACTION_TOAST"));
   };
 
   const entries = useMemo<PreviewEntry[]>(() => {
@@ -92,18 +95,14 @@ export function IllustrationsDebugPage() {
         description: t("common:PAGE_UNAUTHORIZED_DESC"),
         Illustration: Illust401LockedTerminal,
         actions: (
-          <Space wrap>
-            <Button
-              type="primary"
-              onClick={() => void router.navigate({ to: "/login" })}
-              autoInsertSpace={false}
-            >
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="default" onClick={() => void router.navigate({ to: "/login" })}>
               {t("common:GO_LOGIN")}
             </Button>
-            <Button onClick={toastAction} autoInsertSpace={false}>
+            <Button variant="outline" onClick={toastAction}>
               {t("common:REFRESH")}
             </Button>
-          </Space>
+          </div>
         ),
       },
       {
@@ -112,18 +111,14 @@ export function IllustrationsDebugPage() {
         description: t("common:PAGE_FORBIDDEN_DESC"),
         Illustration: Illust403ForbiddenGateway,
         actions: (
-          <Space wrap>
-            <Button
-              type="primary"
-              onClick={() => void router.navigate({ to: "/" })}
-              autoInsertSpace={false}
-            >
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="default" onClick={() => void router.navigate({ to: "/" })}>
               {t("common:GO_HOME")}
             </Button>
-            <Button onClick={toastAction} autoInsertSpace={false}>
+            <Button variant="outline" onClick={toastAction}>
               {t("common:RETRY")}
             </Button>
-          </Space>
+          </div>
         ),
       },
       {
@@ -132,18 +127,14 @@ export function IllustrationsDebugPage() {
         description: t("common:PAGE_NOT_FOUND_DESC"),
         Illustration: Illust404BrokenLink,
         actions: (
-          <Space wrap>
-            <Button
-              type="primary"
-              onClick={() => void router.navigate({ to: "/" })}
-              autoInsertSpace={false}
-            >
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="default" onClick={() => void router.navigate({ to: "/" })}>
               {t("common:GO_HOME")}
             </Button>
-            <Button onClick={toastAction} autoInsertSpace={false}>
+            <Button variant="outline" onClick={toastAction}>
               {t("common:REFRESH")}
             </Button>
-          </Space>
+          </div>
         ),
       },
       {
@@ -152,14 +143,14 @@ export function IllustrationsDebugPage() {
         description: t("common:PAGE_VALIDATION_DESC"),
         Illustration: Illust422MalformedPacket,
         actions: (
-          <Space wrap>
-            <Button type="primary" onClick={toastAction} autoInsertSpace={false}>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="default" onClick={toastAction}>
               {t("common:RETRY")}
             </Button>
-            <Button onClick={toastAction} autoInsertSpace={false}>
+            <Button variant="outline" onClick={toastAction}>
               {t("common:BACK")}
             </Button>
-          </Space>
+          </div>
         ),
       },
       {
@@ -168,14 +159,14 @@ export function IllustrationsDebugPage() {
         description: t("common:PAGE_RATE_LIMIT_DESC"),
         Illustration: Illust429OverloadedGauge,
         actions: (
-          <Space wrap>
-            <Button type="primary" onClick={toastAction} autoInsertSpace={false}>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="default" onClick={toastAction}>
               {t("common:RETRY")}
             </Button>
-            <Button onClick={toastAction} autoInsertSpace={false}>
+            <Button variant="outline" onClick={toastAction}>
               {t("common:REFRESH")}
             </Button>
-          </Space>
+          </div>
         ),
       },
       {
@@ -184,14 +175,14 @@ export function IllustrationsDebugPage() {
         description: t("common:PAGE_SERVER_ERROR_DESC"),
         Illustration: Illust500CrashedServer,
         actions: (
-          <Space wrap>
-            <Button type="primary" onClick={toastAction} autoInsertSpace={false}>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="default" onClick={toastAction}>
               {t("common:RETRY")}
             </Button>
-            <Button onClick={() => void router.navigate({ to: "/" })} autoInsertSpace={false}>
+            <Button variant="outline" onClick={() => void router.navigate({ to: "/" })}>
               {t("common:GO_HOME")}
             </Button>
-          </Space>
+          </div>
         ),
       },
     ];
@@ -221,7 +212,7 @@ export function IllustrationsDebugPage() {
       title={t("debug:ILLUSTRATIONS_DEBUG_TITLE")}
       description={t("debug:ILLUSTRATIONS_DEBUG_DESC")}
       action={
-        <Space wrap align="center">
+        <div className="flex flex-wrap items-center gap-3">
           <ReducedMotionTag
             enabled={reducedMotion}
             label={
@@ -230,22 +221,27 @@ export function IllustrationsDebugPage() {
                 : t("debug:ILLUSTRATIONS_REDUCED_MOTION_OFF")
             }
           />
-          <Space size={6} align="center">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-footnote text-label-secondary">
               {t("debug:ILLUSTRATIONS_PREVIEW_WIDTH")}
             </span>
-            <Segmented
-              value={previewWidth}
-              options={[
-                { label: "280", value: 280 },
-                { label: "360", value: 360 },
-                { label: "440", value: 440 },
-                { label: "520", value: 520 },
-              ]}
-              onChange={(value) => setPreviewWidth(value as PreviewWidth)}
-            />
-          </Space>
-        </Space>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={String(previewWidth)}
+              onValueChange={(value) => {
+                if (!value) return;
+                setPreviewWidth(Number(value) as PreviewWidth);
+              }}
+            >
+              {["280", "360", "440", "520"].map((value) => (
+                <ToggleGroupItem key={value} value={value} className="min-w-12">
+                  {value}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+        </div>
       }
     >
       <div className="space-y-8">
@@ -263,12 +259,14 @@ export function IllustrationsDebugPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rawIllustrations.map(({ status, Illustration }) => (
               <Card key={status}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-footnote text-label-secondary">HTTP {status}</div>
-                  <DebugHttpStatusTag label={status} />
-                </div>
-                <div className="mt-4">
-                  <Illustration className="w-full max-w-none" />
+                <div className="p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-footnote text-label-secondary">HTTP {status}</div>
+                    <DebugHttpStatusTag label={status} />
+                  </div>
+                  <div className="mt-4">
+                    <Illustration className="w-full max-w-none" />
+                  </div>
                 </div>
               </Card>
             ))}
@@ -278,13 +276,15 @@ export function IllustrationsDebugPage() {
         <section className="space-y-4">
           <h2 className="text-title2">{t("debug:ILLUSTRATIONS_SECTION_EMPTY")}</h2>
           <Card>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-footnote text-label-secondary">{t("common:EMPTY_TITLE")}</div>
-              <DebugHttpStatusTag label="EMPTY" />
-            </div>
-            <div className="mt-4">
-              <div className={cn("mx-auto w-full", emptyWidthClassName)}>
-                <IllustEmptyContainer className="w-full max-w-none" />
+            <div className="p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-footnote text-label-secondary">{t("common:EMPTY_TITLE")}</div>
+                <DebugHttpStatusTag label="EMPTY" />
+              </div>
+              <div className="mt-4">
+                <div className={cn("mx-auto w-full", emptyWidthClassName)}>
+                  <IllustEmptyContainer className="w-full max-w-none" />
+                </div>
               </div>
             </div>
           </Card>

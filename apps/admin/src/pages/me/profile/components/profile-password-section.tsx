@@ -1,40 +1,46 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input } from "antd";
 import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 
 import * as authApi from "@/api/auth";
+import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { SettingCard, SettingCardHeader } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import { PasswordInput } from "@celestial/ui/password-input";
 
 export type MeProfilePasswordSectionProps = {
   redirect: string;
 };
 
 type PasswordFormValues = {
-  oldPassword?: string;
+  oldPassword: string;
   newPassword: string;
   confirmPassword: string;
-  code?: string;
-  backupCode?: string;
+  code: string;
+  backupCode: string;
 };
 
-function resolveReauthMethods(data: unknown, key: "set" | "email"): string[] {
+const EMPTY_VALUES: PasswordFormValues = {
+  oldPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+  code: "",
+  backupCode: "",
+};
+
+function resolveReauthMethods(data: unknown): string[] {
   if (!data || typeof data !== "object") return [];
-  if (key === "set") {
-    const methods =
-      (data as { setPasswordRequiredReauthMethods?: string[] }).setPasswordRequiredReauthMethods ??
-      (data as { set_password_required_reauth_methods?: string[] })
-        .set_password_required_reauth_methods;
-    return Array.isArray(methods) ? methods : [];
-  }
   const methods =
-    (data as { emailChangeRequiredReauthMethods?: string[] }).emailChangeRequiredReauthMethods ??
-    (data as { email_change_required_reauth_methods?: string[] })
-      .email_change_required_reauth_methods;
+    (data as { setPasswordRequiredReauthMethods?: string[] }).setPasswordRequiredReauthMethods ??
+    (data as { set_password_required_reauth_methods?: string[] })
+      .set_password_required_reauth_methods;
   return Array.isArray(methods) ? methods : [];
 }
 
@@ -47,13 +53,80 @@ function resolveHasPassword(data: unknown): boolean {
   return true;
 }
 
+function buildPasswordSchema(
+  t: (key: string) => string,
+  options: { hasPassword: boolean; requiresTwoFactor: boolean },
+) {
+  return z
+    .object({
+      oldPassword: z.string(),
+      newPassword: z.string().min(1, t("auth:VALIDATION_PASSWORD_REQUIRED")),
+      confirmPassword: z.string().min(1, t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")),
+      code: z.string(),
+      backupCode: z.string(),
+    })
+    .superRefine((value, ctx) => {
+      if (options.hasPassword && !value.oldPassword.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["oldPassword"],
+          message: t("auth:VALIDATION_PASSWORD_REQUIRED"),
+        });
+      }
+      if (value.confirmPassword !== value.newPassword) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confirmPassword"],
+          message: t("auth:VALIDATION_PASSWORD_MISMATCH"),
+        });
+      }
+      if (!options.requiresTwoFactor) return;
+
+      const code = value.code.trim();
+      const backupCode = value.backupCode.trim();
+      if (!code && !backupCode) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["code"],
+          message: t("account:ME_PROFILE_PASSWORD_2FA_ONE_OF_REQUIRED"),
+        });
+        ctx.addIssue({
+          code: "custom",
+          path: ["backupCode"],
+          message: t("account:ME_PROFILE_PASSWORD_2FA_ONE_OF_REQUIRED"),
+        });
+      }
+      if (code && backupCode) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["code"],
+          message: t("account:ME_PROFILE_PASSWORD_2FA_MUTUALLY_EXCLUSIVE"),
+        });
+        ctx.addIssue({
+          code: "custom",
+          path: ["backupCode"],
+          message: t("account:ME_PROFILE_PASSWORD_2FA_MUTUALLY_EXCLUSIVE"),
+        });
+      }
+    });
+}
+
+function DialogField(props: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-1.5">
+      <label className="text-callout text-label-primary">{props.label}</label>
+      {props.children}
+      {props.error ? <p className="text-footnote text-destructive">{props.error}</p> : null}
+    </div>
+  );
+}
+
 export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
   const { t } = useTranslation(["account", "auth", "settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const [open, setOpen] = useState(false);
-  const [form] = Form.useForm<PasswordFormValues>();
 
   const capabilityQuery = useQuery({
     queryKey: ["auth", "security-capabilities", sessionVersion],
@@ -64,9 +137,24 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
   });
 
   const hasPassword = resolveHasPassword(capabilityQuery.data);
-  const setPasswordReauthMethods = resolveReauthMethods(capabilityQuery.data, "set");
+  const setPasswordReauthMethods = resolveReauthMethods(capabilityQuery.data);
   const requiresSetPasswordTwoFactor = !hasPassword && setPasswordReauthMethods.includes("2fa");
   const requiresSetPasswordRelogin = !hasPassword && setPasswordReauthMethods.includes("relogin");
+
+  const schema = useMemo(
+    () =>
+      buildPasswordSchema(t, {
+        hasPassword,
+        requiresTwoFactor: requiresSetPasswordTwoFactor,
+      }),
+    [hasPassword, requiresSetPasswordTwoFactor, t],
+  );
+
+  const form = useForm<PasswordFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: EMPTY_VALUES,
+    mode: "onTouched",
+  });
 
   const cardTitle = hasPassword
     ? t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")
@@ -74,16 +162,17 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
   const actionText = hasPassword
     ? t("account:ME_SECURITY_CHANGE_PASSWORD_ACTION")
     : t("account:ME_PROFILE_SET_PASSWORD_ACTION");
-
   const dialogTitle = hasPassword
     ? t("account:ME_SECURITY_CHANGE_PASSWORD_DIALOG_TITLE")
     : t("account:ME_PROFILE_SET_PASSWORD_DIALOG_TITLE");
+
   const dialogDescription = useMemo(() => {
     if (hasPassword) return t("account:ME_SECURITY_CHANGE_PASSWORD_DIALOG_DESC");
     if (requiresSetPasswordTwoFactor) return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC_2FA");
     if (requiresSetPasswordRelogin) return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC_RELOGIN");
     return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC");
   }, [hasPassword, requiresSetPasswordRelogin, requiresSetPasswordTwoFactor, t]);
+
   const cardDescription = useMemo(() => {
     if (capabilityQuery.isError) return t("account:ME_PROFILE_PASSWORD_CAPABILITY_LOAD_FAILED");
     if (hasPassword) return t("account:ME_PROFILE_PASSWORD_DESC_CHANGE");
@@ -100,28 +189,22 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
 
   useEffect(() => {
     if (!open) return;
-    form.setFieldsValue({
-      oldPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      code: "",
-      backupCode: "",
-    });
+    form.reset(EMPTY_VALUES);
   }, [form, open]);
 
   const changePasswordMutation = useMutation({
     mutationFn: async (values: PasswordFormValues) => {
       if (hasPassword) {
         return authApi.changePassword({
-          old_password: String(values.oldPassword || ""),
+          old_password: values.oldPassword.trim(),
           new_password: values.newPassword,
         });
       }
       return authApi.setMyPassword({
         new_password: values.newPassword,
-        ...(requiresSetPasswordTwoFactor && values.code ? { code: values.code } : {}),
-        ...(requiresSetPasswordTwoFactor && values.backupCode
-          ? { backup_code: values.backupCode }
+        ...(requiresSetPasswordTwoFactor && values.code.trim() ? { code: values.code.trim() } : {}),
+        ...(requiresSetPasswordTwoFactor && values.backupCode.trim()
+          ? { backup_code: values.backupCode.trim() }
           : {}),
       });
     },
@@ -131,7 +214,7 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
           ? t("account:ME_SECURITY_PASSWORD_CHANGED")
           : t("account:ME_PROFILE_SET_PASSWORD_SUCCESS"),
       );
-      form.resetFields();
+      form.reset(EMPTY_VALUES);
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["auth", "security-capabilities"] });
     },
@@ -149,12 +232,7 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
           title={cardTitle}
           description={cardDescription}
           action={
-            <Button
-              type="primary"
-              disabled={!canOpenDialog}
-              onClick={() => setOpen(true)}
-              autoInsertSpace={false}
-            >
+            <Button disabled={!canOpenDialog} onClick={() => setOpen(true)}>
               {actionText}
             </Button>
           }
@@ -165,24 +243,18 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
         open={open}
         onOpenChange={(next) => {
           if (!next && isBusy) return;
-          if (!next) form.resetFields();
+          if (!next) form.reset(EMPTY_VALUES);
           setOpen(next);
         }}
         title={dialogTitle}
         description={dialogDescription}
         footer={
           <>
-            <Button
-              type="text"
-              disabled={isBusy}
-              onClick={() => setOpen(false)}
-              autoInsertSpace={false}
-            >
+            <Button variant="ghost" disabled={isBusy} onClick={() => setOpen(false)}>
               {t("common:CANCEL")}
             </Button>
             {requiresSetPasswordRelogin ? (
               <Button
-                type="primary"
                 onClick={() => {
                   setOpen(false);
                   void navigate({
@@ -191,124 +263,75 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
                     replace: true,
                   });
                 }}
-                autoInsertSpace={false}
               >
                 {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_ACTION")}
               </Button>
             ) : null}
             <Button
-              type="primary"
               loading={changePasswordMutation.isPending}
               disabled={saveDisabled}
               onClick={() =>
-                void (async () => {
-                  const values = await form.validateFields();
-                  await changePasswordMutation.mutateAsync(values);
-                })()
+                void form.handleSubmit((values) => changePasswordMutation.mutateAsync(values))()
               }
-              autoInsertSpace={false}
             >
               {t("settings:SETTINGS_SAVE")}
             </Button>
           </>
         }
       >
-        <div className="max-w-xl">
-          <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
-            {hasPassword ? (
-              <Form.Item<PasswordFormValues>
-                name="oldPassword"
-                label={t("account:ME_SECURITY_OLD_PASSWORD")}
-                rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-                className="mb-4"
+        <div className="max-w-xl space-y-4">
+          {hasPassword ? (
+            <DialogField
+              label={t("account:ME_SECURITY_OLD_PASSWORD")}
+              error={form.formState.errors.oldPassword?.message}
+            >
+              <PasswordInput {...form.register("oldPassword")} autoComplete="current-password" />
+            </DialogField>
+          ) : null}
+
+          <DialogField
+            label={t("account:ME_SECURITY_NEW_PASSWORD")}
+            error={form.formState.errors.newPassword?.message}
+          >
+            <PasswordInput {...form.register("newPassword")} autoComplete="new-password" />
+          </DialogField>
+
+          <DialogField
+            label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
+            error={form.formState.errors.confirmPassword?.message}
+          >
+            <PasswordInput {...form.register("confirmPassword")} autoComplete="new-password" />
+          </DialogField>
+
+          {requiresSetPasswordTwoFactor ? (
+            <>
+              <DialogField
+                label={t("account:ME_PROFILE_PASSWORD_2FA_CODE")}
+                error={form.formState.errors.code?.message}
               >
-                <Input.Password autoComplete="current-password" />
-              </Form.Item>
-            ) : null}
+                <Input
+                  {...form.register("code")}
+                  placeholder={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
+                />
+              </DialogField>
 
-            <Form.Item<PasswordFormValues>
-              name="newPassword"
-              label={t("account:ME_SECURITY_NEW_PASSWORD")}
-              rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-              className="mb-4"
-            >
-              <Input.Password autoComplete="new-password" />
-            </Form.Item>
+              <DialogField
+                label={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE")}
+                error={form.formState.errors.backupCode?.message}
+              >
+                <Input
+                  {...form.register("backupCode")}
+                  placeholder={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
+                />
+              </DialogField>
+            </>
+          ) : null}
 
-            <Form.Item<PasswordFormValues>
-              name="confirmPassword"
-              label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
-              dependencies={["newPassword"]}
-              rules={[
-                { required: true, message: t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED") },
-                ({ getFieldValue }) => ({
-                  validator: async (_, value) => {
-                    const pwd = getFieldValue("newPassword");
-                    if (!value || value === pwd) return;
-                    throw new Error(t("auth:VALIDATION_PASSWORD_MISMATCH"));
-                  },
-                }),
-              ]}
-              className={requiresSetPasswordTwoFactor ? "mb-4" : "mb-0!"}
-            >
-              <Input.Password autoComplete="new-password" />
-            </Form.Item>
-
-            {requiresSetPasswordTwoFactor ? (
-              <>
-                <Form.Item<PasswordFormValues>
-                  name="code"
-                  label={t("account:ME_PROFILE_PASSWORD_2FA_CODE")}
-                  rules={[
-                    {
-                      validator: async (_, value) => {
-                        const backupCode = String(form.getFieldValue("backupCode") || "").trim();
-                        const code = String(value || "").trim();
-                        if (!code && !backupCode) {
-                          throw new Error(t("account:ME_PROFILE_PASSWORD_2FA_ONE_OF_REQUIRED"));
-                        }
-                        if (code && backupCode) {
-                          throw new Error(t("account:ME_PROFILE_PASSWORD_2FA_MUTUALLY_EXCLUSIVE"));
-                        }
-                      },
-                    },
-                  ]}
-                  className="mb-4"
-                >
-                  <Input placeholder={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")} />
-                </Form.Item>
-                <Form.Item<PasswordFormValues>
-                  name="backupCode"
-                  label={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE")}
-                  rules={[
-                    {
-                      validator: async (_, value) => {
-                        const code = String(form.getFieldValue("code") || "").trim();
-                        const backupCode = String(value || "").trim();
-                        if (!code && !backupCode) {
-                          throw new Error(t("account:ME_PROFILE_PASSWORD_2FA_ONE_OF_REQUIRED"));
-                        }
-                        if (code && backupCode) {
-                          throw new Error(t("account:ME_PROFILE_PASSWORD_2FA_MUTUALLY_EXCLUSIVE"));
-                        }
-                      },
-                    },
-                  ]}
-                  className="mb-0!"
-                >
-                  <Input
-                    placeholder={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
-                  />
-                </Form.Item>
-              </>
-            ) : null}
-
-            {requiresSetPasswordRelogin ? (
-              <div className="text-callout text-label-secondary">
-                {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_REQUIRED")}
-              </div>
-            ) : null}
-          </Form>
+          {requiresSetPasswordRelogin ? (
+            <div className="text-callout text-label-secondary">
+              {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_REQUIRED")}
+            </div>
+          ) : null}
         </div>
       </SettingDialog>
     </>

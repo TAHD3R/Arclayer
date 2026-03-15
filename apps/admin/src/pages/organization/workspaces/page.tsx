@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { Button as AntButton, Form } from "antd";
 import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { type OrganizationWorkspace } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
+import { Button } from "@celestial/ui/button";
 import { ChromeTabsContent } from "@celestial/ui/chrome-tabs";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -38,11 +38,13 @@ export function OrganizationWorkspacesPage() {
   const [tab, setTab] = useState<OrganizationWorkspacesTab>("active");
   const [viewMode, setViewMode] = useState<OrganizationWorkspacesViewMode>("card");
   const [createOpen, setCreateOpen] = useState(autoOpenCreate);
+  const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>({
+    name: "",
+    description: "",
+  });
   const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
-
-  const [createForm] = Form.useForm<CreateWorkspaceFormValues>();
 
   useEffect(() => {
     if (!autoOpenCreate) return;
@@ -67,7 +69,7 @@ export function OrganizationWorkspacesPage() {
     t,
     onCreateSuccess: () => {
       setCreateOpen(false);
-      createForm.resetFields();
+      setCreateValues({ name: "", description: "" });
     },
     onArchiveSuccess: () => {
       setConfirmArchive(null);
@@ -155,16 +157,15 @@ export function OrganizationWorkspacesPage() {
       action={
         <div className="flex items-center gap-2">
           <WorkspacesViewModeToggle t={t} value={viewMode} onChange={setViewMode} />
-          <AntButton
-            type="primary"
-            icon={<Plus size={16} />}
+          <Button
+            variant="default"
             onClick={() => {
               setCreateOpen(true);
             }}
-            autoInsertSpace={false}
           >
+            <Plus size={16} />
             {t("common:ORG_WORKSPACES_CREATE")}
-          </AntButton>
+          </Button>
         </div>
       }
     >
@@ -216,7 +217,8 @@ export function OrganizationWorkspacesPage() {
         createDialog={{
           open: createOpen,
           setOpen: setCreateOpen,
-          form: createForm,
+          values: createValues,
+          setValues: setCreateValues,
           pending: mutations.createMutation.isPending,
           onSubmit: async (values) => {
             await mutations.createMutation.mutateAsync(values);

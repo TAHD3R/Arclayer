@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Input, QRCode } from "antd";
-import { Smartphone } from "lucide-react";
+import { Smartphone, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import { SecurityConfiguredTag, SecurityNotConfiguredTag } from "@/components/ui/tags";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@celestial/ui/input-otp";
+import { PasswordInput } from "@celestial/ui/password-input";
+import { QRCode } from "@celestial/ui/qr-code";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
@@ -58,7 +62,11 @@ function normalizeBackupCodes(
 function BackupCodesDialog(props: BackupCodesDialogProps) {
   return (
     <div className="grid gap-4">
-      <Alert type="warning" showIcon title={props.title} description={props.description} />
+      <Alert className="border-amber-500/30 bg-amber-500/8 text-amber-900 dark:text-amber-100">
+        <TriangleAlert className="text-amber-600 dark:text-amber-300" />
+        <AlertTitle>{props.title}</AlertTitle>
+        <AlertDescription>{props.description}</AlertDescription>
+      </Alert>
       <div className="grid gap-2 rounded-xl border border-border/70 bg-muted/20 p-4">
         {props.backupCodes.map((code) => (
           <code key={code} className="font-mono text-body text-label-primary">
@@ -66,9 +74,7 @@ function BackupCodesDialog(props: BackupCodesDialogProps) {
           </code>
         ))}
       </div>
-      <Button type="primary" onClick={props.onAcknowledge} autoInsertSpace={false}>
-        {props.acknowledgeLabel}
-      </Button>
+      <Button onClick={props.onAcknowledge}>{props.acknowledgeLabel}</Button>
     </div>
   );
 }
@@ -119,19 +125,12 @@ function SetupDialog(props: SetupDialogProps) {
 
   const footer = backupCodes.length ? null : (
     <>
-      <Button
-        type="text"
-        disabled={props.pending}
-        onClick={() => props.onOpenChange(false)}
-        autoInsertSpace={false}
-      >
+      <Button variant="ghost" disabled={props.pending} onClick={() => props.onOpenChange(false)}>
         {t("common:CANCEL")}
       </Button>
       <Button
-        type="primary"
         loading={props.pending}
         onClick={() => void (setupData ? handleConfirm() : handleStart())}
-        autoInsertSpace={false}
       >
         {setupData
           ? t("account:ME_SECURITY_2FA_SETUP_CONFIRM")
@@ -162,7 +161,7 @@ function SetupDialog(props: SetupDialogProps) {
       ) : setupData ? (
         <div className="grid gap-4">
           <div className="flex justify-center rounded-xl border border-border/70 bg-muted/20 p-4">
-            <QRCode value={setupData.otpauthUri || setupData.secret} bordered={false} />
+            <QRCode value={setupData.otpauthUri || setupData.secret} />
           </div>
           <div className="grid gap-1.5">
             <span className="text-callout text-label-primary">
@@ -205,7 +204,7 @@ function SetupDialog(props: SetupDialogProps) {
           <span className="text-callout text-label-primary">
             {t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}
           </span>
-          <Input.Password
+          <PasswordInput
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             aria-label={t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}
@@ -275,19 +274,13 @@ function ReauthDialog(props: ReauthDialogProps) {
         resultCodes.length ? null : (
           <>
             <Button
-              type="text"
+              variant="ghost"
               disabled={props.pending}
               onClick={() => props.onOpenChange(false)}
-              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
             </Button>
-            <Button
-              type="primary"
-              loading={props.pending}
-              onClick={() => void handleSubmit()}
-              autoInsertSpace={false}
-            >
+            <Button loading={props.pending} onClick={() => void handleSubmit()}>
               {props.submitLabel}
             </Button>
           </>
@@ -339,8 +332,6 @@ function ReauthDialog(props: ReauthDialogProps) {
                 onChange={(event) => setBackupCode(event.target.value)}
                 aria-label={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
                 placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
-                size="large"
-                variant="filled"
                 disabled={props.pending}
               />
             </div>
@@ -446,25 +437,15 @@ export function MeSecurityTwoFactorSection() {
           action={
             enabled ? (
               <div className="flex items-center gap-2">
-                <Button onClick={() => setRegenerateOpen(true)} autoInsertSpace={false}>
+                <Button variant="secondary" onClick={() => setRegenerateOpen(true)}>
                   {t("account:ME_SECURITY_2FA_REGENERATE")}
                 </Button>
-                <Button
-                  danger
-                  type="primary"
-                  onClick={() => setDisableOpen(true)}
-                  autoInsertSpace={false}
-                >
+                <Button variant="destructive" onClick={() => setDisableOpen(true)}>
                   {t("account:ME_SECURITY_2FA_DISABLE")}
                 </Button>
               </div>
             ) : (
-              <Button
-                type="primary"
-                disabled={actionLoading || !canSetup}
-                onClick={() => setSetupOpen(true)}
-                autoInsertSpace={false}
-              >
+              <Button disabled={actionLoading || !canSetup} onClick={() => setSetupOpen(true)}>
                 {t("account:ME_SECURITY_2FA_ENABLE")}
               </Button>
             )

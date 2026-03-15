@@ -1,13 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input } from "antd";
 import { useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 
 import * as authApi from "@/api/auth";
+import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import { PasswordInput } from "@celestial/ui/password-input";
 
 export type MeProfileChangeEmailDialogProps = {
   open: boolean;
@@ -19,9 +24,17 @@ export type MeProfileChangeEmailDialogProps = {
 type ChangeEmailFormValues = {
   newEmail: string;
   code: string;
-  password?: string;
-  twoFactorCode?: string;
-  backupCode?: string;
+  password: string;
+  twoFactorCode: string;
+  backupCode: string;
+};
+
+const EMPTY_VALUES: ChangeEmailFormValues = {
+  newEmail: "",
+  code: "",
+  password: "",
+  twoFactorCode: "",
+  backupCode: "",
 };
 
 function resolveEmailReauthMethods(data: unknown): string[] {
@@ -34,12 +47,85 @@ function resolveEmailReauthMethods(data: unknown): string[] {
   return Array.isArray(snake) ? snake : [];
 }
 
+function buildSchema(
+  t: (key: string) => string,
+  options: { requiresPassword: boolean; requiresTwoFactor: boolean },
+) {
+  return z
+    .object({
+      newEmail: z
+        .string()
+        .min(1, t("account:ME_PROFILE_EMAIL_NEW_EMAIL_REQUIRED"))
+        .email(t("account:ME_PROFILE_EMAIL_NEW_EMAIL_INVALID")),
+      code: z.string().min(1, t("account:ME_PROFILE_EMAIL_CODE_REQUIRED")),
+      password: z.string(),
+      twoFactorCode: z.string(),
+      backupCode: z.string(),
+    })
+    .superRefine((value, ctx) => {
+      if (options.requiresPassword && !value.password.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["password"],
+          message: t("auth:VALIDATION_PASSWORD_REQUIRED"),
+        });
+      }
+
+      if (!options.requiresTwoFactor) return;
+      const code = value.twoFactorCode.trim();
+      const backupCode = value.backupCode.trim();
+      if (!code && !backupCode) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["twoFactorCode"],
+          message: t("account:ME_PROFILE_EMAIL_2FA_ONE_OF_REQUIRED"),
+        });
+        ctx.addIssue({
+          code: "custom",
+          path: ["backupCode"],
+          message: t("account:ME_PROFILE_EMAIL_2FA_ONE_OF_REQUIRED"),
+        });
+      }
+      if (code && backupCode) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["twoFactorCode"],
+          message: t("account:ME_PROFILE_EMAIL_2FA_MUTUALLY_EXCLUSIVE"),
+        });
+        ctx.addIssue({
+          code: "custom",
+          path: ["backupCode"],
+          message: t("account:ME_PROFILE_EMAIL_2FA_MUTUALLY_EXCLUSIVE"),
+        });
+      }
+    });
+}
+
+function FieldError(props: { message?: string }) {
+  if (!props.message) return null;
+  return <p className="text-footnote text-destructive">{props.message}</p>;
+}
+
+function FieldBlock(props: {
+  children: React.ReactNode;
+  error?: string;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div className={props.className ?? "grid gap-1.5"}>
+      <label className="text-callout text-label-primary">{props.label}</label>
+      {props.children}
+      <FieldError message={props.error} />
+    </div>
+  );
+}
+
 export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProps) {
   const { t } = useTranslation(["account", "auth", "settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const [form] = Form.useForm<ChangeEmailFormValues>();
 
   const normalizedEmail = useMemo(() => String(props.nextEmail || "").trim(), [props.nextEmail]);
 
@@ -62,15 +148,20 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
     return t("account:ME_PROFILE_EMAIL_DIALOG_DESC");
   }, [requiresRelogin, requiresTwoFactor, t]);
 
+  const schema = useMemo(
+    () => buildSchema(t, { requiresPassword, requiresTwoFactor }),
+    [requiresPassword, requiresTwoFactor, t],
+  );
+
+  const form = useForm<ChangeEmailFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { ...EMPTY_VALUES, newEmail: normalizedEmail },
+    mode: "onTouched",
+  });
+
   useEffect(() => {
     if (!props.open) return;
-    form.setFieldsValue({
-      newEmail: normalizedEmail,
-      code: "",
-      password: "",
-      twoFactorCode: "",
-      backupCode: "",
-    });
+    form.reset({ ...EMPTY_VALUES, newEmail: normalizedEmail });
   }, [form, normalizedEmail, props.open]);
 
   const requestCodeMutation = useMutation({
@@ -90,29 +181,31 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
       return authApi.confirmMyEmailChange({
         new_email: payload.newEmail,
         code: payload.code,
-        ...(requiresPassword && payload.password ? { password: payload.password } : {}),
-        ...(requiresTwoFactor && payload.twoFactorCode
-          ? { two_factor_code: payload.twoFactorCode }
+        ...(requiresPassword && payload.password.trim() ? { password: payload.password } : {}),
+        ...(requiresTwoFactor && payload.twoFactorCode.trim()
+          ? { two_factor_code: payload.twoFactorCode.trim() }
           : {}),
-        ...(requiresTwoFactor && payload.backupCode ? { backup_code: payload.backupCode } : {}),
+        ...(requiresTwoFactor && payload.backupCode.trim()
+          ? { backup_code: payload.backupCode.trim() }
+          : {}),
       });
     },
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       props.onOpenChange(false);
-      form.resetFields();
+      form.reset(EMPTY_VALUES);
     },
     onError: (err) => notifyError(err),
   });
 
   const isBusy = requestCodeMutation.isPending || confirmMutation.isPending;
 
-  const closeIfIdle = (open: boolean) => {
+  function closeIfIdle(open: boolean) {
     if (!open && isBusy) return;
-    if (!open) form.resetFields();
+    if (!open) form.reset({ ...EMPTY_VALUES, newEmail: normalizedEmail });
     props.onOpenChange(open);
-  };
+  }
 
   const saveDisabled =
     isBusy || capabilityQuery.isLoading || capabilityQuery.isError || requiresRelogin;
@@ -125,17 +218,11 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
       description={dialogDescription}
       footer={
         <>
-          <Button
-            type="text"
-            disabled={isBusy}
-            onClick={() => closeIfIdle(false)}
-            autoInsertSpace={false}
-          >
+          <Button variant="ghost" disabled={isBusy} onClick={() => closeIfIdle(false)}>
             {t("auth:MODAL_CANCEL")}
           </Button>
           {requiresRelogin ? (
             <Button
-              type="primary"
               onClick={() => {
                 closeIfIdle(false);
                 void navigate({
@@ -144,140 +231,114 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
                   replace: true,
                 });
               }}
-              autoInsertSpace={false}
             >
               {t("account:ME_PROFILE_EMAIL_RELOGIN_ACTION")}
             </Button>
           ) : null}
           <Button
-            type="primary"
             loading={confirmMutation.isPending}
             disabled={saveDisabled}
-            onClick={() => {
-              void (async () => {
-                const values = await form.validateFields();
-                await confirmMutation.mutateAsync(values);
-              })();
-            }}
-            autoInsertSpace={false}
+            onClick={() =>
+              void form.handleSubmit((values) => confirmMutation.mutateAsync(values))()
+            }
           >
             {t("settings:SETTINGS_SAVE")}
           </Button>
         </>
       }
     >
-      <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
-        <Form.Item
-          name="newEmail"
+      <div className="grid gap-4">
+        <FieldBlock
           label={t("account:ME_PROFILE_EMAIL_NEW_EMAIL")}
-          rules={[
-            { required: true, message: t("account:ME_PROFILE_EMAIL_NEW_EMAIL_REQUIRED") },
-            { type: "email", message: t("account:ME_PROFILE_EMAIL_NEW_EMAIL_INVALID") },
-          ]}
-          className="mb-4"
-        >
-          <Input placeholder={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")} />
-        </Form.Item>
-
-        <Form.Item
-          name="code"
-          label={t("account:ME_PROFILE_EMAIL_CODE")}
-          rules={[{ required: true, message: t("account:ME_PROFILE_EMAIL_CODE_REQUIRED") }]}
-          className="mb-4"
+          error={form.formState.errors.newEmail?.message}
         >
           <Input
-            placeholder={t("account:ME_PROFILE_EMAIL_CODE_PLACEHOLDER")}
-            addonAfter={
-              <Button
-                type="link"
-                className="px-0!"
-                disabled={isBusy || capabilityQuery.isLoading || capabilityQuery.isError}
-                onClick={() => {
-                  void (async () => {
-                    const values = await form.validateFields(["newEmail"]);
-                    await requestCodeMutation.mutateAsync({ newEmail: values.newEmail });
-                  })();
-                }}
-                autoInsertSpace={false}
-              >
-                {requestCodeMutation.isPending
-                  ? t("account:ME_PROFILE_EMAIL_SENDING_CODE")
-                  : t("account:ME_PROFILE_EMAIL_SEND_CODE")}
-              </Button>
-            }
+            {...form.register("newEmail")}
+            placeholder={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")}
           />
-        </Form.Item>
+        </FieldBlock>
+
+        <FieldBlock
+          label={t("account:ME_PROFILE_EMAIL_CODE")}
+          error={form.formState.errors.code?.message}
+        >
+          <div className="flex gap-2">
+            <Input
+              {...form.register("code")}
+              placeholder={t("account:ME_PROFILE_EMAIL_CODE_PLACEHOLDER")}
+            />
+            <Button
+              variant="secondary"
+              className="shrink-0"
+              disabled={isBusy || capabilityQuery.isLoading || capabilityQuery.isError}
+              loading={requestCodeMutation.isPending}
+              onClick={() => {
+                void (async () => {
+                  const valid = await form.trigger("newEmail", { shouldFocus: true });
+                  if (!valid) return;
+                  await requestCodeMutation.mutateAsync({
+                    newEmail: form.getValues("newEmail"),
+                  });
+                })();
+              }}
+            >
+              {requestCodeMutation.isPending
+                ? t("account:ME_PROFILE_EMAIL_SENDING_CODE")
+                : t("account:ME_PROFILE_EMAIL_SEND_CODE")}
+            </Button>
+          </div>
+        </FieldBlock>
 
         {requiresPassword ? (
           <>
-            <Form.Item
-              name="password"
+            <FieldBlock
               label={t("account:ME_PROFILE_EMAIL_PASSWORD")}
-              rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-              className="mb-2"
+              error={form.formState.errors.password?.message}
             >
-              <Input.Password placeholder={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")} />
-            </Form.Item>
+              <PasswordInput
+                {...form.register("password")}
+                placeholder={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")}
+                autoComplete="current-password"
+              />
+            </FieldBlock>
 
-            <Button
-              type="link"
-              className="px-0!"
-              disabled={isBusy}
-              onClick={() => {
-                closeIfIdle(false);
-                void navigate({ to: "/reset-password" });
-              }}
-              autoInsertSpace={false}
-            >
-              {t("account:ME_PROFILE_EMAIL_FORGOT_PASSWORD")}
-            </Button>
+            <div>
+              <Button
+                variant="link"
+                className="h-auto p-0"
+                disabled={isBusy}
+                onClick={() => {
+                  closeIfIdle(false);
+                  void navigate({ to: "/reset-password" });
+                }}
+              >
+                {t("account:ME_PROFILE_EMAIL_FORGOT_PASSWORD")}
+              </Button>
+            </div>
           </>
         ) : null}
 
         {requiresTwoFactor ? (
           <>
-            <Form.Item
-              name="twoFactorCode"
+            <FieldBlock
               label={t("account:ME_PROFILE_EMAIL_2FA_CODE")}
-              rules={[
-                {
-                  validator: async (_, value) => {
-                    const backupCode = String(form.getFieldValue("backupCode") || "").trim();
-                    const code = String(value || "").trim();
-                    if (!code && !backupCode) {
-                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_ONE_OF_REQUIRED"));
-                    }
-                    if (code && backupCode) {
-                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_MUTUALLY_EXCLUSIVE"));
-                    }
-                  },
-                },
-              ]}
-              className="mb-4"
+              error={form.formState.errors.twoFactorCode?.message}
             >
-              <Input placeholder={t("account:ME_PROFILE_EMAIL_2FA_CODE_PLACEHOLDER")} />
-            </Form.Item>
-            <Form.Item
-              name="backupCode"
+              <Input
+                {...form.register("twoFactorCode")}
+                placeholder={t("account:ME_PROFILE_EMAIL_2FA_CODE_PLACEHOLDER")}
+              />
+            </FieldBlock>
+
+            <FieldBlock
               label={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE")}
-              rules={[
-                {
-                  validator: async (_, value) => {
-                    const code = String(form.getFieldValue("twoFactorCode") || "").trim();
-                    const backupCode = String(value || "").trim();
-                    if (!code && !backupCode) {
-                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_ONE_OF_REQUIRED"));
-                    }
-                    if (code && backupCode) {
-                      throw new Error(t("account:ME_PROFILE_EMAIL_2FA_MUTUALLY_EXCLUSIVE"));
-                    }
-                  },
-                },
-              ]}
-              className="mb-0!"
+              error={form.formState.errors.backupCode?.message}
             >
-              <Input placeholder={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE_PLACEHOLDER")} />
-            </Form.Item>
+              <Input
+                {...form.register("backupCode")}
+                placeholder={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE_PLACEHOLDER")}
+              />
+            </FieldBlock>
           </>
         ) : null}
 
@@ -288,11 +349,11 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
         ) : null}
 
         {capabilityQuery.isError ? (
-          <div className="text-callout text-destructive mt-1">
+          <div className="text-callout text-destructive">
             {t("account:ME_PROFILE_PASSWORD_CAPABILITY_LOAD_FAILED")}
           </div>
         ) : null}
-      </Form>
+      </div>
     </SettingDialog>
   );
 }

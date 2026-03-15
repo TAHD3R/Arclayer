@@ -1,6 +1,6 @@
-import { Form, Select } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { UseFormReturn } from "react-hook-form";
 
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { Accordion } from "@celestial/ui/accordion";
@@ -19,9 +19,8 @@ import {
   buildLocaleOptions,
   buildTimezoneOptions,
 } from "@/lib/settings/general/localization-options";
+import { SetupFieldShell, SetupSelectControl } from "./setup-form-controls";
 import type { SetupDefaultsDraft } from "@/types/stores";
-
-const SETUP_SELECT_DROPDOWN_Z_INDEX = 2600;
 
 function getBrowserTimeZone(): string {
   try {
@@ -32,142 +31,97 @@ function getBrowserTimeZone(): string {
 }
 
 export function SetupDefaultsStep(props: {
-  form: ReturnType<typeof Form.useForm<SetupDefaultsDraft>>[0];
+  form: UseFormReturn<SetupDefaultsDraft>;
   disabled?: boolean;
-  onValuesChange: (
-    changed: Partial<SetupDefaultsDraft>,
-    values: Partial<SetupDefaultsDraft>,
-  ) => void;
 }) {
   const { t } = useTranslation();
-
-  const timezone = Form.useWatch("timezone", props.form) as string | undefined;
-  const locale = Form.useWatch("locale", props.form) as AppLocale | undefined;
-  const dateFormat = Form.useWatch("dateFormat", props.form) as string | undefined;
-  const useBrowserTimeZone = Form.useWatch("useBrowserTimeZone", props.form) as boolean | undefined;
-  const useRelativeDateTime = Form.useWatch("useRelativeDateTime", props.form) as
-    | boolean
-    | undefined;
+  const values = props.form.watch();
 
   const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
   const localeItems = useMemo(() => buildLocaleOptions(t), [t]);
-  const timezoneItems = useMemo(() => buildTimezoneOptions(timezone), [timezone]);
+  const timezoneItems = useMemo(() => buildTimezoneOptions(values.timezone), [values.timezone]);
   const dateFormatItems = useMemo(() => buildDateFormatOptions(), []);
 
   const currentTimezoneLabel = resolveLocalizationTimeZoneSummary({
     autoLabel: t("settings:SETTINGS_TIMEZONE_AUTO_SHORT"),
     browserTimeZone,
-    timeZone: timezone || DEFAULT_TIMEZONE,
-    useBrowserTimeZone,
+    timeZone: values.timezone || DEFAULT_TIMEZONE,
+    useBrowserTimeZone: values.useBrowserTimeZone,
   });
   const currentLocaleLabel =
-    localeItems.find((item) => item.value === locale)?.label || localeItems[0]?.label;
+    localeItems.find((item) => item.value === values.locale)?.label || localeItems[0]?.label;
   const currentDateFormatLabel = resolveLocalizationDateFormatSummary({
-    dateFormat,
+    dateFormat: values.dateFormat,
     relativeLabel: t("settings:SETTINGS_DATETIME_RELATIVE_SHORT"),
-    useRelativeDateTime,
+    useRelativeDateTime: values.useRelativeDateTime,
   });
 
   return (
-    <Form<SetupDefaultsDraft>
-      form={props.form}
-      layout="vertical"
-      requiredMark={false}
-      autoComplete="off"
-      disabled={props.disabled}
-      onValuesChange={props.onValuesChange}
-    >
-      <Accordion type="single" collapsible className="px-0">
-        <SettingAccordionItem
-          value="timezone"
-          title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-          description={t("setup:SETUP_TIMEZONE_DESC")}
-          showSummary
-          summary={currentTimezoneLabel}
-          disabled={props.disabled}
-          keepRendered
-        >
-          <Form.Item<SetupDefaultsDraft>
-            name="timezone"
-            rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
-            hidden
-          >
-            <input type="hidden" />
-          </Form.Item>
-          <Form.Item<SetupDefaultsDraft> name="useBrowserTimeZone" hidden>
-            <input type="hidden" />
-          </Form.Item>
-          <TimezoneLocalizationControl
-            selectValue={String(timezone || DEFAULT_TIMEZONE)}
-            switchChecked={Boolean(useBrowserTimeZone)}
-            switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
-            switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
-            options={timezoneItems}
-            onSelectChange={(value) => props.form.setFieldValue("timezone", value)}
-            onSwitchChange={(checked) => props.form.setFieldValue("useBrowserTimeZone", checked)}
-          />
-        </SettingAccordionItem>
+    <Accordion type="single" collapsible className="px-0">
+      <SettingAccordionItem
+        value="timezone"
+        title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+        description={t("setup:SETUP_TIMEZONE_DESC")}
+        showSummary
+        summary={currentTimezoneLabel}
+        disabled={props.disabled}
+        keepRendered
+      >
+        <TimezoneLocalizationControl
+          selectValue={String(values.timezone || DEFAULT_TIMEZONE)}
+          switchChecked={Boolean(values.useBrowserTimeZone)}
+          switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+          switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+          options={timezoneItems}
+          onSelectChange={(value) => props.form.setValue("timezone", value)}
+          onSwitchChange={(checked) => props.form.setValue("useBrowserTimeZone", checked)}
+        />
+      </SettingAccordionItem>
 
-        <SettingAccordionItem
-          value="locale"
-          title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
-          description={t("setup:SETUP_LANGUAGE_DESC")}
-          showSummary
-          summary={currentLocaleLabel}
-          disabled={props.disabled}
-          keepRendered
+      <SettingAccordionItem
+        value="locale"
+        title={t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
+        description={t("setup:SETUP_LANGUAGE_DESC")}
+        showSummary
+        summary={currentLocaleLabel}
+        disabled={props.disabled}
+        keepRendered
+      >
+        <SetupFieldShell
+          error={
+            props.form.formState.errors.locale?.message
+              ? String(props.form.formState.errors.locale.message)
+              : undefined
+          }
         >
-          <Form.Item<SetupDefaultsDraft>
-            name="locale"
-            rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
-            style={{ marginBottom: 0 }}
-          >
-            <Select
-              size="large"
-              className="min-w-[220px]"
-              disabled={props.disabled}
-              options={localeItems}
-              placement="bottomLeft"
-              dropdownStyle={{ zIndex: SETUP_SELECT_DROPDOWN_Z_INDEX }}
-            />
-          </Form.Item>
-        </SettingAccordionItem>
-
-        <SettingAccordionItem
-          value="dateFormat"
-          title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-          description={t("setup:SETUP_DATE_FORMAT_DESC")}
-          showSummary
-          summary={currentDateFormatLabel}
-          disabled={props.disabled}
-          keepRendered
-        >
-          <Form.Item<SetupDefaultsDraft>
-            name="dateFormat"
-            rules={[
-              {
-                required: true,
-                message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
-              },
-            ]}
-            hidden
-          >
-            <input type="hidden" />
-          </Form.Item>
-          <Form.Item<SetupDefaultsDraft> name="useRelativeDateTime" hidden>
-            <input type="hidden" />
-          </Form.Item>
-          <DateTimeFormatLocalizationControl
-            selectValue={String(dateFormat || "")}
-            switchChecked={Boolean(useRelativeDateTime)}
-            switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
-            switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
-            options={dateFormatItems}
-            onSelectChange={(value) => props.form.setFieldValue("dateFormat", value)}
-            onSwitchChange={(checked) => props.form.setFieldValue("useRelativeDateTime", checked)}
+          <SetupSelectControl
+            value={String(values.locale || (localeItems[0]?.value as AppLocale))}
+            options={localeItems}
+            onChange={(value) => props.form.setValue("locale", value as AppLocale)}
+            disabled={props.disabled}
           />
-        </SettingAccordionItem>
-      </Accordion>
-    </Form>
+        </SetupFieldShell>
+      </SettingAccordionItem>
+
+      <SettingAccordionItem
+        value="dateFormat"
+        title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+        description={t("setup:SETUP_DATE_FORMAT_DESC")}
+        showSummary
+        summary={currentDateFormatLabel}
+        disabled={props.disabled}
+        keepRendered
+      >
+        <DateTimeFormatLocalizationControl
+          selectValue={String(values.dateFormat || "")}
+          switchChecked={Boolean(values.useRelativeDateTime)}
+          switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+          switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
+          options={dateFormatItems}
+          onSelectChange={(value) => props.form.setValue("dateFormat", value)}
+          onSwitchChange={(checked) => props.form.setValue("useRelativeDateTime", checked)}
+        />
+      </SettingAccordionItem>
+    </Accordion>
   );
 }

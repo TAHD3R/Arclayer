@@ -1,7 +1,7 @@
-import { Form } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import { listWorkspaceRoles } from "@/api/rbac";
@@ -37,19 +37,38 @@ function getBrowserTimeZone(): string {
   }
 }
 
+const DEFAULT_FORM_VALUES: WorkspaceSettingsFormValues = {
+  name: "",
+  slug: "",
+  iconUrl: "",
+  locale: DEFAULT_LOCALE,
+  timezone: DEFAULT_TIMEZONE,
+  useBrowserTimeZone: true,
+  dateFormat: DEFAULT_DATE_FORMAT,
+  useRelativeDateTime: true,
+  defaultRoleCode: "",
+  assignRoleCode: "",
+  contentAutosaveEnabled: true,
+  contentAutosaveIntervalSec: 60,
+  contentAutosaveSaveOnBlur: true,
+  contentRetentionDraftMaxRevisions: 100,
+};
+
 export function useWorkspaceSettingsBasicsController(props: { workspaceId: string }) {
   const workspaceId = String(props.workspaceId || "").trim();
   const { t } = useTranslation(["settings", "common", "setup"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
-  const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
-  const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
-  const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
+  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
+  const localePreferenceMode = usePreferencesStore((state) => state.localePreferenceMode);
+  const setEffectiveLocale = usePreferencesStore((state) => state.setEffectiveLocale);
+  const cacheWorkspaceLocale = usePreferencesStore((state) => state.cacheWorkspaceLocale);
 
-  const [form] = Form.useForm<WorkspaceSettingsFormValues>();
-  const [assignRoleDialogForm] = Form.useForm<AssignRoleDialogValues>();
+  const form = useForm<WorkspaceSettingsFormValues>({ defaultValues: DEFAULT_FORM_VALUES });
+  const assignRoleDialogForm = useForm<AssignRoleDialogValues>({
+    defaultValues: { confirmName: "" },
+  });
   const { savingKey, withSavingKey } = useSavingKey();
   const [assignRoleDialogOpen, setAssignRoleDialogOpen] = useState(false);
 
@@ -68,7 +87,7 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   );
 
   const closeAssignRoleDialog = useCallback(() => {
-    assignRoleDialogForm.resetFields();
+    assignRoleDialogForm.reset();
     setAssignRoleDialogOpen(false);
   }, [assignRoleDialogForm]);
 
@@ -99,28 +118,21 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
 
   useEffect(() => {
     if (!detailQuery.data) return;
-    const next: Partial<WorkspaceSettingsFormValues> = {};
-    if (!form.isFieldTouched("name")) next.name = detailQuery.data.name;
-    if (!form.isFieldTouched("slug")) next.slug = detailQuery.data.slug;
-    if (!form.isFieldTouched("iconUrl")) next.iconUrl = detailQuery.data.iconUrl ?? "";
-    if (Object.keys(next).length > 0) {
-      form.setFieldsValue(next);
+    if (!form.getFieldState("name").isDirty) {
+      form.setValue("name", detailQuery.data.name, { shouldDirty: false });
+    }
+    if (!form.getFieldState("slug").isDirty) {
+      form.setValue("slug", detailQuery.data.slug, { shouldDirty: false });
+    }
+    if (!form.getFieldState("iconUrl").isDirty) {
+      form.setValue("iconUrl", detailQuery.data.iconUrl ?? "", { shouldDirty: false });
     }
   }, [detailQuery.data, form]);
 
   useEffect(() => {
     if (!coreQuery.data) return;
-    if (
-      form.isFieldTouched("locale") ||
-      form.isFieldTouched("timezone") ||
-      form.isFieldTouched("dateFormat") ||
-      form.isFieldTouched("useBrowserTimeZone") ||
-      form.isFieldTouched("useRelativeDateTime")
-    ) {
-      return;
-    }
     const value = coreQuery.data.value;
-    form.setFieldsValue({
+    const nextValues = {
       locale: normalizeLocale(
         pickString(value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
       ),
@@ -131,7 +143,23 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
         pickString(value, ["workspace_localization", "date_format"]) ?? DEFAULT_DATE_FORMAT,
       useRelativeDateTime:
         pickBool(value, ["workspace_localization", "use_relative_datetime"]) ?? true,
-    });
+    };
+
+    if (!form.getFieldState("locale").isDirty) {
+      form.setValue("locale", nextValues.locale, { shouldDirty: false });
+    }
+    if (!form.getFieldState("timezone").isDirty) {
+      form.setValue("timezone", nextValues.timezone, { shouldDirty: false });
+    }
+    if (!form.getFieldState("useBrowserTimeZone").isDirty) {
+      form.setValue("useBrowserTimeZone", nextValues.useBrowserTimeZone, { shouldDirty: false });
+    }
+    if (!form.getFieldState("dateFormat").isDirty) {
+      form.setValue("dateFormat", nextValues.dateFormat, { shouldDirty: false });
+    }
+    if (!form.getFieldState("useRelativeDateTime").isDirty) {
+      form.setValue("useRelativeDateTime", nextValues.useRelativeDateTime, { shouldDirty: false });
+    }
   }, [coreQuery.data, form]);
 
   useEffect(() => {
@@ -140,11 +168,11 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     const nextRoleCode = items.find((item) => item.isDefault)?.code ?? items[0]?.code;
     if (!nextRoleCode) return;
 
-    if (!form.isFieldTouched("defaultRoleCode")) {
-      form.setFieldValue("defaultRoleCode", nextRoleCode);
+    if (!form.getFieldState("defaultRoleCode").isDirty) {
+      form.setValue("defaultRoleCode", nextRoleCode, { shouldDirty: false });
     }
-    if (!form.isFieldTouched("assignRoleCode")) {
-      form.setFieldValue("assignRoleCode", nextRoleCode);
+    if (!form.getFieldState("assignRoleCode").isDirty) {
+      form.setValue("assignRoleCode", nextRoleCode, { shouldDirty: false });
     }
   }, [form, rolesQuery.data?.items]);
 
@@ -168,16 +196,16 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const initialWorkspaceName = detailQuery.data?.name ?? "";
   const persistedWorkspaceName = String(initialWorkspaceName || "").trim();
   const currentWorkspaceName =
-    (Form.useWatch("name", form) as string | undefined) ?? initialWorkspaceName;
+    useWatch({ control: form.control, name: "name" }) ?? initialWorkspaceName;
 
   const initialWorkspaceSlug = detailQuery.data?.slug ?? "";
   const persistedWorkspaceSlug = String(initialWorkspaceSlug || "").trim();
   const currentWorkspaceSlug =
-    (Form.useWatch("slug", form) as string | undefined) ?? initialWorkspaceSlug;
+    useWatch({ control: form.control, name: "slug" }) ?? initialWorkspaceSlug;
 
   const initialWorkspaceIconUrl = detailQuery.data?.iconUrl ?? "";
   const currentWorkspaceIconUrl =
-    (Form.useWatch("iconUrl", form) as string | undefined) ?? initialWorkspaceIconUrl;
+    useWatch({ control: form.control, name: "iconUrl" }) ?? initialWorkspaceIconUrl;
 
   const initialWorkspaceLocale = normalizeLocale(
     pickString(coreQuery.data?.value, ["workspace_localization", "locale"]) ?? DEFAULT_LOCALE,
@@ -197,21 +225,21 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const initialDefaultRoleCode = roleMetadata.initialDefaultRoleCode;
 
   const workspaceLocale =
-    (Form.useWatch("locale", form) as string | undefined) ?? String(initialWorkspaceLocale);
+    useWatch({ control: form.control, name: "locale" }) ?? String(initialWorkspaceLocale);
   const workspaceTimezone =
-    (Form.useWatch("timezone", form) as string | undefined) ?? initialWorkspaceTimezone;
+    useWatch({ control: form.control, name: "timezone" }) ?? initialWorkspaceTimezone;
   const workspaceUseBrowserTimeZone =
-    (Form.useWatch("useBrowserTimeZone", form) as boolean | undefined) ??
+    useWatch({ control: form.control, name: "useBrowserTimeZone" }) ??
     initialWorkspaceUseBrowserTimeZone;
   const workspaceDateFormat =
-    (Form.useWatch("dateFormat", form) as string | undefined) ?? initialWorkspaceDateFormat;
+    useWatch({ control: form.control, name: "dateFormat" }) ?? initialWorkspaceDateFormat;
   const workspaceUseRelativeDateTime =
-    (Form.useWatch("useRelativeDateTime", form) as boolean | undefined) ??
+    useWatch({ control: form.control, name: "useRelativeDateTime" }) ??
     initialWorkspaceUseRelativeDateTime;
   const defaultRoleCode =
-    (Form.useWatch("defaultRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
+    useWatch({ control: form.control, name: "defaultRoleCode" }) ?? initialDefaultRoleCode;
   const assignRoleCode =
-    (Form.useWatch("assignRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
+    useWatch({ control: form.control, name: "assignRoleCode" }) ?? initialDefaultRoleCode;
 
   const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
   const localeOptions = useMemo(() => buildLocaleOptions(t), [t]);

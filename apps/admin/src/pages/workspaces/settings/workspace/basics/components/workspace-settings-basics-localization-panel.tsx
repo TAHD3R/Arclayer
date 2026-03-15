@@ -1,15 +1,26 @@
-import { Form, Select } from "antd";
+import { Controller } from "react-hook-form";
 
 import { Accordion } from "@celestial/ui/accordion";
+import { NativeSelect, NativeSelectOption } from "@celestial/ui/native-select";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingPanel } from "@celestial/ui/setting-panel";
 import {
   DateTimeFormatLocalizationControl,
   TimezoneLocalizationControl,
 } from "@/components/settings/date-time-localization-controls";
+import {
+  applyValidationError,
+  getFieldErrorMessage,
+  validateFormFields,
+} from "@/lib/forms/rhf-form-helpers";
 import { normalizeLocale } from "@/lib/i18n";
 
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
+
+function FieldMessage({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <div className="text-footnote text-destructive">{message}</div>;
+}
 
 export function WorkspaceSettingsBasicsLocalizationPanel(props: {
   controller: WorkspaceSettingsBasicsController;
@@ -38,7 +49,7 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             confirmLoading={c.savingKey === "workspace:locale"}
             onConfirm={() =>
               void c.withSavingKey("workspace:locale", async () => {
-                const values = await c.form.validateFields(["locale"]);
+                const values = await validateFormFields(c.form, ["locale"]);
                 const nextLocale = normalizeLocale(values.locale);
                 await c.patchWorkspaceCoreMutation.mutateAsync({
                   workspace_localization: { locale: nextLocale },
@@ -58,7 +69,8 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
               c.isWorkspaceLocaleDirty && c.coreQuery.data
                 ? () =>
                     void c.withSavingKey("reset:workspace:locale", async () => {
-                      c.form.setFieldValue("locale", c.initialWorkspaceLocale);
+                      c.form.setValue("locale", c.initialWorkspaceLocale, { shouldDirty: false });
+                      c.form.clearErrors("locale");
                       await c.patchWorkspaceCoreMutation.mutateAsync({
                         workspace_localization: {
                           locale: c.initialWorkspaceLocale,
@@ -79,23 +91,34 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:workspace:locale"}
           >
-            <div className="text-callout text-label-secondary mb-4">
-              {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
-                locale: c.workspaceLocaleLabel ?? "-",
-              })}
+            <div className="space-y-2">
+              <div className="mb-4 text-callout text-label-secondary">
+                {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
+                  locale: c.workspaceLocaleLabel ?? "-",
+                })}
+              </div>
+              <Controller
+                control={c.form.control}
+                name="locale"
+                rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
+                render={({ field }) => (
+                  <NativeSelect
+                    value={field.value || ""}
+                    onChange={(event) => field.onChange(event.target.value)}
+                    className="w-full"
+                    aria-invalid={getFieldErrorMessage(c.form, "locale") ? true : undefined}
+                  >
+                    <NativeSelectOption value="">{t("common:SELECT")}</NativeSelectOption>
+                    {c.localeOptions.map((option) => (
+                      <NativeSelectOption key={option.value} value={option.value}>
+                        {option.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                )}
+              />
+              <FieldMessage message={getFieldErrorMessage(c.form, "locale")} />
             </div>
-            <Form.Item
-              name="locale"
-              rules={[
-                {
-                  required: true,
-                  message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED"),
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select size="large" options={c.localeOptions} />
-            </Form.Item>
           </SettingAccordionItem>
 
           <SettingAccordionItem
@@ -112,9 +135,19 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             confirmLoading={c.savingKey === "workspace:timezone"}
             onConfirm={() =>
               void c.withSavingKey("workspace:timezone", async () => {
+                const nextTimezone = String(c.form.getValues("timezone") || "").trim();
+                if (!nextTimezone) {
+                  applyValidationError(
+                    c.form,
+                    "timezone",
+                    t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED"),
+                  );
+                  throw new Error("FORM_VALIDATION_FAILED");
+                }
+                c.form.clearErrors("timezone");
                 await c.patchWorkspaceCoreMutation.mutateAsync({
                   workspace_localization: {
-                    timezone: String(c.workspaceTimezone),
+                    timezone: nextTimezone,
                     use_browser_timezone: c.workspaceUseBrowserTimeZone,
                   },
                 });
@@ -124,10 +157,13 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
               c.isWorkspaceTimezoneDirty && c.coreQuery.data
                 ? () =>
                     void c.withSavingKey("reset:workspace:timezone", async () => {
-                      c.form.setFieldsValue({
-                        timezone: c.initialWorkspaceTimezone,
-                        useBrowserTimeZone: c.initialWorkspaceUseBrowserTimeZone,
+                      c.form.setValue("timezone", c.initialWorkspaceTimezone, {
+                        shouldDirty: false,
                       });
+                      c.form.setValue("useBrowserTimeZone", c.initialWorkspaceUseBrowserTimeZone, {
+                        shouldDirty: false,
+                      });
+                      c.form.clearErrors("timezone");
                       await c.patchWorkspaceCoreMutation.mutateAsync({
                         workspace_localization: {
                           timezone: c.initialWorkspaceTimezone,
@@ -140,18 +176,23 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:workspace:timezone"}
           >
-            <Form.Item name="useBrowserTimeZone" hidden>
-              <input type="hidden" />
-            </Form.Item>
-            <TimezoneLocalizationControl
-              selectValue={String(c.workspaceTimezone)}
-              switchChecked={c.workspaceUseBrowserTimeZone}
-              switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
-              switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
-              options={c.timezoneOptions}
-              onSelectChange={(value) => c.form.setFieldValue("timezone", value)}
-              onSwitchChange={(checked) => c.form.setFieldValue("useBrowserTimeZone", checked)}
-            />
+            <div className="space-y-2">
+              <TimezoneLocalizationControl
+                selectValue={String(c.workspaceTimezone)}
+                switchChecked={c.workspaceUseBrowserTimeZone}
+                switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+                switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+                options={c.timezoneOptions}
+                onSelectChange={(value) => {
+                  c.form.setValue("timezone", value, { shouldDirty: true });
+                  c.form.clearErrors("timezone");
+                }}
+                onSwitchChange={(checked) => {
+                  c.form.setValue("useBrowserTimeZone", checked, { shouldDirty: true });
+                }}
+              />
+              <FieldMessage message={getFieldErrorMessage(c.form, "timezone")} />
+            </div>
           </SettingAccordionItem>
 
           <SettingAccordionItem
@@ -168,9 +209,19 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             confirmLoading={c.savingKey === "workspace:dateFormat"}
             onConfirm={() =>
               void c.withSavingKey("workspace:dateFormat", async () => {
+                const nextDateFormat = String(c.form.getValues("dateFormat") || "").trim();
+                if (!nextDateFormat) {
+                  applyValidationError(
+                    c.form,
+                    "dateFormat",
+                    t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
+                  );
+                  throw new Error("FORM_VALIDATION_FAILED");
+                }
+                c.form.clearErrors("dateFormat");
                 await c.patchWorkspaceCoreMutation.mutateAsync({
                   workspace_localization: {
-                    date_format: String(c.workspaceDateFormat),
+                    date_format: nextDateFormat,
                     use_relative_datetime: c.workspaceUseRelativeDateTime,
                   },
                 });
@@ -180,10 +231,17 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
               c.isWorkspaceDateFormatDirty && c.coreQuery.data
                 ? () =>
                     void c.withSavingKey("reset:workspace:dateFormat", async () => {
-                      c.form.setFieldsValue({
-                        dateFormat: c.initialWorkspaceDateFormat,
-                        useRelativeDateTime: c.initialWorkspaceUseRelativeDateTime,
+                      c.form.setValue("dateFormat", c.initialWorkspaceDateFormat, {
+                        shouldDirty: false,
                       });
+                      c.form.setValue(
+                        "useRelativeDateTime",
+                        c.initialWorkspaceUseRelativeDateTime,
+                        {
+                          shouldDirty: false,
+                        },
+                      );
+                      c.form.clearErrors("dateFormat");
                       await c.patchWorkspaceCoreMutation.mutateAsync({
                         workspace_localization: {
                           date_format: c.initialWorkspaceDateFormat,
@@ -196,18 +254,25 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:workspace:dateFormat"}
           >
-            <Form.Item name="useRelativeDateTime" hidden>
-              <input type="hidden" />
-            </Form.Item>
-            <DateTimeFormatLocalizationControl
-              selectValue={String(c.workspaceDateFormat)}
-              switchChecked={c.workspaceUseRelativeDateTime}
-              switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
-              switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
-              options={c.dateFormatOptions}
-              onSelectChange={(value) => c.form.setFieldValue("dateFormat", value)}
-              onSwitchChange={(checked) => c.form.setFieldValue("useRelativeDateTime", checked)}
-            />
+            <div className="space-y-2">
+              <DateTimeFormatLocalizationControl
+                selectValue={String(c.workspaceDateFormat)}
+                switchChecked={c.workspaceUseRelativeDateTime}
+                switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+                switchDescription={t(
+                  "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC",
+                )}
+                options={c.dateFormatOptions}
+                onSelectChange={(value) => {
+                  c.form.setValue("dateFormat", value, { shouldDirty: true });
+                  c.form.clearErrors("dateFormat");
+                }}
+                onSwitchChange={(checked) => {
+                  c.form.setValue("useRelativeDateTime", checked, { shouldDirty: true });
+                }}
+              />
+              <FieldMessage message={getFieldErrorMessage(c.form, "dateFormat")} />
+            </div>
           </SettingAccordionItem>
         </Accordion>
       </div>

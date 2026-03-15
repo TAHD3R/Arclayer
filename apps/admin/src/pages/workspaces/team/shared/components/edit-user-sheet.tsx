@@ -1,6 +1,5 @@
 "use client";
 
-import { Button as AntButton, Image, Input, Select } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Controller, useForm } from "react-hook-form";
@@ -11,6 +10,14 @@ import { PencilLine, Trash2, UploadCloud } from "lucide-react";
 import type { TeamMember } from "@/types/api";
 import { patchTeamMemberUser } from "@/api/team";
 import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
+import { Button } from "@celestial/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuTrigger,
+} from "@celestial/ui/dropdown-menu";
+import { Input } from "@celestial/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -32,8 +39,8 @@ type FormValues = {
 };
 
 function normalizeOptionalString(input: string): string | null {
-  const v = String(input || "").trim();
-  return v ? v : null;
+  const value = String(input || "").trim();
+  return value ? value : null;
 }
 
 const AVATAR_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -47,7 +54,6 @@ const AVATAR_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURICompo
 function tryExtractAssetIdFromUrl(url: string): string | null {
   const raw = String(url || "").trim();
   if (!raw) return null;
-  // Match both relative and absolute URLs containing /assets/<id>
   const match = raw.match(/\/assets\/([^/?#]+)/i);
   return match?.[1] ? String(match[1]) : null;
 }
@@ -59,17 +65,15 @@ export function EditUserSheet(props: {
   onSaved?: () => void;
 }) {
   const { t } = useTranslation(["team", "common"]);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const assetScope = React.useMemo(
     () => (workspaceId ? { type: "workspace" as const, id: String(workspaceId) } : null),
     [workspaceId],
   );
   const [avatarPickerOpen, setAvatarPickerOpen] = React.useState(false);
-  const [avatarActionOpen, setAvatarActionOpen] = React.useState(false);
-  const popupContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   const schema = React.useMemo(() => {
-    const max = (n: number) => t("team:TEAM_VALIDATION_MAX_LENGTH", { max: n });
+    const max = (size: number) => t("team:TEAM_VALIDATION_MAX_LENGTH", { max: size });
 
     return z.object({
       username: z.string().trim(),
@@ -78,9 +82,9 @@ export function EditUserSheet(props: {
         .string()
         .trim()
         .max(255, max(255))
-        .superRefine((v, ctx) => {
-          if (!v) return;
-          if (!z.string().email().safeParse(v).success) {
+        .superRefine((value, ctx) => {
+          if (!value) return;
+          if (!z.string().email().safeParse(value).success) {
             ctx.addIssue({ code: "custom", message: t("team:TEAM_VALIDATION_EMAIL_INVALID") });
           }
         }),
@@ -98,25 +102,21 @@ export function EditUserSheet(props: {
     },
     mode: "onSubmit",
   });
-  const { control } = form;
 
   React.useEffect(() => {
-    const m = props.member;
-    if (!m) return;
+    const member = props.member;
+    if (!member) return;
     form.reset({
-      username: m.username ?? "",
-      displayName: m.displayName ?? "",
-      email: m.email ?? "",
-      avatarUrl: m.avatarUrl ?? "",
+      username: member.username ?? "",
+      displayName: member.displayName ?? "",
+      email: member.email ?? "",
+      avatarUrl: member.avatarUrl ?? "",
     });
   }, [form, props.member]);
 
   React.useEffect(() => {
-    // Ensure nested dialogs do not stay open when the sheet closes.
-    if (!props.open) {
-      setAvatarPickerOpen(false);
-      setAvatarActionOpen(false);
-    }
+    if (props.open) return;
+    setAvatarPickerOpen(false);
   }, [props.open]);
 
   const avatarUrl = form.watch("avatarUrl");
@@ -156,7 +156,7 @@ export function EditUserSheet(props: {
   return (
     <Sheet open={props.open} onOpenChange={props.onOpenChange}>
       <SheetContent side="right" className="w-115 sm:w-130">
-        <div ref={popupContainerRef} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <SheetHeader>
             <SheetTitle className="font-bold!">{title}</SheetTitle>
             <SheetDescription>{t("team:TEAM_EDIT_USER_DESC")}</SheetDescription>
@@ -165,107 +165,71 @@ export function EditUserSheet(props: {
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-4 p-4">
             <input type="hidden" {...form.register("avatarUrl")} />
 
-            {/* Avatar (above username for better identification) */}
             <div className="grid gap-1.5">
               <label className="font-semibold text-foreground">{t("team:TEAM_FIELD_AVATAR")}</label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_AVATAR_DESC")}</div>
               <div className="relative h-16 w-16">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className="h-16 w-16 overflow-hidden rounded-full border border-border/60 bg-muted/20 cursor-pointer outline-none"
+                <button
+                  type="button"
+                  className="h-16 w-16 overflow-hidden rounded-full border border-border/60 bg-muted/20 outline-none"
                   onClick={() => {
-                    if (!assetScope) return;
-                    setAvatarPickerOpen(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter") return;
                     if (!assetScope) return;
                     setAvatarPickerOpen(true);
                   }}
                   aria-label={t("team:TEAM_FIELD_AVATAR_DESC")}
                 >
                   {avatarPreviewUrl ? (
-                    <Image
-                      width={64}
-                      height={64}
+                    <img
                       src={avatarPreviewUrl}
-                      fallback={AVATAR_IMAGE_FALLBACK_DATA_URI}
-                      preview={false}
-                      className="h-16 w-16 rounded-full"
+                      alt={t("team:TEAM_FIELD_AVATAR")}
+                      className="h-16 w-16 rounded-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.src = AVATAR_IMAGE_FALLBACK_DATA_URI;
+                      }}
                     />
                   ) : (
-                    <div className="h-16 w-16 grid place-items-center text-caption text-label-secondary">
+                    <div className="grid h-16 w-16 place-items-center text-caption text-label-secondary">
                       {t("team:TEAM_FIELD_AVATAR_EMPTY")}
                     </div>
                   )}
-                </div>
+                </button>
 
-                {/* Action trigger (bottom-right) */}
-                <div className="absolute -bottom-1 -right-1">
-                  <AntButton
-                    size="small"
-                    type="primary"
-                    shape="circle"
-                    icon={<PencilLine size={14} />}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setAvatarActionOpen(true);
-                    }}
-                    aria-label={t("team:TEAM_FIELD_AVATAR")}
-                    autoInsertSpace={false}
-                  />
-                  <Select
-                    open={avatarActionOpen}
-                    onDropdownVisibleChange={(open) => setAvatarActionOpen(open)}
-                    value={undefined}
-                    // Keep the Select trigger hidden; only the dropdown is used.
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      opacity: 0,
-                      pointerEvents: "none",
-                    }}
-                    // Important: render popup inside the Sheet to avoid Radix "outside click" interception.
-                    getPopupContainer={() => popupContainerRef.current ?? document.body}
-                    dropdownMatchSelectWidth={false}
-                    options={[]}
-                    dropdownRender={() => (
-                      <div className="p-1">
-                        <AntButton
-                          type="text"
-                          className="!w-full !justify-start"
-                          icon={<UploadCloud size={16} />}
-                          onClick={() => {
-                            setAvatarActionOpen(false);
-                            if (!assetScope) return;
-                            setAvatarPickerOpen(true);
-                          }}
-                          autoInsertSpace={false}
-                        >
-                          {t("team:TEAM_AVATAR_ACTION_UPLOAD")}
-                        </AntButton>
-                        <AntButton
-                          type="text"
-                          danger
-                          disabled={!avatarUrl}
-                          className="!w-full !justify-start"
-                          icon={<Trash2 size={16} />}
-                          onClick={() => {
-                            setAvatarActionOpen(false);
-                            form.setValue("avatarUrl", "", {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            });
-                          }}
-                          autoInsertSpace={false}
-                        >
-                          {t("team:TEAM_AVATAR_ACTION_REMOVE")}
-                        </AntButton>
-                      </div>
-                    )}
-                  />
+                <div className="absolute -right-1 -bottom-1">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="icon-xs"
+                        className="rounded-full shadow-sm"
+                        aria-label={t("team:TEAM_FIELD_AVATAR")}
+                      >
+                        <PencilLine size={14} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuIconItem
+                        icon={<UploadCloud size={16} />}
+                        onSelect={() => {
+                          if (!assetScope) return;
+                          setAvatarPickerOpen(true);
+                        }}
+                      >
+                        {t("team:TEAM_AVATAR_ACTION_UPLOAD")}
+                      </DropdownMenuIconItem>
+                      <DropdownMenuIconItem
+                        icon={<Trash2 size={16} />}
+                        variant="destructive"
+                        disabled={!avatarUrl}
+                        onSelect={() => {
+                          form.setValue("avatarUrl", "", {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                      >
+                        {t("team:TEAM_AVATAR_ACTION_REMOVE")}
+                      </DropdownMenuIconItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -276,11 +240,9 @@ export function EditUserSheet(props: {
               </label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_USERNAME_HELP")}</div>
               <Controller
-                control={control}
+                control={form.control}
                 name="username"
-                render={({ field }) => (
-                  <Input id="username" size="large" disabled value={field.value} />
-                )}
+                render={({ field }) => <Input id="username" disabled value={field.value} />}
               />
             </div>
 
@@ -290,16 +252,15 @@ export function EditUserSheet(props: {
               </label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_DISPLAY_NAME_HELP")}</div>
               <Controller
-                control={control}
+                control={form.control}
                 name="displayName"
                 render={({ field }) => (
                   <Input
                     id="displayName"
-                    size="large"
                     placeholder={t("team:TEAM_FIELD_DISPLAY_NAME_PLACEHOLDER")}
-                    status={form.formState.errors.displayName ? "error" : undefined}
+                    aria-invalid={form.formState.errors.displayName ? true : undefined}
                     value={field.value}
-                    onChange={(e) => field.onChange(e.target.value)}
+                    onChange={(event) => field.onChange(event.target.value)}
                     onBlur={field.onBlur}
                     name={field.name}
                   />
@@ -318,16 +279,15 @@ export function EditUserSheet(props: {
               </label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_EMAIL_HELP")}</div>
               <Controller
-                control={control}
+                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <Input
                     id="email"
-                    size="large"
                     placeholder={t("team:TEAM_FIELD_EMAIL_PLACEHOLDER")}
-                    status={form.formState.errors.email ? "error" : undefined}
+                    aria-invalid={form.formState.errors.email ? true : undefined}
                     value={field.value}
-                    onChange={(e) => field.onChange(e.target.value)}
+                    onChange={(event) => field.onChange(event.target.value)}
                     onBlur={field.onBlur}
                     name={field.name}
                   />
@@ -343,22 +303,16 @@ export function EditUserSheet(props: {
 
           <SheetFooter>
             <div className="flex items-center justify-end gap-2">
-              <AntButton
-                type="text"
+              <Button
+                variant="ghost"
                 onClick={() => props.onOpenChange(false)}
                 disabled={mutation.isPending}
-                autoInsertSpace={false}
               >
                 {t("common:CANCEL")}
-              </AntButton>
-              <AntButton
-                type="primary"
-                loading={mutation.isPending}
-                onClick={() => void onSubmit()}
-                autoInsertSpace={false}
-              >
+              </Button>
+              <Button loading={mutation.isPending} onClick={() => void onSubmit()}>
                 {t("common:CONFIRM")}
-              </AntButton>
+              </Button>
             </div>
           </SheetFooter>
         </div>

@@ -1,9 +1,9 @@
-import { Button } from "antd";
 import { useRouter } from "@tanstack/react-router";
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
+import { Button } from "@celestial/ui/button";
 import {
   Illust401LockedTerminal,
   Illust403ForbiddenGateway,
@@ -38,33 +38,15 @@ function DefaultAction(props: { status: BuiltinResultStatus }) {
 
   if (props.status === "401") {
     return (
-      <Button
-        type="primary"
-        onClick={() => void router.navigate({ to: "/login" })}
-        autoInsertSpace={false}
-      >
-        {t("common:GO_LOGIN")}
-      </Button>
+      <Button onClick={() => void router.navigate({ to: "/login" })}>{t("common:GO_LOGIN")}</Button>
     );
   }
 
   if (props.status === "404" || props.status === "403") {
-    return (
-      <Button
-        type="primary"
-        onClick={() => void router.navigate({ to: "/" })}
-        autoInsertSpace={false}
-      >
-        {t("common:GO_HOME")}
-      </Button>
-    );
+    return <Button onClick={() => void router.navigate({ to: "/" })}>{t("common:GO_HOME")}</Button>;
   }
 
-  return (
-    <Button type="primary" onClick={() => window.location.reload()} autoInsertSpace={false}>
-      {t("common:REFRESH")}
-    </Button>
-  );
+  return <Button onClick={() => window.location.reload()}>{t("common:REFRESH")}</Button>;
 }
 
 function pickBuiltinIllustration(status: BuiltinResultStatus) {

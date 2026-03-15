@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Button as AntButton } from "antd";
 import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationWorkspace } from "@/types/api";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { Button } from "@celestial/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,11 +100,9 @@ export function useOrganizationWorkspacesColumns(
               <div onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <AntButton
-                      type="text"
-                      icon={<MoreVertical className="size-4" />}
-                      autoInsertSpace={false}
-                    />
+                    <Button variant="ghost" size="icon-sm">
+                      <MoreVertical className="size-4" />
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {menuItems.map((item) =>

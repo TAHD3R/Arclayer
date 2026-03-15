@@ -1,11 +1,20 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Select } from "antd";
-import type { SelectProps } from "antd";
+import { Check, ChevronDown, X } from "lucide-react";
 import debounce from "lodash/debounce";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { LoaderOne } from "@celestial/ui/loader";
+import { Button } from "@celestial/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@celestial/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
+import { cn } from "@celestial/lib/utils";
 
 export type DebounceSelectOption = {
   label: ReactNode;
@@ -22,21 +31,34 @@ function avatarFallbackText(label: ReactNode): string {
   return "?";
 }
 
-export interface DebounceSelectProps<ValueType extends DebounceSelectOption> extends Omit<
-  SelectProps<ValueType | ValueType[]>,
-  "options" | "children"
-> {
+export interface DebounceSelectProps<ValueType extends DebounceSelectOption> {
   fetchOptions: (search: string) => Promise<ValueType[]>;
   debounceTimeout?: number;
+  value?: ValueType;
+  onChange?: (value?: ValueType) => void;
+  allowClear?: boolean;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+  labelInValue?: boolean;
+  emptyText?: string;
 }
 
 export function DebounceSelect<ValueType extends DebounceSelectOption = DebounceSelectOption>({
   fetchOptions,
   debounceTimeout = 300,
-  ...props
+  value,
+  onChange,
+  allowClear,
+  disabled,
+  placeholder,
+  className,
+  emptyText = "No results",
 }: DebounceSelectProps<ValueType>) {
   const [fetching, setFetching] = useState(false);
+  const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<ValueType[]>([]);
+  const [search, setSearch] = useState("");
   const fetchRef = useRef(0);
 
   const loadOptions = useCallback(
@@ -73,34 +95,102 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
     };
   }, [debounceFetcher]);
 
-  return (
-    <Select
-      {...props}
-      showSearch
-      filterOption={false}
-      onSearch={debounceFetcher}
-      onDropdownVisibleChange={(open) => {
-        props.onDropdownVisibleChange?.(open);
-        // UX: 点开下拉就给候选项（无需先输入字符）
-        if (open && options.length === 0) loadOptions("", { clear: false });
-      }}
-      onFocus={(e) => {
-        props.onFocus?.(e);
-        // 兜底：有些情况下 dropdown open 事件触发较晚/不稳定
-        if (options.length === 0) loadOptions("", { clear: false });
-      }}
-      notFoundContent={fetching ? <LoaderOne /> : null}
-      options={options}
-      optionRender={(option) => (
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <UserAvatar
-            name={avatarFallbackText(option.data.label)}
-            assetRef={option.data.avatarUrl}
-            style={{ marginRight: 8 }}
-          />
-          {option.label}
-        </div>
-      )}
+  useEffect(() => {
+    if (!open || disabled) return;
+    loadOptions(search, { clear: true });
+  }, [disabled, loadOptions, open, search]);
+
+  const triggerAvatar = value ? (
+    <UserAvatar
+      name={avatarFallbackText(value.label)}
+      assetRef={value.avatarUrl}
+      size={20}
+      style={{ flexShrink: 0 }}
     />
+  ) : null;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-left text-sm shadow-xs transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+            className,
+          )}
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            {triggerAvatar}
+            <span className={cn("truncate", !value && "text-label-secondary")}>
+              {value?.label ?? placeholder}
+            </span>
+          </span>
+          <span className="flex items-center gap-1">
+            {allowClear && value ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setSearch("");
+                  setOptions([]);
+                  onChange?.(undefined);
+                }}
+              >
+                <X className="size-3.5" />
+              </Button>
+            ) : null}
+            <ChevronDown className="size-4 text-label-secondary" />
+          </span>
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent align="start" sideOffset={8} className="w-[22rem] max-w-[90vw] p-0">
+        <Command shouldFilter={false}>
+          <CommandInput
+            value={search}
+            placeholder={placeholder}
+            onValueChange={(next) => {
+              setSearch(next);
+              debounceFetcher(next);
+            }}
+          />
+          <CommandList className="max-h-72">
+            {fetching ? (
+              <div className="flex items-center justify-center py-4">
+                <LoaderOne />
+              </div>
+            ) : null}
+            {!fetching ? <CommandEmpty>{emptyText}</CommandEmpty> : null}
+            {options.map((option) => {
+              const isActive = option.value === value?.value;
+              return (
+                <CommandItem
+                  key={String(option.value)}
+                  value={String(option.value)}
+                  onSelect={() => {
+                    onChange?.(option);
+                    setOpen(false);
+                  }}
+                >
+                  <UserAvatar
+                    name={avatarFallbackText(option.label)}
+                    assetRef={option.avatarUrl}
+                    size={24}
+                    style={{ flexShrink: 0 }}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  {isActive ? <Check className="size-4 text-primary" /> : null}
+                </CommandItem>
+              );
+            })}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

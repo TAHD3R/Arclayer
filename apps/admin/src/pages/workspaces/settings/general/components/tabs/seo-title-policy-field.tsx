@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Button, Card, Input, Select, Space, Switch, Typography } from "antd";
 import {
   DndContext,
   DragOverlay,
@@ -9,6 +8,18 @@ import {
 } from "@dnd-kit/core";
 import type { TitlePolicyV1, TitlePolicyV1Part } from "@celestial/internal-types";
 import { useTranslation } from "react-i18next";
+
+import { Button } from "@celestial/ui/button";
+import { Card, CardContent } from "@celestial/ui/card";
+import { Input } from "@celestial/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
+import { Switch } from "@celestial/ui/switch";
 
 const TOKEN_OPTIONS = [
   { value: "pageTitle", label: "pageTitle" },
@@ -109,16 +120,13 @@ function TitlePolicyPartRow(props: {
   const draggable = useDraggable({ id: dndId, data: { index: props.index } });
   const droppable = useDroppable({ id: dndId, data: { index: props.index } });
 
-  const isOver = droppable.isOver;
-  const isDragging = draggable.isDragging;
-
   return (
     <div
       ref={droppable.setNodeRef}
       className={[
         "flex items-center gap-2 rounded-md border px-3 py-2",
-        isOver ? "border-primary/60 bg-primary/5" : "border-border",
-        isDragging ? "opacity-60" : "",
+        droppable.isOver ? "border-primary/60 bg-primary/5" : "border-border",
+        draggable.isDragging ? "opacity-60" : "",
       ].join(" ")}
     >
       <div
@@ -132,34 +140,43 @@ function TitlePolicyPartRow(props: {
       </div>
 
       {isTokenPart(props.part) ? (
-        <Space size={8} className="flex-1">
-          <Typography.Text className="whitespace-nowrap">
+        <div className="flex flex-1 items-center gap-2">
+          <span className="shrink-0 whitespace-nowrap text-footnote text-label-secondary">
             {t("settings:SETTINGS_SEO_TITLE_FORMAT_PART_TOKEN")}
-          </Typography.Text>
+          </span>
           <Select
             value={props.part.value}
-            style={{ minWidth: 160 }}
-            options={TOKEN_OPTIONS as unknown as Array<{ value: string; label: string }>}
-            onChange={(next: string) => {
+            onValueChange={(next) => {
               if (next !== "pageTitle" && next !== "siteName" && next !== "siteSubtitle") return;
               props.onChange({ kind: "token", value: next as TokenValue });
             }}
-          />
-        </Space>
+          >
+            <SelectTrigger className="min-w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {TOKEN_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       ) : (
-        <Space size={8} className="flex-1">
-          <Typography.Text className="whitespace-nowrap">
+        <div className="flex flex-1 items-center gap-2">
+          <span className="shrink-0 whitespace-nowrap text-footnote text-label-secondary">
             {t("settings:SETTINGS_SEO_TITLE_FORMAT_PART_LITERAL")}
-          </Typography.Text>
+          </span>
           <Input
             value={props.part.value}
             placeholder={t("settings:SETTINGS_SEO_TITLE_FORMAT_LITERAL_PLACEHOLDER")}
-            onChange={(e) => props.onChange({ kind: "literal", value: e.target.value })}
+            onChange={(event) => props.onChange({ kind: "literal", value: event.target.value })}
           />
-        </Space>
+        </div>
       )}
 
-      <Button danger onClick={props.onRemove} autoInsertSpace={false}>
+      <Button type="button" variant="ghost" className="text-destructive" onClick={props.onRemove}>
         {t("settings:SETTINGS_REMOVE")}
       </Button>
     </div>
@@ -177,10 +194,6 @@ const DEFAULT_POLICY: TitlePolicyV1 = {
 };
 
 export function SeoTitlePolicyField(props: {
-  /**
-   * antd Form.Item will inject `value` + `onChange` for controlled fields.
-   * Keep them optional to satisfy TS at call sites where Form handles wiring.
-   */
   value?: TitlePolicyV1;
   onChange?: (next: TitlePolicyV1) => void;
   siteName: string;
@@ -191,72 +204,78 @@ export function SeoTitlePolicyField(props: {
   const value = props.value ?? DEFAULT_POLICY;
   const onChange = props.onChange ?? (() => {});
 
-  const titlePreview = useMemo(() => {
-    return composeTitleFromPolicyV1({
-      policy: value,
-      pathnameNoLocale: "/about",
-      pageTitle: t("settings:SETTINGS_SEO_TITLE_FORMAT_SAMPLE_PAGE_TITLE"),
-      siteName: props.siteName || t("settings:SETTINGS_SEO_TITLE_FORMAT_SAMPLE_SITE_NAME"),
-      siteSubtitle:
-        props.siteSubtitle || t("settings:SETTINGS_SEO_TITLE_FORMAT_SAMPLE_SITE_SUBTITLE"),
-    });
-  }, [props.siteName, props.siteSubtitle, t, value]);
+  const titlePreview = useMemo(
+    () =>
+      composeTitleFromPolicyV1({
+        policy: value,
+        pathnameNoLocale: "/about",
+        pageTitle: t("settings:SETTINGS_SEO_TITLE_FORMAT_SAMPLE_PAGE_TITLE"),
+        siteName: props.siteName || t("settings:SETTINGS_SEO_TITLE_FORMAT_SAMPLE_SITE_NAME"),
+        siteSubtitle:
+          props.siteSubtitle || t("settings:SETTINGS_SEO_TITLE_FORMAT_SAMPLE_SITE_SUBTITLE"),
+      }),
+    [props.siteName, props.siteSubtitle, t, value],
+  );
 
   const onDragEnd = (event: DragEndEvent) => {
     const from = parsePartDndId(event.active.id);
     const to = parsePartDndId(event.over?.id ?? null);
     setActiveIndex(null);
-    if (from === null || to === null) return;
-    if (from === to) return;
-    const nextParts = moveItem(value.parts, from, to);
-    onChange({ ...value, parts: nextParts });
+    if (from === null || to === null || from === to) return;
+    onChange({ ...value, parts: moveItem(value.parts, from, to) });
   };
 
   return (
     <div className="flex flex-col gap-3">
-      <Card size="small" className="bg-muted/30">
-        <Typography.Text type="secondary">
-          {t("settings:SETTINGS_SEO_TITLE_FORMAT_SEARCH_PREVIEW")}
-        </Typography.Text>
-        <div className="mt-2">
-          <Typography.Text strong>{titlePreview || "-"}</Typography.Text>
+      <Card className="bg-muted/30 shadow-none">
+        <CardContent className="p-4">
+          <div className="text-footnote text-label-secondary">
+            {t("settings:SETTINGS_SEO_TITLE_FORMAT_SEARCH_PREVIEW")}
+          </div>
+          <div className="mt-2 font-medium">{titlePreview || "-"}</div>
           <div className="mt-1 text-caption text-label-secondary">
             {t("settings:SETTINGS_SEO_TITLE_FORMAT_SEARCH_PREVIEW_HINT")}
           </div>
-        </div>
+        </CardContent>
       </Card>
 
-      <Space size={12} wrap>
-        <Space size={8}>
-          <Typography.Text>{t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE")}</Typography.Text>
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-footnote text-label-secondary">
+            {t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE")}
+          </span>
           <Select
             value={value.homeMode ?? "siteOnly"}
-            options={[
-              {
-                value: "siteOnly",
-                label: t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE_SITE_ONLY"),
-              },
-              { value: "policy", label: t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE_POLICY") },
-            ]}
-            onChange={(next) => {
+            onValueChange={(next) => {
               if (next !== "siteOnly" && next !== "policy") return;
               onChange({ ...value, homeMode: next });
             }}
-            style={{ minWidth: 160 }}
-          />
-        </Space>
+          >
+            <SelectTrigger className="min-w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              <SelectItem value="siteOnly">
+                {t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE_SITE_ONLY")}
+              </SelectItem>
+              <SelectItem value="policy">
+                {t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE_POLICY")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Space size={8}>
-          <Typography.Text>{t("settings:SETTINGS_SEO_TITLE_FORMAT_DEDUPE")}</Typography.Text>
+        <label className="flex items-center gap-2 text-footnote text-label-secondary">
+          <span>{t("settings:SETTINGS_SEO_TITLE_FORMAT_DEDUPE")}</span>
           <Switch
             checked={value.dedupe !== false}
-            onChange={(checked) => onChange({ ...value, dedupe: checked })}
+            onCheckedChange={(checked) => onChange({ ...value, dedupe: checked })}
           />
-        </Space>
-      </Space>
+        </label>
+      </div>
 
       <DndContext
-        onDragStart={(e) => setActiveIndex(parsePartDndId(e.active.id))}
+        onDragStart={(event) => setActiveIndex(parsePartDndId(event.active.id))}
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveIndex(null)}
       >
@@ -272,7 +291,7 @@ export function SeoTitlePolicyField(props: {
                 onChange({ ...value, parts });
               }}
               onRemove={() => {
-                const parts = value.parts.filter((_, i) => i !== index);
+                const parts = value.parts.filter((_, currentIndex) => currentIndex !== index);
                 onChange({ ...value, parts: parts.length ? parts : value.parts });
               }}
             />
@@ -282,38 +301,40 @@ export function SeoTitlePolicyField(props: {
         <DragOverlay>
           {activeIndex !== null ? (
             <div className="rounded-md border border-border bg-card px-3 py-2 shadow">
-              <Typography.Text>
+              <span className="text-footnote">
                 {t("settings:SETTINGS_SEO_TITLE_FORMAT_DRAGGING")} #{activeIndex + 1}
-              </Typography.Text>
+              </span>
             </div>
           ) : null}
         </DragOverlay>
       </DndContext>
 
-      <Space size={8} wrap>
+      <div className="flex flex-wrap gap-2">
         <Button
+          type="button"
+          variant="outline"
           onClick={() =>
             onChange({
               ...value,
               parts: [...value.parts, { kind: "token", value: "pageTitle" }],
             })
           }
-          autoInsertSpace={false}
         >
           {t("settings:SETTINGS_SEO_TITLE_FORMAT_ADD_TOKEN")}
         </Button>
         <Button
+          type="button"
+          variant="outline"
           onClick={() =>
             onChange({
               ...value,
               parts: [...value.parts, { kind: "literal", value: " - " }],
             })
           }
-          autoInsertSpace={false}
         >
           {t("settings:SETTINGS_SEO_TITLE_FORMAT_ADD_LITERAL")}
         </Button>
-      </Space>
+      </div>
     </div>
   );
 }

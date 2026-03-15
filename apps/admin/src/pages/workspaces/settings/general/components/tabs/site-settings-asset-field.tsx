@@ -1,11 +1,14 @@
-import { Button, Form, Image, Input } from "antd";
-import type { FormInstance } from "antd";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 
 import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
 import { formatSummaryText, isValidHttpUrlOrAbsolutePath } from "@/lib/settings/general/utils";
-import type { GeneralSettingsFormValues } from "@/types/settings-general";
+import type { GeneralSettingsFormController } from "@/types/settings-general";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
+import { getFieldErrorMessage } from "../form-helpers";
 
 const SETTINGS_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112">
@@ -17,7 +20,7 @@ const SETTINGS_IMAGE_FALLBACK_DATA_URI = `data:image/svg+xml;utf8,${encodeURICom
 )}`;
 
 interface SiteSettingsAssetFieldProps {
-  form: FormInstance<GeneralSettingsFormValues>;
+  form: GeneralSettingsFormController;
   scope: AssetScopeRef | null;
   assetFieldName: "siteLogoAssetId" | "siteFaviconAssetId";
   urlFieldName: "siteLogoUrl" | "siteFaviconUrl";
@@ -30,6 +33,23 @@ interface SiteSettingsAssetFieldProps {
   pickerTitle: string;
   pickerDescription: string;
   inputPlaceholder: string;
+}
+
+function PreviewImage(props: { src: string }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [props.src]);
+
+  return (
+    <img
+      src={failed ? SETTINGS_IMAGE_FALLBACK_DATA_URI : props.src}
+      alt=""
+      className="h-14 w-14 rounded-md border border-border/60 bg-muted/20 object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export function SiteSettingsAssetField({
@@ -48,26 +68,27 @@ export function SiteSettingsAssetField({
   inputPlaceholder,
 }: SiteSettingsAssetFieldProps) {
   const { t } = useTranslation();
+  const errorMessage = getFieldErrorMessage(form, urlFieldName);
+  const urlField = form.register(urlFieldName, {
+    validate: (value) => {
+      const raw = String(value || "").trim();
+      if (assetId) return true;
+      if (!raw) return true;
+      if (isValidHttpUrlOrAbsolutePath(raw)) return true;
+      return t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID");
+    },
+  });
 
   return (
     <>
-      <Form.Item<GeneralSettingsFormValues> name={assetFieldName} hidden>
-        <Input />
-      </Form.Item>
+      <input type="hidden" {...form.register(assetFieldName)} />
 
       <div className="flex items-center gap-3">
         <div className="shrink-0">
           {previewUrl ? (
-            <Image
-              width={56}
-              height={56}
-              src={previewUrl}
-              fallback={SETTINGS_IMAGE_FALLBACK_DATA_URI}
-              preview={false}
-              className="rounded-md border border-border/60 bg-muted/20"
-            />
+            <PreviewImage src={previewUrl} />
           ) : (
-            <div className="h-14 w-14 rounded-md border border-border/60 bg-muted/20 grid place-items-center text-caption text-label-secondary">
+            <div className="grid h-14 w-14 place-items-center rounded-md border border-border/60 bg-muted/20 text-caption text-label-secondary">
               {t("settings:SETTINGS_NOT_SET")}
             </div>
           )}
@@ -76,51 +97,37 @@ export function SiteSettingsAssetField({
           <div className="text-footnote font-medium">
             {t("settings:SETTINGS_ASSET_PICKER_CURRENT")}
           </div>
-          <div className="mt-1 text-caption text-label-secondary truncate">
+          <div className="mt-1 truncate text-caption text-label-secondary">
             {assetId ? `/assets/${assetId}` : formatSummaryText(url)}
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button
-            type="text"
-            danger
+            type="button"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
             disabled={!assetId && !url}
             onClick={() => {
-              form.setFieldValue(assetFieldName, "");
-              form.setFieldValue(urlFieldName, "");
+              form.setValue(assetFieldName, "", { shouldDirty: true, shouldValidate: true });
+              form.setValue(urlFieldName, "", { shouldDirty: true, shouldValidate: true });
             }}
-            autoInsertSpace={false}
           >
             {t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
           </Button>
-          <Button
-            type="primary"
-            disabled={!scope}
-            onClick={() => onPickerOpenChange(true)}
-            autoInsertSpace={false}
-          >
+          <Button type="button" disabled={!scope} onClick={() => onPickerOpenChange(true)}>
             {t("settings:SETTINGS_ASSET_PICKER_SELECT")}
           </Button>
         </div>
       </div>
 
-      <Form.Item<GeneralSettingsFormValues>
-        name={urlFieldName}
-        rules={[
-          {
-            validator: async (_rule, value: string | undefined) => {
-              const raw = (value || "").trim();
-              if (assetId) return;
-              if (!raw) return;
-              if (isValidHttpUrlOrAbsolutePath(raw)) return;
-              throw new Error(t("settings:SETTINGS_VALIDATION_URL_OR_PATH_INVALID"));
-            },
-          },
-        ]}
-        style={{ marginBottom: 0, marginTop: 12 }}
-      >
-        <Input size="large" placeholder={inputPlaceholder} allowClear />
-      </Form.Item>
+      <div className="mt-3 space-y-2">
+        <Input
+          {...urlField}
+          placeholder={inputPlaceholder}
+          aria-invalid={errorMessage ? true : undefined}
+        />
+        {errorMessage ? <div className="text-footnote text-destructive">{errorMessage}</div> : null}
+      </div>
 
       {scope ? (
         <AssetPickerDialog
@@ -135,8 +142,14 @@ export function SiteSettingsAssetField({
           onConfirm={({ assetIds }) => {
             const selectedAssetId = assetIds[0];
             if (!selectedAssetId) return;
-            form.setFieldValue(assetFieldName, selectedAssetId);
-            form.setFieldValue(urlFieldName, `/assets/${selectedAssetId}`);
+            form.setValue(assetFieldName, selectedAssetId, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            form.setValue(urlFieldName, `/assets/${selectedAssetId}`, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
           }}
         />
       ) : null}

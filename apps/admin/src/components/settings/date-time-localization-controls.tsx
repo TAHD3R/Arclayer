@@ -1,4 +1,11 @@
-import { Select, Switch } from "antd";
+import { Switch } from "@celestial/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 
 import type { LocalizationOption } from "@/lib/settings/general/localization-options";
 
@@ -18,18 +25,25 @@ function LocalizationSwitchControl(props: LocalizationSwitchControlProps) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-label-primary">{props.switchLabel}</span>
-        <Switch checked={props.switchChecked} onChange={props.onSwitchChange} />
+        <Switch checked={props.switchChecked} onCheckedChange={props.onSwitchChange} />
       </div>
       <div className="text-callout text-label-secondary">{props.switchDescription}</div>
       <Select
-        size="large"
         value={props.selectValue}
         disabled={props.switchChecked}
-        options={props.options}
-        showSearch={props.showSearch}
-        optionFilterProp={props.showSearch ? "label" : undefined}
-        onChange={(value) => props.onSelectChange(String(value))}
-      />
+        onValueChange={props.onSelectChange}
+      >
+        <SelectTrigger className="w-full" size="default">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" align="start">
+          {props.options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

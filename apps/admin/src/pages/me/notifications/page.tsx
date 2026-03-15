@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
@@ -9,6 +8,8 @@ import { notifyError } from "@/lib/notifications";
 import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
 import type { NotificationPreferenceChannel, NotificationPreferenceTopic } from "@/types/api";
 import { SettingActionItem } from "@celestial/ui/setting-action-item";
+import { Spinner } from "@celestial/ui/spinner";
+import { Switch } from "@celestial/ui/switch";
 
 type MeNotificationSettingsViewMode = "page" | "dialog";
 
@@ -179,19 +180,23 @@ export function MeNotificationSettingsPage(props: MeNotificationSettingsPageProp
                                 titleClassName="text-callout"
                                 description={copy.description}
                                 right={
-                                  <Switch
-                                    checked={channel.enabled}
-                                    disabled={disabled}
-                                    loading={loading}
-                                    onChange={(checked) => {
-                                      if (!channel.mutable) return;
-                                      void patchMutation.mutate({
-                                        topicKey: topic.key,
-                                        channel: section.key,
-                                        enabled: checked,
-                                      });
-                                    }}
-                                  />
+                                  <div className="flex items-center gap-2">
+                                    {loading ? (
+                                      <Spinner className="size-4 text-label-secondary" />
+                                    ) : null}
+                                    <Switch
+                                      checked={channel.enabled}
+                                      disabled={disabled}
+                                      onCheckedChange={(checked) => {
+                                        if (!channel.mutable) return;
+                                        void patchMutation.mutate({
+                                          topicKey: topic.key,
+                                          channel: section.key,
+                                          enabled: checked,
+                                        });
+                                      }}
+                                    />
+                                  </div>
                                 }
                               />
                             );

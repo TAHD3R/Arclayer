@@ -35,6 +35,7 @@ export * from "./pagination";
 export * from "./password-input";
 export * from "./popover";
 export * from "./progress";
+export * from "./qr-code";
 export * from "./radio-group";
 export * from "./resizable";
 export * from "./scroll-area";

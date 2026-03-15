@@ -1,10 +1,12 @@
-import { Button, Input } from "antd";
 import { Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminAssetFolder } from "@/types/api";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Textarea } from "@celestial/ui/textarea";
 
 export type UpdateAssetFolderDialogValue = {
   name: string;
@@ -50,18 +52,10 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
       }
       footer={
         <>
-          <Button
-            autoInsertSpace={false}
-            type="text"
-            disabled={disabled}
-            onClick={() => props.onOpenChange(false)}
-          >
+          <Button variant="ghost" disabled={disabled} onClick={() => props.onOpenChange(false)}>
             {t("common:CANCEL")}
           </Button>
           <Button
-            autoInsertSpace={false}
-            type="primary"
-            icon={<Save className="size-4" aria-hidden="true" />}
             loading={props.confirmLoading}
             disabled={!canSubmit}
             onClick={async () => {
@@ -72,6 +66,7 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
               props.onOpenChange(false);
             }}
           >
+            <Save className="size-4" aria-hidden="true" />
             {t("common:CONFIRM")}
           </Button>
         </>
@@ -97,11 +92,11 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
           <div className="text-label-secondary">
             {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
           </div>
-          <Input.TextArea
+          <Textarea
+            className="min-h-24"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
-            autoSize={{ minRows: 2, maxRows: 5 }}
             disabled={disabled}
           />
         </div>

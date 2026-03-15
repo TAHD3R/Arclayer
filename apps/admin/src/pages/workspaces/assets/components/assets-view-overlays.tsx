@@ -1,9 +1,9 @@
-import { Button } from "antd";
 import { FolderInput, Settings2, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { AdminAssetFolder } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
+import { Button } from "@celestial/ui/button";
 import { SelectedCountTag } from "@/components/ui/tags";
 import { AssetPreviewSheet } from "./asset-masonry-card";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";
@@ -163,42 +163,35 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
                   <SelectedCountTag
                     label={props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}
                   />
-                  <Button
-                    type="text"
-                    className="!h-8 !px-2"
-                    onClick={props.onClearSelection}
-                    autoInsertSpace={false}
-                  >
+                  <Button variant="ghost" size="sm" onClick={props.onClearSelection}>
                     {props.t("assets:ASSET_CLEAR_SELECTION")}
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    type="text"
-                    icon={<FolderInput size={16} />}
+                    variant="ghost"
+                    size="sm"
                     onClick={props.onOpenMove}
                     disabled={props.bulkMovePending}
-                    autoInsertSpace={false}
                   >
+                    <FolderInput size={16} />
                     {props.t("assets:ASSET_ACTION_MOVE")}
                   </Button>
                   <Button
-                    type="text"
-                    icon={<Settings2 size={16} />}
+                    variant="ghost"
+                    size="sm"
                     onClick={props.onOpenEditAccess}
                     disabled={props.bulkUpdatePending}
-                    autoInsertSpace={false}
                   >
+                    <Settings2 size={16} />
                     {props.t("assets:ASSET_ACTION_EDIT_ACCESS")}
                   </Button>
                   <Button
-                    type="primary"
-                    danger
-                    icon={<Trash2 size={16} />}
+                    variant="destructive"
                     onClick={props.onOpenBulkDelete}
                     disabled={props.bulkDeletePending}
-                    autoInsertSpace={false}
                   >
+                    <Trash2 size={16} />
                     {props.t("assets:ASSET_ACTION_DELETE_SELECTED")}
                   </Button>
                 </div>

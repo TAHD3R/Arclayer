@@ -1,10 +1,16 @@
-import { Input, Pagination } from "antd";
 import { type Table } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 
+import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { ContentGuard } from "@/components/common/content-guard";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 import {
   DataTablePresenter,
   DataTableToolbarTools,
@@ -51,15 +57,27 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
 
   const toolbarLeft = showSearch ? (
     <div className="flex-1 min-w-0">
-      <Input
-        value={tableHook.searchInput}
-        onChange={(event) => tableHook.setSearchInput(event.target.value)}
-        placeholder={placeholder}
-        allowClear
-        variant="filled"
-        prefix={<Search className="size-4 text-label-secondary" />}
-        style={{ width: "100%" }}
-      />
+      <InputGroup>
+        <InputGroupAddon>
+          <Search className="size-4 text-label-secondary" />
+        </InputGroupAddon>
+        <InputGroupInput
+          value={tableHook.searchInput}
+          onChange={(event) => tableHook.setSearchInput(event.target.value)}
+          placeholder={placeholder}
+        />
+        {tableHook.searchInput ? (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              aria-label={t("common:CLEAR")}
+              size="icon-xs"
+              onClick={() => tableHook.setSearchInput("")}
+            >
+              <X className="size-3.5" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
     </div>
   ) : null;
 
@@ -110,17 +128,13 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
                 end: Math.min(pageData.page * pageData.size, pageData.total),
               })}
             </div>
-            <Pagination
-              current={pageData.page}
-              pageSize={pageData.size}
+            <DataPaginationControls
+              page={pageData.page}
+              size={pageData.size}
               total={pageData.total}
-              showSizeChanger
-              pageSizeOptions={[10, 20, 50, 100]}
+              t={t}
               onChange={(nextPage, nextSize) => {
-                if (
-                  typeof nextSize === "number" &&
-                  nextSize !== table.getState().pagination.pageSize
-                ) {
+                if (nextSize !== table.getState().pagination.pageSize) {
                   table.setPageSize(nextSize);
                 }
                 table.setPageIndex(Math.max(0, nextPage - 1));

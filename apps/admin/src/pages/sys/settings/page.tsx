@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { Button } from "antd";
 import { ChevronDownIcon } from "lucide-react";
 import { SysRevisionActiveTag } from "@/components/ui/tags";
 
@@ -30,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@celestial/ui/dropdown-menu";
+import { Button } from "@celestial/ui/button";
 import { Input } from "@celestial/ui/input";
 import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
@@ -202,9 +202,8 @@ export function SysSettingsPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                type="default"
+                variant="outline"
                 disabled={!hasValidSysToken || namespacesQuery.isPending || namespaces.length <= 1}
-                autoInsertSpace={false}
               >
                 <span className="max-w-[220px] truncate">
                   {currentSummary?.title ?? namespaceId}
@@ -238,18 +237,15 @@ export function SysSettingsPage() {
           </DropdownMenu>
 
           <Button
-            type="default"
+            variant="outline"
             disabled={!canOperateOnDraft || isTesting || isActivating}
             onClick={() => testMutation.mutate()}
-            autoInsertSpace={false}
           >
             {t("sys:SYS_REVISION_TEST")}
           </Button>
           <Button
             disabled={!canOperateOnDraft || isTesting || isActivating || testOk === false}
             onClick={() => activateMutation.mutate()}
-            type="primary"
-            autoInsertSpace={false}
           >
             {t("sys:SYS_REVISION_ACTIVATE")}
           </Button>
@@ -411,20 +407,10 @@ function SysStepUpDialog(props: {
         </div>
 
         <DialogFooter>
-          <Button
-            type="text"
-            autoInsertSpace={false}
-            onClick={props.onCancel}
-            disabled={props.busy}
-          >
+          <Button variant="ghost" onClick={props.onCancel} disabled={props.busy}>
             {t("sys:SYS_STEP_UP_CANCEL")}
           </Button>
-          <Button
-            type="primary"
-            autoInsertSpace={false}
-            onClick={props.onSubmit}
-            disabled={props.busy || !props.password.trim()}
-          >
+          <Button onClick={props.onSubmit} disabled={props.busy || !props.password.trim()}>
             {t("sys:SYS_STEP_UP_SUBMIT")}
           </Button>
         </DialogFooter>

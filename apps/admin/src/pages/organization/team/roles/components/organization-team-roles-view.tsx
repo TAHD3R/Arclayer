@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button as AntButton, Input } from "antd";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -13,6 +12,13 @@ import {
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { Button } from "@celestial/ui/button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 import { useDialogSnapshotState } from "@/pages/organization/team/shared/hooks/use-dialog-snapshot-state";
 import { CreateRoleDialog, DeleteRoleDialog } from "./roles-dialogs";
 import { RolesMatrixTable } from "./roles-matrix-table";
@@ -146,25 +152,34 @@ export function OrganizationTeamRolesView() {
       title={t("settings:SETTINGS_ORG_ROLES_TITLE")}
       description={t("common:ORG_ROLES_DESC")}
       action={
-        <AntButton
-          type="primary"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => setCreateOpen(true)}
-          autoInsertSpace={false}
-        >
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4" />
           {t("team:TEAM_ROLES_ADD_ROLE")}
-        </AntButton>
+        </Button>
       }
     >
       <div className="space-y-4">
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
-          variant="filled"
-          prefix={<Search className="h-4 w-4 text-label-secondary" />}
-          allowClear
-        />
+        <InputGroup className="max-w-[360px]">
+          <InputGroupAddon>
+            <Search className="h-4 w-4 text-label-secondary" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
+          />
+          {search ? (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={t("common:CLEAR")}
+                size="icon-xs"
+                onClick={() => setSearch("")}
+              >
+                <X className="size-3.5" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
 
         <RolesMatrixTable
           filteredRoles={filteredRoles}

@@ -1,9 +1,10 @@
-import { Button, Card, Descriptions, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
+import { Button } from "@celestial/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@celestial/ui/card";
 import { Switch } from "@celestial/ui/switch";
 import {
   ChromeTabs,
@@ -58,29 +59,34 @@ function ExtensionDetailsTab(props: { extension: InstalledExtensionItem }) {
   const scopeLabel = t(`plugin:EXTENSION_SCOPE_${scope.toUpperCase()}`, { defaultValue: scope });
 
   return (
-    <Card size="small" type="inner" title={t("plugin:PLUGIN_TAB_DETAILS")}>
-      <Descriptions size="small" column={1} bordered>
-        <Descriptions.Item label={t("plugin:PLUGIN_META_ID")}>
-          <Typography.Text code>{props.extension.capabilityId}</Typography.Text>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("plugin:PLUGIN_META_VERSION")}>
-          {props.extension.version || t("common:NA")}
-        </Descriptions.Item>
-        <Descriptions.Item label={t("plugin:EXTENSION_META_KIND")}>
-          {kindLabel || t("common:NA")}
-        </Descriptions.Item>
-        <Descriptions.Item label={t("plugin:EXTENSION_META_PROVIDER")}>
-          {providerLabel || t("common:NA")}
-        </Descriptions.Item>
-        <Descriptions.Item label={t("plugin:EXTENSION_META_SCOPE")}>
-          {scopeLabel || t("common:NA")}
-        </Descriptions.Item>
-        <Descriptions.Item label={t("plugin:PLUGIN_META_ENABLED")}>
-          {props.extension.enabled
-            ? t("plugin:PLUGIN_ENABLED_TRUE")
-            : t("plugin:PLUGIN_ENABLED_FALSE")}
-        </Descriptions.Item>
-      </Descriptions>
+    <Card>
+      <CardHeader className="pb-4">
+        <CardTitle>{t("plugin:PLUGIN_TAB_DETAILS")}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <dl className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+          <dt className="text-footnote text-label-secondary">{t("plugin:PLUGIN_META_ID")}</dt>
+          <dd className="rounded-md bg-muted px-2 py-1 font-mono text-footnote">
+            {props.extension.capabilityId}
+          </dd>
+          <dt className="text-footnote text-label-secondary">{t("plugin:PLUGIN_META_VERSION")}</dt>
+          <dd>{props.extension.version || t("common:NA")}</dd>
+          <dt className="text-footnote text-label-secondary">{t("plugin:EXTENSION_META_KIND")}</dt>
+          <dd>{kindLabel || t("common:NA")}</dd>
+          <dt className="text-footnote text-label-secondary">
+            {t("plugin:EXTENSION_META_PROVIDER")}
+          </dt>
+          <dd>{providerLabel || t("common:NA")}</dd>
+          <dt className="text-footnote text-label-secondary">{t("plugin:EXTENSION_META_SCOPE")}</dt>
+          <dd>{scopeLabel || t("common:NA")}</dd>
+          <dt className="text-footnote text-label-secondary">{t("plugin:PLUGIN_META_ENABLED")}</dt>
+          <dd>
+            {props.extension.enabled
+              ? t("plugin:PLUGIN_ENABLED_TRUE")
+              : t("plugin:PLUGIN_ENABLED_FALSE")}
+          </dd>
+        </dl>
+      </CardContent>
     </Card>
   );
 }
@@ -117,8 +123,7 @@ function UIEmbedSelector(props: {
       {props.embeds.map((embed) => (
         <Button
           key={embed.id}
-          type={embed.id === props.selectedId ? "primary" : "default"}
-          autoInsertSpace={false}
+          variant={embed.id === props.selectedId ? "default" : "outline"}
           onClick={() => props.onSelect(embed.id)}
         >
           {embed.title}
@@ -130,17 +135,22 @@ function UIEmbedSelector(props: {
 
 function UIEmbedFrame(props: { embed: UIEmbedDescriptor }) {
   return (
-    <Card size="small" type="inner" title={props.embed.title}>
-      <div className="h-[70vh] w-full overflow-hidden rounded-md border border-border">
-        <iframe
-          title={props.embed.title}
-          src={props.embed.embedUrl}
-          sandbox={pickSandbox(props.embed)}
-          referrerPolicy="no-referrer"
-          className="h-full w-full"
-          loading="lazy"
-        />
-      </div>
+    <Card>
+      <CardHeader className="pb-4">
+        <CardTitle>{props.embed.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[70vh] w-full overflow-hidden rounded-md border border-border">
+          <iframe
+            title={props.embed.title}
+            src={props.embed.embedUrl}
+            sandbox={pickSandbox(props.embed)}
+            referrerPolicy="no-referrer"
+            className="h-full w-full"
+            loading="lazy"
+          />
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -192,9 +202,7 @@ function ExtensionDetailAction(props: {
   const { t } = useTranslation(["common", "plugin"]);
   return (
     <div className="flex items-center gap-3">
-      <Button onClick={props.onBack} autoInsertSpace={false}>
-        {t("common:BACK")}
-      </Button>
+      <Button onClick={props.onBack}>{t("common:BACK")}</Button>
       {props.extension ? (
         <Switch
           checked={props.extension.enabled}

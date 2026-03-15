@@ -1,6 +1,4 @@
-import { Button as AntButton, Select } from "antd";
 import * as React from "react";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
 import {
@@ -15,6 +13,14 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { RenewExpiresInSeconds } from "../types";
@@ -86,20 +92,17 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
 
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="text"
+              <Button
+                variant="ghost"
                 onClick={() => setDeleteInvitation(null)}
                 disabled={deleteInvitationPending}
               >
                 {t("common:CANCEL")}
-              </AntButton>
+              </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="primary"
-                danger
+              <Button
+                variant="destructive"
                 loading={deleteInvitationPending}
                 onClick={() => {
                   const invitation = deleteInvitation;
@@ -108,7 +111,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
                 }}
               >
                 {t("team:TEAM_ACTION_DELETE")}
-              </AntButton>
+              </Button>
             </AlertDialogActionPrimitive>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -126,17 +129,14 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton
-              autoInsertSpace={false}
-              type="text"
+            <Button
+              variant="ghost"
               onClick={() => setRenewInvitation(null)}
               disabled={renewInvitationPending}
             >
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              autoInsertSpace={false}
-              type="primary"
+            </Button>
+            <Button
               loading={renewInvitationPending}
               onClick={() => {
                 const invitation = renewInvitation;
@@ -148,7 +148,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
               }}
             >
               {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
+            </Button>
           </>
         }
       >
@@ -159,13 +159,23 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
                 {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
               </label>
               <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(value) => setRenewExpiresInSeconds(value)}
-                options={renewOptions}
-                className="w-full"
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              />
+              <Select
+                value={String(renewExpiresInSeconds)}
+                onValueChange={(value) =>
+                  setRenewExpiresInSeconds(value === "null" ? null : Number(value))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  {renewOptions.map((option) => (
+                    <SelectItem key={String(option.value)} value={String(option.value)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         ) : null}
@@ -183,17 +193,10 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton
-              autoInsertSpace={false}
-              type="text"
-              onClick={() => setRenewLink(null)}
-              disabled={renewLinkPending}
-            >
+            <Button variant="ghost" onClick={() => setRenewLink(null)} disabled={renewLinkPending}>
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              autoInsertSpace={false}
-              type="primary"
+            </Button>
+            <Button
               loading={renewLinkPending}
               onClick={() => {
                 const link = renewLink;
@@ -205,7 +208,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
               }}
             >
               {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
+            </Button>
           </>
         }
       >
@@ -216,13 +219,23 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
                 {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
               </label>
               <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select<RenewExpiresInSeconds>
-                value={renewExpiresInSeconds}
-                onChange={(value) => setRenewExpiresInSeconds(value)}
-                options={renewOptions}
-                className="w-full"
-                getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              />
+              <Select
+                value={String(renewExpiresInSeconds)}
+                onValueChange={(value) =>
+                  setRenewExpiresInSeconds(value === "null" ? null : Number(value))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  {renewOptions.map((option) => (
+                    <SelectItem key={String(option.value)} value={String(option.value)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         ) : null}

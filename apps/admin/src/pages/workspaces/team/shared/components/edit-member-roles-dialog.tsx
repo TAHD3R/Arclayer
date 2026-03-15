@@ -1,10 +1,16 @@
 "use client";
 
-import { Button as AntButton, Select } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
+import { Button } from "@celestial/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import type { Role, TeamMember } from "@/types/api";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
@@ -42,23 +48,20 @@ export function EditMemberRolesDialog(props: {
       contentClassName="sm:max-w-xl"
       footer={
         <>
-          <AntButton
-            autoInsertSpace={false}
-            type="text"
+          <Button
+            variant="ghost"
             onClick={() => props.onOpenChange(false)}
             disabled={props.confirmLoading}
           >
             {t("common:CANCEL")}
-          </AntButton>
-          <AntButton
-            autoInsertSpace={false}
-            type="primary"
+          </Button>
+          <Button
             loading={props.confirmLoading}
             disabled={Boolean(props.confirmDisabled) || props.confirmLoading}
             onClick={props.onConfirm}
           >
             {t("common:CONFIRM")}
-          </AntButton>
+          </Button>
         </>
       }
     >
@@ -66,16 +69,21 @@ export function EditMemberRolesDialog(props: {
         <label className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</label>
         <div className="text-label-secondary">{t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}</div>
         <Select
-          allowClear
-          placeholder={t("team:TEAM_EDIT_ROLES_PLACEHOLDER")}
-          loading={props.rolesLoading}
-          value={props.value ?? undefined}
-          onChange={(next) => props.onChange(next ? String(next) : null)}
-          options={options}
-          showSearch
-          optionFilterProp="label"
-          getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-        />
+          value={props.value ?? "__none__"}
+          onValueChange={(next) => props.onChange(next === "__none__" ? null : String(next))}
+        >
+          <SelectTrigger className="w-full" disabled={props.rolesLoading}>
+            <SelectValue placeholder={t("team:TEAM_EDIT_ROLES_PLACEHOLDER")} />
+          </SelectTrigger>
+          <SelectContent position="popper" align="start">
+            <SelectItem value="__none__">{t("common:NA")}</SelectItem>
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </SettingDialog>
   );

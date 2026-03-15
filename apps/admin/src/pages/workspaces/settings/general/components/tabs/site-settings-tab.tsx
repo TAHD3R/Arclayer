@@ -1,10 +1,13 @@
-import { Form, Input, Switch, Typography } from "antd";
-import type { FormInstance } from "antd";
+import { Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 
 import { Accordion } from "@celestial/ui/accordion";
+import { Input } from "@celestial/ui/input";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { Switch } from "@celestial/ui/switch";
+import { Textarea } from "@celestial/ui/textarea";
+
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { deleteAdminAssetUsageByRef, upsertAdminAssetUsage } from "@/api/asset-usages";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -15,15 +18,18 @@ import type { GeneralSettingsFormValues } from "@/types/settings-general";
 import { SiteSettingsAssetField } from "./site-settings-asset-field";
 import { SeoTitlePolicyField } from "./seo-title-policy-field";
 import { LocalizedStringDictField } from "./localized-string-dict-field";
-import { formatSummaryText, normalizeOptionalString } from "@/lib/settings/general/utils";
+import {
+  formatSummaryText,
+  isValidEmail,
+  normalizeOptionalString,
+} from "@/lib/settings/general/utils";
+import { getFieldErrorMessage } from "../form-helpers";
 
 type SiteSettingsTabProps = GeneralSettingsTabBaseProps;
 
-function useSiteField(
-  form: FormInstance<GeneralSettingsFormValues>,
-  name: keyof GeneralSettingsFormValues,
-) {
-  return Form.useWatch(name as string, form) as unknown;
+function FieldMessage({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <div className="text-footnote text-destructive">{message}</div>;
 }
 
 export function SiteSettingsTab({
@@ -43,46 +49,40 @@ export function SiteSettingsTab({
   const [logoPickerOpen, setLogoPickerOpen] = useState(false);
   const [faviconPickerOpen, setFaviconPickerOpen] = useState(false);
 
-  // useWatch 在字段未挂载（例如折叠未展开）时可能不触发，这里对齐旧实现：fallback 到初始值。
-  const siteName = (useSiteField(form, "siteName") as string | undefined) ?? initialValues.siteName;
+  const siteName = useWatch({ control: form.control, name: "siteName" }) ?? initialValues.siteName;
   const siteNameI18nEnabled =
-    (useSiteField(form, "siteNameI18nEnabled") as boolean | undefined) ??
+    useWatch({ control: form.control, name: "siteNameI18nEnabled" }) ??
     initialValues.siteNameI18nEnabled;
   const siteNameI18n =
-    (useSiteField(form, "siteNameI18n") as Record<string, string> | undefined) ??
-    initialValues.siteNameI18n;
+    useWatch({ control: form.control, name: "siteNameI18n" }) ?? initialValues.siteNameI18n;
   const siteSubtitle =
-    (useSiteField(form, "siteSubtitle") as string | undefined) ?? initialValues.siteSubtitle;
+    useWatch({ control: form.control, name: "siteSubtitle" }) ?? initialValues.siteSubtitle;
   const siteDescription =
-    (useSiteField(form, "siteDescription") as string | undefined) ?? initialValues.siteDescription;
+    useWatch({ control: form.control, name: "siteDescription" }) ?? initialValues.siteDescription;
   const siteDescriptionI18nEnabled =
-    (useSiteField(form, "siteDescriptionI18nEnabled") as boolean | undefined) ??
+    useWatch({ control: form.control, name: "siteDescriptionI18nEnabled" }) ??
     initialValues.siteDescriptionI18nEnabled;
   const siteDescriptionI18n =
-    (useSiteField(form, "siteDescriptionI18n") as Record<string, string> | undefined) ??
+    useWatch({ control: form.control, name: "siteDescriptionI18n" }) ??
     initialValues.siteDescriptionI18n;
-  const siteUrl = (useSiteField(form, "siteUrl") as string | undefined) ?? initialValues.siteUrl;
+  const siteUrl = useWatch({ control: form.control, name: "siteUrl" }) ?? initialValues.siteUrl;
   const siteLogoUrl =
-    (useSiteField(form, "siteLogoUrl") as string | undefined) ?? initialValues.siteLogoUrl;
+    useWatch({ control: form.control, name: "siteLogoUrl" }) ?? initialValues.siteLogoUrl;
   const siteLogoAssetId =
-    (useSiteField(form, "siteLogoAssetId") as string | undefined) ?? initialValues.siteLogoAssetId;
+    useWatch({ control: form.control, name: "siteLogoAssetId" }) ?? initialValues.siteLogoAssetId;
   const siteFaviconUrl =
-    (useSiteField(form, "siteFaviconUrl") as string | undefined) ?? initialValues.siteFaviconUrl;
+    useWatch({ control: form.control, name: "siteFaviconUrl" }) ?? initialValues.siteFaviconUrl;
   const siteFaviconAssetId =
-    (useSiteField(form, "siteFaviconAssetId") as string | undefined) ??
+    useWatch({ control: form.control, name: "siteFaviconAssetId" }) ??
     initialValues.siteFaviconAssetId;
   const siteContactEmail =
-    (useSiteField(form, "siteContactEmail") as string | undefined) ??
-    initialValues.siteContactEmail;
+    useWatch({ control: form.control, name: "siteContactEmail" }) ?? initialValues.siteContactEmail;
   const seoTitlePolicyV1 =
-    (useSiteField(form, "seoTitlePolicyV1") as
-      | GeneralSettingsFormValues["seoTitlePolicyV1"]
-      | undefined) ?? initialValues.seoTitlePolicyV1;
+    useWatch({ control: form.control, name: "seoTitlePolicyV1" }) ?? initialValues.seoTitlePolicyV1;
   const supportedLocales =
-    (useSiteField(form, "supportedLocales") as string[] | undefined) ??
-    initialValues.supportedLocales;
+    useWatch({ control: form.control, name: "supportedLocales" }) ?? initialValues.supportedLocales;
   const defaultLocale =
-    (useSiteField(form, "defaultLocale") as string | undefined) ?? initialValues.defaultLocale;
+    useWatch({ control: form.control, name: "defaultLocale" }) ?? initialValues.defaultLocale;
 
   const effectiveSiteName = siteNameI18nEnabled
     ? resolveDefaultLocaleValue(siteNameI18n, defaultLocale) || siteName
@@ -124,9 +124,12 @@ export function SiteSettingsTab({
 
   const resetSiteName = () =>
     withSavingKey("reset:siteName", async () => {
-      form.setFieldValue("siteName", initialValues.siteName);
-      form.setFieldValue("siteNameI18nEnabled", initialValues.siteNameI18nEnabled);
-      form.setFieldValue("siteNameI18n", initialValues.siteNameI18n);
+      form.setValue("siteName", initialValues.siteName, { shouldDirty: false });
+      form.setValue("siteNameI18nEnabled", initialValues.siteNameI18nEnabled, {
+        shouldDirty: false,
+      });
+      form.setValue("siteNameI18n", initialValues.siteNameI18n, { shouldDirty: false });
+      form.clearErrors(["siteName", "siteNameI18n"]);
       await patch({
         site: {
           name: initialValues.siteName,
@@ -137,17 +140,21 @@ export function SiteSettingsTab({
 
   const resetSiteSubtitle = () =>
     withSavingKey("reset:siteSubtitle", async () => {
-      form.setFieldValue("siteSubtitle", initialValues.siteSubtitle);
-      await patch({
-        site: { subtitle: normalizeOptionalString(initialValues.siteSubtitle) },
-      });
+      form.setValue("siteSubtitle", initialValues.siteSubtitle, { shouldDirty: false });
+      form.clearErrors("siteSubtitle");
+      await patch({ site: { subtitle: normalizeOptionalString(initialValues.siteSubtitle) } });
     });
 
   const resetSiteDescription = () =>
     withSavingKey("reset:siteDescription", async () => {
-      form.setFieldValue("siteDescription", initialValues.siteDescription);
-      form.setFieldValue("siteDescriptionI18nEnabled", initialValues.siteDescriptionI18nEnabled);
-      form.setFieldValue("siteDescriptionI18n", initialValues.siteDescriptionI18n);
+      form.setValue("siteDescription", initialValues.siteDescription, { shouldDirty: false });
+      form.setValue("siteDescriptionI18nEnabled", initialValues.siteDescriptionI18nEnabled, {
+        shouldDirty: false,
+      });
+      form.setValue("siteDescriptionI18n", initialValues.siteDescriptionI18n, {
+        shouldDirty: false,
+      });
+      form.clearErrors(["siteDescription", "siteDescriptionI18n"]);
       await patch({
         site: {
           description: normalizeOptionalString(initialValues.siteDescription),
@@ -160,14 +167,18 @@ export function SiteSettingsTab({
 
   const resetSiteUrl = () =>
     withSavingKey("reset:siteUrl", async () => {
-      form.setFieldValue("siteUrl", initialValues.siteUrl);
+      form.setValue("siteUrl", initialValues.siteUrl, { shouldDirty: false });
+      form.clearErrors("siteUrl");
       await patch({ site: { url: initialValues.siteUrl } });
     });
 
   const resetSiteLogoUrl = () =>
     withSavingKey("reset:siteLogoUrl", async () => {
-      form.setFieldValue("siteLogoUrl", initialValues.siteLogoUrl);
-      form.setFieldValue("siteLogoAssetId", initialValues.siteLogoAssetId);
+      form.setValue("siteLogoUrl", initialValues.siteLogoUrl, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+      form.setValue("siteLogoAssetId", initialValues.siteLogoAssetId, { shouldDirty: false });
       await patch({
         site: {
           logo_url: normalizeOptionalString(initialValues.siteLogoUrl),
@@ -184,21 +195,27 @@ export function SiteSettingsTab({
           entityId: "site",
           fieldKey: "site.logo",
         });
-      } else {
-        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-        await deleteAdminAssetUsageByRef({
-          workspaceId: String(workspaceId),
-          entityType: "core.settings",
-          entityId: "site",
-          fieldKey: "site.logo",
-        });
+        return;
       }
+
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      await deleteAdminAssetUsageByRef({
+        workspaceId: String(workspaceId),
+        entityType: "core.settings",
+        entityId: "site",
+        fieldKey: "site.logo",
+      });
     });
 
   const resetSiteFaviconUrl = () =>
     withSavingKey("reset:siteFaviconUrl", async () => {
-      form.setFieldValue("siteFaviconUrl", initialValues.siteFaviconUrl);
-      form.setFieldValue("siteFaviconAssetId", initialValues.siteFaviconAssetId);
+      form.setValue("siteFaviconUrl", initialValues.siteFaviconUrl, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+      form.setValue("siteFaviconAssetId", initialValues.siteFaviconAssetId, {
+        shouldDirty: false,
+      });
       await patch({
         site: {
           favicon_url: normalizeOptionalString(initialValues.siteFaviconUrl),
@@ -215,20 +232,22 @@ export function SiteSettingsTab({
           entityId: "site",
           fieldKey: "site.favicon",
         });
-      } else {
-        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-        await deleteAdminAssetUsageByRef({
-          workspaceId: String(workspaceId),
-          entityType: "core.settings",
-          entityId: "site",
-          fieldKey: "site.favicon",
-        });
+        return;
       }
+
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      await deleteAdminAssetUsageByRef({
+        workspaceId: String(workspaceId),
+        entityType: "core.settings",
+        entityId: "site",
+        fieldKey: "site.favicon",
+      });
     });
 
   const resetSiteContactEmail = () =>
     withSavingKey("reset:siteContactEmail", async () => {
-      form.setFieldValue("siteContactEmail", initialValues.siteContactEmail);
+      form.setValue("siteContactEmail", initialValues.siteContactEmail, { shouldDirty: false });
+      form.clearErrors("siteContactEmail");
       await patch({
         site: { contact_email: normalizeOptionalString(initialValues.siteContactEmail) },
       });
@@ -236,7 +255,8 @@ export function SiteSettingsTab({
 
   const resetSeoTitlePolicyV1 = () =>
     withSavingKey("reset:seoTitlePolicyV1", async () => {
-      form.setFieldValue("seoTitlePolicyV1", initialValues.seoTitlePolicyV1);
+      form.setValue("seoTitlePolicyV1", initialValues.seoTitlePolicyV1, { shouldDirty: false });
+      form.clearErrors("seoTitlePolicyV1");
       await patch({
         seo: { title_policy_v1: toApiTitlePolicyV1(initialValues.seoTitlePolicyV1) },
       });
@@ -244,37 +264,42 @@ export function SiteSettingsTab({
 
   const saveSiteName = () =>
     withSavingKey("siteName", async () => {
-      const values = await form.validateFields([
-        "siteName",
-        "siteNameI18nEnabled",
-        "siteNameI18n",
-        "defaultLocale",
-      ]);
-
+      const values = form.getValues();
       const nextDefaultLocale = String(values.defaultLocale || "").trim() || defaultLocale;
       const maybeDefaultLocalePatch =
         nextDefaultLocale && nextDefaultLocale !== initialValues.defaultLocale
           ? { site_localization: { default_locale: nextDefaultLocale, locale: nextDefaultLocale } }
           : {};
 
-      const enabled = Boolean(values.siteNameI18nEnabled);
-      if (!enabled) {
+      if (!values.siteNameI18nEnabled) {
         const nextName = String(values.siteName || "").trim();
+        if (!nextName) {
+          form.setError("siteName", {
+            type: "validate",
+            message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED"),
+          });
+          throw new Error("FORM_VALIDATION_FAILED");
+        }
+        form.clearErrors("siteName");
         await patch(
           Object.assign({}, maybeDefaultLocalePatch, { site: { name: nextName, name_i18n: null } }),
         );
         return;
       }
 
-      const rawMap = (values.siteNameI18n || {}) as Record<string, string>;
-      const nextMap = normalizeLocalizedStringMapForSave(rawMap);
+      const nextMap = normalizeLocalizedStringMapForSave(values.siteNameI18n || {});
       const resolved = resolveDefaultLocaleValue(nextMap, nextDefaultLocale);
       if (!resolved) {
-        throw new Error(t("settings:SETTINGS_I18N_VALIDATION_DEFAULT_REQUIRED"));
+        form.setError("siteNameI18n", {
+          type: "validate",
+          message: t("settings:SETTINGS_I18N_VALIDATION_DEFAULT_REQUIRED"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
       }
 
-      form.setFieldValue("siteNameI18n", nextMap);
-      form.setFieldValue("siteName", resolved);
+      form.clearErrors("siteNameI18n");
+      form.setValue("siteNameI18n", nextMap, { shouldDirty: true });
+      form.setValue("siteName", resolved, { shouldDirty: true });
       await patch(
         Object.assign({}, maybeDefaultLocalePatch, {
           site: { name: resolved, name_i18n: nextMap },
@@ -284,33 +309,41 @@ export function SiteSettingsTab({
 
   const saveSiteSubtitle = () =>
     withSavingKey("siteSubtitle", async () => {
-      const values = await form.validateFields(["siteSubtitle"]);
-      await patch({
-        site: { subtitle: normalizeOptionalString(values.siteSubtitle) },
-      });
+      const nextValue = String(form.getValues("siteSubtitle") || "");
+      if (nextValue.length > 200) {
+        form.setError("siteSubtitle", {
+          type: "validate",
+          message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      form.clearErrors("siteSubtitle");
+      await patch({ site: { subtitle: normalizeOptionalString(nextValue) } });
     });
 
   const saveSiteDescription = () =>
     withSavingKey("siteDescription", async () => {
-      const values = await form.validateFields([
-        "siteDescription",
-        "siteDescriptionI18nEnabled",
-        "siteDescriptionI18n",
-        "defaultLocale",
-      ]);
-
+      const values = form.getValues();
       const nextDefaultLocale = String(values.defaultLocale || "").trim() || defaultLocale;
       const maybeDefaultLocalePatch =
         nextDefaultLocale && nextDefaultLocale !== initialValues.defaultLocale
           ? { site_localization: { default_locale: nextDefaultLocale, locale: nextDefaultLocale } }
           : {};
 
-      const enabled = Boolean(values.siteDescriptionI18nEnabled);
-      if (!enabled) {
+      if (!values.siteDescriptionI18nEnabled) {
+        const nextDescription = String(values.siteDescription || "");
+        if (nextDescription.length > 200) {
+          form.setError("siteDescription", {
+            type: "validate",
+            message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX"),
+          });
+          throw new Error("FORM_VALIDATION_FAILED");
+        }
+        form.clearErrors("siteDescription");
         await patch(
           Object.assign({}, maybeDefaultLocalePatch, {
             site: {
-              description: normalizeOptionalString(values.siteDescription),
+              description: normalizeOptionalString(nextDescription),
               description_i18n: null,
             },
           }),
@@ -318,10 +351,10 @@ export function SiteSettingsTab({
         return;
       }
 
-      const rawMap = (values.siteDescriptionI18n || {}) as Record<string, string>;
-      const nextMap = normalizeLocalizedStringMapForSave(rawMap);
-      form.setFieldValue("siteDescriptionI18n", nextMap);
+      const nextMap = normalizeLocalizedStringMapForSave(values.siteDescriptionI18n || {});
       const resolved = resolveDefaultLocaleValue(nextMap, nextDefaultLocale);
+      form.setValue("siteDescriptionI18n", nextMap, { shouldDirty: true });
+      form.clearErrors("siteDescriptionI18n");
       await patch(
         Object.assign({}, maybeDefaultLocalePatch, {
           site: {
@@ -334,20 +367,39 @@ export function SiteSettingsTab({
 
   const saveSiteUrl = () =>
     withSavingKey("siteUrl", async () => {
-      const values = await form.validateFields(["siteUrl"]);
-      await patch({ site: { url: String(values.siteUrl).trim() } });
+      const nextValue = String(form.getValues("siteUrl") || "").trim();
+      if (!nextValue) {
+        form.setError("siteUrl", {
+          type: "validate",
+          message: t("setup:SETUP_VALIDATION_SITE_URL_REQUIRED"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      try {
+        const url = new URL(nextValue);
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+          throw new Error("invalid protocol");
+        }
+      } catch {
+        form.setError("siteUrl", {
+          type: "validate",
+          message: t("setup:SETUP_VALIDATION_SITE_URL_INVALID"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      form.clearErrors("siteUrl");
+      await patch({ site: { url: nextValue } });
     });
 
   const saveSiteLogoUrl = () =>
     withSavingKey("siteLogoUrl", async () => {
-      const values = await form.validateFields(["siteLogoAssetId", "siteLogoUrl"]);
+      const valid = await form.trigger("siteLogoUrl");
+      if (!valid) throw new Error("FORM_VALIDATION_FAILED");
+      const values = form.getValues();
       const assetId = normalizeOptionalString(values.siteLogoAssetId);
-      // 兼容旧字段：当选择了资源库资产时，同时写入 logo_url=/assets/<id>，避免历史消费方只读 url。
       const url = assetId ? `/assets/${assetId}` : normalizeOptionalString(values.siteLogoUrl);
 
-      await patch({
-        site: { logo_asset_id: assetId, logo_url: url },
-      });
+      await patch({ site: { logo_asset_id: assetId, logo_url: url } });
 
       if (assetId) {
         if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
@@ -358,26 +410,27 @@ export function SiteSettingsTab({
           entityId: "site",
           fieldKey: "site.logo",
         });
-      } else {
-        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-        await deleteAdminAssetUsageByRef({
-          workspaceId: String(workspaceId),
-          entityType: "core.settings",
-          entityId: "site",
-          fieldKey: "site.logo",
-        });
+        return;
       }
+
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      await deleteAdminAssetUsageByRef({
+        workspaceId: String(workspaceId),
+        entityType: "core.settings",
+        entityId: "site",
+        fieldKey: "site.logo",
+      });
     });
 
   const saveSiteFaviconUrl = () =>
     withSavingKey("siteFaviconUrl", async () => {
-      const values = await form.validateFields(["siteFaviconAssetId", "siteFaviconUrl"]);
+      const valid = await form.trigger("siteFaviconUrl");
+      if (!valid) throw new Error("FORM_VALIDATION_FAILED");
+      const values = form.getValues();
       const assetId = normalizeOptionalString(values.siteFaviconAssetId);
       const url = assetId ? `/assets/${assetId}` : normalizeOptionalString(values.siteFaviconUrl);
 
-      await patch({
-        site: { favicon_asset_id: assetId, favicon_url: url },
-      });
+      await patch({ site: { favicon_asset_id: assetId, favicon_url: url } });
 
       if (assetId) {
         if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
@@ -388,15 +441,16 @@ export function SiteSettingsTab({
           entityId: "site",
           fieldKey: "site.favicon",
         });
-      } else {
-        if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-        await deleteAdminAssetUsageByRef({
-          workspaceId: String(workspaceId),
-          entityType: "core.settings",
-          entityId: "site",
-          fieldKey: "site.favicon",
-        });
+        return;
       }
+
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      await deleteAdminAssetUsageByRef({
+        workspaceId: String(workspaceId),
+        entityType: "core.settings",
+        entityId: "site",
+        fieldKey: "site.favicon",
+      });
     });
 
   const siteLogoPreviewUrl = useMemo(() => {
@@ -413,408 +467,374 @@ export function SiteSettingsTab({
 
   const saveSiteContactEmail = () =>
     withSavingKey("siteContactEmail", async () => {
-      const values = await form.validateFields(["siteContactEmail"]);
-      await patch({
-        site: { contact_email: normalizeOptionalString(values.siteContactEmail) },
-      });
+      const nextValue = String(form.getValues("siteContactEmail") || "").trim();
+      if (!isValidEmail(nextValue)) {
+        form.setError("siteContactEmail", {
+          type: "validate",
+          message: t("settings:SETTINGS_VALIDATION_EMAIL_INVALID"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      form.clearErrors("siteContactEmail");
+      await patch({ site: { contact_email: normalizeOptionalString(nextValue) } });
     });
 
   const saveSeoTitlePolicyV1 = () =>
     withSavingKey("seoTitlePolicyV1", async () => {
-      const values = await form.validateFields(["seoTitlePolicyV1"]);
-      const nextRaw = (values.seoTitlePolicyV1 ??
-        initialValues.seoTitlePolicyV1) as GeneralSettingsFormValues["seoTitlePolicyV1"];
-      const next = normalizeTitlePolicyV1ForSave(nextRaw, t);
-      await patch({
-        seo: { title_policy_v1: toApiTitlePolicyV1(next) },
-      });
+      try {
+        const nextRaw = form.getValues("seoTitlePolicyV1") ?? initialValues.seoTitlePolicyV1;
+        const next = normalizeTitlePolicyV1ForSave(nextRaw, t);
+        form.clearErrors("seoTitlePolicyV1");
+        form.setValue("seoTitlePolicyV1", next, { shouldDirty: true });
+        await patch({ seo: { title_policy_v1: toApiTitlePolicyV1(next) } });
+      } catch (error) {
+        form.setError("seoTitlePolicyV1", {
+          type: "validate",
+          message:
+            error instanceof Error
+              ? error.message
+              : t("settings:SETTINGS_SEO_TITLE_FORMAT_VALIDATION_INVALID"),
+        });
+        throw error;
+      }
     });
 
+  const siteNameError = getFieldErrorMessage(
+    form,
+    siteNameI18nEnabled ? "siteNameI18n" : "siteName",
+  );
+  const siteSubtitleError = getFieldErrorMessage(form, "siteSubtitle");
+  const siteDescriptionError = getFieldErrorMessage(
+    form,
+    siteDescriptionI18nEnabled ? "siteDescriptionI18n" : "siteDescription",
+  );
+  const siteUrlError = getFieldErrorMessage(form, "siteUrl");
+  const seoTitlePolicyError = getFieldErrorMessage(form, "seoTitlePolicyV1");
+  const siteContactEmailError = getFieldErrorMessage(form, "siteContactEmail");
+
+  const siteNameInput = form.register("siteName");
+  const siteSubtitleInput = form.register("siteSubtitle");
+  const siteDescriptionInput = form.register("siteDescription");
+  const siteUrlInput = form.register("siteUrl");
+  const siteContactEmailInput = form.register("siteContactEmail");
+
   return (
-    <>
-      <Form.Item<GeneralSettingsFormValues> name="defaultLocale" hidden>
-        <Input />
-      </Form.Item>
-      <Accordion type="single" collapsible className="px-0">
-        <SettingAccordionItem
-          value="siteName"
-          title={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
-          description={t("settings:SETTINGS_SITE_NAME_DESC")}
-          showSummary
-          summary={formatSummaryText(effectiveSiteName)}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSiteName}
-          confirmLoading={savingKey === "siteName"}
-          onReset={isSiteNameDirty || isResettingSiteName ? resetSiteName : undefined}
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSiteName}
-          disabled={disabled}
-          keepRendered
-        >
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <Typography.Text type="secondary">
-              {t("settings:SETTINGS_I18N_ENABLE_LABEL")}
-            </Typography.Text>
-            <Form.Item<GeneralSettingsFormValues>
-              name="siteNameI18nEnabled"
-              noStyle
-              valuePropName="checked"
-            >
-              <Switch
-                checked={Boolean(siteNameI18nEnabled)}
-                onChange={(checked) => {
-                  form.setFieldValue("siteNameI18nEnabled", Boolean(checked));
-                  if (checked) {
-                    const def =
-                      String(form.getFieldValue("defaultLocale") || "").trim() || defaultLocale;
-                    const currentMap =
-                      (form.getFieldValue("siteNameI18n") as Record<string, string> | undefined) ??
-                      {};
-                    const normalized = normalizeLocalizedStringMapForSave(currentMap);
-                    if (!Object.keys(normalized).length) {
-                      form.setFieldValue("siteNameI18n", { [def]: siteName });
-                    }
-                  } else {
-                    form.setFieldValue("siteNameI18n", {});
-                  }
-                }}
-              />
-            </Form.Item>
-          </div>
-
-          {siteNameI18nEnabled ? (
-            <Form.Item<GeneralSettingsFormValues>
-              name="siteNameI18n"
-              style={{ marginBottom: 0 }}
-              valuePropName="value"
-              trigger="onChange"
-              getValueFromEvent={(next) => next}
-              rules={[
-                {
-                  validator: async (_rule, value: unknown) => {
-                    const def =
-                      String(form.getFieldValue("defaultLocale") || "").trim() || defaultLocale;
-                    const map = normalizeLocalizedStringMapForSave(
-                      (value || {}) as Record<string, string>,
-                    );
-                    const resolved = resolveDefaultLocaleValue(map, def);
-                    if (!resolved)
-                      throw new Error(t("settings:SETTINGS_I18N_VALIDATION_DEFAULT_REQUIRED"));
-                  },
-                },
-              ]}
-            >
-              <LocalizedStringDictField
-                supportedLocales={supportedLocales?.length ? supportedLocales : [defaultLocale]}
-                defaultLocale={defaultLocale}
-                onDefaultLocaleChange={(loc) => form.setFieldValue("defaultLocale", String(loc))}
-                placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
-              />
-            </Form.Item>
-          ) : (
-            <Form.Item<GeneralSettingsFormValues>
-              name="siteName"
-              rules={[{ required: true, message: t("setup:SETUP_VALIDATION_SITE_NAME_REQUIRED") }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input size="large" placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")} />
-            </Form.Item>
-          )}
-        </SettingAccordionItem>
-
-        <SettingAccordionItem
-          value="siteSubtitle"
-          title={t("settings:SETTINGS_SITE_SUBTITLE_LABEL")}
-          description={t("settings:SETTINGS_SITE_SUBTITLE_DESC")}
-          showSummary
-          summary={formatSummaryText(siteSubtitle)}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSiteSubtitle}
-          confirmLoading={savingKey === "siteSubtitle"}
-          onReset={isSiteSubtitleDirty || isResettingSiteSubtitle ? resetSiteSubtitle : undefined}
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSiteSubtitle}
-          disabled={disabled}
-        >
-          <Form.Item<GeneralSettingsFormValues>
-            name="siteSubtitle"
-            rules={[{ max: 200, message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX") }]}
-            style={{ marginBottom: 0 }}
-          >
-            <Input
-              size="large"
-              placeholder={t("settings:SETTINGS_SITE_SUBTITLE_PLACEHOLDER")}
-              allowClear
-            />
-          </Form.Item>
-        </SettingAccordionItem>
-
-        <SettingAccordionItem
-          value="siteDescription"
-          title={t("settings:SETTINGS_SITE_DESCRIPTION_LABEL")}
-          description={t("settings:SETTINGS_SITE_DESCRIPTION_DESC")}
-          showSummary
-          summary={formatSummaryText(effectiveSiteDescription)}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSiteDescription}
-          confirmLoading={savingKey === "siteDescription"}
-          onReset={
-            isSiteDescriptionDirty || isResettingSiteDescription ? resetSiteDescription : undefined
-          }
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSiteDescription}
-          disabled={disabled}
-          keepRendered
-        >
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <Typography.Text type="secondary">
-              {t("settings:SETTINGS_I18N_ENABLE_LABEL")}
-            </Typography.Text>
-            <Form.Item<GeneralSettingsFormValues>
-              name="siteDescriptionI18nEnabled"
-              noStyle
-              valuePropName="checked"
-            >
-              <Switch
-                checked={Boolean(siteDescriptionI18nEnabled)}
-                onChange={(checked) => {
-                  form.setFieldValue("siteDescriptionI18nEnabled", Boolean(checked));
-                  if (checked) {
-                    const def =
-                      String(form.getFieldValue("defaultLocale") || "").trim() || defaultLocale;
-                    const currentMap =
-                      (form.getFieldValue("siteDescriptionI18n") as
-                        | Record<string, string>
-                        | undefined) ?? {};
-                    const normalized = normalizeLocalizedStringMapForSave(currentMap);
-                    if (!Object.keys(normalized).length) {
-                      form.setFieldValue("siteDescriptionI18n", {
-                        [def]: siteDescription,
-                      });
-                    }
-                  } else {
-                    form.setFieldValue("siteDescriptionI18n", {});
-                  }
-                }}
-              />
-            </Form.Item>
-          </div>
-
-          {siteDescriptionI18nEnabled ? (
-            <Form.Item<GeneralSettingsFormValues>
-              name="siteDescriptionI18n"
-              style={{ marginBottom: 0 }}
-              valuePropName="value"
-              trigger="onChange"
-              getValueFromEvent={(next) => next}
-            >
-              <LocalizedStringDictField
-                supportedLocales={supportedLocales?.length ? supportedLocales : [defaultLocale]}
-                defaultLocale={defaultLocale}
-                onDefaultLocaleChange={(loc) => form.setFieldValue("defaultLocale", String(loc))}
-                placeholder={t("settings:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
-                multiline
-              />
-            </Form.Item>
-          ) : (
-            <Form.Item<GeneralSettingsFormValues>
-              name="siteDescription"
-              rules={[{ max: 200, message: t("setup:SETUP_VALIDATION_SITE_DESC_MAX") }]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input.TextArea
-                autoSize={{ minRows: 3, maxRows: 6 }}
-                placeholder={t("settings:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
-                allowClear
-                maxLength={160}
-                showCount={{ formatter: ({ count }) => `${count}/200` }}
-              />
-            </Form.Item>
-          )}
-        </SettingAccordionItem>
-
-        <SettingAccordionItem
-          value="seoTitlePolicyV1"
-          title={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
-          description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
-          showSummary
-          summary={formatTitlePolicySummary(seoTitlePolicyV1)}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSeoTitlePolicyV1}
-          confirmLoading={savingKey === "seoTitlePolicyV1"}
-          onReset={
-            isSeoTitlePolicyDirty || isResettingSeoTitlePolicyV1 ? resetSeoTitlePolicyV1 : undefined
-          }
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSeoTitlePolicyV1}
-          disabled={disabled}
-          keepRendered
-        >
-          <Form.Item<GeneralSettingsFormValues>
-            name="seoTitlePolicyV1"
-            style={{ marginBottom: 0 }}
-            valuePropName="value"
-            trigger="onChange"
-            getValueFromEvent={(next) => next}
-            rules={[
-              {
-                validator: async (_rule, value: unknown) => {
-                  normalizeTitlePolicyV1ForSave(
-                    value as GeneralSettingsFormValues["seoTitlePolicyV1"],
-                    t,
+    <Accordion type="single" collapsible className="px-0">
+      <SettingAccordionItem
+        value="siteName"
+        title={t("setup:SETUP_FIELD_SITE_NAME_LABEL")}
+        description={t("settings:SETTINGS_SITE_NAME_DESC")}
+        showSummary
+        summary={formatSummaryText(effectiveSiteName)}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteName}
+        confirmLoading={savingKey === "siteName"}
+        onReset={isSiteNameDirty || isResettingSiteName ? resetSiteName : undefined}
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSiteName}
+        disabled={disabled}
+        keepRendered
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <span className="text-footnote text-label-secondary">
+            {t("settings:SETTINGS_I18N_ENABLE_LABEL")}
+          </span>
+          <Switch
+            checked={Boolean(siteNameI18nEnabled)}
+            onCheckedChange={(checked) => {
+              form.setValue("siteNameI18nEnabled", checked, { shouldDirty: true });
+              if (checked) {
+                const nextDefaultLocale =
+                  String(form.getValues("defaultLocale") || "").trim() || defaultLocale;
+                const currentMap = form.getValues("siteNameI18n") || {};
+                const normalized = normalizeLocalizedStringMapForSave(currentMap);
+                if (!Object.keys(normalized).length) {
+                  form.setValue(
+                    "siteNameI18n",
+                    { [nextDefaultLocale]: siteName },
+                    { shouldDirty: true },
                   );
-                },
-              },
-            ]}
-          >
-            <SeoTitlePolicyField siteName={effectiveSiteName} siteSubtitle={siteSubtitle} />
-          </Form.Item>
-        </SettingAccordionItem>
+                }
+                return;
+              }
+              form.setValue("siteNameI18n", {}, { shouldDirty: true });
+            }}
+          />
+        </div>
 
-        <SettingAccordionItem
-          value="siteUrl"
-          title={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
-          description={t("settings:SETTINGS_SITE_URL_DESC")}
-          showSummary
-          summary={formatSummaryText(siteUrl)}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSiteUrl}
-          confirmLoading={savingKey === "siteUrl"}
-          onReset={isSiteUrlDirty || isResettingSiteUrl ? resetSiteUrl : undefined}
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSiteUrl}
-          disabled={disabled}
-        >
-          <Form.Item<GeneralSettingsFormValues>
-            name="siteUrl"
-            rules={[
-              { required: true, message: t("setup:SETUP_VALIDATION_SITE_URL_REQUIRED") },
-              {
-                validator: async (_rule, value: string | undefined) => {
-                  const raw = (value || "").trim();
-                  if (!raw) return;
-                  try {
-                    const url = new URL(raw);
-                    if (url.protocol !== "http:" && url.protocol !== "https:") {
-                      throw new Error("invalid protocol");
-                    }
-                  } catch {
-                    throw new Error(t("setup:SETUP_VALIDATION_SITE_URL_INVALID"));
+        {siteNameI18nEnabled ? (
+          <Controller
+            control={form.control}
+            name="siteNameI18n"
+            render={({ field }) => (
+              <div className="space-y-2">
+                <LocalizedStringDictField
+                  supportedLocales={supportedLocales?.length ? supportedLocales : [defaultLocale]}
+                  defaultLocale={defaultLocale}
+                  value={field.value ?? {}}
+                  onChange={field.onChange}
+                  onDefaultLocaleChange={(locale) =>
+                    form.setValue("defaultLocale", String(locale), { shouldDirty: true })
                   }
-                },
-              },
-            ]}
-            style={{ marginBottom: 0 }}
-          >
-            <Input size="large" placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")} />
-          </Form.Item>
-        </SettingAccordionItem>
-
-        <SettingAccordionItem
-          value="siteLogoUrl"
-          title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
-          description={t("settings:SETTINGS_SITE_LOGO_DESC")}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSiteLogoUrl}
-          confirmLoading={savingKey === "siteLogoUrl"}
-          onReset={isSiteLogoUrlDirty || isResettingSiteLogoUrl ? resetSiteLogoUrl : undefined}
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSiteLogoUrl}
-          disabled={disabled}
-          keepRendered
-        >
-          <SiteSettingsAssetField
-            form={form}
-            scope={assetScope}
-            assetFieldName="siteLogoAssetId"
-            urlFieldName="siteLogoUrl"
-            previewUrl={siteLogoPreviewUrl}
-            assetId={siteLogoAssetId}
-            url={siteLogoUrl}
-            pickerOpen={logoPickerOpen}
-            onPickerOpenChange={setLogoPickerOpen}
-            uploadPurpose="site_logo"
-            pickerTitle={t("settings:SETTINGS_SITE_LOGO_PICKER_TITLE")}
-            pickerDescription={t("settings:SETTINGS_SITE_LOGO_PICKER_DESC")}
-            inputPlaceholder={t("settings:SETTINGS_SITE_LOGO_PLACEHOLDER")}
+                  placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")}
+                />
+                <FieldMessage message={siteNameError} />
+              </div>
+            )}
           />
-        </SettingAccordionItem>
+        ) : (
+          <div className="space-y-2">
+            <Input {...siteNameInput} placeholder={t("setup:SETUP_FIELD_SITE_NAME_PLACEHOLDER")} />
+            <FieldMessage message={siteNameError} />
+          </div>
+        )}
+      </SettingAccordionItem>
 
-        <SettingAccordionItem
-          value="siteFaviconUrl"
-          title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
-          description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSiteFaviconUrl}
-          confirmLoading={savingKey === "siteFaviconUrl"}
-          onReset={
-            isSiteFaviconUrlDirty || isResettingSiteFaviconUrl ? resetSiteFaviconUrl : undefined
-          }
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSiteFaviconUrl}
-          disabled={disabled}
-          keepRendered
-        >
-          <SiteSettingsAssetField
-            form={form}
-            scope={assetScope}
-            assetFieldName="siteFaviconAssetId"
-            urlFieldName="siteFaviconUrl"
-            previewUrl={siteFaviconPreviewUrl}
-            assetId={siteFaviconAssetId}
-            url={siteFaviconUrl}
-            pickerOpen={faviconPickerOpen}
-            onPickerOpenChange={setFaviconPickerOpen}
-            uploadPurpose="favicon"
-            pickerTitle={t("settings:SETTINGS_SITE_FAVICON_PICKER_TITLE")}
-            pickerDescription={t("settings:SETTINGS_SITE_FAVICON_PICKER_DESC")}
-            inputPlaceholder={t("settings:SETTINGS_SITE_FAVICON_PLACEHOLDER")}
+      <SettingAccordionItem
+        value="siteSubtitle"
+        title={t("settings:SETTINGS_SITE_SUBTITLE_LABEL")}
+        description={t("settings:SETTINGS_SITE_SUBTITLE_DESC")}
+        showSummary
+        summary={formatSummaryText(siteSubtitle)}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteSubtitle}
+        confirmLoading={savingKey === "siteSubtitle"}
+        onReset={isSiteSubtitleDirty || isResettingSiteSubtitle ? resetSiteSubtitle : undefined}
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSiteSubtitle}
+        disabled={disabled}
+      >
+        <div className="space-y-2">
+          <Input
+            {...siteSubtitleInput}
+            placeholder={t("settings:SETTINGS_SITE_SUBTITLE_PLACEHOLDER")}
           />
-        </SettingAccordionItem>
+          <FieldMessage message={siteSubtitleError} />
+        </div>
+      </SettingAccordionItem>
 
-        <SettingAccordionItem
-          value="siteContactEmail"
-          title={t("settings:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
-          description={t("settings:SETTINGS_SITE_CONTACT_EMAIL_DESC")}
-          showSummary
-          summary={formatSummaryText(siteContactEmail)}
-          confirmText={t("settings:SETTINGS_SAVE")}
-          onConfirm={saveSiteContactEmail}
-          confirmLoading={savingKey === "siteContactEmail"}
-          onReset={
-            isSiteContactEmailDirty || isResettingSiteContactEmail
-              ? resetSiteContactEmail
-              : undefined
-          }
-          resetText={t("settings:SETTINGS_RESET")}
-          resetLoading={isResettingSiteContactEmail}
-          disabled={disabled}
-        >
-          <Form.Item<GeneralSettingsFormValues>
-            name="siteContactEmail"
-            rules={[
-              {
-                validator: async (_rule, value: string | undefined) => {
-                  const raw = (value || "").trim();
-                  if (!raw) return;
-                  // Optional 字段做最小 email 校验即可。
-                  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
-                  if (ok) return;
-                  throw new Error(t("settings:SETTINGS_VALIDATION_EMAIL_INVALID"));
-                },
-              },
-            ]}
-            style={{ marginBottom: 0 }}
-          >
-            <Input
-              size="large"
-              placeholder={t("settings:SETTINGS_SITE_CONTACT_EMAIL_PLACEHOLDER")}
-              allowClear
+      <SettingAccordionItem
+        value="siteDescription"
+        title={t("settings:SETTINGS_SITE_DESCRIPTION_LABEL")}
+        description={t("settings:SETTINGS_SITE_DESCRIPTION_DESC")}
+        showSummary
+        summary={formatSummaryText(effectiveSiteDescription)}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteDescription}
+        confirmLoading={savingKey === "siteDescription"}
+        onReset={
+          isSiteDescriptionDirty || isResettingSiteDescription ? resetSiteDescription : undefined
+        }
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSiteDescription}
+        disabled={disabled}
+        keepRendered
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <span className="text-footnote text-label-secondary">
+            {t("settings:SETTINGS_I18N_ENABLE_LABEL")}
+          </span>
+          <Switch
+            checked={Boolean(siteDescriptionI18nEnabled)}
+            onCheckedChange={(checked) => {
+              form.setValue("siteDescriptionI18nEnabled", checked, { shouldDirty: true });
+              if (checked) {
+                const nextDefaultLocale =
+                  String(form.getValues("defaultLocale") || "").trim() || defaultLocale;
+                const currentMap = form.getValues("siteDescriptionI18n") || {};
+                const normalized = normalizeLocalizedStringMapForSave(currentMap);
+                if (!Object.keys(normalized).length) {
+                  form.setValue(
+                    "siteDescriptionI18n",
+                    { [nextDefaultLocale]: siteDescription },
+                    { shouldDirty: true },
+                  );
+                }
+                return;
+              }
+              form.setValue("siteDescriptionI18n", {}, { shouldDirty: true });
+            }}
+          />
+        </div>
+
+        {siteDescriptionI18nEnabled ? (
+          <Controller
+            control={form.control}
+            name="siteDescriptionI18n"
+            render={({ field }) => (
+              <div className="space-y-2">
+                <LocalizedStringDictField
+                  supportedLocales={supportedLocales?.length ? supportedLocales : [defaultLocale]}
+                  defaultLocale={defaultLocale}
+                  value={field.value ?? {}}
+                  onChange={field.onChange}
+                  onDefaultLocaleChange={(locale) =>
+                    form.setValue("defaultLocale", String(locale), { shouldDirty: true })
+                  }
+                  placeholder={t("settings:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
+                  multiline
+                />
+                <FieldMessage message={siteDescriptionError} />
+              </div>
+            )}
+          />
+        ) : (
+          <div className="space-y-2">
+            <Textarea
+              {...siteDescriptionInput}
+              rows={4}
+              maxLength={200}
+              placeholder={t("settings:SETTINGS_SITE_DESCRIPTION_PLACEHOLDER")}
             />
-          </Form.Item>
-        </SettingAccordionItem>
-      </Accordion>
-    </>
+            <div className="flex items-center justify-between gap-3 text-caption text-label-secondary">
+              <FieldMessage message={siteDescriptionError} />
+              <span>{String(siteDescription || "").length}/200</span>
+            </div>
+          </div>
+        )}
+      </SettingAccordionItem>
+
+      <SettingAccordionItem
+        value="seoTitlePolicyV1"
+        title={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
+        description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
+        showSummary
+        summary={formatTitlePolicySummary(seoTitlePolicyV1)}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSeoTitlePolicyV1}
+        confirmLoading={savingKey === "seoTitlePolicyV1"}
+        onReset={
+          isSeoTitlePolicyDirty || isResettingSeoTitlePolicyV1 ? resetSeoTitlePolicyV1 : undefined
+        }
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSeoTitlePolicyV1}
+        disabled={disabled}
+        keepRendered
+      >
+        <Controller
+          control={form.control}
+          name="seoTitlePolicyV1"
+          render={({ field }) => (
+            <div className="space-y-2">
+              <SeoTitlePolicyField
+                value={field.value}
+                onChange={(next) => field.onChange(next)}
+                siteName={effectiveSiteName}
+                siteSubtitle={siteSubtitle}
+              />
+              <FieldMessage message={seoTitlePolicyError} />
+            </div>
+          )}
+        />
+      </SettingAccordionItem>
+
+      <SettingAccordionItem
+        value="siteUrl"
+        title={t("setup:SETUP_FIELD_SITE_URL_LABEL")}
+        description={t("settings:SETTINGS_SITE_URL_DESC")}
+        showSummary
+        summary={formatSummaryText(siteUrl)}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteUrl}
+        confirmLoading={savingKey === "siteUrl"}
+        onReset={isSiteUrlDirty || isResettingSiteUrl ? resetSiteUrl : undefined}
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSiteUrl}
+        disabled={disabled}
+      >
+        <div className="space-y-2">
+          <Input {...siteUrlInput} placeholder={t("setup:SETUP_FIELD_SITE_URL_PLACEHOLDER")} />
+          <FieldMessage message={siteUrlError} />
+        </div>
+      </SettingAccordionItem>
+
+      <SettingAccordionItem
+        value="siteLogoUrl"
+        title={t("settings:SETTINGS_SITE_LOGO_LABEL")}
+        description={t("settings:SETTINGS_SITE_LOGO_DESC")}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteLogoUrl}
+        confirmLoading={savingKey === "siteLogoUrl"}
+        onReset={isSiteLogoUrlDirty || isResettingSiteLogoUrl ? resetSiteLogoUrl : undefined}
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSiteLogoUrl}
+        disabled={disabled}
+        keepRendered
+      >
+        <SiteSettingsAssetField
+          form={form}
+          scope={assetScope}
+          assetFieldName="siteLogoAssetId"
+          urlFieldName="siteLogoUrl"
+          previewUrl={siteLogoPreviewUrl}
+          assetId={siteLogoAssetId}
+          url={siteLogoUrl}
+          pickerOpen={logoPickerOpen}
+          onPickerOpenChange={setLogoPickerOpen}
+          uploadPurpose="site_logo"
+          pickerTitle={t("settings:SETTINGS_SITE_LOGO_PICKER_TITLE")}
+          pickerDescription={t("settings:SETTINGS_SITE_LOGO_PICKER_DESC")}
+          inputPlaceholder={t("settings:SETTINGS_SITE_LOGO_PLACEHOLDER")}
+        />
+      </SettingAccordionItem>
+
+      <SettingAccordionItem
+        value="siteFaviconUrl"
+        title={t("settings:SETTINGS_SITE_FAVICON_LABEL")}
+        description={t("settings:SETTINGS_SITE_FAVICON_DESC")}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteFaviconUrl}
+        confirmLoading={savingKey === "siteFaviconUrl"}
+        onReset={
+          isSiteFaviconUrlDirty || isResettingSiteFaviconUrl ? resetSiteFaviconUrl : undefined
+        }
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSiteFaviconUrl}
+        disabled={disabled}
+        keepRendered
+      >
+        <SiteSettingsAssetField
+          form={form}
+          scope={assetScope}
+          assetFieldName="siteFaviconAssetId"
+          urlFieldName="siteFaviconUrl"
+          previewUrl={siteFaviconPreviewUrl}
+          assetId={siteFaviconAssetId}
+          url={siteFaviconUrl}
+          pickerOpen={faviconPickerOpen}
+          onPickerOpenChange={setFaviconPickerOpen}
+          uploadPurpose="favicon"
+          pickerTitle={t("settings:SETTINGS_SITE_FAVICON_PICKER_TITLE")}
+          pickerDescription={t("settings:SETTINGS_SITE_FAVICON_PICKER_DESC")}
+          inputPlaceholder={t("settings:SETTINGS_SITE_FAVICON_PLACEHOLDER")}
+        />
+      </SettingAccordionItem>
+
+      <SettingAccordionItem
+        value="siteContactEmail"
+        title={t("settings:SETTINGS_SITE_CONTACT_EMAIL_LABEL")}
+        description={t("settings:SETTINGS_SITE_CONTACT_EMAIL_DESC")}
+        showSummary
+        summary={formatSummaryText(siteContactEmail)}
+        confirmText={t("settings:SETTINGS_SAVE")}
+        onConfirm={saveSiteContactEmail}
+        confirmLoading={savingKey === "siteContactEmail"}
+        onReset={
+          isSiteContactEmailDirty || isResettingSiteContactEmail ? resetSiteContactEmail : undefined
+        }
+        resetText={t("settings:SETTINGS_RESET")}
+        resetLoading={isResettingSiteContactEmail}
+        disabled={disabled}
+      >
+        <div className="space-y-2">
+          <Input
+            {...siteContactEmailInput}
+            placeholder={t("settings:SETTINGS_SITE_CONTACT_EMAIL_PLACEHOLDER")}
+          />
+          <FieldMessage message={siteContactEmailError} />
+        </div>
+      </SettingAccordionItem>
+    </Accordion>
   );
 }
 
@@ -857,13 +877,13 @@ function normalizeTitlePolicyV1ForSave(
     | { kind: "literal"; value: string }
   > = [];
 
-  for (const p of partsUnknown) {
-    if (!p || typeof p !== "object" || Array.isArray(p)) {
+  for (const partUnknown of partsUnknown) {
+    if (!partUnknown || typeof partUnknown !== "object" || Array.isArray(partUnknown)) {
       throw new Error(t("settings:SETTINGS_SEO_TITLE_FORMAT_VALIDATION_INVALID_PART"));
     }
-    const pr = p as Record<string, unknown>;
-    const kind = typeof pr.kind === "string" ? pr.kind.trim() : "";
-    const valueRaw = pr.value;
+    const partRecord = partUnknown as Record<string, unknown>;
+    const kind = typeof partRecord.kind === "string" ? partRecord.kind.trim() : "";
+    const valueRaw = partRecord.value;
 
     if (kind === "token") {
       const token = typeof valueRaw === "string" ? valueRaw.trim() : String(valueRaw ?? "").trim();
@@ -880,9 +900,7 @@ function normalizeTitlePolicyV1ForSave(
       const literal = typeof valueRaw === "string" ? valueRaw : String(valueRaw ?? "");
       if (literal.length > 64) {
         throw new Error(
-          t("settings:SETTINGS_SEO_TITLE_FORMAT_VALIDATION_LITERAL_TOO_LONG", {
-            max: 64,
-          }),
+          t("settings:SETTINGS_SEO_TITLE_FORMAT_VALIDATION_LITERAL_TOO_LONG", { max: 64 }),
         );
       }
       parts.push({ kind: "literal", value: literal });
@@ -892,8 +910,7 @@ function normalizeTitlePolicyV1ForSave(
     throw new Error(t("settings:SETTINGS_SEO_TITLE_FORMAT_VALIDATION_INVALID_PART"));
   }
 
-  const hasAnyToken = parts.some((p) => p.kind === "token");
-  if (!hasAnyToken) {
+  if (!parts.some((part) => part.kind === "token")) {
     throw new Error(t("settings:SETTINGS_SEO_TITLE_FORMAT_VALIDATION_REQUIRE_TOKEN"));
   }
 
@@ -906,41 +923,43 @@ function normalizeTitlePolicyV1ForSave(
   ).trim();
   const homeMode =
     homeModeRaw === "policy" || homeModeRaw === "siteOnly" ? homeModeRaw : "siteOnly";
-
   const dedupe = typeof raw.dedupe === "boolean" ? raw.dedupe : true;
 
-  return {
-    parts,
-    homeMode,
-    dedupe,
-  };
+  return { parts, homeMode, dedupe };
 }
 
 function formatTitlePolicySummary(input: GeneralSettingsFormValues["seoTitlePolicyV1"]): string {
   const parts = input.parts ?? [];
   if (!parts.length) return "-";
   const tokens = parts
-    .map((p) => (p.kind === "token" ? p.value : null))
-    .filter((x): x is NonNullable<typeof x> => Boolean(x));
-  const literalCount = parts.filter((p) => p.kind === "literal").length;
+    .map((part) => (part.kind === "token" ? part.value : null))
+    .filter((value): value is NonNullable<typeof value> => Boolean(value));
+  const literalCount = parts.filter((part) => part.kind === "literal").length;
   return `${tokens.join(" + ")}${literalCount ? ` (${literalCount} literals)` : ""}`;
 }
 
 function normalizeLocalizedStringMapForSave(input: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {};
-  const entries = Object.entries(input || {});
-  for (const [k, v] of entries) {
-    const key = String(k || "").trim();
-    const val = String(v || "").trim();
-    if (!key || !val) continue;
-    out[key] = val;
+  for (const [keyRaw, valueRaw] of Object.entries(input || {})) {
+    const key = String(keyRaw || "").trim();
+    const value = String(valueRaw || "").trim();
+    if (!key || !value) continue;
+    out[key] = value;
   }
   return out;
 }
 
 function resolveDefaultLocaleValue(map: Record<string, string>, defaultLocale: string): string {
-  const def = (defaultLocale || "").trim();
-  if (def && typeof map?.[def] === "string" && map[def]!.trim()) return map[def]!.trim();
-  const first = Object.values(map || {}).find((x) => typeof x === "string" && x.trim());
-  return (first || "").trim();
+  const nextDefaultLocale = (defaultLocale || "").trim();
+  if (
+    nextDefaultLocale &&
+    typeof map?.[nextDefaultLocale] === "string" &&
+    map[nextDefaultLocale]?.trim()
+  ) {
+    return map[nextDefaultLocale]!.trim();
+  }
+  const firstValue = Object.values(map || {}).find(
+    (value) => typeof value === "string" && value.trim(),
+  );
+  return (firstValue || "").trim();
 }

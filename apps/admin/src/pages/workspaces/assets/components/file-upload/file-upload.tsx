@@ -1,4 +1,3 @@
-import { Button, Progress } from "antd";
 import {
   CheckCircle2,
   CircleHelp,
@@ -14,7 +13,9 @@ import { useDropzone, type FileError, type FileRejection } from "react-dropzone"
 import { useTranslation } from "react-i18next";
 
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
+import { Button } from "@celestial/ui/button";
 import { FileTypeIcon } from "@celestial/ui/icons/file-type-icon";
+import { Progress } from "@celestial/ui/progress";
 import { cn } from "@celestial/lib/utils";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
@@ -189,13 +190,12 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
           <div className="shrink-0 flex items-center gap-2">
             {props.status === "error" && props.onRetry ? (
               <Button
-                type="text"
-                className={cn("px-2")}
-                icon={<RotateCcw className="size-4" />}
+                variant="ghost"
+                size="sm"
                 disabled={props.isActionDisabled}
                 onClick={props.onRetry}
-                autoInsertSpace={false}
               >
+                <RotateCcw className="size-4" />
                 {t("assets:ASSET_UPLOAD_ACTION_RETRY")}
               </Button>
             ) : null}
@@ -204,13 +204,14 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    type="text"
+                    variant="ghost"
+                    size="icon-sm"
                     className={cn("px-2")}
-                    icon={<Trash2 className="size-4" />}
                     disabled={props.isActionDisabled}
                     onClick={props.onDelete}
-                    autoInsertSpace={false}
-                  />
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t("assets:ASSET_UPLOAD_REMOVE")}</TooltipContent>
               </Tooltip>
@@ -220,15 +221,8 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
 
         <div className="mt-2">
           <Progress
-            percent={progress}
-            showInfo={false}
-            status={
-              props.status === "error"
-                ? "exception"
-                : props.status === "success"
-                  ? "active"
-                  : "active"
-            }
+            value={progress}
+            className={cn(props.status === "error" ? "bg-destructive/15" : undefined)}
           />
           {props.errorText ? (
             <div className="mt-1 text-callout text-error-primary">{props.errorText}</div>
@@ -312,7 +306,7 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
       <div className="flex flex-col items-center gap-1 text-center">
         <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
           <Button
-            type="link"
+            variant="link"
             disabled={props.isDisabled}
             className={cn("h-auto p-0 text-body font-medium")}
             onClick={(event) => {
@@ -321,7 +315,6 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
               if (props.isDisabled) return;
               open();
             }}
-            autoInsertSpace={false}
           >
             {t("assets:ASSET_UPLOAD_DROP_TITLE")}
           </Button>

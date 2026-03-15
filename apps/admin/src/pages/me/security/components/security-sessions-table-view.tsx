@@ -1,4 +1,3 @@
-import { Button } from "antd";
 import type { ColumnDef, Table as ReactTable } from "@tanstack/react-table";
 import { LogOut } from "lucide-react";
 
@@ -8,6 +7,7 @@ import {
   type DataTableDensity,
   type DataTableToolsLabels,
 } from "@celestial/ui/data-table";
+import { Button } from "@celestial/ui/button";
 
 import {
   SecuritySessionsSearchToolbar,
@@ -103,16 +103,15 @@ function buildActionColumn(props: ColumnFactoryProps): ColumnDef<SessionRow, unk
     meta: { title: props.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"), kind: "actions" },
     cell: ({ row }) => (
       <Button
+        variant="link"
         aria-label={signOutLabel}
         title={signOutLabel}
         disabled={!row.original.revocable}
         loading={props.isRevoking && props.revokingSessionId === row.original.sessionId}
-        type="link"
-        icon={<LogOut className="h-4 w-4" />}
         className="inline-flex items-center gap-1 px-0! text-label-secondary hover:text-label-primary"
         onClick={() => props.onRevoke(row.original.sessionId)}
-        autoInsertSpace={false}
       >
+        <LogOut className="h-4 w-4" />
         {signOutLabel}
       </Button>
     ),

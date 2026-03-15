@@ -1,10 +1,12 @@
-import { Card, Typography, Button, Space, message } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 
 import type { AdminUIExtension } from "@/types/api";
 import { listAdminUIExtensions } from "@/api/admin-extensions";
+import { Button } from "@celestial/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@celestial/ui/card";
+import { notifyInfoText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 export type AdminExtensionsSlotProps = {
@@ -38,10 +40,10 @@ export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
 
   return (
     <Card>
-      <Typography.Title level={5} style={{ marginTop: 0 }}>
-        {props.title || t("common:EXTENSIONS")}
-      </Typography.Title>
-      <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-title4">{props.title || t("common:EXTENSIONS")}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
         {items.map((ext) => {
           const label = buildLabel(ext, t);
           const kind = String(ext.kind || "action");
@@ -52,8 +54,8 @@ export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
             return (
               <Button
                 key={`${ext.pluginId}:${ext.id}`}
-                type="default"
-                block
+                variant="outline"
+                className="w-full justify-start"
                 disabled={!to}
                 onClick={() => {
                   if (!to) return;
@@ -63,7 +65,6 @@ export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
                   }
                   void navigate({ to: to as never });
                 }}
-                autoInsertSpace={false}
               >
                 {label}
               </Button>
@@ -73,18 +74,17 @@ export function AdminExtensionsSlot(props: AdminExtensionsSlotProps) {
           return (
             <Button
               key={`${ext.pluginId}:${ext.id}`}
-              type="default"
-              block
+              variant="outline"
+              className="w-full justify-start"
               onClick={() => {
-                message.info(label);
+                notifyInfoText(label);
               }}
-              autoInsertSpace={false}
             >
               {label}
             </Button>
           );
         })}
-      </Space>
+      </CardContent>
     </Card>
   );
 }

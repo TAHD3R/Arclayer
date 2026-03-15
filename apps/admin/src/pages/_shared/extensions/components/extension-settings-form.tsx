@@ -1,11 +1,19 @@
-import { Button, Input, Select, Typography } from "antd";
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
-import type { ReactNode } from "react";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import { PasswordInput } from "@celestial/ui/password-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { Switch } from "@celestial/ui/switch";
 import type { SettingsOptionItem, SystemSettingsDetail, SettingsSchemaItem } from "@/types/api";
 
@@ -50,11 +58,6 @@ function optionLabel(opt: SettingsOptionItem): string {
   if (label) return label;
   return String(opt.value ?? "");
 }
-
-type SelectOptionRenderArg = {
-  label?: ReactNode;
-  data?: unknown;
-};
 
 function buildInitialValues(
   detail: SystemSettingsDetail,
@@ -187,9 +190,7 @@ export function ExtensionSettingsForm({
           <div key={section.id} className="flex flex-col gap-3">
             {!sectionId ? (
               <div className="pb-2">
-                <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 0 }}>
-                  {section.title || section.id}
-                </Typography.Title>
+                <div className="text-title4 font-semibold">{section.title || section.id}</div>
               </div>
             ) : null}
 
@@ -211,15 +212,15 @@ export function ExtensionSettingsForm({
                   >
                     <div className="min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <Typography.Text strong className="truncate">
+                        <div className="truncate font-semibold text-foreground">
                           {field.label || field.key}
-                        </Typography.Text>
+                        </div>
                         {field.secret ? (
-                          <Typography.Text type="secondary">
+                          <div className="text-footnote text-label-secondary">
                             {alreadySet
                               ? t("plugin:PLUGIN_SECRET_SET")
                               : t("plugin:PLUGIN_SECRET_NOT_SET")}
-                          </Typography.Text>
+                          </div>
                         ) : null}
                       </div>
                       {field.description ? (
@@ -249,41 +250,38 @@ export function ExtensionSettingsForm({
                           render={({ field: rhfField }) =>
                             hasOptions ? (
                               <Select
-                                value={rhfField.value as unknown}
-                                onChange={(v) => rhfField.onChange(v)}
-                                options={(field.options || []).map((opt) => ({
-                                  value: opt.value,
-                                  label: optionLabel(opt),
-                                  meta: opt,
-                                }))}
-                                optionRender={(option: SelectOptionRenderArg) => {
-                                  const data = option.data as
-                                    | { meta?: SettingsOptionItem }
-                                    | undefined;
-                                  const meta = data?.meta;
-                                  const desc =
-                                    meta && typeof meta.description === "string"
-                                      ? meta.description.trim()
-                                      : "";
-                                  return (
-                                    <div className="py-1">
-                                      <div className="font-medium">
-                                        {String(option.label || "")}
-                                      </div>
-                                      {desc ? (
-                                        <div className="text-caption text-label-secondary">
-                                          {desc}
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                  );
-                                }}
-                                showSearch
-                                allowClear
+                                value={
+                                  rhfField.value === undefined ? undefined : String(rhfField.value)
+                                }
+                                onValueChange={(value) => rhfField.onChange(value)}
                                 disabled={disabled || saving}
-                              />
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder={t("common:SELECT")} />
+                                </SelectTrigger>
+                                <SelectContent position="popper" align="start">
+                                  {(field.options || []).map((opt) => {
+                                    const desc =
+                                      typeof opt.description === "string"
+                                        ? opt.description.trim()
+                                        : "";
+                                    return (
+                                      <SelectItem key={String(opt.value)} value={String(opt.value)}>
+                                        <div className="py-1">
+                                          <div className="font-medium">{optionLabel(opt)}</div>
+                                          {desc ? (
+                                            <div className="text-caption text-label-secondary">
+                                              {desc}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
                             ) : isPassword ? (
-                              <Input.Password
+                              <PasswordInput
                                 value={String(rhfField.value || "")}
                                 onChange={(e) => rhfField.onChange(e.target.value)}
                                 placeholder={
@@ -298,6 +296,9 @@ export function ExtensionSettingsForm({
                                   typeof rhfField.value === "string"
                                     ? rhfField.value
                                     : String(rhfField.value || "")
+                                }
+                                type={
+                                  field.type === "int" || field.type === "float" ? "number" : "text"
                                 }
                                 onChange={(e) => rhfField.onChange(e.target.value)}
                                 disabled={disabled || saving}
@@ -316,13 +317,7 @@ export function ExtensionSettingsForm({
         ))}
 
         <div className="flex justify-start gap-2 pt-2">
-          <Button
-            type="primary"
-            htmlType="submit"
-            disabled={disabled || saving}
-            loading={saving}
-            autoInsertSpace={false}
-          >
+          <Button type="submit" disabled={disabled || saving} loading={saving}>
             {submitText || t("settings:SETTINGS_SAVE")}
           </Button>
         </div>

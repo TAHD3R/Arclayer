@@ -1,6 +1,5 @@
 "use client";
 
-import { Button as AntButton } from "antd";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
@@ -9,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import type { TeamMember } from "@/types/api";
 import { resetTeamMemberPassword } from "@/api/team";
+import { Button } from "@celestial/ui/button";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { Input } from "@celestial/ui/input";
 import { zodResolver } from "@/lib/forms/zod-resolver";
@@ -95,23 +95,20 @@ export function ResetUserPasswordDialog(props: {
       contentClassName="sm:max-w-xl"
       footer={
         <>
-          <AntButton
-            type="text"
+          <Button
+            variant="ghost"
             onClick={() => props.onOpenChange(false)}
             disabled={mutation.isPending}
-            autoInsertSpace={false}
           >
             {t("common:CANCEL")}
-          </AntButton>
-          <AntButton
-            type="primary"
+          </Button>
+          <Button
             loading={mutation.isPending}
             disabled={mutation.isPending || !props.member}
             onClick={() => void onSubmit()}
-            autoInsertSpace={false}
           >
             {t("common:CONFIRM")}
-          </AntButton>
+          </Button>
         </>
       }
     >

@@ -2,7 +2,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Input, Spin } from "antd";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -11,7 +10,7 @@ import {
 } from "@celestial/ui/dropdown-menu";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { MoreVertical, Plus, Search, Trash2 } from "lucide-react";
+import { MoreVertical, Plus, Search, Trash2, X } from "lucide-react";
 import {
   createWorkspaceRoleFromTemplate,
   deleteWorkspaceRole,
@@ -21,7 +20,15 @@ import {
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
+import { Button } from "@celestial/ui/button";
 import { Checkbox } from "@celestial/ui/checkbox";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
+import { Spinner } from "@celestial/ui/spinner";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { zodResolver } from "@/lib/forms/zod-resolver";
@@ -280,25 +287,34 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
       description={t("team:TEAM_ROLES_DESC")}
       width="fixed"
       action={
-        <Button
-          type="primary"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => setCreateOpen(true)}
-          autoInsertSpace={false}
-        >
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4" />
           {t("team:TEAM_ROLES_ADD_ROLE")}
         </Button>
       }
     >
       <div className="flex flex-col gap-4">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
-          allowClear
-          variant="filled"
-          prefix={<Search className="h-4 w-4 text-label-secondary" />}
-        />
+        <InputGroup className="max-w-[360px]">
+          <InputGroupAddon>
+            <Search className="h-4 w-4 text-label-secondary" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
+          />
+          {search ? (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={t("common:CLEAR")}
+                size="icon-xs"
+                onClick={() => setSearch("")}
+              >
+                <X className="size-3.5" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
 
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
@@ -341,12 +357,12 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button
-                                      type="text"
-                                      className="!h-8 !w-8 !p-0"
-                                      icon={<MoreVertical className="h-4 w-4" />}
+                                      variant="ghost"
+                                      size="icon-sm"
                                       aria-label={t("team:TEAM_ACTION_DELETE")}
-                                      autoInsertSpace={false}
-                                    />
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuIconItem
@@ -400,7 +416,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                           <TableCell key={key} className="text-center">
                             <div className="flex justify-center">
                               {togglingKey === key ? (
-                                <Spin size="small" />
+                                <Spinner className="size-4" />
                               ) : (
                                 <Checkbox
                                   checked={granted}

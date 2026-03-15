@@ -1,9 +1,11 @@
-import { AutoComplete, Button, DatePicker, Input as AntInput } from "antd";
 import { Filter, Search } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
+import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import {
   DebounceSelect,
   type DebounceSelectOption,
@@ -38,35 +40,6 @@ function normalizeFilters(filters: ActivityFilters): ActivityFilters {
   };
 }
 
-type RangePickerValue = NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>["value"]>;
-
-type SelectLikeOption = {
-  value: string | number;
-  label?: React.ReactNode;
-  avatarUrl?: string | null;
-  data?: { avatarUrl?: string | null };
-};
-
-function toSelectLikeOption(value: unknown): SelectLikeOption | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  if (!("value" in value)) return null;
-  const option = value as SelectLikeOption;
-  if (typeof option.value !== "string" && typeof option.value !== "number") return null;
-  return option;
-}
-
-function toIsoRangeBoundary(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  if ("toDate" in value && typeof value.toDate === "function") {
-    const dateValue = value.toDate() as Date;
-    return dateValue.toISOString();
-  }
-  if ("toISOString" in value && typeof value.toISOString === "function") {
-    return value.toISOString() as string;
-  }
-  return undefined;
-}
-
 export function ActivityFilterPopover(props: {
   scope: "workspace" | "org";
   /**
@@ -81,20 +54,14 @@ export function ActivityFilterPopover(props: {
   workspacesLoading?: boolean;
   fetchUserOptions: (workspaceId: string, q: string) => Promise<DebounceSelectOption[]>;
 }) {
-  const { t } = useTranslation(["activity"]);
+  const { t } = useTranslation(["activity", "common"]);
 
   const [open, setOpen] = React.useState(false);
   const [draft, setDraft] = React.useState<ActivityFilters>(() => props.value);
 
-  const [rangeValue, setRangeValue] = React.useState<RangePickerValue | null>(null);
-  React.useEffect(() => {
-    if (!draft.occurredFrom && !draft.occurredTo) setRangeValue(null);
-  }, [draft.occurredFrom, draft.occurredTo]);
-
   const [eventNameInput, setEventNameInput] = React.useState<string>(
     () => props.value.eventName ?? "",
   );
-  const [eventNameOpen, setEventNameOpen] = React.useState<boolean>(false);
 
   const [workspaceOption, setWorkspaceOption] = React.useState<DebounceSelectOption | undefined>(
     undefined,
@@ -109,7 +76,6 @@ export function ActivityFilterPopover(props: {
     if (!open) return;
     setDraft(props.value);
     setEventNameInput(props.value.eventName ?? "");
-    setEventNameOpen(false);
   }, [open, props.value]);
 
   const selectedWorkspaceId =
@@ -145,12 +111,13 @@ export function ActivityFilterPopover(props: {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          type="text"
-          icon={<Filter size={18} />}
+          variant="ghost"
           title={t("activity:ACTIVITY_FILTER_TITLE")}
           aria-label={t("activity:ACTIVITY_FILTER_TITLE")}
-          autoInsertSpace={false}
-        />
+        >
+          <Filter size={18} />
+          {t("activity:ACTIVITY_FILTER_TITLE")}
+        </Button>
       </PopoverTrigger>
 
       <PopoverContent align="end" sideOffset={8} className="w-96 p-3">
@@ -160,22 +127,20 @@ export function ActivityFilterPopover(props: {
             <div className="text-footnote text-label-secondary">
               {t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
             </div>
-            <DatePicker.RangePicker
-              showTime
-              allowClear
-              value={rangeValue}
-              onChange={(values) => {
-                setRangeValue(values ?? null);
-                const start = values?.[0];
-                const end = values?.[1];
-                const occurredFrom = toIsoRangeBoundary(start);
-                const occurredTo = toIsoRangeBoundary(end);
+            <DateTimeRangeField
+              startValue={draft.occurredFrom}
+              endValue={draft.occurredTo}
+              startAriaLabel={t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
+              endAriaLabel={t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
+              startPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_START")}
+              endPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_END")}
+              onChange={({ startValue, endValue }) =>
                 setDraft((prev) => ({
                   ...prev,
-                  occurredFrom: occurredFrom || undefined,
-                  occurredTo: occurredTo || undefined,
-                }));
-              }}
+                  occurredFrom: startValue,
+                  occurredTo: endValue,
+                }))
+              }
             />
           </div>
 
@@ -184,33 +149,28 @@ export function ActivityFilterPopover(props: {
               {t("activity:ACTIVITY_FILTER_EVENT_NAME")}
             </div>
 
-            <AutoComplete
-              value={eventNameInput}
-              open={eventNameOpen}
-              onDropdownVisibleChange={(nextOpen) => setEventNameOpen(nextOpen)}
-              options={eventNameOptions}
-              onChange={(next) => {
-                const v = String(next || "");
-                setEventNameInput(v);
-                setEventNameOpen(true);
-                setDraft((prev) => ({ ...prev, eventName: v.trim() ? v : undefined }));
-              }}
-              onSelect={(v) => {
-                const s = String(v || "");
-                setEventNameInput(s);
-                setEventNameOpen(false);
-                setDraft((prev) => ({ ...prev, eventName: s.trim() ? s : undefined }));
-              }}
-            >
-              <AntInput
-                allowClear
-                onFocus={() => setEventNameOpen(true)}
-                variant="filled"
-                prefix={<Search className="size-4 text-label-secondary" />}
+            <div className="relative">
+              <Input
+                list="activity-event-options"
+                value={eventNameInput}
+                onChange={(event) => {
+                  const v = String(event.target.value || "");
+                  setEventNameInput(v);
+                  setDraft((prev) => ({ ...prev, eventName: v.trim() ? v : undefined }));
+                }}
                 placeholder={t("activity:ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER")}
                 aria-label={t("activity:ACTIVITY_FILTER_EVENT_NAME")}
+                className="pl-9"
               />
-            </AutoComplete>
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-label-secondary" />
+              <datalist id="activity-event-options">
+                {eventNameOptions.map((option) => (
+                  <option key={String(option.value)} value={String(option.value)}>
+                    {String(option.value)}
+                  </option>
+                ))}
+              </datalist>
+            </div>
           </div>
 
           {props.scope === "org" ? (
@@ -229,6 +189,7 @@ export function ActivityFilterPopover(props: {
                 allowClear
                 disabled={Boolean(props.workspacesLoading)}
                 placeholder={t("activity:ACTIVITY_FILTER_WORKSPACE")}
+                emptyText={t("activity:ACTIVITY_FILTER_EMPTY")}
                 fetchOptions={async (search) => {
                   const items = props.workspaceItems ?? [];
                   const needle = (search || "").trim().toLowerCase();
@@ -245,19 +206,20 @@ export function ActivityFilterPopover(props: {
                     label: w.name || w.slug || w.workspaceId,
                   }));
                 }}
-                onChange={(value) => {
-                  const option = toSelectLikeOption(value);
-                  const v = option?.value ?? null;
-                  const label = option?.label ?? null;
-                  if (v) {
-                    setWorkspaceOption({ value: String(v), label: String(label || v) });
+                onChange={(option) => {
+                  const selectedValue = option?.value ?? null;
+                  if (selectedValue) {
+                    setWorkspaceOption({
+                      value: String(selectedValue),
+                      label: option?.label ?? String(selectedValue),
+                    });
                   } else {
                     setWorkspaceOption(undefined);
                   }
 
                   setDraft((prev) => ({
                     ...prev,
-                    workspaceId: v ? String(v) : undefined,
+                    workspaceId: selectedValue ? String(selectedValue) : undefined,
                     // workspace 变化时，操作者/对象筛选需要重置（避免跨 workspace 误筛）
                     actorUserId: undefined,
                     subjectUserId: undefined,
@@ -287,21 +249,26 @@ export function ActivityFilterPopover(props: {
                   ? t("activity:ACTIVITY_FILTER_ACTOR")
                   : t("activity:ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE")
               }
+              emptyText={t("activity:ACTIVITY_FILTER_EMPTY")}
               fetchOptions={async (search) => {
                 if (!selectedWorkspaceId) return [];
                 return props.fetchUserOptions(selectedWorkspaceId, search);
               }}
-              onChange={(value) => {
-                const option = toSelectLikeOption(value);
-                const v = option?.value ?? null;
-                const label = option?.label ?? null;
-                const avatarUrl = option?.avatarUrl ?? option?.data?.avatarUrl ?? null;
-                if (v) {
-                  setActorOption({ value: String(v), label: String(label || v), avatarUrl });
+              onChange={(option) => {
+                const selectedValue = option?.value ?? null;
+                if (selectedValue) {
+                  setActorOption({
+                    value: String(selectedValue),
+                    label: option?.label ?? String(selectedValue),
+                    avatarUrl: option?.avatarUrl ?? null,
+                  });
                 } else {
                   setActorOption(undefined);
                 }
-                setDraft((prev) => ({ ...prev, actorUserId: v ? String(v) : undefined }));
+                setDraft((prev) => ({
+                  ...prev,
+                  actorUserId: selectedValue ? String(selectedValue) : undefined,
+                }));
               }}
             />
           </div>
@@ -320,21 +287,26 @@ export function ActivityFilterPopover(props: {
               allowClear
               disabled={!canPickActorSubject}
               placeholder={t("activity:ACTIVITY_FILTER_SUBJECT")}
+              emptyText={t("activity:ACTIVITY_FILTER_EMPTY")}
               fetchOptions={async (search) => {
                 if (!selectedWorkspaceId) return [];
                 return props.fetchUserOptions(selectedWorkspaceId, search);
               }}
-              onChange={(value) => {
-                const option = toSelectLikeOption(value);
-                const v = option?.value ?? null;
-                const label = option?.label ?? null;
-                const avatarUrl = option?.avatarUrl ?? option?.data?.avatarUrl ?? null;
-                if (v) {
-                  setSubjectOption({ value: String(v), label: String(label || v), avatarUrl });
+              onChange={(option) => {
+                const selectedValue = option?.value ?? null;
+                if (selectedValue) {
+                  setSubjectOption({
+                    value: String(selectedValue),
+                    label: option?.label ?? String(selectedValue),
+                    avatarUrl: option?.avatarUrl ?? null,
+                  });
                 } else {
                   setSubjectOption(undefined);
                 }
-                setDraft((prev) => ({ ...prev, subjectUserId: v ? String(v) : undefined }));
+                setDraft((prev) => ({
+                  ...prev,
+                  subjectUserId: selectedValue ? String(selectedValue) : undefined,
+                }));
               }}
             />
           </div>
@@ -345,25 +317,20 @@ export function ActivityFilterPopover(props: {
             onClick={() => {
               setDraft(props.defaultValue);
               setEventNameInput(props.defaultValue.eventName ?? "");
-              setEventNameOpen(false);
               setWorkspaceOption(undefined);
               setActorOption(undefined);
               setSubjectOption(undefined);
-              if (!props.defaultValue.occurredFrom && !props.defaultValue.occurredTo)
-                setRangeValue(null);
             }}
-            autoInsertSpace={false}
           >
             {t("activity:ACTIVITY_FILTER_RESET")}
           </Button>
 
           <PopoverClose asChild>
             <Button
-              type="primary"
+              variant="default"
               onClick={() => {
                 props.onApply(normalizeFilters(draft));
               }}
-              autoInsertSpace={false}
             >
               {t("activity:ACTIVITY_FILTER_DONE")}
             </Button>

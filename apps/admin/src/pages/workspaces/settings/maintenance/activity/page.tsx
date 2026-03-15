@@ -1,4 +1,3 @@
-import { Button as AntButton } from "antd";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +6,7 @@ import * as activityApi from "@/api/activity";
 import { listTeamUserOptions } from "@/api/team";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
+import { Button } from "@celestial/ui/button";
 import { LoaderOne } from "@celestial/ui/loader";
 import { ActivityDetailDialog } from "@/pages/organization/activity/components/activity-detail-dialog";
 import {
@@ -108,9 +108,9 @@ export function WorkspaceActivityPage() {
               }));
             }}
           />
-          <AntButton onClick={() => {}} autoInsertSpace={false}>
+          <Button variant="outline" onClick={() => {}}>
             {t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}
-          </AntButton>
+          </Button>
 
           {listQuery.isFetching && !listQuery.isLoading ? <LoaderOne /> : null}
         </div>

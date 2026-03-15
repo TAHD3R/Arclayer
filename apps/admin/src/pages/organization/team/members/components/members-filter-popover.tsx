@@ -1,10 +1,16 @@
-import { Button as AntButton, Select } from "antd";
 import { Filter } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { OrgMembershipStatus, OrgUserStatus } from "@/types/api";
+import { Button } from "@celestial/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 
 export type OrgMemberFilters = {
   roleCode?: string;
@@ -27,14 +33,10 @@ export function MembersFilterPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <AntButton
-          type="text"
-          icon={<Filter size={18} />}
-          title={t("common:ORG_MEMBERS_FILTER_TITLE")}
-          autoInsertSpace={false}
-        >
+        <Button variant="ghost" title={t("common:ORG_MEMBERS_FILTER_TITLE")}>
+          <Filter size={18} />
           {t("common:ORG_MEMBERS_FILTER_TITLE")}
-        </AntButton>
+        </Button>
       </PopoverTrigger>
 
       <PopoverContent align="end" sideOffset={8} className="w-80 p-3">
@@ -47,16 +49,25 @@ export function MembersFilterPopover({
             </div>
             <Select
               value={value.roleCode ?? "all"}
-              className="w-full"
-              onChange={(next) =>
+              onValueChange={(next) =>
                 onChange({
                   ...value,
                   roleCode: next === "all" ? undefined : String(next),
                 })
               }
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[{ value: "all", label: t("team:TEAM_FILTER_ALL") }, ...roleOptions]}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                <SelectItem value="all">{t("team:TEAM_FILTER_ALL")}</SelectItem>
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
@@ -65,21 +76,25 @@ export function MembersFilterPopover({
             </div>
             <Select
               value={value.membershipStatus ?? "all"}
-              className="w-full"
-              onChange={(next) =>
+              onValueChange={(next) =>
                 onChange({
                   ...value,
                   membershipStatus: next === "all" ? undefined : (next as OrgMembershipStatus),
                 })
               }
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[
-                { value: "all", label: t("team:TEAM_FILTER_ALL") },
-                { value: "active", label: t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE") },
-                { value: "invited", label: t("team:TEAM_MEMBERSHIP_STATUS_INVITED") },
-                { value: "disabled", label: t("team:TEAM_MEMBERSHIP_STATUS_DISABLED") },
-              ]}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                <SelectItem value="all">{t("team:TEAM_FILTER_ALL")}</SelectItem>
+                <SelectItem value="active">{t("team:TEAM_MEMBERSHIP_STATUS_ACTIVE")}</SelectItem>
+                <SelectItem value="invited">{t("team:TEAM_MEMBERSHIP_STATUS_INVITED")}</SelectItem>
+                <SelectItem value="disabled">
+                  {t("team:TEAM_MEMBERSHIP_STATUS_DISABLED")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
@@ -88,21 +103,23 @@ export function MembersFilterPopover({
             </div>
             <Select
               value={value.userStatus ?? "all"}
-              className="w-full"
-              onChange={(next) =>
+              onValueChange={(next) =>
                 onChange({
                   ...value,
                   userStatus: next === "all" ? undefined : (next as OrgUserStatus),
                 })
               }
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[
-                { value: "all", label: t("team:TEAM_FILTER_ALL") },
-                { value: "active", label: t("team:TEAM_USER_STATUS_ACTIVE") },
-                { value: "disabled", label: t("team:TEAM_USER_STATUS_DISABLED") },
-                { value: "locked", label: t("team:TEAM_USER_STATUS_LOCKED") },
-              ]}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                <SelectItem value="all">{t("team:TEAM_FILTER_ALL")}</SelectItem>
+                <SelectItem value="active">{t("team:TEAM_USER_STATUS_ACTIVE")}</SelectItem>
+                <SelectItem value="disabled">{t("team:TEAM_USER_STATUS_DISABLED")}</SelectItem>
+                <SelectItem value="locked">{t("team:TEAM_USER_STATUS_LOCKED")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
@@ -117,35 +134,34 @@ export function MembersFilterPopover({
                     ? "with_workspace"
                     : "without_workspace"
               }
-              className="w-full"
-              onChange={(next) =>
+              onValueChange={(next) =>
                 onChange({
                   ...value,
                   hasWorkspace:
                     next === "all" ? undefined : next === "with_workspace" ? true : false,
                 })
               }
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[
-                { value: "all", label: t("team:TEAM_FILTER_ALL") },
-                { value: "with_workspace", label: t("common:ORG_MEMBERS_FILTER_WORKSPACE_WITH") },
-                {
-                  value: "without_workspace",
-                  label: t("common:ORG_MEMBERS_FILTER_WORKSPACE_WITHOUT"),
-                },
-              ]}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                <SelectItem value="all">{t("team:TEAM_FILTER_ALL")}</SelectItem>
+                <SelectItem value="with_workspace">
+                  {t("common:ORG_MEMBERS_FILTER_WORKSPACE_WITH")}
+                </SelectItem>
+                <SelectItem value="without_workspace">
+                  {t("common:ORG_MEMBERS_FILTER_WORKSPACE_WITHOUT")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <AntButton onClick={() => onChange({})} autoInsertSpace={false}>
-            {t("team:TEAM_FILTER_RESET")}
-          </AntButton>
+          <Button onClick={() => onChange({})}>{t("team:TEAM_FILTER_RESET")}</Button>
           <PopoverClose asChild>
-            <AntButton type="primary" autoInsertSpace={false}>
-              {t("team:TEAM_FILTER_DONE")}
-            </AntButton>
+            <Button>{t("team:TEAM_FILTER_DONE")}</Button>
           </PopoverClose>
         </div>
       </PopoverContent>

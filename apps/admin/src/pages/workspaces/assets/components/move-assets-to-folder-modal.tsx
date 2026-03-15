@@ -1,8 +1,6 @@
-import { Button, Select } from "antd";
 import { FolderInput } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { AdminAssetFolder } from "@/types/api";
 import {
@@ -17,6 +15,14 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 
 export type MoveAssetsToFolderModalProps = {
   open: boolean;
@@ -96,33 +102,29 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
             <div className="text-label-secondary">
               {t("assets:ASSET_BULK_MOVE_FIELD_TARGET_HELP")}
             </div>
-            <Select
-              showSearch
-              className="w-full"
-              loading={props.foldersLoading}
-              options={options}
-              value={target}
-              onChange={(v) => setTarget(v)}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              placeholder={t("assets:ASSET_BULK_MOVE_PLACEHOLDER")}
-              optionFilterProp="label"
-              listHeight={320}
-              dropdownStyle={{ maxHeight: 320, overflow: "auto" }}
-            />
+            <Select value={target} onValueChange={setTarget} disabled={props.foldersLoading}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t("assets:ASSET_BULK_MOVE_PLACEHOLDER")} />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start" className="max-h-80">
+                {options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <AlertDialogFooter>
           <AlertDialogCancelPrimitive asChild>
-            <Button type="text" disabled={Boolean(props.confirmLoading)} autoInsertSpace={false}>
+            <Button variant="ghost" disabled={Boolean(props.confirmLoading)}>
               {t("common:CANCEL")}
             </Button>
           </AlertDialogCancelPrimitive>
           <AlertDialogActionPrimitive asChild>
             <Button
-              autoInsertSpace={false}
-              type="primary"
-              icon={<FolderInput className="size-4" aria-hidden="true" />}
               loading={props.confirmLoading}
               disabled={disabled}
               onClick={async () => {
@@ -131,6 +133,7 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
                 props.onOpenChange(false);
               }}
             >
+              <FolderInput className="size-4" aria-hidden="true" />
               {t("assets:ASSET_BULK_MOVE_CONFIRM")}
             </Button>
           </AlertDialogActionPrimitive>

@@ -1,7 +1,7 @@
-import { Form } from "antd";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { SetupDefaultsStep } from "@/components/setup/setup-defaults-step";
@@ -28,10 +28,19 @@ beforeAll(() => {
 });
 
 function SetupDefaultsStepHarness(props: { initialValues: Partial<SetupDefaultsDraft> }) {
-  const [form] = Form.useForm<SetupDefaultsDraft>();
+  const form = useForm<SetupDefaultsDraft>({
+    defaultValues: {
+      timezone: "Asia/Shanghai",
+      locale: "zh-CN",
+      dateFormat: "YYYY-MM-DD",
+      useBrowserTimeZone: false,
+      useRelativeDateTime: false,
+      ...props.initialValues,
+    },
+  });
 
   useEffect(() => {
-    form.setFieldsValue({
+    form.reset({
       timezone: "Asia/Shanghai",
       locale: "zh-CN",
       dateFormat: "YYYY-MM-DD",
@@ -41,7 +50,7 @@ function SetupDefaultsStepHarness(props: { initialValues: Partial<SetupDefaultsD
     });
   }, [form, props.initialValues]);
 
-  return <SetupDefaultsStep form={form} onValuesChange={() => undefined} />;
+  return <SetupDefaultsStep form={form} />;
 }
 
 describe("SetupDefaultsStep", () => {
@@ -76,7 +85,7 @@ describe("SetupDefaultsStep", () => {
     await user.click(timezoneSwitch);
     await user.click(dateFormatSwitch);
 
-    expect(timezoneSelect.closest(".ant-select-disabled")).not.toBeNull();
-    expect(dateFormatSelect.closest(".ant-select-disabled")).not.toBeNull();
+    expect(timezoneSelect).toBeDisabled();
+    expect(dateFormatSelect).toBeDisabled();
   });
 });

@@ -1,4 +1,3 @@
-import { Button, Card, Statistic } from "antd";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -8,6 +7,8 @@ import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { buildOrganizationPath } from "@/lib/routing/organization-routing";
+import { Button } from "@celestial/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@celestial/ui/card";
 
 export function OrganizationOverviewPage() {
   const { orgId } = useParams({ from: "/o/$orgId/" });
@@ -43,39 +44,43 @@ export function OrganizationOverviewPage() {
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
-            <Statistic
-              title={t("common:ORG_OVERVIEW_WORKSPACE_COUNT")}
-              value={workspaceCount}
-              suffix={t("common:ORG_OVERVIEW_WORKSPACE_UNIT")}
-            />
-            <div className="mt-4 flex gap-2">
+            <CardHeader className="pb-3">
+              <div className="text-caption font-medium uppercase tracking-[0.12em] text-label-secondary">
+                {t("common:ORG_OVERVIEW_WORKSPACE_COUNT")}
+              </div>
+              <CardTitle className="text-largetitle leading-none text-label-primary">
+                {workspaceCount}
+                <span className="ml-2 text-body font-medium text-label-secondary">
+                  {t("common:ORG_OVERVIEW_WORKSPACE_UNIT")}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex gap-2 pt-0">
               <Button
-                type="primary"
                 onClick={() => void navigate({ to: buildOrganizationPath(orgId, "/workspaces") })}
-                autoInsertSpace={false}
               >
                 {t("nav:NAV_ORG_WORKSPACES")}
               </Button>
               <Button
+                variant="secondary"
                 onClick={() =>
                   void navigate({
                     to: buildOrganizationPath(orgId, "/team/members"),
                   })
                 }
-                autoInsertSpace={false}
               >
                 {t("nav:NAV_ORG_MEMBERS")}
               </Button>
-            </div>
+            </CardContent>
           </Card>
 
           <Card>
-            <div className="space-y-2">
-              <h3 className="text-title3 font-semibold">{t("common:ORG_OVERVIEW_NEXT_TITLE")}</h3>
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-title3">{t("common:ORG_OVERVIEW_NEXT_TITLE")}</CardTitle>
               <p className="text-footnote text-label-secondary">
                 {t("common:ORG_OVERVIEW_NEXT_DESC")}
               </p>
-            </div>
+            </CardHeader>
           </Card>
         </div>
       </ContentGuard>

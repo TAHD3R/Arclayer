@@ -1,6 +1,15 @@
-import { Input, Select, Space, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { cn } from "@celestial/lib/utils";
+import { Input } from "@celestial/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 
 export function LocalizedStringMapField(props: {
   locales: string[];
@@ -33,32 +42,46 @@ export function LocalizedStringMapField(props: {
     onChange(next);
   };
 
-  const Editor = props.multiline ? Input.TextArea : Input;
-
   return (
-    <Space direction="vertical" size={8} className="w-full">
+    <div className="grid w-full gap-2">
       <div className="flex items-center justify-between gap-3">
-        <Typography.Text type="secondary">
+        <span className="text-footnote text-label-secondary">
           {t("settings:SETTINGS_I18N_ACTIVE_LOCALE")}
-        </Typography.Text>
-        <Select
-          value={effectiveLocale}
-          options={options}
-          onChange={(v) => setActiveLocale(String(v))}
-          style={{ minWidth: 140 }}
-        />
+        </span>
+        <Select value={effectiveLocale} onValueChange={(value) => setActiveLocale(String(value))}>
+          <SelectTrigger className="min-w-35">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end" position="popper">
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <Editor
-        value={currentValue}
-        placeholder={props.placeholder}
-        autoSize={props.multiline ? { minRows: 3, maxRows: 6 } : undefined}
-        onChange={(e) => setValueForLocale(effectiveLocale, e.target.value)}
-      />
+      {props.multiline ? (
+        <textarea
+          value={currentValue}
+          placeholder={props.placeholder}
+          rows={3}
+          onChange={(event) => setValueForLocale(effectiveLocale, event.target.value)}
+          className={cn(
+            "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body shadow-sm transition-colors",
+            "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          )}
+        />
+      ) : (
+        <Input
+          value={currentValue}
+          placeholder={props.placeholder}
+          onChange={(event) => setValueForLocale(effectiveLocale, event.target.value)}
+        />
+      )}
 
-      <Typography.Text type="secondary" className="text-caption">
-        {t("settings:SETTINGS_I18N_HINT")}
-      </Typography.Text>
-    </Space>
+      <span className="text-caption text-label-secondary">{t("settings:SETTINGS_I18N_HINT")}</span>
+    </div>
   );
 }

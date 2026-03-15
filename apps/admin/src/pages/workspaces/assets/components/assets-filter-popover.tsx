@@ -1,10 +1,18 @@
-import { Button, DatePicker, Select } from "antd";
 import { Filter } from "lucide-react";
-import { type ComponentProps, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
+import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
+import { Button } from "@celestial/ui/button";
+import { Checkbox } from "@celestial/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import type { AdminAssetTag } from "@/types/api";
 export type AssetsFilters = {
   mimePrefix?: string;
@@ -16,20 +24,6 @@ export type AssetsFilters = {
   // Reserved for future backend filtering dimensions.
 };
 
-type RangePickerValue = NonNullable<ComponentProps<typeof DatePicker.RangePicker>["value"]>;
-
-function toIsoRangeBoundary(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  if ("toDate" in value && typeof value.toDate === "function") {
-    const dateValue = value.toDate() as Date;
-    return dateValue.toISOString();
-  }
-  if ("toISOString" in value && typeof value.toISOString === "function") {
-    return value.toISOString() as string;
-  }
-  return undefined;
-}
-
 export function AssetsFilterPopover(props: {
   value: AssetsFilters;
   onChange: (next: AssetsFilters) => void;
@@ -40,14 +34,6 @@ export function AssetsFilterPopover(props: {
   tagsLoading?: boolean;
 }) {
   const { t } = useTranslation();
-  const [rangeValue, setRangeValue] = useState<RangePickerValue | null>(null);
-
-  useEffect(() => {
-    // Keep RangePicker state in sync when parent clears filters.
-    if (!props.value.createdFrom && !props.value.createdTo) {
-      setRangeValue(null);
-    }
-  }, [props.value.createdFrom, props.value.createdTo]);
 
   const visibilityOptions = useMemo(
     () => [
@@ -58,16 +44,30 @@ export function AssetsFilterPopover(props: {
     ],
     [t],
   );
+  const orderingOptions = useMemo(
+    () => [
+      { label: t("assets:ASSET_SORT_NEWEST"), value: "-created_at" },
+      { label: t("assets:ASSET_SORT_OLDEST"), value: "created_at" },
+      { label: t("assets:ASSET_SORT_SIZE_LARGE"), value: "-size_bytes" },
+      { label: t("assets:ASSET_SORT_SIZE_SMALL"), value: "size_bytes" },
+    ],
+    [t],
+  );
+
+  const selectedTagIds = props.value.tagIds ?? [];
+
+  const toggleTag = (tagId: string) => {
+    const nextTagIds = selectedTagIds.includes(tagId)
+      ? selectedTagIds.filter((value) => value !== tagId)
+      : [...selectedTagIds, tagId];
+    props.onChange({ ...props.value, tagIds: nextTagIds });
+  };
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          type="text"
-          icon={<Filter size={18} />}
-          title={t("assets:ASSET_FILTER_TITLE")}
-          autoInsertSpace={false}
-        >
+        <Button variant="ghost" title={t("assets:ASSET_FILTER_TITLE")}>
+          <Filter size={18} />
           {t("assets:ASSET_FILTER_TITLE")}
         </Button>
       </PopoverTrigger>
@@ -79,17 +79,18 @@ export function AssetsFilterPopover(props: {
             <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FILTER_FIELD_SORT")}
             </div>
-            <Select
-              value={props.ordering}
-              onChange={props.onOrderingChange}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[
-                { label: t("assets:ASSET_SORT_NEWEST"), value: "-created_at" },
-                { label: t("assets:ASSET_SORT_OLDEST"), value: "created_at" },
-                { label: t("assets:ASSET_SORT_SIZE_LARGE"), value: "-size_bytes" },
-                { label: t("assets:ASSET_SORT_SIZE_SMALL"), value: "size_bytes" },
-              ]}
-            />
+            <Select value={props.ordering} onValueChange={props.onOrderingChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start" position="popper">
+                {orderingOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
@@ -98,34 +99,44 @@ export function AssetsFilterPopover(props: {
             </div>
             <Select
               value={props.value.visibility ?? "all"}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              onChange={(v) =>
-                props.onChange({ ...props.value, visibility: v === "all" ? undefined : v })
+              onValueChange={(value) =>
+                props.onChange({
+                  ...props.value,
+                  visibility: value === "all" ? undefined : value,
+                })
               }
-              options={visibilityOptions}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start" position="popper">
+                {visibilityOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
             <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
             </div>
-            <DatePicker.RangePicker
-              showTime
-              allowClear
-              value={rangeValue}
-              onChange={(values) => {
-                setRangeValue(values ?? null);
-                const start = values?.[0];
-                const end = values?.[1];
-                const createdFrom = toIsoRangeBoundary(start);
-                const createdTo = toIsoRangeBoundary(end);
+            <DateTimeRangeField
+              startValue={props.value.createdFrom}
+              endValue={props.value.createdTo}
+              startAriaLabel={t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
+              endAriaLabel={t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
+              startPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_START")}
+              endPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_END")}
+              onChange={({ startValue, endValue }) =>
                 props.onChange({
                   ...props.value,
-                  createdFrom: createdFrom || undefined,
-                  createdTo: createdTo || undefined,
-                });
-              }}
+                  createdFrom: startValue,
+                  createdTo: endValue,
+                })
+              }
             />
           </div>
 
@@ -133,18 +144,30 @@ export function AssetsFilterPopover(props: {
             <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FILTER_FIELD_TAGS")}
             </div>
-            <Select
-              mode="multiple"
-              allowClear
-              loading={props.tagsLoading}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              value={props.value.tagIds ?? []}
-              onChange={(tagIds) => props.onChange({ ...props.value, tagIds })}
-              placeholder={t("assets:ASSET_FILTER_TAGS_PLACEHOLDER")}
-              options={props.tags.map((tag) => ({ label: tag.name, value: tag.id }))}
-              showSearch
-              optionFilterProp="label"
-            />
+            <div className="max-h-44 overflow-auto rounded-md border border-border/60">
+              {props.tagsLoading ? (
+                <div className="px-3 py-2 text-footnote text-label-secondary">
+                  {t("common:LOADING")}
+                </div>
+              ) : props.tags.length > 0 ? (
+                props.tags.map((tag) => {
+                  const checked = selectedTagIds.includes(tag.id);
+                  return (
+                    <label
+                      key={tag.id}
+                      className="flex cursor-pointer items-center gap-3 border-b border-border/60 px-3 py-2 last:border-b-0"
+                    >
+                      <Checkbox checked={checked} onCheckedChange={() => toggleTag(tag.id)} />
+                      <span className="min-w-0 flex-1 truncate text-footnote">{tag.name}</span>
+                    </label>
+                  );
+                })
+              ) : (
+                <div className="px-3 py-2 text-footnote text-label-secondary">
+                  {t("assets:ASSET_FILTER_TAGS_PLACEHOLDER")}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -159,15 +182,12 @@ export function AssetsFilterPopover(props: {
               });
               props.onOrderingChange(props.defaultOrdering ?? "-created_at");
             }}
-            autoInsertSpace={false}
           >
             {t("assets:ASSET_FILTER_RESET")}
           </Button>
 
           <PopoverClose asChild>
-            <Button type="primary" autoInsertSpace={false}>
-              {t("assets:ASSET_FILTER_DONE")}
-            </Button>
+            <Button variant="default">{t("assets:ASSET_FILTER_DONE")}</Button>
           </PopoverClose>
         </div>
       </PopoverContent>

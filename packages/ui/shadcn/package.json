@@ -84,6 +84,7 @@
     "./particles": "./src/particles.tsx",
     "./popover": "./src/popover.tsx",
     "./progress": "./src/progress.tsx",
+    "./qr-code": "./src/qr-code.tsx",
     "./radio-group": "./src/radio-group.tsx",
     "./radix-primitives/radix-accordion": "./src/radix-primitives/radix-accordion.tsx",
     "./radix-primitives/radix-alert-dialog": "./src/radix-primitives/radix-alert-dialog.tsx",
@@ -127,6 +128,7 @@
     "./input-otp": "./src/input-otp.tsx"
   },
   "dependencies": {
+    "@rc-component/qrcode": "^1.1.1",
     "@base-ui/react": "^1.3.0",
     "@celestial/hooks": "workspace:*",
     "@celestial/lib": "workspace:*",

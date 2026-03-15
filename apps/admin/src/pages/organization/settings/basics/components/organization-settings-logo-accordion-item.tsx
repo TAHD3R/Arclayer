@@ -1,4 +1,3 @@
-import { Form, Input } from "antd";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -38,8 +37,7 @@ export function OrganizationSettingsLogoAccordionItem(props: {
       confirmLoading={c.savingKey === "organization:logo"}
       onConfirm={() =>
         void c.withSavingKey("organization:logo", async () => {
-          const values = await c.form.validateFields(["logoUrl"]);
-          const raw = String(values.logoUrl || "").trim();
+          const raw = String(c.form.getValues("logoUrl") || "").trim();
           await c.patchCoreMutation.mutateAsync({ organizationLogoUrl: raw || null });
         })
       }
@@ -47,7 +45,8 @@ export function OrganizationSettingsLogoAccordionItem(props: {
         c.isOrgLogoDirty
           ? () =>
               void c.withSavingKey("reset:organization:logo", async () => {
-                c.form.setFieldValue("logoUrl", c.initialOrgLogoUrl);
+                c.form.setValue("logoUrl", c.initialOrgLogoUrl, { shouldDirty: false });
+                c.form.clearErrors("logoUrl");
                 const raw = String(c.initialOrgLogoUrl || "").trim();
                 await c.patchCoreMutation.mutateAsync({ organizationLogoUrl: raw || null });
               })
@@ -56,10 +55,6 @@ export function OrganizationSettingsLogoAccordionItem(props: {
       resetText={t("settings:SETTINGS_RESET")}
       resetLoading={c.savingKey === "reset:organization:logo"}
     >
-      <Form.Item name="logoUrl" hidden>
-        <Input />
-      </Form.Item>
-
       <AvatarUploadSlot
         src={logoPreviewUrl}
         fallback={
@@ -75,7 +70,7 @@ export function OrganizationSettingsLogoAccordionItem(props: {
         removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
         canRemove={Boolean(logoUrl)}
         onPick={() => fileInputRef.current?.click()}
-        onRemove={() => c.form.setFieldValue("logoUrl", "")}
+        onRemove={() => c.form.setValue("logoUrl", "", { shouldDirty: true })}
       />
 
       <input
@@ -100,7 +95,7 @@ export function OrganizationSettingsLogoAccordionItem(props: {
             t: tGlobal,
           })
             .then((assetId) => {
-              c.form.setFieldValue("logoUrl", `/assets/${assetId}`);
+              c.form.setValue("logoUrl", `/assets/${assetId}`, { shouldDirty: true });
               notifySuccessText(tGlobal("assets:ASSET_UPLOAD_SUCCESS"));
             })
             .catch((err) => notifyError(err))

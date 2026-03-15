@@ -1,7 +1,7 @@
-import { Button as AntButton } from "antd";
 import { Plus } from "lucide-react";
 
 import { DefaultPage } from "@/components/common/default-page";
+import { Button } from "@celestial/ui/button";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -66,17 +66,13 @@ export function OrganizationTeamInvitationsView() {
       description={t("common:ORG_INVITATIONS_DESC")}
       action={
         <div className="flex items-center gap-2">
-          <AntButton onClick={() => setLinkCreateOpen(true)} autoInsertSpace={false}>
+          <Button variant="secondary" onClick={() => setLinkCreateOpen(true)}>
             {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
-          </AntButton>
-          <AntButton
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setInviteOpen(true)}
-            autoInsertSpace={false}
-          >
+          </Button>
+          <Button onClick={() => setInviteOpen(true)}>
+            <Plus size={16} />
             {t("common:ORG_MEMBERS_INVITE")}
-          </AntButton>
+          </Button>
         </div>
       }
       contentClassName="min-h-0 flex flex-col"

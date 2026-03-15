@@ -1,9 +1,9 @@
-import { Input as AntInput, Pagination } from "antd";
 import { type Table as ReactTable } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import {
@@ -11,6 +11,12 @@ import {
   DataTableToolbarTools,
   useDataTableDensityPreference,
 } from "@celestial/ui/data-table";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 import type { PageData } from "@celestial/ui/data-table";
 import type { OrganizationMember } from "@/types/api";
 import { MembersFilterPopover, type OrgMemberFilters } from "./members-filter-popover";
@@ -52,15 +58,27 @@ export function OrganizationMembersTableSection({
 
   const toolbarLeft = (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      <AntInput
-        value={searchInput}
-        onChange={(event) => onSearchInputChange(event.target.value)}
-        placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
-        allowClear
-        variant="filled"
-        prefix={<Search className="size-4 text-label-secondary" />}
-        style={{ width: 360, maxWidth: "100%" }}
-      />
+      <InputGroup className="w-[min(100%,22.5rem)]">
+        <InputGroupAddon>
+          <Search className="size-4 text-label-secondary" />
+        </InputGroupAddon>
+        <InputGroupInput
+          value={searchInput}
+          onChange={(event) => onSearchInputChange(event.target.value)}
+          placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
+        />
+        {searchInput ? (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              aria-label={t("common:CLEAR")}
+              size="icon-xs"
+              onClick={() => onSearchInputChange("")}
+            >
+              <X className="size-3.5" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
 
       <MembersFilterPopover value={filters} onChange={onFiltersChange} roleOptions={roleOptions} />
     </div>
@@ -98,13 +116,12 @@ export function OrganizationMembersTableSection({
               end: Math.min(pageData.page * pageData.size, pageData.total),
             })}
           </div>
-          <Pagination
-            current={pageData.page}
-            pageSize={pageData.size}
+          <DataPaginationControls
+            page={pageData.page}
+            size={pageData.size}
             total={pageData.total}
-            showSizeChanger
-            pageSizeOptions={[10, 20, 50, 100]}
-            onChange={(nextPage, nextSize) => onPaginationChange(nextPage, nextSize)}
+            onChange={onPaginationChange}
+            t={t}
           />
         </div>
       ) : null}

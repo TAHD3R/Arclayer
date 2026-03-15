@@ -1,11 +1,16 @@
-import { Input } from "antd";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import type React from "react";
 import type { ReactNode } from "react";
 
 import type { AdminAssetTag } from "@/types/api";
 import ChevronDownIcon from "@celestial/ui/icons/chevron-down";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@celestial/ui/chrome-tabs";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 import { AssetsFilterPopover } from "./assets-filter-popover";
 import {
   DropdownMenu,
@@ -109,15 +114,27 @@ export function AssetsViewHeader(props: AssetsViewHeaderProps) {
         </ChromeTabs>
       </div>
       <div className="flex items-center gap-2">
-        <Input
-          allowClear
-          value={props.searchInput}
-          onChange={(event) => props.setSearchInput(event.target.value)}
-          placeholder={props.t("assets:ASSET_SEARCH_PLACEHOLDER")}
-          variant="filled"
-          prefix={<Search size={16} className="text-label-secondary" />}
-          style={{ width: 260 }}
-        />
+        <InputGroup className="w-[260px]">
+          <InputGroupAddon>
+            <Search size={16} className="text-label-secondary" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={props.searchInput}
+            onChange={(event) => props.setSearchInput(event.target.value)}
+            placeholder={props.t("assets:ASSET_SEARCH_PLACEHOLDER")}
+          />
+          {props.searchInput ? (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={props.t("common:CLEAR")}
+                size="icon-xs"
+                onClick={() => props.setSearchInput("")}
+              >
+                <X className="size-3.5" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
         <AssetsFilterPopover
           value={props.filters}
           onChange={props.setFilters}

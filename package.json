@@ -24,7 +24,6 @@
     "@types/archiver": "catalog:",
     "@types/node": "catalog:",
     "@vitest/ui": "catalog:",
-    "antd": "catalog:",
     "archiver": "catalog:",
     "lodash": "catalog:",
     "oxfmt": "catalog:",

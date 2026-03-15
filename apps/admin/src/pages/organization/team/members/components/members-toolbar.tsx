@@ -1,7 +1,13 @@
-import { Button as AntButton, Input as AntInput } from "antd";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@celestial/ui/button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 import { LoaderOne } from "@celestial/ui/loader";
 import { MembersFilterPopover, type OrgMemberFilters } from "./members-filter-popover";
 
@@ -15,9 +21,10 @@ export function OrganizationMembersInviteAction({
   const { t } = useTranslation(["common"]);
 
   return (
-    <AntButton type="primary" icon={<Plus size={16} />} onClick={onInvite} autoInsertSpace={false}>
+    <Button onClick={onInvite}>
+      <Plus size={16} />
       {t("common:ORG_MEMBERS_INVITE")}
-    </AntButton>
+    </Button>
   );
 }
 
@@ -45,15 +52,27 @@ export function OrganizationMembersToolbar({
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
-        <AntInput
-          value={searchInput}
-          onChange={(event) => onSearchInputChange(event.target.value)}
-          placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
-          allowClear
-          variant="filled"
-          prefix={<Search className="size-4 text-label-secondary" />}
-          style={{ width: 360, maxWidth: "100%" }}
-        />
+        <InputGroup className="w-[min(100%,22.5rem)]">
+          <InputGroupAddon>
+            <Search className="size-4 text-label-secondary" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={searchInput}
+            onChange={(event) => onSearchInputChange(event.target.value)}
+            placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
+          />
+          {searchInput ? (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={t("common:CLEAR")}
+                size="icon-xs"
+                onClick={() => onSearchInputChange("")}
+              >
+                <X className="size-3.5" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
 
         <MembersFilterPopover
           value={filters}

@@ -1,6 +1,5 @@
-import { Input } from "antd";
 import type { Row } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useMemo } from "react";
 
 import type { OrganizationWorkspace } from "@/types/api";
@@ -12,6 +11,12 @@ import {
   DataTableToolbarTools,
   useDataTableDensityPreference,
 } from "@celestial/ui/data-table";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 
 import type {
   OrganizationWorkspacesTranslateFn,
@@ -61,15 +66,27 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
   const empty = !props.tableHook.isLoading && props.tableHook.items.length === 0;
   const toolbarLeft = (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      <Input
-        value={props.tableHook.searchInput}
-        onChange={(event) => props.tableHook.setSearchInput(event.target.value)}
-        placeholder={props.t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
-        allowClear
-        variant="filled"
-        prefix={<Search className="size-4 text-label-secondary" />}
-        className="max-w-[360px]"
-      />
+      <InputGroup className="max-w-[360px]">
+        <InputGroupAddon>
+          <Search className="size-4 text-label-secondary" />
+        </InputGroupAddon>
+        <InputGroupInput
+          value={props.tableHook.searchInput}
+          onChange={(event) => props.tableHook.setSearchInput(event.target.value)}
+          placeholder={props.t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
+        />
+        {props.tableHook.searchInput ? (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              aria-label={props.t("common:CLEAR")}
+              size="icon-xs"
+              onClick={() => props.tableHook.setSearchInput("")}
+            >
+              <X className="size-3.5" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
     </div>
   );
 

@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Button, Masonry } from "antd";
 import { Eye, FolderInput, FolderPlus, PencilLine, Settings2, Trash2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
+import { Masonry } from "masonic";
 import { flushSync } from "react-dom";
 
 import type { AdminAssetFolder } from "@/types/api";
@@ -12,6 +12,7 @@ import {
   AssetsExplorerFolderUpTile,
 } from "./explorer/assets-explorer-folder-tiles";
 import { ContentGuard } from "@/components/common/content-guard";
+import { Button } from "@celestial/ui/button";
 import { LoaderOne } from "@celestial/ui/loader";
 import {
   ContextMenu,
@@ -109,14 +110,13 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       emptyExtra={
         explicitFilterActive ? (
           <Button
-            type="primary"
+            variant="default"
             onClick={() => {
               setSearchInput("");
               setSearchQuery("");
               setFilters({ visibility: "public" });
               setMoreOpen(false);
             }}
-            autoInsertSpace={false}
           >
             {t("assets:ASSET_FILTER_RESET")}
           </Button>
@@ -143,13 +143,13 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                 >
                   <div className={cn("inline-flex", isOver ? "ring-1 ring-foreground/60" : null)}>
                     <Button
-                      type="text"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setCurrentFolderId(null);
                         setFocusedFolderId(null);
                         setSelection((prev) => clearSelection(prev));
                       }}
-                      autoInsertSpace={false}
                     >
                       {t("assets:ASSET_BREADCRUMB_ROOT")}
                     </Button>
@@ -179,14 +179,13 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                           className={cn("inline-flex", isOver ? "ring-1 ring-foreground/60" : null)}
                         >
                           <Button
-                            type="text"
-                            size="small"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setCurrentFolderId(String(folder.id));
                               setFocusedFolderId(null);
                               setSelection((prev) => clearSelection(prev));
                             }}
-                            autoInsertSpace={false}
                           >
                             {folder.name}
                           </Button>
@@ -206,14 +205,14 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
               </div>
             ) : null}
             <Button
-              type="text"
-              icon={<FolderPlus size={16} />}
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setCreateFolderParentId(currentFolderId);
                 setCreateFolderOpen(true);
               }}
-              autoInsertSpace={false}
             >
+              <FolderPlus size={16} />
               {t("assets:ASSET_ACTION_CREATE_FOLDER")}
             </Button>
           </div>
@@ -229,9 +228,6 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
           }}
         >
           <Masonry
-            gutter={[16, 16]}
-            columns={{ xs: 1, sm: 2, md: 3, xl: 4, xxl: 5 }}
-            fresh
             items={masonryEntries.map((entry) => ({
               key:
                 entry.kind === "asset"
@@ -241,7 +237,15 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
                     : "folder:__up__",
               data: entry,
             }))}
-            itemRender={(info) => {
+            itemKey={(item) => item.key}
+            columnWidth={260}
+            columnGutter={16}
+            rowGutter={16}
+            maxColumnCount={5}
+            itemHeightEstimate={320}
+            overscanBy={1.5}
+            render={({ data }) => {
+              const info = data;
               const entry = info.data as MasonryEntry;
               if (entry.kind === "asset") {
                 return (

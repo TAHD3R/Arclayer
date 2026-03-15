@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Input } from "antd";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 import {
   ChromeTabs,
@@ -9,6 +8,12 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@celestial/ui/chrome-tabs";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 
 import type { OrganizationWorkspacesTab, OrganizationWorkspacesTranslateFn } from "../types";
 
@@ -53,15 +58,27 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
         right={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
             {showSearchInput ? (
-              <Input
-                className="w-[240px] sm:w-[280px] md:w-[320px]"
-                value={searchInput}
-                onChange={(event) => onSearchInputChange(event.target.value)}
-                placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
-                allowClear
-                variant="filled"
-                prefix={<Search className="size-4 text-label-secondary" />}
-              />
+              <InputGroup className="w-[240px] sm:w-[280px] md:w-[320px]">
+                <InputGroupAddon>
+                  <Search className="size-4 text-label-secondary" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  value={searchInput}
+                  onChange={(event) => onSearchInputChange(event.target.value)}
+                  placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
+                />
+                {searchInput ? (
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      aria-label={t("common:CLEAR")}
+                      size="icon-xs"
+                      onClick={() => onSearchInputChange("")}
+                    >
+                      <X className="size-3.5" />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                ) : null}
+              </InputGroup>
             ) : null}
           </div>
         }

@@ -1,4 +1,3 @@
-import { Button } from "antd";
 import { ImageOff, RotateCw } from "lucide-react";
 import { motion } from "motion/react";
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -8,6 +7,7 @@ import { UserAvatar } from "@/components/common/entity-avatar";
 import { cn } from "@celestial/lib/utils";
 import { type AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
+import { Button } from "@celestial/ui/button";
 import { Checkbox } from "@celestial/ui/checkbox";
 import { LoaderOne } from "@celestial/ui/loader";
 import {
@@ -162,16 +162,16 @@ export function LazyAssetImage(props: {
             </div>
             {showErrorOverlay ? (
               <Button
-                size="small"
-                icon={<RotateCw size={16} />}
+                size="sm"
+                variant="outline"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setStatus("loading");
                   setReloadKey((v) => v + 1);
                 }}
-                autoInsertSpace={false}
               >
+                <RotateCw size={16} />
                 {props.retryText || t("common:RETRY")}
               </Button>
             ) : null}

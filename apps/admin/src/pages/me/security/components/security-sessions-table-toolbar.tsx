@@ -1,6 +1,4 @@
-import { Input } from "antd";
 import type { Table as ReactTable } from "@tanstack/react-table";
-import { Search } from "lucide-react";
 
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import {
@@ -8,6 +6,7 @@ import {
   type DataTableDensity,
   type DataTableToolsLabels,
 } from "@celestial/ui/data-table";
+import { Input } from "@celestial/ui/input";
 
 type SearchToolbarProps = {
   searchInput: string;
@@ -22,9 +21,6 @@ export function SecuritySessionsSearchToolbar(props: SearchToolbarProps) {
         value={props.searchInput}
         onChange={(event) => props.onSearchInputChange(event.target.value)}
         placeholder={props.placeholder}
-        allowClear
-        variant="filled"
-        prefix={<Search className="size-4 text-label-secondary" />}
         className="max-w-[320px]"
       />
     </div>

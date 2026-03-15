@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@celestial/ui/button";
 import { SettingCard, SettingCardContent } from "@celestial/ui/setting-card";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 
@@ -196,11 +196,9 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                       >
                         <PopoverTrigger asChild>
                           <Button
-                            type="primary"
-                            danger
+                            variant="destructive"
                             disabled={unlinkIdentityMutation.isPending}
                             loading={unlinkIdentityMutation.isPending}
-                            autoInsertSpace={false}
                           >
                             {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
                           </Button>
@@ -216,17 +214,12 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                           </div>
                           <div className="mt-3 flex items-center justify-end gap-2">
                             <PopoverClose asChild>
-                              <Button
-                                type="text"
-                                disabled={unlinkIdentityMutation.isPending}
-                                autoInsertSpace={false}
-                              >
+                              <Button variant="ghost" disabled={unlinkIdentityMutation.isPending}>
                                 {t("common:CANCEL")}
                               </Button>
                             </PopoverClose>
                             <Button
-                              type="primary"
-                              danger
+                              variant="destructive"
                               disabled={unlinkIdentityMutation.isPending}
                               loading={unlinkIdentityMutation.isPending}
                               onClick={() => {
@@ -234,7 +227,6 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                                   .mutateAsync(row.provider)
                                   .then(() => setDisconnectPopoverProvider(null));
                               }}
-                              autoInsertSpace={false}
                             >
                               {t("ME_LINKED_ACCOUNTS_DISCONNECT")}
                             </Button>
@@ -243,7 +235,6 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                       </Popover>
                     ) : (
                       <Button
-                        type="primary"
                         disabled={
                           !row.startUrl ||
                           issueLinkStateMutation.isPending ||
@@ -262,7 +253,6 @@ export function MeProfileLinkedAccountsSection(props: MeProfileLinkedAccountsSec
                             window.location.assign(nextUrl);
                           })();
                         }}
-                        autoInsertSpace={false}
                       >
                         {t("ME_LINKED_ACCOUNTS_CONNECT")}
                       </Button>

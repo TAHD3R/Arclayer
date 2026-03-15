@@ -1,15 +1,22 @@
-import { Form, Select } from "antd";
-import type { FormInstance } from "antd";
+import { Controller, useWatch } from "react-hook-form";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 
 import {
   DateTimeFormatLocalizationControl,
   TimezoneLocalizationControl,
 } from "@/components/settings/date-time-localization-controls";
+import { StringTagsField } from "@/components/ui/string-tags-field";
 import {
   resolveLocalizationDateFormatSummary,
   resolveLocalizationTimeZoneSummary,
@@ -19,16 +26,9 @@ import {
   buildTimezoneOptions,
 } from "@/lib/settings/general/localization-options";
 import type { GeneralSettingsTabBaseProps } from "@/types/settings-general";
-import type { GeneralSettingsFormValues } from "@/types/settings-general";
+import { getFieldErrorMessage, validateFormFields } from "../form-helpers";
 
 type LocalizationSettingsTabProps = GeneralSettingsTabBaseProps;
-
-function useLocalizationField(
-  form: FormInstance<GeneralSettingsFormValues>,
-  name: keyof GeneralSettingsFormValues,
-) {
-  return Form.useWatch(name as string, form) as unknown;
-}
 
 function getBrowserTimeZone(): string {
   try {
@@ -49,29 +49,25 @@ export function LocalizationSettingsTab({
   const { t } = useTranslation();
 
   const supportedLocales =
-    (useLocalizationField(form, "supportedLocales") as string[] | undefined) ??
-    initialValues.supportedLocales;
+    useWatch({ control: form.control, name: "supportedLocales" }) ?? initialValues.supportedLocales;
   const defaultLocale =
-    (useLocalizationField(form, "defaultLocale") as string | undefined) ??
-    initialValues.defaultLocale;
+    useWatch({ control: form.control, name: "defaultLocale" }) ?? initialValues.defaultLocale;
   const fallbackLocale =
-    (useLocalizationField(form, "fallbackLocale") as string | undefined) ??
-    initialValues.fallbackLocale;
-  const timezone =
-    (useLocalizationField(form, "timezone") as string | undefined) ?? initialValues.timezone;
+    useWatch({ control: form.control, name: "fallbackLocale" }) ?? initialValues.fallbackLocale;
+  const timezone = useWatch({ control: form.control, name: "timezone" }) ?? initialValues.timezone;
   const useBrowserTimeZone =
-    (useLocalizationField(form, "useBrowserTimeZone") as boolean | undefined) ??
+    useWatch({ control: form.control, name: "useBrowserTimeZone" }) ??
     initialValues.useBrowserTimeZone;
   const dateFormat =
-    (useLocalizationField(form, "dateFormat") as string | undefined) ?? initialValues.dateFormat;
+    useWatch({ control: form.control, name: "dateFormat" }) ?? initialValues.dateFormat;
   const useRelativeDateTime =
-    (useLocalizationField(form, "useRelativeDateTime") as boolean | undefined) ??
+    useWatch({ control: form.control, name: "useRelativeDateTime" }) ??
     initialValues.useRelativeDateTime;
 
   const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
   const localeOptions = supportedLocales
     .map((loc) => normalizeLocaleTag(loc))
-    .filter((x): x is string => Boolean(x))
+    .filter((value): value is string => Boolean(value))
     .map((value) => ({ value, label: value }));
   const timezoneOptions = buildTimezoneOptions(timezone);
   const dateFormatOptions = buildDateFormatOptions();
@@ -109,14 +105,13 @@ export function LocalizationSettingsTab({
 
   const resetSupportedLocales = () =>
     withSavingKey("reset:supportedLocales", async () => {
-      form.setFieldValue("supportedLocales", initialValues.supportedLocales);
+      form.setValue("supportedLocales", initialValues.supportedLocales, { shouldDirty: false });
       await patch({ site_localization: { supported_locales: initialValues.supportedLocales } });
     });
 
   const resetDefaultLocale = () =>
     withSavingKey("reset:defaultLocale", async () => {
-      form.setFieldValue("defaultLocale", initialValues.defaultLocale);
-      // Backward-compatible: also write legacy `locale`.
+      form.setValue("defaultLocale", initialValues.defaultLocale, { shouldDirty: false });
       await patch({
         site_localization: {
           default_locale: initialValues.defaultLocale,
@@ -127,16 +122,15 @@ export function LocalizationSettingsTab({
 
   const resetFallbackLocale = () =>
     withSavingKey("reset:fallbackLocale", async () => {
-      form.setFieldValue("fallbackLocale", initialValues.fallbackLocale);
+      form.setValue("fallbackLocale", initialValues.fallbackLocale, { shouldDirty: false });
       await patch({ site_localization: { fallback_locale: initialValues.fallbackLocale } });
     });
 
   const resetTimezone = () =>
     withSavingKey("reset:timezone", async () => {
-      form.setFieldsValue({
-        timezone: initialValues.timezone,
-        useBrowserTimeZone: initialValues.useBrowserTimeZone,
-      });
+      form.setValue("timezone", initialValues.timezone, { shouldDirty: false });
+      form.setValue("useBrowserTimeZone", initialValues.useBrowserTimeZone, { shouldDirty: false });
+      form.clearErrors("timezone");
       await patch({
         site_localization: {
           timezone: initialValues.timezone,
@@ -147,10 +141,11 @@ export function LocalizationSettingsTab({
 
   const resetDateFormat = () =>
     withSavingKey("reset:dateFormat", async () => {
-      form.setFieldsValue({
-        dateFormat: initialValues.dateFormat,
-        useRelativeDateTime: initialValues.useRelativeDateTime,
+      form.setValue("dateFormat", initialValues.dateFormat, { shouldDirty: false });
+      form.setValue("useRelativeDateTime", initialValues.useRelativeDateTime, {
+        shouldDirty: false,
       });
+      form.clearErrors("dateFormat");
       await patch({
         site_localization: {
           date_format: initialValues.dateFormat,
@@ -161,36 +156,43 @@ export function LocalizationSettingsTab({
 
   const saveSupportedLocales = () =>
     withSavingKey("supportedLocales", async () => {
-      const values = await form.validateFields(["supportedLocales"]);
+      const values = await validateFormFields(form, ["supportedLocales"]);
       const normalized = uniqLocales(values.supportedLocales ?? []);
       const merged = uniqLocales([defaultLocale, fallbackLocale, ...normalized]);
-      form.setFieldValue("supportedLocales", merged);
+      form.setValue("supportedLocales", merged, { shouldDirty: true, shouldValidate: true });
       await patch({ site_localization: { supported_locales: merged } });
     });
 
   const saveDefaultLocale = () =>
     withSavingKey("defaultLocale", async () => {
-      const values = await form.validateFields(["defaultLocale"]);
+      const values = await validateFormFields(form, ["defaultLocale"]);
       const normalized = normalizeLocaleTag(values.defaultLocale) ?? initialValues.defaultLocale;
-      form.setFieldValue("defaultLocale", normalized);
-      // Backward-compatible: also write legacy `locale`.
+      form.setValue("defaultLocale", normalized, { shouldDirty: true, shouldValidate: true });
       await patch({ site_localization: { default_locale: normalized, locale: normalized } });
     });
 
   const saveFallbackLocale = () =>
     withSavingKey("fallbackLocale", async () => {
-      const values = await form.validateFields(["fallbackLocale"]);
+      const values = await validateFormFields(form, ["fallbackLocale"]);
       const normalized = normalizeLocaleTag(values.fallbackLocale) ?? initialValues.fallbackLocale;
-      form.setFieldValue("fallbackLocale", normalized);
+      form.setValue("fallbackLocale", normalized, { shouldDirty: true, shouldValidate: true });
       await patch({ site_localization: { fallback_locale: normalized } });
     });
 
   const saveTimezone = () =>
     withSavingKey("timezone", async () => {
-      const values = await form.validateFields(["timezone"]);
+      const nextTimezone = String(form.getValues("timezone") || "").trim();
+      if (!nextTimezone) {
+        form.setError("timezone", {
+          type: "validate",
+          message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      form.clearErrors("timezone");
       await patch({
         site_localization: {
-          timezone: String(values.timezone),
+          timezone: nextTimezone,
           use_browser_timezone: useBrowserTimeZone,
         },
       });
@@ -198,14 +200,28 @@ export function LocalizationSettingsTab({
 
   const saveDateFormat = () =>
     withSavingKey("dateFormat", async () => {
-      const values = await form.validateFields(["dateFormat"]);
+      const nextDateFormat = String(form.getValues("dateFormat") || "").trim();
+      if (!nextDateFormat) {
+        form.setError("dateFormat", {
+          type: "validate",
+          message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      form.clearErrors("dateFormat");
       await patch({
         site_localization: {
-          date_format: String(values.dateFormat),
+          date_format: nextDateFormat,
           use_relative_datetime: useRelativeDateTime,
         },
       });
     });
+
+  const supportedLocalesError = getFieldErrorMessage(form, "supportedLocales");
+  const defaultLocaleError = getFieldErrorMessage(form, "defaultLocale");
+  const fallbackLocaleError = getFieldErrorMessage(form, "fallbackLocale");
+  const timezoneError = getFieldErrorMessage(form, "timezone");
+  const dateFormatError = getFieldErrorMessage(form, "dateFormat");
 
   return (
     <Accordion type="single" collapsible className="px-0">
@@ -225,36 +241,37 @@ export function LocalizationSettingsTab({
         resetLoading={isResettingSupportedLocales}
         disabled={disabled}
       >
-        <Form.Item<GeneralSettingsFormValues>
+        <Controller
+          control={form.control}
           name="supportedLocales"
-          rules={[
-            {
-              required: true,
-              validator: async (_, value: unknown) => {
-                if (!Array.isArray(value) || value.length === 0) {
-                  throw new Error(t("setup:SETUP_VALIDATION_LOCALE_REQUIRED"));
-                }
-                const invalid = value
-                  .map((x) => (typeof x === "string" ? x.trim() : ""))
-                  .filter(Boolean)
-                  .find((x) => normalizeLocaleTag(x) === null);
-                if (invalid) {
-                  throw new Error(
-                    t("settings:SITE_LOCALIZATION_INVALID_LOCALE_TAG", { tag: invalid }),
-                  );
-                }
-              },
+          rules={{
+            validate: (value) => {
+              if (!Array.isArray(value) || value.length === 0) {
+                return t("setup:SETUP_VALIDATION_LOCALE_REQUIRED");
+              }
+              const invalid = value
+                .map((item) => (typeof item === "string" ? item.trim() : ""))
+                .filter(Boolean)
+                .find((item) => normalizeLocaleTag(item) === null);
+              if (!invalid) return true;
+              return t("settings:SITE_LOCALIZATION_INVALID_LOCALE_TAG", { tag: invalid });
             },
-          ]}
-          style={{ marginBottom: 0 }}
-        >
-          <Select
-            size="large"
-            mode="tags"
-            tokenSeparators={[",", " "]}
-            placeholder="e.g. zh-CN, en-US, fr-FR"
-          />
-        </Form.Item>
+          }}
+          render={({ field }) => (
+            <div className="space-y-2">
+              <StringTagsField
+                value={field.value ?? []}
+                onChange={(next) => field.onChange(uniqLocales(next))}
+                placeholder="e.g. zh-CN, en-US, fr-FR"
+                disabled={disabled}
+                normalizeValue={(item) => String(item || "").trim()}
+              />
+              {supportedLocalesError ? (
+                <div className="text-footnote text-destructive">{supportedLocalesError}</div>
+              ) : null}
+            </div>
+          )}
+        />
       </SettingAccordionItem>
 
       <SettingAccordionItem
@@ -271,13 +288,34 @@ export function LocalizationSettingsTab({
         resetLoading={isResettingDefaultLocale}
         disabled={disabled}
       >
-        <Form.Item<GeneralSettingsFormValues>
+        <Controller
+          control={form.control}
           name="defaultLocale"
-          rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
-          style={{ marginBottom: 0 }}
-        >
-          <Select size="large" options={localeOptions} showSearch optionFilterProp="label" />
-        </Form.Item>
+          rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
+          render={({ field }) => (
+            <div className="space-y-2">
+              <Select
+                value={field.value || undefined}
+                onValueChange={field.onChange}
+                disabled={disabled}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("common:SELECT")} />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  {localeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {defaultLocaleError ? (
+                <div className="text-footnote text-destructive">{defaultLocaleError}</div>
+              ) : null}
+            </div>
+          )}
+        />
       </SettingAccordionItem>
 
       <SettingAccordionItem
@@ -296,13 +334,34 @@ export function LocalizationSettingsTab({
         resetLoading={isResettingFallbackLocale}
         disabled={disabled}
       >
-        <Form.Item<GeneralSettingsFormValues>
+        <Controller
+          control={form.control}
           name="fallbackLocale"
-          rules={[{ required: true, message: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }]}
-          style={{ marginBottom: 0 }}
-        >
-          <Select size="large" options={localeOptions} showSearch optionFilterProp="label" />
-        </Form.Item>
+          rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
+          render={({ field }) => (
+            <div className="space-y-2">
+              <Select
+                value={field.value || undefined}
+                onValueChange={field.onChange}
+                disabled={disabled}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("common:SELECT")} />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  {localeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fallbackLocaleError ? (
+                <div className="text-footnote text-destructive">{fallbackLocaleError}</div>
+              ) : null}
+            </div>
+          )}
+        />
       </SettingAccordionItem>
 
       <SettingAccordionItem
@@ -319,25 +378,25 @@ export function LocalizationSettingsTab({
         resetLoading={isResettingTimezone}
         disabled={disabled}
       >
-        <Form.Item<GeneralSettingsFormValues>
-          name="timezone"
-          rules={[{ required: true, message: t("setup:SETUP_VALIDATION_TIMEZONE_REQUIRED") }]}
-          hidden
-        >
-          <input type="hidden" />
-        </Form.Item>
-        <Form.Item<GeneralSettingsFormValues> name="useBrowserTimeZone" hidden>
-          <input type="hidden" />
-        </Form.Item>
-        <TimezoneLocalizationControl
-          selectValue={String(timezone || "")}
-          switchChecked={useBrowserTimeZone}
-          switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
-          switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
-          options={timezoneOptions}
-          onSelectChange={(value) => form.setFieldValue("timezone", value)}
-          onSwitchChange={(checked) => form.setFieldValue("useBrowserTimeZone", checked)}
-        />
+        <div className="space-y-2">
+          <TimezoneLocalizationControl
+            selectValue={String(timezone || "")}
+            switchChecked={useBrowserTimeZone}
+            switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+            switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+            options={timezoneOptions}
+            onSelectChange={(value) => {
+              form.setValue("timezone", value, { shouldDirty: true });
+              form.clearErrors("timezone");
+            }}
+            onSwitchChange={(checked) => {
+              form.setValue("useBrowserTimeZone", checked, { shouldDirty: true });
+            }}
+          />
+          {timezoneError ? (
+            <div className="text-footnote text-destructive">{timezoneError}</div>
+          ) : null}
+        </div>
       </SettingAccordionItem>
 
       <SettingAccordionItem
@@ -354,30 +413,25 @@ export function LocalizationSettingsTab({
         resetLoading={isResettingDateFormat}
         disabled={disabled}
       >
-        <Form.Item<GeneralSettingsFormValues>
-          name="dateFormat"
-          rules={[
-            {
-              required: true,
-              message: t("setup:SETUP_VALIDATION_DATE_FORMAT_REQUIRED"),
-            },
-          ]}
-          hidden
-        >
-          <input type="hidden" />
-        </Form.Item>
-        <Form.Item<GeneralSettingsFormValues> name="useRelativeDateTime" hidden>
-          <input type="hidden" />
-        </Form.Item>
-        <DateTimeFormatLocalizationControl
-          selectValue={String(dateFormat || "")}
-          switchChecked={useRelativeDateTime}
-          switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
-          switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
-          options={dateFormatOptions}
-          onSelectChange={(value) => form.setFieldValue("dateFormat", value)}
-          onSwitchChange={(checked) => form.setFieldValue("useRelativeDateTime", checked)}
-        />
+        <div className="space-y-2">
+          <DateTimeFormatLocalizationControl
+            selectValue={String(dateFormat || "")}
+            switchChecked={useRelativeDateTime}
+            switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+            switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
+            options={dateFormatOptions}
+            onSelectChange={(value) => {
+              form.setValue("dateFormat", value, { shouldDirty: true });
+              form.clearErrors("dateFormat");
+            }}
+            onSwitchChange={(checked) => {
+              form.setValue("useRelativeDateTime", checked, { shouldDirty: true });
+            }}
+          />
+          {dateFormatError ? (
+            <div className="text-footnote text-destructive">{dateFormatError}</div>
+          ) : null}
+        </div>
       </SettingAccordionItem>
     </Accordion>
   );
@@ -401,13 +455,13 @@ function normalizeLocaleTag(input: unknown): string | null {
 function uniqLocales(values: string[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const v of values) {
-    const norm = normalizeLocaleTag(v);
-    if (!norm) continue;
-    const key = norm.toLowerCase();
+  for (const value of values) {
+    const normalized = normalizeLocaleTag(value);
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(norm);
+    out.push(normalized);
   }
   return out;
 }

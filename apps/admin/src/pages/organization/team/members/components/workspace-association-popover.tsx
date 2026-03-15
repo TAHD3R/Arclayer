@@ -1,6 +1,6 @@
-import { Button as AntButton } from "antd";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@celestial/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 import {
   type ResolvedMemberWorkspace,
@@ -25,13 +25,13 @@ export function WorkspaceAssociationPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <AntButton
-          type="text"
-          className="!h-auto !px-2 !py-1 !font-medium !text-foreground hover:!bg-accent"
-          autoInsertSpace={false}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto px-2 py-1 font-medium text-foreground hover:bg-accent"
         >
           {t("common:ORG_MEMBERS_ASSOCIATED_WORKSPACES_COUNT", { count: workspaces.length })}
-        </AntButton>
+        </Button>
       </PopoverTrigger>
 
       <PopoverContent align="start" sideOffset={8} className="w-100 max-w-[90vw] p-3">

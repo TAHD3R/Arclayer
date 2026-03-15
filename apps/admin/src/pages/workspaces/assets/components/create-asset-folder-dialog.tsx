@@ -1,8 +1,10 @@
-import { Button, Input } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Textarea } from "@celestial/ui/textarea";
 
 export type CreateAssetFolderDialogProps = {
   open: boolean;
@@ -38,22 +40,19 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
       footer={
         <>
           <Button
-            type="text"
+            variant="ghost"
             disabled={Boolean(props.confirmLoading)}
             onClick={() => props.onOpenChange(false)}
-            autoInsertSpace={false}
           >
             {t("common:CANCEL")}
           </Button>
           <Button
-            type="primary"
             loading={props.confirmLoading}
             disabled={!canSubmit}
             onClick={async () => {
               await props.onCreate(name.trim(), description.trim() || null);
               props.onOpenChange(false);
             }}
-            autoInsertSpace={false}
           >
             {t("assets:ASSET_FOLDER_CREATE_CONFIRM")}
           </Button>
@@ -87,11 +86,11 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
           <div className="text-label-secondary">
             {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
           </div>
-          <Input.TextArea
+          <Textarea
+            className="min-h-24"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
-            autoSize={{ minRows: 2, maxRows: 5 }}
           />
         </div>
       </div>

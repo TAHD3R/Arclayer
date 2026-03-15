@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Button as AntButton } from "antd";
 import { Building2, FolderKanban } from "lucide-react";
 
 import { cn } from "@celestial/lib/utils";
+import { Button } from "@celestial/ui/button";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -79,19 +79,21 @@ function renderActionButtons(actions: readonly MemberContextDialogAction[] | und
   return (
     <div className="flex items-center gap-2">
       {actions.map((action, index) => {
-        const type = count === 1 ? "primary" : index === 0 ? "primary" : "text";
+        const variant = action.danger
+          ? "destructive"
+          : count === 1 || index === 0
+            ? "default"
+            : "ghost";
         return (
-          <AntButton
+          <Button
             key={action.key}
-            type={type}
-            danger={Boolean(action.danger)}
-            autoInsertSpace={false}
+            variant={variant}
             disabled={action.disabled}
             loading={action.loading}
             onClick={action.onClick}
           >
             {action.label}
-          </AntButton>
+          </Button>
         );
       })}
     </div>

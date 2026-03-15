@@ -1,129 +1,99 @@
-import { Button, Form, Input } from "antd";
 import { Lock, Mail, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { UseFormReturn } from "react-hook-form";
 
+import { SetupFieldShell, SetupInputControl, SetupPasswordControl } from "./setup-form-controls";
 import type { SetupAdminDraft } from "@/types/stores";
 
-// Keep behavior aligned with backend PASSWORD_REGEX (apps/api/routers/v1/auth/constants.py).
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[[A-Za-z\d~!@#$%^&*()_\-+=\]{}|;:'",.<>?/]{8,128}$/;
-
 export function SetupAdminStep(props: {
-  form: ReturnType<typeof Form.useForm<SetupAdminDraft>>[0];
+  form: UseFormReturn<SetupAdminDraft>;
   disabled?: boolean;
-  onValuesChange: (changed: Partial<SetupAdminDraft>, values: Partial<SetupAdminDraft>) => void;
 }) {
   const { t } = useTranslation();
+  const { formState, register } = props.form;
 
   return (
-    <Form<SetupAdminDraft>
-      form={props.form}
-      layout="vertical"
-      requiredMark={false}
-      autoComplete="off"
-      disabled={props.disabled}
-      onValuesChange={props.onValuesChange}
-    >
-      <Form.Item<SetupAdminDraft>
-        name="username"
+    <div className="grid gap-4">
+      <SetupFieldShell
         label={t("auth:FIELD_USERNAME_LABEL")}
-        rules={[{ required: true, message: t("auth:VALIDATION_USERNAME_REQUIRED") }]}
+        error={
+          formState.errors.username?.message ? String(formState.errors.username.message) : undefined
+        }
       >
-        <Input
+        <SetupInputControl
           autoComplete="off"
           aria-label={t("auth:FIELD_USERNAME_LABEL")}
           placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
-          prefix={<User size={16} />}
-          size="large"
-          variant="filled"
+          startIcon={<User size={16} />}
+          disabled={props.disabled}
+          {...register("username")}
         />
-      </Form.Item>
+      </SetupFieldShell>
 
-      <Form.Item<SetupAdminDraft>
-        name="password"
+      <SetupFieldShell
         label={t("auth:FIELD_PASSWORD_LABEL")}
-        rules={[
-          { required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") },
-          {
-            validator: async (_, value) => {
-              if (!value) return;
-              if (PASSWORD_REGEX.test(value)) return;
-              throw new Error(t("auth:PASSWORD_INVALID"));
-            },
-          },
-        ]}
+        error={
+          formState.errors.password?.message ? String(formState.errors.password.message) : undefined
+        }
       >
-        <Input.Password
+        <SetupPasswordControl
           autoComplete="new-password"
           aria-label={t("auth:FIELD_PASSWORD_LABEL")}
           placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-          prefix={<Lock size={16} />}
-          size="large"
-          variant="filled"
+          startIcon={<Lock size={16} />}
+          disabled={props.disabled}
+          {...register("password")}
         />
-      </Form.Item>
+      </SetupFieldShell>
 
-      <Form.Item<SetupAdminDraft>
-        name="confirmPassword"
+      <SetupFieldShell
         label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
-        dependencies={["password"]}
-        rules={[
-          { required: true, message: t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED") },
-          ({ getFieldValue }) => ({
-            validator: async (_, value) => {
-              const pwd = getFieldValue("password");
-              if (!value || value === pwd) return;
-              throw new Error(t("auth:VALIDATION_PASSWORD_MISMATCH"));
-            },
-          }),
-        ]}
+        error={
+          formState.errors.confirmPassword?.message
+            ? String(formState.errors.confirmPassword.message)
+            : undefined
+        }
       >
-        <Input.Password
+        <SetupPasswordControl
           autoComplete="new-password"
           aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
           placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
-          prefix={<Lock size={16} />}
-          size="large"
-          variant="filled"
+          startIcon={<Lock size={16} />}
+          disabled={props.disabled}
+          {...register("confirmPassword")}
         />
-      </Form.Item>
+      </SetupFieldShell>
 
-      <Form.Item<SetupAdminDraft>
-        name="email"
+      <SetupFieldShell
         label={t("auth:FIELD_EMAIL_LABEL")}
-        rules={[
-          { required: true, message: t("auth:VALIDATION_EMAIL_REQUIRED") },
-          { type: "email", message: t("auth:VALIDATION_EMAIL_INVALID") },
-        ]}
+        error={formState.errors.email?.message ? String(formState.errors.email.message) : undefined}
       >
-        <Input
+        <SetupInputControl
           autoComplete="off"
           aria-label={t("auth:FIELD_EMAIL_LABEL")}
           placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
-          prefix={<Mail size={16} />}
-          size="large"
-          variant="filled"
+          startIcon={<Mail size={16} />}
+          disabled={props.disabled}
+          {...register("email")}
         />
-      </Form.Item>
+      </SetupFieldShell>
 
-      <Form.Item<SetupAdminDraft>
-        name="displayName"
+      <SetupFieldShell
         label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
-        rules={[
-          { required: true, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_REQUIRED") },
-          { max: 64, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_MAX") },
-        ]}
+        error={
+          formState.errors.displayName?.message
+            ? String(formState.errors.displayName.message)
+            : undefined
+        }
       >
-        <Input
+        <SetupInputControl
           autoComplete="off"
           aria-label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
           placeholder={t("setup:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
-          size="large"
-          variant="filled"
+          disabled={props.disabled}
+          {...register("displayName")}
         />
-      </Form.Item>
-
-      {/* Prevent Enter key from submitting/navigating unexpectedly (we drive navigation from the wizard buttons). */}
-      <Button htmlType="submit" style={{ display: "none" }} autoInsertSpace={false} />
-    </Form>
+      </SetupFieldShell>
+    </div>
   );
 }

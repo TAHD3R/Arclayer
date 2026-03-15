@@ -1,6 +1,4 @@
-import { Button, Input, Select } from "antd";
 import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-form";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
 import type { Role } from "@/types/api";
 import {
@@ -15,7 +13,17 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Textarea } from "@celestial/ui/textarea";
 
 import type { CreateRoleFormValues } from "../utils";
 
@@ -76,8 +84,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
               <Button
-                autoInsertSpace={false}
-                type="text"
+                variant="ghost"
                 onClick={() => {
                   setDeleteOpen(false);
                   setDeleteTarget(null);
@@ -89,9 +96,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
               <Button
-                autoInsertSpace={false}
-                type="primary"
-                danger
+                variant="destructive"
                 loading={deleteRolePending}
                 onClick={() => {
                   if (!deleteTarget?.code) return;
@@ -117,16 +122,13 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         footer={
           <>
             <Button
-              autoInsertSpace={false}
-              type="text"
+              variant="ghost"
               onClick={() => setCreateOpen(false)}
               disabled={createRolePending}
             >
               {t("common:CANCEL")}
             </Button>
             <Button
-              autoInsertSpace={false}
-              type="primary"
               loading={createRolePending}
               onClick={() => void createForm.handleSubmit(onCreateRoleSubmit)()}
             >
@@ -146,16 +148,21 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
               control={createForm.control}
               render={({ field }) => (
                 <Select
-                  value={field.value || undefined}
-                  onChange={(value) => field.onChange(value)}
-                  placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")}
-                  getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-                  dropdownStyle={{ zIndex: 3000 }}
-                  options={[
-                    { value: "__none__", label: t("team:TEAM_ROLES_TEMPLATE_NONE") },
-                    ...roles.map((role) => ({ value: role.code, label: role.name })),
-                  ]}
-                />
+                  value={field.value || "__none__"}
+                  onValueChange={(value) => field.onChange(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")} />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="start">
+                    <SelectItem value="__none__">{t("team:TEAM_ROLES_TEMPLATE_NONE")}</SelectItem>
+                    {roles.map((role) => (
+                      <SelectItem key={role.code} value={role.code}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             />
             {createErrors.templateRoleCode?.message ? (
@@ -194,8 +201,8 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
               name="description"
               control={createForm.control}
               render={({ field }) => (
-                <Input.TextArea
-                  autoSize={{ minRows: 3, maxRows: 6 }}
+                <Textarea
+                  className="min-h-28"
                   value={field.value}
                   onChange={(event) => field.onChange(event.target.value)}
                 />

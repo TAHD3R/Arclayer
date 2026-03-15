@@ -1,21 +1,27 @@
 "use client";
 
-import { Button as AntButton, Input, Select } from "antd";
 import { UserPlus } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
 
 import type { Role } from "@/types/api";
 import { createTeamInvitation, createTeamInviteLink } from "@/api/team";
+import { EmailTagsField } from "@/components/ui/email-tags-field";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { EmailInputTag } from "@/components/ui/tags";
 
 type FormValues = {
   emails: string[];
@@ -31,7 +37,6 @@ export type InviteMembersDialogMode = "email" | "link";
 type ExpiresInSecondsValue = number | null;
 
 function normalizeEmailList(input: string[]): string[] {
-  // Preserve order but de-duplicate.
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of input) {
@@ -62,8 +67,6 @@ export function InviteMembersDialog(props: {
     return z.object({
       emails: z.array(z.string()).superRefine((val, ctx) => {
         const emails = normalizeEmailList(val);
-        // Mode=email: emails are required.
-        // Mode=link: emails must be empty (we intentionally avoid ambiguous behavior).
         if (props.mode === "email" && emails.length <= 0) {
           ctx.addIssue({
             code: "custom",
@@ -81,7 +84,6 @@ export function InviteMembersDialog(props: {
           return;
         }
 
-        // If provided, validate format.
         for (const [idx, email] of emails.entries()) {
           if (!z.string().email().safeParse(email).success) {
             ctx.addIssue({
@@ -124,14 +126,13 @@ export function InviteMembersDialog(props: {
     }
   }, [form, props.open]);
 
-  // When opening the dialog, preselect the default role (or the first role) for a smoother UX.
   React.useEffect(() => {
     if (!props.open) return;
     const current = form.getValues("roleCode");
     if (current) return;
     if (!props.roles.length) return;
 
-    const defaultRole = props.roles.find((r) => r.isDefault) ?? props.roles[0];
+    const defaultRole = props.roles.find((role) => role.isDefault) ?? props.roles[0];
     if (!defaultRole) return;
     form.setValue("roleCode", defaultRole.code, { shouldDirty: false });
   }, [form, props.open, props.roles]);
@@ -155,11 +156,12 @@ export function InviteMembersDialog(props: {
             }),
           ),
         );
-        const successCount = results.filter((r) => r.status === "fulfilled").length;
-        const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+        const successCount = results.filter((result) => result.status === "fulfilled").length;
+        const failed = results.filter(
+          (result): result is PromiseRejectedResult => result.status === "rejected",
+        );
         const failedCount = failed.length;
 
-        // If everything failed, surface the first error to avoid "0 success" misleading toasts.
         if (successCount === 0 && failedCount > 0) {
           throw failed[0]?.reason;
         }
@@ -168,7 +170,6 @@ export function InviteMembersDialog(props: {
           successCount,
           failedCount,
           firstInviteUrl: null as string | null,
-          firstToken: null as string | null,
         };
       }
 
@@ -180,18 +181,15 @@ export function InviteMembersDialog(props: {
         allowedEmailDomain: values.allowedEmailDomain.trim() || null,
       });
 
-      const url =
-        created.inviteUrl ??
-        (typeof window !== "undefined"
-          ? `${window.location.origin}/invitations?token=${encodeURIComponent(created.token)}`
-          : null);
-
       return {
         mode: "link" as const,
         successCount: 1,
         failedCount: 0,
-        firstInviteUrl: url,
-        firstToken: created.token,
+        firstInviteUrl:
+          created.inviteUrl ??
+          (typeof window !== "undefined"
+            ? `${window.location.origin}/invitations?token=${encodeURIComponent(created.token)}`
+            : null),
       };
     },
     onSuccess: async (result) => {
@@ -201,7 +199,7 @@ export function InviteMembersDialog(props: {
           await navigator.clipboard.writeText(result.firstInviteUrl);
           copied = true;
         } catch {
-          // ignore clipboard failures
+          copied = false;
         }
       }
 
@@ -231,12 +229,14 @@ export function InviteMembersDialog(props: {
     await inviteMutation.mutateAsync(values);
   });
 
-  const roleOptions = React.useMemo(() => {
-    return props.roles.map((r) => ({
-      label: r.name || r.code,
-      value: r.code,
-    }));
-  }, [props.roles]);
+  const roleOptions = React.useMemo(
+    () =>
+      props.roles.map((role) => ({
+        label: role.name || role.code,
+        value: role.code,
+      })),
+    [props.roles],
+  );
 
   const expiresOptions = React.useMemo<Array<{ label: string; value: ExpiresInSecondsValue }>>(
     () => [
@@ -248,18 +248,18 @@ export function InviteMembersDialog(props: {
     [t],
   );
 
-  const joinModeOptions = React.useMemo(() => {
-    return [
+  const joinModeOptions = React.useMemo(
+    () => [
       { label: t("team:TEAM_INVITE_JOIN_MODE_MEMBER"), value: "member" as const },
       { label: t("team:TEAM_INVITE_JOIN_MODE_GUEST"), value: "guest" as const },
-    ];
-  }, [t]);
+    ],
+    [t],
+  );
 
   const emailTags = form.watch("emails");
   const selectedRoleCode = form.watch("roleCode");
   const selectedJoinMode = form.watch("joinMode");
   const selectedExpires = form.watch("expiresInSeconds");
-
   const invalidEmailMessageByValue = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const email of normalizeEmailList(emailTags)) {
@@ -287,101 +287,71 @@ export function InviteMembersDialog(props: {
       contentClassName="sm:max-w-xl"
       footer={
         <>
-          <AntButton
-            autoInsertSpace={false}
-            type="text"
+          <Button
+            variant="ghost"
             onClick={() => props.onOpenChange(false)}
             disabled={inviteMutation.isPending}
           >
             {t("common:CANCEL")}
-          </AntButton>
-          <AntButton
-            autoInsertSpace={false}
-            type="primary"
-            icon={<UserPlus className="size-4" aria-hidden="true" />}
-            loading={inviteMutation.isPending}
-            onClick={() => void onSubmit()}
-          >
+          </Button>
+          <Button loading={inviteMutation.isPending} onClick={() => void onSubmit()}>
+            <UserPlus className="size-4" aria-hidden="true" />
             {t("common:CONFIRM")}
-          </AntButton>
+          </Button>
         </>
       }
     >
       <form onSubmit={onSubmit} className="grid gap-4 py-2">
         {props.mode === "email" ? (
           <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground" htmlFor="to">
+            <label className="font-semibold text-foreground" htmlFor="invite-emails">
               {t("team:TEAM_INVITE_FIELD_TO")}
             </label>
             <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
-            <Select
-              id="to"
-              mode="tags"
-              suffixIcon={false}
-              open={false}
-              tokenSeparators={[" ", "\n", ",", ";", "，", "；", "\t"]}
-              placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+            <EmailTagsField
+              id="invite-emails"
               value={emailTags}
-              onChange={(next) => {
+              placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+              invalidMessageByValue={invalidEmailMessageByValue}
+              disabled={inviteMutation.isPending}
+              onChange={(next) =>
                 form.setValue("emails", normalizeEmailList(next), {
                   shouldDirty: true,
                   shouldValidate: true,
-                });
-              }}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[]}
-              notFoundContent={null}
-              tagRender={(tagProps) => {
-                const value = String(tagProps.value || "").trim();
-                const message = invalidEmailMessageByValue.get(value) ?? null;
-                const closable = tagProps.closable;
-                const onClose = tagProps.onClose;
-
-                const tag = (
-                  <EmailInputTag
-                    invalid={Boolean(message)}
-                    closable={closable}
-                    onClose={onClose}
-                    className="!mr-0"
-                    label={tagProps.label}
-                  />
-                );
-
-                return message ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>{tag}</TooltipTrigger>
-                    <TooltipContent>{message}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  tag
-                );
-              }}
+                })
+              }
             />
             {form.formState.errors.emails?.message ? (
-              <div className="text-destructive">{String(form.formState.errors.emails.message)}</div>
+              <div className="text-footnote text-destructive">
+                {String(form.formState.errors.emails.message)}
+              </div>
             ) : null}
           </div>
         ) : null}
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="roleCode">
+          <label className="font-semibold text-foreground" htmlFor="invite-role">
             {t("team:TEAM_INVITE_FIELD_ROLE")}
           </label>
           <div className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
           <Select
-            id="roleCode"
-            showSearch
-            optionFilterProp="label"
-            loading={props.rolesLoading}
             value={selectedRoleCode || undefined}
-            onChange={(v) =>
-              form.setValue("roleCode", String(v), { shouldDirty: true, shouldValidate: true })
+            onValueChange={(value) =>
+              form.setValue("roleCode", value, { shouldDirty: true, shouldValidate: true })
             }
-            options={roleOptions}
-            placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
-            // Keep dropdown inside the dialog; otherwise Radix overlay may block item clicks.
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-          />
+            disabled={props.rolesLoading || inviteMutation.isPending}
+          >
+            <SelectTrigger id="invite-role" className="w-full">
+              <SelectValue placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")} />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {roleOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {form.formState.errors.roleCode?.message ? (
             <div className="text-footnote text-destructive">
               {String(form.formState.errors.roleCode.message)}
@@ -390,22 +360,31 @@ export function InviteMembersDialog(props: {
         </div>
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="joinMode">
+          <label className="font-semibold text-foreground" htmlFor="invite-join-mode">
             {t("team:TEAM_INVITE_FIELD_JOIN_MODE")}
           </label>
           <div className="text-label-secondary">{t("team:TEAM_INVITE_JOIN_MODE_HELP")}</div>
           <Select
-            id="joinMode"
             value={selectedJoinMode}
-            onChange={(v) =>
-              form.setValue("joinMode", String(v) as FormValues["joinMode"], {
+            onValueChange={(value) =>
+              form.setValue("joinMode", value as FormValues["joinMode"], {
                 shouldDirty: true,
                 shouldValidate: true,
               })
             }
-            options={joinModeOptions}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-          />
+            disabled={inviteMutation.isPending}
+          >
+            <SelectTrigger id="invite-join-mode" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {joinModeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {props.mode === "link" ? (
@@ -418,32 +397,45 @@ export function InviteMembersDialog(props: {
             </div>
             <Input
               id="allowedEmailDomain"
-              placeholder={t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_PLACEHOLDER")}
-              value={form.watch("allowedEmailDomain")}
-              onChange={(e) =>
-                form.setValue("allowedEmailDomain", e.target.value, { shouldDirty: true })
-              }
+              placeholder={t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_PLACEHOLDER")}
+              aria-invalid={form.formState.errors.allowedEmailDomain ? true : undefined}
+              disabled={inviteMutation.isPending}
+              {...form.register("allowedEmailDomain")}
             />
+            {form.formState.errors.allowedEmailDomain?.message ? (
+              <div className="text-footnote text-destructive">
+                {String(form.formState.errors.allowedEmailDomain.message)}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="expiresInSeconds">
+          <label className="font-semibold text-foreground" htmlFor="invite-expires">
             {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
           </label>
           <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-          <Select<ExpiresInSecondsValue>
-            id="expiresInSeconds"
-            value={selectedExpires}
-            // antd emits `null` when selecting the "never" option.
-            onChange={(v) =>
-              form.setValue("expiresInSeconds", v, {
+          <Select
+            value={String(selectedExpires)}
+            onValueChange={(value) =>
+              form.setValue("expiresInSeconds", value === "null" ? null : Number(value), {
                 shouldDirty: true,
+                shouldValidate: true,
               })
             }
-            options={expiresOptions}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-          />
+            disabled={inviteMutation.isPending}
+          >
+            <SelectTrigger id="invite-expires" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {expiresOptions.map((option) => (
+                <SelectItem key={String(option.value)} value={String(option.value)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </form>
     </SettingDialog>

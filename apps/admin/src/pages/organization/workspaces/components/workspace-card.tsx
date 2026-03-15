@@ -1,8 +1,7 @@
-import { Avatar, Button as AntButton } from "antd";
-
-import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { MoreVertical } from "lucide-react";
 
+import { Button } from "@celestial/ui/button";
+import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@celestial/lib/utils";
 import {
@@ -43,11 +42,9 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <AntButton
-                type="text"
-                icon={<MoreVertical className="size-4" />}
-                autoInsertSpace={false}
-              />
+              <Button variant="ghost" size="icon-sm">
+                <MoreVertical className="size-4" />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {menuItems.map((item) =>
@@ -81,18 +78,22 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
       {/* Footer: member avatars + clickable count */}
       <div className="mt-auto flex items-center gap-2 pt-4">
         {workspace.membersPreview.length > 0 && (
-          <Avatar.Group
-            max={{ count: 3, style: { backgroundColor: "var(--color-primary)", fontSize: 12 } }}
-            size="small"
-          >
-            {workspace.membersPreview.map((member) => (
+          <div className="flex -space-x-2">
+            {workspace.membersPreview.slice(0, 3).map((member) => (
               <UserAvatar
                 key={member.userId}
                 name={member.displayName || member.username || "U"}
                 assetRef={member.avatarUrl}
+                size={24}
+                className="ring-2 ring-background"
               />
             ))}
-          </Avatar.Group>
+            {workspace.membersPreview.length > 3 ? (
+              <div className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground ring-2 ring-background">
+                +{workspace.membersPreview.length - 3}
+              </div>
+            ) : null}
+          </div>
         )}
         <div onClick={(e) => e.stopPropagation()}>
           <WorkspaceMembersPopover workspace={workspace} />

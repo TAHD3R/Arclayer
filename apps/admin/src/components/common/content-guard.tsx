@@ -1,4 +1,3 @@
-import { Button } from "antd";
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -26,6 +25,7 @@ import {
   AdminRouteContainer,
   type AdminRouteContainerWidth,
 } from "@/components/layout/admin-route-container";
+import { Button } from "@celestial/ui/button";
 
 export type ContentGuardProps = {
   loading: boolean;
@@ -112,7 +112,7 @@ export function ContentGuard(props: ContentGuardProps) {
     if (props.hideRetry) return null;
     if (!props.onRetry) return null;
     return (
-      <Button type="primary" size="large" onClick={props.onRetry} autoInsertSpace={false}>
+      <Button size="lg" onClick={props.onRetry}>
         {t("common:RETRY")}
       </Button>
     );

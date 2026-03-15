@@ -1,10 +1,18 @@
-import { Button, Form, Select } from "antd";
+import { Controller } from "react-hook-form";
 
 import { Accordion } from "@celestial/ui/accordion";
+import { Button } from "@celestial/ui/button";
+import { NativeSelect, NativeSelectOption } from "@celestial/ui/native-select";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingPanel } from "@celestial/ui/setting-panel";
 
+import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";
+
+function FieldMessage({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <div className="text-footnote text-destructive">{message}</div>;
+}
 
 export function OrganizationSettingsBasicsAccessPanel(props: {
   controller: OrganizationSettingsBasicsController;
@@ -33,7 +41,7 @@ export function OrganizationSettingsBasicsAccessPanel(props: {
             confirmLoading={c.savingKey === "organization:defaultRole"}
             onConfirm={() =>
               void c.withSavingKey("organization:defaultRole", async () => {
-                const values = await c.form.validateFields(["defaultRoleCode"]);
+                const values = await validateFormFields(c.form, ["defaultRoleCode"]);
                 await c.patchCoreMutation.mutateAsync({
                   defaultRoleCode: String(values.defaultRoleCode),
                 });
@@ -43,7 +51,10 @@ export function OrganizationSettingsBasicsAccessPanel(props: {
               c.isDefaultRoleDirty
                 ? () =>
                     void c.withSavingKey("reset:organization:defaultRole", async () => {
-                      c.form.setFieldValue("defaultRoleCode", c.initialDefaultRoleCode);
+                      c.form.setValue("defaultRoleCode", c.initialDefaultRoleCode, {
+                        shouldDirty: false,
+                      });
+                      c.form.clearErrors("defaultRoleCode");
                       await c.patchCoreMutation.mutateAsync({
                         defaultRoleCode: String(c.initialDefaultRoleCode),
                       });
@@ -53,18 +64,31 @@ export function OrganizationSettingsBasicsAccessPanel(props: {
             resetText={t("settings:SETTINGS_RESET")}
             resetLoading={c.savingKey === "reset:organization:defaultRole"}
           >
-            <Form.Item
-              name="defaultRoleCode"
-              rules={[
-                {
-                  required: true,
-                  message: t("settings:SETTINGS_ORG_DEFAULT_ROLE_REQUIRED"),
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Select size="large" options={c.roleOptions} optionFilterProp="label" showSearch />
-            </Form.Item>
+            <div className="space-y-2">
+              <Controller
+                control={c.form.control}
+                name="defaultRoleCode"
+                rules={{ required: t("settings:SETTINGS_ORG_DEFAULT_ROLE_REQUIRED") }}
+                render={({ field }) => (
+                  <NativeSelect
+                    value={field.value || ""}
+                    onChange={(event) => field.onChange(event.target.value)}
+                    className="w-full"
+                    aria-invalid={
+                      getFieldErrorMessage(c.form, "defaultRoleCode") ? true : undefined
+                    }
+                  >
+                    <NativeSelectOption value="">{t("common:SELECT")}</NativeSelectOption>
+                    {c.roleOptions.map((option) => (
+                      <NativeSelectOption key={option.value} value={option.value}>
+                        {option.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                )}
+              />
+              <FieldMessage message={getFieldErrorMessage(c.form, "defaultRoleCode")} />
+            </div>
           </SettingAccordionItem>
 
           <SettingAccordionItem
@@ -76,34 +100,44 @@ export function OrganizationSettingsBasicsAccessPanel(props: {
             keepRendered
             disabled={c.disabled || !c.isOwner || c.roleOptions.length === 0}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Form.Item
-                name="assignRoleCode"
-                rules={[
-                  {
-                    required: true,
-                    message: t("settings:SETTINGS_ORG_DEFAULT_ROLE_REQUIRED"),
-                  },
-                ]}
-                style={{ marginBottom: 0 }}
-                className="flex-1"
-              >
-                <Select size="large" options={c.roleOptions} optionFilterProp="label" showSearch />
-              </Form.Item>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <div className="flex-1 space-y-2">
+                <Controller
+                  control={c.form.control}
+                  name="assignRoleCode"
+                  rules={{ required: t("settings:SETTINGS_ORG_DEFAULT_ROLE_REQUIRED") }}
+                  render={({ field }) => (
+                    <NativeSelect
+                      value={field.value || ""}
+                      onChange={(event) => field.onChange(event.target.value)}
+                      className="w-full"
+                      aria-invalid={
+                        getFieldErrorMessage(c.form, "assignRoleCode") ? true : undefined
+                      }
+                    >
+                      <NativeSelectOption value="">{t("common:SELECT")}</NativeSelectOption>
+                      {c.roleOptions.map((option) => (
+                        <NativeSelectOption key={option.value} value={option.value}>
+                          {option.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  )}
+                />
+                <FieldMessage message={getFieldErrorMessage(c.form, "assignRoleCode")} />
+              </div>
 
               <Button
-                type="primary"
+                type="button"
                 disabled={c.disabled || !c.isOwner || c.roleOptions.length === 0}
                 onClick={() => {
-                  void c.form
-                    .validateFields(["assignRoleCode"])
+                  void validateFormFields(c.form, ["assignRoleCode"])
                     .then(() => {
-                      c.assignRoleDialogForm.resetFields();
+                      c.assignRoleDialogForm.reset();
                       c.setAssignRoleDialogOpen(true);
                     })
                     .catch(() => undefined);
                 }}
-                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_ORG_ASSIGN_ROLE_ALL_CONFIRM")}
               </Button>

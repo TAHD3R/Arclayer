@@ -1,4 +1,3 @@
-import { Button as AntButton, Select } from "antd";
 import { useTranslation } from "react-i18next";
 
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
@@ -14,8 +13,15 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import {
   InviteOrganizationMemberDialog,
   type InviteOrganizationMemberFormValues,
@@ -147,17 +153,14 @@ export function OrganizationMembersDialogs({
         contentClassName="sm:max-w-md"
         footer={
           <>
-            <AntButton
-              autoInsertSpace={false}
-              type="text"
+            <Button
+              variant="ghost"
               onClick={() => onRoleDialogOpenChange(false)}
               disabled={roleUpdateLoading}
             >
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              autoInsertSpace={false}
-              type="primary"
+            </Button>
+            <Button
               loading={roleUpdateLoading}
               onClick={async () => {
                 if (!editingRoleMember) return;
@@ -165,7 +168,7 @@ export function OrganizationMembersDialogs({
               }}
             >
               {t("common:CONFIRM")}
-            </AntButton>
+            </Button>
           </>
         }
       >
@@ -174,14 +177,18 @@ export function OrganizationMembersDialogs({
             {t("team:TEAM_INVITE_FIELD_ROLE")}
           </label>
           <div className="text-label-secondary">{t("team:TEAM_ROLE_CHANGE_FIELD_ROLE_HELP")}</div>
-          <Select
-            value={roleDraft}
-            onChange={(next) => onRoleDraftChange(String(next))}
-            options={roleOptions}
-            className="w-full"
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            disabled={roleUpdateLoading}
-          />
+          <Select value={roleDraft} onValueChange={onRoleDraftChange} disabled={roleUpdateLoading}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {roleOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </SettingDialog>
 
@@ -203,20 +210,17 @@ export function OrganizationMembersDialogs({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="text"
+              <Button
+                variant="ghost"
                 onClick={() => onPendingRemoveOpenChange(false)}
                 disabled={removeLoading}
               >
                 {t("common:CANCEL")}
-              </AntButton>
+              </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="primary"
-                danger
+              <Button
+                variant="destructive"
                 loading={removeLoading}
                 onClick={() => {
                   if (!pendingRemove) return;
@@ -224,7 +228,7 @@ export function OrganizationMembersDialogs({
                 }}
               >
                 {t("common:CONFIRM")}
-              </AntButton>
+              </Button>
             </AlertDialogActionPrimitive>
           </AlertDialogFooter>
         </AlertDialogContent>

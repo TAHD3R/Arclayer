@@ -1,7 +1,7 @@
-import { Button } from "antd";
 import { Plus } from "lucide-react";
 
 import { DefaultPage } from "@/components/common/default-page";
+import { Button } from "@celestial/ui/button";
 import { LoaderOne } from "@celestial/ui/loader";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 
@@ -78,12 +78,8 @@ export function AssetsPageView() {
       description={t("assets:ASSET_PAGE_DESC")}
       width="fixed"
       action={
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setUploadOpen(true)}
-          autoInsertSpace={false}
-        >
+        <Button onClick={() => setUploadOpen(true)}>
+          <Plus size={16} />
           {t("assets:ASSET_ACTION_UPLOAD")}
         </Button>
       }

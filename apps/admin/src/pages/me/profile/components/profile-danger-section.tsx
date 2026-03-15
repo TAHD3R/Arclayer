@@ -1,16 +1,22 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Alert, Button, Form, Input } from "antd";
 import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 
 import * as authApi from "@/api/auth";
+import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { SettingCard, SettingCardHeader } from "@celestial/ui/setting-card";
-import type { DeleteMyAccountPayload } from "@/types/api";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import { PasswordInput } from "@celestial/ui/password-input";
+import type { DeleteMyAccountPayload } from "@/types/api";
 
 export type MeProfileDangerSectionProps = {
   email: string | null;
@@ -19,9 +25,16 @@ export type MeProfileDangerSectionProps = {
 
 type DeleteAccountFormValues = {
   email: string;
-  password?: string;
-  code?: string;
-  backupCode?: string;
+  password: string;
+  code: string;
+  backupCode: string;
+};
+
+const EMPTY_VALUES: DeleteAccountFormValues = {
+  email: "",
+  password: "",
+  code: "",
+  backupCode: "",
 };
 
 function getBlockedReasonText(
@@ -34,6 +47,69 @@ function getBlockedReasonText(
   return translated === key ? code : translated;
 }
 
+function buildDeleteAccountSchema(
+  t: (key: string) => string,
+  options: { requiresPassword: boolean; requiresTwoFactor: boolean },
+) {
+  return z
+    .object({
+      email: z
+        .string()
+        .min(1, t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_REQUIRED"))
+        .email(t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_INVALID")),
+      password: z.string(),
+      code: z.string(),
+      backupCode: z.string(),
+    })
+    .superRefine((value, ctx) => {
+      if (options.requiresPassword && !value.password.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["password"],
+          message: t("auth:VALIDATION_PASSWORD_REQUIRED"),
+        });
+      }
+      if (!options.requiresTwoFactor) return;
+
+      const code = value.code.trim();
+      const backupCode = value.backupCode.trim();
+      if (!code && !backupCode) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["code"],
+          message: t("account:ME_DELETE_ACCOUNT_2FA_ONE_OF_REQUIRED"),
+        });
+        ctx.addIssue({
+          code: "custom",
+          path: ["backupCode"],
+          message: t("account:ME_DELETE_ACCOUNT_2FA_ONE_OF_REQUIRED"),
+        });
+      }
+      if (code && backupCode) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["code"],
+          message: t("account:ME_DELETE_ACCOUNT_2FA_MUTUALLY_EXCLUSIVE"),
+        });
+        ctx.addIssue({
+          code: "custom",
+          path: ["backupCode"],
+          message: t("account:ME_DELETE_ACCOUNT_2FA_MUTUALLY_EXCLUSIVE"),
+        });
+      }
+    });
+}
+
+function DialogField(props: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-1.5">
+      <label className="text-callout text-label-primary">{props.label}</label>
+      {props.children}
+      {props.error ? <p className="text-footnote text-destructive">{props.error}</p> : null}
+    </div>
+  );
+}
+
 export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
   const { t } = useTranslation(["account", "auth", "errors", "common"]);
   const navigate = useNavigate();
@@ -41,7 +117,6 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const [open, setOpen] = useState(false);
-  const [form] = Form.useForm<DeleteAccountFormValues>();
 
   const capabilityQuery = useQuery({
     queryKey: ["auth", "delete-capabilities", sessionVersion],
@@ -68,17 +143,29 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
   const requiresRelogin = reauthMethods.includes("relogin");
   const canDelete = Boolean(capabilityQuery.data?.canDelete);
 
+  const schema = useMemo(
+    () => buildDeleteAccountSchema(t, { requiresPassword, requiresTwoFactor }),
+    [requiresPassword, requiresTwoFactor, t],
+  );
+
+  const form = useForm<DeleteAccountFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: EMPTY_VALUES,
+    mode: "onTouched",
+  });
+
   useEffect(() => {
     if (!open) return;
-    form.setFieldsValue({ email: "", password: "", code: "", backupCode: "" });
+    form.reset(EMPTY_VALUES);
   }, [form, open]);
 
   const deleteMutation = useMutation({
     mutationFn: async (values: DeleteAccountFormValues) => {
       const payload: DeleteMyAccountPayload = { email: values.email };
-      if (requiresPassword && values.password) payload.password = values.password;
-      if (requiresTwoFactor && values.code) payload.code = values.code;
-      if (requiresTwoFactor && values.backupCode) payload.backupCode = values.backupCode;
+      if (requiresPassword && values.password.trim()) payload.password = values.password.trim();
+      if (requiresTwoFactor && values.code.trim()) payload.code = values.code.trim();
+      if (requiresTwoFactor && values.backupCode.trim())
+        payload.backupCode = values.backupCode.trim();
       return authApi.deleteMyAccount(payload);
     },
     onSuccess: async () => {
@@ -86,7 +173,7 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
       clearAuth();
       clearWorkspace();
       setOpen(false);
-      form.resetFields();
+      form.reset(EMPTY_VALUES);
       await navigate({ to: "/login", replace: true });
     },
     onError: (err) => notifyError(err),
@@ -120,13 +207,7 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
             title={t("account:ME_DELETE_ACCOUNT_TITLE")}
             description={actionDescription}
             action={
-              <Button
-                danger
-                type="primary"
-                disabled={!canOpenDialog}
-                onClick={() => setOpen(true)}
-                autoInsertSpace={false}
-              >
+              <Button variant="destructive" disabled={!canOpenDialog} onClick={() => setOpen(true)}>
                 {t("account:ME_DELETE_ACCOUNT_ACTION")}
               </Button>
             }
@@ -137,7 +218,7 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
       <SettingDialog
         open={open}
         onOpenChange={(next) => {
-          if (!next) form.resetFields();
+          if (!next) form.reset(EMPTY_VALUES);
           setOpen(next);
         }}
         title={t("account:ME_DELETE_ACCOUNT_DIALOG_TITLE")}
@@ -145,16 +226,14 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
         footer={
           <>
             <Button
-              type="text"
+              variant="ghost"
               disabled={deleteMutation.isPending}
               onClick={() => setOpen(false)}
-              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
             </Button>
             {requiresRelogin ? (
               <Button
-                type="primary"
                 onClick={() => {
                   void navigate({
                     to: "/login",
@@ -162,126 +241,87 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
                     replace: true,
                   });
                 }}
-                autoInsertSpace={false}
               >
                 {t("account:ME_DELETE_ACCOUNT_RELOGIN_ACTION")}
               </Button>
             ) : null}
             <Button
-              danger
-              type="primary"
+              variant="destructive"
               disabled={deleteButtonDisabled}
               loading={deleteMutation.isPending}
               onClick={() => {
-                void (async () => {
-                  const values = await form.validateFields();
-                  await deleteMutation.mutateAsync(values);
-                })();
+                void form.handleSubmit((values) => deleteMutation.mutateAsync(values))();
               }}
-              autoInsertSpace={false}
             >
               {t("account:ME_DELETE_ACCOUNT_ACTION")}
             </Button>
           </>
         }
       >
-        <div className="max-w-xl">
-          <Alert
-            type={requiresRelogin ? "info" : "warning"}
-            showIcon
-            title={t("account:ME_DELETE_ACCOUNT_ALERT_TITLE")}
-            description={
-              requiresRelogin
+        <div className="max-w-xl space-y-4">
+          <Alert variant="destructive" className="border-destructive/25 bg-destructive/6">
+            <AlertTitle>{t("account:ME_DELETE_ACCOUNT_ALERT_TITLE")}</AlertTitle>
+            <AlertDescription>
+              {requiresRelogin
                 ? t("account:ME_DELETE_ACCOUNT_RELOGIN_REQUIRED")
-                : t("account:ME_DELETE_ACCOUNT_ALERT_DESC")
-            }
-            className="mb-4"
-          />
+                : t("account:ME_DELETE_ACCOUNT_ALERT_DESC")}
+            </AlertDescription>
+          </Alert>
 
-          <Form form={form} layout="vertical" requiredMark={false} autoComplete="off">
-            <Form.Item
-              name="email"
-              label={t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL")}
-              rules={[
-                { required: true, message: t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_REQUIRED") },
-                { type: "email", message: t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_INVALID") },
-              ]}
-              className="mb-4"
+          <DialogField
+            label={t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL")}
+            error={form.formState.errors.email?.message}
+          >
+            <Input
+              {...form.register("email")}
+              placeholder={
+                normalizedEmail || t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_PLACEHOLDER")
+              }
+            />
+          </DialogField>
+
+          {requiresPassword ? (
+            <DialogField
+              label={t("account:ME_DELETE_ACCOUNT_CONFIRM_PASSWORD")}
+              error={form.formState.errors.password?.message}
             >
-              <Input
-                placeholder={
-                  normalizedEmail || t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_PLACEHOLDER")
-                }
+              <PasswordInput
+                {...form.register("password")}
+                autoComplete="current-password"
+                placeholder={t("account:ME_DELETE_ACCOUNT_PASSWORD_PLACEHOLDER")}
               />
-            </Form.Item>
+            </DialogField>
+          ) : null}
 
-            {requiresPassword ? (
-              <Form.Item
-                name="password"
-                label={t("account:ME_DELETE_ACCOUNT_CONFIRM_PASSWORD")}
-                rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-                className="mb-0!"
+          {requiresTwoFactor ? (
+            <>
+              <DialogField
+                label={t("account:ME_DELETE_ACCOUNT_2FA_CODE")}
+                error={form.formState.errors.code?.message}
               >
-                <Input.Password
-                  autoComplete="current-password"
-                  placeholder={t("account:ME_DELETE_ACCOUNT_PASSWORD_PLACEHOLDER")}
+                <Input
+                  {...form.register("code")}
+                  placeholder={t("account:ME_DELETE_ACCOUNT_2FA_CODE_PLACEHOLDER")}
                 />
-              </Form.Item>
-            ) : null}
+              </DialogField>
 
-            {requiresTwoFactor ? (
-              <>
-                <Form.Item
-                  name="code"
-                  label={t("account:ME_DELETE_ACCOUNT_2FA_CODE")}
-                  rules={[
-                    {
-                      validator: async (_, value) => {
-                        const backupCode = String(form.getFieldValue("backupCode") || "").trim();
-                        const code = String(value || "").trim();
-                        if (!code && !backupCode) {
-                          throw new Error(t("account:ME_DELETE_ACCOUNT_2FA_ONE_OF_REQUIRED"));
-                        }
-                        if (code && backupCode) {
-                          throw new Error(t("account:ME_DELETE_ACCOUNT_2FA_MUTUALLY_EXCLUSIVE"));
-                        }
-                      },
-                    },
-                  ]}
-                  className="mb-4"
-                >
-                  <Input placeholder={t("account:ME_DELETE_ACCOUNT_2FA_CODE_PLACEHOLDER")} />
-                </Form.Item>
-                <Form.Item
-                  name="backupCode"
-                  label={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE")}
-                  rules={[
-                    {
-                      validator: async (_, value) => {
-                        const code = String(form.getFieldValue("code") || "").trim();
-                        const backupCode = String(value || "").trim();
-                        if (!code && !backupCode) {
-                          throw new Error(t("account:ME_DELETE_ACCOUNT_2FA_ONE_OF_REQUIRED"));
-                        }
-                        if (code && backupCode) {
-                          throw new Error(t("account:ME_DELETE_ACCOUNT_2FA_MUTUALLY_EXCLUSIVE"));
-                        }
-                      },
-                    },
-                  ]}
-                  className="mb-0!"
-                >
-                  <Input placeholder={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE_PLACEHOLDER")} />
-                </Form.Item>
-              </>
-            ) : null}
+              <DialogField
+                label={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE")}
+                error={form.formState.errors.backupCode?.message}
+              >
+                <Input
+                  {...form.register("backupCode")}
+                  placeholder={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE_PLACEHOLDER")}
+                />
+              </DialogField>
+            </>
+          ) : null}
 
-            {requiresRelogin ? (
-              <div className="text-callout text-label-secondary">
-                {t("account:ME_DELETE_ACCOUNT_RELOGIN_REQUIRED")}
-              </div>
-            ) : null}
-          </Form>
+          {requiresRelogin ? (
+            <div className="text-callout text-label-secondary">
+              {t("account:ME_DELETE_ACCOUNT_RELOGIN_REQUIRED")}
+            </div>
+          ) : null}
         </div>
       </SettingDialog>
     </>

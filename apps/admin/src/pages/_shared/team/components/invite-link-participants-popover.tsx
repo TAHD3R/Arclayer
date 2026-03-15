@@ -1,14 +1,22 @@
-import { Button, Input, List, Pagination, Popover } from "antd";
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listTeamInviteLinkParticipants } from "@/api/team";
 import { listOrganizationInviteLinkParticipants } from "@/api/organization-members";
 import type { TeamInviteLinkParticipant, TeamUserRef } from "@/types/api";
+import { Button } from "@celestial/ui/button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@celestial/ui/input-group";
 import { LoaderOne } from "@celestial/ui/loader";
 import { notifyError } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
 import { UsesCountTag } from "@/components/ui/tags";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 
@@ -68,6 +76,7 @@ export function InviteLinkParticipantsPopover(props: {
     retry: false,
     meta: { silent: true },
   });
+  const totalPages = query.data?.pages || 0;
 
   const content = (
     <div className="w-[380px] max-w-[85vw]">
@@ -79,13 +88,27 @@ export function InviteLinkParticipantsPopover(props: {
       </div>
 
       <div className="mt-2">
-        <Input
-          allowClear
-          value={rawQ}
-          onChange={(e) => setRawQ(e.target.value)}
-          variant="filled"
-          placeholder={t("team:TEAM_INVITE_LINKS_PARTICIPANT_SEARCH_PLACEHOLDER")}
-        />
+        <InputGroup>
+          <InputGroupAddon>
+            <Search className="size-4 text-label-secondary" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={rawQ}
+            onChange={(event) => setRawQ(event.target.value)}
+            placeholder={t("team:TEAM_INVITE_LINKS_PARTICIPANT_SEARCH_PLACEHOLDER")}
+          />
+          {rawQ ? (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label={t("common:CLEAR")}
+                size="icon-xs"
+                onClick={() => setRawQ("")}
+              >
+                <X className="size-3.5" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
       </div>
 
       <div className="mt-3">
@@ -97,25 +120,25 @@ export function InviteLinkParticipantsPopover(props: {
           <div className="py-6 text-center">
             <div className="text-footnote text-label-secondary">{t("common:REQUEST_FAILED")}</div>
             <Button
-              size="small"
+              variant="secondary"
+              size="sm"
               className="mt-2"
               onClick={() => {
                 void query.refetch().catch((err) => notifyError(err));
               }}
-              autoInsertSpace={false}
             >
               {t("common:RETRY")}
             </Button>
           </div>
         ) : (
           <>
-            <List<TeamInviteLinkParticipant>
-              size="small"
-              dataSource={query.data?.items ?? []}
-              locale={{ emptyText: t("team:TEAM_INVITE_LINKS_PARTICIPANT_EMPTY") }}
-              renderItem={(item) => {
-                return (
-                  <List.Item className="py-2">
+            {(query.data?.items?.length ?? 0) > 0 ? (
+              <ul>
+                {(query.data?.items ?? []).map((item: TeamInviteLinkParticipant) => (
+                  <li
+                    key={`${item.user?.username || item.user?.email || "user"}:${item.usedAt}`}
+                    className="py-2"
+                  >
                     <div className="flex items-center justify-between gap-3 w-full min-w-0">
                       <div className="min-w-0">
                         <UserLabel user={item.user} />
@@ -124,21 +147,38 @@ export function InviteLinkParticipantsPopover(props: {
                         {dateTime.formatDateTime(item.usedAt, { emptyValue: "-" })}
                       </div>
                     </div>
-                  </List.Item>
-                );
-              }}
-            />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-md border border-dashed p-4 text-center text-label-secondary">
+                {t("team:TEAM_INVITE_LINKS_PARTICIPANT_EMPTY")}
+              </div>
+            )}
 
-            {query.data?.pages && query.data.pages > 1 ? (
-              <div className="mt-3 flex justify-end">
-                <Pagination
-                  size="small"
-                  current={page}
-                  total={query.data.total}
-                  pageSize={query.data.size}
-                  showSizeChanger={false}
-                  onChange={(next) => setPage(next)}
-                />
+            {totalPages > 1 ? (
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="text-footnote text-label-secondary">
+                  {page}/{totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    {t("common:PREVIOUS")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  >
+                    {t("common:NEXT")}
+                  </Button>
+                </div>
               </div>
             ) : null}
           </>
@@ -154,25 +194,24 @@ export function InviteLinkParticipantsPopover(props: {
   }
 
   return (
-    <Popover
-      trigger="click"
-      open={open}
-      onOpenChange={(next) => setOpen(next)}
-      content={content}
-      placement="bottomLeft"
-    >
-      <ButtonPrimitive
-        type="button"
-        hoverScale={1}
-        tapScale={1}
-        className="flex w-full items-center gap-2 min-w-0 text-left hover:opacity-90"
-        aria-label={t("team:TEAM_INVITE_LINKS_ACTION_VIEW_PARTICIPANTS")}
-      >
-        <UsesCountTag label={props.usesCount} />
-        <div className="min-w-0 flex-1">
-          <UserLabel user={props.primaryUser} />
-        </div>
-      </ButtonPrimitive>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <ButtonPrimitive
+          type="button"
+          hoverScale={1}
+          tapScale={1}
+          className="flex w-full items-center gap-2 min-w-0 text-left hover:opacity-90"
+          aria-label={t("team:TEAM_INVITE_LINKS_ACTION_VIEW_PARTICIPANTS")}
+        >
+          <UsesCountTag label={props.usesCount} />
+          <div className="min-w-0 flex-1">
+            <UserLabel user={props.primaryUser} />
+          </div>
+        </ButtonPrimitive>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={8} className="w-[380px] max-w-[85vw] p-3">
+        {content}
+      </PopoverContent>
     </Popover>
   );
 }

@@ -1,7 +1,7 @@
-import { Card, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
+import { Card, CardContent } from "@celestial/ui/card";
 
 export function PlaceholderPage(props: { titleKey: string }) {
   const { t } = useTranslation();
@@ -9,9 +9,9 @@ export function PlaceholderPage(props: { titleKey: string }) {
   return (
     <DefaultPage title={t(props.titleKey)} description={t("common:PAGE_COMING_SOON_DESC")}>
       <Card>
-        <Typography.Paragraph style={{ marginBottom: 0 }}>
-          {t("common:PAGE_COMING_SOON")}
-        </Typography.Paragraph>
+        <CardContent className="pt-6">
+          <p className="mb-0 text-body text-label-primary">{t("common:PAGE_COMING_SOON")}</p>
+        </CardContent>
       </Card>
     </DefaultPage>
   );

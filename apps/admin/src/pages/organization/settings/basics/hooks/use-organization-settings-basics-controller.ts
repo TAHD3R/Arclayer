@@ -1,7 +1,7 @@
-import { Form } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import { getMyOrganization } from "@/api/me";
@@ -55,17 +55,33 @@ export type OrganizationSettingsAssignRoleDialogValues = {
   confirmName: string;
 };
 
+const DEFAULT_FORM_VALUES: OrganizationSettingsBasicsFormValues = {
+  name: "",
+  logoUrl: "",
+  locale: DEFAULT_LOCALE,
+  timezone: DEFAULT_TIMEZONE,
+  useBrowserTimeZone: true,
+  dateFormat: DEFAULT_DATE_FORMAT,
+  useRelativeDateTime: true,
+  defaultRoleCode: "",
+  assignRoleCode: "",
+};
+
 export function useOrganizationSettingsBasicsController(props: { organizationId: string }) {
   const organizationId = String(props.organizationId || "").trim();
   const tab: OrganizationSettingsTabKey = "basics";
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
-  const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
-  const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const [form] = Form.useForm<OrganizationSettingsBasicsFormValues>();
-  const [assignRoleDialogForm] = Form.useForm<OrganizationSettingsAssignRoleDialogValues>();
+  const localePreferenceMode = usePreferencesStore((state) => state.localePreferenceMode);
+  const setEffectiveLocale = usePreferencesStore((state) => state.setEffectiveLocale);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
+  const form = useForm<OrganizationSettingsBasicsFormValues>({
+    defaultValues: DEFAULT_FORM_VALUES,
+  });
+  const assignRoleDialogForm = useForm<OrganizationSettingsAssignRoleDialogValues>({
+    defaultValues: { confirmName: "" },
+  });
   const { savingKey, withSavingKey } = useSavingKey();
   const [assignRoleDialogOpen, setAssignRoleDialogOpen] = useState(false);
 
@@ -79,7 +95,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   );
 
   const closeAssignRoleDialog = useCallback(() => {
-    assignRoleDialogForm.resetFields();
+    assignRoleDialogForm.reset();
     setAssignRoleDialogOpen(false);
   }, [assignRoleDialogForm]);
 
@@ -116,44 +132,53 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   useEffect(() => {
     const nextName = coreQuery.data?.organizationName ?? myOrgQuery.data?.organization.name;
     if (!nextName) return;
-    if (form.isFieldTouched("name")) return;
-    form.setFieldValue("name", nextName);
+    if (!form.getFieldState("name").isDirty) {
+      form.setValue("name", nextName, { shouldDirty: false });
+    }
   }, [coreQuery.data?.organizationName, form, myOrgQuery.data?.organization.name]);
 
   useEffect(() => {
     if (!coreQuery.data) return;
-    if (form.isFieldTouched("logoUrl")) return;
-    form.setFieldValue("logoUrl", coreQuery.data.organizationLogoUrl ?? "");
+    if (!form.getFieldState("logoUrl").isDirty) {
+      form.setValue("logoUrl", coreQuery.data.organizationLogoUrl ?? "", { shouldDirty: false });
+    }
   }, [coreQuery.data, form]);
 
   useEffect(() => {
     if (!coreQuery.data) return;
-    if (
-      form.isFieldTouched("locale") ||
-      form.isFieldTouched("timezone") ||
-      form.isFieldTouched("dateFormat") ||
-      form.isFieldTouched("useBrowserTimeZone") ||
-      form.isFieldTouched("useRelativeDateTime")
-    ) {
-      return;
-    }
-    form.setFieldsValue({
+    const nextValues = {
       locale: normalizeLocale(coreQuery.data.organizationLocalization.locale || DEFAULT_LOCALE),
       timezone: coreQuery.data.organizationLocalization.timezone || DEFAULT_TIMEZONE,
       useBrowserTimeZone: coreQuery.data.organizationLocalization.useBrowserTimeZone ?? true,
       dateFormat: coreQuery.data.organizationLocalization.dateFormat || DEFAULT_DATE_FORMAT,
       useRelativeDateTime: coreQuery.data.organizationLocalization.useRelativeDateTime ?? true,
-    });
+    };
+
+    if (!form.getFieldState("locale").isDirty) {
+      form.setValue("locale", nextValues.locale, { shouldDirty: false });
+    }
+    if (!form.getFieldState("timezone").isDirty) {
+      form.setValue("timezone", nextValues.timezone, { shouldDirty: false });
+    }
+    if (!form.getFieldState("useBrowserTimeZone").isDirty) {
+      form.setValue("useBrowserTimeZone", nextValues.useBrowserTimeZone, { shouldDirty: false });
+    }
+    if (!form.getFieldState("dateFormat").isDirty) {
+      form.setValue("dateFormat", nextValues.dateFormat, { shouldDirty: false });
+    }
+    if (!form.getFieldState("useRelativeDateTime").isDirty) {
+      form.setValue("useRelativeDateTime", nextValues.useRelativeDateTime, { shouldDirty: false });
+    }
   }, [coreQuery.data, form]);
 
   useEffect(() => {
     const nextRoleCode = coreQuery.data?.defaultRoleCode;
     if (!nextRoleCode) return;
-    if (!form.isFieldTouched("defaultRoleCode")) {
-      form.setFieldValue("defaultRoleCode", nextRoleCode);
+    if (!form.getFieldState("defaultRoleCode").isDirty) {
+      form.setValue("defaultRoleCode", nextRoleCode, { shouldDirty: false });
     }
-    if (!form.isFieldTouched("assignRoleCode")) {
-      form.setFieldValue("assignRoleCode", nextRoleCode);
+    if (!form.getFieldState("assignRoleCode").isDirty) {
+      form.setValue("assignRoleCode", nextRoleCode, { shouldDirty: false });
     }
   }, [coreQuery.data?.defaultRoleCode, form]);
 
@@ -178,7 +203,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
       await queryClient.invalidateQueries({ queryKey: ["organization", "settings", "core"] });
       await queryClient.invalidateQueries({ queryKey: ["me", "organization"] });
     },
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const assignRoleMutation = useMutation({
@@ -189,7 +214,7 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
       await queryClient.invalidateQueries({ queryKey: ["organization", "settings", "core"] });
       await queryClient.invalidateQueries({ queryKey: ["me", "organization"] });
     },
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const disabled =
@@ -221,11 +246,11 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
   const initialOrgName =
     coreQuery.data?.organizationName ?? myOrgQuery.data?.organization.name ?? "";
   const persistedOrgName = String(initialOrgName || "").trim();
-  const currentOrgName = (Form.useWatch("name", form) as string | undefined) ?? initialOrgName;
+  const currentOrgName = useWatch({ control: form.control, name: "name" }) ?? initialOrgName;
 
   const initialOrgLogoUrl = coreQuery.data?.organizationLogoUrl ?? "";
   const currentOrgLogoUrl =
-    (Form.useWatch("logoUrl", form) as string | undefined) ?? initialOrgLogoUrl;
+    useWatch({ control: form.control, name: "logoUrl" }) ?? initialOrgLogoUrl;
 
   const initialOrgLocale = normalizeLocale(
     coreQuery.data?.organizationLocalization.locale || DEFAULT_LOCALE,
@@ -239,20 +264,19 @@ export function useOrganizationSettingsBasicsController(props: { organizationId:
     coreQuery.data?.organizationLocalization.useRelativeDateTime ?? true;
   const initialDefaultRoleCode = coreQuery.data?.defaultRoleCode || roleItems[0]?.code || "";
 
-  const orgLocale = (Form.useWatch("locale", form) as string | undefined) ?? initialOrgLocale;
-  const orgTimezone = (Form.useWatch("timezone", form) as string | undefined) ?? initialOrgTimezone;
+  const orgLocale = useWatch({ control: form.control, name: "locale" }) ?? initialOrgLocale;
+  const orgTimezone = useWatch({ control: form.control, name: "timezone" }) ?? initialOrgTimezone;
   const orgUseBrowserTimeZone =
-    (Form.useWatch("useBrowserTimeZone", form) as boolean | undefined) ??
-    initialOrgUseBrowserTimeZone;
+    useWatch({ control: form.control, name: "useBrowserTimeZone" }) ?? initialOrgUseBrowserTimeZone;
   const orgDateFormat =
-    (Form.useWatch("dateFormat", form) as string | undefined) ?? initialOrgDateFormat;
+    useWatch({ control: form.control, name: "dateFormat" }) ?? initialOrgDateFormat;
   const orgUseRelativeDateTime =
-    (Form.useWatch("useRelativeDateTime", form) as boolean | undefined) ??
+    useWatch({ control: form.control, name: "useRelativeDateTime" }) ??
     initialOrgUseRelativeDateTime;
   const defaultRoleCode =
-    (Form.useWatch("defaultRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
+    useWatch({ control: form.control, name: "defaultRoleCode" }) ?? initialDefaultRoleCode;
   const assignRoleCode =
-    (Form.useWatch("assignRoleCode", form) as string | undefined) ?? initialDefaultRoleCode;
+    useWatch({ control: form.control, name: "assignRoleCode" }) ?? initialDefaultRoleCode;
 
   const orgLocaleLabel =
     localeOptions.find((item) => item.value === orgLocale)?.label ?? String(orgLocale);

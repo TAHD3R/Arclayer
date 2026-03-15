@@ -1,9 +1,15 @@
-import { Button, Select } from "antd";
 import { Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
+import { Button } from "@celestial/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 export type UpdateAssetsAccessDialogValue = {
@@ -124,18 +130,10 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
       }
       footer={
         <>
-          <Button
-            autoInsertSpace={false}
-            type="text"
-            disabled={disabled}
-            onClick={() => props.onOpenChange(false)}
-          >
+          <Button variant="ghost" disabled={disabled} onClick={() => props.onOpenChange(false)}>
             {t("common:CANCEL")}
           </Button>
           <Button
-            autoInsertSpace={false}
-            type="primary"
-            icon={<Save className="size-4" aria-hidden="true" />}
             loading={props.confirmLoading}
             disabled={!canSubmit}
             onClick={async () => {
@@ -153,6 +151,7 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
               props.onOpenChange(false);
             }}
           >
+            <Save className="size-4" aria-hidden="true" />
             {t("common:CONFIRM")}
           </Button>
         </>
@@ -166,27 +165,35 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
           <div className="text-label-secondary">
             {t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
           </div>
-          <Select
-            className="w-full"
-            value={visibility}
-            options={visibilityOptions}
-            onChange={(v) => setVisibility(String(v))}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            disabled={disabled}
-          />
+          <Select value={visibility} onValueChange={setVisibility} disabled={disabled}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {visibilityOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">{t("assets:ASSET_META_PURPOSE")}</label>
           <div className="text-label-secondary">{t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}</div>
-          <Select
-            className="w-full"
-            value={purpose}
-            options={purposeOptions}
-            onChange={(v) => setPurpose(String(v))}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            disabled={disabled}
-          />
+          <Select value={purpose} onValueChange={setPurpose} disabled={disabled}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {purposeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-1.5">
@@ -194,14 +201,18 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
             {t("assets:ASSET_META_INDEXABLE")}
           </label>
           <div className="text-label-secondary">{t("assets:ASSET_EDIT_ACCESS_INDEXABLE_HELP")}</div>
-          <Select
-            className="w-full"
-            value={indexable}
-            options={indexableOptions}
-            onChange={(v) => setIndexable(String(v))}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            disabled={disabled}
-          />
+          <Select value={indexable} onValueChange={setIndexable} disabled={disabled}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {indexableOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </SettingDialog>

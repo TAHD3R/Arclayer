@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input } from "antd";
 import * as React from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -14,7 +14,9 @@ import { DefaultPage } from "@/components/common/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { Button } from "@celestial/ui/button";
 import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
+import { Input } from "@celestial/ui/input";
 import { SettingActionGroup } from "@celestial/ui/setting-action-group";
 import { SettingActionItem } from "@celestial/ui/setting-action-item";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
@@ -47,6 +49,25 @@ function getActionDescription(
   return blocked ? [base, blocked] : base;
 }
 
+function DialogField(props: {
+  title: string;
+  description: string;
+  placeholder: string;
+  error: string | undefined;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="grid gap-1.5">
+        <span className="font-semibold text-foreground">{props.title}</span>
+        <span className="text-label-secondary">{props.description}</span>
+      </div>
+      {props.children}
+      {props.error ? <div className="text-footnote text-destructive">{props.error}</div> : null}
+    </div>
+  );
+}
+
 export function OrganizationSettingsDangerView(props: { organizationId: string }) {
   const organizationId = String(props.organizationId || "").trim();
   const tab: OrganizationSettingsTabKey = "danger";
@@ -55,8 +76,12 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
   const queryClient = useQueryClient();
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const [leaveDialogForm] = Form.useForm<LeaveOrganizationDialogValues>();
-  const [deleteDialogForm] = Form.useForm<DeleteOrganizationDialogValues>();
+  const leaveDialogForm = useForm<LeaveOrganizationDialogValues>({
+    defaultValues: { confirmText: "" },
+  });
+  const deleteDialogForm = useForm<DeleteOrganizationDialogValues>({
+    defaultValues: { confirmName: "" },
+  });
   const { savingKey, withSavingKey } = useSavingKey();
   const [leaveDialogOpen, setLeaveDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -71,12 +96,12 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
   });
 
   const closeLeaveDialog = React.useCallback(() => {
-    leaveDialogForm.resetFields();
+    leaveDialogForm.reset();
     setLeaveDialogOpen(false);
   }, [leaveDialogForm]);
 
   const closeDeleteDialog = React.useCallback(() => {
-    deleteDialogForm.resetFields();
+    deleteDialogForm.reset();
     setDeleteDialogOpen(false);
   }, [deleteDialogForm]);
 
@@ -90,13 +115,13 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
   const leaveMutation = useMutation({
     mutationFn: async (confirmText: string) =>
       leaveOrganizationInScope(organizationId, confirmText),
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (confirmName: string) =>
       deleteOrganizationInScope(organizationId, confirmName),
-    onError: (err) => notifyError(err),
+    onError: (error) => notifyError(error),
   });
 
   const disabled =
@@ -121,14 +146,19 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
     await navigate({ to: "/", replace: true });
   }, [clearWorkspace, navigate, queryClient]);
 
-  const dialogFieldLabel = React.useCallback((title: string, description: string) => {
-    return (
-      <div className="grid gap-1.5">
-        <span className="font-semibold text-foreground">{title}</span>
-        <span className="text-label-secondary">{description}</span>
-      </div>
-    );
-  }, []);
+  const submitLeaveDialog = leaveDialogForm.handleSubmit(async (values) => {
+    await leaveMutation.mutateAsync(String(values.confirmText || "").trim());
+    notifySuccessText(t("common:ACTION_SUCCESS"));
+    closeLeaveDialog();
+    await completeFlow();
+  });
+
+  const submitDeleteDialog = deleteDialogForm.handleSubmit(async (values) => {
+    await deleteMutation.mutateAsync(String(values.confirmName || "").trim());
+    notifySuccessText(t("common:ACTION_SUCCESS"));
+    closeDeleteDialog();
+    await completeFlow();
+  });
 
   if (dangerQuery.isLoading && !danger) {
     return (
@@ -186,7 +216,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                   showSummary={false}
                   disabled={disabled || !canOpenLeave}
                   onTrigger={() => {
-                    leaveDialogForm.resetFields();
+                    leaveDialogForm.reset();
                     setLeaveDialogOpen(true);
                   }}
                 />
@@ -200,7 +230,7 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
                   showSummary={false}
                   disabled={disabled || !canOpenDelete}
                   onTrigger={() => {
-                    deleteDialogForm.resetFields();
+                    deleteDialogForm.reset();
                     setDeleteDialogOpen(true);
                   }}
                 />
@@ -218,53 +248,47 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
           description={t("settings:SETTINGS_ORG_LEAVE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeLeaveDialog} autoInsertSpace={false}>
+              <Button type="button" variant="ghost" onClick={closeLeaveDialog}>
                 {t("common:CANCEL")}
               </Button>
               <Button
-                type="primary"
+                type="button"
                 loading={savingKey === "organization:leave"}
                 disabled={disabled || !canOpenLeave}
                 onClick={() => {
                   void withSavingKey("organization:leave", async () => {
-                    const values = await leaveDialogForm.validateFields();
-                    await leaveMutation.mutateAsync(String(values.confirmText || "").trim());
-                    notifySuccessText(t("common:ACTION_SUCCESS"));
-                    closeLeaveDialog();
-                    await completeFlow();
+                    await submitLeaveDialog();
                   });
                 }}
-                autoInsertSpace={false}
               >
                 {t("settings:SETTINGS_ORG_LEAVE_CONFIRM_BUTTON")}
               </Button>
             </div>
           }
         >
-          <Form form={leaveDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
-            <Form.Item
-              name="confirmText"
-              label={dialogFieldLabel(
-                t("settings:SETTINGS_DIALOG_CONFIRM_TEXT_LABEL"),
-                t("settings:SETTINGS_ORG_LEAVE_CONFIRM_REQUIRED"),
-              )}
-              rules={[
-                { required: true, message: t("settings:SETTINGS_ORG_LEAVE_CONFIRM_REQUIRED") },
-                {
-                  validator: async (_, value) => {
-                    if (String(value || "").trim() === confirmLeaveText) return;
-                    throw new Error(t("settings:SETTINGS_ORG_LEAVE_CONFIRM_MISMATCH"));
-                  },
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                size="large"
+          <Controller
+            control={leaveDialogForm.control}
+            name="confirmText"
+            rules={{
+              required: t("settings:SETTINGS_ORG_LEAVE_CONFIRM_REQUIRED"),
+              validate: (value) =>
+                String(value || "").trim() === confirmLeaveText ||
+                t("settings:SETTINGS_ORG_LEAVE_CONFIRM_MISMATCH"),
+            }}
+            render={({ field, fieldState }) => (
+              <DialogField
+                title={t("settings:SETTINGS_DIALOG_CONFIRM_TEXT_LABEL")}
+                description={t("settings:SETTINGS_ORG_LEAVE_CONFIRM_REQUIRED")}
                 placeholder={t("settings:SETTINGS_ORG_LEAVE_CONFIRM_PLACEHOLDER")}
-              />
-            </Form.Item>
-          </Form>
+                error={fieldState.error?.message}
+              >
+                <Input
+                  {...field}
+                  placeholder={t("settings:SETTINGS_ORG_LEAVE_CONFIRM_PLACEHOLDER")}
+                />
+              </DialogField>
+            )}
+          />
         </SettingDialog>
 
         <SettingDialog
@@ -276,57 +300,48 @@ export function OrganizationSettingsDangerView(props: { organizationId: string }
           description={t("settings:SETTINGS_ORG_DELETE_DESC")}
           footer={
             <div className="flex w-full justify-end gap-2">
-              <Button type="text" onClick={closeDeleteDialog} autoInsertSpace={false}>
+              <Button type="button" variant="ghost" onClick={closeDeleteDialog}>
                 {t("common:CANCEL")}
               </Button>
               <Button
-                type="primary"
-                danger
+                type="button"
+                variant="destructive"
                 loading={savingKey === "organization:delete"}
                 disabled={disabled || !canOpenDelete}
                 onClick={() => {
                   void withSavingKey("organization:delete", async () => {
-                    const values = await deleteDialogForm.validateFields();
-                    await deleteMutation.mutateAsync(String(values.confirmName || "").trim());
-                    notifySuccessText(t("common:ACTION_SUCCESS"));
-                    closeDeleteDialog();
-                    await completeFlow();
+                    await submitDeleteDialog();
                   });
                 }}
-                autoInsertSpace={false}
               >
                 {t("common:DELETE")}
               </Button>
             </div>
           }
         >
-          <Form form={deleteDialogForm} layout="vertical" requiredMark={false} autoComplete="off">
-            <Form.Item
-              name="confirmName"
-              label={dialogFieldLabel(
-                t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL"),
-                t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_REQUIRED"),
-              )}
-              rules={[
-                {
-                  required: true,
-                  message: t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_REQUIRED"),
-                },
-                {
-                  validator: async (_, value) => {
-                    if (String(value || "").trim() === confirmDeleteName) return;
-                    throw new Error(t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_MISMATCH"));
-                  },
-                },
-              ]}
-              style={{ marginBottom: 0 }}
-            >
-              <Input
-                size="large"
+          <Controller
+            control={deleteDialogForm.control}
+            name="confirmName"
+            rules={{
+              required: t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_REQUIRED"),
+              validate: (value) =>
+                String(value || "").trim() === confirmDeleteName ||
+                t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_MISMATCH"),
+            }}
+            render={({ field, fieldState }) => (
+              <DialogField
+                title={t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL")}
+                description={t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_REQUIRED")}
                 placeholder={t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_PLACEHOLDER")}
-              />
-            </Form.Item>
-          </Form>
+                error={fieldState.error?.message}
+              >
+                <Input
+                  {...field}
+                  placeholder={t("settings:SETTINGS_ORG_DELETE_CONFIRM_NAME_PLACEHOLDER")}
+                />
+              </DialogField>
+            )}
+          />
         </SettingDialog>
       </ContentGuard>
     </DefaultPage>

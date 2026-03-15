@@ -1,6 +1,8 @@
-import { Button } from "antd";
 import * as React from "react";
 
+import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { buttonVariants } from "@celestial/ui/button";
 import type { DataTableIconButtonProps } from "@celestial/ui/data-table";
 
 export const DataTableToolbarAntdIconButton = React.forwardRef<
@@ -8,16 +10,18 @@ export const DataTableToolbarAntdIconButton = React.forwardRef<
   DataTableIconButtonProps
 >(function DataTableToolbarAntdIconButton(props, ref) {
   return (
-    <Button
+    <ButtonPrimitive
       ref={ref}
-      type="text"
-      size="small"
-      autoInsertSpace={false}
-      icon={props.children}
+      type="button"
+      aria-label={props.label}
+      className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
       disabled={props.disabled}
       onClick={props.onClick}
-      aria-label={props.label}
-    />
+      hoverScale={1}
+      tapScale={1}
+    >
+      {props.children}
+    </ButtonPrimitive>
   );
 });
 DataTableToolbarAntdIconButton.displayName = "DataTableToolbarAntdIconButton";

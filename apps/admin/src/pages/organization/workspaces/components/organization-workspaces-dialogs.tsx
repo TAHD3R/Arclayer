@@ -1,8 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import { Button as AntButton, Form, Input, type FormInstance } from "antd";
-
 import type { OrganizationWorkspace } from "@/types/api";
+import { cn } from "@celestial/lib/utils";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +14,8 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
@@ -29,7 +30,8 @@ interface OrganizationWorkspacesDialogsProps {
   createDialog: {
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
-    form: FormInstance<CreateWorkspaceFormValues>;
+    values: CreateWorkspaceFormValues;
+    setValues: Dispatch<SetStateAction<CreateWorkspaceFormValues>>;
     pending: boolean;
     onSubmit: (values: CreateWorkspaceFormValues) => Promise<void>;
   };
@@ -67,65 +69,77 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         contentClassName="sm:max-w-[620px]"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
-            <AntButton
-              autoInsertSpace={false}
-              type="text"
+            <Button
+              variant="outline"
               onClick={() => createDialog.setOpen(false)}
               disabled={createDialog.pending}
             >
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              autoInsertSpace={false}
-              type="primary"
+            </Button>
+            <Button
+              variant="default"
               loading={createDialog.pending}
+              disabled={!createDialog.values.name.trim()}
               onClick={async () => {
-                const values = await createDialog.form.validateFields();
-                await createDialog.onSubmit(values);
+                await createDialog.onSubmit({
+                  name: createDialog.values.name.trim(),
+                  description: createDialog.values.description?.trim() || undefined,
+                });
               }}
             >
               {t("common:CONFIRM")}
-            </AntButton>
+            </Button>
           </div>
         }
       >
-        <Form form={createDialog.form} layout="vertical" requiredMark={false}>
-          <Form.Item
-            name="name"
-            label={
-              <div className="grid gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {t("common:ORG_WORKSPACES_FIELD_NAME")}
-                </span>
-                <span className="text-label-secondary">
-                  {t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
-                </span>
-              </div>
-            }
-            rules={[{ required: true, message: t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED") }]}
-          >
-            <Input placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")} />
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            label={
-              <div className="grid gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
-                </span>
-                <span className="text-label-secondary">
-                  {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
-                </span>
-              </div>
-            }
-          >
-            <Input.TextArea
-              rows={3}
-              placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
+        <div className="grid gap-4">
+          <div className="grid gap-1.5">
+            <span className="font-semibold text-foreground">
+              {t("common:ORG_WORKSPACES_FIELD_NAME")}
+            </span>
+            <span className="text-label-secondary">
+              {t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
+            </span>
+            <Input
+              value={createDialog.values.name}
+              onChange={(event) =>
+                createDialog.setValues((prev) => ({ ...prev, name: event.target.value }))
+              }
+              placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
+              aria-invalid={!createDialog.values.name.trim()}
             />
-          </Form.Item>
-        </Form>
+            {!createDialog.values.name.trim() ? (
+              <span className="text-caption text-destructive">
+                {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="grid gap-1.5">
+            <span className="font-semibold text-foreground">
+              {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
+            </span>
+            <span className="text-label-secondary">
+              {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
+            </span>
+            <textarea
+              rows={3}
+              value={createDialog.values.description ?? ""}
+              onChange={(event) =>
+                createDialog.setValues((prev) => ({
+                  ...prev,
+                  description: event.target.value,
+                }))
+              }
+              placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
+              className={cn(
+                "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body shadow-sm transition-colors",
+                "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            />
+          </div>
+        </div>
       </SettingDialog>
 
       <AlertDialog
@@ -145,20 +159,17 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="text"
+              <Button
+                variant="outline"
                 onClick={() => archiveDialog.setWorkspace(null)}
                 disabled={archiveDialog.pending}
               >
                 {t("common:CANCEL")}
-              </AntButton>
+              </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="primary"
-                danger
+              <Button
+                variant="destructive"
                 loading={archiveDialog.pending}
                 onClick={() => {
                   if (!archiveDialog.workspace) return;
@@ -168,7 +179,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
                 }}
               >
                 {t("common:ORG_WORKSPACES_ACTION_ARCHIVE")}
-              </AntButton>
+              </Button>
             </AlertDialogActionPrimitive>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -189,9 +200,8 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
         contentClassName="sm:max-w-[560px]"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
-            <AntButton
-              autoInsertSpace={false}
-              type="text"
+            <Button
+              variant="outline"
               disabled={deleteDialog.pending}
               onClick={() => {
                 deleteDialog.setWorkspace(null);
@@ -199,11 +209,9 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
               }}
             >
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              autoInsertSpace={false}
-              danger
-              type="primary"
+            </Button>
+            <Button
+              variant="destructive"
               loading={deleteDialog.pending}
               disabled={!deleteDialog.confirmMatches}
               onClick={async () => {
@@ -215,7 +223,7 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
               }}
             >
               {t("common:ORG_WORKSPACES_ACTION_DELETE")}
-            </AntButton>
+            </Button>
           </div>
         }
       >

@@ -1,4 +1,3 @@
-import { Form, Input } from "antd";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -37,8 +36,7 @@ export function WorkspaceSettingsIconAccordionItem(props: {
       confirmLoading={c.savingKey === "workspace:icon"}
       onConfirm={() =>
         void c.withSavingKey("workspace:icon", async () => {
-          const values = await c.form.validateFields(["iconUrl"]);
-          const raw = String(values.iconUrl || "").trim();
+          const raw = String(c.form.getValues("iconUrl") || "").trim();
           await c.patchWorkspaceMutation.mutateAsync({ iconUrl: raw || null });
         })
       }
@@ -46,7 +44,7 @@ export function WorkspaceSettingsIconAccordionItem(props: {
         c.isWorkspaceIconDirty && c.detailQuery.data
           ? () =>
               void c.withSavingKey("reset:workspace:icon", async () => {
-                c.form.setFieldValue("iconUrl", c.initialWorkspaceIconUrl);
+                c.form.setValue("iconUrl", c.initialWorkspaceIconUrl, { shouldDirty: false });
                 const raw = String(c.initialWorkspaceIconUrl || "").trim();
                 await c.patchWorkspaceMutation.mutateAsync({ iconUrl: raw || null });
               })
@@ -55,10 +53,6 @@ export function WorkspaceSettingsIconAccordionItem(props: {
       resetText={t("settings:SETTINGS_RESET")}
       resetLoading={c.savingKey === "reset:workspace:icon"}
     >
-      <Form.Item name="iconUrl" hidden>
-        <Input />
-      </Form.Item>
-
       <AvatarUploadSlot
         src={iconPreviewUrl}
         fallback={
@@ -74,7 +68,7 @@ export function WorkspaceSettingsIconAccordionItem(props: {
         removeAriaLabel={t("settings:SETTINGS_ASSET_PICKER_CLEAR")}
         canRemove={Boolean(iconUrl)}
         onPick={() => fileInputRef.current?.click()}
-        onRemove={() => c.form.setFieldValue("iconUrl", "")}
+        onRemove={() => c.form.setValue("iconUrl", "", { shouldDirty: true })}
       />
 
       <input
@@ -82,9 +76,9 @@ export function WorkspaceSettingsIconAccordionItem(props: {
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0] ?? null;
-          e.target.value = "";
+        onChange={(event) => {
+          const file = event.target.files?.[0] ?? null;
+          event.target.value = "";
           if (!file) return;
           if (!file.type?.startsWith("image/")) {
             notifyError(new Error(tGlobal("assets:ASSET_UPLOAD_IMAGE_ONLY_REQUIRED")));
@@ -99,10 +93,10 @@ export function WorkspaceSettingsIconAccordionItem(props: {
             t: tGlobal,
           })
             .then((assetId) => {
-              c.form.setFieldValue("iconUrl", `/assets/${assetId}`);
+              c.form.setValue("iconUrl", `/assets/${assetId}`, { shouldDirty: true });
               notifySuccessText(tGlobal("assets:ASSET_UPLOAD_SUCCESS"));
             })
-            .catch((err) => notifyError(err))
+            .catch((error) => notifyError(error))
             .finally(() => setIsUploading(false));
         }}
       />

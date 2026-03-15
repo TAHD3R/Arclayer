@@ -1,4 +1,3 @@
-import { Button as AntButton, Input, Select } from "antd";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,8 +10,17 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
+import { Textarea } from "@celestial/ui/textarea";
 
 type Translate = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -58,18 +66,12 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
       contentClassName="max-w-[640px]"
       footer={
         <>
-          <AntButton autoInsertSpace={false} type="text" onClick={onCancel} disabled={submitting}>
+          <Button variant="ghost" onClick={onCancel} disabled={submitting}>
             {t("common:CANCEL")}
-          </AntButton>
-          <AntButton
-            autoInsertSpace={false}
-            type="primary"
-            loading={submitting}
-            onClick={onConfirm}
-            disabled={!roleName.trim()}
-          >
+          </Button>
+          <Button loading={submitting} onClick={onConfirm} disabled={!roleName.trim()}>
             {t("common:CONFIRM")}
-          </AntButton>
+          </Button>
         </>
       }
     >
@@ -79,14 +81,18 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
             {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
           </label>
           <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
-          <Select
-            value={templateRoleCode}
-            onChange={(next) => onTemplateRoleCodeChange(String(next))}
-            options={roleOptions}
-            placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")}
-            getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            className="w-full"
-          />
+          <Select value={templateRoleCode} onValueChange={onTemplateRoleCodeChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")} />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {roleOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-1.5">
@@ -102,10 +108,10 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
         <div className="grid gap-1.5">
           <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_DESC")}</label>
           <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
-          <Input.TextArea
+          <Textarea
             value={roleDescription}
             onChange={(event) => onRoleDescriptionChange(event.target.value)}
-            autoSize={{ minRows: 3, maxRows: 6 }}
+            className="min-h-28"
             placeholder={t("team:TEAM_ROLES_FIELD_DESC")}
           />
         </div>
@@ -145,20 +151,14 @@ export function DeleteRoleDialog(props: DeleteRoleDialogProps) {
 
         <AlertDialogFooter>
           <AlertDialogCancelPrimitive asChild>
-            <AntButton autoInsertSpace={false} type="text" onClick={onCancel} disabled={submitting}>
+            <Button variant="ghost" onClick={onCancel} disabled={submitting}>
               {t("common:CANCEL")}
-            </AntButton>
+            </Button>
           </AlertDialogCancelPrimitive>
           <AlertDialogActionPrimitive asChild>
-            <AntButton
-              autoInsertSpace={false}
-              type="primary"
-              danger
-              loading={submitting}
-              onClick={onConfirm}
-            >
+            <Button variant="destructive" loading={submitting} onClick={onConfirm}>
               {t("team:TEAM_ACTION_DELETE")}
-            </AntButton>
+            </Button>
           </AlertDialogActionPrimitive>
         </AlertDialogFooter>
       </AlertDialogContent>

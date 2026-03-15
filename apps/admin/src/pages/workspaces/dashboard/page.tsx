@@ -1,7 +1,7 @@
-import { Card, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
+import { Card, CardContent } from "@celestial/ui/card";
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -12,9 +12,11 @@ export function DashboardPage() {
       description="This is the starting point for the Celestial console."
     >
       <Card>
-        <Typography.Paragraph style={{ marginBottom: 0 }}>
-          Build your widgets, tables, and metrics here.
-        </Typography.Paragraph>
+        <CardContent className="pt-6">
+          <p className="mb-0 text-body text-label-primary">
+            Build your widgets, tables, and metrics here.
+          </p>
+        </CardContent>
       </Card>
     </DefaultPage>
   );

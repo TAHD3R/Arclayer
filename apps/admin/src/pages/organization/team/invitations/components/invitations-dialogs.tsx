@@ -1,5 +1,3 @@
-import { Button as AntButton, Input, Select } from "antd";
-
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import {
   AlertDialog,
@@ -13,8 +11,16 @@ import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@celestial/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 import type { InviteOrganizationRoleOption } from "@/pages/organization/team/shared/components/invite-organization-member-dialog";
 
 import type { RenewExpiresInSeconds } from "../constants";
@@ -99,22 +105,16 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton
-              type="text"
+            <Button
+              variant="ghost"
               onClick={() => onLinkCreateOpenChange(false)}
               disabled={createLinkPending}
-              autoInsertSpace={false}
             >
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              type="primary"
-              loading={createLinkPending}
-              onClick={onCreateLink}
-              autoInsertSpace={false}
-            >
+            </Button>
+            <Button loading={createLinkPending} onClick={onCreateLink}>
               {t("common:CONFIRM")}
-            </AntButton>
+            </Button>
           </>
         }
       >
@@ -124,16 +124,18 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               {t("team:TEAM_INVITE_FIELD_ROLE")}
             </label>
             <div className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
-            <Select
-              value={linkRoleCode}
-              showSearch
-              optionFilterProp="label"
-              onChange={(next) => onLinkRoleCodeChange(String(next))}
-              options={roleOptions}
-              placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              className="w-full"
-            />
+            <Select value={linkRoleCode} onValueChange={onLinkRoleCodeChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")} />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-1.5">
@@ -155,13 +157,23 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
             </label>
             <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={linkExpiresInSeconds}
-              onChange={(next) => onLinkExpiresInSecondsChange(next)}
-              options={renewOptions}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              className="w-full"
-            />
+            <Select
+              value={String(linkExpiresInSeconds)}
+              onValueChange={(next) =>
+                onLinkExpiresInSecondsChange(next === "null" ? null : Number(next))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {renewOptions.map((option) => (
+                  <SelectItem key={String(option.value)} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </SettingDialog>
@@ -180,17 +192,14 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton
-              autoInsertSpace={false}
-              type="text"
+            <Button
+              variant="ghost"
               onClick={renewInvitationDialog.close}
               disabled={renewInvitationPending}
             >
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              autoInsertSpace={false}
-              type="primary"
+            </Button>
+            <Button
               loading={renewInvitationPending}
               onClick={() => {
                 const active = renewInvitationDialog.displayPayload;
@@ -199,7 +208,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               }}
             >
               {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
+            </Button>
           </>
         }
       >
@@ -209,13 +218,23 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
             </label>
             <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={renewExpiresInSeconds}
-              onChange={(value) => onRenewExpiresInSecondsChange(value)}
-              options={renewOptions}
-              className="w-full"
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
+            <Select
+              value={String(renewExpiresInSeconds)}
+              onValueChange={(value) =>
+                onRenewExpiresInSecondsChange(value === "null" ? null : Number(value))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {renewOptions.map((option) => (
+                  <SelectItem key={String(option.value)} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         ) : null}
       </SettingDialog>
@@ -237,20 +256,17 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="text"
+              <Button
+                variant="ghost"
                 onClick={revokeInvitationDialog.close}
                 disabled={revokeInvitationPending}
               >
                 {t("common:CANCEL")}
-              </AntButton>
+              </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="primary"
-                danger
+              <Button
+                variant="destructive"
                 loading={revokeInvitationPending}
                 onClick={() => {
                   const active = revokeInvitationDialog.displayPayload;
@@ -259,7 +275,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
                 }}
               >
                 {t("team:TEAM_ACTION_DELETE")}
-              </AntButton>
+              </Button>
             </AlertDialogActionPrimitive>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -279,17 +295,10 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
         contentClassName="sm:max-w-xl"
         footer={
           <>
-            <AntButton
-              autoInsertSpace={false}
-              type="text"
-              onClick={renewLinkDialog.close}
-              disabled={renewLinkPending}
-            >
+            <Button variant="ghost" onClick={renewLinkDialog.close} disabled={renewLinkPending}>
               {t("common:CANCEL")}
-            </AntButton>
-            <AntButton
-              autoInsertSpace={false}
-              type="primary"
+            </Button>
+            <Button
               loading={renewLinkPending}
               onClick={() => {
                 const active = renewLinkDialog.displayPayload;
@@ -298,7 +307,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               }}
             >
               {t("team:TEAM_ACTION_RENEW")}
-            </AntButton>
+            </Button>
           </>
         }
       >
@@ -308,13 +317,23 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
               {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
             </label>
             <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-            <Select<RenewExpiresInSeconds>
-              value={renewExpiresInSeconds}
-              onChange={(value) => onRenewExpiresInSecondsChange(value)}
-              options={renewOptions}
-              className="w-full"
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-            />
+            <Select
+              value={String(renewExpiresInSeconds)}
+              onValueChange={(value) =>
+                onRenewExpiresInSecondsChange(value === "null" ? null : Number(value))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {renewOptions.map((option) => (
+                  <SelectItem key={String(option.value)} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         ) : null}
       </SettingDialog>
@@ -333,20 +352,17 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancelPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="text"
+              <Button
+                variant="ghost"
                 onClick={disableLinkDialog.close}
                 disabled={disableLinkPending}
               >
                 {t("common:CANCEL")}
-              </AntButton>
+              </Button>
             </AlertDialogCancelPrimitive>
             <AlertDialogActionPrimitive asChild>
-              <AntButton
-                autoInsertSpace={false}
-                type="primary"
-                danger
+              <Button
+                variant="destructive"
                 loading={disableLinkPending}
                 onClick={() => {
                   const active = disableLinkDialog.displayPayload;
@@ -355,7 +371,7 @@ export function OrganizationTeamInvitationsDialogs(props: OrganizationTeamInvita
                 }}
               >
                 {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
-              </AntButton>
+              </Button>
             </AlertDialogActionPrimitive>
           </AlertDialogFooter>
         </AlertDialogContent>

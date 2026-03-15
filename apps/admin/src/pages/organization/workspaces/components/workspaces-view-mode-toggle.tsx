@@ -1,6 +1,7 @@
-import { Button, Space } from "antd";
 import { LayoutGrid, List } from "lucide-react";
 
+import { Button } from "@celestial/ui/button";
+import { ButtonGroup } from "@celestial/ui/button-group";
 import type { OrganizationWorkspacesTranslateFn, OrganizationWorkspacesViewMode } from "../types";
 
 export type WorkspacesViewModeToggleProps = {
@@ -14,25 +15,25 @@ export function WorkspacesViewModeToggle({ t, value, onChange }: WorkspacesViewM
   const tableLabel = t("common:VIEW_MODE_TABLE");
 
   return (
-    <Space.Compact>
+    <ButtonGroup>
       <Button
-        type="text"
-        className={value === "card" ? "bg-fill-quaternary" : undefined}
-        icon={<LayoutGrid className="size-4" aria-hidden="true" />}
+        variant={value === "card" ? "secondary" : "ghost"}
+        size="icon-sm"
         onClick={() => onChange("card")}
         aria-pressed={value === "card"}
         aria-label={cardLabel}
-        autoInsertSpace={false}
-      />
+      >
+        <LayoutGrid className="size-4" aria-hidden="true" />
+      </Button>
       <Button
-        type="text"
-        className={value === "table" ? "bg-fill-quaternary" : undefined}
-        icon={<List className="size-4" aria-hidden="true" />}
+        variant={value === "table" ? "secondary" : "ghost"}
+        size="icon-sm"
         onClick={() => onChange("table")}
         aria-pressed={value === "table"}
         aria-label={tableLabel}
-        autoInsertSpace={false}
-      />
-    </Space.Compact>
+      >
+        <List className="size-4" aria-hidden="true" />
+      </Button>
+    </ButtonGroup>
   );
 }

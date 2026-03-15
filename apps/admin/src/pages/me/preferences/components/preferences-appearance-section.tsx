@@ -1,34 +1,155 @@
-import { Alert, Button, Slider, Switch } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { RotateCcw } from "lucide-react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 
-import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
-import { usePreferencesStore } from "@/stores/use-preference-store";
-import { ThemeCard } from "@/pages/me/preferences/components/preferences-theme-cards";
-import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { cn } from "@celestial/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
+import { Button } from "@celestial/ui/button";
+import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
+import { Slider } from "@celestial/ui/slider";
+import { Switch } from "@celestial/ui/switch";
+import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
+import { ThemeCard } from "@/pages/me/preferences/components/preferences-theme-cards";
+import { usePreferencesStore } from "@/stores/use-preference-store";
+
+type PreferenceToggleCardProps = {
+  checked: boolean;
+  description: string;
+  onCheckedChange: (checked: boolean) => void;
+  title: string;
+};
+
+function WarningAlert(props: { description: string; title: string }) {
+  return (
+    <Alert className="mb-6 border-amber-500/30 bg-amber-500/8 text-amber-900 dark:text-amber-100">
+      <AlertTriangle className="text-amber-600 dark:text-amber-300" />
+      <AlertTitle>{props.title}</AlertTitle>
+      <AlertDescription>{props.description}</AlertDescription>
+    </Alert>
+  );
+}
+
+function ResetAction(props: { hidden: boolean; label: string; onClick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      className={props.hidden ? "hidden" : undefined}
+      onClick={props.onClick}
+    >
+      <RotateCcw className="size-3.5" />
+      {props.label}
+    </Button>
+  );
+}
+
+function PreferenceToggleCard(props: PreferenceToggleCardProps) {
+  return (
+    <SettingCard>
+      <div className="flex items-center justify-between px-6 py-5 sm:px-6">
+        <div>
+          <div className="text-callout font-semibold text-label-primary">{props.title}</div>
+          <div className="mt-1 text-callout text-label-secondary">{props.description}</div>
+        </div>
+        <Switch checked={props.checked} onCheckedChange={props.onCheckedChange} />
+      </div>
+    </SettingCard>
+  );
+}
+
+type PreferenceSliderCardProps = {
+  alertDescription: string;
+  alertTitle: string;
+  currentLabel: string;
+  description: string;
+  hideReset: boolean;
+  leftPreviewClassName: string;
+  max: number;
+  min: number;
+  onChange: (value: number) => void;
+  onReset: () => void;
+  rightPreviewClassName: string;
+  sliderClassName?: string;
+  step: number;
+  title: string;
+  value: number;
+  warningVisible: boolean;
+};
+
+function PreferenceSliderCard(props: PreferenceSliderCardProps) {
+  return (
+    <SettingCard>
+      <SettingCardHeader
+        title={props.title}
+        description={props.description}
+        action={
+          <ResetAction
+            hidden={props.hideReset}
+            label={props.currentLabel}
+            onClick={props.onReset}
+          />
+        }
+      />
+      <SettingCardContent>
+        <div className="max-w-xl">
+          {props.warningVisible ? (
+            <WarningAlert title={props.alertTitle} description={props.alertDescription} />
+          ) : null}
+
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "shrink-0 select-none text-title2 leading-none text-label-secondary",
+                props.leftPreviewClassName,
+              )}
+            >
+              Aa
+            </div>
+            <Slider
+              className={cn("me-typography-slider w-64 md:w-80", props.sliderClassName)}
+              min={props.min}
+              max={props.max}
+              step={props.step}
+              value={[props.value]}
+              onValueChange={(values) => {
+                const nextValue = values[0];
+                if (typeof nextValue === "number") {
+                  props.onChange(nextValue);
+                }
+              }}
+            />
+            <div
+              className={cn(
+                "shrink-0 select-none text-largetitle leading-none text-label-secondary",
+                props.rightPreviewClassName,
+              )}
+            >
+              Aa
+            </div>
+            <div className="min-w-12 text-right text-footnote tabular-nums text-label-secondary">
+              {props.currentLabel}
+            </div>
+          </div>
+        </div>
+      </SettingCardContent>
+    </SettingCard>
+  );
+}
 
 export function MePreferencesAppearanceSection() {
   const { t } = useTranslation("account");
 
   const themePreference = usePreferencesStore((s) => s.themePreference);
-
   const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
   const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
-
   const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
   const setShowNotificationsBadge = usePreferencesStore((s) => s.setShowNotificationsBadge);
-
   const reduceMotion = usePreferencesStore((s) => s.reduceMotion);
   const setReduceMotion = usePreferencesStore((s) => s.setReduceMotion);
-
   const contrastMore = usePreferencesStore((s) => s.contrastMore);
   const setContrastMore = usePreferencesStore((s) => s.setContrastMore);
-
   const fontScalePreference = usePreferencesStore((s) => s.fontScalePreference);
   const setFontScalePreference = usePreferencesStore((s) => s.setFontScalePreference);
-
   const fontWeightPreference = usePreferencesStore((s) => s.fontWeightPreference);
   const setFontWeightPreference = usePreferencesStore((s) => s.setFontWeightPreference);
   const defaultPageFullWidth = usePreferencesStore((s) => s.defaultPageFullWidth);
@@ -36,11 +157,11 @@ export function MePreferencesAppearanceSection() {
 
   const fontScale = fontScalePreference ?? 1;
   const fontWeight = fontWeightPreference ?? 400;
+  const fontScaleLabel = `${Math.round(fontScale * 100)}%`;
+  const fontWeightLabel = String(fontWeight);
 
   const showFontScaleAlert = useMemo(() => fontScale <= 0.9 || fontScale >= 1.2, [fontScale]);
   const showFontWeightAlert = useMemo(() => fontWeight <= 320 || fontWeight >= 650, [fontWeight]);
-
-  const sliderLargeClassName = "w-64 md:w-80";
 
   return (
     <div className="flex flex-col gap-6">
@@ -79,196 +200,76 @@ export function MePreferencesAppearanceSection() {
         </SettingCardContent>
       </SettingCard>
 
-      <SettingCard>
-        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
-          <div>
-            <div className="text-callout font-semibold text-label-primary">
-              {t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_TITLE")}
-            </div>
-            <div className="mt-1 text-callout text-label-secondary">
-              {t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_DESC")}
-            </div>
-          </div>
-          <Switch
-            checked={defaultPageFullWidth}
-            onChange={(checked) => setDefaultPageFullWidth(Boolean(checked))}
-          />
-        </div>
-      </SettingCard>
+      <PreferenceToggleCard
+        checked={defaultPageFullWidth}
+        description={t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_DESC")}
+        onCheckedChange={setDefaultPageFullWidth}
+        title={t("ME_PREF_DEFAULT_PAGE_FULL_WIDTH_TITLE")}
+      />
 
-      <SettingCard>
-        <SettingCardHeader
-          title={t("ME_PREF_TEXT_SIZE_TITLE")}
-          description={t("ME_PREF_TEXT_SIZE_DESC")}
-          action={
-            <Button
-              type="primary"
-              icon={<RotateCcw className="h-3.5 w-3.5" />}
-              disabled={fontScalePreference === null}
-              onClick={() => setFontScalePreference(null)}
-              autoInsertSpace={false}
-              className={fontScalePreference === null ? "hidden" : ""}
-            >
-              {t("ME_PREF_RESET_TO_DEFAULT")}
-            </Button>
-          }
-        />
-        <SettingCardContent>
-          <div className="max-w-xl">
-            {showFontScaleAlert ? (
-              <Alert
-                type="warning"
-                showIcon
-                message={t("ME_PREF_TEXT_SIZE_ALERT_TITLE")}
-                description={t("ME_PREF_TEXT_SIZE_ALERT_DESC")}
-                className="mb-6"
-              />
-            ) : null}
+      <PreferenceSliderCard
+        alertDescription={t("ME_PREF_TEXT_SIZE_ALERT_DESC")}
+        alertTitle={t("ME_PREF_TEXT_SIZE_ALERT_TITLE")}
+        currentLabel={fontScaleLabel}
+        description={t("ME_PREF_TEXT_SIZE_DESC")}
+        hideReset={fontScalePreference === null}
+        leftPreviewClassName=""
+        max={1.25}
+        min={0.85}
+        onChange={setFontScalePreference}
+        onReset={() => setFontScalePreference(null)}
+        rightPreviewClassName=""
+        step={0.05}
+        title={t("ME_PREF_TEXT_SIZE_TITLE")}
+        value={fontScale}
+        warningVisible={showFontScaleAlert}
+      />
 
-            <div className="flex items-center gap-3">
-              <div className="shrink-0 select-none text-title2 leading-none text-label-secondary">
-                Aa
-              </div>
-              <Slider
-                className={cn("me-typography-slider", sliderLargeClassName)}
-                min={0.85}
-                max={1.25}
-                step={0.05}
-                value={fontScale}
-                tooltip={{
-                  formatter: (v) => `${Math.round(Number(v) * 100)}%`,
-                  getPopupContainer: () => document.body,
-                }}
-                onChange={(v) => setFontScalePreference(typeof v === "number" ? v : Number(v))}
-              />
-              <div className="shrink-0 select-none text-largetitle leading-none text-label-secondary">
-                Aa
-              </div>
-            </div>
-          </div>
-        </SettingCardContent>
-      </SettingCard>
+      <PreferenceSliderCard
+        alertDescription={t("ME_PREF_TEXT_WEIGHT_ALERT_DESC")}
+        alertTitle={t("ME_PREF_TEXT_WEIGHT_ALERT_TITLE")}
+        currentLabel={fontWeightLabel}
+        description={t("ME_PREF_TEXT_WEIGHT_DESC")}
+        hideReset={fontWeightPreference === null}
+        leftPreviewClassName="font-light"
+        max={700}
+        min={300}
+        onChange={setFontWeightPreference}
+        onReset={() => setFontWeightPreference(null)}
+        rightPreviewClassName="font-bold"
+        step={25}
+        title={t("ME_PREF_TEXT_WEIGHT_TITLE")}
+        value={fontWeight}
+        warningVisible={showFontWeightAlert}
+      />
 
-      <SettingCard>
-        <SettingCardHeader
-          title={t("ME_PREF_TEXT_WEIGHT_TITLE")}
-          description={t("ME_PREF_TEXT_WEIGHT_DESC")}
-          action={
-            <Button
-              type="primary"
-              icon={<RotateCcw className="h-3.5 w-3.5" />}
-              disabled={fontWeightPreference === null}
-              onClick={() => setFontWeightPreference(null)}
-              autoInsertSpace={false}
-              className={fontWeightPreference === null ? "hidden" : ""}
-            >
-              {t("ME_PREF_RESET_TO_DEFAULT")}
-            </Button>
-          }
-        />
-        <SettingCardContent>
-          <div className="max-w-xl">
-            {showFontWeightAlert ? (
-              <Alert
-                type="warning"
-                showIcon
-                message={t("ME_PREF_TEXT_WEIGHT_ALERT_TITLE")}
-                description={t("ME_PREF_TEXT_WEIGHT_ALERT_DESC")}
-                className="mb-6"
-              />
-            ) : null}
+      <PreferenceToggleCard
+        checked={contrastMore}
+        description={t("ME_PREF_CONTRAST_DESC")}
+        onCheckedChange={setContrastMore}
+        title={t("ME_PREF_CONTRAST_TITLE")}
+      />
 
-            <div className="flex items-center gap-3">
-              <div className="shrink-0 select-none text-title2 font-light leading-none text-label-secondary">
-                Aa
-              </div>
-              <Slider
-                className={cn("me-typography-slider", sliderLargeClassName)}
-                min={300}
-                max={700}
-                step={25}
-                value={fontWeight}
-                tooltip={{
-                  formatter: (v) => String(v),
-                  getPopupContainer: () => document.body,
-                }}
-                onChange={(v) => setFontWeightPreference(typeof v === "number" ? v : Number(v))}
-              />
-              <div className="shrink-0 select-none text-largetitle font-bold leading-none text-label-secondary">
-                Aa
-              </div>
-            </div>
-          </div>
-        </SettingCardContent>
-      </SettingCard>
+      <PreferenceToggleCard
+        checked={notificationPanelPinned}
+        description={t("ME_PREF_NOTIFICATIONS_PANEL_PIN_DESC")}
+        onCheckedChange={setNotificationPanelPinned}
+        title={t("ME_PREF_NOTIFICATIONS_PANEL_PIN_TITLE")}
+      />
 
-      <SettingCard>
-        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
-          <div>
-            <div className="text-callout font-semibold text-label-primary">
-              {t("ME_PREF_CONTRAST_TITLE")}
-            </div>
-            <div className="mt-1 text-callout text-label-secondary">
-              {t("ME_PREF_CONTRAST_DESC")}
-            </div>
-          </div>
-          <Switch
-            checked={contrastMore}
-            onChange={(checked) => setContrastMore(Boolean(checked))}
-          />
-        </div>
-      </SettingCard>
+      <PreferenceToggleCard
+        checked={showNotificationsBadge}
+        description={t("ME_PREF_NAV_BADGE_DESC")}
+        onCheckedChange={setShowNotificationsBadge}
+        title={t("ME_PREF_NAV_BADGE_TITLE")}
+      />
 
-      <SettingCard>
-        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
-          <div>
-            <div className="text-callout font-semibold text-label-primary">
-              {t("ME_PREF_NOTIFICATIONS_PANEL_PIN_TITLE")}
-            </div>
-            <div className="mt-1 text-callout text-label-secondary">
-              {t("ME_PREF_NOTIFICATIONS_PANEL_PIN_DESC")}
-            </div>
-          </div>
-          <Switch
-            checked={notificationPanelPinned}
-            onChange={(checked) => setNotificationPanelPinned(Boolean(checked))}
-          />
-        </div>
-      </SettingCard>
-
-      <SettingCard>
-        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
-          <div>
-            <div className="text-callout font-semibold text-label-primary">
-              {t("ME_PREF_NAV_BADGE_TITLE")}
-            </div>
-            <div className="mt-1 text-callout text-label-secondary">
-              {t("ME_PREF_NAV_BADGE_DESC")}
-            </div>
-          </div>
-          <Switch
-            checked={showNotificationsBadge}
-            onChange={(checked) => setShowNotificationsBadge(Boolean(checked))}
-          />
-        </div>
-      </SettingCard>
-
-      <SettingCard>
-        <div className="flex items-center justify-between px-6 py-5 sm:px-6">
-          <div>
-            <div className="text-callout font-semibold text-label-primary">
-              {t("ME_PREF_MOTION_REDUCE_TITLE")}
-            </div>
-            <div className="mt-1 text-callout text-label-secondary">
-              {t("ME_PREF_MOTION_REDUCE_DESC")}
-            </div>
-          </div>
-          <Switch
-            checked={reduceMotion}
-            onChange={(checked) => setReduceMotion(Boolean(checked))}
-          />
-        </div>
-      </SettingCard>
+      <PreferenceToggleCard
+        checked={reduceMotion}
+        description={t("ME_PREF_MOTION_REDUCE_DESC")}
+        onCheckedChange={setReduceMotion}
+        title={t("ME_PREF_MOTION_REDUCE_TITLE")}
+      />
     </div>
   );
 }

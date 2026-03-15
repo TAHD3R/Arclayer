@@ -1,7 +1,6 @@
-import { Button } from "antd";
-
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
+import { Button } from "@celestial/ui/button";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -40,22 +39,15 @@ export function NotificationsView() {
     !canMarkAllRead && !showDevSeed ? null : (
       <div className="flex items-center gap-2">
         {showDevSeed ? (
-          <Button
-            type="default"
-            loading={n.isSeeding}
-            onClick={() => void n.seedDemo()}
-            autoInsertSpace={false}
-          >
+          <Button variant="secondary" loading={n.isSeeding} onClick={() => void n.seedDemo()}>
             {t("NOTIFICATIONS_DEV_SEED")}
           </Button>
         ) : null}
         {canMarkAllRead ? (
           <Button
-            type="primary"
             disabled={!n.unreadItems.length || n.listQuery.isFetching}
             loading={n.listQuery.isFetching && !n.listQuery.isRefetching}
             onClick={() => void n.markAllRead()}
-            autoInsertSpace={false}
           >
             {t("NOTIFICATIONS_MARK_ALL_AS_READ")}
           </Button>

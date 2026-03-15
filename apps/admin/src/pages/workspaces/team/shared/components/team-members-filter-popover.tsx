@@ -1,10 +1,16 @@
-import { Button, Select } from "antd";
 import { Filter } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { getPopupContainerWithinOverlay } from "@/lib/antd/popup-container";
 
+import { Button } from "@celestial/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import type { Role } from "@/types/api";
 import type {
   MembershipStatus,
@@ -57,12 +63,8 @@ export function TeamMembersFilterPopover(props: {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          type="text"
-          icon={<Filter size={18} />}
-          title={t("team:TEAM_FILTER_TITLE")}
-          autoInsertSpace={false}
-        >
+        <Button variant="ghost" title={t("team:TEAM_FILTER_TITLE")}>
+          <Filter size={18} />
           {t("team:TEAM_FILTER_TITLE")}
         </Button>
       </PopoverTrigger>
@@ -74,22 +76,28 @@ export function TeamMembersFilterPopover(props: {
             <div className="text-footnote text-label-secondary">
               {t("team:TEAM_FILTER_FIELD_SORT")}
             </div>
-            <Select
-              value={props.sort}
-              onChange={props.onSortChange}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={[
-                { label: t("team:TEAM_SORT_NEWEST"), value: "-created_at" },
-                { label: t("team:TEAM_SORT_USERNAME_AZ"), value: "user__username" },
-                { label: t("team:TEAM_SORT_USERNAME_ZA"), value: "-user__username" },
-                { label: t("team:TEAM_SORT_EMAIL_AZ"), value: "user__email" },
-                { label: t("team:TEAM_SORT_EMAIL_ZA"), value: "-user__email" },
-                { label: t("team:TEAM_SORT_LAST_LOGIN_RECENT"), value: "-user__last_login_at" },
-                { label: t("team:TEAM_SORT_LAST_LOGIN_OLD"), value: "user__last_login_at" },
-                { label: t("team:TEAM_SORT_MEMBER_STATUS"), value: "status" },
-                { label: t("team:TEAM_SORT_MEMBER_STATUS_DESC"), value: "-status" },
-              ]}
-            />
+            <Select value={props.sort} onValueChange={props.onSortChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {[
+                  { label: t("team:TEAM_SORT_NEWEST"), value: "-created_at" },
+                  { label: t("team:TEAM_SORT_USERNAME_AZ"), value: "user__username" },
+                  { label: t("team:TEAM_SORT_USERNAME_ZA"), value: "-user__username" },
+                  { label: t("team:TEAM_SORT_EMAIL_AZ"), value: "user__email" },
+                  { label: t("team:TEAM_SORT_EMAIL_ZA"), value: "-user__email" },
+                  { label: t("team:TEAM_SORT_LAST_LOGIN_RECENT"), value: "-user__last_login_at" },
+                  { label: t("team:TEAM_SORT_LAST_LOGIN_OLD"), value: "user__last_login_at" },
+                  { label: t("team:TEAM_SORT_MEMBER_STATUS"), value: "status" },
+                  { label: t("team:TEAM_SORT_MEMBER_STATUS_DESC"), value: "-status" },
+                ].map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
@@ -98,13 +106,22 @@ export function TeamMembersFilterPopover(props: {
             </div>
             <Select
               value={props.value.membershipStatus ?? "all"}
-              onChange={(v) => {
+              onValueChange={(v) => {
                 const next = v === "all" ? undefined : (v as MembershipStatus);
                 props.onChange({ ...props.value, membershipStatus: next });
               }}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={membershipStatusOptions}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {membershipStatusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
@@ -113,13 +130,22 @@ export function TeamMembersFilterPopover(props: {
             </div>
             <Select
               value={props.value.userStatus ?? "all"}
-              onChange={(v) => {
+              onValueChange={(v) => {
                 const next = v === "all" ? undefined : (v as UserStatus);
                 props.onChange({ ...props.value, userStatus: next });
               }}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
-              options={userStatusOptions}
-            />
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {userStatusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 gap-1.5">
@@ -127,16 +153,22 @@ export function TeamMembersFilterPopover(props: {
               {t("team:TEAM_FILTER_FIELD_ROLE")}
             </div>
             <Select
-              showSearch
-              optionFilterProp="label"
-              loading={props.rolesLoading}
-              getPopupContainer={(node) => getPopupContainerWithinOverlay(node)}
               value={props.value.roleCode ?? "all"}
-              onChange={(v) =>
+              onValueChange={(v) =>
                 props.onChange({ ...props.value, roleCode: v === "all" ? undefined : v })
               }
-              options={roleOptions}
-            />
+            >
+              <SelectTrigger className="w-full" disabled={props.rolesLoading}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -150,15 +182,12 @@ export function TeamMembersFilterPopover(props: {
               });
               props.onSortChange(props.defaultSort ?? "-created_at");
             }}
-            autoInsertSpace={false}
           >
             {t("team:TEAM_FILTER_RESET")}
           </Button>
 
           <PopoverClose asChild>
-            <Button type="primary" autoInsertSpace={false}>
-              {t("team:TEAM_FILTER_DONE")}
-            </Button>
+            <Button>{t("team:TEAM_FILTER_DONE")}</Button>
           </PopoverClose>
         </div>
       </PopoverContent>
