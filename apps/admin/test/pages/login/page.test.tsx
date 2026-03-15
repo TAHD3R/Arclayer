@@ -137,7 +137,9 @@ describe("LoginView auth pane hierarchy", () => {
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
     expect(screen.getByText("auth:FORGOT_PASSWORD_MODAL_TITLE")).toBeInTheDocument();
     expect(screen.getByText("auth:FIELD_ACCOUNT_LABEL")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "auth:MODAL_SUBMIT" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "auth:FORGOT_PASSWORD_SUBMIT_BUTTON" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" })).toBeInTheDocument();
   });
 

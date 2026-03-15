@@ -15,6 +15,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_STACK_CLASS,
   AuthPaneHeader,
   AuthPaneTitleRow,
 } from "./auth-pane-primitives";
@@ -60,13 +61,13 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
 
   if (step === "success") {
     return (
-      <div className="grid gap-4">
+      <div className={AUTH_PANE_STACK_CLASS}>
         <AuthPaneHeader
           titleKey="auth:FORGOT_PASSWORD_SUCCESS_TITLE"
           subtitleKey="auth:FORGOT_PASSWORD_SUCCESS_DESC"
           variants={variants}
         />
-        <motion.div variants={variants} className="grid gap-3 pt-1">
+        <motion.div variants={variants} className="grid gap-3 pt-1.5">
           <Button className="w-full" type="button" size="lg" onClick={props.onBackToLogin}>
             {t("auth:BACK_TO_LOGIN")}
           </Button>
@@ -81,26 +82,27 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className={AUTH_PANE_STACK_CLASS}>
       <AuthPaneHeader
         titleKey="auth:FORGOT_PASSWORD_MODAL_TITLE"
         subtitleKey="auth:FORGOT_PASSWORD_MODAL_DESC"
         variants={variants}
       />
-      <form className="grid gap-4" autoComplete="off" onSubmit={handleSubmit}>
+      <form className="grid gap-4" autoComplete="on" onSubmit={handleSubmit}>
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
             <FieldContent className="gap-2">
               <AuthPaneTitleRow title={t("auth:FIELD_ACCOUNT_LABEL")} />
               <AuthInputControl
-                autoComplete="off"
-                aria-label={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
+                autoComplete="username"
+                aria-label={t("auth:FIELD_ACCOUNT_LABEL")}
                 aria-invalid={form.formState.errors.identifier ? true : undefined}
                 className={AUTH_INPUT_GROUP_CLASS}
                 inputClassName={AUTH_INPUT_CLASS}
                 placeholder={t("auth:FORGOT_PASSWORD_MODAL_FIELD_PLACEHOLDER")}
                 startIcon={<Mail size={16} />}
                 disabled={props.loading}
+                spellCheck={false}
                 {...form.register("identifier")}
               />
               <FieldError>
@@ -114,7 +116,7 @@ export function ForgotPasswordPane(props: ForgotPasswordPaneProps) {
 
         <motion.div variants={variants} className="grid gap-3 pt-1">
           <Button className="w-full" type="submit" size="lg" loading={props.loading}>
-            {t("auth:MODAL_SUBMIT")}
+            {t("auth:FORGOT_PASSWORD_SUBMIT_BUTTON")}
           </Button>
           <div className="text-center">
             <AuthLinkButton onClick={goToReset} type="button">

@@ -22,6 +22,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_STACK_CLASS,
   AuthPaneHeader,
   AuthPaneTitleRow,
 } from "@/pages/login/components/auth-pane-primitives";
@@ -78,8 +79,9 @@ export function ResetPasswordView({
     show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
   };
   const variants = reducedMotion ? {} : itemVariants;
+  const schema = useMemo(() => createResetPasswordSchema(t), [t]);
   const form = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(useMemo(() => createResetPasswordSchema(t), [t])),
+    resolver: zodResolver(schema),
     defaultValues: { resetToken: initialToken ?? "", newPassword: "", confirmPassword: "" },
     mode: "onSubmit",
   });
@@ -91,7 +93,7 @@ export function ResetPasswordView({
       animate="show"
       variants={{ show: reducedMotion ? {} : { transition: { staggerChildren: 0.05 } } }}
     >
-      <div className="grid gap-4">
+      <div className={AUTH_PANE_STACK_CLASS}>
         <AuthPaneHeader
           titleKey="auth:RESET_PASSWORD_PAGE_TITLE"
           subtitleKey="auth:RESET_PASSWORD_PAGE_SUBTITLE"
@@ -100,7 +102,7 @@ export function ResetPasswordView({
 
         <form
           className="grid gap-4"
-          autoComplete="off"
+          autoComplete="on"
           onSubmit={form.handleSubmit(async (values) => {
             await onSubmit({ reset_token: values.resetToken, new_password: values.newPassword });
           })}
@@ -115,7 +117,7 @@ export function ResetPasswordView({
             variants={variants}
           >
             <AuthInputControl
-              autoComplete="off"
+              autoComplete="one-time-code"
               aria-label={t("auth:FIELD_RESET_TOKEN_LABEL")}
               aria-invalid={form.formState.errors.resetToken ? true : undefined}
               className={AUTH_INPUT_GROUP_CLASS}
@@ -123,6 +125,7 @@ export function ResetPasswordView({
               placeholder={t("auth:FIELD_RESET_TOKEN_PLACEHOLDER")}
               startIcon={<KeyRound size={16} />}
               disabled={loading}
+              spellCheck={false}
               {...form.register("resetToken")}
             />
           </ResetPasswordField>
@@ -171,7 +174,7 @@ export function ResetPasswordView({
             />
           </ResetPasswordField>
 
-          <motion.div variants={variants} className="grid gap-3 pt-1">
+          <motion.div variants={variants} className="grid gap-3 pt-1.5">
             <Button className="w-full" type="submit" size="lg" loading={loading}>
               {t("auth:RESET_PASSWORD_BUTTON")}
             </Button>

@@ -21,6 +21,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
+  AUTH_PANE_STACK_CLASS,
   AuthPaneHeader,
   AuthPaneLegal,
   AuthPaneTitleRow,
@@ -75,7 +76,7 @@ function RegisterPaneForm(props: RegisterPaneFormProps) {
     <form
       onSubmit={props.form.handleSubmit(props.onSubmit)}
       className="grid gap-2"
-      autoComplete="off"
+      autoComplete="on"
     >
       <RegisterField
         title={t("auth:FIELD_EMAIL_LABEL")}
@@ -91,6 +92,7 @@ function RegisterPaneForm(props: RegisterPaneFormProps) {
           placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
           startIcon={<Mail size={16} />}
           disabled={props.loading}
+          spellCheck={false}
           {...props.form.register("email")}
         />
       </RegisterField>
@@ -101,7 +103,7 @@ function RegisterPaneForm(props: RegisterPaneFormProps) {
         variants={props.variants}
       >
         <AuthInputControl
-          autoComplete="off"
+          autoComplete="username"
           aria-label={t("auth:FIELD_USERNAME_LABEL")}
           aria-invalid={usernameError ? true : undefined}
           className={AUTH_INPUT_GROUP_CLASS}
@@ -109,6 +111,7 @@ function RegisterPaneForm(props: RegisterPaneFormProps) {
           placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
           startIcon={<User size={16} />}
           disabled={props.loading}
+          spellCheck={false}
           {...props.form.register("username")}
         />
       </RegisterField>
@@ -163,15 +166,15 @@ function RegisterPaneFooter(props: RegisterPaneSectionProps & { onSwitchToLogin:
   return (
     <motion.div
       variants={props.variants}
-      className="grid gap-3 pt-1 text-center text-label-secondary"
+      className="grid gap-2.5 pt-2 text-center text-label-secondary"
     >
-      <div>
+      <div className="leading-6">
         <span>{t("auth:HAVE_ACCOUNT")} </span>
         <AuthLinkButton onClick={props.onSwitchToLogin} type="button">
           {t("auth:SIGN_IN")}
         </AuthLinkButton>
       </div>
-      <AuthPaneLegal i18nKey="auth:LEGAL_REGISTER" variants={{}} />
+      <AuthPaneLegal i18nKey="auth:LEGAL_REGISTER" variants={props.variants} />
     </motion.div>
   );
 }
@@ -208,7 +211,7 @@ export function RegisterPane(props: RegisterPaneProps) {
   });
 
   return (
-    <div className="grid gap-4">
+    <div className={AUTH_PANE_STACK_CLASS}>
       <AuthPaneHeader
         titleKey="auth:REGISTER_PAGE_TITLE"
         subtitleKey="auth:REGISTER_PAGE_SUBTITLE"
@@ -220,7 +223,7 @@ export function RegisterPane(props: RegisterPaneProps) {
         loading={props.loading}
         onSubmit={props.onSubmit}
       />
-      <motion.div variants={variants} className="pt-1">
+      <motion.div variants={variants} className="pt-1.5">
         <AuthOauthButtons disabled={props.loading} redirect={props.redirect} />
       </motion.div>
       <RegisterPaneFooter variants={variants} onSwitchToLogin={props.onSwitchToLogin} />

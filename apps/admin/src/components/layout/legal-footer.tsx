@@ -42,9 +42,8 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
           <DialogHeader>
             <DialogTitle>{t("auth:TERMS_OF_SERVICE_MODAL_TITLE")}</DialogTitle>
           </DialogHeader>
-          <div className="text-callout text-label-secondary space-y-3">
+          <div className="max-h-[min(60vh,32rem)] space-y-3 overflow-y-auto pr-1 text-callout text-label-secondary">
             <p>{t("auth:TERMS_OF_SERVICE_MODAL_CONTENT")}</p>
-            <p className="text-label-tertiary">{t("auth:MODAL_PLACEHOLDER_HINT")}</p>
           </div>
           <DialogFooter>
             <Button onClick={() => setOpenModal(null)}>{t("auth:MODAL_OK")}</Button>
@@ -57,9 +56,8 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
           <DialogHeader>
             <DialogTitle>{t("auth:PRIVACY_POLICY_MODAL_TITLE")}</DialogTitle>
           </DialogHeader>
-          <div className="text-callout text-label-secondary space-y-3">
+          <div className="max-h-[min(60vh,32rem)] space-y-3 overflow-y-auto pr-1 text-callout text-label-secondary">
             <p>{t("auth:PRIVACY_POLICY_MODAL_CONTENT")}</p>
-            <p className="text-label-tertiary">{t("auth:MODAL_PLACEHOLDER_HINT")}</p>
           </div>
           <DialogFooter>
             <Button onClick={() => setOpenModal(null)}>{t("auth:MODAL_OK")}</Button>

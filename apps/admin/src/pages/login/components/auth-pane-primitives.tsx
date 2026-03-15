@@ -7,17 +7,18 @@ import { LegalFooter } from "@/components/layout/legal-footer";
 import { cn } from "@celestial/lib/utils";
 import { FieldTitle } from "@celestial/ui/field";
 
+export const AUTH_PANE_STACK_CLASS = "grid gap-5";
 export const AUTH_FIELD_CLASS = "gap-2";
 export const AUTH_FIELD_TITLE_CLASS = "text-headline text-label-primary";
 export const AUTH_INPUT_GROUP_CLASS = cn(
-  "h-10 rounded-xl border-border/80 bg-background shadow-none",
+  "h-10 min-w-0 rounded-xl border-border/80 bg-background shadow-none",
   "has-[[data-slot=input-group-control]:focus-visible]:border-primary",
   "has-[[data-slot=input-group-control]:focus-visible]:ring-primary/15",
 );
 export const AUTH_INPUT_CLASS =
-  "h-10 px-0 text-callout placeholder:text-label-tertiary md:text-callout";
+  "h-10 min-w-0 px-0 text-callout placeholder:text-label-tertiary md:text-callout";
 export const AUTH_PLAIN_INPUT_CLASS = cn(
-  "h-10 rounded-xl border-border/80 bg-background px-4 text-callout shadow-none",
+  "h-10 min-w-0 rounded-xl border-border/80 bg-background px-4 text-callout shadow-none",
   "placeholder:text-label-tertiary focus-visible:ring-primary/15 md:text-callout",
 );
 export const AUTH_OTP_GROUP_CLASS = "gap-2";
@@ -34,13 +35,15 @@ export function AuthPaneHeader(props: {
   const { t } = useTranslation();
 
   return (
-    <motion.div variants={props.variants} className="grid gap-3">
+    <motion.div variants={props.variants} className="grid gap-2.5">
       <div className="select-none">
         <AdminFullLogo to="/login" ariaLabel="Arclayer" width={132} />
       </div>
-      <div>
-        <h1 className="select-none text-largetitle text-label-primary">{t(props.titleKey)}</h1>
-        <p className="mt-2.5 max-w-[34ch] select-none text-title3 font-normal text-label-secondary">
+      <div className="grid gap-2">
+        <h1 className="select-none text-largetitle leading-none tracking-[-0.03em] text-label-primary">
+          {t(props.titleKey)}
+        </h1>
+        <p className="max-w-[30ch] select-none text-title3 font-normal leading-relaxed text-label-secondary text-pretty">
           {t(props.subtitleKey)}
         </p>
       </div>
@@ -51,15 +54,15 @@ export function AuthPaneHeader(props: {
 export function AuthPaneTitleRow(props: { title: string; action?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <FieldTitle className={AUTH_FIELD_TITLE_CLASS}>{props.title}</FieldTitle>
-      {props.action}
+      <FieldTitle className={cn(AUTH_FIELD_TITLE_CLASS, "min-w-0")}>{props.title}</FieldTitle>
+      {props.action ? <div className="shrink-0">{props.action}</div> : null}
     </div>
   );
 }
 
 export function AuthPaneLegal(props: { i18nKey: string; variants: Variants | {} }) {
   return (
-    <motion.div variants={props.variants} className="pt-2 text-center">
+    <motion.div variants={props.variants} className="pt-1.5 text-center text-balance">
       <LegalFooter i18nKey={props.i18nKey} />
     </motion.div>
   );

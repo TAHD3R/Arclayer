@@ -12,6 +12,11 @@ vi.mock("motion/react", () => ({
         return <div ref={ref} {...props} />;
       },
     ),
+    span: React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+      function MotionSpan(props, ref) {
+        return <span ref={ref} {...props} />;
+      },
+    ),
     button: React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
       function MotionButton(props, ref) {
         const {

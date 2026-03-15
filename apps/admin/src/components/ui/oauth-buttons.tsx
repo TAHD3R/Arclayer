@@ -89,34 +89,29 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
 
   const isBusy = disabled || providersQuery.isLoading;
   const isSingleProvider = providers.length === 1;
-  const buttonLayoutStyle = isSingleProvider
-    ? undefined
-    : ({
-        gridTemplateColumns: `repeat(${providers.length}, minmax(0, 1fr))`,
-      } satisfies React.CSSProperties);
 
   return (
-    <div className="grid gap-3">
-      <div className="flex items-center gap-3 py-2 text-footnote text-label-secondary">
+    <div className="grid gap-2.5">
+      <div className="flex items-center gap-3 py-1 text-[0.8125rem] text-label-secondary">
         <Separator className="flex-1" />
         <span className="shrink-0">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
         <Separator className="flex-1" />
       </div>
       <div
         className={cn(
-          isSingleProvider ? "grid grid-cols-1 gap-2.5" : "grid gap-2",
-          !isSingleProvider && "items-stretch",
+          isSingleProvider
+            ? "grid grid-cols-1 gap-2.5"
+            : "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         )}
-        style={buttonLayoutStyle}
       >
         {providers.map((provider) => (
           <Button
             key={provider.provider}
             className={cn(
-              "w-full rounded-xl border-border/80 bg-background/80 shadow-none transition-colors hover:bg-accent/35",
+              "rounded-xl border-border/80 bg-background/80 shadow-none transition-colors hover:bg-accent/35",
               isSingleProvider
-                ? "h-10 justify-center px-4"
-                : "h-10 min-w-0 justify-center px-3 text-footnote",
+                ? "h-10 w-full justify-center px-4"
+                : "h-10 min-w-[7.5rem] flex-1 justify-center px-3 text-footnote sm:min-w-0",
             )}
             variant="outline"
             size={isSingleProvider ? "lg" : "default"}

@@ -15,6 +15,7 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_OTP_GROUP_CLASS,
   AUTH_OTP_SLOT_CLASS,
+  AUTH_PANE_STACK_CLASS,
   AUTH_PLAIN_INPUT_CLASS,
   AuthPaneHeader,
   AuthPaneLegal,
@@ -77,14 +78,22 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
       : t("auth:TWO_FACTOR_CODE_LABEL");
 
   return (
-    <div className="grid gap-2">
+    <div className={AUTH_PANE_STACK_CLASS}>
       <AuthPaneHeader
         titleKey="auth:LOGIN_TWO_FACTOR_TITLE"
         subtitleKey="auth:LOGIN_TWO_FACTOR_SUBTITLE"
         variants={variants}
       />
 
-      <motion.div variants={variants} className="grid gap-4">
+      <motion.form
+        variants={variants}
+        className="grid gap-4"
+        autoComplete="on"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSubmit();
+        }}
+      >
         <Field className={AUTH_FIELD_CLASS}>
           <FieldContent className="gap-2">
             <AuthPaneTitleRow title={primaryLabel} />
@@ -98,6 +107,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
                 placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
                 autoComplete="one-time-code"
                 disabled={props.loading}
+                spellCheck={false}
               />
             ) : (
               <InputOTP
@@ -125,7 +135,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
         </Field>
 
         <div className="grid gap-3">
-          <Button size="lg" loading={props.loading} onClick={handleSubmit}>
+          <Button type="submit" size="lg" loading={props.loading}>
             {t("auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON")}
           </Button>
           <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />
@@ -142,7 +152,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
             {t("auth:TWO_FACTOR_BACK_TO_PASSWORD")}
           </AuthLinkButton>
         </div>
-      </motion.div>
+      </motion.form>
     </div>
   );
 }
