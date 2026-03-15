@@ -5,7 +5,7 @@ import { Activity, Home, LayoutGrid, Settings, UserPlus, Users } from "lucide-re
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import type { AdminNavItem } from "@/types/admin-nav";
+import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { Sidebar, SidebarMenuButton, SidebarProvider } from "@celestial/ui/sidebar";
 
@@ -50,6 +50,24 @@ async function waitMs(ms: number) {
   await act(async () => {
     await new Promise((resolve) => window.setTimeout(resolve, ms));
   });
+}
+
+function renderExpandedStructuredNav(args: {
+  homeItem: AdminNavItem;
+  sections: readonly AdminNavSection[];
+  favoriteWorkspaceBase: string;
+}) {
+  return render(
+    <SidebarProvider defaultOpen className="h-screen">
+      <Sidebar collapsible="icon" animateOnHover={false}>
+        <AdminSiderNav
+          homeItem={args.homeItem}
+          sections={args.sections}
+          favoriteWorkspaceBase={args.favoriteWorkspaceBase}
+        />
+      </Sidebar>
+    </SidebarProvider>,
+  );
 }
 
 const items: AdminNavItem[] = [
@@ -106,6 +124,40 @@ const items: AdminNavItem[] = [
         label: "General",
         icon: Settings,
         to: "/w/ws-1/settings/general",
+      },
+    ],
+  },
+];
+
+const homeItem: AdminNavItem = {
+  key: "dashboard",
+  label: "Dashboard",
+  icon: Home,
+  to: "/w/ws-1/",
+};
+
+const sections: AdminNavSection[] = [
+  {
+    key: "general",
+    title: "General",
+    items: [
+      {
+        key: "activity",
+        label: "Activity",
+        icon: Activity,
+        to: "/w/ws-1/activity",
+      },
+    ],
+  },
+  {
+    key: "collaboration",
+    title: "Collaboration",
+    items: [
+      {
+        key: "team.invitations",
+        label: "Invitations",
+        icon: UserPlus,
+        to: "/w/ws-1/team/invitations",
       },
     ],
   },
@@ -293,5 +345,39 @@ describe("AdminSiderNav collapsed groups", () => {
     await user.click(screen.getByRole("button", { name: "Team" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/team/invitations" });
+  });
+
+  it("renders dashboard above titled sections and shows starred empty state in structured mode", () => {
+    renderExpandedStructuredNav({
+      homeItem,
+      sections,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.getByRole("button", { name: "Dashboard" })).toBeVisible();
+    expect(screen.getByText("General")).toBeVisible();
+    expect(screen.getByText("Collaboration")).toBeVisible();
+    expect(screen.getByText("en-US:NAV_STARRED_EMPTY")).toBeVisible();
+  });
+
+  it("toggles section items when clicking a section label", async () => {
+    const user = userEvent.setup();
+    renderExpandedStructuredNav({
+      homeItem,
+      sections,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.getByRole("button", { name: "Activity" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "General" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Activity" })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "General" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Activity" })).toBeVisible();
+    });
   });
 });

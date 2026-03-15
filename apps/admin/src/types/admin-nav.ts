@@ -22,3 +22,10 @@ export type AdminNavItem = {
   onAction?: () => void;
   isActive?: boolean;
 };
+
+export type AdminNavSection = {
+  key: string;
+  title: string;
+  titleKey?: string;
+  items: AdminNavItem[];
+};

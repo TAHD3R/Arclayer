@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import type { AdminNavItem } from "@/types/admin-nav";
+import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import {
@@ -17,6 +17,9 @@ export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
   showOrgNavErrorOverlay: boolean;
   mainItems: readonly AdminNavItem[];
+  mainHomeItem?: AdminNavItem | null;
+  mainSections?: readonly AdminNavSection[];
+  favoriteWorkspaceBase?: string | null;
   footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
   className?: string;
@@ -138,6 +141,9 @@ function AdminSidebarContentArea(props: {
   showMenuSkeleton: boolean;
   showFailureSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
+  mainHomeItem?: AdminNavItem | null;
+  mainSections?: readonly AdminNavSection[];
+  favoriteWorkspaceBase?: string | null;
   footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
 }) {
@@ -150,7 +156,13 @@ function AdminSidebarContentArea(props: {
   const mainMenu = props.showMenuSkeleton ? (
     <AdminSidebarMainMenuSkeleton />
   ) : (
-    <AdminSiderNav items={props.mainItems} resolvePermissionName={props.resolvePermissionName} />
+    <AdminSiderNav
+      items={props.mainItems}
+      homeItem={props.mainHomeItem}
+      sections={props.mainSections}
+      favoriteWorkspaceBase={props.favoriteWorkspaceBase}
+      resolvePermissionName={props.resolvePermissionName}
+    />
   );
 
   return (
@@ -191,6 +203,9 @@ export function AdminSidebarShell({
   showNavSkeleton,
   showOrgNavErrorOverlay,
   mainItems,
+  mainHomeItem,
+  mainSections,
+  favoriteWorkspaceBase,
   footerItems,
   resolvePermissionName,
   className,
@@ -209,6 +224,9 @@ export function AdminSidebarShell({
         showMenuSkeleton={showMenuSkeleton}
         showFailureSkeleton={showFailureSkeleton}
         mainItems={mainItems}
+        mainHomeItem={mainHomeItem}
+        mainSections={mainSections}
+        favoriteWorkspaceBase={favoriteWorkspaceBase}
         footerItems={footerItems}
         resolvePermissionName={resolvePermissionName}
       />

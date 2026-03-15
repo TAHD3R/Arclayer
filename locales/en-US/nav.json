@@ -1,5 +1,11 @@
 {
   "NAV_DASHBOARD": "Overview",
+  "NAV_STARRED": "Starred",
+  "NAV_STARRED_EMPTY": "Your starred pages will appear here",
+  "NAV_SECTION_GENERAL": "General",
+  "NAV_SECTION_CONTENT": "Content",
+  "NAV_SECTION_COLLABORATION": "Collaboration",
+  "NAV_SECTION_CONFIGURATION": "Configuration",
   "NAV_CONTENT": "Content",
   "NAV_CONTENT_SITE_BUILDER": "Site Builder",
   "NAV_CONTENT_LIBRARY": "Content Library",

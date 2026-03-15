@@ -2,7 +2,6 @@ import {
   Activity,
   Database,
   File,
-  FileText,
   Gauge,
   Globe,
   HardDrive,
@@ -13,30 +12,53 @@ import {
   Navigation2,
   Puzzle,
   Search,
-  Settings,
   ShieldCheck,
   Users,
   UserPlus,
 } from "lucide-react";
 
-import type { AdminNavItem } from "@/types/admin-nav";
-export type { AdminNavItem } from "@/types/admin-nav";
+import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+export type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 
-export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  // ── Group 1: Core content ──
+function flattenWorkspaceNavSections(sections: readonly AdminNavSection[]): AdminNavItem[] {
+  return sections.flatMap((section) => section.items);
+}
+
+export const WORKSPACE_NAV_HOME_ITEM: AdminNavItem = {
+  key: "dashboard",
+  label: "Dashboard",
+  labelKey: "nav:NAV_DASHBOARD",
+  to: "/",
+  icon: Gauge,
+};
+
+export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
   {
-    key: "dashboard",
-    label: "Dashboard",
-    labelKey: "nav:NAV_DASHBOARD",
-    to: "/",
-    icon: Gauge,
+    key: "general",
+    title: "General",
+    titleKey: "nav:NAV_SECTION_GENERAL",
+    items: [
+      {
+        key: "assets",
+        label: "Assets",
+        labelKey: "nav:NAV_ASSETS",
+        to: "/assets",
+        icon: Image,
+      },
+      {
+        key: "activity",
+        label: "Activity",
+        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+        to: "/settings/maintenance/activity",
+        icon: History,
+      },
+    ],
   },
   {
     key: "content",
-    label: "Content",
-    labelKey: "nav:NAV_CONTENT",
-    icon: FileText,
-    children: [
+    title: "Content",
+    titleKey: "nav:NAV_SECTION_CONTENT",
+    items: [
       {
         key: "content.siteBuilder",
         label: "Site Builder",
@@ -61,20 +83,10 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     ],
   },
   {
-    key: "assets",
-    label: "Assets",
-    labelKey: "nav:NAV_ASSETS",
-    to: "/assets",
-    icon: Image,
-  },
-  // ── Group 2: Ecosystem & collaboration ──
-  {
-    key: "settings.team",
-    label: "Team",
-    labelKey: "nav:NAV_SETTINGS_TEAM",
-    icon: Users,
-
-    children: [
+    key: "collaboration",
+    title: "Collaboration",
+    titleKey: "nav:NAV_SECTION_COLLABORATION",
+    items: [
       {
         key: "settings.team.memberList",
         label: "Members",
@@ -96,29 +108,20 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         to: "/team/roles",
         icon: ShieldCheck,
       },
+      {
+        key: "extensions",
+        label: "Extensions",
+        labelKey: "nav:NAV_EXTENSIONS",
+        to: "/extensions",
+        icon: Puzzle,
+      },
     ],
   },
   {
-    key: "activity",
-    label: "Activity",
-    labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-    to: "/settings/maintenance/activity",
-    icon: History,
-  },
-  {
-    key: "extensions",
-    label: "Extensions",
-    labelKey: "nav:NAV_EXTENSIONS",
-    to: "/extensions",
-    icon: Puzzle,
-  },
-  // ── Group 3: Configuration ──
-  {
-    key: "settings",
-    label: "Settings",
-    labelKey: "nav:NAV_SETTINGS",
-    icon: Settings,
-    children: [
+    key: "configuration",
+    title: "Configuration",
+    titleKey: "nav:NAV_SECTION_CONFIGURATION",
+    items: [
       {
         key: "settings.workspace",
         label: "Workspace",
@@ -165,4 +168,9 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
       },
     ],
   },
+];
+
+export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  WORKSPACE_NAV_HOME_ITEM,
+  ...flattenWorkspaceNavSections(WORKSPACE_NAV_SECTIONS),
 ] as const;

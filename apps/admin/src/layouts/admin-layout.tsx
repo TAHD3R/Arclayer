@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { ADMIN_NAV_ITEMS } from "@/constants/menu/workspaces";
-import type { AdminNavItem } from "@/types/admin-nav";
+import { WORKSPACE_NAV_HOME_ITEM, WORKSPACE_NAV_SECTIONS } from "@/constants/menu/workspaces";
+import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { useToggle } from "@celestial/hooks/use-toggle";
 import { ORG_NAV_ITEMS } from "@/constants/menu/organization";
@@ -134,21 +134,16 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const shouldShowAdminCenterForbidden =
     isAdminCenterRoute && adminCenterAccess.state === "forbidden";
 
-  const navItems = useMemo(() => {
-    if (isAdminCenterRoute) {
-      if (!orgPathPrefix) return [];
-      if (!canRenderAdminCenterNav) return [];
-      return mapOrgItemsWithPrefix(ORG_NAV_ITEMS, orgPathPrefix);
-    }
-    if (isMeScopeRoute) {
-      return [];
-    }
+  const workspaceNav = useMemo((): {
+    homeItem: AdminNavItem | null;
+    sections: AdminNavSection[];
+    items: AdminNavItem[];
+  } => {
     if (!workspaceBase) {
-      return [];
+      return { homeItem: null, sections: [], items: [] };
     }
-    const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
-    const baseItems: AdminNavItem[] = ADMIN_NAV_ITEMS;
+    const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
 
     const mapItems = (items: AdminNavItem[]): AdminNavItem[] => {
       return items.map((it) => {
@@ -165,8 +160,37 @@ export function AdminLayout({ children }: PropsWithChildren) {
       });
     };
 
-    return mapItems(baseItems);
-  }, [canRenderAdminCenterNav, isAdminCenterRoute, isMeScopeRoute, orgPathPrefix, workspaceBase]);
+    const [homeItem] = mapItems([WORKSPACE_NAV_HOME_ITEM]);
+    const sections = WORKSPACE_NAV_SECTIONS.map((section) =>
+      Object.assign({}, section, {
+        items: mapItems(section.items),
+      }),
+    );
+
+    return {
+      homeItem,
+      sections,
+      items: [homeItem, ...sections.flatMap((section) => section.items)],
+    };
+  }, [workspaceBase]);
+
+  const navItems = useMemo(() => {
+    if (isAdminCenterRoute) {
+      if (!orgPathPrefix) return [];
+      if (!canRenderAdminCenterNav) return [];
+      return mapOrgItemsWithPrefix(ORG_NAV_ITEMS, orgPathPrefix);
+    }
+    if (isMeScopeRoute) {
+      return [];
+    }
+    return workspaceNav.items;
+  }, [
+    canRenderAdminCenterNav,
+    isAdminCenterRoute,
+    isMeScopeRoute,
+    orgPathPrefix,
+    workspaceNav.items,
+  ]);
 
   const scopedNavItems = useMemo(() => {
     if (!systemRuntime.runtime) return [];
@@ -177,6 +201,28 @@ export function AdminLayout({ children }: PropsWithChildren) {
     () => scopedNavItems.filter((it) => it.position !== "footer"),
     [scopedNavItems],
   );
+
+  const mainHomeItem = useMemo(() => {
+    if (!systemRuntime.runtime || !workspaceNav.homeItem) return null;
+    return (
+      filterNavByScope([workspaceNav.homeItem], systemRuntime.runtime.deploymentMode).find(
+        (item) => item.position !== "footer",
+      ) ?? null
+    );
+  }, [systemRuntime.runtime, workspaceNav.homeItem]);
+
+  const mainSections = useMemo(() => {
+    const runtime = systemRuntime.runtime;
+    if (!runtime) return [];
+    return workspaceNav.sections
+      .map((section) => ({
+        ...section,
+        items: filterNavByScope(section.items, runtime.deploymentMode).filter(
+          (item) => item.position !== "footer",
+        ),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [systemRuntime.runtime, workspaceNav.sections]);
 
   const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
 
@@ -317,6 +363,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
             showNavSkeleton={showNavSkeleton}
             showOrgNavErrorOverlay={showOrgNavErrorOverlay}
             mainItems={mainItems}
+            mainHomeItem={isWorkspaceScopeRoute ? mainHomeItem : null}
+            mainSections={isWorkspaceScopeRoute ? mainSections : []}
+            favoriteWorkspaceBase={isWorkspaceScopeRoute ? workspaceBase : null}
             footerItems={footerItems}
             resolvePermissionName={resolvePermissionName}
             className="top-[var(--admin-topbar-height)] inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"
