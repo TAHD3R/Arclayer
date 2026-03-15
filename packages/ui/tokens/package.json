@@ -7,14 +7,12 @@
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens.css",
     "./tailwind-preset": "./src/tailwind-preset.ts",
-    "./antd": "./src/antd-theme.ts"
+    "./theme-mode": "./src/theme-mode.ts"
   },
   "devDependencies": {
-    "antd": "catalog:",
     "tailwindcss": "catalog:"
   },
   "peerDependencies": {
-    "antd": "^6.2.1",
     "tailwindcss": "^4.1.18"
   }
 }

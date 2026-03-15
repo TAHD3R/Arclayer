@@ -1,4 +1,4 @@
-@layer theme, base, antd, components, utilities;
+@layer theme, base, components, utilities;
 
 @config "../tailwind.config.ts";
 
@@ -35,98 +35,6 @@ html,
 body,
 #root {
   height: 100%;
-}
-
-/* Ant Design overrides */
-
-.ant-app {
-  width: 100%;
-  height: 100%;
-  overscroll-behavior: none;
-  color: inherit;
-}
-
-@layer theme {
-  /*
-    Antd Button solid text colors (primary / dangerous)
-
-    Symptom:
-    - Light mode: solid primary/danger buttons render text as `#0f1419` (inherits `--foreground`)
-    - Dark mode: looks "correct" because `--foreground` is already light
-
-    Root cause:
-    Antd styles are emitted via css-in-js with `StyleProvider layer`, which means button color rules can
-    lose in the cascade (especially when `!important` declarations exist in later layers).
-
-    Fix:
-    Put the override into the earliest `theme` layer so `!important` wins consistently, and bind the
-    text color to Antd's own per-button CSS vars (already resolved from theme tokens).
-  */
-  .ant-btn.ant-btn-color-primary.ant-btn-variant-solid,
-  .ant-btn.ant-btn-primary.ant-btn-variant-solid {
-    color: var(--ant-button-primary-color) !important;
-  }
-
-  .ant-btn.ant-btn-color-dangerous.ant-btn-variant-solid,
-  .ant-btn.ant-btn-dangerous.ant-btn-variant-solid {
-    color: var(--ant-button-danger-color) !important;
-  }
-}
-
-@layer antd {
-  /* Ensure Select keeps the expected control height/padding even when internal CSS var calc is affected by overrides. */
-  :where(.ant-select) {
-    min-height: var(--ant-select-height, 32px);
-    /* Antd uses `padding-block: var(--ant-select-padding-vertical)` (no fallback). If the var is missing, content
-       sticks to the top after we enforce `min-height`. Provide a safe fallback to keep the content vertically centered. */
-    padding-block: var(--ant-select-padding-vertical, 4px);
-  }
-
-  /* Multiple/Tags Select uses a different padding var (`--ant-select-multi-padding-vertical`) that may also be missing. */
-  :where(.ant-select.ant-select-multiple) {
-    padding-block: var(--ant-select-multi-padding-vertical, 2px);
-  }
-
-  /* Antd Select 根节点默认 `align-items: flex-start`，这会让 content 在被 `min-height` 撑高后贴顶。
-     通过给 content 自身设置 `align-self: center`，让输入/placeholder 在单行高度下保持垂直居中。 */
-  :where(.ant-select) > .ant-select-content {
-    /* `!important`：Antd 的样式来自 css-in-js（通常为非 layer 规则），这里需要确保覆盖生效。 */
-    align-self: center !important;
-  }
-
-  /* 多选/Tags：同时确保 content 内部的 prefix/input 行在单行高度下是垂直居中对齐。 */
-  :where(.ant-select.ant-select-multiple) > .ant-select-content {
-    align-items: center !important;
-  }
-
-  /* In some edge cases the computed padding vars are missing, leaving the flex items aligned to the top.
-     Center them for multiple/tags to match the default 32px control appearance. */
-  .ant-select.ant-select-multiple {
-    /* `!important`：覆盖 Antd 默认 `align-items: flex-start`，否则内容会贴顶。 */
-    align-items: center !important;
-  }
-
-  /* 兜底：确保多选/Tags 的 placeholder 始终按 Antd 预期走居中定位。 */
-  :where(.ant-select.ant-select-multiple) :where(.ant-select-placeholder) {
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-  }
-
-  /* Preferences typography sliders:
-     Antd Slider handle uses pseudo elements for focus/hover effects.
-     After we enlarge the handle, those pseudo elements can show as an unexpected gray rectangle.
-     Scope to `.me-typography-slider` only. */
-  :where(.me-typography-slider).ant-slider :where(.ant-slider-handle) {
-    border-radius: 9999px !important;
-    box-shadow: none !important;
-  }
-
-  :where(.me-typography-slider).ant-slider :where(.ant-slider-handle)::before,
-  :where(.me-typography-slider).ant-slider :where(.ant-slider-handle)::after {
-    box-shadow: none !important;
-    background: transparent !important;
-    border-radius: 9999px !important;
-  }
 }
 
 @layer base {

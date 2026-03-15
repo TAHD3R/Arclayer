@@ -14,7 +14,7 @@ import { useDropzone, type FileError, type FileRejection } from "react-dropzone"
 import { useTranslation } from "react-i18next";
 
 import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
-import { FileTypeIcon } from "@celestial/ui/icon/file-type-icon";
+import { FileTypeIcon } from "@celestial/ui/icons/file-type-icon";
 import { cn } from "@celestial/lib/utils";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
 

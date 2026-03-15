@@ -1,6 +1,6 @@
-import { Button } from "antd";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@celestial/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -60,12 +60,10 @@ export function InviteConfirmJoinDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button type="text" onClick={() => onOpenChange(false)} autoInsertSpace={false}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
             {t("invite:INVITE_CONFIRM_JOIN_CANCEL")}
           </Button>
-          <Button type="primary" onClick={onConfirm} autoInsertSpace={false}>
-            {t("invite:INVITE_CONFIRM_JOIN_OK")}
-          </Button>
+          <Button onClick={onConfirm}>{t("invite:INVITE_CONFIRM_JOIN_OK")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

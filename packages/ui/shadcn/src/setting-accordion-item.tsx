@@ -1,9 +1,9 @@
 import { type ReactNode } from "react";
-import { Button } from "antd";
 import { ChevronRight } from "lucide-react";
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@celestial/ui/accordion";
 import { cn } from "@celestial/lib/utils";
+import { Button } from "./button";
 
 const DEFAULT_TITLE_COLUMN_WIDTH_PX = 240;
 
@@ -204,9 +204,8 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
                 <Button
                   disabled={Boolean(props.disabled || props.resetLoading || props.confirmLoading)}
                   onClick={() => void props.onConfirm?.()}
-                  type="primary"
+                  variant="default"
                   loading={Boolean(props.confirmLoading)}
-                  autoInsertSpace={false}
                 >
                   {props.confirmText}
                 </Button>
@@ -215,9 +214,8 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
                 <Button
                   disabled={Boolean(props.disabled || props.confirmLoading || props.resetLoading)}
                   onClick={() => void props.onReset?.()}
-                  type="default"
+                  variant="outline"
                   loading={Boolean(props.resetLoading)}
-                  autoInsertSpace={false}
                 >
                   {props.resetText}
                 </Button>

@@ -1,6 +1,7 @@
-import { Button } from "antd";
 import { motion, type Variants } from "motion/react";
 
+import { AuthLinkButton } from "@/components/ui/auth-controls";
+import { Button } from "@celestial/ui/button";
 import { OrganizationAvatar } from "@/components/common/entity-avatar";
 
 type InviteLoggedInPaneProps = {
@@ -91,12 +92,10 @@ export function InviteLoggedInPane({
 
       <motion.div variants={v} className="mt-5">
         <Button
-          size="large"
-          type="primary"
-          className="!rounded-full !px-8"
+          className="rounded-full px-8"
+          size="lg"
           loading={acceptLoading}
           onClick={() => void onJoin()}
-          autoInsertSpace={false}
         >
           {hasBoundEmail && !emailMatches
             ? t("invite:INVITE_ACTION_JOIN_ANYWAY")
@@ -106,14 +105,9 @@ export function InviteLoggedInPane({
 
       {hasBoundEmail && !emailMatches ? (
         <motion.div variants={v} className="mt-3">
-          <Button
-            type="link"
-            size="small"
-            onClick={() => void onLogoutAndSwitch()}
-            autoInsertSpace={false}
-          >
+          <AuthLinkButton onClick={() => void onLogoutAndSwitch()} size="sm" type="button">
             {t("invite:INVITE_ACTION_LOGOUT_SWITCH")}
-          </Button>
+          </AuthLinkButton>
         </motion.div>
       ) : null}
     </motion.div>

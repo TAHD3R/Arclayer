@@ -1,7 +1,8 @@
-import { Button, Input } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@celestial/ui/button";
+import { Input } from "@celestial/ui/input";
 import { SettingDialog } from "@celestial/ui/setting-dialog";
 
 export type InviteTokenInputDialogProps = {
@@ -32,16 +33,13 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
       footer={
         <>
           <Button
-            autoInsertSpace={false}
-            type="text"
+            variant="ghost"
             disabled={Boolean(props.confirmLoading)}
             onClick={() => props.onOpenChange(false)}
           >
             {t("common:CANCEL")}
           </Button>
           <Button
-            autoInsertSpace={false}
-            type="primary"
             loading={props.confirmLoading}
             disabled={!canSubmit}
             onClick={async () => {
@@ -61,8 +59,6 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
         <div className="text-label-secondary">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
         <Input
           autoFocus
-          size="large"
-          variant="filled"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={t("invite:INVITE_TOKEN_INPUT_PLACEHOLDER")}

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Button } from "antd";
+import { Button } from "./button";
 
 type AsyncAction = () => void | Promise<void>;
 
@@ -75,21 +75,19 @@ export function SettingOverlayFooter({
   return (
     <div className="flex w-full items-center justify-end gap-2">
       <Button
-        type="text"
+        variant="ghost"
         onClick={close}
         disabled={Boolean(disabled || saveLoading || resetLoading)}
-        autoInsertSpace={false}
       >
         {backText}
       </Button>
 
       {shouldShowReset ? (
         <Button
-          type="default"
+          variant="outline"
           disabled={Boolean(disabled || resetLoading || saveLoading)}
           onClick={() => void handleReset()}
           loading={Boolean(resetLoading)}
-          autoInsertSpace={false}
         >
           {resetText}
         </Button>
@@ -98,9 +96,8 @@ export function SettingOverlayFooter({
       <Button
         disabled={Boolean(disabled || saveLoading || resetLoading)}
         onClick={() => void handleSave()}
-        type="primary"
+        variant="default"
         loading={Boolean(saveLoading)}
-        autoInsertSpace={false}
       >
         {saveText}
       </Button>

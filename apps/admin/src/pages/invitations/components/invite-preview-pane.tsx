@@ -1,6 +1,7 @@
-import { Button } from "antd";
 import { motion, type Variants } from "motion/react";
 
+import { AuthLinkButton } from "@/components/ui/auth-controls";
+import { Button } from "@celestial/ui/button";
 import { OrganizationAvatar } from "@/components/common/entity-avatar";
 
 type InvitePreviewPaneProps = {
@@ -79,13 +80,7 @@ export function InvitePreviewPane({
       </motion.div>
 
       <motion.div variants={v} className="mt-6">
-        <Button
-          size="large"
-          type="primary"
-          className="!rounded-full !px-8"
-          onClick={onContinue}
-          autoInsertSpace={false}
-        >
+        <Button className="rounded-full px-8" size="lg" onClick={onContinue}>
           {t(
             isOrgOnlyInvite
               ? "invite:INVITE_ACTION_ACCEPT_JOIN_ORG"
@@ -96,14 +91,9 @@ export function InvitePreviewPane({
 
       {!isLoggedIn && data.userExists && (
         <motion.div variants={v} className="mt-3">
-          <Button
-            type="link"
-            size="small"
-            onClick={() => void onBackToLogin()}
-            autoInsertSpace={false}
-          >
+          <AuthLinkButton onClick={() => void onBackToLogin()} size="sm" type="button">
             {t("invite:INVITE_ACTION_SWITCH_TO_LOGIN")}
-          </Button>
+          </AuthLinkButton>
         </motion.div>
       )}
 

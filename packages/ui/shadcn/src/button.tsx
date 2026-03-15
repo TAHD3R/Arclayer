@@ -7,6 +7,7 @@ import { cn } from "@celestial/lib/utils";
 
 import { Button as ButtonPrimitive } from "./button-primitive";
 import { buttonVariants } from "./button-variants";
+import { Spinner } from "./spinner";
 
 type NativeButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onDrag">;
 
@@ -16,6 +17,7 @@ type ButtonProps = NativeButtonProps &
     className?: string;
     hoverScale?: number;
     tapScale?: number;
+    loading?: boolean;
   };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -25,6 +27,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     size = "default",
     hoverScale = 1.02,
     tapScale = 0.98,
+    loading = false,
+    children,
+    disabled,
     ...props
   },
   ref,
@@ -38,10 +43,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       data-variant={variant ?? undefined}
       data-size={size ?? undefined}
       className={cn(buttonVariants({ variant, size }), className)}
-      hoverScale={hoverScale}
-      tapScale={tapScale}
+      hoverScale={loading ? 1 : hoverScale}
+      tapScale={loading ? 1 : tapScale}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...(props as Record<string, unknown>)}
-    />
+    >
+      {loading ? <Spinner className="size-4" /> : null}
+      {children}
+    </Primitive>
   );
 });
 

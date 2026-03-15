@@ -1,10 +1,11 @@
-import { Button } from "antd";
 import { useEffect, useRef } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
+import { AuthLinkButton } from "@/components/ui/auth-controls";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { getErrorMessage } from "@/lib/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
+import { Button } from "@celestial/ui/button";
 import { Card } from "@celestial/ui/card";
 import { InviteTokenInputDialog } from "./invite-token-input-dialog";
 
@@ -56,26 +57,20 @@ export function InvitationsView(props: { token: string | null }) {
   // Shared action buttons for empty/error states
   const tokenActions = (
     <div className="flex flex-wrap justify-center gap-3">
-      <Button type="text" onClick={() => void state.onBackToLogin()} autoInsertSpace={false}>
+      <AuthLinkButton onClick={() => void state.onBackToLogin()} type="button">
         {state.t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
-      </Button>
-      <Button type="primary" onClick={() => state.setTokenDialogOpen(true)} autoInsertSpace={false}>
+      </AuthLinkButton>
+      <Button onClick={() => state.setTokenDialogOpen(true)}>
         {state.t("invite:INVITE_ACTION_ENTER_TOKEN")}
       </Button>
     </div>
   );
   const tokenActionsWithRetry = (
     <div className="flex flex-wrap justify-center gap-3">
-      <Button type="text" onClick={() => state.setTokenDialogOpen(true)} autoInsertSpace={false}>
+      <AuthLinkButton onClick={() => state.setTokenDialogOpen(true)} type="button">
         {state.t("invite:INVITE_ACTION_ENTER_TOKEN")}
-      </Button>
-      <Button
-        type="primary"
-        onClick={() => void state.previewQuery.refetch()}
-        autoInsertSpace={false}
-      >
-        {state.t("common:RETRY")}
-      </Button>
+      </AuthLinkButton>
+      <Button onClick={() => void state.previewQuery.refetch()}>{state.t("common:RETRY")}</Button>
     </div>
   );
 

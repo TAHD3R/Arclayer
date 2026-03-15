@@ -1,9 +1,18 @@
-import { Button, Form, Input, Typography } from "antd";
 import { Lock, Mail, User, UserRound } from "lucide-react";
 import * as React from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 
+import {
+  AuthFieldError,
+  AuthInputControl,
+  AuthLinkButton,
+  AuthPasswordControl,
+} from "@/components/ui/auth-controls";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
+import { zodResolver } from "@/lib/forms/zod-resolver";
+import { Button } from "@celestial/ui/button";
 
 export type InviteRegisterFormValues = {
   email?: string;
@@ -13,8 +22,46 @@ export type InviteRegisterFormValues = {
   confirmPassword: string;
 };
 
+type InviteRegisterFormState = {
+  email: string | undefined;
+  username: string;
+  displayName: string;
+  password: string;
+  confirmPassword: string;
+};
+
 // Keep behavior aligned with backend PASSWORD_REGEX (apps/api/common/constants/auth.py).
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[[A-Za-z\d~!@#$%^&*()_\-+=\]{}|;:'",.<>?/]{8,128}$/;
+
+function createInviteRegisterSchema(t: (key: string) => string, emailLocked: boolean) {
+  return z
+    .object({
+      email: emailLocked
+        ? z.string().optional()
+        : z
+            .string()
+            .min(1, t("auth:VALIDATION_EMAIL_REQUIRED"))
+            .email(t("auth:VALIDATION_EMAIL_INVALID")),
+      username: z.string().min(1, t("auth:VALIDATION_USERNAME_REQUIRED")),
+      displayName: z
+        .string()
+        .min(1, t("setup:SETUP_VALIDATION_DISPLAY_NAME_REQUIRED"))
+        .max(64, t("setup:SETUP_VALIDATION_DISPLAY_NAME_MAX")),
+      password: z
+        .string()
+        .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
+        .refine((value) => PASSWORD_REGEX.test(value), t("auth:PASSWORD_INVALID")),
+      confirmPassword: z.string().min(1, t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")),
+    })
+    .superRefine((value, ctx) => {
+      if (value.password === value.confirmPassword) return;
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: t("auth:VALIDATION_PASSWORD_MISMATCH"),
+      });
+    });
+}
 
 export function InviteRegisterForm(props: {
   emailLocked?: string | null;
@@ -23,158 +70,143 @@ export function InviteRegisterForm(props: {
   onSwitchToLogin: () => void;
 }) {
   const { t } = useTranslation();
+  const emailLocked = Boolean(props.emailLocked);
+  const form = useForm<InviteRegisterFormState>({
+    resolver: zodResolver(
+      React.useMemo(() => createInviteRegisterSchema(t, emailLocked), [emailLocked, t]),
+    ),
+    defaultValues: {
+      email: props.emailLocked ?? "",
+      username: "",
+      displayName: "",
+      password: "",
+      confirmPassword: "",
+    },
+    mode: "onSubmit",
+  });
 
-  const initialValues = React.useMemo(() => {
-    if (!props.emailLocked) return undefined;
-    return { email: props.emailLocked };
-  }, [props.emailLocked]);
+  const submitHandler = form.handleSubmit((values) => {
+    props.onSubmit(emailLocked ? { ...values, email: undefined } : values);
+  });
 
   return (
     <div>
       {/* TODO: enable after OAuth is implemented for invite-only onboarding. */}
       <AuthOauthButtons disabled />
 
-      <Form<InviteRegisterFormValues>
-        layout="vertical"
-        requiredMark={false}
-        autoComplete="off"
-        initialValues={initialValues}
-        onFinish={(values) => {
-          // Legacy email-bound invitations take email from server-side invitation; do not submit it.
-          props.onSubmit(props.emailLocked ? { ...values, email: undefined } : values);
-        }}
-        disabled={props.loading}
-      >
-        {props.emailLocked ? (
-          <Form.Item style={{ marginBottom: 12 }}>
-            <Input
-              value={props.emailLocked}
-              disabled
-              prefix={<Mail size={16} />}
-              size="large"
-              variant="filled"
-            />
-          </Form.Item>
+      <form className="grid gap-3" autoComplete="off" onSubmit={submitHandler}>
+        {emailLocked ? (
+          <AuthInputControl
+            value={props.emailLocked ?? ""}
+            disabled
+            startIcon={<Mail size={16} />}
+          />
         ) : (
-          <Form.Item<InviteRegisterFormValues>
-            name="email"
-            rules={[
-              { required: true, message: t("auth:VALIDATION_EMAIL_REQUIRED") },
-              { type: "email", message: t("auth:VALIDATION_EMAIL_INVALID") },
-            ]}
-          >
-            <Input
+          <div className="grid gap-1.5">
+            <AuthInputControl
               autoComplete="email"
               aria-label={t("auth:FIELD_EMAIL_LABEL")}
+              aria-invalid={form.formState.errors.email ? true : undefined}
               placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
-              prefix={<Mail size={16} />}
-              size="large"
-              variant="filled"
+              startIcon={<Mail size={16} />}
+              disabled={props.loading}
+              {...form.register("email")}
             />
-          </Form.Item>
+            <AuthFieldError
+              message={
+                form.formState.errors.email?.message
+                  ? String(form.formState.errors.email.message)
+                  : undefined
+              }
+            />
+          </div>
         )}
 
-        <Form.Item<InviteRegisterFormValues>
-          name="username"
-          rules={[{ required: true, message: t("auth:VALIDATION_USERNAME_REQUIRED") }]}
-        >
-          <Input
+        <div className="grid gap-1.5">
+          <AuthInputControl
             autoComplete="off"
             aria-label={t("auth:FIELD_USERNAME_LABEL")}
+            aria-invalid={form.formState.errors.username ? true : undefined}
             placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
-            prefix={<User size={16} />}
-            size="large"
-            variant="filled"
+            startIcon={<User size={16} />}
+            disabled={props.loading}
+            {...form.register("username")}
           />
-        </Form.Item>
+          <AuthFieldError
+            message={
+              form.formState.errors.username?.message
+                ? String(form.formState.errors.username.message)
+                : undefined
+            }
+          />
+        </div>
 
-        <Form.Item<InviteRegisterFormValues>
-          name="displayName"
-          rules={[
-            { required: true, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_REQUIRED") },
-            { max: 64, message: t("setup:SETUP_VALIDATION_DISPLAY_NAME_MAX") },
-          ]}
-        >
-          <Input
+        <div className="grid gap-1.5">
+          <AuthInputControl
             autoComplete="off"
             aria-label={t("setup:SETUP_FIELD_DISPLAY_NAME_LABEL")}
+            aria-invalid={form.formState.errors.displayName ? true : undefined}
             placeholder={t("setup:SETUP_FIELD_DISPLAY_NAME_PLACEHOLDER")}
-            prefix={<UserRound size={16} />}
-            size="large"
-            variant="filled"
+            startIcon={<UserRound size={16} />}
+            disabled={props.loading}
+            {...form.register("displayName")}
           />
-        </Form.Item>
+          <AuthFieldError
+            message={
+              form.formState.errors.displayName?.message
+                ? String(form.formState.errors.displayName.message)
+                : undefined
+            }
+          />
+        </div>
 
-        <Form.Item<InviteRegisterFormValues>
-          name="password"
-          rules={[
-            { required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") },
-            {
-              validator: async (_, value) => {
-                if (!value) return;
-                if (PASSWORD_REGEX.test(value)) return;
-                throw new Error(t("auth:PASSWORD_INVALID"));
-              },
-            },
-          ]}
-        >
-          <Input.Password
+        <div className="grid gap-1.5">
+          <AuthPasswordControl
             autoComplete="new-password"
             aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+            aria-invalid={form.formState.errors.password ? true : undefined}
             placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-            prefix={<Lock size={16} />}
-            size="large"
-            variant="filled"
+            startIcon={<Lock size={16} />}
+            disabled={props.loading}
+            {...form.register("password")}
           />
-        </Form.Item>
+          <AuthFieldError
+            message={
+              form.formState.errors.password?.message
+                ? String(form.formState.errors.password.message)
+                : undefined
+            }
+          />
+        </div>
 
-        <Form.Item<InviteRegisterFormValues>
-          name="confirmPassword"
-          dependencies={["password"]}
-          rules={[
-            { required: true, message: t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED") },
-            ({ getFieldValue }) => ({
-              validator: async (_, value) => {
-                const pwd = getFieldValue("password");
-                if (!value || value === pwd) return;
-                throw new Error(t("auth:VALIDATION_PASSWORD_MISMATCH"));
-              },
-            }),
-          ]}
-        >
-          <Input.Password
+        <div className="grid gap-1.5">
+          <AuthPasswordControl
             autoComplete="new-password"
             aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
+            aria-invalid={form.formState.errors.confirmPassword ? true : undefined}
             placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
-            prefix={<Lock size={16} />}
-            size="large"
-            variant="filled"
+            startIcon={<Lock size={16} />}
+            disabled={props.loading}
+            {...form.register("confirmPassword")}
           />
-        </Form.Item>
+          <AuthFieldError
+            message={
+              form.formState.errors.confirmPassword?.message
+                ? String(form.formState.errors.confirmPassword.message)
+                : undefined
+            }
+          />
+        </div>
 
-        <Button
-          type="primary"
-          htmlType="submit"
-          block
-          size="large"
-          loading={props.loading}
-          autoInsertSpace={false}
-        >
+        <Button className="w-full" type="submit" size="lg" loading={props.loading}>
           {t("invite:INVITE_ACTION_REGISTER_JOIN")}
         </Button>
-      </Form>
+      </form>
 
-      <div className="mt-4 text-center">
-        <Typography.Text style={{ color: "var(--color-muted-foreground)" }}>
-          <Button
-            type="link"
-            style={{ paddingInline: 0 }}
-            onClick={props.onSwitchToLogin}
-            autoInsertSpace={false}
-          >
-            {t("invite:INVITE_ACTION_SWITCH_TO_LOGIN")}
-          </Button>
-        </Typography.Text>
+      <div className="mt-4 text-center text-label-secondary">
+        <AuthLinkButton onClick={props.onSwitchToLogin} type="button">
+          {t("invite:INVITE_ACTION_SWITCH_TO_LOGIN")}
+        </AuthLinkButton>
       </div>
     </div>
   );

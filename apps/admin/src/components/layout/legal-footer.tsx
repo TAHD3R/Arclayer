@@ -1,7 +1,7 @@
-import { Button } from "antd";
 import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
+import { Button } from "@celestial/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -28,20 +28,18 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
           components={{
             terms: (
               <Button
-                type="link"
-                size="small"
-                className="p-0! h-auto! text-caption! text-label-primary! underline"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-caption text-label-primary underline"
                 onClick={() => setOpenModal("terms")}
-                autoInsertSpace={false}
               />
             ),
             privacy: (
               <Button
-                type="link"
-                size="small"
-                className="p-0! h-auto! text-caption! text-label-primary! underline"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-caption text-label-primary underline"
                 onClick={() => setOpenModal("privacy")}
-                autoInsertSpace={false}
               />
             ),
           }}
@@ -58,9 +56,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
             <p className="text-label-tertiary">{t("auth:MODAL_PLACEHOLDER_HINT")}</p>
           </div>
           <DialogFooter>
-            <Button type="primary" onClick={() => setOpenModal(null)} autoInsertSpace={false}>
-              {t("auth:MODAL_OK")}
-            </Button>
+            <Button onClick={() => setOpenModal(null)}>{t("auth:MODAL_OK")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -75,9 +71,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
             <p className="text-label-tertiary">{t("auth:MODAL_PLACEHOLDER_HINT")}</p>
           </div>
           <DialogFooter>
-            <Button type="primary" onClick={() => setOpenModal(null)} autoInsertSpace={false}>
-              {t("auth:MODAL_OK")}
-            </Button>
+            <Button onClick={() => setOpenModal(null)}>{t("auth:MODAL_OK")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

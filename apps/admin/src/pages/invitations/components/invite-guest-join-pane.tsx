@@ -1,8 +1,8 @@
-import { Button } from "antd";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 
+import { AuthLinkButton } from "@/components/ui/auth-controls";
+import { Button } from "@celestial/ui/button";
 import { InviteRegisterForm } from "./invite-register-form";
-
 import { InviteLoginJoinForm } from "./invite-login-join-form";
 import type { JoinMode } from "../types";
 
@@ -169,23 +169,10 @@ function LoginModeContent({
           />
         ) : (
           <div className="flex flex-col gap-3">
-            <Button
-              block
-              size="large"
-              type="primary"
-              className="!rounded-full"
-              onClick={() => void onBackToLogin()}
-              autoInsertSpace={false}
-            >
+            <Button className="w-full rounded-full" size="lg" onClick={() => void onBackToLogin()}>
               {t("invite:INVITE_ACTION_GO_TO_LOGIN")}
             </Button>
-            <Button
-              block
-              size="large"
-              className="!rounded-full"
-              onClick={onBack}
-              autoInsertSpace={false}
-            >
+            <Button className="w-full rounded-full" size="lg" variant="outline" onClick={onBack}>
               {t("invite:INVITE_ACTION_BACK")}
             </Button>
           </div>
@@ -193,9 +180,9 @@ function LoginModeContent({
       </motion.div>
 
       <motion.div variants={v} className="mt-4 text-center">
-        <Button type="link" size="small" onClick={onSwitchToRegister} autoInsertSpace={false}>
+        <AuthLinkButton onClick={onSwitchToRegister} size="sm" type="button">
           {t("invite:INVITE_ACTION_SWITCH_TO_REGISTER")}
-        </Button>
+        </AuthLinkButton>
       </motion.div>
     </>
   );

@@ -1,13 +1,14 @@
-import { Button, Divider } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { usePreferencesStore } from "@/stores/use-preference-store";
 import { listSSOProviders } from "@/api/auth-sso";
-import GoogleIcon from "@celestial/ui/icons/google-icon";
+import { notifyErrorText } from "@/lib/notifications";
+import { usePreferencesStore } from "@/stores/use-preference-store";
+import { Button } from "@celestial/ui/button";
 import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
 import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
-import { notifyErrorText } from "@/lib/notifications";
+import GoogleIcon from "@celestial/ui/icons/google-icon";
+import { Separator } from "@celestial/ui/separator";
 
 export interface AuthOauthButtonsProps {
   disabled?: boolean;
@@ -24,7 +25,6 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
   const { t } = useTranslation();
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
-
   const GitHubIcon = isDark ? GitHubDarkIcon : GitHubLightIcon;
 
   const providersQuery = useQuery({
@@ -45,15 +45,17 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
 
   if (!google && !github) return null;
 
+  const isBusy = disabled || providersQuery.isLoading;
+
   return (
     <>
       <div className="flex flex-col gap-2.5">
         {google ? (
           <Button
-            block
-            size="large"
-            icon={<GoogleIcon size={14} />}
-            disabled={disabled || providersQuery.isLoading}
+            className="w-full"
+            variant="outline"
+            size="lg"
+            disabled={isBusy}
             aria-label={t("auth:OAUTH_GOOGLE")}
             onClick={() => {
               if (!google.startUrl) {
@@ -62,18 +64,18 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
               }
               window.location.assign(google.startUrl);
             }}
-            autoInsertSpace={false}
           >
+            <GoogleIcon size={14} />
             {t("auth:OAUTH_GOOGLE")}
           </Button>
         ) : null}
 
         {github ? (
           <Button
-            block
-            size="large"
-            icon={<GitHubIcon size={14} />}
-            disabled={disabled || providersQuery.isLoading}
+            className="w-full"
+            variant="outline"
+            size="lg"
+            disabled={isBusy}
             aria-label={t("auth:OAUTH_GITHUB")}
             onClick={() => {
               if (!github.startUrl) {
@@ -82,13 +84,18 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
               }
               window.location.assign(github.startUrl);
             }}
-            autoInsertSpace={false}
           >
+            <GitHubIcon size={14} />
             {t("auth:OAUTH_GITHUB")}
           </Button>
         ) : null}
       </div>
-      <Divider style={{ margin: "24px 0" }}>{t("auth:OAUTH_ACCOUNT_DIVIDER")}</Divider>
+
+      <div className="my-6 flex items-center gap-3 text-footnote text-label-secondary">
+        <Separator className="flex-1" />
+        <span>{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
+        <Separator className="flex-1" />
+      </div>
     </>
   );
 }

@@ -1,7 +1,13 @@
-import { Button, Form, Input } from "antd";
 import { Lock } from "lucide-react";
+import { useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
+import { AuthFieldError, AuthLinkButton, AuthPasswordControl } from "@/components/ui/auth-controls";
+import { zodResolver } from "@/lib/forms/zod-resolver";
+import { Button } from "@celestial/ui/button";
 import { Checkbox } from "@celestial/ui/checkbox";
+import { Input } from "@celestial/ui/input";
 
 interface InviteLoginJoinFormProps {
   t: (key: string) => string;
@@ -17,20 +23,6 @@ interface InviteLoginJoinFormProps {
 
 type FormValues = { password: string; keepSession: boolean };
 
-function KeepSessionCheckbox({ t }: { t: (key: string) => string }) {
-  const form = Form.useFormInstance<FormValues>();
-  const keepSession = Form.useWatch("keepSession", form) ?? false;
-  return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <Checkbox
-        checked={Boolean(keepSession)}
-        onCheckedChange={(v) => form.setFieldValue("keepSession", v)}
-      />
-      <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
-    </label>
-  );
-}
-
 export function InviteLoginJoinForm({
   t,
   email,
@@ -42,68 +34,84 @@ export function InviteLoginJoinForm({
   onBack,
   onBackToLogin,
 }: InviteLoginJoinFormProps) {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(
+      useMemo(
+        () =>
+          z.object({
+            password: z.string().min(1, t("auth:VALIDATION_PASSWORD_REQUIRED")),
+            keepSession: z.boolean(),
+          }),
+        [t],
+      ),
+    ),
+    defaultValues: { password: "", keepSession },
+    mode: "onSubmit",
+  });
+  const currentKeepSession = Boolean(form.watch("keepSession"));
+
   return (
-    <Form<FormValues>
-      layout="vertical"
-      requiredMark={false}
+    <form
+      className="grid gap-3"
       autoComplete="off"
-      initialValues={{ keepSession }}
-      onFinish={onSubmit}
-      disabled={loading}
+      onSubmit={form.handleSubmit(async (values) => onSubmit(values))}
     >
-      <Form.Item label={t("invite:INVITE_FIELD_EMAIL")} style={{ marginBottom: 12 }}>
-        <Input value={email} disabled size="large" variant="filled" />
-      </Form.Item>
-
-      <Form.Item
-        name="password"
-        rules={[{ required: true, message: t("auth:VALIDATION_PASSWORD_REQUIRED") }]}
-      >
-        <Input.Password
-          autoComplete="current-password"
-          aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-          placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-          prefix={<Lock size={16} />}
-          size="large"
-          variant="filled"
-        />
-      </Form.Item>
-
-      <div className="flex items-center justify-between mb-3">
-        <Form.Item name="keepSession" style={{ marginBottom: 0 }}>
-          <KeepSessionCheckbox t={t} />
-        </Form.Item>
-        <Button
-          type="link"
-          size="small"
-          style={{ paddingInline: 0 }}
-          onClick={() => void onForgotPassword()}
-          disabled={forgotLoading}
-          autoInsertSpace={false}
-        >
-          {t("auth:FORGOT_PASSWORD")}
-        </Button>
+      <div className="grid gap-1.5">
+        <label className="text-callout font-medium text-label-primary">
+          {t("invite:INVITE_FIELD_EMAIL")}
+        </label>
+        <Input value={email} disabled />
       </div>
 
-      <Button
-        type="primary"
-        htmlType="submit"
-        block
-        size="large"
-        loading={loading}
-        autoInsertSpace={false}
-      >
+      <div className="grid gap-1.5">
+        <AuthPasswordControl
+          autoComplete="current-password"
+          aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+          aria-invalid={form.formState.errors.password ? true : undefined}
+          placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+          startIcon={<Lock size={16} />}
+          disabled={loading}
+          {...form.register("password")}
+        />
+        <AuthFieldError
+          message={
+            form.formState.errors.password?.message
+              ? String(form.formState.errors.password.message)
+              : undefined
+          }
+        />
+      </div>
+
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <label className="flex cursor-pointer items-center gap-2">
+          <Checkbox
+            checked={currentKeepSession}
+            onCheckedChange={(value) => form.setValue("keepSession", Boolean(value))}
+          />
+          <span className="text-callout">{t("auth:KEEP_SESSION")}</span>
+        </label>
+        <AuthLinkButton
+          disabled={forgotLoading}
+          onClick={() => void onForgotPassword()}
+          size="sm"
+          type="button"
+        >
+          {t("auth:FORGOT_PASSWORD")}
+        </AuthLinkButton>
+      </div>
+
+      <Button className="w-full" type="submit" size="lg" loading={loading}>
         {t("invite:INVITE_ACTION_LOGIN_JOIN")}
       </Button>
 
-      <div className="mt-4 flex items-center justify-between">
-        <Button onClick={onBack} autoInsertSpace={false}>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <Button variant="outline" onClick={onBack} type="button">
           {t("invite:INVITE_ACTION_BACK")}
         </Button>
-        <Button onClick={() => void onBackToLogin()} autoInsertSpace={false}>
+        <Button variant="outline" onClick={() => void onBackToLogin()} type="button">
           {t("invite:INVITE_ACTION_BACK_TO_LOGIN")}
         </Button>
       </div>
-    </Form>
+    </form>
   );
 }
