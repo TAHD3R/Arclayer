@@ -371,6 +371,12 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(screen.queryByText("en-US:NAV_STARRED")).not.toBeInTheDocument();
     expect(screen.getByText("Content")).toBeVisible();
     expect(screen.getByText("Team")).toBeVisible();
+
+    const contentGroup = screen
+      .getByRole("button", { name: "Content" })
+      .closest('[data-sidebar="group"]');
+    const contentGroupBody = contentGroup?.querySelector('[data-sidebar="group-content"]');
+    expect(contentGroupBody).toHaveClass("pt-1.5");
   });
 
   it("toggles section items when clicking a section label", async () => {

@@ -179,9 +179,10 @@ function ItemsSection(props: {
   const hoverDropdown = useCollapsedDropdownController();
   const [open, setOpen] = useState(true);
   const effectiveOpen = props.isCollapsed ? true : open;
+  const contentClassName = props.title ? "pt-1.5" : undefined;
 
   const content = (
-    <SidebarGroupContent>
+    <SidebarGroupContent className={contentClassName}>
       <SidebarMenu
         className={cn(
           "px-0",
