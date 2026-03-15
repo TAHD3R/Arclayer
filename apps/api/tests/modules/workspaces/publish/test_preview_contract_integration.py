@@ -65,7 +65,7 @@ async def test_preview_contract_reads_publish_artifacts_as_runtime_truth(
         assert about_artifact["kind"] == "json"
         assert about_artifact["payload"]["route"]["path"] == "/about"
         assert about_artifact["payload"]["renderHints"]["modelKey"] == "page"
-        assert about_artifact["payload"]["seo"]["metaTitle"] == "About | Celestial"
+        assert about_artifact["payload"]["seo"]["metaTitle"] == "About | Arclayer"
         assert about_artifact["payload"]["bindings"]["bindings"][0]["componentKey"] == "hero_banner"
         assert {presentation["kind"] for presentation in about_artifact["payload"]["components"]["presentations"]} == {
             "form_data",

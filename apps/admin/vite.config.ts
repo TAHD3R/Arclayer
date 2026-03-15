@@ -35,11 +35,11 @@ export default defineConfig(({ mode, command }) => {
       },
     }),
     injectLoadingScreen({
-      appName: "Celestial",
+      appName: "Arclayer",
     }),
     injectAppConfig({
       defaults: {
-        title: env.VITE_APP_TITLE || "Celestial",
+        title: env.VITE_APP_TITLE || "Arclayer",
         apiBaseUrl: env.VITE_API_BASE_URL || "",
         apiPrefix: env.VITE_API_PREFIX || "/api/v1",
       },

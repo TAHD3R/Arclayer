@@ -6,7 +6,7 @@ import pluggy
 
 from apps.api.src.plugin.core_impl import CoreHookImpl
 from apps.api.src.plugin.event_bus import EventBus
-from apps.api.src.plugin.hooks import PROJECT_NAME, CelestialHooks
+from apps.api.src.plugin.hooks import PROJECT_NAME, ArclayerHooks
 
 
 class PluginHost:
@@ -20,7 +20,7 @@ class PluginHost:
 
     def __init__(self) -> None:
         self._pm = pluggy.PluginManager(PROJECT_NAME)
-        self._pm.add_hookspecs(CelestialHooks)
+        self._pm.add_hookspecs(ArclayerHooks)
         self._event_bus = EventBus()
         # Register core contributions as a pluggy plugin.
         self._pm.register(CoreHookImpl(), name="core")
@@ -59,7 +59,7 @@ class PluginHost:
         """
 
         self._pm = pluggy.PluginManager(PROJECT_NAME)
-        self._pm.add_hookspecs(CelestialHooks)
+        self._pm.add_hookspecs(ArclayerHooks)
         self._event_bus = EventBus()
         self._pm.register(CoreHookImpl(), name="core")
 

@@ -307,20 +307,20 @@ class EmailService:
             subject = t(
                 "auth",
                 "WELCOME_EMAIL_SUBJECT",
-                default="欢迎加入 Celestial CMS",
+                default="欢迎加入 Arclayer",
                 locale=locale,
             )
             plain_body = t(
                 "auth",
                 "WELCOME_EMAIL_PLAIN",
-                default="欢迎加入 Celestial CMS，{username}。",
+                default="欢迎加入 Arclayer，{username}。",
                 locale=locale,
                 username=username,
             )
             title = t(
                 "auth",
                 "WELCOME_EMAIL_TITLE",
-                default="欢迎加入 Celestial CMS",
+                default="欢迎加入 Arclayer",
                 locale=locale,
             )
             intro = t(

@@ -57,7 +57,7 @@ def _draft_payload(title: str) -> dict:
             {
                 "kind": "seo",
                 "payload": {
-                    "metaTitle": f"{title} | Celestial",
+                    "metaTitle": f"{title} | Arclayer",
                     "metaDescription": "Launch landing page",
                     "canonicalUrl": "/summer-launch",
                     "robotsDirective": "index,follow",
@@ -98,7 +98,7 @@ async def test_draft_save_persists_first_class_seo_profiles_and_component_bindin
 
         seo_profile = await SEOProfileRecord.filter(version_id=version.id).first()
         assert seo_profile is not None
-        assert seo_profile.meta_title == "Summer Launch | Celestial"
+        assert seo_profile.meta_title == "Summer Launch | Arclayer"
         assert seo_profile.canonical_url == "/summer-launch"
 
         bindings = await ComponentBindingRecord.filter(version_id=version.id).order_by("sort_order")
@@ -143,7 +143,7 @@ async def test_content_version_auxiliary_endpoints_expose_presentations_seo_and_
             f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/seo",
         )
         assert seo_res.status_code == 200, seo_res.text
-        assert seo_res.json()["data"]["metaTitle"] == "Summer Launch | Celestial"
+        assert seo_res.json()["data"]["metaTitle"] == "Summer Launch | Arclayer"
         assert seo_res.json()["data"]["canonicalUrl"] == "/summer-launch"
 
         bindings_res = await client.get(

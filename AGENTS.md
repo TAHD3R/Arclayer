@@ -1,4 +1,4 @@
-# CelestialCMS Agents Guide
+# Arclayer Agents Guide
 
 Actionable rules for automated repo agents — keep diffs minimal, safe, and repo-aligned.
 

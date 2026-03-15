@@ -1,4 +1,4 @@
-# Testing and Quality Gates (CelestialCMS)
+# Testing and Quality Gates (Arclayer)
 
 This document defines mandatory quality checks, testing scope, and merge gates.
 It is a normative guideline for backend and admin frontend changes.

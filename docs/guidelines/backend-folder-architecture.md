@@ -1,6 +1,6 @@
 # FastAPI Backend Folder Architecture (`apps/api`)
 
-This document defines the target backend architecture for CelestialCMS. It is a normative guideline: it describes how code must be organized, how layers may depend on each other, and how new files should be placed.
+This document defines the target backend architecture for Arclayer. It is a normative guideline: it describes how code must be organized, how layers may depend on each other, and how new files should be placed.
 
 ## 1. Goals
 

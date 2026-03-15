@@ -29,7 +29,7 @@ export function InviteLayout({ children }: PropsWithChildren) {
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between p-4">
-          <AdminFullLogo to="/login" ariaLabel="Celestial CMS" width={120} />
+          <AdminFullLogo to="/login" ariaLabel="Arclayer" width={120} />
           <div className="flex items-center gap-2">
             <AdminLocaleToggle />
             <AdminThemeModeToggle />
@@ -46,7 +46,7 @@ export function InviteLayout({ children }: PropsWithChildren) {
             <Trans
               i18nKey="auth:FOOTER_COPYRIGHT"
               components={{
-                brand: <span className="text-label-primary">Celestial CMS</span>,
+                brand: <span className="text-label-primary">Arclayer</span>,
               }}
             />
           </div>

@@ -41,7 +41,7 @@ export function SetupLayout({ children }: PropsWithChildren) {
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{
-              brand: <span className="text-foreground">Celestial CMS</span>,
+              brand: <span className="text-foreground">Arclayer</span>,
             }}
           />
         </div>

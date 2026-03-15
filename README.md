@@ -1,3 +1,3 @@
-# Celestial Framework
+# Arclayer
 
-Celestial is a light-weight, modular plugin-based ASGI python framework based on FastAPI.
+Structured content, visually built.

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/constants/app-config", () => ({
-  getAppConfig: () => ({ title: "Celestial", apiBaseUrl: "", apiPrefix: "" }),
+  getAppConfig: () => ({ title: "Arclayer", apiBaseUrl: "", apiPrefix: "" }),
 }));
 
 import {
@@ -115,23 +115,23 @@ describe("findActiveTrailNodes", () => {
 
 describe("buildDocumentTitle", () => {
   it("returns brand only when both args are null", () => {
-    expect(buildDocumentTitle(null, null)).toBe("Celestial");
+    expect(buildDocumentTitle(null, null)).toBe("Arclayer");
   });
 
   it("returns routeTitle | brand when no workspace", () => {
-    expect(buildDocumentTitle("Dashboard", null)).toBe("Dashboard | Celestial");
+    expect(buildDocumentTitle("Dashboard", null)).toBe("Dashboard | Arclayer");
   });
 
   it("appends brand to workspace name", () => {
-    expect(buildDocumentTitle(null, "My Site")).toBe("My Site Celestial");
+    expect(buildDocumentTitle(null, "My Site")).toBe("My Site Arclayer");
   });
 
   it("skips brand suffix when workspace name already contains it", () => {
-    expect(buildDocumentTitle(null, "Celestial Demo")).toBe("Celestial Demo");
+    expect(buildDocumentTitle(null, "Arclayer Demo")).toBe("Arclayer Demo");
   });
 
   it("combines routeTitle, workspace, and brand", () => {
-    expect(buildDocumentTitle("Pages", "My Site")).toBe("Pages | My Site Celestial");
+    expect(buildDocumentTitle("Pages", "My Site")).toBe("Pages | My Site Arclayer");
   });
 });
 

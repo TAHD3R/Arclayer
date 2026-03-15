@@ -111,7 +111,7 @@ describe("MeSecurityTwoFactorSection", () => {
     });
     beginTwoFactorSetupMock.mockResolvedValue({
       secret: "SECRET-123",
-      otpauthUri: "otpauth://totp/CelestialCMS?secret=SECRET-123",
+      otpauthUri: "otpauth://totp/Arclayer?secret=SECRET-123",
     });
 
     renderWithQuery(<MeSecurityTwoFactorSection />);
@@ -156,7 +156,7 @@ describe("MeSecurityTwoFactorSection", () => {
     });
     beginTwoFactorSetupMock.mockResolvedValue({
       secret: "SECRET-123",
-      otpauthUri: "otpauth://totp/CelestialCMS?secret=SECRET-123",
+      otpauthUri: "otpauth://totp/Arclayer?secret=SECRET-123",
     });
     confirmTwoFactorSetupMock.mockResolvedValue({ backupCodes: ["ABCD-1234"] });
 

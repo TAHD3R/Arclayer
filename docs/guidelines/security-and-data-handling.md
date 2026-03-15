@@ -1,4 +1,4 @@
-# Security and Data Handling Guideline (CelestialCMS)
+# Security and Data Handling Guideline (Arclayer)
 
 This document defines mandatory security and data-handling rules for backend and cross-app contracts.
 It consolidates operational rules that were previously spread across code and AGENTS guidance.

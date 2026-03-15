@@ -3,14 +3,14 @@ import type { Plugin } from "vite";
 import fs from "node:fs";
 import path from "node:path";
 
-export interface CelestialReactInspectorOptions {
+export interface ArclayerReactInspectorOptions {
   /**
    * Default: true
    */
   enabled?: boolean;
 }
 
-export function celestialReactInspector(options: CelestialReactInspectorOptions = {}): Plugin[] {
+export function celestialReactInspector(options: ArclayerReactInspectorOptions = {}): Plugin[] {
   const enabled = options.enabled ?? true;
   if (!enabled) return [];
 

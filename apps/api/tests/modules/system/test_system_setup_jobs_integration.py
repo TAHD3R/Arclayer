@@ -73,8 +73,8 @@ async def test_setup_job_endpoint_reaches_succeeded(
             "email": "admin@example.com",
             "display_name": "Admin",
         },
-        "organization": {"name": "Celestial"},
-        "core_patch": {"site": {"name": "Celestial"}},
+        "organization": {"name": "Arclayer"},
+        "core_patch": {"site": {"name": "Arclayer"}},
     }
 
     async with app.router.lifespan_context(app):
@@ -131,7 +131,7 @@ async def test_setup_job_endpoint_reports_failure(
             "email": "admin@example.com",
             "display_name": "Admin",
         },
-        "organization": {"name": "Celestial"},
+        "organization": {"name": "Arclayer"},
         "master_key": "not-a-valid-master-key",
         "core_patch": {},
     }
@@ -187,8 +187,8 @@ async def test_setup_job_dry_run_does_not_persist_data(
             "email": "admin@example.com",
             "display_name": "Admin",
         },
-        "organization": {"name": "Celestial"},
-        "core_patch": {"site": {"name": "Celestial"}},
+        "organization": {"name": "Arclayer"},
+        "core_patch": {"site": {"name": "Arclayer"}},
     }
 
     async with app.router.lifespan_context(app):

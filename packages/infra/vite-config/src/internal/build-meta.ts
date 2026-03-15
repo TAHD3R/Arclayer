@@ -61,7 +61,7 @@ export function formatArchiveTimestamp(iso: string): string {
 export function buildDefaultBanner(meta: BuildMeta): string {
   const year = new Date(meta.buildTime).getUTCFullYear();
   const lines = [
-    `CelestialCMS - ${meta.appName}`,
+    `Arclayer - ${meta.appName}`,
     `Version: ${meta.version}`,
     `Built at: ${meta.buildTime}`,
     ...(meta.gitSha ? [`Commit: ${meta.gitSha}`] : []),

@@ -7,7 +7,7 @@ async def test_create_app_docs_enabled_in_test_env(monkeypatch) -> None:
 
     app = create_app()
 
-    assert app.title == "Celestial Framework API"
+    assert app.title == "Arclayer API"
     assert app.debug is False
 
     async with asgi_client(app) as client:

@@ -15,7 +15,7 @@ export function DevLayout({ children }: PropsWithChildren) {
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
-            <AdminFullLogo to="/" ariaLabel="Celestial CMS" width={120} />
+            <AdminFullLogo to="/" ariaLabel="Arclayer" width={120} />
             <DevEnvTag label="DEV" />
             <div className="text-footnote text-label-secondary">{t("debug:DEV_TOOLS_TITLE")}</div>
           </div>

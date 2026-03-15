@@ -32,7 +32,7 @@ describe("applyWorkspaceTemplatePreset", () => {
   test("applies blank template defaults", () => {
     const next = applyWorkspaceTemplatePreset({
       templateKey: "blank",
-      displayName: "Celestial",
+      displayName: "Arclayer",
       siteUrl: "https://demo.local",
       t: (key, params) => {
         const map: Record<string, string> = {
@@ -49,8 +49,8 @@ describe("applyWorkspaceTemplatePreset", () => {
     });
 
     expect(next.templateKey).toBe("blank");
-    expect(next.workspaceName).toBe("Celestial's Workspace");
-    expect(next.siteName).toBe("Celestial's Site");
+    expect(next.workspaceName).toBe("Arclayer's Workspace");
+    expect(next.siteName).toBe("Arclayer's Site");
     expect(next.siteDescription).toBe("");
   });
 });

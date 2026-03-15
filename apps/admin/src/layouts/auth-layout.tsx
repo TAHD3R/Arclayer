@@ -61,7 +61,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
     <div className="fixed inset-0 w-full overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-background text-label-primary">
       <div className="absolute top-0 inset-x-0 z-10 p-4 flex items-center justify-between pointer-events-none">
         <div className="pointer-events-auto">
-          <AdminFullLogo to="/login" ariaLabel="Celestial CMS" width={120} />
+          <AdminFullLogo to="/login" ariaLabel="Arclayer" width={120} />
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
           <AdminLocaleToggle />
@@ -103,7 +103,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
             <Trans
               i18nKey="auth:FOOTER_COPYRIGHT"
               components={{
-                brand: <span className="text-label-primary">Celestial CMS</span>,
+                brand: <span className="text-label-primary">Arclayer</span>,
               }}
             />
           </div>

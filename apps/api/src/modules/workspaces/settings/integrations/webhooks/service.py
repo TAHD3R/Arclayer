@@ -34,9 +34,9 @@ from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
 
 logger = get_logger(__name__)
 
-SIGNATURE_HEADER = "X-Celestial-Signature"
-TIMESTAMP_HEADER = "X-Celestial-Timestamp"
-EVENT_HEADER = "X-Celestial-Event"
+SIGNATURE_HEADER = "X-Arclayer-Signature"
+TIMESTAMP_HEADER = "X-Arclayer-Timestamp"
+EVENT_HEADER = "X-Arclayer-Event"
 
 DEFAULT_WEBHOOK_TIMEOUT_S = 3.0
 

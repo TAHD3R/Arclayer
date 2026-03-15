@@ -1,4 +1,4 @@
-# Agents Guide (CelestialCMS)
+# Agents Guide (Arclayer)
 
 This document defines behavioral rules for automated coding agents working in this repository.
 

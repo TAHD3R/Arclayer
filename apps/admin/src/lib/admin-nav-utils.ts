@@ -98,7 +98,7 @@ export function buildDocumentTitle(
   routeTitle: string | null,
   workspaceName: string | null,
 ): string {
-  const brand = (getAppConfig().title || "Celestial").trim();
+  const brand = (getAppConfig().title || "Arclayer").trim();
   if (!workspaceName || !workspaceName.trim()) {
     return routeTitle && routeTitle.trim() ? `${routeTitle.trim()} | ${brand}` : brand;
   }

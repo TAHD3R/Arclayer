@@ -7,6 +7,6 @@ import { getAppConfig } from "@/constants/app-config";
  * Injects app brand title from config.
  */
 export function useDocumentTitle(pageTitle: string | null | undefined): void {
-  const brand = (getAppConfig().title || "Celestial").trim();
+  const brand = (getAppConfig().title || "Arclayer").trim();
   useDocumentTitleBase(pageTitle, { brand, separator: " | " });
 }

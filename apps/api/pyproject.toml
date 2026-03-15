@@ -1,7 +1,7 @@
 [project]
-name = "Celestial"
+name = "Arclayer"
 version = "2026.01.18-dev"
-description = "Celestial is a light-weight, modular plugin-based ASGI python framework based on FastAPI."
+description = "Structured content, visually built."
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 authors = [{ name = "Jassar Ayiken", email = "aspj6771@gmail.com" }]

@@ -72,7 +72,7 @@ def _draft_payload(title: str) -> dict:
             {
                 "kind": "seo",
                 "payload": {
-                    "metaTitle": f"{title} | Celestial",
+                    "metaTitle": f"{title} | Arclayer",
                     "metaDescription": f"{title} description",
                 },
             },

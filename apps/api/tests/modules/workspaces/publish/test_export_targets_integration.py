@@ -58,7 +58,7 @@ def _assert_route_bundle(contract: dict, *, path: str, title: str) -> None:
     payload = artifact["payload"]
     assert payload["route"]["path"] == path
     assert payload["renderHints"]["modelKey"] == "page"
-    assert payload["seo"]["metaTitle"] == f"{title} | Celestial"
+    assert payload["seo"]["metaTitle"] == f"{title} | Arclayer"
     assert payload["bindings"]["bindings"][0]["componentKey"] == "hero_banner"
     assert {presentation["kind"] for presentation in payload["components"]["presentations"]} == {
         "form_data",

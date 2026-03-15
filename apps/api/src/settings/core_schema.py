@@ -18,7 +18,7 @@ def build_core_settings_schema() -> ConfigSchema:
                     ConfigField(
                         key="name",
                         type="str",
-                        default="Celestial CMS",
+                        default="Arclayer",
                         label="Site name",
                         label_i18n="settings:SITE_NAME_LABEL",
                     ),
@@ -297,7 +297,7 @@ def build_core_settings_schema() -> ConfigSchema:
                     ConfigField(
                         key="mail_from_name",
                         type="str",
-                        default="Celestial CMS",
+                        default="Arclayer",
                         label="Mail from name",
                         label_i18n="settings:MAIL_FROM_NAME_LABEL",
                     ),

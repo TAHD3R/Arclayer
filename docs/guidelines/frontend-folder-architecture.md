@@ -1,6 +1,6 @@
 # Frontend Folder Architecture (`apps/*`)
 
-This document defines the target frontend architecture for CelestialCMS. It is a normative guideline for the Admin application plus shared frontend packages.
+This document defines the target frontend architecture for Arclayer. It is a normative guideline for the Admin application plus shared frontend packages.
 
 ## 1. Goals
 

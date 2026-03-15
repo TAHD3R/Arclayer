@@ -32,8 +32,8 @@ async def test_remote_hook_dispatch_allow_with_patch_when_allowed() -> None:
     async def _post(url: str, body: bytes, headers: dict[str, str], timeout_s: float) -> httpx.Response:
         assert url == hook.endpoint_url
         assert timeout_s > 0
-        assert headers.get("X-Celestial-Operation") == str(hook.operation)
-        assert headers.get("X-Celestial-Timestamp") == "1700000000"
+        assert headers.get("X-Arclayer-Operation") == str(hook.operation)
+        assert headers.get("X-Arclayer-Timestamp") == "1700000000"
 
         parsed = json.loads(body.decode("utf-8"))
         assert parsed["operation"] == str(hook.operation)

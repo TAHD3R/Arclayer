@@ -17,7 +17,7 @@ export function buildGeneralSettingsInitialValues(params: {
   const workspaceValue = params.workspace?.value;
   const systemValue = params.system?.value;
 
-  const siteName = pickString(workspaceValue, ["site", "name"]) ?? "Celestial CMS";
+  const siteName = pickString(workspaceValue, ["site", "name"]) ?? "Arclayer";
   const siteSubtitle = pickString(workspaceValue, ["site", "subtitle"]) ?? "";
   const siteDescription =
     pickString(workspaceValue, ["site", "description"]) ??
@@ -103,7 +103,7 @@ export function buildGeneralSettingsInitialValues(params: {
   const mailPort = pickNumber(systemValue, ["mail", "port"]) ?? 587;
   const mailUsername = pickString(systemValue, ["mail", "username"]) ?? "";
   const mailFrom = pickString(systemValue, ["mail", "mail_from"]) ?? "noreply@example.com";
-  const mailFromName = pickString(systemValue, ["mail", "mail_from_name"]) ?? "Celestial CMS";
+  const mailFromName = pickString(systemValue, ["mail", "mail_from_name"]) ?? "Arclayer";
   const mailStarttls = pickBool(systemValue, ["mail", "starttls"]) ?? true;
   const mailSslTls = pickBool(systemValue, ["mail", "ssl_tls"]) ?? false;
   const mailEnabledTemplates = pickStringArray(systemValue, [

@@ -1,4 +1,4 @@
-# Admin UI Design and Behavior Guideline (CelestialCMS)
+# Admin UI Design and Behavior Guideline (Arclayer)
 
 This document is the primary UI guideline for `apps/admin`.
 

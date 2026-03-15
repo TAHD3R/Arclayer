@@ -9,7 +9,7 @@ export function DashboardPage() {
   return (
     <DefaultPage
       title={t("nav:NAV_DASHBOARD")}
-      description="This is the starting point for the Celestial console."
+      description="This is the starting point for the Arclayer console."
     >
       <Card>
         <CardContent className="pt-6">

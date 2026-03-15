@@ -4,13 +4,13 @@ import { archiveBuildOutput, type ArchiveBuildOutputOptions } from "./archive-bu
 import { injectBuildMeta, type InjectBuildMetaOptions } from "./inject-build-meta.ts";
 import { injectCopyrightBanner, type CopyrightBannerOptions } from "./inject-copyright-banner.ts";
 
-export interface CelestialBuildArtifactsOptions {
+export interface ArclayerBuildArtifactsOptions {
   buildMeta: InjectBuildMetaOptions;
   banner: CopyrightBannerOptions;
   archive: ArchiveBuildOutputOptions;
 }
 
-export function celestialBuildArtifacts(options: CelestialBuildArtifactsOptions): Plugin[] {
+export function celestialBuildArtifacts(options: ArclayerBuildArtifactsOptions): Plugin[] {
   return [
     injectBuildMeta(options.buildMeta),
     injectCopyrightBanner(options.banner),

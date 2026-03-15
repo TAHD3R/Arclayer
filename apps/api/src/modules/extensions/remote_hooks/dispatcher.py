@@ -21,10 +21,10 @@ from apps.api.src.modules.extensions.schema import (
 
 logger = get_logger(__name__)
 
-SIGNATURE_HEADER = "X-Celestial-Signature"
-TIMESTAMP_HEADER = "X-Celestial-Timestamp"
-TRACE_ID_HEADER = "X-Celestial-Trace-Id"
-OPERATION_HEADER = "X-Celestial-Operation"
+SIGNATURE_HEADER = "X-Arclayer-Signature"
+TIMESTAMP_HEADER = "X-Arclayer-Timestamp"
+TRACE_ID_HEADER = "X-Arclayer-Trace-Id"
+OPERATION_HEADER = "X-Arclayer-Operation"
 
 MAX_PATCH_ITEMS = 50
 MAX_WARNINGS = 20

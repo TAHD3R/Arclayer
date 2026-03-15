@@ -1,4 +1,4 @@
-# API Contract Guideline (CelestialCMS)
+# API Contract Guideline (Arclayer)
 
 This document defines the API contract rules for backend and frontend teams.
 It is a normative guideline focused on stable, schema-first, type-safe contracts.

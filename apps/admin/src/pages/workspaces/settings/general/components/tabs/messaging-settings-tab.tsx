@@ -112,7 +112,7 @@ export function MessagingSettingsTab({
         port: Number(values.mailPort || 0),
         username: normalizeOptionalString(values.mailUsername),
         mail_from: String(values.mailFrom || "").trim() || "noreply@example.com",
-        mail_from_name: String(values.mailFromName || "").trim() || "Celestial CMS",
+        mail_from_name: String(values.mailFromName || "").trim() || "Arclayer",
         starttls: Boolean(values.mailStarttls),
         ssl_tls: Boolean(values.mailSslTls),
       };
@@ -150,7 +150,7 @@ export function MessagingSettingsTab({
           port: Number(initialValues.mailPort),
           username: normalizeOptionalString(initialValues.mailUsername),
           mail_from: String(initialValues.mailFrom || "").trim() || "noreply@example.com",
-          mail_from_name: String(initialValues.mailFromName || "").trim() || "Celestial CMS",
+          mail_from_name: String(initialValues.mailFromName || "").trim() || "Arclayer",
           starttls: Boolean(initialValues.mailStarttls),
           ssl_tls: Boolean(initialValues.mailSslTls),
         },
@@ -339,7 +339,7 @@ export function MessagingSettingsTab({
                   <div className="text-footnote font-medium">
                     {t("settings:SETTINGS_MESSAGING_MAIL_FROM_NAME")}
                   </div>
-                  <Input {...field} placeholder="Celestial CMS" />
+                  <Input {...field} placeholder="Arclayer" />
                   <FieldMessage message={mailFromNameError} />
                 </div>
               )}

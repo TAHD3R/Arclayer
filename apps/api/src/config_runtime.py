@@ -300,7 +300,7 @@ class EmailSettings(BaseSettings):
         default=None, validation_alias=AliasChoices("MAIL_PASSWORD", "APP_MAIL_PASSWORD")
     )
     mail_from: str = Field(default="noreply@example.com", validation_alias=AliasChoices("MAIL_FROM"))
-    mail_from_name: str = Field(default="Celestial CMS", validation_alias=AliasChoices("MAIL_FROM_NAME"))
+    mail_from_name: str = Field(default="Arclayer", validation_alias=AliasChoices("MAIL_FROM_NAME"))
     server: str = Field(default="localhost", validation_alias=AliasChoices("MAIL_SERVER"))
     port: int = Field(default=587, validation_alias=AliasChoices("MAIL_PORT"))
     starttls: bool = Field(default=True, validation_alias=AliasChoices("MAIL_STARTTLS"))

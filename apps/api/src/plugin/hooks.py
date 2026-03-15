@@ -10,9 +10,9 @@ hookspec = pluggy.HookspecMarker(PROJECT_NAME)
 hookimpl = pluggy.HookimplMarker(PROJECT_NAME)
 
 
-class CelestialHooks:
+class ArclayerHooks:
     """
-    Pluggy hook specifications for Celestial.
+    Pluggy hook specifications for Arclayer.
 
     Notes:
     - Keep hooks sync and return declarative objects (factories/handlers/descriptors).
