@@ -1,1 +1,10 @@
-{}
+{
+  "COMMAND_TRIGGER_ARIA_LABEL": "Open command menu",
+  "COMMAND_TRIGGER_LABEL": "Search or jump...",
+  "COMMAND_TRIGGER_SHORTCUT": "⌘K",
+  "COMMAND_DIALOG_TITLE": "Command menu",
+  "COMMAND_DIALOG_DESCRIPTION": "Search pages and jump across the admin workspace.",
+  "COMMAND_INPUT_PLACEHOLDER": "Type a page or command",
+  "COMMAND_EMPTY": "No matching pages or commands.",
+  "COMMAND_GROUP_NAVIGATION": "Navigation"
+}

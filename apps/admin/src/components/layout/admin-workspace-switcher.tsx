@@ -108,6 +108,16 @@ const sidebarTriggerButtonClassName = cn(
   "group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center",
 );
 
+const headerTriggerButtonClassName = cn(
+  TRIGGER_HEIGHT_CLASSNAME,
+  "flex w-full min-w-0 items-center gap-3 rounded-xl border border-border/70",
+  "bg-background/75 px-2.5 pr-3 text-label-secondary shadow-[0_1px_0_rgba(255,255,255,0.06)]",
+  "transition-[border-color,background-color,color] duration-200",
+  "hover:bg-accent/70 hover:text-foreground",
+  "data-[state=open]:border-border data-[state=open]:bg-accent data-[state=open]:text-foreground",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+);
+
 const collapseButtonBaseClassName = cn(
   TRIGGER_HEIGHT_CLASSNAME,
   "!border-0 !bg-transparent !text-label-secondary",
@@ -627,7 +637,17 @@ function PanelContentInner() {
 // Main Component
 // ============================================================================
 
-export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
+type AdminWorkspaceSwitcherProps = {
+  className?: string;
+  variant?: "sidebar" | "header";
+  showSidebarToggle?: boolean;
+};
+
+export function AdminWorkspaceSwitcher({
+  className,
+  variant = "sidebar",
+  showSidebarToggle = true,
+}: AdminWorkspaceSwitcherProps = {}) {
   const { t } = useTranslation(["common"]);
   const accessToken = useAuthStore((s) => s.accessToken);
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -666,14 +686,47 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
 
   const workspaceName = workspaceDetailQuery.data?.name ?? "";
   const isWorkspaceScopeRoute = pathname.startsWith("/w/");
+  const isHeaderVariant = variant === "header";
 
   if (!isWorkspaceScopeRoute) {
     const backLabel = t("common:WORKSPACE_SWITCHER_BACK_TO_WORKSPACE");
     const effectiveBackWorkspaceId = currentWorkspaceId ?? lastWorkspaceId ?? null;
     const canGoBack = Boolean(effectiveBackWorkspaceId);
 
+    if (isHeaderVariant) {
+      return (
+        <Button
+          type="button"
+          variant="ghost"
+          aria-label={backLabel}
+          className={cn(
+            headerTriggerButtonClassName,
+            "justify-start",
+            !canGoBack && "opacity-60",
+            className,
+          )}
+          disabled={!canGoBack}
+          onClick={() => {
+            if (!effectiveBackWorkspaceId) return;
+            setCurrentWorkspaceId(effectiveBackWorkspaceId);
+            void navigate({
+              to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never,
+            });
+          }}
+        >
+          <ArrowLeft className="size-4 shrink-0 opacity-80" aria-hidden="true" />
+          <div className="min-w-0 flex-1 text-left">
+            <TruncatedText
+              text={backLabel}
+              className="text-callout font-semibold text-foreground"
+            />
+          </div>
+        </Button>
+      );
+    }
+
     return (
-      <div className={cn("w-full min-w-0", props.className)}>
+      <div className={cn("w-full min-w-0", className)}>
         <div
           className={cn(
             sidebarTriggerShellClassName,
@@ -719,22 +772,29 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
             </div>
           </Button>
 
-          <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+          {showSidebarToggle ? (
+            <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+          ) : null}
         </div>
 
-        <div
-          className={cn(
-            "mt-0 flex justify-center overflow-hidden",
-            "h-0 opacity-0 pointer-events-none",
-            "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-            "group-data-[collapsible=icon]:mt-2",
-            "group-data-[collapsible=icon]:h-10",
-            "group-data-[collapsible=icon]:opacity-100",
-            "group-data-[collapsible=icon]:pointer-events-auto",
-          )}
-        >
-          <CollapsedCollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
-        </div>
+        {showSidebarToggle ? (
+          <div
+            className={cn(
+              "mt-0 flex justify-center overflow-hidden",
+              "h-0 opacity-0 pointer-events-none",
+              "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+              "group-data-[collapsible=icon]:mt-2",
+              "group-data-[collapsible=icon]:h-10",
+              "group-data-[collapsible=icon]:opacity-100",
+              "group-data-[collapsible=icon]:pointer-events-auto",
+            )}
+          >
+            <CollapsedCollapseButton
+              ariaLabel={t("common:SIDEBAR_TOGGLE")}
+              onClick={toggleSidebar}
+            />
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -743,8 +803,42 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
   const label = t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE");
   const workspaceTriggerText = workspaceName || label;
 
+  if (isHeaderVariant) {
+    return (
+      <FloatingPanelRoot className={cn("w-full min-w-0", className)}>
+        <FloatingPanelTrigger
+          title={workspaceTriggerText}
+          aria-label={label}
+          disableLayoutId
+          className={cn(headerTriggerButtonClassName, !canOpenPanel && "opacity-60")}
+          disabled={!canOpenPanel}
+        >
+          <OrganizationAvatar
+            name={workspaceTriggerText}
+            assetRef={triggerOrganizationLogoUrl}
+            size={28}
+            className="shrink-0"
+          />
+
+          <div className="min-w-0 flex-1 overflow-hidden text-left">
+            <TruncatedText
+              text={workspaceTriggerText}
+              className="text-callout font-semibold text-foreground"
+            />
+          </div>
+
+          <ChevronDown className="size-4 shrink-0 opacity-70" aria-hidden="true" />
+        </FloatingPanelTrigger>
+
+        <FloatingPanelContent placement="bottom" offset={10} showTitle={false} className="p-0">
+          <PanelContentInner />
+        </FloatingPanelContent>
+      </FloatingPanelRoot>
+    );
+  }
+
   return (
-    <FloatingPanelRoot className={cn("w-full min-w-0", props.className)}>
+    <FloatingPanelRoot className={cn("w-full min-w-0", className)}>
       <div className="min-w-0">
         <div
           className={cn(
@@ -792,22 +886,29 @@ export function AdminWorkspaceSwitcher(props: { className?: string } = {}) {
             />
           </FloatingPanelTrigger>
 
-          <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+          {showSidebarToggle ? (
+            <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
+          ) : null}
         </div>
 
-        <div
-          className={cn(
-            "mt-0 flex justify-center overflow-hidden",
-            "h-0 opacity-0 pointer-events-none",
-            "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-            "group-data-[collapsible=icon]:mt-2",
-            "group-data-[collapsible=icon]:h-10",
-            "group-data-[collapsible=icon]:opacity-100",
-            "group-data-[collapsible=icon]:pointer-events-auto",
-          )}
-        >
-          <CollapsedCollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />
-        </div>
+        {showSidebarToggle ? (
+          <div
+            className={cn(
+              "mt-0 flex justify-center overflow-hidden",
+              "h-0 opacity-0 pointer-events-none",
+              "transition-[height,opacity,margin-top] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+              "group-data-[collapsible=icon]:mt-2",
+              "group-data-[collapsible=icon]:h-10",
+              "group-data-[collapsible=icon]:opacity-100",
+              "group-data-[collapsible=icon]:pointer-events-auto",
+            )}
+          >
+            <CollapsedCollapseButton
+              ariaLabel={t("common:SIDEBAR_TOGGLE")}
+              onClick={toggleSidebar}
+            />
+          </div>
+        ) : null}
       </div>
 
       <FloatingPanelContent placement="bottom" offset={8} showTitle={false} className="p-0">

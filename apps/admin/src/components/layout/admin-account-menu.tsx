@@ -40,6 +40,13 @@ import type { ThemePreference } from "@/types/stores";
 import { notifyError } from "@/lib/notifications";
 
 const SHORTCUTS_HELP_HASH = "#shortcuts";
+const HEADER_TRIGGER_CLASSNAME = cn(
+  "group flex h-10 items-center gap-2 rounded-xl border border-transparent bg-transparent pl-1 pr-2",
+  "text-label-secondary transition-[background-color,color,border-color] duration-200",
+  "hover:bg-accent/70 hover:text-foreground",
+  "data-[state=open]:border-border/70 data-[state=open]:bg-accent data-[state=open]:text-foreground",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+);
 
 function MenuItemContent(props: { icon?: ReactNode; label: string; right?: ReactNode }) {
   return (
@@ -284,13 +291,14 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
   };
 }
 
-export function AdminAccountMenu() {
+export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {}) {
   const { t } = useTranslation("account");
   const model = useAdminAccountMenuModel();
   const { state: sidebarState, isMobile } = useSidebar();
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
+  const isHeaderVariant = props.variant === "header";
 
-  const triggerClassName = cn(
+  const sidebarTriggerClassName = cn(
     "group",
     "flex w-full items-center",
     "h-16 py-0",
@@ -316,12 +324,46 @@ export function AdminAccountMenu() {
 
   const emailClassName = "text-label-secondary";
 
+  if (isHeaderVariant) {
+    return (
+      <FloatingPanelRoot>
+        <FloatingPanelTrigger
+          title={model.displayName}
+          disableLayoutId
+          className={HEADER_TRIGGER_CLASSNAME}
+        >
+          <UserAvatar
+            name={model.displayName}
+            assetRef={model.avatarUrl}
+            size={32}
+            className="shrink-0"
+          />
+        </FloatingPanelTrigger>
+
+        <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
+          <AdminAccountPanelContent
+            displayName={model.displayName}
+            email={model.email}
+            avatarUrl={model.avatarUrl}
+            themePreference={model.themePreference}
+            locale={model.locale}
+            onLogout={model.onLogout}
+            onAccountSettings={model.onAccountSettings}
+            onThemePreferenceChange={model.onThemePreferenceChange}
+            onLocaleChange={model.onLocaleChange}
+            onShortcuts={model.onShortcuts}
+          />
+        </FloatingPanelContent>
+      </FloatingPanelRoot>
+    );
+  }
+
   return (
     <FloatingPanelRoot className="w-full">
       <FloatingPanelTrigger
         title={isCollapsed ? model.displayName : t("ACCOUNT_TITLE")}
         disableLayoutId
-        className={triggerClassName}
+        className={sidebarTriggerClassName}
       >
         <UserAvatar
           name={model.displayName}

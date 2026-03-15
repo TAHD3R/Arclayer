@@ -31,12 +31,14 @@ import {
 import { SidebarInset, SidebarProvider } from "@celestial/ui/sidebar";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
+import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { ForbiddenView } from "@/components/builtin/forbidden-page";
 import { WorkspaceSwitchDialogHost } from "@/components/layout/workspace-switch-dialog-host";
 import { MeSettingsDialogHost } from "@/components/layout/me-settings-dialog-host";
 
 const SIDEBAR_EXPANDED_WIDTH_PX = 270;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
+const TOPBAR_HEIGHT_REM = "3.5rem";
 
 type AdminCenterAccessState = "loading" | "allowed" | "forbidden" | "error" | "not-admin-center";
 
@@ -187,9 +189,10 @@ export function AdminLayout({ children }: PropsWithChildren) {
   });
   const unreadCount = notificationPreviewQuery.data?.unreadCount ?? 0;
 
-  const footerItemsWithActions = useMemo(
+  const footerItems = useMemo(
     () =>
       COMMON_FOOTER_NAV_ITEMS.map((item) => {
+        if (item.key === "notifications") return null;
         if (item.key === "help-center") {
           return Object.assign({}, item, {
             onAction: () => {
@@ -198,20 +201,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
           });
         }
         if (item.key !== "notifications") return item;
-        return Object.assign({}, item, {
-          onAction: () => setNotificationPanelOpen(!notificationPanelOpen),
-          isActive: notificationPanelOpen,
-          actionRenderer:
-            showNotificationsBadge && unreadCount > 0
-              ? () => (
-                  <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] rounded-full bg-primary px-1  leading-none text-caption text-label-primary font-semibold">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )
-              : undefined,
-        });
-      }),
-    [notificationPanelOpen, setNotificationPanelOpen, showNotificationsBadge, unreadCount],
+        return item;
+      }).filter((item): item is AdminNavItem => item !== null),
+    [],
   );
 
   const workspaceDetailQuery = useQuery({
@@ -254,72 +246,85 @@ export function AdminLayout({ children }: PropsWithChildren) {
       defaultOpen={sidebarOpen}
       open={sidebarOpen}
       onOpenChange={setSidebarOpen}
-      className="h-screen"
+      className="h-screen overflow-hidden"
       style={
         {
           "--sidebar-width": `${SIDEBAR_EXPANDED_WIDTH_PX}px`,
           "--sidebar-width-icon": `${SIDEBAR_COLLAPSED_WIDTH_PX}px`,
+          "--admin-topbar-height": TOPBAR_HEIGHT_REM,
         } as CSSProperties
       }
     >
       <RouteProgress />
       <WorkspaceSwitchDialogHost />
       <MeSettingsDialogHost />
+      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
+        <AdminTopbar
+          navItems={mainItems}
+          notificationOpen={notificationPanelOpen}
+          showNotificationsBadge={showNotificationsBadge}
+          unreadCount={unreadCount}
+          onNotificationToggle={() => setNotificationPanelOpen(!notificationPanelOpen)}
+        />
 
-      <AdminSidebarShell
-        showNavSkeleton={showNavSkeleton}
-        showOrgNavErrorOverlay={showOrgNavErrorOverlay}
-        mainItems={mainItems}
-        footerItems={footerItemsWithActions}
-        resolvePermissionName={resolvePermissionName}
-      />
+        <div className="flex min-h-0 flex-1">
+          <AdminSidebarShell
+            showNavSkeleton={showNavSkeleton}
+            showOrgNavErrorOverlay={showOrgNavErrorOverlay}
+            mainItems={mainItems}
+            footerItems={footerItems}
+            resolvePermissionName={resolvePermissionName}
+            className="top-[var(--admin-topbar-height)] inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"
+          />
 
-      <AdminNotificationsShell
-        open={notificationPanelOpen}
-        pinned={notificationPanelPinned}
-        sidebarExpandedWidthPx={SIDEBAR_EXPANDED_WIDTH_PX}
-        sidebarCollapsedWidthPx={SIDEBAR_COLLAPSED_WIDTH_PX}
-        closeAriaLabel={t("notifications:NOTIFICATIONS_PANEL_CLOSE")}
-        onPinnedChange={setNotificationPanelPinned}
-        onClose={() => setNotificationPanelOpen(false)}
-      />
-
-      <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-auto">
-          <ContentGuard
-            loading={Boolean(
-              (isWorkspaceScopeRoute && workspaceDetailQuery.isLoading) ||
-              (isAdminCenterRoute && adminCenterAccess.state === "loading"),
-            )}
-            error={
-              isWorkspaceScopeRoute
-                ? workspaceDetailQuery.error
-                : isAdminCenterRoute
-                  ? adminCenterAccess.error
-                  : null
-            }
-            container="admin-route"
-            containerWidth="fixed"
-            onRetry={
-              isWorkspaceScopeRoute
-                ? () => {
-                    void workspaceDetailQuery.refetch();
+          <div className="relative flex min-w-0 flex-1">
+            <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <ContentGuard
+                  loading={Boolean(
+                    (isWorkspaceScopeRoute && workspaceDetailQuery.isLoading) ||
+                    (isAdminCenterRoute && adminCenterAccess.state === "loading"),
+                  )}
+                  error={
+                    isWorkspaceScopeRoute
+                      ? workspaceDetailQuery.error
+                      : isAdminCenterRoute
+                        ? adminCenterAccess.error
+                        : null
                   }
-                : isAdminCenterRoute
-                  ? () => {
-                      void adminCenterOrganizationsQuery.refetch();
-                    }
-                  : undefined
-            }
-            loadingVariant="form"
-          >
-            <RouteTransition className="w-full">
-              {shouldShowAdminCenterForbidden ? <ForbiddenView variant="admin" /> : null}
-              {!shouldShowAdminCenterForbidden ? (children ?? <Outlet />) : null}
-            </RouteTransition>
-          </ContentGuard>
+                  container="admin-route"
+                  containerWidth="fixed"
+                  onRetry={
+                    isWorkspaceScopeRoute
+                      ? () => {
+                          void workspaceDetailQuery.refetch();
+                        }
+                      : isAdminCenterRoute
+                        ? () => {
+                            void adminCenterOrganizationsQuery.refetch();
+                          }
+                        : undefined
+                  }
+                  loadingVariant="form"
+                >
+                  <RouteTransition className="w-full">
+                    {shouldShowAdminCenterForbidden ? <ForbiddenView variant="admin" /> : null}
+                    {!shouldShowAdminCenterForbidden ? (children ?? <Outlet />) : null}
+                  </RouteTransition>
+                </ContentGuard>
+              </div>
+            </SidebarInset>
+
+            <AdminNotificationsShell
+              open={notificationPanelOpen}
+              pinned={notificationPanelPinned}
+              closeAriaLabel={t("notifications:NOTIFICATIONS_PANEL_CLOSE")}
+              onPinnedChange={setNotificationPanelPinned}
+              onClose={() => setNotificationPanelOpen(false)}
+            />
+          </div>
         </div>
-      </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

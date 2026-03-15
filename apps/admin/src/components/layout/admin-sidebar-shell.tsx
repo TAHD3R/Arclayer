@@ -3,33 +3,15 @@ import { useEffect, useRef, useState } from "react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import {
-  AdminSidebarAccountSkeleton,
   AdminSidebarFooterMenuSkeleton,
   AdminSidebarHeaderSkeleton,
   AdminSidebarMainMenuSkeleton,
 } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
-import { useRouterState } from "@tanstack/react-router";
-
-import { LightRays } from "@celestial/ui/light-rays";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@celestial/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarHeader } from "@celestial/ui/sidebar";
 import { cn } from "@celestial/lib/utils";
-
-const LIGHT_RAYS_COUNT = 5;
-const LIGHT_RAYS_SPEED = 18;
-const LIGHT_RAYS_BLUR = 44;
-const LIGHT_RAYS_LENGTH = "64vh";
-const WORKSPACE_LIGHT_RAYS_COLOR =
-  "color-mix(in srgb, var(--color-sidebar-primary) 76%, var(--color-sidebar-accent) 24%)";
-const ORGANIZATION_LIGHT_RAYS_COLOR =
-  "color-mix(in srgb, var(--color-sidebar-ring) 34%, var(--color-sidebar-accent) 66%)";
-const WORKSPACE_OVERLAY_BACKGROUND =
-  "linear-gradient(to bottom, color-mix(in srgb, var(--color-sidebar-accent) 28%, transparent), transparent)";
-const ORGANIZATION_OVERLAY_BACKGROUND =
-  "linear-gradient(to bottom, color-mix(in srgb, var(--color-sidebar-ring) 18%, transparent), transparent)";
 
 export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
@@ -58,70 +40,24 @@ function resolveSidebarContentPaddingPx(el: HTMLElement): { left: number; right:
   return { left, right };
 }
 
-function SidebarEffects() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isOrganizationView = pathname.startsWith("/o/");
-  const lightRaysColor = isOrganizationView
-    ? ORGANIZATION_LIGHT_RAYS_COLOR
-    : WORKSPACE_LIGHT_RAYS_COLOR;
-  const overlayBackground = isOrganizationView
-    ? ORGANIZATION_OVERLAY_BACKGROUND
-    : WORKSPACE_OVERLAY_BACKGROUND;
-  const containerClassName = cn(
-    "pointer-events-none absolute inset-x-0 top-0 h-80 [mask-image:linear-gradient(to_bottom,black,transparent)]",
-    isOrganizationView ? "opacity-[0.8]" : "opacity-[0.84]",
-  );
-
-  return (
-    <div aria-hidden="true" className={containerClassName}>
-      <LightRays
-        count={LIGHT_RAYS_COUNT}
-        speed={LIGHT_RAYS_SPEED}
-        blur={LIGHT_RAYS_BLUR}
-        length={LIGHT_RAYS_LENGTH}
-        color={lightRaysColor}
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0"
-        style={{ background: overlayBackground }}
-      />
-    </div>
-  );
-}
-
 function AdminSidebarHeaderArea(props: { showFailureSkeleton: boolean }) {
   return (
     <SidebarHeader
       className={cn(
-        "relative z-10 flex w-full",
-        "items-center gap-2",
-        "px-2.5 py-2 h-16",
-        "transition-[height,padding] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-        // Avoid `height: auto` because it can't transition from/to `h-16`,
-        // and it causes the whole menu below to jump during expand/collapse.
-        // Use a fixed collapsed height to keep the vertical movement smooth.
-        "group-data-[collapsible=icon]:h-28",
-        "group-data-[collapsible=icon]:items-start",
-        "group-data-[collapsible=icon]:justify-center",
+        "relative z-10 flex w-full items-center gap-2 px-2.5 py-2",
+        "h-14 justify-start",
+        "transition-[padding] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
       )}
     >
       {props.showFailureSkeleton ? (
         <AdminSidebarHeaderSkeleton />
       ) : (
         <AdminWorkspaceSwitcher
-          className={cn("min-w-0 flex-1 group-data-[collapsible=icon]:flex-none")}
+          className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-none"
+          showSidebarToggle={false}
         />
       )}
     </SidebarHeader>
-  );
-}
-
-function AdminSidebarFooterArea(props: { showFailureSkeleton: boolean }) {
-  return (
-    <SidebarFooter className="relative z-10 isolate border-t border-border p-0">
-      {props.showFailureSkeleton ? <AdminSidebarAccountSkeleton /> : <AdminAccountMenu />}
-    </SidebarFooter>
   );
 }
 
@@ -267,13 +203,7 @@ export function AdminSidebarShell({
       collapsible="icon"
       animateOnHover={false}
       className={cn("relative isolate z-40", className)}
-      style={
-        {
-          "--ant-color-link": "var(--color-muted-foreground)",
-        } as CSSProperties
-      }
     >
-      <SidebarEffects />
       <AdminSidebarHeaderArea showFailureSkeleton={showFailureSkeleton} />
       <AdminSidebarContentArea
         showMenuSkeleton={showMenuSkeleton}
@@ -282,7 +212,6 @@ export function AdminSidebarShell({
         footerItems={footerItems}
         resolvePermissionName={resolvePermissionName}
       />
-      <AdminSidebarFooterArea showFailureSkeleton={showFailureSkeleton} />
     </Sidebar>
   );
 }

@@ -1,1 +1,10 @@
-{}
+{
+  "COMMAND_TRIGGER_ARIA_LABEL": "打开命令菜单",
+  "COMMAND_TRIGGER_LABEL": "搜索或跳转...",
+  "COMMAND_TRIGGER_SHORTCUT": "⌘K",
+  "COMMAND_DIALOG_TITLE": "命令菜单",
+  "COMMAND_DIALOG_DESCRIPTION": "搜索页面并在后台工作区中快速跳转。",
+  "COMMAND_INPUT_PLACEHOLDER": "输入页面或命令",
+  "COMMAND_EMPTY": "没有匹配的页面或命令。",
+  "COMMAND_GROUP_NAVIGATION": "导航"
+}
