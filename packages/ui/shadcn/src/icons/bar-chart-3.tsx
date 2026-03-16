@@ -1,0 +1,63 @@
+"use client";
+
+import { forwardRef } from "react";
+import { motion } from "motion/react";
+import { BarChart3 as BaseIcon } from "lucide-react";
+import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { cn } from "@arclayer/lib/utils";
+import { assignRef } from "./assign-ref";
+import { ICON_MOTION_EASE } from "./icon-motion-constants";
+import type { AnimatedLucideProps } from "./lucide-animated-types";
+import { useIconHoverState } from "./use-icon-hover-state";
+
+const BarChart3AnimatedIcon = forwardRef<HTMLSpanElement, AnimatedLucideProps>(
+  function BarChart3AnimatedIcon(
+    {
+      isHovered,
+      active = false,
+      loop = false,
+      className,
+      size = "100%",
+      style,
+      onMouseEnter,
+      onMouseLeave,
+      ...props
+    },
+    ref,
+  ) {
+    const reducedMotion = useMediaPrefersReducedMotion();
+    const hoverState = useIconHoverState(isHovered);
+    const emphasized = !reducedMotion && (loop || hoverState.hovered || active);
+
+    return (
+      <motion.span
+        ref={(node) => {
+          hoverState.ref.current = node;
+          assignRef(ref, node);
+        }}
+        className={cn("inline-flex items-center justify-center", className)}
+        style={{ transformOrigin: "50% 100%", ...style }}
+        onMouseEnter={(event) => {
+          hoverState.onMouseEnter();
+          onMouseEnter?.(event as never);
+        }}
+        onMouseLeave={(event) => {
+          hoverState.onMouseLeave();
+          onMouseLeave?.(event as never);
+        }}
+        animate={
+          emphasized
+            ? { y: [0, -2, 0], scaleY: [1, 1.08, 1], scaleX: [1, 0.98, 1] }
+            : { y: 0, scaleY: 1, scaleX: 1 }
+        }
+        transition={{ duration: 0.46, ease: ICON_MOTION_EASE, repeat: loop ? Infinity : 0 }}
+      >
+        <BaseIcon {...props} size={size} className="size-full" />
+      </motion.span>
+    );
+  },
+);
+
+BarChart3AnimatedIcon.displayName = "BarChart3AnimatedIcon";
+
+export default BarChart3AnimatedIcon;

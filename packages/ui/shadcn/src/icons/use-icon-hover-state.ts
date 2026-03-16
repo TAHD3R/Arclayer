@@ -18,13 +18,13 @@ const ICON_HOVER_TARGET_SELECTOR = [
 ].join(", ");
 
 export function useIconHoverState(isHovered?: boolean) {
-  const ref = useRef<SVGSVGElement | null>(null);
+  const ref = useRef<any>(null);
   const [selfHovered, setSelfHovered] = useState(false);
   const [ancestorHovered, setAncestorHovered] = useState(false);
 
   useEffect(() => {
     if (isHovered !== undefined) return;
-    const target = ref.current?.parentElement?.closest<HTMLElement>(ICON_HOVER_TARGET_SELECTOR);
+    const target = ref.current?.parentElement?.closest(ICON_HOVER_TARGET_SELECTOR);
     if (!target) return;
 
     const onEnter = () => setAncestorHovered(true);
