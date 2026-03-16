@@ -21,6 +21,7 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-sheet";
 import { cn } from "@arclayer/lib/utils";
 import { XIcon } from "lucide-react";
+import { SUBTLE_OVERLAY_BACKDROP_CLASSNAME } from "./adaptive-overlay-backdrop";
 
 type SheetProps = SheetPrimitiveProps;
 
@@ -39,12 +40,7 @@ type SheetOverlayProps = SheetOverlayPrimitiveProps;
 function SheetOverlay({ className, ...props }: SheetOverlayProps) {
   return (
     <SheetOverlayPrimitive
-      className={cn(
-        "fixed inset-0 z-50",
-        "bg-black/55 supports-[backdrop-filter]:bg-black/45",
-        "backdrop-blur-sm backdrop-saturate-150",
-        className,
-      )}
+      className={cn("fixed inset-0 z-50", SUBTLE_OVERLAY_BACKDROP_CLASSNAME, className)}
       {...props}
     />
   );

@@ -19,8 +19,8 @@ type AdaptiveOverlayBackdropEnvironment = {
 
 const LOW_END_DEVICE_MEMORY_GB = 4;
 const LOW_END_CPU_CORES = 4;
-const BLUR_BACKDROP_CLASSNAME = "bg-background/10 backdrop-blur-md";
-const SOLID_BACKDROP_CLASSNAME = "bg-background/45";
+export const SUBTLE_OVERLAY_BACKDROP_CLASSNAME = "bg-background/32";
+export const STRONG_OVERLAY_BACKDROP_CLASSNAME = "bg-background/45";
 
 function readAdaptiveOverlayBackdropEnvironment(
   prefersReducedMotion: boolean,
@@ -64,7 +64,7 @@ export function resolveAdaptiveOverlayBackdropMode(
 }
 
 export function getAdaptiveOverlayBackdropClassName(mode: AdaptiveOverlayBackdropMode): string {
-  return mode === "blur" ? BLUR_BACKDROP_CLASSNAME : SOLID_BACKDROP_CLASSNAME;
+  return mode === "blur" ? SUBTLE_OVERLAY_BACKDROP_CLASSNAME : STRONG_OVERLAY_BACKDROP_CLASSNAME;
 }
 
 export function useAdaptiveOverlayBackdropMode(): AdaptiveOverlayBackdropMode {

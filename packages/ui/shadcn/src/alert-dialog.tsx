@@ -22,6 +22,7 @@ import {
   type AlertDialogCancelProps as AlertDialogCancelPrimitiveProps,
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 import { cn } from "@arclayer/lib/utils";
+import { SUBTLE_OVERLAY_BACKDROP_CLASSNAME } from "./adaptive-overlay-backdrop";
 import { buttonVariants } from "./button-variants";
 
 type AlertDialogProps = AlertDialogPrimitiveProps;
@@ -41,12 +42,7 @@ type AlertDialogOverlayProps = AlertDialogOverlayPrimitiveProps;
 function AlertDialogOverlay({ className, ...props }: AlertDialogOverlayProps) {
   return (
     <AlertDialogOverlayPrimitive
-      className={cn(
-        "fixed inset-0 z-50",
-        "bg-black/55 supports-[backdrop-filter]:bg-black/45",
-        "backdrop-blur-sm backdrop-saturate-150",
-        className,
-      )}
+      className={cn("fixed inset-0 z-50", SUBTLE_OVERLAY_BACKDROP_CLASSNAME, className)}
       {...props}
     />
   );

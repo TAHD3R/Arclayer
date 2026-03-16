@@ -23,6 +23,7 @@ import {
   type DialogCloseProps as DialogClosePrimitiveProps,
 } from "@arclayer/ui/radix-primitives/radix-dialog";
 import { cn } from "@arclayer/lib/utils";
+import { SUBTLE_OVERLAY_BACKDROP_CLASSNAME } from "./adaptive-overlay-backdrop";
 
 const ALLOWED_EXTERNAL_DIALOG_INTERACTION_SELECTOR = [
   "[data-slot=select-content]",
@@ -72,14 +73,7 @@ type DialogOverlayProps = DialogOverlayPrimitiveProps;
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
   return (
     <DialogOverlayPrimitive
-      className={cn(
-        "fixed inset-0 z-50",
-        // Fallback: when backdrop-filter is unsupported, keep a stronger scrim.
-        "bg-black/55 supports-[backdrop-filter]:bg-black/45",
-        // Desired: blur the app behind the dialog (subtle, avoid over-blur).
-        "backdrop-blur-sm backdrop-saturate-150",
-        className,
-      )}
+      className={cn("fixed inset-0 z-50", SUBTLE_OVERLAY_BACKDROP_CLASSNAME, className)}
       {...props}
     />
   );

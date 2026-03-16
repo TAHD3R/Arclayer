@@ -63,11 +63,7 @@ export function ComplexDialog({
       >
         <div className="flex min-w-0 flex-col">
           <DialogHeader
-            className={cn(
-              "min-w-0 border-b bg-background/80 px-6 py-4 text-left",
-              "supports-[backdrop-filter]:backdrop-blur-sm",
-              headerClassName,
-            )}
+            className={cn("min-w-0 border-b bg-background/92 px-6 py-4 text-left", headerClassName)}
           >
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0 flex-1">

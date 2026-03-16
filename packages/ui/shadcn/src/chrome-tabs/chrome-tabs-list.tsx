@@ -15,7 +15,7 @@ type ScrollState = Readonly<{ canLeft: boolean; canRight: boolean }>;
 
 const SCROLL_BUTTON_CLASSNAME = cn(
   "absolute top-1/2 z-10 -translate-y-1/2",
-  "h-8 w-8 rounded-md border bg-background/80 backdrop-blur",
+  "h-8 w-8 rounded-md border bg-background/92",
   "text-label-secondary hover:text-foreground",
   "transition-colors",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
