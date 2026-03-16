@@ -24,6 +24,7 @@ const TRANSITION = {
   bounce: 0.1,
   duration: 0.4,
 };
+const ACTIVATION_CLICK_SUPPRESSION_MS = 500;
 
 interface FloatingPanelContextType {
   isOpen: boolean;
@@ -145,6 +146,15 @@ export const FloatingPanelTrigger = React.forwardRef<HTMLButtonElement, Floating
       useFloatingPanel();
     const triggerRef = useRef<HTMLButtonElement>(null);
     const suppressNextClickRef = useRef(false);
+    const suppressTimeoutRef = useRef<number | null>(null);
+
+    useEffect(() => {
+      return () => {
+        if (suppressTimeoutRef.current !== null) {
+          window.clearTimeout(suppressTimeoutRef.current);
+        }
+      };
+    }, []);
 
     const toggleOpen = (triggerEl: HTMLButtonElement) => {
       if (isOpen) {
@@ -164,13 +174,17 @@ export const FloatingPanelTrigger = React.forwardRef<HTMLButtonElement, Floating
     };
 
     const handlePointerUp: React.PointerEventHandler<HTMLButtonElement> = (e) => {
-      if (e.button !== 0) return;
       if (buttonProps.disabled) return;
+      if (e.button > 0) return;
 
       suppressNextClickRef.current = true;
-      window.setTimeout(() => {
+      if (suppressTimeoutRef.current !== null) {
+        window.clearTimeout(suppressTimeoutRef.current);
+      }
+      suppressTimeoutRef.current = window.setTimeout(() => {
         suppressNextClickRef.current = false;
-      }, 0);
+        suppressTimeoutRef.current = null;
+      }, ACTIVATION_CLICK_SUPPRESSION_MS);
 
       toggleOpen(e.currentTarget);
     };

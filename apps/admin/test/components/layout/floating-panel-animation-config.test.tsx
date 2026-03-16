@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -306,6 +306,48 @@ describe("floating panel animation config", () => {
     await waitFor(() => {
       expect(focusSpy).toHaveBeenCalled();
     });
+  });
+
+  it("keeps the panel open when touch pointerup is followed by a delayed click", async () => {
+    vi.useFakeTimers();
+    try {
+      renderWithProviders(<FloatingPanelHarness />);
+
+      const trigger = screen.getByRole("button", { name: "Open panel" });
+      fireEvent.pointerUp(trigger, { button: 0, pointerType: "touch" });
+
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Panel action" })).toBeInTheDocument();
+
+      vi.runAllTimers();
+      fireEvent.click(trigger);
+
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Panel action" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the panel open when mouse pointerup is followed by a delayed click", async () => {
+    vi.useFakeTimers();
+    try {
+      renderWithProviders(<FloatingPanelHarness />);
+
+      const trigger = screen.getByRole("button", { name: "Open panel" });
+      fireEvent.pointerUp(trigger, { button: 0, pointerType: "mouse" });
+
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Panel action" })).toBeInTheDocument();
+
+      vi.advanceTimersByTime(300);
+      fireEvent.click(trigger);
+
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Panel action" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("disables shared layout morph on account menu and workspace switcher sidebar triggers", async () => {
