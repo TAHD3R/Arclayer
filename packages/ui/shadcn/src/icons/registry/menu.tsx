@@ -1,6 +1,6 @@
 "use client";
 
-import type { Variants } from "motion/react";
+import type { Transition, Variants } from "motion/react";
 import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
@@ -16,22 +16,48 @@ interface MenuIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
+const LINE_TRANSITION: Transition = {
+  duration: 0.32,
+  ease: [0.22, 1, 0.36, 1],
+};
+
 const LINE_VARIANTS: Variants = {
-  normal: {
-    rotate: 0,
-    y: 0,
-    opacity: 1,
-  },
-  animate: (custom: number) => ({
-    rotate: custom === 1 ? 45 : custom === 3 ? -45 : 0,
-    y: custom === 1 ? 6 : custom === 3 ? -6 : 0,
-    opacity: custom === 2 ? 0 : 1,
-    transition: {
-      type: "spring",
-      stiffness: 260,
-      damping: 20,
-    },
+  normal: (custom: number) => ({
+    x1: 4,
+    x2: 20,
+    y1: custom,
+    y2: custom,
   }),
+  // Keep the icon semantically a hamburger: only choreograph line lengths/offsets.
+  animate: (custom: number) => {
+    if (custom === 6) {
+      return {
+        x1: [4, 6, 4],
+        x2: [20, 20, 20],
+        y1: [6, 6.5, 6],
+        y2: [6, 6.5, 6],
+        transition: LINE_TRANSITION,
+      };
+    }
+
+    if (custom === 12) {
+      return {
+        x1: [4, 8, 4],
+        x2: [20, 16, 20],
+        y1: [12, 12, 12],
+        y2: [12, 12, 12],
+        transition: LINE_TRANSITION,
+      };
+    }
+
+    return {
+      x1: [4, 6, 4],
+      x2: [20, 18, 20],
+      y1: [18, 17.5, 18],
+      y2: [18, 17.5, 18],
+      transition: LINE_TRANSITION,
+    };
+  },
 };
 
 const MenuIcon = forwardRef<MenuIconHandle, MenuIconProps>(
@@ -89,7 +115,7 @@ const MenuIcon = forwardRef<MenuIconHandle, MenuIconProps>(
         >
           <motion.line
             animate={controls}
-            custom={1}
+            custom={6}
             variants={LINE_VARIANTS}
             x1="4"
             x2="20"
@@ -98,7 +124,7 @@ const MenuIcon = forwardRef<MenuIconHandle, MenuIconProps>(
           />
           <motion.line
             animate={controls}
-            custom={2}
+            custom={12}
             variants={LINE_VARIANTS}
             x1="4"
             x2="20"
@@ -107,7 +133,7 @@ const MenuIcon = forwardRef<MenuIconHandle, MenuIconProps>(
           />
           <motion.line
             animate={controls}
-            custom={3}
+            custom={18}
             variants={LINE_VARIANTS}
             x1="4"
             x2="20"
