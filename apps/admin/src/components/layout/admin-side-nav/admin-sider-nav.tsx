@@ -219,10 +219,7 @@ function ItemsSection(props: {
     <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
       <SidebarGroup className="p-0">
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel
-            asChild
-            className="h-auto pb-1 pt-3 text-footnote uppercase tracking-widest"
-          >
+          <SidebarGroupLabel asChild className="h-auto pb-1 pt-3 text-caption">
             <ButtonPrimitive
               type="button"
               tapScale={1}
