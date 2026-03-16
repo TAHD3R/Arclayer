@@ -30,17 +30,19 @@ describe("findPreferredGroupTarget", () => {
   it("falls back to the first enabled descendant when no child is active", () => {
     const item = makeItem("settings", undefined, [
       {
-        ...makeItem("settings.general", "/w/ws-1/settings/general"),
+        ...makeItem("settings.workspace", "/w/ws-1/settings/workspace"),
         disabled: true,
         icon: Folder,
       },
       {
-        ...makeItem("settings.seo", "/w/ws-1/settings/seo"),
+        ...makeItem("settings.activity", "/w/ws-1/settings/maintenance/activity"),
         icon: Settings,
       },
     ]);
 
-    expect(findPreferredGroupTarget(item, new Set(["settings"]))).toBe("/w/ws-1/settings/seo");
+    expect(findPreferredGroupTarget(item, new Set(["settings"]))).toBe(
+      "/w/ws-1/settings/maintenance/activity",
+    );
   });
 
   it("returns null when the group has no routable descendants", () => {

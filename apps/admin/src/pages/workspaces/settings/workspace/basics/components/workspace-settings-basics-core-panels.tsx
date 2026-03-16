@@ -124,11 +124,6 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
                   placeholder={t("settings:SETTINGS_WORKSPACE_SLUG_PLACEHOLDER")}
                 />
                 <FieldMessage message={getFieldErrorMessage(c.form, "slug")} />
-                <div className="text-label-secondary">
-                  {t("settings:SETTINGS_WORKSPACE_SLUG_PORTAL_HINT", {
-                    url: c.siteUrl,
-                  })}
-                </div>
               </div>
             </SettingAccordionItem>
           </Accordion>

@@ -25,7 +25,7 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 import type { AssignRoleDialogValues, WorkspaceSettingsFormValues } from "../../types";
-import { buildWorkspaceSiteUrl, resolveWorkspaceSettingsTabNavigation } from "../../utils";
+import { resolveWorkspaceSettingsTabNavigation } from "../../utils";
 import { buildWorkspaceRoleMetadata } from "./role-metadata";
 import { useWorkspaceSettingsBasicsMutations } from "./use-workspace-settings-basics-mutations";
 
@@ -48,10 +48,6 @@ const DEFAULT_FORM_VALUES: WorkspaceSettingsFormValues = {
   useRelativeDateTime: true,
   defaultRoleCode: "",
   assignRoleCode: "",
-  contentAutosaveEnabled: true,
-  contentAutosaveIntervalSec: 60,
-  contentAutosaveSaveOnBlur: true,
-  contentRetentionDraftMaxRevisions: 100,
 };
 
 export function useWorkspaceSettingsBasicsController(props: { workspaceId: string }) {
@@ -348,7 +344,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     localePreferenceMode,
     setEffectiveLocale,
     cacheWorkspaceLocale,
-    siteUrl: buildWorkspaceSiteUrl(currentWorkspaceSlug),
   };
 }
 

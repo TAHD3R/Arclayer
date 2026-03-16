@@ -12,10 +12,6 @@ export type WorkspaceSettingsFormValues = {
   useRelativeDateTime: boolean;
   defaultRoleCode: string;
   assignRoleCode: string;
-  contentAutosaveEnabled: boolean;
-  contentAutosaveIntervalSec: number;
-  contentAutosaveSaveOnBlur: boolean;
-  contentRetentionDraftMaxRevisions: number;
 };
 
 export type AssignRoleDialogValues = {
@@ -36,9 +32,6 @@ export type WorkspaceSettingsPageProps = {
 };
 
 export type WorkspaceSettingsTabNavigation = {
-  to:
-    | "/w/$workspaceId/settings/workspace/basics"
-    | "/w/$workspaceId/settings/workspace/content-strategy"
-    | "/w/$workspaceId/settings/workspace/danger";
+  to: "/w/$workspaceId/settings/workspace/basics" | "/w/$workspaceId/settings/workspace/danger";
   params: { workspaceId: string };
 };

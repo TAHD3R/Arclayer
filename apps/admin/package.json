@@ -19,7 +19,6 @@
   "dependencies": {
     "@bprogress/react": "^1.2.7",
     "@celestial/api-client": "workspace:*",
-    "@celestial/block-protocol": "workspace:*",
     "@celestial/hooks": "workspace:*",
     "@celestial/lib": "workspace:*",
     "@celestial/runtime": "workspace:*",

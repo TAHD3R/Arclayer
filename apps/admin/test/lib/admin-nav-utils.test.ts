@@ -88,15 +88,15 @@ const makeItem = (key: string, to?: string, children?: AdminNavItem[]): AdminNav
 describe("findActiveTrailNodes", () => {
   const items: AdminNavItem[] = [
     makeItem("dashboard", "/w/1/"),
-    makeItem("content", "/w/1/content", [
-      makeItem("site-builder", "/w/1/content/site-builder"),
-      makeItem("library", "/w/1/content/library"),
+    makeItem("team", "/w/1/team", [
+      makeItem("members", "/w/1/team/members"),
+      makeItem("invitations", "/w/1/team/invitations"),
     ]),
   ];
 
   it("returns exact match trail", () => {
-    const trail = findActiveTrailNodes(items, "/w/1/content/site-builder");
-    expect(trail.map((n) => n.key)).toEqual(["content", "site-builder"]);
+    const trail = findActiveTrailNodes(items, "/w/1/team/members");
+    expect(trail.map((n) => n.key)).toEqual(["team", "members"]);
   });
 
   it("prefers exact match over prefix", () => {
@@ -148,17 +148,15 @@ describe("collectAllowedWorkspacePathPrefixes", () => {
   });
 
   it("includes enabled nav item paths", () => {
-    const items: AdminNavItem[] = [makeItem("site-builder", "/w/1/content/site-builder")];
+    const items: AdminNavItem[] = [makeItem("members", "/w/1/team/members")];
     const result = collectAllowedWorkspacePathPrefixes(items, "/w/1");
-    expect(result).toContain("/w/1/content/site-builder");
+    expect(result).toContain("/w/1/team/members");
   });
 
   it("excludes disabled nav item paths", () => {
-    const items: AdminNavItem[] = [
-      { ...makeItem("site-builder", "/w/1/content/site-builder"), disabled: true },
-    ];
+    const items: AdminNavItem[] = [{ ...makeItem("members", "/w/1/team/members"), disabled: true }];
     const result = collectAllowedWorkspacePathPrefixes(items, "/w/1");
-    expect(result).not.toContain("/w/1/content/site-builder");
+    expect(result).not.toContain("/w/1/team/members");
   });
 
   it("adds team alias when team children exist", () => {

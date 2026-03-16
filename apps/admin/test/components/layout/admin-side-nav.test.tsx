@@ -148,12 +148,6 @@ const sections: AdminNavSection[] = [
         icon: Activity,
         to: "/w/ws-1/assets",
       },
-      {
-        key: "content.siteBuilder",
-        label: "Site Builder",
-        icon: LayoutGrid,
-        to: "/w/ws-1/content/site-builder",
-      },
     ],
   },
   {

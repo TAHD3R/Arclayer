@@ -224,54 +224,6 @@ export type {
   OrganizationWorkspaceCreateInput,
 } from "./organization-workspaces";
 
-// Workspace Site
-export type {
-  WorkspaceSite,
-  WorkspacePublishImpact,
-  PreviewTokenRequest,
-  PreviewTokenOut,
-  SiteSettingDetail,
-  SitePageUserSummary,
-  SitePageTreeNode,
-  SitePageCreateIn,
-  SitePageUpdateIn,
-  SitePageDraftSaveIn,
-  SitePageDraftSaveOut,
-  SitePagePublishIn,
-  SitePagePublishOut,
-  SitePageRevisionOut,
-  SitePageUnpublishOut,
-  SiteEntryRevisionOut,
-  SiteEntryType,
-  SiteEntry,
-  SiteEntryTypeCreateIn,
-  SiteEntryTypeUpdateIn,
-  SiteEntryCreateIn,
-  SiteEntryUpdateIn,
-  SiteEntryDraftSaveIn,
-  SiteEntryDraftSaveOut,
-  SiteEntryPublishIn,
-  SiteEntryPublishOut,
-  SiteEntryUnpublishIn,
-  SiteEntryUnpublishOut,
-  SiteEntryDeleteOut,
-  SiteEntryTypeDeleteOut,
-  SiteStyleOut,
-  SiteStyleUpsertIn,
-  SiteGlobalSection,
-  SiteGlobalSectionsOut,
-  SiteGlobalSectionCreateIn,
-  SiteGlobalSectionUpdateIn,
-  SiteGlobalSectionDeleteOut,
-  SiteRouteTemplate,
-  SiteRouteTemplateCreateIn,
-  SiteRouteTemplateUpdateIn,
-  SiteRouteTemplateDeleteOut,
-  SiteVisualSitemapNode,
-  SiteVisualSitemapOut,
-} from "./workspace-site";
-export type { SitePageRouteTreeRepairOut } from "./site-page-repair";
-
 // Extensions platform
 export type {
   AppKind,
@@ -286,9 +238,6 @@ export type {
 
 // Workspace Themes
 export type { WorkspaceThemeItem, WorkspaceThemeListOut } from "./workspace-themes";
-
-// Site Patterns
-export type { SitePattern, SitePatternCreateIn, SitePatternUpdateIn } from "./site-patterns";
 
 // Admin Extensions
 export type { AdminUIExtension } from "./admin-extensions";

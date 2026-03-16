@@ -143,9 +143,6 @@ importers:
       '@celestial/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@celestial/block-protocol':
-        specifier: workspace:*
-        version: link:../../packages/protocols/block
       '@celestial/hooks':
         specifier: workspace:*
         version: link:../../packages/hooks
@@ -299,10 +296,10 @@ importers:
     devDependencies:
       '@celestial/config':
         specifier: workspace:*
-        version: link:../../packages/infra/oxc
+        version: link:../../packages/internal/oxc
       '@celestial/vite-plugin':
         specifier: workspace:*
-        version: link:../../packages/infra/vite-config
+        version: link:../../packages/internal/vite-config
       '@iconify/react':
         specifier: 'catalog:'
         version: 6.0.2(react@19.2.3)
@@ -394,9 +391,9 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
-  packages/infra/oxc: {}
+  packages/internal/oxc: {}
 
-  packages/infra/vite-config:
+  packages/internal/vite-config:
     dependencies:
       archiver:
         specifier: 'catalog:'
@@ -430,12 +427,6 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
-
-  packages/protocols/block:
-    dependencies:
-      zod:
-        specifier: 3.25.76
-        version: 3.25.76
 
   packages/ui/shadcn:
     dependencies:
@@ -569,8 +560,6 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
-
-  packages/ui/theme-default: {}
 
   packages/ui/tokens:
     dependencies:
