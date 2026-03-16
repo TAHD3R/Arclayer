@@ -52,15 +52,18 @@ async function bootstrap() {
   }
 
   setUnauthorizedHandler(() => {
+    // During explicit logout, stale in-flight requests can still resolve on `/login`.
+    // Once we are already on a public auth page, ignore those late 401s instead of
+    // re-clearing state and retriggering route side effects.
+    if (isPublicPath(window.location.pathname)) {
+      return;
+    }
+
     void queryClient.cancelQueries();
     queryClient.clear();
     useAuthStore.getState().clear();
     useWorkspaceStore.getState().clearWorkspace();
-    // Avoid redirect loops on public auth pages.
     const current = `${window.location.pathname}${window.location.search}`;
-    if (isPublicPath(window.location.pathname)) {
-      return;
-    }
     void router.navigate({
       to: "/login",
       search: { redirect: current },

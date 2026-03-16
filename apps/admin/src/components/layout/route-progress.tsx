@@ -20,5 +20,15 @@ export function RouteProgress() {
     }
   }, [isLoading, start, stop]);
 
+  useEffect(() => {
+    return () => {
+      if (!started.current) {
+        return;
+      }
+      started.current = false;
+      stop();
+    };
+  }, [stop]);
+
   return null;
 }

@@ -166,7 +166,7 @@ function RegisterPaneFooter(props: RegisterPaneSectionProps & { onSwitchToLogin:
   return (
     <motion.div
       variants={props.variants}
-      className="grid gap-2.5 pt-2 text-center text-label-secondary"
+      className="grid gap-2.5 pt-2 text-center text-footnote text-label-secondary"
     >
       <div className="leading-6">
         <span>{t("auth:HAVE_ACCOUNT")} </span>

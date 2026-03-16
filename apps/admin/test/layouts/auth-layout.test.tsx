@@ -10,10 +10,6 @@ vi.mock("@/components/layout/admin-toggle-theme", () => ({
   AdminThemeModeToggle: () => <button type="button">theme</button>,
 }));
 
-vi.mock("@/components/layout/auth-brand-panel", () => ({
-  AuthBrandPanel: () => <div data-testid="auth-brand-panel">brand</div>,
-}));
-
 vi.mock("@/components/layout/route-transition", () => ({
   RouteTransition: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
@@ -37,7 +33,7 @@ beforeAll(() => {
 import { AuthLayout } from "@/layouts/auth-layout";
 
 describe("AuthLayout", () => {
-  test("keeps mobile auth content scrollable under the controls bar", () => {
+  test("centers auth content in a single column under the controls bar", () => {
     const { container } = render(
       <AuthLayout>
         <div>auth-content</div>
@@ -50,10 +46,17 @@ describe("AuthLayout", () => {
 
     const root = container.firstElementChild;
     expect(root).toHaveClass("flex-col");
+    expect(root).not.toHaveClass("lg:grid");
+    expect(screen.queryByTestId("auth-brand-panel")).not.toBeInTheDocument();
 
-    const contentColumn = root?.lastElementChild as HTMLElement | null;
-    expect(contentColumn).not.toBeNull();
-    expect(contentColumn).toHaveClass("flex-1");
-    expect(contentColumn).toHaveClass("overflow-y-auto");
+    const scrollContainer = root?.lastElementChild as HTMLElement | null;
+    expect(scrollContainer).not.toBeNull();
+    expect(scrollContainer).toHaveClass("flex-1");
+    expect(scrollContainer).toHaveClass("overflow-y-auto");
+
+    const centeredShell = scrollContainer?.firstElementChild as HTMLElement | null;
+    expect(centeredShell).not.toBeNull();
+    expect(centeredShell).toHaveClass("items-center");
+    expect(centeredShell).toHaveClass("justify-center");
   });
 });

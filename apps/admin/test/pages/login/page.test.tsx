@@ -90,7 +90,9 @@ describe("LoginView auth pane hierarchy", () => {
     const oauthSection = screen.getByTestId("oauth-section");
     const registerEntry = screen.getByText("auth:NO_ACCOUNT").parentElement;
     const legalCopy = screen.getByText("auth:LEGAL_LOGIN");
+    const footer = legalCopy.closest("div.grid");
     expect(legalCopy).toBeInTheDocument();
+    expect(footer).toHaveClass("text-footnote");
     expect(
       submitButton.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -117,7 +119,9 @@ describe("LoginView auth pane hierarchy", () => {
     const oauthSection = screen.getByTestId("oauth-section");
     const signInEntry = screen.getByText("auth:HAVE_ACCOUNT").parentElement;
     const legalCopy = screen.getByText("auth:LEGAL_REGISTER");
+    const footer = legalCopy.closest("div.grid");
     expect(legalCopy).toBeInTheDocument();
+    expect(footer).toHaveClass("text-footnote");
     expect(
       submitButton.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();

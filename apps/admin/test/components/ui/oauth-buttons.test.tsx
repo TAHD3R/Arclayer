@@ -1,0 +1,51 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
+
+const { listSSOProvidersMock, preferencesState } = vi.hoisted(() => ({
+  listSSOProvidersMock: vi.fn(),
+  preferencesState: { themeMode: "light" as const },
+}));
+
+vi.mock("@/api/auth-sso", () => ({
+  listSSOProviders: (...args: unknown[]) => listSSOProvidersMock(...args),
+}));
+
+vi.mock("@/stores/use-preference-store", () => ({
+  usePreferencesStore: (selector: (state: typeof preferencesState) => unknown) =>
+    selector(preferencesState),
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+describe("AuthOauthButtons", () => {
+  it("uses text-footnote for the continue-with divider", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthOauthButtons />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("auth:OAUTH_ACCOUNT_DIVIDER").parentElement).toHaveClass(
+      "text-footnote",
+    );
+  });
+});

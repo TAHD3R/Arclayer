@@ -92,7 +92,7 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
 
   return (
     <div className="grid gap-2.5">
-      <div className="flex items-center gap-3 py-1 text-[0.8125rem] text-label-secondary">
+      <div className="flex items-center gap-3 py-1 text-footnote text-label-secondary">
         <Separator className="flex-1" />
         <span className="shrink-0">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
         <Separator className="flex-1" />

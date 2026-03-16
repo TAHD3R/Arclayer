@@ -144,7 +144,7 @@ function LoginPaneFooter(props: LoginPaneFooterProps) {
   return (
     <motion.div
       variants={props.variants}
-      className="grid gap-2.5 pt-2 text-center text-label-secondary"
+      className="grid gap-2.5 pt-2 text-center text-footnote text-label-secondary"
     >
       {props.publicRegisterEnabled ? (
         <div className="leading-6">
