@@ -1,9 +1,15 @@
 import { Controller } from "react-hook-form";
 
 import { Accordion } from "@celestial/ui/accordion";
-import { NativeSelect, NativeSelectOption } from "@celestial/ui/native-select";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingPanel } from "@celestial/ui/setting-panel";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 import {
   DateTimeFormatLocalizationControl,
   TimezoneLocalizationControl,
@@ -45,6 +51,7 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             placeholder={t("settings:SETTINGS_NOT_SET")}
             keepRendered
             disabled={c.disabled || !c.coreQuery.data}
+            contentLayout="inline"
             confirmText={t("settings:SETTINGS_SAVE")}
             confirmLoading={c.savingKey === "workspace:locale"}
             onConfirm={() =>
@@ -92,32 +99,34 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             resetLoading={c.savingKey === "reset:workspace:locale"}
           >
             <div className="space-y-2">
-              <div className="mb-4 text-callout text-label-secondary">
-                {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
-                  locale: c.workspaceLocaleLabel ?? "-",
-                })}
-              </div>
               <Controller
                 control={c.form.control}
                 name="locale"
                 rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
                 render={({ field }) => (
-                  <NativeSelect
-                    value={field.value || ""}
-                    onChange={(event) => field.onChange(event.target.value)}
-                    className="w-full"
-                    aria-invalid={getFieldErrorMessage(c.form, "locale") ? true : undefined}
-                  >
-                    <NativeSelectOption value="">{t("common:SELECT")}</NativeSelectOption>
-                    {c.localeOptions.map((option) => (
-                      <NativeSelectOption key={option.value} value={option.value}>
-                        {option.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      className="w-full"
+                      aria-invalid={getFieldErrorMessage(c.form, "locale") ? true : undefined}
+                    >
+                      <SelectValue placeholder={t("common:SELECT")} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      {c.localeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               />
               <FieldMessage message={getFieldErrorMessage(c.form, "locale")} />
+              <div className="text-callout text-label-secondary">
+                {t("settings:SETTINGS_WORKSPACE_LOCALIZATION_NOTE", {
+                  locale: c.workspaceLocaleLabel ?? "-",
+                })}
+              </div>
             </div>
           </SettingAccordionItem>
 

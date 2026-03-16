@@ -64,6 +64,8 @@ export type SettingAccordionItemProps = {
    * Content container width control. Defaults to a left-aligned, non-stretch layout.
    */
   contentClassName?: string;
+  /** Simple forms can render field controls and action buttons inline. */
+  contentLayout?: "stacked" | "inline";
 
   /**
    * When true, keeps content mounted even when collapsed.
@@ -78,6 +80,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
   const shouldShowSummary = Boolean(props.showSummary);
   const hasDescription = props.description !== undefined && props.description !== null;
   const variant = props.variant ?? "default";
+  const contentLayout = props.contentLayout ?? "stacked";
   const showChevron = props.showChevron ?? true;
   const titleColumnWidth = props.titleColumnWidth ?? DEFAULT_TITLE_COLUMN_WIDTH_PX;
 
@@ -189,37 +192,50 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
       )}
       <AccordionContent keepRendered={props.keepRendered}>
         <div className={cn("flex w-full max-w-[40rem] flex-col gap-3 p-2", props.contentClassName)}>
-          <fieldset
-            disabled={busy}
-            className={cn("m-0 min-w-0 border-0 p-0", busy ? "opacity-60" : undefined)}
+          <div
+            className={cn(
+              contentLayout === "inline" && hasActions
+                ? "grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start"
+                : "flex flex-col gap-3",
+            )}
           >
-            {props.children}
-          </fieldset>
+            <fieldset
+              disabled={busy}
+              className={cn("m-0 min-w-0 border-0 p-0", busy ? "opacity-60" : undefined)}
+            >
+              {props.children}
+            </fieldset>
 
-          {hasActions ? (
-            <div className="flex items-center justify-start gap-2">
-              {props.onConfirm ? (
-                <Button
-                  disabled={Boolean(props.disabled || props.resetLoading || props.confirmLoading)}
-                  onClick={() => void props.onConfirm?.()}
-                  variant="default"
-                  loading={Boolean(props.confirmLoading)}
-                >
-                  {props.confirmText}
-                </Button>
-              ) : null}
-              {props.onReset ? (
-                <Button
-                  disabled={Boolean(props.disabled || props.confirmLoading || props.resetLoading)}
-                  onClick={() => void props.onReset?.()}
-                  variant="outline"
-                  loading={Boolean(props.resetLoading)}
-                >
-                  {props.resetText}
-                </Button>
-              ) : null}
-            </div>
-          ) : null}
+            {hasActions ? (
+              <div
+                className={cn(
+                  "flex items-center justify-start gap-2",
+                  contentLayout === "inline" ? "md:self-start" : undefined,
+                )}
+              >
+                {props.onConfirm ? (
+                  <Button
+                    disabled={Boolean(props.disabled || props.resetLoading || props.confirmLoading)}
+                    onClick={() => void props.onConfirm?.()}
+                    variant="default"
+                    loading={Boolean(props.confirmLoading)}
+                  >
+                    {props.confirmText}
+                  </Button>
+                ) : null}
+                {props.onReset ? (
+                  <Button
+                    disabled={Boolean(props.disabled || props.confirmLoading || props.resetLoading)}
+                    onClick={() => void props.onReset?.()}
+                    variant="outline"
+                    loading={Boolean(props.resetLoading)}
+                  >
+                    {props.resetText}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </AccordionContent>
     </AccordionItem>

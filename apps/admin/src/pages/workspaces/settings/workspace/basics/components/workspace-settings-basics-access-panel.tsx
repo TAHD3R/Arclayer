@@ -2,9 +2,15 @@ import { Controller } from "react-hook-form";
 
 import { Accordion } from "@celestial/ui/accordion";
 import { Button } from "@celestial/ui/button";
-import { NativeSelect, NativeSelectOption } from "@celestial/ui/native-select";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
 import { SettingPanel } from "@celestial/ui/setting-panel";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@celestial/ui/select";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
@@ -37,6 +43,7 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
             placeholder={t("settings:SETTINGS_NOT_SET")}
             keepRendered
             disabled={c.disabled || c.roleOptions.length === 0}
+            contentLayout="inline"
             confirmText={t("settings:SETTINGS_SAVE")}
             confirmLoading={c.savingKey === "workspace:defaultRole"}
             onConfirm={() =>
@@ -70,21 +77,23 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
                 name="defaultRoleCode"
                 rules={{ required: t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_REQUIRED") }}
                 render={({ field }) => (
-                  <NativeSelect
-                    value={field.value || ""}
-                    onChange={(event) => field.onChange(event.target.value)}
-                    className="w-full"
-                    aria-invalid={
-                      getFieldErrorMessage(c.form, "defaultRoleCode") ? true : undefined
-                    }
-                  >
-                    <NativeSelectOption value="">{t("common:SELECT")}</NativeSelectOption>
-                    {c.roleOptions.map((option) => (
-                      <NativeSelectOption key={option.value} value={option.value}>
-                        {option.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      className="w-full"
+                      aria-invalid={
+                        getFieldErrorMessage(c.form, "defaultRoleCode") ? true : undefined
+                      }
+                    >
+                      <SelectValue placeholder={t("common:SELECT")} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      {c.roleOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               />
               <FieldMessage message={getFieldErrorMessage(c.form, "defaultRoleCode")} />
@@ -107,21 +116,23 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
                   name="assignRoleCode"
                   rules={{ required: t("settings:SETTINGS_WORKSPACE_DEFAULT_ROLE_REQUIRED") }}
                   render={({ field }) => (
-                    <NativeSelect
-                      value={field.value || ""}
-                      onChange={(event) => field.onChange(event.target.value)}
-                      className="w-full"
-                      aria-invalid={
-                        getFieldErrorMessage(c.form, "assignRoleCode") ? true : undefined
-                      }
-                    >
-                      <NativeSelectOption value="">{t("common:SELECT")}</NativeSelectOption>
-                      {c.roleOptions.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        className="w-full"
+                        aria-invalid={
+                          getFieldErrorMessage(c.form, "assignRoleCode") ? true : undefined
+                        }
+                      >
+                        <SelectValue placeholder={t("common:SELECT")} />
+                      </SelectTrigger>
+                      <SelectContent position="popper" align="start">
+                        {c.roleOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 />
                 <FieldMessage message={getFieldErrorMessage(c.form, "assignRoleCode")} />

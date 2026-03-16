@@ -419,6 +419,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               summary={formatSummaryText(values.siteSubtitle)}
               placeholder={t("settings:SETTINGS_NOT_SET")}
               disabled={disabled}
+              contentLayout="inline"
               confirmText={t("settings:SETTINGS_SAVE")}
               confirmLoading={savingKey === "siteSubtitle"}
               onConfirm={saveSiteSubtitle}
@@ -525,6 +526,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               summary={formatSummaryText(values.siteUrl)}
               placeholder={t("settings:SETTINGS_NOT_SET")}
               disabled={disabled}
+              contentLayout="inline"
               confirmText={t("settings:SETTINGS_SAVE")}
               confirmLoading={savingKey === "siteUrl"}
               onConfirm={saveSiteUrl}
@@ -559,6 +561,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               summary={formatSummaryText(values.siteContactEmail)}
               placeholder={t("settings:SETTINGS_NOT_SET")}
               disabled={disabled}
+              contentLayout="inline"
               confirmText={t("settings:SETTINGS_SAVE")}
               confirmLoading={savingKey === "siteContactEmail"}
               onConfirm={saveSupportInbox}

@@ -240,6 +240,7 @@ export function LocalizationSettingsTab({
             summary={(supportedLocales || []).join(", ") || "-"}
             placeholder={t("settings:SETTINGS_NOT_SET")}
             keepRendered
+            contentLayout="inline"
             confirmText={t("settings:SETTINGS_SAVE")}
             onConfirm={saveSupportedLocales}
             confirmLoading={savingKey === "supportedLocales"}
@@ -294,6 +295,7 @@ export function LocalizationSettingsTab({
             summary={localeLabel}
             placeholder={t("settings:SETTINGS_NOT_SET")}
             keepRendered
+            contentLayout="inline"
             confirmText={t("settings:SETTINGS_SAVE")}
             onConfirm={saveDefaultLocale}
             confirmLoading={savingKey === "defaultLocale"}
@@ -343,6 +345,7 @@ export function LocalizationSettingsTab({
             summary={fallbackLocale}
             placeholder={t("settings:SETTINGS_NOT_SET")}
             keepRendered
+            contentLayout="inline"
             confirmText={t("settings:SETTINGS_SAVE")}
             onConfirm={saveFallbackLocale}
             confirmLoading={savingKey === "fallbackLocale"}

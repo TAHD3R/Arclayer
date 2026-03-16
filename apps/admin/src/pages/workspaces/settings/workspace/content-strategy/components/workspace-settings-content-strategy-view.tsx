@@ -19,7 +19,6 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import {
   buildWorkspaceContentAutosavePatch,
   buildWorkspaceContentRetentionPatch,
-  DEFAULT_WORKSPACE_CONTENT_STRATEGY,
   readWorkspaceContentStrategy,
 } from "@/lib/settings/workspace/content-strategy";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
@@ -83,6 +82,21 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
   const autosaveEnabled =
     useWatch({ control: form.control, name: "contentAutosaveEnabled" }) ??
     persistedContentStrategy.autosave.enabled;
+  const autosaveIntervalSec =
+    useWatch({ control: form.control, name: "contentAutosaveIntervalSec" }) ??
+    persistedContentStrategy.autosave.intervalSec;
+  const autosaveSaveOnBlur =
+    useWatch({ control: form.control, name: "contentAutosaveSaveOnBlur" }) ??
+    persistedContentStrategy.autosave.saveOnBlur;
+  const retentionDraftMaxRevisions =
+    useWatch({ control: form.control, name: "contentRetentionDraftMaxRevisions" }) ??
+    persistedContentStrategy.retention.draftMaxRevisions;
+  const isAutosaveDirty =
+    autosaveEnabled !== persistedContentStrategy.autosave.enabled ||
+    autosaveIntervalSec !== persistedContentStrategy.autosave.intervalSec ||
+    autosaveSaveOnBlur !== persistedContentStrategy.autosave.saveOnBlur;
+  const isRetentionDirty =
+    retentionDraftMaxRevisions !== persistedContentStrategy.retention.draftMaxRevisions;
   const onTabChange = React.useCallback(
     (next: WorkspaceSettingsTabKey) => {
       void navigate({
@@ -173,22 +187,30 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                       await submitAutosave();
                     })
                   }
-                  onReset={() =>
-                    void withSavingKey("reset:content_strategy:autosave", async () => {
-                      form.reset({
-                        ...form.getValues(),
-                        contentAutosaveEnabled: DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.enabled,
-                        contentAutosaveIntervalSec:
-                          DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.intervalSec,
-                        contentAutosaveSaveOnBlur:
-                          DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave.saveOnBlur,
-                      });
-                      await patchWorkspaceCoreMutation.mutateAsync(
-                        buildWorkspaceContentAutosavePatch(
-                          DEFAULT_WORKSPACE_CONTENT_STRATEGY.autosave,
-                        ),
-                      );
-                    })
+                  onReset={
+                    isAutosaveDirty
+                      ? () =>
+                          void withSavingKey("reset:content_strategy:autosave", async () => {
+                            form.setValue(
+                              "contentAutosaveEnabled",
+                              persistedContentStrategy.autosave.enabled,
+                              { shouldDirty: false },
+                            );
+                            form.setValue(
+                              "contentAutosaveIntervalSec",
+                              persistedContentStrategy.autosave.intervalSec,
+                              { shouldDirty: false },
+                            );
+                            form.setValue(
+                              "contentAutosaveSaveOnBlur",
+                              persistedContentStrategy.autosave.saveOnBlur,
+                              { shouldDirty: false },
+                            );
+                            await patchWorkspaceCoreMutation.mutateAsync(
+                              buildWorkspaceContentAutosavePatch(persistedContentStrategy.autosave),
+                            );
+                          })
+                      : undefined
                   }
                   resetText={t("settings:SETTINGS_RESET")}
                   resetLoading={savingKey === "reset:content_strategy:autosave"}
@@ -197,10 +219,10 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-callout font-medium">
+                        <div className="text-body text-label-primary">
                           {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_ENABLED_LABEL")}
                         </div>
-                        <div className="text-caption text-label-secondary">
+                        <div className="text-callout text-label-secondary">
                           {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_ENABLED_DESC")}
                         </div>
                       </div>
@@ -215,10 +237,10 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
 
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-callout font-medium">
+                        <div className="text-body text-label-primary">
                           {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_INTERVAL_LABEL")}
                         </div>
-                        <div className="text-caption text-label-secondary">
+                        <div className="text-callout text-label-secondary">
                           {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_INTERVAL_DESC")}
                         </div>
                       </div>
@@ -267,10 +289,10 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
 
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-callout font-medium">
+                        <div className="text-body text-label-primary">
                           {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_SAVE_ON_BLUR_LABEL")}
                         </div>
-                        <div className="text-caption text-label-secondary">
+                        <div className="text-callout text-label-secondary">
                           {t("settings:SETTINGS_WORKSPACE_CONTENT_AUTOSAVE_SAVE_ON_BLUR_DESC")}
                         </div>
                       </div>
@@ -306,29 +328,32 @@ export function WorkspaceSettingsContentStrategyView(props: { workspaceId: strin
                       await submitRetention();
                     })
                   }
-                  onReset={() =>
-                    void withSavingKey("reset:content_strategy:retention", async () => {
-                      form.setValue(
-                        "contentRetentionDraftMaxRevisions",
-                        DEFAULT_WORKSPACE_CONTENT_STRATEGY.retention.draftMaxRevisions,
-                        { shouldDirty: false },
-                      );
-                      await patchWorkspaceCoreMutation.mutateAsync(
-                        buildWorkspaceContentRetentionPatch(
-                          DEFAULT_WORKSPACE_CONTENT_STRATEGY.retention,
-                        ),
-                      );
-                    })
+                  onReset={
+                    isRetentionDirty
+                      ? () =>
+                          void withSavingKey("reset:content_strategy:retention", async () => {
+                            form.setValue(
+                              "contentRetentionDraftMaxRevisions",
+                              persistedContentStrategy.retention.draftMaxRevisions,
+                              { shouldDirty: false },
+                            );
+                            await patchWorkspaceCoreMutation.mutateAsync(
+                              buildWorkspaceContentRetentionPatch(
+                                persistedContentStrategy.retention,
+                              ),
+                            );
+                          })
+                      : undefined
                   }
                   resetText={t("settings:SETTINGS_RESET")}
                   resetLoading={savingKey === "reset:content_strategy:retention"}
                   keepRendered
                 >
                   <div className="flex flex-col gap-2">
-                    <div className="text-callout font-medium">
+                    <div className="text-body text-label-primary">
                       {t("settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_DRAFT_MAX_REVISIONS_LABEL")}
                     </div>
-                    <div className="text-caption text-label-secondary">
+                    <div className="text-callout text-label-secondary">
                       {t("settings:SETTINGS_WORKSPACE_CONTENT_RETENTION_DRAFT_MAX_REVISIONS_DESC")}
                     </div>
 

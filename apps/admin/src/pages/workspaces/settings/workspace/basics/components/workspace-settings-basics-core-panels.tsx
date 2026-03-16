@@ -45,6 +45,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
               placeholder={t("settings:SETTINGS_NOT_SET")}
               keepRendered
               disabled={c.disabled || !c.detailQuery.data}
+              contentLayout="inline"
               confirmText={t("settings:SETTINGS_SAVE")}
               confirmLoading={c.savingKey === "workspace:name"}
               onConfirm={() =>
@@ -91,6 +92,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
               placeholder={t("settings:SETTINGS_NOT_SET")}
               keepRendered
               disabled={c.disabled || !c.detailQuery.data}
+              contentLayout="inline"
               confirmText={t("settings:SETTINGS_SAVE")}
               confirmLoading={c.savingKey === "workspace:slug"}
               onConfirm={() =>

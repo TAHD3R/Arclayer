@@ -122,7 +122,7 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
       {
         key: "settings.workspace",
         label: "Workspace",
-        labelKey: "nav:NAV_SETTINGS_WORKSPACE",
+        labelKey: "nav:NAV_SECTION_WORKSPACE",
         to: "/settings/workspace",
         icon: Navigation2,
       },
@@ -130,7 +130,7 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
         key: "settings.general",
         label: "Site",
         labelKey: "nav:NAV_SETTINGS_SITE",
-        to: "/settings/site/basics",
+        to: "/settings/site",
         icon: Globe,
       },
       {
