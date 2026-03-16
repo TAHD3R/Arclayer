@@ -1,0 +1,81 @@
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { cn } from "@arclayer/lib/utils";
+import { Input } from "@arclayer/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+
+export function LocalizedStringMapField(props: {
+  locales: string[];
+  /**
+   * antd Form.Item injects `value` + `onChange` for controlled fields.
+   */
+  value?: Record<string, string>;
+  onChange?: (next: Record<string, string>) => void;
+  multiline?: boolean;
+  placeholder?: string;
+}) {
+  const { t } = useTranslation();
+  const locales = props.locales.filter(Boolean);
+  const [activeLocale, setActiveLocale] = useState<string>(() => locales[0] ?? "en-US");
+  const value = props.value ?? {};
+  const onChange = props.onChange ?? (() => {});
+
+  const options = useMemo(() => locales.map((loc) => ({ value: loc, label: loc })), [locales]);
+
+  const effectiveLocale = locales.includes(activeLocale)
+    ? activeLocale
+    : (locales[0] ?? activeLocale);
+  const currentValue = value[effectiveLocale] ?? "";
+
+  const setValueForLocale = (locale: string, text: string) => {
+    const next = { ...value };
+    const v = (text || "").trim();
+    if (v) next[locale] = v;
+    else delete next[locale];
+    onChange(next);
+  };
+
+  return (
+    <div className="grid w-full gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-footnote text-label-secondary">
+          {t("settings:SETTINGS_I18N_ACTIVE_LOCALE")}
+        </span>
+        <Select value={effectiveLocale} onValueChange={(value) => setActiveLocale(String(value))}>
+          <SelectTrigger className="min-w-35">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end" position="popper">
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {props.multiline ? (
+        <textarea
+          value={currentValue}
+          placeholder={props.placeholder}
+          rows={3}
+          onChange={(event) => setValueForLocale(effectiveLocale, event.target.value)}
+          className={cn(
+            "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body shadow-sm transition-colors",
+            "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          )}
+        />
+      ) : (
+        <Input
+          value={currentValue}
+          placeholder={props.placeholder}
+          onChange={(event) => setValueForLocale(effectiveLocale, event.target.value)}
+        />
+      )}
+
+      <span className="text-caption text-label-secondary">{t("settings:SETTINGS_I18N_HINT")}</span>
+    </div>
+  );
+}

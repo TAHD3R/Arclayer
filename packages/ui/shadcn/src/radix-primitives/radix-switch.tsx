@@ -26,6 +26,7 @@ type SwitchProps = Omit<React.ComponentProps<typeof SwitchPrimitives.Root>, "asC
   HTMLMotionProps<"button">;
 
 function Switch({
+  children,
   checked,
   defaultChecked,
   onCheckedChange,
@@ -74,7 +75,9 @@ function Switch({
             setIsPressed(false);
             onTap?.(event, info);
           }}
-        />
+        >
+          {children}
+        </motion.button>
       </SwitchPrimitives.Root>
     </SwitchProvider>
   );
@@ -97,7 +100,6 @@ function SwitchThumb({
       <motion.div
         data-slot="switch-thumb"
         whileTap="tab"
-        layout
         transition={transition}
         animate={isPressed ? pressedAnimation : undefined}
         {...props}
