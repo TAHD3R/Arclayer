@@ -8,6 +8,7 @@ export type DataTableToolsLabels = {
   viewOptions: string;
   viewOptionsTitle: string;
   viewOptionsDescription: string;
+  tableSettings: string;
   columns: string;
   columnsTitle: string;
   columnsDescription: string;
@@ -23,9 +24,9 @@ export type DataTableToolsLabels = {
   wrapHeaders: string;
   refresh: string;
   reset: string;
-  pinLeft: string;
-  pinRight: string;
-  pinNone: string;
+  resetColumnSize: string;
+  resetColumnOrder: string;
+  clearSelection: string;
   sortAscending: string;
   sortDescending: string;
   hideColumn: string;

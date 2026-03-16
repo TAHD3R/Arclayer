@@ -36,15 +36,18 @@ function OptionCard(props: {
   label: string;
   onClick: () => void;
   trailing?: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <ButtonPrimitive
       type="button"
+      disabled={props.disabled}
       className={cn(
         "flex min-h-10 w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-footnote font-medium transition-colors",
         props.active
           ? "border-primary bg-primary/10 text-primary"
           : "border-border hover:bg-accent/20 text-foreground",
+        props.disabled && "pointer-events-none opacity-50",
       )}
       onClick={props.onClick}
       tapScale={1}
@@ -72,10 +75,21 @@ export function DataTableViewOptions(props: {
     | "rowHeightExtraTall"
     | "headerOptions"
     | "wrapHeaders"
+    | "tableSettings"
     | "reset"
+    | "resetColumnSize"
+    | "resetColumnOrder"
+    | "clearSelection"
   >;
   components?: DataTableToolsComponents;
   onReset?: () => void;
+  onResetColumnSize?: () => void;
+  onResetColumnOrder?: () => void;
+  onClearSelection?: () => void;
+  canResetColumnSize?: boolean;
+  canResetColumnOrder?: boolean;
+  showClearSelection?: boolean;
+  canClearSelection?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const IconButton = resolveIconButton(props.components);
@@ -156,6 +170,34 @@ export function DataTableViewOptions(props: {
                 </span>
               }
             />
+          </section>
+
+          <section className="space-y-2.5">
+            <div className="text-footnote font-semibold text-label-primary">
+              {props.labels.tableSettings}
+            </div>
+            <div className="grid gap-2">
+              <OptionCard
+                active={false}
+                label={props.labels.resetColumnSize}
+                onClick={() => props.onResetColumnSize?.()}
+                disabled={!props.canResetColumnSize}
+              />
+              <OptionCard
+                active={false}
+                label={props.labels.resetColumnOrder}
+                onClick={() => props.onResetColumnOrder?.()}
+                disabled={!props.canResetColumnOrder}
+              />
+              {props.showClearSelection ? (
+                <OptionCard
+                  active={false}
+                  label={props.labels.clearSelection}
+                  onClick={() => props.onClearSelection?.()}
+                  disabled={!props.canClearSelection}
+                />
+              ) : null}
+            </div>
           </section>
         </DropdownCardBody>
       </DropdownCardContent>

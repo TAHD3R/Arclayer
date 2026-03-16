@@ -69,10 +69,6 @@ export function DataTableColumnsPanel<TData>(props: {
     | "columnsDescription"
     | "columnsSearchPlaceholder"
     | "columnsEmpty"
-    | "pinLeft"
-    | "pinRight"
-    | "pinNone"
-    | "drag"
     | "reset"
   >;
   components?: DataTableToolsComponents;
@@ -112,8 +108,8 @@ export function DataTableColumnsPanel<TData>(props: {
   const handleReset = React.useCallback(() => {
     if (props.onResetColumnVisibility) props.onResetColumnVisibility();
     else props.table.resetColumnVisibility();
-    props.table.resetColumnOrder();
-    props.table.resetColumnPinning();
+    props.table.resetColumnOrder(true);
+    props.table.resetColumnPinning(true);
   }, [props]);
 
   const handleDragStart = React.useCallback((event: DragStartEvent) => {
@@ -194,7 +190,6 @@ export function DataTableColumnsPanel<TData>(props: {
                         key={column.id}
                         table={props.table}
                         column={column}
-                        labels={props.labels}
                       />
                     ))}
                   </div>
@@ -221,7 +216,6 @@ export function DataTableColumnsPanel<TData>(props: {
                       <DataTableColumnSettingsRowOverlay
                         table={props.table}
                         column={activeColumn}
-                        labels={props.labels}
                       />
                     ) : null}
                   </DragOverlay>,

@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../dropdown-menu";
 
@@ -71,11 +72,23 @@ export function DataTableColumnHeaderMenu<TData>(props: {
       <DropdownMenuContent align="start" className="w-44">
         {props.canSort ? (
           <>
-            <DropdownMenuItem onClick={() => props.header.column.toggleSorting(false)}>
+            <DropdownMenuItem
+              onClick={() =>
+                props.sorted === "asc"
+                  ? props.header.column.clearSorting()
+                  : props.header.column.toggleSorting(false)
+              }
+            >
               <ArrowUp className="size-4" />
               <span>{props.labels.sortAscending}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => props.header.column.toggleSorting(true)}>
+            <DropdownMenuItem
+              onClick={() =>
+                props.sorted === "desc"
+                  ? props.header.column.clearSorting()
+                  : props.header.column.toggleSorting(true)
+              }
+            >
               <ArrowDown className="size-4" />
               <span>{props.labels.sortDescending}</span>
             </DropdownMenuItem>
@@ -83,10 +96,13 @@ export function DataTableColumnHeaderMenu<TData>(props: {
         ) : null}
 
         {canHide ? (
-          <DropdownMenuItem onClick={() => props.header.column.toggleVisibility(false)}>
-            <EyeOff className="size-4" />
-            <span>{props.labels.hideColumn}</span>
-          </DropdownMenuItem>
+          <>
+            {props.canSort ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem onClick={() => props.header.column.toggleVisibility(false)}>
+              <EyeOff className="size-4" />
+              <span>{props.labels.hideColumn}</span>
+            </DropdownMenuItem>
+          </>
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>

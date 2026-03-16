@@ -25,11 +25,21 @@ function resolveIconButton(components: DataTableToolsComponents | undefined) {
 export function DataTableToolbarTools<TData>(props: DataTableToolbarToolsProps<TData>) {
   const IconButton = resolveIconButton(props.components);
   const rowHeight = resolveDataTableRowHeight(props.rowHeight ?? props.density);
+  const state = props.table.getState();
+  const supportsRowSelection = Boolean(props.table.options.enableRowSelection);
+  const canResetColumnSize = Object.keys(state.columnSizing ?? {}).length > 0;
+  const canResetColumnOrder =
+    (state.columnOrder?.length ?? 0) > 0 ||
+    (state.columnPinning?.left?.length ?? 0) > 0 ||
+    (state.columnPinning?.right?.length ?? 0) > 0;
+  const canClearSelection = Object.keys(state.rowSelection ?? {}).length > 0;
   const resetAll = () => {
     if (props.onResetColumnVisibility) props.onResetColumnVisibility();
     else props.table.resetColumnVisibility();
-    props.table.resetColumnOrder();
-    props.table.resetColumnPinning();
+    props.table.resetColumnSizing(true);
+    props.table.resetColumnOrder(true);
+    props.table.resetColumnPinning(true);
+    props.table.resetRowSelection(true);
     props.onRowHeightChange?.("medium");
     props.onWrapHeadersChange?.(false);
   };
@@ -51,6 +61,16 @@ export function DataTableToolbarTools<TData>(props: DataTableToolbarToolsProps<T
         labels={props.labels}
         components={props.components}
         onReset={resetAll}
+        onResetColumnSize={() => props.table.resetColumnSizing(true)}
+        onResetColumnOrder={() => {
+          props.table.resetColumnOrder(true);
+          props.table.resetColumnPinning(true);
+        }}
+        onClearSelection={() => props.table.resetRowSelection(true)}
+        canResetColumnSize={canResetColumnSize}
+        canResetColumnOrder={canResetColumnOrder}
+        showClearSelection={supportsRowSelection}
+        canClearSelection={canClearSelection}
       />
 
       <DataTableToolTooltip label={props.labels.refresh}>

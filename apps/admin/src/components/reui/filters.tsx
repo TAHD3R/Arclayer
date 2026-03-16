@@ -1443,11 +1443,7 @@ export function Filters<T = unknown>({
                 </Button>
               )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className={cn("w-[220px]", menuPopupClassName)}
-              align="start"
-              disableHighlight
-            >
+            <DropdownMenuContent className={cn("w-[220px]", menuPopupClassName)} align="start">
               {showSearchInput && (
                 <>
                   <div className="relative">
@@ -1595,7 +1591,7 @@ export function Filters<T = unknown>({
                                 {field.icon}
                                 <span>{field.label}</span>
                               </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-[200px]" disableHighlight>
+                              <DropdownMenuSubContent className="w-[200px]">
                                 <FilterSubmenuContent
                                   field={field}
                                   currentValues={currentValues}

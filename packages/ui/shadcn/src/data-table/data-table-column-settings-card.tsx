@@ -52,17 +52,7 @@ function isLockedColumn(column: { id: string; columnDef: { meta?: unknown } }): 
 
 export function DataTableColumnSettingsCard<TData>(props: {
   table: ReactTable<TData>;
-  labels: Pick<
-    DataTableToolsLabels,
-    | "columns"
-    | "columnsTitle"
-    | "columnsDescription"
-    | "reset"
-    | "pinLeft"
-    | "pinRight"
-    | "pinNone"
-    | "drag"
-  >;
+  labels: Pick<DataTableToolsLabels, "columns" | "columnsTitle" | "columnsDescription" | "reset">;
   components?: DataTableToolsComponents;
   onResetColumnVisibility?: () => void;
 }) {
@@ -110,8 +100,8 @@ export function DataTableColumnSettingsCard<TData>(props: {
   const resetAll = React.useCallback(() => {
     if (props.onResetColumnVisibility) props.onResetColumnVisibility();
     else props.table.resetColumnVisibility();
-    props.table.resetColumnPinning();
-    props.table.resetColumnOrder();
+    props.table.resetColumnPinning(true);
+    props.table.resetColumnOrder(true);
   }, [normalizedOrder, props.onResetColumnVisibility, props.table]);
 
   const activeLabel = React.useMemo(() => {
@@ -161,12 +151,7 @@ export function DataTableColumnSettingsCard<TData>(props: {
             >
               <div className="grid grid-cols-1 gap-2">
                 {configurableColumns.map((column) => (
-                  <DataTableColumnSettingsRow
-                    key={column.id}
-                    table={props.table}
-                    column={column}
-                    labels={props.labels}
-                  />
+                  <DataTableColumnSettingsRow key={column.id} table={props.table} column={column} />
                 ))}
               </div>
             </SortableContext>

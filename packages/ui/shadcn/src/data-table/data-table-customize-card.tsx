@@ -84,10 +84,6 @@ export function DataTableCustomizeCard<TData>(props: {
     | "columnsTitle"
     | "columnsDescription"
     | "reset"
-    | "pinLeft"
-    | "pinRight"
-    | "pinNone"
-    | "drag"
     | "density"
     | "densityCompact"
     | "densityDefault"
@@ -143,8 +139,8 @@ export function DataTableCustomizeCard<TData>(props: {
   const resetAll = React.useCallback(() => {
     if (props.onResetColumnVisibility) props.onResetColumnVisibility();
     else props.table.resetColumnVisibility();
-    props.table.resetColumnPinning();
-    props.table.resetColumnOrder();
+    props.table.resetColumnPinning(true);
+    props.table.resetColumnOrder(true);
   }, [props.onResetColumnVisibility, props.table]);
 
   const activeLabel = React.useMemo(() => {
@@ -219,7 +215,6 @@ export function DataTableCustomizeCard<TData>(props: {
                           key={column.id}
                           table={props.table}
                           column={column}
-                          labels={props.labels}
                         />
                       ))}
                     </div>
@@ -241,7 +236,6 @@ export function DataTableCustomizeCard<TData>(props: {
                           <DataTableColumnSettingsRowOverlay
                             table={props.table}
                             column={activeColumn}
-                            labels={props.labels}
                           />
                         ) : activeLabel ? (
                           <div className="rounded-xl border px-3 py-2 opacity-80 ring-2 ring-ring/50">

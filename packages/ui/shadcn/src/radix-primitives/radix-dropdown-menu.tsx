@@ -189,10 +189,7 @@ function DropdownMenuSubContent({
   );
 }
 
-type DropdownMenuHighlightProps = DistributiveOmit<
-  HighlightProps,
-  "controlledItems" | "enabled" | "hover"
-> & {
+type DropdownMenuHighlightProps = DistributiveOmit<HighlightProps, "controlledItems" | "hover"> & {
   animateOnHover?: boolean;
 };
 

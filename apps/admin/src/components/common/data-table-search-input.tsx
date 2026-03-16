@@ -31,7 +31,7 @@ export function DataTableSearchInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="placeholder:overflow-hidden placeholder:text-ellipsis"
+        className="truncate"
       />
       {value ? (
         <InputGroupAddon align="inline-end">
