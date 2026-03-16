@@ -297,14 +297,14 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
       name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
     });
 
-    expect(trigger.className).toContain("!h-8");
+    expect(trigger.className).toContain("!h-11");
     expect(trigger.className).toContain("border-transparent");
 
     await waitFor(() => {
       const avatar = trigger.querySelector('div[aria-label="Workspace Alpha"]');
       expect(avatar).toBeTruthy();
       expect(avatar).toHaveClass("rounded-md");
-      expect(avatar).toHaveStyle({ width: "24px", height: "24px" });
+      expect(avatar).toHaveStyle({ width: "28px", height: "28px" });
     });
   });
 

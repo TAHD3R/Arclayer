@@ -41,7 +41,7 @@ import { notifyError } from "@/lib/notifications";
 
 const SHORTCUTS_HELP_HASH = "#shortcuts";
 const HEADER_TRIGGER_CLASSNAME = cn(
-  "group flex h-10 items-center gap-2 rounded-xl border border-transparent bg-transparent pl-1 pr-2",
+  "group flex h-11 items-center gap-2 rounded-xl border border-transparent bg-transparent pl-1 pr-2",
   "text-label-secondary transition-[background-color,color,border-color] duration-200",
   "hover:bg-accent/70 hover:text-foreground",
   "data-[state=open]:border-border/70 data-[state=open]:bg-accent data-[state=open]:text-foreground",
@@ -91,12 +91,12 @@ function AdminAccountPanelContent(props: {
   const menuItemClassName = cn(
     "group",
     "transition-colors",
-    "hover:bg-accent hover:text-primary-foreground",
+    "hover:bg-accent hover:text-foreground",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
   );
 
   return (
-    <div className="w-72">
+    <div className="w-[min(22rem,calc(100vw-1.5rem))]">
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-3">
           <UserAvatar name={props.displayName} assetRef={props.avatarUrl} size={56} />
@@ -335,7 +335,7 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
           <UserAvatar
             name={model.displayName}
             assetRef={model.avatarUrl}
-            size={32}
+            size={36}
             className="shrink-0"
           />
         </FloatingPanelTrigger>

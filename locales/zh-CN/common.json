@@ -1,6 +1,7 @@
 {
   "ACTION_SUCCESS": "操作成功。",
   "BACK": "返回",
+  "BREADCRUMB_LABEL": "面包屑导航",
   "CANCEL": "取消",
   "CLEAR": "清除",
   "CONFIRM": "确认",

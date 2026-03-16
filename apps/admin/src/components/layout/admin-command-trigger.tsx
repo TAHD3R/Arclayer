@@ -25,7 +25,7 @@ import {
 import { Kbd, KbdGroup } from "@celestial/ui/kbd";
 const MODIFIER_KEY = "k";
 const TRANSITION_CLASSNAME = cn(
-  "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
+  "transition-[color,background-color,border-color,box-shadow,opacity] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]",
   "motion-reduce:transition-none",
 );
 
@@ -51,7 +51,7 @@ function ShortcutKeys(props: {
         <Kbd
           key={key}
           className={cn(
-            "h-6 min-w-6 rounded-md border border-transparent px-2.5 text-[11px] font-semibold tracking-[0.02em]",
+            "h-6 min-w-6 rounded-md border border-transparent px-2.5 text-caption font-semibold tracking-[0.03em]",
             props.keyClassName,
           )}
         >
@@ -68,7 +68,7 @@ function EntryShortcut(props: { shortcut: readonly string[] }) {
       {props.shortcut.map((key) => (
         <Kbd
           key={key}
-          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-background/70 px-2 text-[10px] font-semibold uppercase tracking-[0.04em] text-label-secondary"
+          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-background/70 px-2 text-caption font-semibold uppercase tracking-[0.04em] text-label-secondary"
         >
           {key}
         </Kbd>
@@ -93,7 +93,7 @@ function CommandTriggerButton(props: {
       onClick={props.onClick}
       data-state={props.open ? "open" : "closed"}
       className={cn(
-        "group flex h-8 w-full items-center gap-3 rounded-lg border border-border/50",
+        "group flex h-10 w-full items-center gap-3 rounded-lg border border-border/50",
         "bg-muted/85 px-3 text-left text-footnote text-label-secondary shadow-none",
         TRANSITION_CLASSNAME,
         "hover:bg-accent/70 hover:text-label-primary",
@@ -247,7 +247,7 @@ export function AdminCommandTrigger(props: {
           showCloseButton={false}
           className={cn(
             "self-start overflow-hidden border-border/70 p-0",
-            "mt-3 w-[640px] max-w-[calc(100vw-1.5rem)] rounded-2xl bg-popover shadow-2xl",
+            "mt-3 w-[min(40rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] rounded-2xl bg-popover shadow-2xl",
           )}
         >
           <DialogHeader className="sr-only border-0 p-0">

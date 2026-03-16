@@ -13,6 +13,11 @@ import { ArrowLeftIcon } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig, type Variants } from "motion/react";
 
 import { cn } from "@celestial/lib/utils";
+import { useAdaptiveOverlayBackdropClassName } from "./adaptive-overlay-backdrop";
+import {
+  focusInitialFloatingPanelTarget,
+  trapFocusWithinFloatingPanel,
+} from "./floating-panel-focus";
 
 const TRANSITION = {
   type: "spring" as const,
@@ -50,16 +55,33 @@ function useFloatingPanelLogic() {
   const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
   const [triggerEl, setTriggerEl] = useState<HTMLElement | null>(null);
   const [title, setTitle] = useState("");
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   const openFloatingPanel = (nextTriggerEl: HTMLElement) => {
+    const activeElement =
+      document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+        ? document.activeElement
+        : null;
+    previousFocusRef.current = activeElement ?? nextTriggerEl;
     setTriggerEl(nextTriggerEl);
     setTriggerRect(nextTriggerEl.getBoundingClientRect());
     setIsOpen(true);
   };
   const closeFloatingPanel = () => {
+    restoreFocusRef.current = previousFocusRef.current ?? triggerEl;
     setIsOpen(false);
     setNote("");
   };
+
+  useEffect(() => {
+    if (isOpen) return;
+    const restoreTarget = restoreFocusRef.current;
+    if (!restoreTarget?.isConnected) return;
+
+    restoreTarget.focus();
+    restoreFocusRef.current = null;
+  }, [isOpen]);
 
   return {
     isOpen,
@@ -207,6 +229,7 @@ export function FloatingPanelContent({
     useFloatingPanel();
   const contentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const backdropClassName = useAdaptiveOverlayBackdropClassName();
   const computePosition = useCallback(() => {
     if (!isOpen) return;
 
@@ -285,7 +308,13 @@ export function FloatingPanelContent({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeFloatingPanel();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeFloatingPanel();
+        return;
+      }
+      if (!contentRef.current) return;
+      trapFocusWithinFloatingPanel(contentRef.current, event);
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -324,15 +353,20 @@ export function FloatingPanelContent({
     };
   }, [computePosition, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !contentRef.current) return;
+    focusInitialFloatingPanelTarget(contentRef.current);
+  }, [isOpen]);
+
   const panelNode = (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div
-            initial={{ backdropFilter: "blur(0px)" }}
-            animate={{ backdropFilter: "blur(4px)" }}
-            exit={{ backdropFilter: "blur(0px)" }}
-            className="fixed inset-0 z-40 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={cn("fixed inset-0 z-40 pointer-events-auto", backdropClassName)}
           />
           <motion.div
             ref={contentRef}
@@ -356,6 +390,7 @@ export function FloatingPanelContent({
             aria-labelledby={`floating-panel-title-${uniqueId}`}
             aria-describedby={description ? `floating-panel-desc-${uniqueId}` : undefined}
             id={`floating-panel-content-${uniqueId}`}
+            tabIndex={-1}
           >
             {showTitle ? (
               <FloatingPanelTitle

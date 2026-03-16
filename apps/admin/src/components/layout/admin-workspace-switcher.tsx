@@ -41,7 +41,7 @@ import type { OrganizationWorkspace } from "@/types/api";
 // ============================================================================
 
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
-const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-8";
+const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-11";
 
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
@@ -148,7 +148,7 @@ const collapsedCollapseButtonClassName = cn(
 const panelMenuButtonClassName = cn(
   "group",
   "transition-colors",
-  "hover:bg-accent hover:text-primary-foreground",
+  "hover:bg-accent hover:text-foreground",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
 
@@ -514,7 +514,7 @@ function PanelContentInner() {
   const divider = <div className="h-px bg-border/60" />;
 
   return (
-    <div className="max-w-100">
+    <div className="w-[min(25rem,calc(100vw-1.5rem))] max-w-full">
       {organizationsQuery.isLoading ? (
         <PanelHeaderSkeleton />
       ) : (
@@ -817,7 +817,7 @@ export function AdminWorkspaceSwitcher({
           <OrganizationAvatar
             name={workspaceTriggerText}
             assetRef={triggerOrganizationLogoUrl}
-            size={24}
+            size={28}
             className="shrink-0"
           />
 

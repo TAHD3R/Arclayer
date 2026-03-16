@@ -183,7 +183,7 @@ export function AdminHeader(props: {
       ) : null}
 
       <nav
-        aria-label="Breadcrumb"
+        aria-label={t("common:BREADCRUMB_LABEL")}
         className="min-w-0 flex-1 h-full flex items-center overflow-hidden"
       >
         <ol className="m-0 mb-0! flex min-w-0 list-none items-center justify-start gap-1 overflow-hidden whitespace-nowrap p-0">

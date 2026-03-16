@@ -11,6 +11,8 @@ import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
 
+const DEFAULT_PAGE_HEADER_CLASSNAME = "mb-4";
+
 export type DefaultPageProps = {
   title?: ReactNode;
   description?: ReactNode;
@@ -53,7 +55,7 @@ function FavoriteToggle() {
           className={clsx(
             "inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 leading-none transition-colors",
             "text-label-secondary hover:text-foreground",
-            isFavorited && "text-amber-500 hover:text-amber-600",
+            isFavorited && "text-primary hover:text-primary",
           )}
         >
           <Star
@@ -120,14 +122,12 @@ export function DefaultPage({
   return (
     <AdminRouteContainer className={clsx("h-full", className)}>
       {!hideHeader && (title || description || action || extra) && (
-        <header className="mb-[18px]">
+        <header className={DEFAULT_PAGE_HEADER_CLASSNAME}>
           {(title || action) && (
             <div className="flex items-center justify-between gap-4">
               <div className={clsx("my-2 flex min-w-0 items-end gap-2")}>
                 {title ? (
-                  <div className="text-largetitle leading-none text-label-primary select-none">
-                    {title}
-                  </div>
+                  <div className="text-title text-label-primary select-none">{title}</div>
                 ) : null}
                 {title && showFavoriteToggle ? <FavoriteToggle /> : null}
               </div>
@@ -139,7 +139,7 @@ export function DefaultPage({
           )}
 
           {description ? (
-            <div className="text-label-secondary select-none">{description}</div>
+            <div className="text-callout text-label-secondary select-none">{description}</div>
           ) : null}
 
           {extra ? <div className="mt-3.5">{extra}</div> : null}

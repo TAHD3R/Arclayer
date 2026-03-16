@@ -33,7 +33,13 @@ vi.mock("motion/react", async (importOriginal) => {
         exit?: unknown;
       }
     >(function MotionElement({ layoutId, initial, animate, exit, children, ...props }, ref) {
-      const testProps: Record<string, unknown> = { ...props, ref };
+      const {
+        whileTap: _whileTap,
+        transition: _transition,
+        variants: _variants,
+        ...domProps
+      } = props as Record<string, unknown>;
+      const testProps: Record<string, unknown> = { ...domProps, ref };
       applyMotionTestProps(testProps, { layoutId, initial, animate, exit });
 
       return React.createElement(tagName, testProps, children);
@@ -52,7 +58,13 @@ vi.mock("motion/react", async (importOriginal) => {
         exit?: unknown;
       }
     >(function MotionComponent({ layoutId, initial, animate, exit, ...props }, ref) {
-      const testProps = { ...(props as Record<string, unknown>), ref };
+      const {
+        whileTap: _whileTap,
+        transition: _transition,
+        variants: _variants,
+        ...domProps
+      } = props as Record<string, unknown>;
+      const testProps = { ...domProps, ref };
       applyMotionTestProps(testProps, { layoutId, initial, animate, exit });
       return React.createElement(Component, testProps as ComponentProps);
     });
@@ -155,7 +167,7 @@ function FloatingPanelHarness() {
     <FloatingPanelRoot>
       <FloatingPanelTrigger title="Panel title">Open panel</FloatingPanelTrigger>
       <FloatingPanelContent showTitle={false}>
-        <div>Panel body</div>
+        <button type="button">Panel action</button>
       </FloatingPanelContent>
     </FloatingPanelRoot>
   );
@@ -277,6 +289,23 @@ describe("floating panel animation config", () => {
     expect(dialog).toHaveAttribute("data-motion-initial", "hidden");
     expect(dialog).toHaveAttribute("data-motion-animate", "visible");
     expect(dialog).toHaveAttribute("data-motion-exit", "hidden");
+  });
+
+  it("moves focus into the panel and restores it to the trigger when closed", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<FloatingPanelHarness />);
+
+    const trigger = screen.getByRole("button", { name: "Open panel" });
+    const focusSpy = vi.spyOn(trigger, "focus");
+    await user.click(trigger);
+
+    const panelAction = await screen.findByRole("button", { name: "Panel action" });
+    expect(panelAction).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(focusSpy).toHaveBeenCalled();
+    });
   });
 
   it("disables shared layout morph on account menu and workspace switcher sidebar triggers", async () => {

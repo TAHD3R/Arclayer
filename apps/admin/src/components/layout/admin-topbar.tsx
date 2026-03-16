@@ -13,7 +13,7 @@ import { useSidebar } from "@celestial/ui/sidebar";
 import type { CommandScope } from "@/lib/command/command-types";
 
 const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
-  "relative inline-flex size-10 items-center justify-center rounded-xl border border-transparent",
+  "relative inline-flex size-11 items-center justify-center rounded-xl border border-transparent",
   "bg-transparent text-label-secondary transition-[background-color,color,border-color] duration-200",
   "hover:bg-background/60 hover:text-foreground",
   "data-[state=open]:border-border/60 data-[state=open]:bg-background/70 data-[state=open]:text-foreground",
@@ -66,7 +66,7 @@ export function AdminTopbar(props: {
             <AdminFullLogo ariaLabel="CelestialCMS" width={100} className="flex h-8 items-center" />
           </div>
 
-          <div className="min-w-0 flex-1 max-w-[13rem] xl:max-w-[15rem] 2xl:max-w-[17rem]">
+          <div className="min-w-0 flex-1 max-w-[14rem] xl:max-w-[18rem] 2xl:max-w-[20rem]">
             <AdminWorkspaceSwitcher
               variant="header"
               showSidebarToggle={false}
@@ -75,7 +75,7 @@ export function AdminTopbar(props: {
           </div>
         </div>
 
-        <div className="min-w-0 justify-self-center w-full max-w-[28rem]">
+        <div className="min-w-0 justify-self-center w-full max-w-[32rem]">
           <AdminCommandTrigger
             sections={commandPalette.sections}
             query={commandPalette.query}
@@ -96,7 +96,7 @@ export function AdminTopbar(props: {
           >
             <Bell className="size-4" aria-hidden="true" />
             {props.showNotificationsBadge && props.unreadCount > 0 ? (
-              <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+              <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold leading-none text-primary-foreground">
                 {props.unreadCount > 99 ? "99+" : props.unreadCount}
               </span>
             ) : null}

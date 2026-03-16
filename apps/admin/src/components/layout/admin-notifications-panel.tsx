@@ -280,6 +280,20 @@ export function AdminNotificationsPanel({
         ? t("NOTIFICATIONS_EMPTY_ARCHIVED_DESC")
         : t("NOTIFICATIONS_EMPTY_ALL_DESC");
 
+  useEffect(() => {
+    const el = tabsWidthAnchorRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      const nextWidth = readPanelWidthFromTabsAnchor(el);
+      if (!nextWidth) return;
+      setPanelWidthPx((prev) => (prev === nextWidth ? prev : nextWidth));
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   useLayoutEffect(() => {
     const nextWidth = readPanelWidthFromTabsAnchor(tabsWidthAnchorRef.current);
     if (!nextWidth) return;
@@ -320,6 +334,7 @@ export function AdminNotificationsPanel({
             type="button"
             variant="ghost"
             size="icon"
+            className="size-11"
             aria-label={isPinned ? t("NOTIFICATIONS_PANEL_UNPIN") : t("NOTIFICATIONS_PANEL_PIN")}
             onClick={() => onPinChange(!isPinned)}
           >
@@ -333,13 +348,14 @@ export function AdminNotificationsPanel({
             type="button"
             variant="ghost"
             size="icon"
+            className="size-11"
             aria-label={t("NOTIFICATIONS_PANEL_CLOSE")}
             onClick={onClose}
           >
             <X className="size-4" aria-hidden="true" />
           </Button>
         </div>
-        <p className="mt-0.5 text-label-secondary">{t("NOTIFICATIONS_PANEL_DESC")}</p>
+        <p className="mt-0.5 text-callout text-label-secondary">{t("NOTIFICATIONS_PANEL_DESC")}</p>
       </div>
 
       {/* Tabs */}

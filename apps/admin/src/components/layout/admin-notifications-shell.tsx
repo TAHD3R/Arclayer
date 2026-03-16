@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { useAdaptiveOverlayBackdropClassName } from "@celestial/ui/adaptive-overlay-backdrop";
 
 const PANEL_WIDTH_CLASSNAME = "w-fit max-w-full";
 
@@ -14,6 +15,8 @@ export type AdminNotificationsShellProps = {
 };
 
 export function AdminNotificationsShell(props: AdminNotificationsShellProps) {
+  const backdropClassName = useAdaptiveOverlayBackdropClassName();
+
   if (props.open && props.pinned) {
     return (
       <AdminNotificationsPanel
@@ -33,10 +36,10 @@ export function AdminNotificationsShell(props: AdminNotificationsShellProps) {
         ? [
             <motion.div
               key="admin-notifications-blur-mask"
-              initial={{ backdropFilter: "blur(0px)", opacity: 0 }}
-              animate={{ backdropFilter: "blur(4px)", opacity: 1 }}
-              exit={{ backdropFilter: "blur(0px)", opacity: 0 }}
-              className="absolute inset-0 z-10 pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={`absolute inset-0 z-10 pointer-events-none ${backdropClassName}`}
             />,
             <ButtonPrimitive
               key="admin-notifications-backdrop"

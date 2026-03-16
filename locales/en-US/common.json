@@ -1,6 +1,7 @@
 {
   "ACTION_SUCCESS": "Operation completed successfully.",
   "BACK": "Back",
+  "BREADCRUMB_LABEL": "Breadcrumb",
   "CANCEL": "Cancel",
   "CLEAR": "Clear",
   "CONFIRM": "Confirm",

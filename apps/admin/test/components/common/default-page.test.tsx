@@ -30,14 +30,14 @@ describe("DefaultPage", () => {
     useFavoritesStore.setState({ paths: [] });
   });
 
-  it("uses heading-aligned title and compact favorite toggle chrome", () => {
+  it("uses semantic page title typography and compact favorite toggle chrome", () => {
     render(<DefaultPage title="Assets" />);
 
     const title = screen.getByText("Assets");
     const favoriteButton = screen.getByRole("button", { name: /common:FAVORITE_ADD/ });
     const titleCluster = title.parentElement;
 
-    expect(title).toHaveClass("text-largetitle", "leading-none", "text-label-primary");
+    expect(title).toHaveClass("text-title", "text-label-primary");
     expect(titleCluster).toHaveClass("items-end");
     expect(favoriteButton).toHaveAttribute("data-size", "sm");
     expect(favoriteButton).toHaveClass("h-8", "leading-none");

@@ -9,6 +9,7 @@
     "./alert": "./src/alert.tsx",
     "./alert-dialog": "./src/alert-dialog.tsx",
     "./admin-toast": "./src/admin-toast.ts",
+    "./adaptive-overlay-backdrop": "./src/adaptive-overlay-backdrop.ts",
     "./animate-slot": "./src/animate-slot.tsx",
     "./animate-tooltip": "./src/animate-tooltip.tsx",
     "./aspect-ratio": "./src/aspect-ratio.tsx",
