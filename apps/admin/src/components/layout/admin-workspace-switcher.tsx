@@ -42,7 +42,7 @@ const INTERACTION_TRANSITION_CLASSNAME = cn(
   INTERACTION_EASING,
   "motion-reduce:transition-none",
 );
-const PANEL_SECTION_CLASSNAME = "rounded-2xl bg-accent/[0.24] p-1";
+const PANEL_SECTION_CLASSNAME = "rounded-2xl p-1";
 
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
