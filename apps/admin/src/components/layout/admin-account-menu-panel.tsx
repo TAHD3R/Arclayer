@@ -41,9 +41,11 @@ type PreferenceOption = {
   onClick: () => Promise<void> | void;
 };
 
-const PANEL_WIDTH_CLASSNAME = "w-[min(22rem,calc(100vw-1.5rem))]";
+const PANEL_WIDTH_CLASSNAME = "w-[min(20.5rem,calc(100vw-1.25rem))]";
+const MENU_ICON_MOTION_CLASSNAME =
+  "transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none group-hover:translate-x-0.5";
 const MENU_ITEM_CLASSNAME = cn(
-  "group transition-colors",
+  "group transition-[background-color,color] duration-200",
   "hover:bg-accent hover:text-foreground",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
@@ -57,7 +59,11 @@ function MenuItemContent(props: { icon?: ReactNode; label: string; right?: React
   return (
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
-        {props.icon ? <span className="shrink-0 [&>svg]:size-4">{props.icon}</span> : null}
+        {props.icon ? (
+          <span className={cn("shrink-0 [&>svg]:size-4", MENU_ICON_MOTION_CLASSNAME)}>
+            {props.icon}
+          </span>
+        ) : null}
         <span className="min-w-0 truncate text-callout">{props.label}</span>
       </span>
       {props.right ? (

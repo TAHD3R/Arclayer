@@ -1,8 +1,18 @@
+export type MyWorkspaceMemberPreview = {
+  userId: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
 export type MyWorkspace = {
   workspaceId: string;
   organizationId: string;
   slug: string;
   name: string;
+  iconUrl?: string | null;
+  memberCount?: number;
+  membersPreview?: MyWorkspaceMemberPreview[];
   visibleOnly: boolean;
   isCreatorAdmin: boolean;
 };

@@ -54,6 +54,7 @@ export type {
 
 // Workspaces
 export type {
+  MyWorkspaceMemberPreview,
   MyWorkspace,
   MyWorkspaceListResult,
   AuthzSnapshot,

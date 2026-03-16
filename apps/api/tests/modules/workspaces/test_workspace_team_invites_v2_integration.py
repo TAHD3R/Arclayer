@@ -74,7 +74,7 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
 
         from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
         from apps.api.src.models.organization.user import User
-        from apps.api.src.models.workspaces.workspace import Workspace
+        from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
         from apps.api.src.modules.auth.repository import UserRepository
         from apps.api.src.modules.auth.tokens.service import hash_password
         from apps.api.src.modules.organization.repository import OrganizationRepository
@@ -103,6 +103,7 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
             organization_id=org.id,
             slug=f"ws_{uuid4().hex[:8]}",
             name="Blog",
+            icon_url="/assets/ws-blog-icon",
             is_active=True,
             created_by_user_id=owner.id,
         )
@@ -112,6 +113,16 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
             name="Commerce",
             is_active=True,
             created_by_user_id=other.id,
+        )
+        await WorkspaceMembership.create(
+            workspace_id=ws1.id,
+            user_id=owner.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        )
+        await WorkspaceMembership.create(
+            workspace_id=ws2.id,
+            user_id=other.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
         )
 
         current_user: User | None = owner
@@ -143,8 +154,15 @@ async def test_me_workspaces_owner_can_see_all_with_visible_only(prepared_db, in
             by_id = {i["workspaceId"]: i for i in items}
             assert by_id[ws1_pid]["isCreatorAdmin"] is True
             assert by_id[ws1_pid]["visibleOnly"] is False
+            assert by_id[ws1_pid]["iconUrl"] == "/assets/ws-blog-icon"
+            assert by_id[ws1_pid]["memberCount"] == 1
+            assert len(by_id[ws1_pid]["membersPreview"]) == 1
+            assert by_id[ws1_pid]["membersPreview"][0]["username"] == owner.username
             assert by_id[ws2_pid]["isCreatorAdmin"] is False
             assert by_id[ws2_pid]["visibleOnly"] is True
+            assert by_id[ws2_pid]["memberCount"] == 1
+            assert len(by_id[ws2_pid]["membersPreview"]) == 1
+            assert by_id[ws2_pid]["membersPreview"][0]["username"] == other.username
 
 
 async def test_workspace_invite_link_accept_existing_creates_use_event(

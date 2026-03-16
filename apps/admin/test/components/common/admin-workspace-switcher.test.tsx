@@ -22,7 +22,18 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, _params?: unknown) => key,
+    t: (key: string, params?: { count?: number }) => {
+      if (key === "common:ORG_WORKSPACES_MEMBERS_COUNT") {
+        return `${params?.count ?? 0} ${(params?.count ?? 0) === 1 ? "member" : "members"}`;
+      }
+      if (key === "common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS") return "Workspace settings";
+      if (key === "team:TEAM_INVITE_MEMBER") return "Invite members";
+      if (key === "common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES") {
+        return "View all workspaces";
+      }
+      if (key === "common:WORKSPACE_SWITCHER_ADD_WORKSPACE") return "Add workspace";
+      return key;
+    },
   }),
 }));
 
@@ -37,6 +48,28 @@ const workspaceFixtures: MyWorkspace[] = [
     organizationId: "org-1",
     slug: "alpha",
     name: "Workspace Alpha",
+    iconUrl: "https://example.com/workspace-alpha-icon.png",
+    memberCount: 3,
+    membersPreview: [
+      {
+        userId: "user-alpha-1",
+        username: "ada",
+        displayName: "Ada Lovelace",
+        avatarUrl: "https://example.com/ada.png",
+      },
+      {
+        userId: "user-alpha-2",
+        username: "grace",
+        displayName: "Grace Hopper",
+        avatarUrl: "https://example.com/grace.png",
+      },
+      {
+        userId: "user-alpha-3",
+        username: "linus",
+        displayName: "Linus Torvalds",
+        avatarUrl: null,
+      },
+    ],
     visibleOnly: false,
     isCreatorAdmin: true,
   },
@@ -45,6 +78,16 @@ const workspaceFixtures: MyWorkspace[] = [
     organizationId: "org-1",
     slug: "beta",
     name: "Workspace Beta",
+    iconUrl: null,
+    memberCount: 1,
+    membersPreview: [
+      {
+        userId: "user-beta-1",
+        username: "margaret",
+        displayName: "Margaret Hamilton",
+        avatarUrl: null,
+      },
+    ],
     visibleOnly: false,
     isCreatorAdmin: true,
   },
@@ -252,7 +295,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(within(panel).getByRole("button", { name: /Workspace Alpha/ })).toBeInTheDocument();
   });
 
-  it("workspace scope: create workspace appears as the last item in workspace section", async () => {
+  it("workspace scope: workspace rows show member avatars and counts", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
@@ -263,16 +306,38 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     await user.click(trigger);
 
     const panel = getLatestDialog();
-    const createWorkspaceButton = within(panel).getByRole("button", {
-      name: "common:WORKSPACE_SWITCHER_CREATE",
+    const workspaceAlphaButton = within(panel).getByRole("button", {
+      name: /Workspace Alpha/,
     });
-    const workspaceBetaButton = within(panel).getByRole("button", { name: /Workspace Beta/ });
+    expect(within(workspaceAlphaButton).getByText("3 members")).toBeInTheDocument();
+    expect(within(workspaceAlphaButton).getByAltText("Ada Lovelace")).toBeInTheDocument();
+    expect(within(workspaceAlphaButton).getByAltText("Grace Hopper")).toBeInTheDocument();
+    expect(within(workspaceAlphaButton).getByLabelText("Linus Torvalds")).toBeInTheDocument();
+  });
 
-    expect(createWorkspaceButton.querySelector("svg")).toBeTruthy();
-    expect(createWorkspaceButton.className).toContain("group");
-    expect(createWorkspaceButton.className).toContain("transition-colors");
-    expect(createWorkspaceButton.className).toContain("hover:bg-accent");
-    expect(createWorkspaceButton.querySelector("span.block.w-full.min-w-0.truncate")).toBeTruthy();
+  it("workspace scope: action groups expose settings, invites, workspaces index, and add workspace", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const workspaceBetaButton = within(panel).getByRole("button", { name: /Workspace Beta/ });
+    const settingsButton = within(panel).getByRole("button", { name: /Workspace settings/ });
+    const inviteMembersButton = within(panel).getByRole("button", { name: /Invite members/ });
+    const viewAllWorkspacesButton = within(panel).getByRole("button", {
+      name: /View all workspaces/,
+    });
+    const addWorkspaceButton = within(panel).getByRole("button", { name: /Add workspace/ });
+
+    expect(settingsButton).toBeInTheDocument();
+    expect(inviteMembersButton).toBeInTheDocument();
+    expect(viewAllWorkspacesButton).toBeInTheDocument();
+    expect(addWorkspaceButton).toBeInTheDocument();
     expect(
       within(panel).queryByRole("button", {
         name: "common:WORKSPACE_SWITCHER_OPEN_ORG_WORKSPACES",
@@ -280,9 +345,50 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     ).not.toBeInTheDocument();
 
     const buttons = within(panel).getAllByRole("button");
-    expect(buttons.indexOf(createWorkspaceButton)).toBeGreaterThan(
-      buttons.indexOf(workspaceBetaButton),
+    expect(buttons.indexOf(settingsButton)).toBeGreaterThan(buttons.indexOf(workspaceBetaButton));
+    expect(buttons.indexOf(inviteMembersButton)).toBeGreaterThan(buttons.indexOf(settingsButton));
+    expect(buttons.indexOf(viewAllWorkspacesButton)).toBeGreaterThan(
+      buttons.indexOf(inviteMembersButton),
     );
+    expect(buttons.indexOf(addWorkspaceButton)).toBeGreaterThan(
+      buttons.indexOf(viewAllWorkspacesButton),
+    );
+  });
+
+  it("workspace scope: action buttons navigate to workspace and account destinations", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+
+    await user.click(trigger);
+    await user.click(within(getLatestDialog()).getByRole("button", { name: /Workspace settings/ }));
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-alpha/settings/workspace/" });
+    });
+
+    await user.click(trigger);
+    await user.click(within(getLatestDialog()).getByRole("button", { name: /Invite members/ }));
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-alpha/team/members/" });
+    });
+
+    await user.click(trigger);
+    await user.click(
+      within(getLatestDialog()).getByRole("button", { name: /View all workspaces/ }),
+    );
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/account/workspaces" });
+    });
+
+    await user.click(trigger);
+    await user.click(within(getLatestDialog()).getByRole("button", { name: /Add workspace/ }));
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/account/workspaces?create=1" });
+    });
   });
 
   it("workspace scope: selecting a workspace navigates and updates store", async () => {

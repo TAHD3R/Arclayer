@@ -6,11 +6,24 @@ from apps.api.src.common.schemas import BaseOut, BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
 
 
+class MyWorkspaceMemberPreviewOut(BaseSchema):
+    user_id: PublicUUID = Field(..., description="Member user id.")
+    username: str = Field(..., description="Username.")
+    display_name: str | None = Field(default=None, description="Display name.")
+    avatar_url: str | None = Field(default=None, description="Avatar URL.")
+
+
 class MyWorkspaceOut(BaseOut):
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
+    icon_url: str | None = Field(default=None, description="Workspace icon URL.")
+    member_count: int = Field(default=0, ge=0, description="Active member count.")
+    members_preview: list[MyWorkspaceMemberPreviewOut] = Field(
+        default_factory=list,
+        description="Preview members for avatar group rendering.",
+    )
 
     visible_only: bool = Field(
         default=False,

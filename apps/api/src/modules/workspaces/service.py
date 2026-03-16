@@ -7,13 +7,14 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 
 from apps.api.src.common.constants.assets import ASSET_SCOPE_WORKSPACE
-from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
+from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
 from apps.api.src.common.services import BaseService
 from apps.api.src.config import Settings
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from apps.api.src.core.i18n import t
 from apps.api.src.models.assets.asset import AssetPurpose
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+from apps.api.src.models.organization.user import User
 from apps.api.src.models.system.rbac import Role
 from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from apps.api.src.modules.assets.admin.assets.binding_align import align_asset_for_binding
@@ -22,6 +23,7 @@ from apps.api.src.modules.assets.scope import AssetScope
 from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
 from apps.api.src.modules.workspaces.schema import (
     LeaveWorkspaceResult,
+    MyWorkspaceMemberPreviewOut,
     MyWorkspaceOut,
     WorkspaceDetailOut,
     WorkspaceUpdateRequest,
@@ -50,6 +52,9 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
                 organization_id=_resolve_organization_id(ws),
                 slug=ws.slug,
                 name=ws.name,
+                icon_url=ws.icon_url,
+                member_count=0,
+                members_preview=[],
                 visible_only=False,
                 is_creator_admin=False,
             )
@@ -117,11 +122,54 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                     organization_id=org_id,
                     slug=ws.slug,
                     name=ws.name,
+                    icon_url=ws.icon_url,
+                    member_count=0,
+                    members_preview=[],
                     visible_only=visible_only,
                     is_creator_admin=is_creator_admin,
                 )
             )
     return out
+
+
+async def _build_workspace_member_meta(
+    *,
+    workspaces: list[Workspace],
+    memberships: list[WorkspaceMembership],
+) -> tuple[dict[UUID, int], dict[UUID, list[MyWorkspaceMemberPreviewOut]]]:
+    member_ids_by_workspace: dict[UUID, list[UUID]] = defaultdict(list)
+    for membership in memberships:
+        workspace_id = UUID(str(cast(HasWorkspaceId, membership).workspace_id))
+        user_id = cast(HasUserId, membership).user_id
+        if user_id is None:
+            continue
+        member_ids_by_workspace[workspace_id].append(UUID(str(user_id)))
+
+    unique_user_ids = list({user_id for ids in member_ids_by_workspace.values() for user_id in ids})
+    users: list[User] = []
+    if unique_user_ids:
+        users = await User.filter(id__in=unique_user_ids).all()
+
+    user_by_id = {UUID(str(user.id)): user for user in users}
+    member_count_by_workspace: dict[UUID, int] = {}
+    preview_by_workspace: dict[UUID, list[MyWorkspaceMemberPreviewOut]] = {}
+
+    for workspace in workspaces:
+        workspace_id = UUID(str(workspace.id))
+        member_ids = member_ids_by_workspace.get(workspace_id, [])
+        member_count_by_workspace[workspace_id] = len(member_ids)
+        preview_by_workspace[workspace_id] = [
+            MyWorkspaceMemberPreviewOut(
+                user_id=user.id,
+                username=user.username,
+                display_name=user.display_name,
+                avatar_url=user.avatar_url,
+            )
+            for user_id in member_ids[:3]
+            if (user := user_by_id.get(user_id)) is not None
+        ]
+
+    return member_count_by_workspace, preview_by_workspace
 
 
 class WorkspaceService(BaseService):
@@ -158,7 +206,16 @@ class WorkspaceService(BaseService):
             )
 
         if not orgms:
-            return _build_guest_workspace_list(workspaces=membership_workspaces)
+            member_count_by_workspace, preview_by_workspace = await _build_workspace_member_meta(
+                workspaces=membership_workspaces,
+                memberships=memberships,
+            )
+            items = _build_guest_workspace_list(workspaces=membership_workspaces)
+            return self._hydrate_workspace_meta(
+                items=items,
+                member_count_by_workspace=member_count_by_workspace,
+                preview_by_workspace=preview_by_workspace,
+            )
 
         org_roles, org_order = _collect_org_roles(orgms)
         membership_workspaces_by_org = _group_workspaces_by_org(membership_workspaces)
@@ -170,8 +227,22 @@ class WorkspaceService(BaseService):
                 await Workspace.filter(organization_id__in=owner_org_ids, is_active=True).order_by("created_at").all()
             )
         owner_workspaces_by_org = _group_workspaces_by_org(owner_workspaces)
+        visible_workspaces_by_id = {
+            UUID(str(workspace.id)): workspace for workspace in [*membership_workspaces, *owner_workspaces]
+        }
+        visible_workspace_ids = list(visible_workspaces_by_id.keys())
+        active_memberships: list[WorkspaceMembership] = []
+        if visible_workspace_ids:
+            active_memberships = await WorkspaceMembership.filter(
+                workspace_id__in=visible_workspace_ids,
+                status=WorkspaceMembershipStatus.ACTIVE,
+            ).all()
+        member_count_by_workspace, preview_by_workspace = await _build_workspace_member_meta(
+            workspaces=list(visible_workspaces_by_id.values()),
+            memberships=active_memberships,
+        )
 
-        return _build_member_workspace_list({
+        items = _build_member_workspace_list({
             "org_order": org_order,
             "org_roles": org_roles,
             "membership_by_workspace_id": membership_by_workspace_id,
@@ -179,6 +250,11 @@ class WorkspaceService(BaseService):
             "owner_workspaces_by_org": owner_workspaces_by_org,
             "user_id": user_id,
         })
+        return self._hydrate_workspace_meta(
+            items=items,
+            member_count_by_workspace=member_count_by_workspace,
+            preview_by_workspace=preview_by_workspace,
+        )
 
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
         ws = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
@@ -192,6 +268,19 @@ class WorkspaceService(BaseService):
             icon_url=ws.icon_url,
             icon_asset_aligned=False,
         )
+
+    def _hydrate_workspace_meta(
+        self,
+        *,
+        items: list[MyWorkspaceOut],
+        member_count_by_workspace: dict[UUID, int],
+        preview_by_workspace: dict[UUID, list[MyWorkspaceMemberPreviewOut]],
+    ) -> list[MyWorkspaceOut]:
+        for item in items:
+            workspace_id = UUID(str(item.workspace_id))
+            item.member_count = member_count_by_workspace.get(workspace_id, 0)
+            item.members_preview = preview_by_workspace.get(workspace_id, [])
+        return items
 
     async def update_workspace(
         self,

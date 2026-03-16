@@ -2,16 +2,26 @@ import { type ReactNode, useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronDown, PanelLeftIcon, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  PanelLeftIcon,
+  PanelsTopLeft,
+  Plus,
+  Settings2,
+  Users,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces, getWorkspaceDetail } from "@/api/workspaces";
-import { WorkspaceAvatar } from "@/components/common/entity-avatar";
+import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { MyWorkspace } from "@/types/api";
+import { AvatarGroup, AvatarGroupCount } from "@arclayer/ui/avatar";
 import { cn } from "@arclayer/lib/utils";
 import {
   FloatingPanelButton,
@@ -25,17 +35,58 @@ import { useSidebar } from "@arclayer/ui/sidebar";
 
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
 const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-11";
+const INTERACTION_EASING = "ease-[cubic-bezier(0.22,1,0.36,1)]";
+const INTERACTION_TRANSITION_CLASSNAME = cn(
+  "transition-[background-color,color,transform,opacity]",
+  "duration-200",
+  INTERACTION_EASING,
+  "motion-reduce:transition-none",
+);
+const HOVER_ICON_MOTION_CLASSNAME = cn(
+  "transition-transform duration-200",
+  INTERACTION_EASING,
+  "motion-reduce:transition-none",
+  "group-hover:translate-x-0.5",
+);
+const PANEL_SECTION_CLASSNAME = "rounded-2xl bg-accent/[0.24] p-1";
 
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
 }
 
-function PanelMenuItemContent(props: { icon?: ReactNode; text: string; right?: ReactNode }) {
+function ClampedText(props: { text: string; className?: string }) {
+  return (
+    <span className={cn("block min-w-0 overflow-hidden text-ellipsis", props.className)}>
+      {props.text}
+    </span>
+  );
+}
+
+function PanelMenuItemContent(props: {
+  icon?: ReactNode;
+  text: string;
+  right?: ReactNode;
+  textClassName?: string;
+  iconClassName?: string;
+}) {
   return (
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
-        {props.icon ? <span className="shrink-0 [&>svg]:size-4">{props.icon}</span> : null}
-        <TruncatedText text={props.text} className="min-w-0 flex-1 text-callout" />
+        {props.icon ? (
+          <span
+            className={cn(
+              "shrink-0 [&>svg]:size-4",
+              HOVER_ICON_MOTION_CLASSNAME,
+              props.iconClassName,
+            )}
+          >
+            {props.icon}
+          </span>
+        ) : null}
+        <ClampedText
+          text={props.text}
+          className={cn("min-w-0 flex-1 text-callout leading-snug", props.textClassName)}
+        />
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
@@ -48,17 +99,26 @@ function PanelMenuItemContent(props: { icon?: ReactNode; text: string; right?: R
 
 const panelMenuButtonClassName = cn(
   "group",
-  "transition-colors",
-  "hover:bg-accent hover:text-foreground",
+  "min-h-11 rounded-xl",
+  "text-label-secondary",
+  INTERACTION_TRANSITION_CLASSNAME,
+  "hover:bg-accent/80 hover:text-foreground",
+  "active:scale-[0.992]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
 
-function PanelMenuButton(props: { onClick?: () => void; children: ReactNode; disabled?: boolean }) {
+function PanelMenuButton(props: {
+  onClick?: () => void;
+  children: ReactNode;
+  disabled?: boolean;
+  className?: string;
+}) {
   return (
     <FloatingPanelButton
       className={cn(
         panelMenuButtonClassName,
         props.disabled && "opacity-60 pointer-events-none cursor-not-allowed",
+        props.className,
       )}
       onClick={props.disabled ? undefined : props.onClick}
     >
@@ -85,6 +145,7 @@ const sidebarTriggerShellClassName = cn(
 
 const sidebarTriggerButtonClassName = cn(
   SIDEBAR_TRIGGER_HEIGHT_CLASSNAME,
+  "group/panel-trigger",
   "min-w-0 flex-1 group-data-[collapsible=icon]:flex-none",
   "!flex !items-center !justify-start gap-2",
   "group-data-[collapsible=icon]:gap-0",
@@ -101,6 +162,7 @@ const sidebarTriggerButtonClassName = cn(
 
 const headerTriggerButtonClassName = cn(
   HEADER_TRIGGER_HEIGHT_CLASSNAME,
+  "group/panel-trigger",
   "inline-flex max-w-full min-w-0 items-center gap-2 rounded-lg border border-transparent",
   "bg-transparent px-2 text-label-secondary shadow-none",
   "transition-[border-color,background-color,color] duration-200",
@@ -118,6 +180,7 @@ const collapseButtonBaseClassName = cn(
 );
 
 const collapseButtonClassName = cn(
+  "group",
   collapseButtonBaseClassName,
   "w-0 shrink-0 overflow-hidden rounded-lg !p-0",
   "opacity-0 pointer-events-none",
@@ -129,6 +192,7 @@ const collapseButtonClassName = cn(
 );
 
 const collapsedCollapseButtonClassName = cn(
+  "group",
   collapseButtonBaseClassName,
   "w-10",
   "rounded-lg !p-0",
@@ -148,7 +212,14 @@ function CollapseButton(props: { ariaLabel: string; onClick: () => void; classNa
         props.onClick();
       }}
     >
-      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
+      <PanelLeftIcon
+        className={cn(
+          "mx-auto size-4",
+          "transition-transform duration-200 ease-out motion-reduce:transition-none",
+          "group-hover:-translate-x-0.5 group-hover:scale-[1.04]",
+        )}
+        aria-hidden="true"
+      />
     </Button>
   );
 }
@@ -163,7 +234,14 @@ function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void
       aria-label={props.ariaLabel}
       onClick={props.onClick}
     >
-      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
+      <PanelLeftIcon
+        className={cn(
+          "mx-auto size-4",
+          "transition-transform duration-200 ease-out motion-reduce:transition-none",
+          "group-hover:-translate-x-0.5 group-hover:scale-[1.04]",
+        )}
+        aria-hidden="true"
+      />
     </Button>
   );
 }
@@ -222,11 +300,73 @@ function PanelPickerSkeleton(props: { rows: number }) {
   );
 }
 
+function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
+  const { t } = useTranslation(["common"]);
+  const memberCount = Math.max(0, props.workspace.memberCount ?? 0);
+  const membersPreview = props.workspace.membersPreview ?? [];
+  const visibleMembers = membersPreview.slice(0, 3);
+  const hiddenMemberCount = Math.max(0, memberCount - visibleMembers.length);
+
+  return (
+    <div className="mt-1.5 flex min-w-0 items-center gap-2 text-footnote text-label-secondary">
+      {visibleMembers.length > 0 ? (
+        <AvatarGroup className="shrink-0">
+          {visibleMembers.map((member) => (
+            <UserAvatar
+              key={member.userId}
+              name={member.displayName || member.username || "U"}
+              assetRef={member.avatarUrl}
+              size={20}
+              className="ring-2 ring-background transition-transform duration-200 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+            />
+          ))}
+          {hiddenMemberCount > 0 ? (
+            <AvatarGroupCount className="size-5 bg-muted text-footnote text-label-secondary transition-transform duration-200 ease-out group-hover:scale-[1.04] motion-reduce:transition-none">
+              +{hiddenMemberCount}
+            </AvatarGroupCount>
+          ) : null}
+        </AvatarGroup>
+      ) : null}
+      <span className="min-w-0 truncate leading-tight">
+        {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: memberCount })}
+      </span>
+    </div>
+  );
+}
+
+function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: boolean }) {
+  const title = props.workspace.name || props.workspace.slug || props.workspace.workspaceId;
+
+  return (
+    <>
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <WorkspaceAvatar
+          name={title}
+          assetRef={props.workspace.iconUrl ?? null}
+          size={28}
+          className="mt-0.5 shrink-0 transition-transform duration-200 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+        />
+        <div className="min-w-0 flex-1 text-left">
+          <ClampedText
+            text={title}
+            className="line-clamp-2 text-callout font-semibold leading-snug text-foreground"
+          />
+          <WorkspaceMemberMeta workspace={props.workspace} />
+        </div>
+      </div>
+      {props.selected ? (
+        <span className="shrink-0 pt-0.5 opacity-90 transition-transform duration-200 ease-out group-hover:scale-105 motion-reduce:transition-none">
+          <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+        </span>
+      ) : null}
+    </>
+  );
+}
+
 function WorkspacePickerSection(props: {
   workspaces: readonly MyWorkspace[];
   activeWorkspaceId: string | null;
   onSelect: (workspaceId: string) => void;
-  onCreate: () => void;
 }) {
   const { t } = useTranslation(["common"]);
 
@@ -235,7 +375,12 @@ function WorkspacePickerSection(props: {
       <div className="px-2 py-1.5 text-callout text-label-secondary">
         {t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
       </div>
-      <div className="flex flex-col gap-1">
+      <div
+        className={cn(
+          PANEL_SECTION_CLASSNAME,
+          "max-h-[min(19rem,calc(100vh-15rem))] overflow-y-auto overscroll-contain",
+        )}
+      >
         {props.workspaces.length === 0 ? (
           <div className="px-2 py-1.5 text-callout text-label-secondary">
             {t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")}
@@ -243,57 +388,64 @@ function WorkspacePickerSection(props: {
         ) : null}
         {props.workspaces.map((workspace) => {
           const selected = String(props.activeWorkspaceId || "") === String(workspace.workspaceId);
-          const title = workspace.name || workspace.slug || workspace.workspaceId;
           return (
             <PanelMenuButton
               key={workspace.workspaceId}
               onClick={() => props.onSelect(workspace.workspaceId)}
+              className={cn(
+                "items-start px-3 py-2.5",
+                selected && "bg-background/95 text-foreground",
+              )}
             >
-              <PanelMenuItemContent
-                icon={
-                  <WorkspaceAvatar name={title} assetRef={null} size={24} className="shrink-0" />
-                }
-                text={title}
-                right={
-                  selected ? <Check className="h-4 w-4 text-primary" aria-hidden="true" /> : null
-                }
-              />
+              <WorkspacePickerItemContent workspace={workspace} selected={selected} />
             </PanelMenuButton>
           );
         })}
-        <PanelMenuButton onClick={props.onCreate}>
-          <PanelMenuItemContent
-            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
-            text={t("common:WORKSPACE_SWITCHER_CREATE")}
-          />
-        </PanelMenuButton>
       </div>
     </div>
   );
 }
 
-function ManageWorkspacesButton() {
-  const { t } = useTranslation(["account"]);
-  const navigate = useNavigate();
-  const { closeFloatingPanel } = useFloatingPanel();
-
+function WorkspaceActionButton(props: {
+  icon?: ReactNode;
+  text: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <PanelMenuButton
-      onClick={() => {
-        closeFloatingPanel();
-        void navigate({ to: "/account/workspaces" as never });
-      }}
+      onClick={props.onClick}
+      disabled={props.disabled}
+      className="rounded-none px-3 py-2.5"
     >
       <PanelMenuItemContent
-        icon={<Plus className="h-4 w-4" aria-hidden="true" />}
-        text={t("account:ACCOUNT_PAGE_WORKSPACES_TITLE")}
+        icon={props.icon}
+        text={props.text}
+        textClassName="leading-snug text-label-primary"
       />
     </PanelMenuButton>
   );
 }
 
-function PanelContentInner() {
+function ViewAllWorkspacesButton() {
   const { t } = useTranslation(["common"]);
+  const navigate = useNavigate();
+  const { closeFloatingPanel } = useFloatingPanel();
+
+  return (
+    <WorkspaceActionButton
+      icon={<PanelsTopLeft className="h-4 w-4" aria-hidden="true" />}
+      text={t("common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES")}
+      onClick={() => {
+        closeFloatingPanel();
+        void navigate({ to: "/account/workspaces" as never });
+      }}
+    />
+  );
+}
+
+function PanelContentInner() {
+  const { t } = useTranslation(["common", "team"]);
   const { closeFloatingPanel } = useFloatingPanel();
   const accessToken = useAuthStore((state) => state.accessToken);
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
@@ -319,10 +471,11 @@ function PanelContentInner() {
     [workspacesQuery.data?.items],
   );
 
-  const divider = <div className="h-px bg-border/60" />;
+  const currentWorkspaceBase = currentWorkspaceId ? `/w/${currentWorkspaceId}` : null;
+  const divider = <div className="mx-3 h-px bg-border/45" />;
 
   return (
-    <div className="w-[min(25rem,calc(100vw-1.5rem))] max-w-full">
+    <div className="w-[min(21rem,calc(100vw-1rem))] max-w-full">
       <div className="py-1.5">
         {workspacesQuery.isError ? (
           <PanelErrorMessage message={t("common:REQUEST_FAILED")} />
@@ -342,18 +495,47 @@ function PanelContentInner() {
               });
               void navigate({ to: nextPath as never });
             }}
-            onCreate={() => {
-              closeFloatingPanel();
-              void navigate({ to: "/account/workspaces?create=1" as never });
-            }}
           />
         )}
       </div>
 
       {divider}
 
-      <div className="py-1.5">
-        <ManageWorkspacesButton />
+      <div className="py-1.5 space-y-1">
+        <WorkspaceActionButton
+          icon={<Settings2 className="h-4 w-4" aria-hidden="true" />}
+          text={t("common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS")}
+          disabled={!currentWorkspaceBase}
+          onClick={() => {
+            if (!currentWorkspaceBase) return;
+            closeFloatingPanel();
+            void navigate({ to: `${currentWorkspaceBase}/settings/workspace/` as never });
+          }}
+        />
+        <WorkspaceActionButton
+          icon={<Users className="h-4 w-4" aria-hidden="true" />}
+          text={t("team:TEAM_INVITE_MEMBER")}
+          disabled={!currentWorkspaceBase}
+          onClick={() => {
+            if (!currentWorkspaceBase) return;
+            closeFloatingPanel();
+            void navigate({ to: `${currentWorkspaceBase}/team/members/` as never });
+          }}
+        />
+        <ViewAllWorkspacesButton />
+      </div>
+
+      {divider}
+
+      <div className="pt-1.5 pb-1">
+        <WorkspaceActionButton
+          icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+          text={t("common:WORKSPACE_SWITCHER_ADD_WORKSPACE")}
+          onClick={() => {
+            closeFloatingPanel();
+            void navigate({ to: "/account/workspaces?create=1" as never });
+          }}
+        />
       </div>
     </div>
   );
@@ -422,7 +604,7 @@ export function AdminWorkspaceSwitcher({
           <div className="min-w-0 flex-1 text-left">
             <TruncatedText
               text={backLabel}
-              className="text-callout font-semibold text-foreground"
+              className="text-callout font-semibold text-label-primary"
             />
           </div>
         </Button>
@@ -469,7 +651,7 @@ export function AdminWorkspaceSwitcher({
             >
               <TruncatedText
                 text={backLabel}
-                className="text-callout font-semibold text-foreground"
+                className="text-callout font-semibold text-label-primary"
               />
             </div>
           </Button>
@@ -519,17 +701,20 @@ export function AdminWorkspaceSwitcher({
             name={workspaceTriggerText}
             assetRef={workspaceIconUrl}
             size={28}
-            className="shrink-0"
+            className="shrink-0 transition-transform duration-200 ease-out group-hover/panel-trigger:scale-[1.04] motion-reduce:transition-none"
           />
 
           <div className="min-w-0 overflow-hidden text-left">
             <TruncatedText
               text={workspaceTriggerText}
-              className="text-callout font-semibold text-foreground"
+              className="text-callout font-semibold text-label-primary"
             />
           </div>
 
-          <ChevronDown className="size-4 shrink-0 opacity-70" aria-hidden="true" />
+          <ChevronDown
+            className="size-4 shrink-0 opacity-70 transition-transform duration-200 ease-out group-data-[state=open]/panel-trigger:rotate-180 group-hover/panel-trigger:translate-y-px motion-reduce:transition-none"
+            aria-hidden="true"
+          />
         </FloatingPanelTrigger>
 
         <FloatingPanelContent placement="bottom" offset={10} showTitle={false} className="p-0">
@@ -563,7 +748,7 @@ export function AdminWorkspaceSwitcher({
               name={workspaceTriggerText}
               assetRef={workspaceIconUrl}
               size={32}
-              className="shrink-0"
+              className="shrink-0 transition-transform duration-200 ease-out group-hover/panel-trigger:scale-[1.04] motion-reduce:transition-none"
             />
 
             <div
@@ -575,13 +760,14 @@ export function AdminWorkspaceSwitcher({
             >
               <TruncatedText
                 text={workspaceTriggerText}
-                className="text-callout font-semibold text-foreground"
+                className="text-callout font-semibold text-label-primary"
               />
             </div>
 
             <ChevronDown
               className={cn(
-                "size-4 shrink-0 opacity-70 transition-opacity group-hover:opacity-100",
+                "size-4 shrink-0 opacity-70 transition-[opacity,transform] duration-200 ease-out group-hover:opacity-100 group-hover/panel-trigger:translate-y-px motion-reduce:transition-none",
+                "group-data-[state=open]/panel-trigger:rotate-180",
                 NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
               )}
               aria-hidden="true"

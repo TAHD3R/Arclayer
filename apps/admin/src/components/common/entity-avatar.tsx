@@ -53,7 +53,7 @@ export function UserAvatar(props: PublicEntityAvatarProps) {
 }
 
 export function WorkspaceAvatar(props: PublicEntityAvatarProps) {
-  return <EntityAvatar {...props} fallbackLabel="工作区" shape="square" />;
+  return <EntityAvatar {...props} fallbackLabel="工作空间" shape="square" />;
 }
 
 export function OrganizationAvatar(props: PublicEntityAvatarProps) {

@@ -27,8 +27,10 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ThemePreference } from "@/types/stores";
 
 const SHORTCUTS_HELP_HASH = "#shortcuts";
+const TRIGGER_ICON_MOTION_CLASSNAME =
+  "transition-transform duration-200 ease-out motion-reduce:transition-none";
 const HEADER_TRIGGER_CLASSNAME = cn(
-  "group flex h-11 items-center gap-2 rounded-xl border border-transparent bg-transparent pl-1 pr-2",
+  "group/panel-trigger flex h-11 items-center gap-1.5 rounded-xl border border-transparent bg-transparent pl-0.5 pr-1.5",
   "text-label-secondary transition-[background-color,color,border-color] duration-200",
   "hover:bg-accent/70 hover:text-foreground",
   "data-[state=open]:border-border/70 data-[state=open]:bg-accent data-[state=open]:text-foreground",
@@ -112,7 +114,7 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
   const isHeaderVariant = props.variant === "header";
 
   const sidebarTriggerClassName = cn(
-    "group",
+    "group/panel-trigger",
     "flex w-full items-center",
     "h-16 py-0",
     "justify-start gap-3 px-5",
@@ -145,7 +147,11 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
             name={model.displayName}
             assetRef={model.avatarUrl}
             size={36}
-            className="shrink-0"
+            className={cn(
+              "shrink-0",
+              TRIGGER_ICON_MOTION_CLASSNAME,
+              "group-hover/panel-trigger:scale-[1.04]",
+            )}
           />
         </FloatingPanelTrigger>
 
@@ -178,7 +184,11 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
           name={model.displayName}
           assetRef={model.avatarUrl}
           size={40}
-          className="shrink-0"
+          className={cn(
+            "shrink-0",
+            TRIGGER_ICON_MOTION_CLASSNAME,
+            "group-hover/panel-trigger:scale-[1.04]",
+          )}
         />
 
         <div className={cn("min-w-0 flex-1 text-left", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
@@ -192,7 +202,10 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
 
         <ChevronDown
           className={cn(
-            "ml-auto size-4 shrink-0 opacity-70 transition-colors group-hover:opacity-100",
+            "ml-auto size-4 shrink-0 opacity-70",
+            "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+            "group-hover:opacity-100 group-hover/panel-trigger:translate-y-px",
+            "group-data-[state=open]/panel-trigger:rotate-180",
             "group-data-[collapsible=icon]:ml-0",
             NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
           )}
