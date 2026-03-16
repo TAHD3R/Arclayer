@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Search, X } from "lucide-react";
+import { Search, X } from "@arclayer/ui/icons/lucide-animated";
 
 import {
   ChromeTabs,

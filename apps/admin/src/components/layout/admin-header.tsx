@@ -1,5 +1,5 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "@arclayer/ui/icons/lucide-animated";
 import type { ReactNode } from "react";
 import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

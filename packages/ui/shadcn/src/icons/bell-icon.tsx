@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import type { Easing, SVGMotionProps } from "motion/react";
 
 import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface BellIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
@@ -18,7 +19,7 @@ const BellIcon = (props: BellIconProps) => {
     size = 28,
     duration = 0.9,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     loop = false,
     ease = "easeInOut",
     className,
@@ -27,14 +28,16 @@ const BellIcon = (props: BellIconProps) => {
 
   const [nonce, setNonce] = useState(0);
   const reducedMotion = useMediaPrefersReducedMotion();
+  const hoverState = useIconHoverState(isHovered);
+  const hovered = hoverState.hovered;
 
   useEffect(() => {
     if (loop) return;
     if (reducedMotion) return;
-    if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop, reducedMotion]);
+    if (hovered) setNonce((n) => n + 1);
+  }, [hovered, loop, reducedMotion]);
 
-  const shouldAnimate = !reducedMotion && (loop || isHovered);
+  const shouldAnimate = !reducedMotion && (loop || hovered);
 
   return (
     <motion.svg
@@ -50,6 +53,9 @@ const BellIcon = (props: BellIconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
       animate={shouldAnimate ? { rotate: [0, -12, 12, -8, 8, 0] } : { rotate: 0 }}
       transition={{ duration, ease, repeat: loop ? Infinity : 0 }}
       style={{ transformOrigin: "50% 20%" }}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { cloneElement, isValidElement, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -11,7 +11,7 @@ import {
   Moon,
   Sun,
   UserCog,
-} from "lucide-react";
+} from "@arclayer/ui/icons/lucide-animated";
 import { AnimatePresence, motion } from "motion/react";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import type { AppLocale } from "@/lib/i18n";
@@ -42,8 +42,6 @@ type PreferenceOption = {
 };
 
 const PANEL_WIDTH_CLASSNAME = "w-[min(20.5rem,calc(100vw-1.25rem))]";
-const MENU_ICON_MOTION_CLASSNAME =
-  "transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none group-hover:translate-x-0.5";
 const MENU_ITEM_CLASSNAME = cn(
   "group transition-[background-color,color] duration-200",
   "hover:bg-accent hover:text-foreground",
@@ -55,20 +53,30 @@ const VIEW_TRANSITIONS = {
   exit: (direction: number) => ({ opacity: 0, x: direction > 0 ? -20 : 20 }),
 };
 
-function MenuItemContent(props: { icon?: ReactNode; label: string; right?: ReactNode }) {
+function withHoverState(node: ReactNode, isHovered: boolean) {
+  if (!isValidElement<{ isHovered?: boolean }>(node)) return node;
+  return cloneElement(node, { isHovered });
+}
+
+function MenuItemContent(props: {
+  icon?: ReactNode;
+  label: string;
+  right?: ReactNode;
+  isHovered: boolean;
+}) {
   return (
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
         {props.icon ? (
-          <span className={cn("shrink-0 [&>svg]:size-4", MENU_ICON_MOTION_CLASSNAME)}>
-            {props.icon}
+          <span className="shrink-0 [&>svg]:size-4">
+            {withHoverState(props.icon, props.isHovered)}
           </span>
         ) : null}
         <span className="min-w-0 truncate text-callout">{props.label}</span>
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
-          {props.right}
+          {withHoverState(props.right, props.isHovered)}
         </span>
       ) : null}
     </>
@@ -85,9 +93,21 @@ function MenuAction(props: {
   right?: ReactNode;
   onClick: () => Promise<void> | void;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <FloatingPanelButton className={MENU_ITEM_CLASSNAME} onClick={props.onClick}>
-      <MenuItemContent icon={props.icon} label={props.label} right={props.right} />
+    <FloatingPanelButton
+      className={MENU_ITEM_CLASSNAME}
+      onClick={props.onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <MenuItemContent
+        icon={props.icon}
+        label={props.label}
+        right={props.right}
+        isHovered={isHovered}
+      />
     </FloatingPanelButton>
   );
 }

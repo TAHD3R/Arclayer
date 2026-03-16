@@ -629,9 +629,21 @@ interface FloatingPanelButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
+  onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>;
+  onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>;
+  onFocus?: React.FocusEventHandler<HTMLButtonElement>;
+  onBlur?: React.FocusEventHandler<HTMLButtonElement>;
 }
 
-export function FloatingPanelButton({ children, onClick, className }: FloatingPanelButtonProps) {
+export function FloatingPanelButton({
+  children,
+  onClick,
+  className,
+  onMouseEnter,
+  onMouseLeave,
+  onFocus,
+  onBlur,
+}: FloatingPanelButtonProps) {
   return (
     <motion.button
       className={cn(
@@ -640,6 +652,10 @@ export function FloatingPanelButton({ children, onClick, className }: FloatingPa
         className,
       )}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onFocus={onFocus}
+      onBlur={onBlur}
       whileTap={{ scale: 0.98 }}
     >
       {children}

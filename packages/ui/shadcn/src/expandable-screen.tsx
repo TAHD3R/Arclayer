@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { X } from "@arclayer/ui/icons/lucide-animated";
 import { AnimatePresence, motion } from "motion/react";
 
 interface ExpandableScreenContextValue {

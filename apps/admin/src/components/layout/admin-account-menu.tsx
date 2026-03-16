@@ -1,9 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { ChevronDown } from "lucide-react";
 
 import * as authApi from "@/api/auth";
 import { UserAvatar } from "@/components/common/entity-avatar";
@@ -14,27 +13,42 @@ import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profil
 import type { AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
-import { cn } from "@arclayer/lib/utils";
-import {
-  FloatingPanelContent,
-  FloatingPanelRoot,
-  FloatingPanelTrigger,
-} from "@arclayer/ui/floating-panel";
-import { useSidebar } from "@arclayer/ui/sidebar";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ThemePreference } from "@/types/stores";
+import { cn } from "@arclayer/lib/utils";
+import { ChevronDown } from "@arclayer/ui/icons/lucide-animated";
+import {
+  FloatingPanelContent,
+  FloatingPanelRoot,
+  FloatingPanelTrigger,
+  useFloatingPanel,
+} from "@arclayer/ui/floating-panel";
+import { useSidebar } from "@arclayer/ui/sidebar";
 
 const SHORTCUTS_HELP_HASH = "#shortcuts";
-const TRIGGER_ICON_MOTION_CLASSNAME =
-  "transition-transform duration-200 ease-out motion-reduce:transition-none";
 const HEADER_TRIGGER_CLASSNAME = cn(
   "group/panel-trigger flex h-11 items-center gap-1.5 rounded-xl border border-transparent bg-transparent pl-0.5 pr-1.5",
   "text-label-secondary transition-[background-color,color,border-color] duration-200",
   "hover:bg-accent/70 hover:text-foreground",
   "data-[state=open]:border-border/70 data-[state=open]:bg-accent data-[state=open]:text-foreground",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+);
+const SIDEBAR_TRIGGER_CLASSNAME = cn(
+  "group/panel-trigger",
+  "flex w-full items-center",
+  "h-16 py-0",
+  "justify-start gap-3 px-5",
+  "group-data-[collapsible=icon]:px-2",
+  "group-data-[collapsible=icon]:gap-0",
+  "border-0 bg-transparent",
+  "rounded-none",
+  "text-label-secondary",
+  "hover:bg-accent hover:text-sidebar-accent-foreground",
+  "data-[state=open]:bg-accent data-[state=open]:text-sidebar-accent-foreground",
+  "transition-[color,background-color,padding,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
 
 type AdminAccountMenuModel = {
@@ -106,54 +120,86 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
   };
 }
 
-export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {}) {
-  const { t } = useTranslation("account");
-  const model = useAdminAccountMenuModel();
-  const { state: sidebarState, isMobile } = useSidebar();
-  const isCollapsed = sidebarState === "collapsed" && !isMobile;
-  const isHeaderVariant = props.variant === "header";
-
-  const sidebarTriggerClassName = cn(
-    "group/panel-trigger",
-    "flex w-full items-center",
-    "h-16 py-0",
-    "justify-start gap-3 px-5",
-    "group-data-[collapsible=icon]:px-2",
-    "group-data-[collapsible=icon]:gap-0",
-    "border-0 bg-transparent",
-    "rounded-none",
-    "text-label-secondary",
-    "hover:bg-accent hover:text-sidebar-accent-foreground",
-    "data-[state=open]:bg-accent data-[state=open]:text-sidebar-accent-foreground",
-    "transition-[color,background-color,padding,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+function HeaderAccountMenuTrigger(props: { displayName: string; avatarUrl: string | null }) {
+  return (
+    <FloatingPanelTrigger
+      title={props.displayName}
+      disableLayoutId
+      className={HEADER_TRIGGER_CLASSNAME}
+    >
+      <UserAvatar
+        name={props.displayName}
+        assetRef={props.avatarUrl}
+        size={36}
+        className="shrink-0"
+      />
+    </FloatingPanelTrigger>
   );
+}
 
+function SidebarAccountMenuTrigger(props: {
+  displayName: string;
+  email: string | null;
+  avatarUrl: string | null;
+  isCollapsed: boolean;
+}) {
+  const { t } = useTranslation("account");
+  const { isOpen } = useFloatingPanel();
+  const [isHovered, setIsHovered] = useState(false);
+  const title = props.isCollapsed ? props.displayName : t("ACCOUNT_TITLE");
   const nameClassName = cn(
     "text-sidebar-foreground",
     "group-hover:text-sidebar-accent-foreground",
     "group-data-[state=open]:text-sidebar-accent-foreground",
   );
 
+  return (
+    <FloatingPanelTrigger
+      title={title}
+      disableLayoutId
+      className={SIDEBAR_TRIGGER_CLASSNAME}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <UserAvatar
+        name={props.displayName}
+        assetRef={props.avatarUrl}
+        size={40}
+        className="shrink-0"
+      />
+
+      <div className={cn("min-w-0 flex-1 text-left", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+        <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
+          {props.displayName}
+        </div>
+        {props.email ? (
+          <div className="truncate text-caption text-label-secondary">{props.email}</div>
+        ) : null}
+      </div>
+
+      <ChevronDown
+        className={cn(
+          "ml-auto size-4 shrink-0 opacity-70",
+          "group-data-[collapsible=icon]:ml-0",
+          NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+        )}
+        expanded={isOpen}
+        isHovered={isHovered}
+      />
+    </FloatingPanelTrigger>
+  );
+}
+
+export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {}) {
+  const model = useAdminAccountMenuModel();
+  const { state: sidebarState, isMobile } = useSidebar();
+  const isCollapsed = sidebarState === "collapsed" && !isMobile;
+  const isHeaderVariant = props.variant === "header";
+
   if (isHeaderVariant) {
     return (
       <FloatingPanelRoot>
-        <FloatingPanelTrigger
-          title={model.displayName}
-          disableLayoutId
-          className={HEADER_TRIGGER_CLASSNAME}
-        >
-          <UserAvatar
-            name={model.displayName}
-            assetRef={model.avatarUrl}
-            size={36}
-            className={cn(
-              "shrink-0",
-              TRIGGER_ICON_MOTION_CLASSNAME,
-              "group-hover/panel-trigger:scale-[1.04]",
-            )}
-          />
-        </FloatingPanelTrigger>
+        <HeaderAccountMenuTrigger displayName={model.displayName} avatarUrl={model.avatarUrl} />
 
         <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
           <AdminAccountPanelContent
@@ -175,42 +221,12 @@ export function AdminAccountMenu(props: { variant?: "sidebar" | "header" } = {})
 
   return (
     <FloatingPanelRoot className="w-full">
-      <FloatingPanelTrigger
-        title={isCollapsed ? model.displayName : t("ACCOUNT_TITLE")}
-        disableLayoutId
-        className={sidebarTriggerClassName}
-      >
-        <UserAvatar
-          name={model.displayName}
-          assetRef={model.avatarUrl}
-          size={40}
-          className={cn(
-            "shrink-0",
-            TRIGGER_ICON_MOTION_CLASSNAME,
-            "group-hover/panel-trigger:scale-[1.04]",
-          )}
-        />
-
-        <div className={cn("min-w-0 flex-1 text-left", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-          <div className={cn("truncate text-footnote font-semibold", nameClassName)}>
-            {model.displayName}
-          </div>
-          {model.email ? (
-            <div className="truncate text-caption text-label-secondary">{model.email}</div>
-          ) : null}
-        </div>
-
-        <ChevronDown
-          className={cn(
-            "ml-auto size-4 shrink-0 opacity-70",
-            "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
-            "group-hover:opacity-100 group-hover/panel-trigger:translate-y-px",
-            "group-data-[state=open]/panel-trigger:rotate-180",
-            "group-data-[collapsible=icon]:ml-0",
-            NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-          )}
-        />
-      </FloatingPanelTrigger>
+      <SidebarAccountMenuTrigger
+        displayName={model.displayName}
+        email={model.email}
+        avatarUrl={model.avatarUrl}
+        isCollapsed={isCollapsed}
+      />
 
       <FloatingPanelContent placement="bottom" showTitle={false} className="p-0">
         <AdminAccountPanelContent

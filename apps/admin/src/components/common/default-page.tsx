@@ -1,6 +1,6 @@
 import { Children, Fragment, isValidElement, type ReactNode, useState } from "react";
 import clsx from "clsx";
-import { Star } from "lucide-react";
+import { Star } from "@arclayer/ui/icons/lucide-animated";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";

@@ -1,4 +1,4 @@
-import { UserCog } from "lucide-react";
+import { UserCog } from "@arclayer/ui/icons/lucide-animated";
 import { useCallback } from "react";
 
 import { Button } from "@arclayer/ui/button";

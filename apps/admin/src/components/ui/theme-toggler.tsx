@@ -2,7 +2,7 @@
 
 import type * as React from "react";
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "@arclayer/ui/icons/lucide-animated";
 import type { VariantProps } from "class-variance-authority";
 
 import {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
+import { Archive, LogIn, Plus, Trash2, Undo2 } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { type OrganizationWorkspace } from "@/types/api";

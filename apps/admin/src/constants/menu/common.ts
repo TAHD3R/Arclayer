@@ -1,4 +1,4 @@
-import { Bell, CircleHelp, ExternalLink } from "lucide-react";
+import { Bell, CircleHelp, ExternalLink } from "@arclayer/ui/icons/lucide-animated";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 

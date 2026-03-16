@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, type SVGMotionProps, type Easing } from "motion/react";
 
 import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface LanguagesIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
@@ -17,7 +18,7 @@ const LanguagesIcon = (props: LanguagesIconProps) => {
     size = 28,
     duration = 0.9,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     loop = false,
     ease = "easeInOut",
     className,
@@ -26,14 +27,16 @@ const LanguagesIcon = (props: LanguagesIconProps) => {
 
   const [nonce, setNonce] = useState(0);
   const reducedMotion = useMediaPrefersReducedMotion();
+  const hoverState = useIconHoverState(isHovered);
+  const hovered = hoverState.hovered;
 
   useEffect(() => {
     if (loop) return;
     if (reducedMotion) return;
-    if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop, reducedMotion]);
+    if (hovered) setNonce((n) => n + 1);
+  }, [hovered, loop, reducedMotion]);
 
-  const shouldAnimate = !reducedMotion && (loop || isHovered);
+  const shouldAnimate = !reducedMotion && (loop || hovered);
 
   const animationProps = {
     animate: shouldAnimate ? { rotate: [0, -8, 8, -4, 4, 0] } : { rotate: 0 },
@@ -58,6 +61,9 @@ const LanguagesIcon = (props: LanguagesIconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
       {...animationProps}
     >
       <path d="m5 8 6 6" />

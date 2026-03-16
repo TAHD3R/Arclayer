@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Plus } from "lucide-react";
+import { Plus } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import type { OrganizationWorkspace } from "@/types/api";

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@arclayer/ui/icons/lucide-animated";
 import { motion } from "motion/react";
 import * as React from "react";
 

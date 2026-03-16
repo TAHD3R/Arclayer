@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from "react";
+import { cloneElement, isValidElement, type ReactNode, useMemo, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
@@ -11,7 +11,7 @@ import {
   Plus,
   Settings2,
   Users,
-} from "lucide-react";
+} from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces, getWorkspaceDetail } from "@/api/workspaces";
@@ -42,12 +42,6 @@ const INTERACTION_TRANSITION_CLASSNAME = cn(
   INTERACTION_EASING,
   "motion-reduce:transition-none",
 );
-const HOVER_ICON_MOTION_CLASSNAME = cn(
-  "transition-transform duration-200",
-  INTERACTION_EASING,
-  "motion-reduce:transition-none",
-  "group-hover:translate-x-0.5",
-);
 const PANEL_SECTION_CLASSNAME = "rounded-2xl bg-accent/[0.24] p-1";
 
 function TruncatedText(props: { text: string; className?: string }) {
@@ -62,25 +56,24 @@ function ClampedText(props: { text: string; className?: string }) {
   );
 }
 
+function withHoverState(node: ReactNode, isHovered: boolean) {
+  if (!isValidElement<{ isHovered?: boolean }>(node)) return node;
+  return cloneElement(node, { isHovered });
+}
+
 function PanelMenuItemContent(props: {
   icon?: ReactNode;
   text: string;
   right?: ReactNode;
   textClassName?: string;
-  iconClassName?: string;
+  isHovered: boolean;
 }) {
   return (
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
         {props.icon ? (
-          <span
-            className={cn(
-              "shrink-0 [&>svg]:size-4",
-              HOVER_ICON_MOTION_CLASSNAME,
-              props.iconClassName,
-            )}
-          >
-            {props.icon}
+          <span className="shrink-0 [&>svg]:size-4">
+            {withHoverState(props.icon, props.isHovered)}
           </span>
         ) : null}
         <ClampedText
@@ -90,7 +83,7 @@ function PanelMenuItemContent(props: {
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
-          {props.right}
+          {withHoverState(props.right, props.isHovered)}
         </span>
       ) : null}
     </>
@@ -109,10 +102,12 @@ const panelMenuButtonClassName = cn(
 
 function PanelMenuButton(props: {
   onClick?: () => void;
-  children: ReactNode;
+  children: ReactNode | ((state: { isHovered: boolean }) => ReactNode);
   disabled?: boolean;
   className?: string;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <FloatingPanelButton
       className={cn(
@@ -121,8 +116,10 @@ function PanelMenuButton(props: {
         props.className,
       )}
       onClick={props.disabled ? undefined : props.onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {props.children}
+      {typeof props.children === "function" ? props.children({ isHovered }) : props.children}
     </FloatingPanelButton>
   );
 }
@@ -200,6 +197,8 @@ const collapsedCollapseButtonClassName = cn(
 );
 
 function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <Button
       type="button"
@@ -207,24 +206,21 @@ function CollapseButton(props: { ariaLabel: string; onClick: () => void; classNa
       size="icon"
       className={cn(collapseButtonClassName, props.className)}
       aria-label={props.ariaLabel}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={(event) => {
         event.stopPropagation();
         props.onClick();
       }}
     >
-      <PanelLeftIcon
-        className={cn(
-          "mx-auto size-4",
-          "transition-transform duration-200 ease-out motion-reduce:transition-none",
-          "group-hover:-translate-x-0.5 group-hover:scale-[1.04]",
-        )}
-        aria-hidden="true"
-      />
+      <PanelLeftIcon className="mx-auto size-4" isHovered={isHovered} aria-hidden="true" />
     </Button>
   );
 }
 
 function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <Button
       type="button"
@@ -232,16 +228,11 @@ function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void
       size="icon"
       className={collapsedCollapseButtonClassName}
       aria-label={props.ariaLabel}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={props.onClick}
     >
-      <PanelLeftIcon
-        className={cn(
-          "mx-auto size-4",
-          "transition-transform duration-200 ease-out motion-reduce:transition-none",
-          "group-hover:-translate-x-0.5 group-hover:scale-[1.04]",
-        )}
-        aria-hidden="true"
-      />
+      <PanelLeftIcon className="mx-auto size-4" isHovered={isHovered} aria-hidden="true" />
     </Button>
   );
 }
@@ -317,11 +308,11 @@ function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
               name={member.displayName || member.username || "U"}
               assetRef={member.avatarUrl}
               size={20}
-              className="ring-2 ring-background transition-transform duration-200 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+              className="ring-2 ring-background"
             />
           ))}
           {hiddenMemberCount > 0 ? (
-            <AvatarGroupCount className="size-5 bg-muted text-footnote text-label-secondary transition-transform duration-200 ease-out group-hover:scale-[1.04] motion-reduce:transition-none">
+            <AvatarGroupCount className="size-5 bg-muted text-footnote text-label-secondary">
               +{hiddenMemberCount}
             </AvatarGroupCount>
           ) : null}
@@ -334,7 +325,11 @@ function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
   );
 }
 
-function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: boolean }) {
+function WorkspacePickerItemContent(props: {
+  workspace: MyWorkspace;
+  selected: boolean;
+  isHovered: boolean;
+}) {
   const title = props.workspace.name || props.workspace.slug || props.workspace.workspaceId;
 
   return (
@@ -344,7 +339,7 @@ function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: b
           name={title}
           assetRef={props.workspace.iconUrl ?? null}
           size={28}
-          className="mt-0.5 shrink-0 transition-transform duration-200 ease-out group-hover:scale-[1.04] motion-reduce:transition-none"
+          className="mt-0.5 shrink-0"
         />
         <div className="min-w-0 flex-1 text-left">
           <ClampedText
@@ -355,8 +350,8 @@ function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: b
         </div>
       </div>
       {props.selected ? (
-        <span className="shrink-0 pt-0.5 opacity-90 transition-transform duration-200 ease-out group-hover:scale-105 motion-reduce:transition-none">
-          <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+        <span className="shrink-0 pt-0.5 opacity-90">
+          <Check className="h-4 w-4 text-primary" isHovered={props.isHovered} aria-hidden="true" />
         </span>
       ) : null}
     </>
@@ -397,7 +392,13 @@ function WorkspacePickerSection(props: {
                 selected && "bg-background/95 text-foreground",
               )}
             >
-              <WorkspacePickerItemContent workspace={workspace} selected={selected} />
+              {({ isHovered }) => (
+                <WorkspacePickerItemContent
+                  workspace={workspace}
+                  selected={selected}
+                  isHovered={isHovered}
+                />
+              )}
             </PanelMenuButton>
           );
         })}
@@ -418,11 +419,14 @@ function WorkspaceActionButton(props: {
       disabled={props.disabled}
       className="rounded-none px-3 py-2.5"
     >
-      <PanelMenuItemContent
-        icon={props.icon}
-        text={props.text}
-        textClassName="leading-snug text-label-primary"
-      />
+      {({ isHovered }) => (
+        <PanelMenuItemContent
+          icon={props.icon}
+          text={props.text}
+          textClassName="leading-snug text-label-primary"
+          isHovered={isHovered}
+        />
+      )}
     </PanelMenuButton>
   );
 }
@@ -538,6 +542,96 @@ function PanelContentInner() {
         />
       </div>
     </div>
+  );
+}
+
+function HeaderWorkspaceTrigger(props: {
+  workspaceTriggerText: string;
+  workspaceIconUrl: string | null;
+  label: string;
+  disabled: boolean;
+}) {
+  const { isOpen } = useFloatingPanel();
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <FloatingPanelTrigger
+      title={props.workspaceTriggerText}
+      aria-label={props.label}
+      disableLayoutId
+      className={cn(headerTriggerButtonClassName, props.disabled && "opacity-60")}
+      disabled={props.disabled}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <WorkspaceAvatar
+        name={props.workspaceTriggerText}
+        assetRef={props.workspaceIconUrl}
+        size={28}
+        className="shrink-0"
+      />
+
+      <div className="min-w-0 overflow-hidden text-left">
+        <TruncatedText
+          text={props.workspaceTriggerText}
+          className="text-callout font-semibold text-label-primary"
+        />
+      </div>
+
+      <ChevronDown className="size-4 shrink-0 opacity-70" expanded={isOpen} isHovered={isHovered} />
+    </FloatingPanelTrigger>
+  );
+}
+
+function SidebarWorkspaceTrigger(props: {
+  workspaceTriggerText: string;
+  workspaceIconUrl: string | null;
+  label: string;
+  disabled: boolean;
+}) {
+  const { isOpen } = useFloatingPanel();
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <FloatingPanelTrigger
+      title={props.workspaceTriggerText}
+      aria-label={props.label}
+      disableLayoutId
+      className={cn(
+        sidebarTriggerButtonClassName,
+        "w-full max-w-full overflow-hidden",
+        props.disabled && "opacity-60",
+      )}
+      disabled={props.disabled}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <WorkspaceAvatar
+        name={props.workspaceTriggerText}
+        assetRef={props.workspaceIconUrl}
+        size={32}
+        className="shrink-0"
+      />
+
+      <div
+        className={cn(
+          "min-w-0 flex-1 overflow-hidden",
+          NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+          "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
+        )}
+      >
+        <TruncatedText
+          text={props.workspaceTriggerText}
+          className="text-callout font-semibold text-label-primary"
+        />
+      </div>
+
+      <ChevronDown
+        className={cn("size-4 shrink-0 opacity-70", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}
+        expanded={isOpen}
+        isHovered={isHovered}
+      />
+    </FloatingPanelTrigger>
   );
 }
 
@@ -690,32 +784,12 @@ export function AdminWorkspaceSwitcher({
   if (isHeaderVariant) {
     return (
       <FloatingPanelRoot className={cn("inline-flex min-w-0 max-w-full", className)}>
-        <FloatingPanelTrigger
-          title={workspaceTriggerText}
-          aria-label={label}
-          disableLayoutId
-          className={cn(headerTriggerButtonClassName, !canOpenPanel && "opacity-60")}
+        <HeaderWorkspaceTrigger
+          workspaceTriggerText={workspaceTriggerText}
+          workspaceIconUrl={workspaceIconUrl}
+          label={label}
           disabled={!canOpenPanel}
-        >
-          <WorkspaceAvatar
-            name={workspaceTriggerText}
-            assetRef={workspaceIconUrl}
-            size={28}
-            className="shrink-0 transition-transform duration-200 ease-out group-hover/panel-trigger:scale-[1.04] motion-reduce:transition-none"
-          />
-
-          <div className="min-w-0 overflow-hidden text-left">
-            <TruncatedText
-              text={workspaceTriggerText}
-              className="text-callout font-semibold text-label-primary"
-            />
-          </div>
-
-          <ChevronDown
-            className="size-4 shrink-0 opacity-70 transition-transform duration-200 ease-out group-data-[state=open]/panel-trigger:rotate-180 group-hover/panel-trigger:translate-y-px motion-reduce:transition-none"
-            aria-hidden="true"
-          />
-        </FloatingPanelTrigger>
+        />
 
         <FloatingPanelContent placement="bottom" offset={10} showTitle={false} className="p-0">
           <PanelContentInner />
@@ -733,46 +807,12 @@ export function AdminWorkspaceSwitcher({
             "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
           )}
         >
-          <FloatingPanelTrigger
-            title={workspaceTriggerText}
-            aria-label={label}
-            disableLayoutId
-            className={cn(
-              sidebarTriggerButtonClassName,
-              "w-full max-w-full overflow-hidden",
-              !canOpenPanel && "opacity-60",
-            )}
+          <SidebarWorkspaceTrigger
+            workspaceTriggerText={workspaceTriggerText}
+            workspaceIconUrl={workspaceIconUrl}
+            label={label}
             disabled={!canOpenPanel}
-          >
-            <WorkspaceAvatar
-              name={workspaceTriggerText}
-              assetRef={workspaceIconUrl}
-              size={32}
-              className="shrink-0 transition-transform duration-200 ease-out group-hover/panel-trigger:scale-[1.04] motion-reduce:transition-none"
-            />
-
-            <div
-              className={cn(
-                "min-w-0 flex-1 overflow-hidden",
-                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-                "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none",
-              )}
-            >
-              <TruncatedText
-                text={workspaceTriggerText}
-                className="text-callout font-semibold text-label-primary"
-              />
-            </div>
-
-            <ChevronDown
-              className={cn(
-                "size-4 shrink-0 opacity-70 transition-[opacity,transform] duration-200 ease-out group-hover:opacity-100 group-hover/panel-trigger:translate-y-px motion-reduce:transition-none",
-                "group-data-[state=open]/panel-trigger:rotate-180",
-                NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
-              )}
-              aria-hidden="true"
-            />
-          </FloatingPanelTrigger>
+          />
 
           {showSidebarToggle ? (
             <CollapseButton ariaLabel={t("common:SIDEBAR_TOGGLE")} onClick={toggleSidebar} />

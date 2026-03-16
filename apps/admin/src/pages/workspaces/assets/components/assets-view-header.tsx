@@ -1,4 +1,4 @@
-import { Search, X } from "lucide-react";
+import { Search, X } from "@arclayer/ui/icons/lucide-animated";
 import type React from "react";
 import type { ReactNode } from "react";
 

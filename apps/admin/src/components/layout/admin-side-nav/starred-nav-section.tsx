@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Star } from "lucide-react";
+import { Star } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
@@ -54,6 +54,8 @@ function StarredTriggerButton(props: {
   label: string;
   onToggle: () => void;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -67,9 +69,11 @@ function StarredTriggerButton(props: {
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
           NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
         )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         onClick={props.onToggle}
       >
-        {iconSlot(0, Star, { isActive: props.hasActiveItem, collapseMotion: "shift" })}
+        {iconSlot(0, Star, { isActive: props.hasActiveItem, isHovered, collapseMotion: "shift" })}
         <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           {props.label}
         </span>
@@ -77,6 +81,7 @@ function StarredTriggerButton(props: {
           <ChevronRightIcon
             size={16}
             expanded={props.isOpen}
+            isHovered={isHovered}
             className="shrink-0 text-label-secondary"
             aria-hidden="true"
           />

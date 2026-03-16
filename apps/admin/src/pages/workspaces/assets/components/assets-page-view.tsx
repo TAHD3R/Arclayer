@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Plus } from "lucide-react";
+import { Plus } from "@arclayer/ui/icons/lucide-animated";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { Button } from "@arclayer/ui/button";

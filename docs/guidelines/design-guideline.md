@@ -111,6 +111,20 @@ Rules:
 - Base visuals (padding/weight/border) must follow `BaseTag` defaults (`!px-2 !py-1 !font-semibold !border-border`). Avoid per-call overrides unless there is a clear UX rationale.
 - Exception: "Uploader info capsule" / uploader chips are not Tags; keep the existing dedicated component and do not convert them into semantic Tags.
 
+### 4.5 Animated icon policy (Admin, mandatory)
+
+Admin shell, navigation, switchers, and account menus must use the shared animated icon barrel instead of per-feature icon motion classes.
+
+Rules:
+
+- Import interactive Lucide icons from `@arclayer/ui/icons/lucide-animated`.
+- Do not bulk-install the Lucide Animated catalog. Add icons only when a real UI surface needs them.
+- The `@lucide-animated` registry is configured in [apps/admin/components.json]. When an upstream animated icon exists, install it on demand from `apps/admin` with:
+  `pnpm dlx shadcn@latest add @lucide-animated/<icon-name> --path ../../packages/ui/shadcn/src/icons/registry`
+- If an icon is not available upstream, create a local animated icon under `packages/ui/shadcn/src/icons/` and export it through `packages/ui/shadcn/src/icons/lucide-animated.tsx`.
+- Feature code must import from the shared barrel. Do not import raw files from `packages/ui/shadcn/src/icons/registry/**` in app code.
+- When an icon becomes animated, remove extra per-feature `group-hover:scale-*`, `translate-*`, and `rotate-*` icon motion classes. Keep stateful motion inside the icon component via props such as `isHovered`, `active`, `expanded`, or `loop`.
+
 ## 5. Page Behavior Contracts (Admin)
 
 ### 5.1 Page shell contract

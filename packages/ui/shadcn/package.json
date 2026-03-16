@@ -61,6 +61,7 @@
     "./icons/github-light-icon": "./src/icons/github-light-icon.tsx",
     "./icons/google-icon": "./src/icons/google-icon.tsx",
     "./icons/languages-icon": "./src/icons/languages-icon.tsx",
+    "./icons/lucide-animated": "./src/icons/lucide-animated.tsx",
     "./icons/moon-icon": "./src/icons/moon-icon.tsx",
     "./icons/refresh-icon": "./src/icons/refresh-icon.tsx",
     "./icons/settings-icon": "./src/icons/settings-icon.tsx",

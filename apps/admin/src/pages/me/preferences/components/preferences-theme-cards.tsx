@@ -1,6 +1,6 @@
 import { cn } from "@arclayer/lib/utils";
 import type { ThemePreference } from "@/types/stores";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "@arclayer/ui/icons/lucide-animated";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
 function AdminLayoutMockupContent({ isDark }: { isDark: boolean }) {

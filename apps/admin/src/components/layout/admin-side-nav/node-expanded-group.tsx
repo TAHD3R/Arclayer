@@ -120,6 +120,7 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
     ref,
   ) {
     const Icon = item.icon;
+    const [isHovered, setIsHovered] = React.useState(false);
     const className = cn(
       "relative z-10",
       NAV_ITEM_HEIGHT_CLASSNAME,
@@ -140,9 +141,11 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
         tooltip={tooltip}
         aria-disabled={item.disabled ? "true" : undefined}
         className={className}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         {...triggerProps}
       >
-        {iconSlot(0, Icon, { isActive: isTrailActive, collapseMotion: "shift" })}
+        {iconSlot(0, Icon, { isActive: isTrailActive, isHovered, collapseMotion: "shift" })}
         <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           {label}
         </span>
@@ -150,6 +153,7 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
           <ChevronRightIcon
             size={16}
             expanded={isOpen}
+            isHovered={isHovered}
             className="shrink-0 text-label-secondary"
             aria-hidden="true"
           />

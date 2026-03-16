@@ -1,4 +1,4 @@
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";

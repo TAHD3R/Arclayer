@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import type { Easing, SVGMotionProps } from "motion/react";
 
 import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface SupportIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
@@ -18,7 +19,7 @@ const SupportIcon = (props: SupportIconProps) => {
     size = 28,
     duration = 0.9,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     loop = false,
     ease = "easeInOut",
     className,
@@ -27,14 +28,16 @@ const SupportIcon = (props: SupportIconProps) => {
 
   const [nonce, setNonce] = useState(0);
   const reducedMotion = useMediaPrefersReducedMotion();
+  const hoverState = useIconHoverState(isHovered);
+  const hovered = hoverState.hovered;
 
   useEffect(() => {
     if (loop) return;
     if (reducedMotion) return;
-    if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop, reducedMotion]);
+    if (hovered) setNonce((n) => n + 1);
+  }, [hovered, loop, reducedMotion]);
 
-  const shouldAnimate = !reducedMotion && (loop || isHovered);
+  const shouldAnimate = !reducedMotion && (loop || hovered);
 
   return (
     <motion.svg
@@ -50,6 +53,9 @@ const SupportIcon = (props: SupportIconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
     >
       <motion.path
         d="M9.1 9.25a2.9 2.9 0 1 1 5.55 1.24c-.34.7-1 1.2-1.69 1.66c-.72.49-1.46 1-1.46 1.85v.5"

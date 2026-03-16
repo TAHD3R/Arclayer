@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, type Easing, type SVGMotionProps } from "motion/react";
 
 import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface ChevronDownIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
@@ -10,6 +11,7 @@ interface ChevronDownIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "stro
   isHovered?: boolean;
   loop?: boolean;
   ease?: Easing;
+  expanded?: boolean;
 }
 
 const ChevronDownIcon = (props: ChevronDownIconProps) => {
@@ -17,30 +19,41 @@ const ChevronDownIcon = (props: ChevronDownIconProps) => {
     size = 28,
     duration = 0.5,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     loop = false,
     ease = "easeInOut",
     className,
+    expanded = false,
+    style,
     ...restProps
   } = props;
 
   const [nonce, setNonce] = useState(0);
   const reducedMotion = useMediaPrefersReducedMotion();
+  const hoverState = useIconHoverState(isHovered);
+  const hovered = hoverState.hovered;
 
   useEffect(() => {
     if (loop) return;
     if (reducedMotion) return;
-    if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop, reducedMotion]);
+    if (hovered) setNonce((n) => n + 1);
+  }, [hovered, loop, reducedMotion]);
 
-  const shouldAnimate = !reducedMotion && (loop || isHovered);
+  const shouldAnimate = !reducedMotion && (loop || hovered);
+  const rotate = expanded ? 180 : 0;
 
   const animationProps = {
-    animate: shouldAnimate ? { y: [0, 2, 0] } : { y: 0 },
+    animate: shouldAnimate ? { rotate, y: [0, 2, 0] } : { rotate, y: 0 },
     transition: {
-      duration,
-      ease,
-      repeat: loop ? Infinity : 0,
+      rotate: {
+        duration: reducedMotion ? 0 : 0.18,
+        ease,
+      },
+      y: {
+        duration: shouldAnimate ? duration : 0.08,
+        ease,
+        repeat: loop ? Infinity : 0,
+      },
     },
   };
 
@@ -58,6 +71,10 @@ const ChevronDownIcon = (props: ChevronDownIconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
+      style={{ transformOrigin: "50% 50%", ...style }}
       {...animationProps}
     >
       <path d="m6 9 6 6 6-6" />

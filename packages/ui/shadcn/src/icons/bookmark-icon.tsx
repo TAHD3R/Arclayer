@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import type { Easing, SVGMotionProps } from "motion/react";
 
 import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface BookmarkIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
@@ -18,7 +19,7 @@ const BookmarkIcon = (props: BookmarkIconProps) => {
     size = 28,
     duration = 0.4,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     isFilled = false,
     ease = "easeInOut",
     className,
@@ -27,13 +28,15 @@ const BookmarkIcon = (props: BookmarkIconProps) => {
 
   const [nonce, setNonce] = useState(0);
   const reducedMotion = useMediaPrefersReducedMotion();
+  const hoverState = useIconHoverState(isHovered);
+  const hovered = hoverState.hovered;
 
   useEffect(() => {
     if (reducedMotion) return;
-    if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, reducedMotion]);
+    if (hovered) setNonce((n) => n + 1);
+  }, [hovered, reducedMotion]);
 
-  const shouldAnimate = !reducedMotion && isHovered;
+  const shouldAnimate = !reducedMotion && hovered;
 
   const animateProps = isFilled
     ? shouldAnimate
@@ -57,6 +60,9 @@ const BookmarkIcon = (props: BookmarkIconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
       animate={animateProps}
       transition={{ duration, ease }}
       style={{ transformOrigin: "50% 50%" }}

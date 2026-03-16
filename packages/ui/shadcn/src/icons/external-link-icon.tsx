@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { motion, type SVGMotionProps, type Easing } from "motion/react";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface IconProps extends SVGMotionProps<SVGSVGElement> {
   size?: number;
@@ -17,20 +17,20 @@ const ExternalLinkIcon = (props: IconProps) => {
     size = 28,
     duration = 1.5,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     repeatDelay = 1,
     ease = "easeInOut",
     className,
     ...restProps
   } = props;
 
-  const [isHoveredInternal, setIsHoveredInternal] = useState(false);
-  const shouldAnimate = isHovered ? isHoveredInternal : true;
+  const hoverState = useIconHoverState(isHovered);
+  const shouldAnimate = hoverState.hovered;
 
   const transition = {
     duration: duration,
     ease: ease,
-    repeat: isHovered ? 0 : Infinity,
+    repeat: 0,
     repeatDelay: repeatDelay,
   };
 
@@ -47,8 +47,9 @@ const ExternalLinkIcon = (props: IconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
-      onMouseEnter={() => isHovered && setIsHoveredInternal(true)}
-      onMouseLeave={() => isHovered && setIsHoveredInternal(false)}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
     >
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />

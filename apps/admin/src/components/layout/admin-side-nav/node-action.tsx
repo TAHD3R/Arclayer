@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
@@ -73,14 +74,17 @@ function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeAct
   const Icon = item.icon;
   const TrailingIcon = item.trailingIcon;
   const showAction = depth === 0 && Boolean(item.actionRenderer);
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <SidebarMenuItem
       className="group/nav-item"
       onPointerEnter={() => {
+        setIsHovered(true);
         if (!hoverDropdown || item.disabled) return;
         hoverDropdown.close();
       }}
+      onPointerLeave={() => setIsHovered(false)}
       onFocusCapture={() => {
         if (!hoverDropdown || item.disabled) return;
         hoverDropdown.close();
@@ -104,7 +108,7 @@ function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeAct
         )}
         onClick={item.onAction}
       >
-        {iconSlot(depth, Icon, { isActive, collapseMotion: "shift" })}
+        {iconSlot(depth, Icon, { isActive, isHovered, collapseMotion: "shift" })}
         <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           {label}
         </span>

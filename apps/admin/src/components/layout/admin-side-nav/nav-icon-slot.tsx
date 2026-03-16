@@ -4,12 +4,8 @@ import { cn } from "@arclayer/lib/utils";
 export function iconSlot(
   depth: number,
   Icon: AdminNavItem["icon"] | undefined,
-  opts?: { isActive?: boolean; collapseMotion?: "shift" | "none" },
+  opts?: { isActive?: boolean; isHovered?: boolean; collapseMotion?: "shift" | "none" },
 ) {
-  const iconMotionClassName = cn(
-    "transition-[color,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-    "group-hover/nav-item:scale-[1.04] group-hover/nav-item:-translate-y-px",
-  );
   const collapseMotionClassName =
     opts?.collapseMotion === "shift"
       ? cn(
@@ -25,13 +21,12 @@ export function iconSlot(
       <span
         className={cn(
           "size-5 shrink-0 inline-flex items-center justify-center",
-          iconMotionClassName,
           collapseMotionClassName,
           opts?.isActive ? "text-primary" : null,
         )}
         aria-hidden="true"
       >
-        <Icon className="size-full" />
+        <Icon className="size-full" isHovered={opts?.isHovered} />
       </span>
     );
   }

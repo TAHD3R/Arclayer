@@ -1,5 +1,5 @@
 import { type Table } from "@tanstack/react-table";
-import { Search, X } from "lucide-react";
+import { Search, X } from "@arclayer/ui/icons/lucide-animated";
 
 import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { ContentGuard } from "@/components/common/content-guard";

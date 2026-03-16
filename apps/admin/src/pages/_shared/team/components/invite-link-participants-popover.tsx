@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X } from "lucide-react";
+import { Search, X } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { listTeamInviteLinkParticipants } from "@/api/team";

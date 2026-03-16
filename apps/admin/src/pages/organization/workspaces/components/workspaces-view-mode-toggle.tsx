@@ -1,4 +1,4 @@
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List } from "@arclayer/ui/icons/lucide-animated";
 
 import { Button } from "@arclayer/ui/button";
 import { ButtonGroup } from "@arclayer/ui/button-group";

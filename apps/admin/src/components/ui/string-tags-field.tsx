@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X } from "lucide-react";
+import { X } from "@arclayer/ui/icons/lucide-animated";
 
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";

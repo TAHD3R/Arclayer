@@ -7,7 +7,7 @@ import {
   UserRound,
   Users,
   Waves,
-} from "lucide-react";
+} from "@arclayer/ui/icons/lucide-animated";
 
 import type { AdminNavSection } from "@/types/admin-nav";
 

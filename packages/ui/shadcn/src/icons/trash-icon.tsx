@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { motion, type SVGMotionProps } from "motion/react";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface TrashIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
@@ -11,17 +11,9 @@ interface TrashIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidt
 }
 
 const TrashIcon = (props: TrashIconProps) => {
-  const {
-    size = 28,
-    duration = 1,
-    strokeWidth = 2,
-    isHovered = false,
-    className,
-    ...restProps
-  } = props;
-  const [isHoveredInternal, setIsHoveredInternal] = useState(false);
-
-  const shouldAnimate = isHovered ? isHoveredInternal : true;
+  const { size = 28, duration = 1, strokeWidth = 2, isHovered, className, ...restProps } = props;
+  const hoverState = useIconHoverState(isHovered);
+  const shouldAnimate = hoverState.hovered;
 
   const lidProps = {
     animate: shouldAnimate
@@ -51,8 +43,9 @@ const TrashIcon = (props: TrashIconProps) => {
       strokeLinejoin="round"
       className={className}
       overflow="visible"
-      onMouseEnter={() => isHovered && setIsHoveredInternal(true)}
-      onMouseLeave={() => isHovered && setIsHoveredInternal(false)}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
     >
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <motion.g {...lidProps}>

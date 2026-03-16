@@ -1,4 +1,4 @@
-import { CreditCard, FileText, Receipt } from "lucide-react";
+import { CreditCard, FileText, Receipt } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";

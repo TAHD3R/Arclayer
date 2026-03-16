@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 import type { CommandEntry, CommandSection } from "@/lib/command/command-types";
 import { UserAvatar } from "@/components/common/entity-avatar";

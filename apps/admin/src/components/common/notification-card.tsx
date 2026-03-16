@@ -1,4 +1,11 @@
-import { Archive, Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
+import {
+  Archive,
+  Check,
+  ShieldCheck,
+  Trash2,
+  Users,
+  Wrench,
+} from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import type { NotificationCategory, NotificationItem } from "@/types/api";

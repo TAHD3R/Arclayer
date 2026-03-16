@@ -1,6 +1,6 @@
-import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DeploymentScope } from "@/types/api/system";
+import type { LucideIcon } from "@arclayer/ui/icons/lucide-animated";
 
 export type AdminNavItem = {
   key: string;

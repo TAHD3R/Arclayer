@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Users,
   UserPlus,
-} from "lucide-react";
+} from "@arclayer/ui/icons/lucide-animated";
 
 import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 export type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";

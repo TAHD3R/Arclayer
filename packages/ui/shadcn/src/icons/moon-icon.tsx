@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import type { Easing, SVGMotionProps } from "motion/react";
 
 import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface MoonIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;
@@ -19,7 +20,7 @@ const MoonIcon = (props: MoonIconProps) => {
     size = 28,
     duration = 1,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     loop = false,
     repeatDelay = 0.3,
     ease = "easeInOut",
@@ -29,14 +30,16 @@ const MoonIcon = (props: MoonIconProps) => {
 
   const [nonce, setNonce] = useState(0);
   const reducedMotion = useMediaPrefersReducedMotion();
+  const hoverState = useIconHoverState(isHovered);
+  const hovered = hoverState.hovered;
 
   useEffect(() => {
     if (loop) return;
     if (reducedMotion) return;
-    if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop, reducedMotion]);
+    if (hovered) setNonce((n) => n + 1);
+  }, [hovered, loop, reducedMotion]);
 
-  const shouldAnimate = !reducedMotion && (loop || isHovered);
+  const shouldAnimate = !reducedMotion && (loop || hovered);
 
   const moonProps = {
     animate: shouldAnimate ? { rotate: [0, -20, 20, -10, 10, 0] } : { rotate: 0 },
@@ -62,6 +65,9 @@ const MoonIcon = (props: MoonIconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
       {...moonProps}
     >
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />

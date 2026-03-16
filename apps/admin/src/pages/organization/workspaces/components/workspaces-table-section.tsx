@@ -1,5 +1,5 @@
 import type { Row } from "@tanstack/react-table";
-import { Search, X } from "lucide-react";
+import { Search, X } from "@arclayer/ui/icons/lucide-animated";
 import { useMemo } from "react";
 
 import type { OrganizationWorkspace } from "@/types/api";

@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import type { SVGMotionProps } from "motion/react";
 
 import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
+import { useIconHoverState } from "./use-icon-hover-state";
 
 interface SettingsIconProps extends SVGMotionProps<SVGSVGElement> {
   size?: number;
@@ -17,7 +18,7 @@ const SettingsIcon = (props: SettingsIconProps) => {
     size = 28,
     duration = 4,
     strokeWidth = 2,
-    isHovered = false,
+    isHovered,
     loop = false,
     className,
     ...restProps
@@ -25,14 +26,16 @@ const SettingsIcon = (props: SettingsIconProps) => {
 
   const [nonce, setNonce] = useState(0);
   const reducedMotion = useMediaPrefersReducedMotion();
+  const hoverState = useIconHoverState(isHovered);
+  const hovered = hoverState.hovered;
 
   useEffect(() => {
     if (loop) return;
     if (reducedMotion) return;
-    if (isHovered) setNonce((n) => n + 1);
-  }, [isHovered, loop, reducedMotion]);
+    if (hovered) setNonce((n) => n + 1);
+  }, [hovered, loop, reducedMotion]);
 
-  const shouldAnimate = !reducedMotion && (loop || isHovered);
+  const shouldAnimate = !reducedMotion && (loop || hovered);
 
   const animationProps = {
     animate: shouldAnimate ? { rotate: 360 } : { rotate: 0 },
@@ -57,6 +60,9 @@ const SettingsIcon = (props: SettingsIconProps) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      ref={hoverState.ref}
+      onMouseEnter={hoverState.onMouseEnter}
+      onMouseLeave={hoverState.onMouseLeave}
       {...animationProps}
     >
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />

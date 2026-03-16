@@ -9,7 +9,7 @@ import { normalizeUserProfile } from "@/lib/auth/user-profile";
 import { AccountSettingsStateCard } from "@/pages/account/shared/account-settings-state-card";
 import { MeProfileDangerSection } from "@/pages/me/profile/components/profile-danger-section";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { CircleAlert, ShieldX } from "lucide-react";
+import { CircleAlert, ShieldX } from "@arclayer/ui/icons/lucide-animated";
 
 export function AccountDangerPage() {
   const { t } = useTranslation("account");

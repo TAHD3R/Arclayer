@@ -1,4 +1,4 @@
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";

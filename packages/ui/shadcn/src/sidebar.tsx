@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Slot } from "radix-ui";
 import { cva, type VariantProps } from "class-variance-authority";
-import { PanelLeftIcon } from "lucide-react";
+import { PanelLeftIcon } from "@arclayer/ui/icons/lucide-animated";
 import { type Transition } from "motion/react";
 
 import { useIsMobile } from "@arclayer/hooks/use-is-mobile";

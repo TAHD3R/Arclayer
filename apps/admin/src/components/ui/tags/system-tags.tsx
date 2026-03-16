@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Star } from "lucide-react";
+import { Star } from "@arclayer/ui/icons/lucide-animated";
 
 import { BaseTag, lucideTagIcon, type TagPresentationProps } from "./tag-base";
 

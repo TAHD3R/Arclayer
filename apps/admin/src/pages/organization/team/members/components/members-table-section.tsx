@@ -1,5 +1,5 @@
 import { type Table as ReactTable } from "@tanstack/react-table";
-import { Search, X } from "lucide-react";
+import { Search, X } from "@arclayer/ui/icons/lucide-animated";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
