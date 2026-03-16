@@ -35,32 +35,17 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
   return (
     <PageExtraToolbar
       leading={
-        <>
-          <ChromeTabsList className="w-auto">
-            <ChromeTabsTrigger value="active">
-              {props.t("common:ORG_WORKSPACES_TAB_ACTIVE")}
-            </ChromeTabsTrigger>
-            <ChromeTabsTrigger value="archived">
-              {props.t("common:ORG_WORKSPACES_TAB_ARCHIVED")}
-            </ChromeTabsTrigger>
-          </ChromeTabsList>
-
-          <DataTableSearchInput
-            value={props.searchInput}
-            onChange={props.onSearchInputChange}
-            placeholder={props.t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
-            clearLabel={props.t("common:CLEAR")}
-          />
-        </>
+        <ChromeTabsList className="w-auto">
+          <ChromeTabsTrigger value="active">
+            {props.t("common:ORG_WORKSPACES_TAB_ACTIVE")}
+          </ChromeTabsTrigger>
+          <ChromeTabsTrigger value="archived">
+            {props.t("common:ORG_WORKSPACES_TAB_ARCHIVED")}
+          </ChromeTabsTrigger>
+        </ChromeTabsList>
       }
       trailing={
         <>
-          <WorkspacesViewModeToggle
-            t={props.t}
-            value={props.viewMode}
-            onChange={props.onViewModeChange}
-          />
-
           {props.viewMode === "table" ? (
             <DataTableToolbarTools
               table={props.table}
@@ -75,6 +60,19 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
               components={{ IconButton: DataTableToolbarAntdIconButton }}
             />
           ) : null}
+
+          <WorkspacesViewModeToggle
+            t={props.t}
+            value={props.viewMode}
+            onChange={props.onViewModeChange}
+          />
+
+          <DataTableSearchInput
+            value={props.searchInput}
+            onChange={props.onSearchInputChange}
+            placeholder={props.t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
+            clearLabel={props.t("common:CLEAR")}
+          />
         </>
       }
       leadingClassName="items-start"

@@ -3,6 +3,7 @@
 import type { Table as ReactTable } from "@tanstack/react-table";
 import { RefreshCw } from "lucide-react";
 
+import { DataTableColumnsPanel } from "./data-table-columns-panel";
 import { resolveDataTableRowHeight } from "./types";
 import { DataTableViewOptions } from "./data-table-view-options";
 import { DataTableDefaultIconButton } from "./data-table-icon-button";
@@ -24,18 +25,32 @@ function resolveIconButton(components: DataTableToolsComponents | undefined) {
 export function DataTableToolbarTools<TData>(props: DataTableToolbarToolsProps<TData>) {
   const IconButton = resolveIconButton(props.components);
   const rowHeight = resolveDataTableRowHeight(props.rowHeight ?? props.density);
+  const resetAll = () => {
+    if (props.onResetColumnVisibility) props.onResetColumnVisibility();
+    else props.table.resetColumnVisibility();
+    props.table.resetColumnOrder();
+    props.table.resetColumnPinning();
+    props.onRowHeightChange?.("medium");
+    props.onWrapHeadersChange?.(false);
+  };
 
   return (
     <div className="flex items-center gap-2">
-      <DataTableViewOptions
+      <DataTableColumnsPanel
         table={props.table as ReactTable<TData>}
+        labels={props.labels}
+        components={props.components}
+        onResetColumnVisibility={props.onResetColumnVisibility}
+      />
+
+      <DataTableViewOptions
         rowHeight={rowHeight}
         onRowHeightChange={props.onRowHeightChange ?? (() => undefined)}
         wrapHeaders={props.wrapHeaders ?? false}
         onWrapHeadersChange={props.onWrapHeadersChange ?? (() => undefined)}
         labels={props.labels}
         components={props.components}
-        onResetColumnVisibility={props.onResetColumnVisibility}
+        onReset={resetAll}
       />
 
       <DataTableToolTooltip label={props.labels.refresh}>

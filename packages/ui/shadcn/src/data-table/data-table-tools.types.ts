@@ -26,9 +26,13 @@ export type DataTableToolsLabels = {
   pinLeft: string;
   pinRight: string;
   pinNone: string;
+  sortAscending: string;
+  sortDescending: string;
+  hideColumn: string;
   moveUp: string;
   moveDown: string;
   drag: string;
+  refreshing: string;
   customize: string;
   customizeTitle: string;
   customizeDescription: string;

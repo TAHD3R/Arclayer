@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next";
 import * as activityApi from "@/api/activity";
 import { listTeamUserOptions } from "@/api/team";
 import { ContentGuard } from "@/components/common/content-guard";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DefaultPage } from "@/components/common/default-page";
+import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
 import { Button } from "@arclayer/ui/button";
 import { Spinner } from "@arclayer/ui/spinner";
 import { ActivityDetailDialog } from "@/pages/organization/activity/components/activity-detail-dialog";
@@ -87,31 +89,45 @@ export function WorkspaceActivityPage() {
       description={t("activity:ACTIVITY_DESC_WORKSPACE")}
       contentClassName="min-h-0 flex flex-col"
       extra={
-        <div className="flex flex-wrap items-center gap-2">
-          <ActivityFilterPopover
-            scope="workspace"
-            workspaceId={workspaceId}
-            value={filters}
-            defaultValue={defaultFilters}
-            onApply={(next) => setFilters(next)}
-            fetchUserOptions={async (wid, q) => {
-              const pageData = await listTeamUserOptions(String(wid), {
-                q,
-                page: 1,
-                size: 20,
-              });
-              return (pageData.items ?? []).map((user) => ({
-                value: user.value,
-                label: user.label,
-                avatarUrl: user.avatarUrl ?? null,
-              }));
-            }}
-          />
+        <PageExtraToolbar
+          leading={
+            <>
+              <DataTableSearchInput
+                value={filters.eventName ?? ""}
+                onChange={(value) =>
+                  setFilters((prev) => ({ ...prev, eventName: value.trim() || undefined }))
+                }
+                placeholder={t("activity:ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER")}
+                clearLabel={t("common:CLEAR")}
+              />
 
-          {listQuery.isFetching && !listQuery.isLoading ? (
-            <Spinner className="size-4 text-label-secondary" />
-          ) : null}
-        </div>
+              <ActivityFilterPopover
+                scope="workspace"
+                workspaceId={workspaceId}
+                value={filters}
+                defaultValue={defaultFilters}
+                onApply={(next) => setFilters(next)}
+                fetchUserOptions={async (wid, q) => {
+                  const pageData = await listTeamUserOptions(String(wid), {
+                    q,
+                    page: 1,
+                    size: 20,
+                  });
+                  return (pageData.items ?? []).map((user) => ({
+                    value: user.value,
+                    label: user.label,
+                    avatarUrl: user.avatarUrl ?? null,
+                  }));
+                }}
+              />
+            </>
+          }
+          trailing={
+            listQuery.isFetching && !listQuery.isLoading ? (
+              <Spinner className="size-4 text-label-secondary" />
+            ) : null
+          }
+        />
       }
       action={
         <div className="flex items-center gap-2">

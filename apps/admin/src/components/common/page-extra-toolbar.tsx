@@ -22,9 +22,7 @@ export function PageExtraToolbar({
       <div className={clsx("flex min-w-0 flex-1 flex-wrap items-center gap-2", leadingClassName)}>
         {leading}
       </div>
-      <div className={clsx("flex shrink-0 flex-wrap items-center gap-2", trailingClassName)}>
-        {trailing}
-      </div>
+      <div className={clsx("flex shrink-0 items-center gap-2", trailingClassName)}>{trailing}</div>
     </div>
   );
 }

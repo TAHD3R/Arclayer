@@ -46,40 +46,42 @@ export function TeamInvitationsPageExtra<TTab extends string>({
 }: TeamInvitationsPageExtraProps<TTab>) {
   return (
     <PageExtraToolbar
+      className="lg:flex-nowrap"
       leading={
+        <ChromeTabsList className="w-auto">
+          {tabs.map((tab) => (
+            <ChromeTabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </ChromeTabsTrigger>
+          ))}
+        </ChromeTabsList>
+      }
+      trailing={
         <>
-          <ChromeTabsList className="w-auto">
-            {tabs.map((tab) => (
-              <ChromeTabsTrigger key={tab.value} value={tab.value}>
-                {tab.label}
-              </ChromeTabsTrigger>
-            ))}
-          </ChromeTabsList>
+          <DataTableToolbarTools
+            table={table}
+            rowHeight={rowHeight}
+            onRowHeightChange={onRowHeightChange}
+            wrapHeaders={wrapHeaders}
+            onWrapHeadersChange={onWrapHeadersChange}
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+            onResetColumnVisibility={onResetColumnVisibility}
+            labels={labels}
+            components={{ IconButton: DataTableToolbarAntdIconButton }}
+          />
 
           <DataTableSearchInput
             value={searchInput}
             onChange={onSearchInputChange}
             placeholder={searchPlaceholder}
             clearLabel={clearLabel}
+            className="w-[min(100%,18rem)] shrink-0"
           />
         </>
       }
-      trailing={
-        <DataTableToolbarTools
-          table={table}
-          rowHeight={rowHeight}
-          onRowHeightChange={onRowHeightChange}
-          wrapHeaders={wrapHeaders}
-          onWrapHeadersChange={onWrapHeadersChange}
-          onRefresh={onRefresh}
-          refreshing={refreshing}
-          onResetColumnVisibility={onResetColumnVisibility}
-          labels={labels}
-          components={{ IconButton: DataTableToolbarAntdIconButton }}
-        />
-      }
-      leadingClassName="items-start"
-      trailingClassName="justify-end"
+      leadingClassName="items-center lg:flex-nowrap"
+      trailingClassName="w-auto flex-nowrap justify-end"
     />
   );
 }

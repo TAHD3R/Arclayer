@@ -57,7 +57,7 @@ describe("DataTablePresenter", () => {
     expect(headerButton).toHaveStyle({ textTransform: "uppercase" });
   });
 
-  it("sortable header cycles none -> asc -> desc -> none", async () => {
+  it("sortable header opens a menu for sort actions", async () => {
     const user = userEvent.setup();
     render(<SortableTableHarness />);
 
@@ -67,16 +67,19 @@ describe("DataTablePresenter", () => {
     expect(ordering).toHaveTextContent("");
 
     await user.click(headerButton);
+    await user.click(screen.getByRole("menuitem", { name: "Sort ascending" }));
     expect(ordering).toHaveTextContent("name");
 
     await user.click(headerButton);
+    await user.click(screen.getByRole("menuitem", { name: "Sort descending" }));
     expect(ordering).toHaveTextContent("-name");
 
     await user.click(headerButton);
-    expect(ordering).toHaveTextContent("");
+    await user.click(screen.getByRole("menuitem", { name: "Hide column" }));
+    expect(screen.queryByRole("columnheader", { name: "Name" })).not.toBeInTheDocument();
   });
 
-  it("non-sortable header does not render a button and default header is left aligned", () => {
+  it("non-sortable header still uses the header menu trigger and keeps default alignment", async () => {
     function NonSortableHarness() {
       const data = [{ value: "A" }];
       const columns = [
@@ -101,9 +104,11 @@ describe("DataTablePresenter", () => {
       return <DataTablePresenter table={table} emptyText="empty" />;
     }
 
+    const user = userEvent.setup();
     const { container } = render(<NonSortableHarness />);
 
-    expect(screen.queryByRole("button", { name: "Value" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Value" }));
+    expect(screen.getByRole("menuitem", { name: "Hide column" })).toBeInTheDocument();
 
     const headerCells = container.querySelectorAll("th");
     expect(headerCells[0]?.className).toContain("text-left");

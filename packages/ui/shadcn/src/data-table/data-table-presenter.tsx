@@ -27,6 +27,7 @@ import {
   resolveDataTableColumnLabel,
   useNormalizedDataTableColumnOrder,
 } from "./data-table-column-settings-utils";
+import type { DataTableToolsLabels } from "./data-table-tools.types";
 import { resolveDataTableRowHeight, type DataTableDensity, type DataTableRowHeight } from "./types";
 import { useScrollOverflow } from "./use-scroll-overflow";
 
@@ -56,6 +57,8 @@ type DataTablePresenterProps<TData> = {
   density?: DataTableDensity;
   wrapHeaders?: boolean;
   refreshing?: boolean;
+  refreshingLabel?: string;
+  columnMenuLabels?: Pick<DataTableToolsLabels, "sortAscending" | "sortDescending" | "hideColumn">;
   rowClassName?: (
     row: import("@tanstack/react-table").Row<TData>,
     rowIndex: number,
@@ -82,6 +85,8 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     density,
     wrapHeaders = false,
     refreshing = false,
+    refreshingLabel = "Refreshing data...",
+    columnMenuLabels,
     rowClassName,
     onRowClick,
     headerCellClassName,
@@ -217,14 +222,12 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
         </div>
       ) : null}
 
-      <div
-        ref={scrollRef}
-        className={cn("relative isolate flex-1 min-h-0 overflow-auto bg-transparent")}
-      >
+      <div className="relative min-h-0 flex-1 rounded-xl border border-border/60 bg-background shadow-xs">
         <div
+          ref={scrollRef}
           className={cn(
-            "relative min-h-full transition-[filter,opacity] duration-200",
-            refreshing ? "pointer-events-none blur-sm opacity-90" : "",
+            "relative isolate h-full min-h-0 overflow-auto rounded-[inherit] transition-opacity duration-200",
+            refreshing ? "pointer-events-none opacity-90" : "",
           )}
         >
           <DataTableScrollOverflowGradient
@@ -265,7 +268,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               if (initialOrder) table.setColumnOrder(initialOrder);
             }}
           >
-            <table className={cn("w-full caption-bottom text-callout", tableClassName)}>
+            <table className={cn("min-w-full caption-bottom text-callout", tableClassName)}>
               <SortableContext
                 items={draggableLeafHeaderIds}
                 strategy={horizontalListSortingStrategy}
@@ -278,6 +281,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                   dragging={{ activeId: activeHeaderId, overId: overHeaderId }}
                   hoveredColumnId={hoveredColumnId}
                   onHeaderHoverChange={onHeaderHoverChange}
+                  labels={columnMenuLabels}
                 />
               </SortableContext>
 
@@ -310,7 +314,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
           </DndContext>
         </div>
 
-        <DataTableRefreshOverlay active={refreshing} />
+        <DataTableRefreshOverlay active={refreshing} label={refreshingLabel} />
       </div>
     </div>
   );

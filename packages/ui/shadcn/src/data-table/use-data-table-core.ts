@@ -212,8 +212,9 @@ export function useDataTableCore<TData>(
     enableMultiSort: sortingOptions?.multiSort ?? true,
     enableSortingRemoval: sortingOptions?.allowRemoval ?? true,
     enableColumnPinning: options.features?.columnPinning?.enabled ?? hasAutoPinning,
-    enableColumnResizing: options.features?.columnSizing?.enabled ?? false,
+    enableColumnResizing: options.features?.columnSizing?.enabled ?? true,
     enableExpanding: options.features?.rowExpansion?.enabled ?? false,
+    columnResizeMode: "onChange",
 
     // Row selection is opt-in.
     enableRowSelection: options.rowSelection?.enabled ?? false,

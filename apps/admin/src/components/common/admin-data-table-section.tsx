@@ -80,6 +80,12 @@ export function AdminDataTableSection<TData>({
           rowHeight={rowHeight}
           wrapHeaders={wrapHeaders}
           refreshing={refreshing}
+          refreshingLabel={t("common:DATA_TABLE_REFRESHING")}
+          columnMenuLabels={{
+            sortAscending: t("common:DATA_TABLE_SORT_ASCENDING"),
+            sortDescending: t("common:DATA_TABLE_SORT_DESCENDING"),
+            hideColumn: t("common:DATA_TABLE_HIDE_COLUMN"),
+          }}
           rowClassName={rowClassName}
           onRowClick={onRowClick}
           headerCellClassName={headerCellClassName}

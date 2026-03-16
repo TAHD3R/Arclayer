@@ -2,8 +2,6 @@
 
 import type { ColumnDef, VisibilityState } from "@tanstack/react-table";
 
-type ColumnMeta = { defaultHidden?: boolean };
-
 function resolveColumnId<TData>(column: ColumnDef<TData, unknown>): string | null {
   if (typeof column.id === "string" && column.id.trim()) return column.id.trim();
   if (
@@ -42,24 +40,9 @@ export function collectLeafColumnIds<TData>(
 }
 
 export function resolveDefaultColumnVisibility<TData>(
-  columns: readonly ColumnDef<TData, unknown>[],
+  _columns: readonly ColumnDef<TData, unknown>[],
 ): VisibilityState {
-  const state: VisibilityState = {};
-
-  const visit = (defs: readonly ColumnDef<TData, unknown>[]) => {
-    for (const col of defs) {
-      const meta = col.meta as ColumnMeta | undefined;
-      const colId = resolveColumnId(col);
-      if (colId && meta?.defaultHidden) state[colId] = false;
-
-      if ("columns" in col && Array.isArray(col.columns) && col.columns.length) {
-        visit(col.columns as readonly ColumnDef<TData, unknown>[]);
-      }
-    }
-  };
-
-  visit(columns);
-  return state;
+  return {};
 }
 
 export function normalizeSearchDefault(input: string): string {

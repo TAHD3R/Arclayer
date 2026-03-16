@@ -32,8 +32,12 @@ export function buildDataTableToolsLabels(t: TranslateFn): DataTableToolsLabels 
     pinLeft: t("common:DATA_TABLE_PIN_LEFT"),
     pinRight: t("common:DATA_TABLE_PIN_RIGHT"),
     pinNone: t("common:DATA_TABLE_PIN_NONE"),
+    sortAscending: t("common:DATA_TABLE_SORT_ASCENDING"),
+    sortDescending: t("common:DATA_TABLE_SORT_DESCENDING"),
+    hideColumn: t("common:DATA_TABLE_HIDE_COLUMN"),
     moveUp: t("common:DATA_TABLE_MOVE_UP"),
     moveDown: t("common:DATA_TABLE_MOVE_DOWN"),
     drag: t("common:DATA_TABLE_DRAG"),
+    refreshing: t("common:DATA_TABLE_REFRESHING"),
   };
 }

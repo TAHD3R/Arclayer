@@ -13,6 +13,8 @@ type PinStyleState = {
   style: CSSProperties;
 };
 
+const DEFAULT_COLUMN_SIZE_PX = 150;
+
 export function resolveHeaderAlignClass<TData>(header: Header<TData, unknown>): AlignClass {
   const meta = header.column.columnDef.meta;
   if (meta?.headerAlign === "left") return "text-left";
@@ -45,10 +47,16 @@ function resolveColumnBaseStyle<TData>(
 ): CSSProperties {
   const size = column.getSize();
   if (!size) return {};
+  const hasExplicitSizing =
+    column.columnDef.size != null ||
+    column.columnDef.minSize != null ||
+    column.columnDef.maxSize != null ||
+    size !== DEFAULT_COLUMN_SIZE_PX;
 
   // Pinned columns use minWidth only — let content determine actual width
   // so buttons/icons in actions columns are never clipped.
   if (pinned) return { minWidth: size };
+  if (!hasExplicitSizing) return { minWidth: size };
 
   return {
     width: size,

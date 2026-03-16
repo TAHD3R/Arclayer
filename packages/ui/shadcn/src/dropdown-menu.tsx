@@ -48,14 +48,29 @@ function DropdownMenuTrigger(props: DropdownMenuTriggerProps) {
   return <DropdownMenuTriggerPrimitive {...props} />;
 }
 
-type DropdownMenuContentProps = DropdownMenuContentPrimitiveProps;
+type DropdownMenuContentProps = DropdownMenuContentPrimitiveProps & {
+  disableHighlight?: boolean;
+};
 
 function DropdownMenuContent({
   sideOffset = 4,
   className,
   children,
+  disableHighlight = false,
   ...props
 }: DropdownMenuContentProps) {
+  const content = disableHighlight ? (
+    children
+  ) : (
+    <DropdownMenuHighlightPrimitive
+      mode="parent"
+      className="pointer-events-none rounded-sm"
+      containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
+    >
+      {children}
+    </DropdownMenuHighlightPrimitive>
+  );
+
   return (
     <DropdownMenuContentPrimitive
       sideOffset={sideOffset}
@@ -65,13 +80,7 @@ function DropdownMenuContent({
       )}
       {...props}
     >
-      <DropdownMenuHighlightPrimitive
-        mode="parent"
-        className="pointer-events-none rounded-sm"
-        containerClassName="relative flex flex-col items-stretch"
-      >
-        {children}
-      </DropdownMenuHighlightPrimitive>
+      {content}
     </DropdownMenuContentPrimitive>
   );
 }
@@ -303,9 +312,28 @@ function DropdownMenuSubTrigger({
   );
 }
 
-type DropdownMenuSubContentProps = DropdownMenuSubContentPrimitiveProps;
+type DropdownMenuSubContentProps = DropdownMenuSubContentPrimitiveProps & {
+  disableHighlight?: boolean;
+};
 
-function DropdownMenuSubContent({ className, ...props }: DropdownMenuSubContentProps) {
+function DropdownMenuSubContent({
+  className,
+  disableHighlight = false,
+  children,
+  ...props
+}: DropdownMenuSubContentProps) {
+  const content = disableHighlight ? (
+    children
+  ) : (
+    <DropdownMenuHighlightPrimitive
+      mode="parent"
+      className="pointer-events-none rounded-sm"
+      containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
+    >
+      {children}
+    </DropdownMenuHighlightPrimitive>
+  );
+
   return (
     <DropdownMenuSubContentPrimitive
       className={cn(
@@ -313,7 +341,9 @@ function DropdownMenuSubContent({ className, ...props }: DropdownMenuSubContentP
         className,
       )}
       {...props}
-    />
+    >
+      {content}
+    </DropdownMenuSubContentPrimitive>
   );
 }
 

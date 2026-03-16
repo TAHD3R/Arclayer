@@ -368,6 +368,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "code",
+        size: 240,
+        minSize: 220,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_CODE"),
           sortKey: "display_code",
@@ -400,6 +402,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         id: "participant",
+        size: 200,
+        minSize: 180,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
           sortKey: "uses_count",
@@ -422,6 +426,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "createdAt",
+        size: 190,
+        minSize: 170,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
           sortKey: "created_at",
@@ -439,6 +445,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "expiresAt",
+        size: 190,
+        minSize: 170,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
           sortKey: "expires_at",
@@ -583,7 +591,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   });
   const inviteAction = (
     <div className="flex items-center gap-2">
-      <Button variant="outline" onClick={() => setInviteOpen(true)}>
+      <Button variant="secondary" onClick={() => setInviteOpen(true)}>
         {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
       </Button>
       <Button onClick={() => setInviteEmailOpen(true)}>

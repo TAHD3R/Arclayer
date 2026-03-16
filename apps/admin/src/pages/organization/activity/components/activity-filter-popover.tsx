@@ -121,8 +121,11 @@ export function ActivityFilterPopover(props: {
   const [workspaceOption, setWorkspaceOption] = React.useState<DebounceSelectOption | undefined>();
   const [actorOption, setActorOption] = React.useState<DebounceSelectOption | undefined>();
   const [subjectOption, setSubjectOption] = React.useState<DebounceSelectOption | undefined>();
+  const [draftFilters, setDraftFilters] = React.useState<Filter<ActivityFilterValue>[]>(() =>
+    toReuiFilters(props.value),
+  );
 
-  const filterItems = React.useMemo(() => toReuiFilters(props.value), [props.value]);
+  const serializedValue = React.useMemo(() => serializeFilters(props.value), [props.value]);
   const reuiI18n = React.useMemo(
     () => buildReuiFilterI18n(t, t("activity:ACTIVITY_FILTER_TITLE")),
     [t],
@@ -133,6 +136,10 @@ export function ActivityFilterPopover(props: {
       : trimOrUndefined(props.value.workspaceId);
   const canPickActorSubject = Boolean(selectedWorkspaceId);
   const hasOverrides = serializeFilters(props.value) !== serializeFilters(props.defaultValue);
+
+  React.useEffect(() => {
+    setDraftFilters(toReuiFilters(props.value));
+  }, [serializedValue]);
 
   const workspaceLabelById = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -344,6 +351,7 @@ export function ActivityFilterPopover(props: {
 
   const handleFiltersChange = React.useCallback(
     (next: Filter<ActivityFilterValue>[]) => {
+      setDraftFilters(next);
       const nextWorkspaceId = trimOrUndefined(
         typeof next.find((filter) => filter.field === "workspaceId")?.values[0] === "string"
           ? (next.find((filter) => filter.field === "workspaceId")?.values[0] as string)
@@ -370,7 +378,7 @@ export function ActivityFilterPopover(props: {
   return (
     <>
       <Filters
-        filters={filterItems}
+        filters={draftFilters}
         fields={fields}
         onChange={handleFiltersChange}
         i18n={reuiI18n}
@@ -393,6 +401,7 @@ export function ActivityFilterPopover(props: {
             setWorkspaceOption(undefined);
             setActorOption(undefined);
             setSubjectOption(undefined);
+            setDraftFilters(toReuiFilters(props.defaultValue));
             props.onApply(props.defaultValue);
           }}
         >

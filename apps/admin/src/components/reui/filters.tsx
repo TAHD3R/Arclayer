@@ -599,9 +599,7 @@ function FilterOperatorDropdown<T = unknown>({
           <DropdownMenuItem
             key={op.value}
             onClick={() => onChange(op.value)}
-            className={cn(
-              "data-highlighted:bg-accent data-highlighted:text-accent-foreground flex items-center justify-between",
-            )}
+            className="flex items-center justify-between"
           >
             <span>{op.label}</span>
             <CheckIcon
@@ -784,10 +782,7 @@ function SelectOptionsPopover<T = unknown>({
                       data-highlighted={isHighlighted || undefined}
                       onMouseEnter={() => setHighlightedIndex(index)}
                       checked={true}
-                      className={cn(
-                        "data-highlighted:bg-accent data-highlighted:text-accent-foreground",
-                        option.className,
-                      )}
+                      className={option.className}
                       onSelect={(e) => {
                         if (isMultiSelect) e.preventDefault();
                       }}
@@ -831,10 +826,7 @@ function SelectOptionsPopover<T = unknown>({
                       data-highlighted={isHighlighted || undefined}
                       onMouseEnter={() => setHighlightedIndex(overallIndex)}
                       checked={false}
-                      className={cn(
-                        "data-highlighted:bg-accent data-highlighted:text-accent-foreground",
-                        option.className,
-                      )}
+                      className={option.className}
                       onSelect={(e) => {
                         if (isMultiSelect) e.preventDefault();
                       }}
@@ -910,7 +902,11 @@ function SelectOptionsPopover<T = unknown>({
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className={cn("w-[200px] px-0", field.className)}>
+      <DropdownMenuContent
+        align="start"
+        className={cn("w-[200px] px-0", field.className)}
+        disableHighlight
+      >
         {renderMenuContent()}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1124,10 +1120,10 @@ function FilterSubmenuContent<T = unknown>({
   }, [field.options, searchInput, currentValues]);
 
   useEffect(() => {
-    if (isActive && filteredOptions.length > 0) {
-      setHighlightedIndex(0);
+    if (!isActive) {
+      setHighlightedIndex(-1);
     }
-  }, [isActive, filteredOptions.length]);
+  }, [isActive]);
 
   return (
     <div className="flex flex-col" onMouseEnter={onActive}>
@@ -1243,10 +1239,7 @@ function FilterSubmenuContent<T = unknown>({
                       data-highlighted={isHighlighted || undefined}
                       onMouseEnter={() => setHighlightedIndex(index)}
                       checked={isSelected}
-                      className={cn(
-                        "data-highlighted:bg-accent data-highlighted:text-accent-foreground",
-                        option.className,
-                      )}
+                      className={option.className}
                       onSelect={(e) => {
                         if (isMultiSelect) e.preventDefault();
                       }}
@@ -1411,10 +1404,10 @@ export function Filters<T = unknown>({
   }, [selectableFields, menuSearchInput]);
 
   useEffect(() => {
-    if (addFilterOpen && filteredFields.length > 0) {
-      setHighlightedIndex(0);
+    if (!addFilterOpen) {
+      setHighlightedIndex(-1);
     }
-  }, [addFilterOpen, filteredFields.length]);
+  }, [addFilterOpen]);
 
   return (
     <FilterContext.Provider
@@ -1450,7 +1443,11 @@ export function Filters<T = unknown>({
                 </Button>
               )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent className={cn("w-[220px]", menuPopupClassName)} align="start">
+            <DropdownMenuContent
+              className={cn("w-[220px]", menuPopupClassName)}
+              align="start"
+              disableHighlight
+            >
               {showSearchInput && (
                 <>
                   <div className="relative">
@@ -1593,12 +1590,12 @@ export function Filters<T = unknown>({
                                 aria-selected={isHighlighted}
                                 data-highlighted={isHighlighted || undefined}
                                 onMouseEnter={() => setHighlightedIndex(index)}
-                                className="data-[state=open]:bg-accent data-[state=open]:text-accent-foreground data-highlighted:bg-accent data-highlighted:text-accent-foreground"
+                                className="data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
                               >
                                 {field.icon}
                                 <span>{field.label}</span>
                               </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-[200px]">
+                              <DropdownMenuSubContent className="w-[200px]" disableHighlight>
                                 <FilterSubmenuContent
                                   field={field}
                                   currentValues={currentValues}
@@ -1677,7 +1674,6 @@ export function Filters<T = unknown>({
                             data-highlighted={isHighlighted || undefined}
                             onMouseEnter={() => setHighlightedIndex(index)}
                             onClick={() => field.key && addFilter(field.key)}
-                            className="data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                           >
                             {field.icon}
                             <span>{field.label}</span>

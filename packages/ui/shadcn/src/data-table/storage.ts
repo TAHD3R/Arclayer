@@ -9,7 +9,7 @@ import {
 } from "./types";
 
 const DEFAULT_VISIBILITY_KEY_PREFIX = "arclayer:admin:dataTable:visibility";
-const DEFAULT_VISIBILITY_VERSION = "v1";
+const DEFAULT_VISIBILITY_VERSION = "v2";
 
 const DEFAULT_PREFERENCES_KEY_PREFIX = "arclayer:admin:dataTable:preferences";
 const DEFAULT_PREFERENCES_VERSION = "v2";

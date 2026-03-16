@@ -29,6 +29,9 @@ const FILTER_OPERATORS = [{ value: "is", labelKey: "common:FILTER_OPERATOR_IS" }
 function toReuiFilters(value: AssetsFilters): Filter<AssetFilterValue>[] {
   const next: Filter<AssetFilterValue>[] = [];
 
+  if (value.mimePrefix) {
+    next.push(createFilter("mimePrefix", "is", [value.mimePrefix]));
+  }
   if (value.visibility) {
     next.push(createFilter("visibility", "is", [value.visibility]));
   }
@@ -46,6 +49,12 @@ function fromReuiFilters(filters: Filter<AssetFilterValue>[]): AssetsFilters {
   const next: AssetsFilters = {};
 
   for (const filter of filters) {
+    if (filter.field === "mimePrefix") {
+      const first = filter.values[0];
+      if (typeof first === "string" && first) next.mimePrefix = first;
+      continue;
+    }
+
     if (filter.field === "visibility") {
       const first = filter.values[0];
       if (typeof first === "string" && first) next.visibility = first;
@@ -82,7 +91,7 @@ export function AssetsFilterPopover(props: {
   tags: AdminAssetTag[];
   tagsLoading?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["assets", "common", "activity"]);
 
   const orderingOptions = useMemo(
     () => [
@@ -97,6 +106,23 @@ export function AssetsFilterPopover(props: {
   const reuiI18n = useMemo(() => buildReuiFilterI18n(t, t("assets:ASSET_FILTER_TITLE")), [t]);
   const fields = useMemo<FilterFieldConfig<AssetFilterValue>[]>(
     () => [
+      {
+        key: "mimePrefix",
+        label: t("assets:ASSET_FILTER_FIELD_TYPE"),
+        type: "select",
+        searchable: false,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey, { defaultValue: "is" }),
+        })),
+        options: [
+          { value: "image/", label: t("assets:ASSET_FILTER_TYPE_IMAGE") },
+          { value: "video/", label: t("assets:ASSET_FILTER_TYPE_VIDEO") },
+          { value: "audio/", label: t("assets:ASSET_FILTER_TYPE_AUDIO") },
+          { value: "text/", label: t("assets:ASSET_FILTER_TYPE_TEXT") },
+          { value: "application/", label: t("assets:ASSET_FILTER_TYPE_APP") },
+        ],
+      },
       {
         key: "visibility",
         label: t("assets:ASSET_FILTER_FIELD_VISIBILITY"),
@@ -164,19 +190,6 @@ export function AssetsFilterPopover(props: {
 
   return (
     <>
-      <Select value={props.ordering} onValueChange={props.onOrderingChange}>
-        <SelectTrigger className="w-[12rem] min-w-[12rem]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent align="end" position="popper">
-          {orderingOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       <Filters
         filters={filterItems}
         fields={fields}
@@ -194,11 +207,25 @@ export function AssetsFilterPopover(props: {
         }
       />
 
+      <Select value={props.ordering} onValueChange={props.onOrderingChange}>
+        <SelectTrigger className="w-[12rem] min-w-[12rem]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end" position="popper">
+          {orderingOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       {hasOverrides ? (
         <Button
           variant="outline"
           onClick={() => {
             props.onChange({
+              mimePrefix: undefined,
               visibility: undefined,
               createdFrom: undefined,
               createdTo: undefined,

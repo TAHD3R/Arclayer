@@ -120,20 +120,20 @@ describe("MeSecuritySessionsSection", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.queryByRole("columnheader", {
+      screen.getByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
       }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
     expect(
-      screen.queryByRole("columnheader", {
+      screen.getByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_AUTH_METHOD"),
       }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
     expect(
-      screen.queryByRole("columnheader", {
+      screen.getByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
 
     expect(screen.getByText("formatted:2026-03-07T00:10:00Z")).toBeInTheDocument();
     expect(screen.queryByText("2026-03-07T00:10:00Z")).not.toBeInTheDocument();
@@ -148,6 +148,9 @@ describe("MeSecuritySessionsSection", () => {
     expect(
       screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_VIEW_OPTIONS") }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }),
+    ).toBeInTheDocument();
 
     await user.click(refreshButton);
 
@@ -156,7 +159,7 @@ describe("MeSecuritySessionsSection", () => {
     });
   });
 
-  it("reveals hidden fields from toolbar and revokes sessions", async () => {
+  it("toggles columns from the dedicated columns panel and revokes sessions", async () => {
     const user = userEvent.setup();
     mockSessions();
     revokeMySessionMock.mockResolvedValue(null);
@@ -165,28 +168,36 @@ describe("MeSecuritySessionsSection", () => {
     renderWithQuery(<MeSecuritySessionsSection />);
 
     await screen.findByText("Chrome on Windows");
-    await user.click(
-      screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_VIEW_OPTIONS") }),
+    await user.click(screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }));
+    const columnsSearch = await screen.findByPlaceholderText(
+      i18n.t("common:DATA_TABLE_COLUMNS_SEARCH_PLACEHOLDER"),
     );
+    const columnsDialog = columnsSearch.closest('[role="dialog"]');
+    expect(columnsDialog).not.toBeNull();
 
     await user.click(
-      screen.getByRole("button", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
+      within(columnsDialog as HTMLElement).getByRole("switch", {
+        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
     );
+
+    expect(
+      screen.queryByRole("columnheader", {
+        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
+      }),
+    ).not.toBeInTheDocument();
+
     await user.click(
-      screen.getByRole("button", {
+      within(columnsDialog as HTMLElement).getByRole("switch", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
     );
 
     expect(
       await screen.findByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
+        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("formatted:2026-03-06T00:00:00Z")).toBeInTheDocument();
-    expect(screen.getByText("Hangzhou")).toBeInTheDocument();
     expect(screen.getByText("10.0.0.8")).toBeInTheDocument();
 
     const row = screen.getByText("Chrome on Windows").closest("tr");
