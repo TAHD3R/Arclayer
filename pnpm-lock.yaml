@@ -146,18 +146,9 @@ importers:
       '@celestial/block-protocol':
         specifier: workspace:*
         version: link:../../packages/protocols/block
-      '@celestial/editor-bridge':
-        specifier: workspace:*
-        version: link:../../packages/bridges/editor
-      '@celestial/editor-protocol':
-        specifier: workspace:*
-        version: link:../../packages/protocols/editor
       '@celestial/hooks':
         specifier: workspace:*
         version: link:../../packages/hooks
-      '@celestial/internal-types':
-        specifier: workspace:*
-        version: link:../../packages/internal/types
       '@celestial/lib':
         specifier: workspace:*
         version: link:../../packages/lib
@@ -385,34 +376,6 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
-  packages/bridges/editor:
-    dependencies:
-      '@celestial/editor-protocol':
-        specifier: workspace:*
-        version: link:../../protocols/editor
-      penpal:
-        specifier: 'catalog:'
-        version: 6.2.2
-
-  packages/core/renderer:
-    dependencies:
-      '@celestial/block-protocol':
-        specifier: workspace:*
-        version: link:../../protocols/block
-    devDependencies:
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.2.9
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.2.3(@types/react@19.2.9)
-      react:
-        specifier: 'catalog:'
-        version: 19.2.3
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.2.3(react@19.2.3)
-
   packages/core/runtime: {}
 
   packages/hooks:
@@ -449,8 +412,6 @@ importers:
         specifier: 'catalog:'
         version: 7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/internal/types: {}
-
   packages/lib:
     dependencies:
       clsx:
@@ -475,12 +436,6 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
-
-  packages/protocols/editor:
-    dependencies:
-      '@celestial/block-protocol':
-        specifier: workspace:*
-        version: link:../block
 
   packages/ui/shadcn:
     dependencies:
@@ -618,6 +573,13 @@ importers:
   packages/ui/theme-default: {}
 
   packages/ui/tokens:
+    dependencies:
+      '@fontsource-variable/ibm-plex-sans':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/ibm-plex-mono':
+        specifier: ^5.2.7
+        version: 5.2.7
     devDependencies:
       tailwindcss:
         specifier: 'catalog:'
@@ -1500,6 +1462,12 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource-variable/ibm-plex-sans@5.2.8':
+    resolution: {integrity: sha512-n5PF2iFa0CZT0QYTPzxvZ39opC9LnU0zdoRccoADbs+Dtsd+lbXOZF7RNuIPHcQX1dKjF63sxnRImQIB5eD0Ag==}
+
+  '@fontsource/ibm-plex-mono@5.2.7':
+    resolution: {integrity: sha512-MKAb8qV+CaiMQn2B0dIi1OV3565NYzp3WN5b4oT6LTkk+F0jR6j0ZN+5BKJiIhffDC3rtBULsYZE65+0018z9w==}
 
   '@formatjs/ecma402-abstract@2.3.6':
     resolution: {integrity: sha512-HJnTFeRM2kVFVr5gr5kH1XP6K0JcJtE7Lzvtr3FS/so5f1kpsqqqxy5JF+FRaO6H2qmcMfAUIox7AJteieRtVw==}
@@ -7341,6 +7309,10 @@ snapshots:
   '@floating-ui/utils@0.2.10': {}
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@fontsource-variable/ibm-plex-sans@5.2.8': {}
+
+  '@fontsource/ibm-plex-mono@5.2.7': {}
 
   '@formatjs/ecma402-abstract@2.3.6':
     dependencies:

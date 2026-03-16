@@ -9,6 +9,10 @@
     "./tailwind-preset": "./src/tailwind-preset.ts",
     "./theme-mode": "./src/theme-mode.ts"
   },
+  "dependencies": {
+    "@fontsource-variable/ibm-plex-sans": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7"
+  },
   "devDependencies": {
     "tailwindcss": "catalog:"
   },
