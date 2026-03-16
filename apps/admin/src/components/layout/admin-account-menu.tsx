@@ -22,7 +22,6 @@ import {
 } from "@arclayer/ui/floating-panel";
 import { useSidebar } from "@arclayer/ui/sidebar";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { useMeSettingsDialogStore } from "@/stores/use-me-settings-dialog-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ThemePreference } from "@/types/stores";
@@ -59,7 +58,6 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const themePreference = usePreferencesStore((s) => s.themePreference);
   const locale = usePreferencesStore((s) => s.locale);
   const setLocale = usePreferencesStore((s) => s.setLocale);
-  const openMeSettingsDialog = useMeSettingsDialogStore((s) => s.openDialog);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me", sessionVersion],
@@ -97,7 +95,7 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     themePreference,
     locale,
     onLogout,
-    onAccountSettings: () => openMeSettingsDialog({ tab: "profile" }),
+    onAccountSettings: () => void navigate({ to: "/account/profile" }),
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });
     },

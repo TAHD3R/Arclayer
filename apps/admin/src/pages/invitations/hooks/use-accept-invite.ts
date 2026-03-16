@@ -14,7 +14,6 @@ import {
   notifySuccessText,
 } from "@/lib/notifications";
 import { ApiError } from "@/lib/http";
-import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { queryClient } from "@/lib/query/query-client-instance";
 
 import { formatInvitationExpiresRelative, resolveRoleText } from "../utils";
@@ -187,17 +186,9 @@ export function useAcceptInvite(rawToken: string | null) {
     workspaceId: string | null | undefined;
     organizationId: string | null | undefined;
   }) => {
-    const organizationId = String(payload.organizationId || "").trim();
     if (!payload.workspaceId) {
       notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
-      if (organizationId) {
-        await navigate({
-          to: buildOrganizationPath(organizationId, "/team/members"),
-          replace: true,
-        });
-        return;
-      }
-      await navigate({ to: "/", replace: true });
+      await navigate({ to: "/account/workspaces", replace: true });
       return;
     }
     setCurrentWorkspaceId(payload.workspaceId);

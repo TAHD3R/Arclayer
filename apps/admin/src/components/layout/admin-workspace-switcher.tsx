@@ -1,28 +1,17 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  Check,
-  ChevronDown,
-  Compass,
-  PanelLeftIcon,
-  Plus,
-  Settings,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, PanelLeftIcon, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { listMyOrganizations } from "@/api/me";
-import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
-import { getWorkspaceDetail } from "@/api/workspaces";
-import { OrganizationAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
+import { listMyWorkspaces, getWorkspaceDetail } from "@/api/workspaces";
+import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
-import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { MyWorkspace } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
 import {
   FloatingPanelButton,
@@ -33,12 +22,6 @@ import {
 } from "@arclayer/ui/floating-panel";
 import { Button } from "@arclayer/ui/button";
 import { useSidebar } from "@arclayer/ui/sidebar";
-
-import type { OrganizationWorkspace } from "@/types/api";
-
-// ============================================================================
-// Style Constants
-// ============================================================================
 
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
 const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-11";
@@ -63,7 +46,14 @@ function PanelMenuItemContent(props: { icon?: ReactNode; text: string; right?: R
   );
 }
 
-function PanelMenuButton(props: { onClick: () => void; children: ReactNode; disabled?: boolean }) {
+const panelMenuButtonClassName = cn(
+  "group",
+  "transition-colors",
+  "hover:bg-accent hover:text-foreground",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+);
+
+function PanelMenuButton(props: { onClick?: () => void; children: ReactNode; disabled?: boolean }) {
   return (
     <FloatingPanelButton
       className={cn(
@@ -145,28 +135,6 @@ const collapsedCollapseButtonClassName = cn(
   "transition-[color,background-color,transform] duration-200 ease-out motion-reduce:transition-none",
 );
 
-const panelMenuButtonClassName = cn(
-  "group",
-  "transition-colors",
-  "hover:bg-accent hover:text-foreground",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-);
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type OrganizationOption = {
-  id: string;
-  name: string;
-  logoUrl: string | null;
-  memberCount: number;
-};
-
-// ============================================================================
-// Collapse Button Components
-// ============================================================================
-
 function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
   return (
     <Button
@@ -175,8 +143,8 @@ function CollapseButton(props: { ariaLabel: string; onClick: () => void; classNa
       size="icon"
       className={cn(collapseButtonClassName, props.className)}
       aria-label={props.ariaLabel}
-      onClick={(e) => {
-        e.stopPropagation();
+      onClick={(event) => {
+        event.stopPropagation();
         props.onClick();
       }}
     >
@@ -197,162 +165,6 @@ function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void
     >
       <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
     </Button>
-  );
-}
-
-// ============================================================================
-// Section Components
-// ============================================================================
-
-function OrgHeaderSection(props: { name: string; logoUrl: string | null; memberCount: number }) {
-  const { t } = useTranslation(["common", "nav"]);
-
-  return (
-    <div className="mb-3 flex items-start gap-3">
-      <OrganizationAvatar
-        name={props.name}
-        assetRef={props.logoUrl}
-        size={40}
-        className="shrink-0"
-      />
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TruncatedText text={props.name} className="text-headline text-label-primary" />
-        <div className="mt-1 flex items-center gap-1.5 text-callout text-label-secondary">
-          <Users className="h-3 w-3" aria-hidden="true" />
-          <span>
-            {t("common:WORKSPACE_SWITCHER_ORG_MEMBERS_COUNT", { count: props.memberCount })}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OrgActionsSection(props: { onMembers: () => void; onSettings: () => void }) {
-  const { t } = useTranslation(["common", "nav"]);
-
-  return (
-    <div className="flex items-center gap-2">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="font-medium"
-        onClick={props.onSettings}
-      >
-        <Settings className="h-3.5 w-3.5" aria-hidden="true" />
-        {t("common:WORKSPACE_SWITCHER_ORG_SETTINGS")}
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="font-medium"
-        onClick={props.onMembers}
-      >
-        <Users className="h-3.5 w-3.5" aria-hidden="true" />
-        {t("nav:NAV_ORG_MEMBERS")}
-      </Button>
-    </div>
-  );
-}
-
-function OrgPickerSection(props: {
-  organizations: readonly OrganizationOption[];
-  selectedOrgId: string | null;
-  onSelect: (orgId: string) => void;
-}) {
-  const { t } = useTranslation(["common"]);
-
-  if (props.organizations.length === 0) {
-    return (
-      <div className="text-callout text-label-secondary">
-        {t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-w-0">
-      <div className="px-2 py-1.5 text-callout text-label-secondary">
-        {t("common:WORKSPACE_SWITCHER_SELECT_ORG")}
-      </div>
-      <div className="flex flex-col gap-1">
-        {props.organizations.map((org) => {
-          const selected = props.selectedOrgId === org.id;
-          return (
-            <PanelMenuButton key={org.id} onClick={() => props.onSelect(org.id)}>
-              <PanelMenuItemContent
-                icon={
-                  <OrganizationAvatar
-                    name={org.name}
-                    assetRef={org.logoUrl}
-                    size={24}
-                    className="shrink-0"
-                  />
-                }
-                text={org.name}
-                right={
-                  selected ? <Check className="h-4 w-4 text-primary" aria-hidden="true" /> : null
-                }
-              />
-            </PanelMenuButton>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function WorkspacePickerSection(props: {
-  workspaces: readonly OrganizationWorkspace[];
-  activeWorkspaceId: string | null;
-  onSelect: (workspaceId: string) => void;
-  onCreate: () => void;
-  canCreate: boolean;
-}) {
-  const { t } = useTranslation(["common"]);
-
-  return (
-    <div className="min-w-0">
-      <div className="px-2 py-1.5 text-callout text-label-secondary">
-        {t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
-      </div>
-      <div className="flex flex-col gap-1">
-        {props.workspaces.length === 0 ? (
-          <div className="px-2 py-1.5 text-callout text-label-secondary">
-            {t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")}
-          </div>
-        ) : null}
-        {props.workspaces.map((ws) => {
-          const selected = String(props.activeWorkspaceId || "") === String(ws.workspaceId);
-          return (
-            <PanelMenuButton key={ws.workspaceId} onClick={() => props.onSelect(ws.workspaceId)}>
-              <PanelMenuItemContent
-                icon={
-                  <WorkspaceAvatar
-                    name={ws.name || ws.slug || ws.workspaceId}
-                    assetRef={ws.iconUrl}
-                    size={24}
-                    className="shrink-0"
-                  />
-                }
-                text={ws.name || ws.slug || ws.workspaceId}
-                right={
-                  selected ? <Check className="h-4 w-4 text-primary" aria-hidden="true" /> : null
-                }
-              />
-            </PanelMenuButton>
-          );
-        })}
-        <PanelMenuButton disabled={!props.canCreate} onClick={props.onCreate}>
-          <PanelMenuItemContent
-            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
-            text={t("common:WORKSPACE_SWITCHER_CREATE")}
-          />
-        </PanelMenuButton>
-      </div>
-    </div>
   );
 }
 
@@ -379,35 +191,13 @@ function PanelSkeletonRow(props: { className?: string }) {
   );
 }
 
-function PanelHeaderSkeleton() {
-  return (
-    <div className="p-3">
-      <div className="mb-3 flex items-start gap-3">
-        <div aria-hidden="true" className="h-10 w-10 shrink-0 rounded bg-accent/50 animate-pulse" />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <PanelSkeletonRow className="w-40" />
-          <div className="mt-2 flex items-center gap-2">
-            <div aria-hidden="true" className="h-3 w-3 rounded bg-accent/30 animate-pulse" />
-            <PanelSkeletonRow className="h-3 w-24" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div aria-hidden="true" className="h-8 rounded bg-accent/50 animate-pulse" />
-        <div aria-hidden="true" className="h-8 rounded bg-accent/50 animate-pulse" />
-      </div>
-    </div>
-  );
-}
-
 function PanelPickerSkeleton(props: { rows: number }) {
   return (
     <div className="px-2 py-2">
       <div className="flex flex-col gap-2">
-        {Array.from({ length: props.rows }).map((_, idx) => (
+        {Array.from({ length: props.rows }).map((_, index) => (
           <div
-            key={idx}
+            key={index}
             className={cn(
               "flex w-full items-center gap-2 rounded-none px-4 py-2 text-left text-footnote",
               panelMenuButtonClassName,
@@ -432,154 +222,107 @@ function PanelPickerSkeleton(props: { rows: number }) {
   );
 }
 
-// ============================================================================
-// Panel Content Component
-// ============================================================================
+function WorkspacePickerSection(props: {
+  workspaces: readonly MyWorkspace[];
+  activeWorkspaceId: string | null;
+  onSelect: (workspaceId: string) => void;
+  onCreate: () => void;
+}) {
+  const { t } = useTranslation(["common"]);
+
+  return (
+    <div className="min-w-0">
+      <div className="px-2 py-1.5 text-callout text-label-secondary">
+        {t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
+      </div>
+      <div className="flex flex-col gap-1">
+        {props.workspaces.length === 0 ? (
+          <div className="px-2 py-1.5 text-callout text-label-secondary">
+            {t("common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY")}
+          </div>
+        ) : null}
+        {props.workspaces.map((workspace) => {
+          const selected = String(props.activeWorkspaceId || "") === String(workspace.workspaceId);
+          const title = workspace.name || workspace.slug || workspace.workspaceId;
+          return (
+            <PanelMenuButton
+              key={workspace.workspaceId}
+              onClick={() => props.onSelect(workspace.workspaceId)}
+            >
+              <PanelMenuItemContent
+                icon={
+                  <WorkspaceAvatar name={title} assetRef={null} size={24} className="shrink-0" />
+                }
+                text={title}
+                right={
+                  selected ? <Check className="h-4 w-4 text-primary" aria-hidden="true" /> : null
+                }
+              />
+            </PanelMenuButton>
+          );
+        })}
+        <PanelMenuButton onClick={props.onCreate}>
+          <PanelMenuItemContent
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+            text={t("common:WORKSPACE_SWITCHER_CREATE")}
+          />
+        </PanelMenuButton>
+      </div>
+    </div>
+  );
+}
+
+function ManageWorkspacesButton() {
+  const { t } = useTranslation(["account"]);
+  const navigate = useNavigate();
+  const { closeFloatingPanel } = useFloatingPanel();
+
+  return (
+    <PanelMenuButton
+      onClick={() => {
+        closeFloatingPanel();
+        void navigate({ to: "/account/workspaces" as never });
+      }}
+    >
+      <PanelMenuItemContent
+        icon={<Plus className="h-4 w-4" aria-hidden="true" />}
+        text={t("account:ACCOUNT_PAGE_WORKSPACES_TITLE")}
+      />
+    </PanelMenuButton>
+  );
+}
 
 function PanelContentInner() {
   const { t } = useTranslation(["common"]);
-  const { isOpen, closeFloatingPanel } = useFloatingPanel();
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const { closeFloatingPanel } = useFloatingPanel();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
+  const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
-  const [orgIdOverride, setOrgIdOverride] = useState<string | null>(null);
 
-  const workspaceDetailQuery = useQuery({
-    queryKey: ["workspace", "detail", currentWorkspaceId, sessionVersion],
-    enabled: Boolean(accessToken && currentWorkspaceId),
-    queryFn: async () => getWorkspaceDetail(String(currentWorkspaceId)),
-    staleTime: 5 * 60 * 1000,
+  const workspacesQuery = useQuery({
+    queryKey: ["me", "workspaces", "switcher", sessionVersion],
+    enabled: Boolean(accessToken),
+    queryFn: listMyWorkspaces,
+    staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
 
-  const workspaceOrganizationId = workspaceDetailQuery.data?.organizationId ?? null;
-
-  const organizationsQuery = useQuery({
-    queryKey: ["organization", "me", "organizations", "scope-switcher", sessionVersion],
-    enabled: Boolean(accessToken),
-    queryFn: listMyOrganizations,
-    staleTime: 5 * 60 * 1000,
-    meta: { silent: true },
-  });
-
-  const organizations = useMemo<OrganizationOption[]>(() => {
-    const items = organizationsQuery.data?.items ?? [];
-    return items
-      .filter((item) => item.membership.status === "active")
-      .map((item) => ({
-        id: item.organization.id,
-        name: item.organization.name,
-        logoUrl: item.organization.logoUrl ?? null,
-        memberCount: item.memberCount,
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name));
-  }, [organizationsQuery.data?.items]);
-
-  const effectiveOrgId = orgIdOverride ?? workspaceOrganizationId ?? organizations[0]?.id ?? null;
-  const effectiveOrg = effectiveOrgId
-    ? (organizations.find((item) => item.id === effectiveOrgId) ?? null)
-    : null;
-
-  const workspacesQuery = useQuery({
-    queryKey: ["organization", "workspaces", "list", effectiveOrgId, sessionVersion],
-    enabled: Boolean(accessToken && effectiveOrgId),
-    queryFn: async () =>
-      listOrganizationWorkspaces({
-        organizationId: effectiveOrgId ?? undefined,
-        page: 1,
-        size: 20,
-        archived: false,
-        enterableOnly: true,
-        ordering: "name",
-      }),
-    staleTime: 30 * 1000,
-    meta: { silent: true },
-  });
-
-  const enterableWorkspaces = useMemo(
-    () => (workspacesQuery.data?.items ?? []).filter((ws) => ws.enterable && !ws.isArchived),
+  const workspaces = useMemo(
+    () =>
+      [...(workspacesQuery.data?.items ?? [])].sort((left, right) =>
+        left.name.localeCompare(right.name),
+      ),
     [workspacesQuery.data?.items],
   );
-  const showOrganizationPicker =
-    organizationsQuery.isLoading || organizationsQuery.isError || organizations.length > 1;
-
-  useEffect(() => {
-    if (!isOpen) setOrgIdOverride(null);
-  }, [isOpen]);
 
   const divider = <div className="h-px bg-border/60" />;
 
   return (
     <div className="w-[min(25rem,calc(100vw-1.5rem))] max-w-full">
-      {organizationsQuery.isLoading ? (
-        <PanelHeaderSkeleton />
-      ) : (
-        <div className="p-3">
-          {workspaceDetailQuery.isError ? (
-            <PanelErrorMessage
-              message={t("common:REQUEST_FAILED")}
-              className="mb-2 rounded-md bg-accent/30 px-2 py-2"
-            />
-          ) : null}
-
-          {organizationsQuery.isError ? (
-            <PanelErrorMessage message={t("common:REQUEST_FAILED")} className="py-8" />
-          ) : effectiveOrg ? (
-            <>
-              <OrgHeaderSection
-                name={effectiveOrg.name}
-                logoUrl={effectiveOrg.logoUrl}
-                memberCount={effectiveOrg.memberCount}
-              />
-              <OrgActionsSection
-                onMembers={() => {
-                  closeFloatingPanel();
-                  void navigate({
-                    to: buildOrganizationPath(effectiveOrg.id, "/team/members") as never,
-                  });
-                }}
-                onSettings={() => {
-                  closeFloatingPanel();
-                  void navigate({
-                    to: buildOrganizationPath(effectiveOrg.id, "/settings") as never,
-                  });
-                }}
-              />
-            </>
-          ) : (
-            <div className="text-caption text-label-secondary">
-              {t("common:WORKSPACE_SWITCHER_ORG_EMPTY")}
-            </div>
-          )}
-        </div>
-      )}
-
-      {divider}
-
-      {showOrganizationPicker ? (
-        <>
-          <div className="py-1.5">
-            {organizationsQuery.isError ? (
-              <PanelErrorMessage message={t("common:REQUEST_FAILED")} />
-            ) : organizationsQuery.isLoading ? (
-              <PanelPickerSkeleton rows={4} />
-            ) : (
-              <OrgPickerSection
-                organizations={organizations}
-                selectedOrgId={effectiveOrgId}
-                onSelect={(orgId) => setOrgIdOverride(orgId)}
-              />
-            )}
-          </div>
-
-          {divider}
-        </>
-      ) : null}
-
       <div className="py-1.5">
         {workspacesQuery.isError ? (
           <PanelErrorMessage message={t("common:REQUEST_FAILED")} />
@@ -587,7 +330,7 @@ function PanelContentInner() {
           <PanelPickerSkeleton rows={4} />
         ) : (
           <WorkspacePickerSection
-            workspaces={enterableWorkspaces}
+            workspaces={workspaces}
             activeWorkspaceId={currentWorkspaceId}
             onSelect={(nextWorkspaceId) => {
               closeFloatingPanel();
@@ -599,13 +342,9 @@ function PanelContentInner() {
               });
               void navigate({ to: nextPath as never });
             }}
-            canCreate={Boolean(effectiveOrgId)}
             onCreate={() => {
-              if (!effectiveOrgId) return;
               closeFloatingPanel();
-              void navigate({
-                to: `${buildOrganizationPath(effectiveOrgId, "/workspaces/")}?create=1` as never,
-              });
+              void navigate({ to: "/account/workspaces?create=1" as never });
             }}
           />
         )}
@@ -614,29 +353,11 @@ function PanelContentInner() {
       {divider}
 
       <div className="py-1.5">
-        <PanelMenuButton
-          disabled={!effectiveOrgId}
-          onClick={() => {
-            if (!effectiveOrgId) return;
-            closeFloatingPanel();
-            void navigate({
-              to: buildOrganizationPath(effectiveOrgId, "/") as never,
-            });
-          }}
-        >
-          <PanelMenuItemContent
-            icon={<Compass className="h-4 w-4" aria-hidden="true" />}
-            text={t("common:WORKSPACE_SWITCHER_EXPLORE_ORG_OVERVIEW")}
-          />
-        </PanelMenuButton>
+        <ManageWorkspacesButton />
       </div>
     </div>
   );
 }
-
-// ============================================================================
-// Main Component
-// ============================================================================
 
 type AdminWorkspaceSwitcherProps = {
   className?: string;
@@ -650,14 +371,14 @@ export function AdminWorkspaceSwitcher({
   showSidebarToggle = true,
 }: AdminWorkspaceSwitcherProps = {}) {
   const { t } = useTranslation(["common"]);
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
-  const setCurrentWorkspaceId = useWorkspaceStore((s) => s.setCurrentWorkspaceId);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const currentWorkspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
+  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const { toggleSidebar } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
-  const sessionVersion = useAuthStore((s) => s.sessionVersion);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
 
   const workspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", currentWorkspaceId, sessionVersion],
@@ -668,24 +389,8 @@ export function AdminWorkspaceSwitcher({
     meta: { silent: true },
   });
 
-  const workspaceOrganizationId = workspaceDetailQuery.data?.organizationId ?? null;
-  const triggerOrganizationsQuery = useQuery({
-    queryKey: ["organization", "me", "organizations", "scope-switcher", sessionVersion],
-    enabled: Boolean(accessToken && workspaceOrganizationId),
-    queryFn: listMyOrganizations,
-    staleTime: 5 * 60 * 1000,
-    meta: { silent: true },
-  });
-  const triggerOrganizationLogoUrl = useMemo(() => {
-    if (!workspaceOrganizationId) return null;
-    const organizations = triggerOrganizationsQuery.data?.items ?? [];
-    const currentOrganization = organizations.find(
-      (item) => item.organization.id === workspaceOrganizationId,
-    );
-    return currentOrganization?.organization.logoUrl ?? null;
-  }, [triggerOrganizationsQuery.data?.items, workspaceOrganizationId]);
-
   const workspaceName = workspaceDetailQuery.data?.name ?? "";
+  const workspaceIconUrl = workspaceDetailQuery.data?.iconUrl ?? null;
   const isWorkspaceScopeRoute = pathname.startsWith("/w/");
   const isHeaderVariant = variant === "header";
 
@@ -710,9 +415,7 @@ export function AdminWorkspaceSwitcher({
           onClick={() => {
             if (!effectiveBackWorkspaceId) return;
             setCurrentWorkspaceId(effectiveBackWorkspaceId);
-            void navigate({
-              to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never,
-            });
+            void navigate({ to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never });
           }}
         >
           <ArrowLeft className="size-4 shrink-0 opacity-80" aria-hidden="true" />
@@ -747,9 +450,7 @@ export function AdminWorkspaceSwitcher({
             onClick={() => {
               if (!effectiveBackWorkspaceId) return;
               setCurrentWorkspaceId(effectiveBackWorkspaceId);
-              void navigate({
-                to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never,
-              });
+              void navigate({ to: `${workspaceHomePath(effectiveBackWorkspaceId)}/` as never });
             }}
           >
             <ArrowLeft
@@ -814,9 +515,9 @@ export function AdminWorkspaceSwitcher({
           className={cn(headerTriggerButtonClassName, !canOpenPanel && "opacity-60")}
           disabled={!canOpenPanel}
         >
-          <OrganizationAvatar
+          <WorkspaceAvatar
             name={workspaceTriggerText}
-            assetRef={triggerOrganizationLogoUrl}
+            assetRef={workspaceIconUrl}
             size={28}
             className="shrink-0"
           />
@@ -858,9 +559,9 @@ export function AdminWorkspaceSwitcher({
             )}
             disabled={!canOpenPanel}
           >
-            <OrganizationAvatar
+            <WorkspaceAvatar
               name={workspaceTriggerText}
-              assetRef={triggerOrganizationLogoUrl}
+              assetRef={workspaceIconUrl}
               size={32}
               className="shrink-0"
             />

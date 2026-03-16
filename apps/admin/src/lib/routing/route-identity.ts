@@ -15,6 +15,15 @@ export function isAcceptInvitePath(pathname: string): boolean {
   return pathname === "/invitations" || pathname === "/invitations/";
 }
 
+export function isAccountPath(pathname: string): boolean {
+  return (
+    pathname === "/account" ||
+    pathname.startsWith("/account/") ||
+    pathname === "/me" ||
+    pathname.startsWith("/me/")
+  );
+}
+
 export function isSetupPath(pathname: string): boolean {
   return pathname === "/setup" || pathname.startsWith("/setup/");
 }

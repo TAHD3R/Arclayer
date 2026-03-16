@@ -1,5 +1,6 @@
 import type { ComponentType, PropsWithChildren } from "react";
 
+import { AccountLayout } from "@/layouts/account-layout";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { DevLayout } from "@/layouts/dev-layout";
@@ -7,13 +8,14 @@ import { InviteLayout } from "@/layouts/invite-layout";
 import { SetupLayout } from "@/layouts/setup-layout";
 import {
   isAcceptInvitePath,
+  isAccountPath,
   isAuthScenePath,
   isDevToolsPath,
   isRepairPath,
   isSetupPath,
 } from "@/lib/routing/route-identity";
 
-export type SceneKey = "dev" | "setup" | "auth" | "invite" | "admin";
+export type SceneKey = "dev" | "setup" | "auth" | "invite" | "account" | "admin";
 
 interface SceneEntry {
   key: SceneKey;
@@ -31,6 +33,7 @@ const SCENE_ENTRIES: SceneEntry[] = [
   },
   { key: "auth", layout: AuthLayout, match: isAuthScenePath },
   { key: "invite", layout: InviteLayout, match: isAcceptInvitePath },
+  { key: "account", layout: AccountLayout, match: isAccountPath },
   { key: "admin", layout: AdminLayout, match: () => true },
 ];
 

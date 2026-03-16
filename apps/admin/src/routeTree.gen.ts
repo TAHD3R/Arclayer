@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SysRouteImport } from './routes/sys'
 import { Route as MeRouteImport } from './routes/me'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SysIndexRouteImport } from './routes/sys/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
@@ -19,26 +20,26 @@ import { Route as RepairIndexRouteImport } from './routes/repair/index'
 import { Route as MeIndexRouteImport } from './routes/me/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
+import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
-import { Route as OOrgIdRouteImport } from './routes/o/$orgId'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
 import { Route as SysSettingsIndexRouteImport } from './routes/sys/settings/index'
 import { Route as RepairMasterKeyIndexRouteImport } from './routes/repair/master-key/index'
-import { Route as OOrgIdIndexRouteImport } from './routes/o/$orgId/index'
 import { Route as MeInboxIndexRouteImport } from './routes/me/inbox/index'
 import { Route as DevtoolsIllustrationsIndexRouteImport } from './routes/devtools/illustrations/index'
+import { Route as AccountWorkspacesIndexRouteImport } from './routes/account/workspaces/index'
+import { Route as AccountUsageIndexRouteImport } from './routes/account/usage/index'
+import { Route as AccountSecurityIndexRouteImport } from './routes/account/security/index'
+import { Route as AccountProfileIndexRouteImport } from './routes/account/profile/index'
+import { Route as AccountNotificationsIndexRouteImport } from './routes/account/notifications/index'
+import { Route as AccountDangerIndexRouteImport } from './routes/account/danger/index'
+import { Route as AccountBillingIndexRouteImport } from './routes/account/billing/index'
+import { Route as AccountAppearanceIndexRouteImport } from './routes/account/appearance/index'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
 import { Route as WWorkspaceIdExtensionsIndexRouteImport } from './routes/w/$workspaceId/extensions/index'
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
 import { Route as SysSettingsNamespaceIndexRouteImport } from './routes/sys/settings/$namespace/index'
-import { Route as OOrgIdWorkspacesIndexRouteImport } from './routes/o/$orgId/workspaces/index'
-import { Route as OOrgIdUsageIndexRouteImport } from './routes/o/$orgId/usage/index'
-import { Route as OOrgIdTeamIndexRouteImport } from './routes/o/$orgId/team/index'
-import { Route as OOrgIdSettingsIndexRouteImport } from './routes/o/$orgId/settings/index'
-import { Route as OOrgIdExtensionsIndexRouteImport } from './routes/o/$orgId/extensions/index'
-import { Route as OOrgIdBillingIndexRouteImport } from './routes/o/$orgId/billing/index'
-import { Route as OOrgIdActivityIndexRouteImport } from './routes/o/$orgId/activity/index'
 import { Route as WWorkspaceIdTeamRolesIndexRouteImport } from './routes/w/$workspaceId/team/roles/index'
 import { Route as WWorkspaceIdTeamMembersIndexRouteImport } from './routes/w/$workspaceId/team/members/index'
 import { Route as WWorkspaceIdTeamInvitationsIndexRouteImport } from './routes/w/$workspaceId/team/invitations/index'
@@ -49,13 +50,6 @@ import { Route as WWorkspaceIdExtensionsExtensionSlugIndexRouteImport } from './
 import { Route as WWorkspaceIdContentSiteBuilderIndexRouteImport } from './routes/w/$workspaceId/content/site-builder/index'
 import { Route as WWorkspaceIdContentModelsIndexRouteImport } from './routes/w/$workspaceId/content/models/index'
 import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/$workspaceId/content/library/index'
-import { Route as OOrgIdTeamRolesIndexRouteImport } from './routes/o/$orgId/team/roles/index'
-import { Route as OOrgIdTeamMembersIndexRouteImport } from './routes/o/$orgId/team/members/index'
-import { Route as OOrgIdTeamInvitationsIndexRouteImport } from './routes/o/$orgId/team/invitations/index'
-import { Route as OOrgIdSettingsDangerIndexRouteImport } from './routes/o/$orgId/settings/danger/index'
-import { Route as OOrgIdSettingsBasicsIndexRouteImport } from './routes/o/$orgId/settings/basics/index'
-import { Route as OOrgIdSettingsActivityIndexRouteImport } from './routes/o/$orgId/settings/activity/index'
-import { Route as OOrgIdExtensionsExtensionSlugIndexRouteImport } from './routes/o/$orgId/extensions/$extensionSlug/index'
 import { Route as WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/danger/index'
 import { Route as WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/basics/index'
 import { Route as WWorkspaceIdSettingsSiteLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/site/localization/index'
@@ -72,6 +66,11 @@ const SysRoute = SysRouteImport.update({
 const MeRoute = MeRouteImport.update({
   id: '/me',
   path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -118,14 +117,14 @@ const InvitationsIndexRoute = InvitationsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/invitations/index.lazy').then((d) => d.Route),
 )
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountRoute,
+} as any)
 const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
   id: '/w/$workspaceId',
   path: '/w/$workspaceId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OOrgIdRoute = OOrgIdRouteImport.update({
-  id: '/o/$orgId',
-  path: '/o/$orgId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
@@ -147,13 +146,6 @@ const RepairMasterKeyIndexRoute = RepairMasterKeyIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/repair/master-key/index.lazy').then((d) => d.Route),
 )
-const OOrgIdIndexRoute = OOrgIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/index.lazy').then((d) => d.Route),
-)
 const MeInboxIndexRoute = MeInboxIndexRouteImport.update({
   id: '/inbox/',
   path: '/inbox/',
@@ -169,6 +161,47 @@ const DevtoolsIllustrationsIndexRoute =
   } as any).lazy(() =>
     import('./routes/devtools/illustrations/index.lazy').then((d) => d.Route),
   )
+const AccountWorkspacesIndexRoute = AccountWorkspacesIndexRouteImport.update({
+  id: '/workspaces/',
+  path: '/workspaces/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountUsageIndexRoute = AccountUsageIndexRouteImport.update({
+  id: '/usage/',
+  path: '/usage/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountSecurityIndexRoute = AccountSecurityIndexRouteImport.update({
+  id: '/security/',
+  path: '/security/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountProfileIndexRoute = AccountProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountNotificationsIndexRoute =
+  AccountNotificationsIndexRouteImport.update({
+    id: '/notifications/',
+    path: '/notifications/',
+    getParentRoute: () => AccountRoute,
+  } as any)
+const AccountDangerIndexRoute = AccountDangerIndexRouteImport.update({
+  id: '/danger/',
+  path: '/danger/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountBillingIndexRoute = AccountBillingIndexRouteImport.update({
+  id: '/billing/',
+  path: '/billing/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountAppearanceIndexRoute = AccountAppearanceIndexRouteImport.update({
+  id: '/appearance/',
+  path: '/appearance/',
+  getParentRoute: () => AccountRoute,
+} as any)
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -207,55 +240,6 @@ const SysSettingsNamespaceIndexRoute =
   } as any).lazy(() =>
     import('./routes/sys/settings/$namespace/index.lazy').then((d) => d.Route),
   )
-const OOrgIdWorkspacesIndexRoute = OOrgIdWorkspacesIndexRouteImport.update({
-  id: '/workspaces/',
-  path: '/workspaces/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/workspaces/index.lazy').then((d) => d.Route),
-)
-const OOrgIdUsageIndexRoute = OOrgIdUsageIndexRouteImport.update({
-  id: '/usage/',
-  path: '/usage/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/usage/index.lazy').then((d) => d.Route),
-)
-const OOrgIdTeamIndexRoute = OOrgIdTeamIndexRouteImport.update({
-  id: '/team/',
-  path: '/team/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/team/index.lazy').then((d) => d.Route),
-)
-const OOrgIdSettingsIndexRoute = OOrgIdSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/settings/index.lazy').then((d) => d.Route),
-)
-const OOrgIdExtensionsIndexRoute = OOrgIdExtensionsIndexRouteImport.update({
-  id: '/extensions/',
-  path: '/extensions/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/extensions/index.lazy').then((d) => d.Route),
-)
-const OOrgIdBillingIndexRoute = OOrgIdBillingIndexRouteImport.update({
-  id: '/billing/',
-  path: '/billing/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/billing/index.lazy').then((d) => d.Route),
-)
-const OOrgIdActivityIndexRoute = OOrgIdActivityIndexRouteImport.update({
-  id: '/activity/',
-  path: '/activity/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/activity/index.lazy').then((d) => d.Route),
-)
 const WWorkspaceIdTeamRolesIndexRoute =
   WWorkspaceIdTeamRolesIndexRouteImport.update({
     id: '/team/roles/',
@@ -348,66 +332,6 @@ const WWorkspaceIdContentLibraryIndexRoute =
       (d) => d.Route,
     ),
   )
-const OOrgIdTeamRolesIndexRoute = OOrgIdTeamRolesIndexRouteImport.update({
-  id: '/team/roles/',
-  path: '/team/roles/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/team/roles/index.lazy').then((d) => d.Route),
-)
-const OOrgIdTeamMembersIndexRoute = OOrgIdTeamMembersIndexRouteImport.update({
-  id: '/team/members/',
-  path: '/team/members/',
-  getParentRoute: () => OOrgIdRoute,
-} as any).lazy(() =>
-  import('./routes/o/$orgId/team/members/index.lazy').then((d) => d.Route),
-)
-const OOrgIdTeamInvitationsIndexRoute =
-  OOrgIdTeamInvitationsIndexRouteImport.update({
-    id: '/team/invitations/',
-    path: '/team/invitations/',
-    getParentRoute: () => OOrgIdRoute,
-  } as any).lazy(() =>
-    import('./routes/o/$orgId/team/invitations/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const OOrgIdSettingsDangerIndexRoute =
-  OOrgIdSettingsDangerIndexRouteImport.update({
-    id: '/settings/danger/',
-    path: '/settings/danger/',
-    getParentRoute: () => OOrgIdRoute,
-  } as any).lazy(() =>
-    import('./routes/o/$orgId/settings/danger/index.lazy').then((d) => d.Route),
-  )
-const OOrgIdSettingsBasicsIndexRoute =
-  OOrgIdSettingsBasicsIndexRouteImport.update({
-    id: '/settings/basics/',
-    path: '/settings/basics/',
-    getParentRoute: () => OOrgIdRoute,
-  } as any).lazy(() =>
-    import('./routes/o/$orgId/settings/basics/index.lazy').then((d) => d.Route),
-  )
-const OOrgIdSettingsActivityIndexRoute =
-  OOrgIdSettingsActivityIndexRouteImport.update({
-    id: '/settings/activity/',
-    path: '/settings/activity/',
-    getParentRoute: () => OOrgIdRoute,
-  } as any).lazy(() =>
-    import('./routes/o/$orgId/settings/activity/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const OOrgIdExtensionsExtensionSlugIndexRoute =
-  OOrgIdExtensionsExtensionSlugIndexRouteImport.update({
-    id: '/extensions/$extensionSlug/',
-    path: '/extensions/$extensionSlug/',
-    getParentRoute: () => OOrgIdRoute,
-  } as any).lazy(() =>
-    import('./routes/o/$orgId/extensions/$extensionSlug/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 const WWorkspaceIdSettingsWorkspaceDangerIndexRoute =
   WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport.update({
     id: '/settings/workspace/danger/',
@@ -481,10 +405,11 @@ const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
   '/me': typeof MeRouteWithChildren
   '/sys': typeof SysRouteWithChildren
-  '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/account/': typeof AccountIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/me/': typeof MeIndexRoute
@@ -492,31 +417,24 @@ export interface FileRoutesByFullPath {
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
+  '/account/appearance/': typeof AccountAppearanceIndexRoute
+  '/account/billing/': typeof AccountBillingIndexRoute
+  '/account/danger/': typeof AccountDangerIndexRoute
+  '/account/notifications/': typeof AccountNotificationsIndexRoute
+  '/account/profile/': typeof AccountProfileIndexRoute
+  '/account/security/': typeof AccountSecurityIndexRoute
+  '/account/usage/': typeof AccountUsageIndexRoute
+  '/account/workspaces/': typeof AccountWorkspacesIndexRoute
   '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
   '/me/inbox/': typeof MeInboxIndexRoute
-  '/o/$orgId/': typeof OOrgIdIndexRoute
   '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
-  '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
-  '/o/$orgId/billing/': typeof OOrgIdBillingIndexRoute
-  '/o/$orgId/extensions/': typeof OOrgIdExtensionsIndexRoute
-  '/o/$orgId/settings/': typeof OOrgIdSettingsIndexRoute
-  '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
-  '/o/$orgId/usage/': typeof OOrgIdUsageIndexRoute
-  '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
   '/sys/settings/$namespace/': typeof SysSettingsNamespaceIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
-  '/o/$orgId/extensions/$extensionSlug/': typeof OOrgIdExtensionsExtensionSlugIndexRoute
-  '/o/$orgId/settings/activity/': typeof OOrgIdSettingsActivityIndexRoute
-  '/o/$orgId/settings/basics/': typeof OOrgIdSettingsBasicsIndexRoute
-  '/o/$orgId/settings/danger/': typeof OOrgIdSettingsDangerIndexRoute
-  '/o/$orgId/team/invitations/': typeof OOrgIdTeamInvitationsIndexRoute
-  '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
-  '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
@@ -537,6 +455,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountIndexRoute
   '/invitations': typeof InvitationsIndexRoute
   '/login': typeof LoginIndexRoute
   '/me': typeof MeIndexRoute
@@ -544,31 +463,24 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordIndexRoute
   '/setup': typeof SetupIndexRoute
   '/sys': typeof SysIndexRoute
+  '/account/appearance': typeof AccountAppearanceIndexRoute
+  '/account/billing': typeof AccountBillingIndexRoute
+  '/account/danger': typeof AccountDangerIndexRoute
+  '/account/notifications': typeof AccountNotificationsIndexRoute
+  '/account/profile': typeof AccountProfileIndexRoute
+  '/account/security': typeof AccountSecurityIndexRoute
+  '/account/usage': typeof AccountUsageIndexRoute
+  '/account/workspaces': typeof AccountWorkspacesIndexRoute
   '/devtools/illustrations': typeof DevtoolsIllustrationsIndexRoute
   '/me/inbox': typeof MeInboxIndexRoute
-  '/o/$orgId': typeof OOrgIdIndexRoute
   '/repair/master-key': typeof RepairMasterKeyIndexRoute
   '/sys/settings': typeof SysSettingsIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
-  '/o/$orgId/activity': typeof OOrgIdActivityIndexRoute
-  '/o/$orgId/billing': typeof OOrgIdBillingIndexRoute
-  '/o/$orgId/extensions': typeof OOrgIdExtensionsIndexRoute
-  '/o/$orgId/settings': typeof OOrgIdSettingsIndexRoute
-  '/o/$orgId/team': typeof OOrgIdTeamIndexRoute
-  '/o/$orgId/usage': typeof OOrgIdUsageIndexRoute
-  '/o/$orgId/workspaces': typeof OOrgIdWorkspacesIndexRoute
   '/sys/settings/$namespace': typeof SysSettingsNamespaceIndexRoute
   '/w/$workspaceId/assets': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions': typeof WWorkspaceIdExtensionsIndexRoute
   '/w/$workspaceId/notifications': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team': typeof WWorkspaceIdTeamIndexRoute
-  '/o/$orgId/extensions/$extensionSlug': typeof OOrgIdExtensionsExtensionSlugIndexRoute
-  '/o/$orgId/settings/activity': typeof OOrgIdSettingsActivityIndexRoute
-  '/o/$orgId/settings/basics': typeof OOrgIdSettingsBasicsIndexRoute
-  '/o/$orgId/settings/danger': typeof OOrgIdSettingsDangerIndexRoute
-  '/o/$orgId/team/invitations': typeof OOrgIdTeamInvitationsIndexRoute
-  '/o/$orgId/team/members': typeof OOrgIdTeamMembersIndexRoute
-  '/o/$orgId/team/roles': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/content/library': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/site-builder': typeof WWorkspaceIdContentSiteBuilderIndexRoute
@@ -590,10 +502,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
   '/me': typeof MeRouteWithChildren
   '/sys': typeof SysRouteWithChildren
-  '/o/$orgId': typeof OOrgIdRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
+  '/account/': typeof AccountIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/me/': typeof MeIndexRoute
@@ -601,31 +514,24 @@ export interface FileRoutesById {
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
+  '/account/appearance/': typeof AccountAppearanceIndexRoute
+  '/account/billing/': typeof AccountBillingIndexRoute
+  '/account/danger/': typeof AccountDangerIndexRoute
+  '/account/notifications/': typeof AccountNotificationsIndexRoute
+  '/account/profile/': typeof AccountProfileIndexRoute
+  '/account/security/': typeof AccountSecurityIndexRoute
+  '/account/usage/': typeof AccountUsageIndexRoute
+  '/account/workspaces/': typeof AccountWorkspacesIndexRoute
   '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
   '/me/inbox/': typeof MeInboxIndexRoute
-  '/o/$orgId/': typeof OOrgIdIndexRoute
   '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
-  '/o/$orgId/activity/': typeof OOrgIdActivityIndexRoute
-  '/o/$orgId/billing/': typeof OOrgIdBillingIndexRoute
-  '/o/$orgId/extensions/': typeof OOrgIdExtensionsIndexRoute
-  '/o/$orgId/settings/': typeof OOrgIdSettingsIndexRoute
-  '/o/$orgId/team/': typeof OOrgIdTeamIndexRoute
-  '/o/$orgId/usage/': typeof OOrgIdUsageIndexRoute
-  '/o/$orgId/workspaces/': typeof OOrgIdWorkspacesIndexRoute
   '/sys/settings/$namespace/': typeof SysSettingsNamespaceIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
-  '/o/$orgId/extensions/$extensionSlug/': typeof OOrgIdExtensionsExtensionSlugIndexRoute
-  '/o/$orgId/settings/activity/': typeof OOrgIdSettingsActivityIndexRoute
-  '/o/$orgId/settings/basics/': typeof OOrgIdSettingsBasicsIndexRoute
-  '/o/$orgId/settings/danger/': typeof OOrgIdSettingsDangerIndexRoute
-  '/o/$orgId/team/invitations/': typeof OOrgIdTeamInvitationsIndexRoute
-  '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
-  '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
@@ -648,10 +554,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/me'
     | '/sys'
-    | '/o/$orgId'
     | '/w/$workspaceId'
+    | '/account/'
     | '/invitations/'
     | '/login/'
     | '/me/'
@@ -659,31 +566,24 @@ export interface FileRouteTypes {
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
+    | '/account/appearance/'
+    | '/account/billing/'
+    | '/account/danger/'
+    | '/account/notifications/'
+    | '/account/profile/'
+    | '/account/security/'
+    | '/account/usage/'
+    | '/account/workspaces/'
     | '/devtools/illustrations/'
     | '/me/inbox/'
-    | '/o/$orgId/'
     | '/repair/master-key/'
     | '/sys/settings/'
     | '/w/$workspaceId/'
-    | '/o/$orgId/activity/'
-    | '/o/$orgId/billing/'
-    | '/o/$orgId/extensions/'
-    | '/o/$orgId/settings/'
-    | '/o/$orgId/team/'
-    | '/o/$orgId/usage/'
-    | '/o/$orgId/workspaces/'
     | '/sys/settings/$namespace/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/extensions/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
-    | '/o/$orgId/extensions/$extensionSlug/'
-    | '/o/$orgId/settings/activity/'
-    | '/o/$orgId/settings/basics/'
-    | '/o/$orgId/settings/danger/'
-    | '/o/$orgId/team/invitations/'
-    | '/o/$orgId/team/members/'
-    | '/o/$orgId/team/roles/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/models/'
     | '/w/$workspaceId/content/site-builder/'
@@ -704,6 +604,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/invitations'
     | '/login'
     | '/me'
@@ -711,31 +612,24 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/sys'
+    | '/account/appearance'
+    | '/account/billing'
+    | '/account/danger'
+    | '/account/notifications'
+    | '/account/profile'
+    | '/account/security'
+    | '/account/usage'
+    | '/account/workspaces'
     | '/devtools/illustrations'
     | '/me/inbox'
-    | '/o/$orgId'
     | '/repair/master-key'
     | '/sys/settings'
     | '/w/$workspaceId'
-    | '/o/$orgId/activity'
-    | '/o/$orgId/billing'
-    | '/o/$orgId/extensions'
-    | '/o/$orgId/settings'
-    | '/o/$orgId/team'
-    | '/o/$orgId/usage'
-    | '/o/$orgId/workspaces'
     | '/sys/settings/$namespace'
     | '/w/$workspaceId/assets'
     | '/w/$workspaceId/extensions'
     | '/w/$workspaceId/notifications'
     | '/w/$workspaceId/team'
-    | '/o/$orgId/extensions/$extensionSlug'
-    | '/o/$orgId/settings/activity'
-    | '/o/$orgId/settings/basics'
-    | '/o/$orgId/settings/danger'
-    | '/o/$orgId/team/invitations'
-    | '/o/$orgId/team/members'
-    | '/o/$orgId/team/roles'
     | '/w/$workspaceId/content/library'
     | '/w/$workspaceId/content/models'
     | '/w/$workspaceId/content/site-builder'
@@ -756,10 +650,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/me'
     | '/sys'
-    | '/o/$orgId'
     | '/w/$workspaceId'
+    | '/account/'
     | '/invitations/'
     | '/login/'
     | '/me/'
@@ -767,31 +662,24 @@ export interface FileRouteTypes {
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
+    | '/account/appearance/'
+    | '/account/billing/'
+    | '/account/danger/'
+    | '/account/notifications/'
+    | '/account/profile/'
+    | '/account/security/'
+    | '/account/usage/'
+    | '/account/workspaces/'
     | '/devtools/illustrations/'
     | '/me/inbox/'
-    | '/o/$orgId/'
     | '/repair/master-key/'
     | '/sys/settings/'
     | '/w/$workspaceId/'
-    | '/o/$orgId/activity/'
-    | '/o/$orgId/billing/'
-    | '/o/$orgId/extensions/'
-    | '/o/$orgId/settings/'
-    | '/o/$orgId/team/'
-    | '/o/$orgId/usage/'
-    | '/o/$orgId/workspaces/'
     | '/sys/settings/$namespace/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/extensions/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
-    | '/o/$orgId/extensions/$extensionSlug/'
-    | '/o/$orgId/settings/activity/'
-    | '/o/$orgId/settings/basics/'
-    | '/o/$orgId/settings/danger/'
-    | '/o/$orgId/team/invitations/'
-    | '/o/$orgId/team/members/'
-    | '/o/$orgId/team/roles/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/models/'
     | '/w/$workspaceId/content/site-builder/'
@@ -813,9 +701,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRouteWithChildren
   MeRoute: typeof MeRouteWithChildren
   SysRoute: typeof SysRouteWithChildren
-  OOrgIdRoute: typeof OOrgIdRouteWithChildren
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   InvitationsIndexRoute: typeof InvitationsIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
@@ -840,6 +728,13 @@ declare module '@tanstack/react-router' {
       path: '/me'
       fullPath: '/me'
       preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -898,18 +793,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvitationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/': {
+      id: '/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/w/$workspaceId': {
       id: '/w/$workspaceId'
       path: '/w/$workspaceId'
       fullPath: '/w/$workspaceId'
       preLoaderRoute: typeof WWorkspaceIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/o/$orgId': {
-      id: '/o/$orgId'
-      path: '/o/$orgId'
-      fullPath: '/o/$orgId'
-      preLoaderRoute: typeof OOrgIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w/$workspaceId/': {
@@ -933,13 +828,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepairMasterKeyIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/o/$orgId/': {
-      id: '/o/$orgId/'
-      path: '/'
-      fullPath: '/o/$orgId/'
-      preLoaderRoute: typeof OOrgIdIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
     '/me/inbox/': {
       id: '/me/inbox/'
       path: '/inbox'
@@ -953,6 +841,62 @@ declare module '@tanstack/react-router' {
       fullPath: '/devtools/illustrations/'
       preLoaderRoute: typeof DevtoolsIllustrationsIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/account/workspaces/': {
+      id: '/account/workspaces/'
+      path: '/workspaces'
+      fullPath: '/account/workspaces/'
+      preLoaderRoute: typeof AccountWorkspacesIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/usage/': {
+      id: '/account/usage/'
+      path: '/usage'
+      fullPath: '/account/usage/'
+      preLoaderRoute: typeof AccountUsageIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/security/': {
+      id: '/account/security/'
+      path: '/security'
+      fullPath: '/account/security/'
+      preLoaderRoute: typeof AccountSecurityIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/profile/': {
+      id: '/account/profile/'
+      path: '/profile'
+      fullPath: '/account/profile/'
+      preLoaderRoute: typeof AccountProfileIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/notifications/': {
+      id: '/account/notifications/'
+      path: '/notifications'
+      fullPath: '/account/notifications/'
+      preLoaderRoute: typeof AccountNotificationsIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/danger/': {
+      id: '/account/danger/'
+      path: '/danger'
+      fullPath: '/account/danger/'
+      preLoaderRoute: typeof AccountDangerIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/billing/': {
+      id: '/account/billing/'
+      path: '/billing'
+      fullPath: '/account/billing/'
+      preLoaderRoute: typeof AccountBillingIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/appearance/': {
+      id: '/account/appearance/'
+      path: '/appearance'
+      fullPath: '/account/appearance/'
+      preLoaderRoute: typeof AccountAppearanceIndexRouteImport
+      parentRoute: typeof AccountRoute
     }
     '/w/$workspaceId/team/': {
       id: '/w/$workspaceId/team/'
@@ -988,55 +932,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/sys/settings/$namespace/'
       preLoaderRoute: typeof SysSettingsNamespaceIndexRouteImport
       parentRoute: typeof SysRoute
-    }
-    '/o/$orgId/workspaces/': {
-      id: '/o/$orgId/workspaces/'
-      path: '/workspaces'
-      fullPath: '/o/$orgId/workspaces/'
-      preLoaderRoute: typeof OOrgIdWorkspacesIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/usage/': {
-      id: '/o/$orgId/usage/'
-      path: '/usage'
-      fullPath: '/o/$orgId/usage/'
-      preLoaderRoute: typeof OOrgIdUsageIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/team/': {
-      id: '/o/$orgId/team/'
-      path: '/team'
-      fullPath: '/o/$orgId/team/'
-      preLoaderRoute: typeof OOrgIdTeamIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/settings/': {
-      id: '/o/$orgId/settings/'
-      path: '/settings'
-      fullPath: '/o/$orgId/settings/'
-      preLoaderRoute: typeof OOrgIdSettingsIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/extensions/': {
-      id: '/o/$orgId/extensions/'
-      path: '/extensions'
-      fullPath: '/o/$orgId/extensions/'
-      preLoaderRoute: typeof OOrgIdExtensionsIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/billing/': {
-      id: '/o/$orgId/billing/'
-      path: '/billing'
-      fullPath: '/o/$orgId/billing/'
-      preLoaderRoute: typeof OOrgIdBillingIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/activity/': {
-      id: '/o/$orgId/activity/'
-      path: '/activity'
-      fullPath: '/o/$orgId/activity/'
-      preLoaderRoute: typeof OOrgIdActivityIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
     }
     '/w/$workspaceId/team/roles/': {
       id: '/w/$workspaceId/team/roles/'
@@ -1108,55 +1003,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdContentLibraryIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
-    '/o/$orgId/team/roles/': {
-      id: '/o/$orgId/team/roles/'
-      path: '/team/roles'
-      fullPath: '/o/$orgId/team/roles/'
-      preLoaderRoute: typeof OOrgIdTeamRolesIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/team/members/': {
-      id: '/o/$orgId/team/members/'
-      path: '/team/members'
-      fullPath: '/o/$orgId/team/members/'
-      preLoaderRoute: typeof OOrgIdTeamMembersIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/team/invitations/': {
-      id: '/o/$orgId/team/invitations/'
-      path: '/team/invitations'
-      fullPath: '/o/$orgId/team/invitations/'
-      preLoaderRoute: typeof OOrgIdTeamInvitationsIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/settings/danger/': {
-      id: '/o/$orgId/settings/danger/'
-      path: '/settings/danger'
-      fullPath: '/o/$orgId/settings/danger/'
-      preLoaderRoute: typeof OOrgIdSettingsDangerIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/settings/basics/': {
-      id: '/o/$orgId/settings/basics/'
-      path: '/settings/basics'
-      fullPath: '/o/$orgId/settings/basics/'
-      preLoaderRoute: typeof OOrgIdSettingsBasicsIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/settings/activity/': {
-      id: '/o/$orgId/settings/activity/'
-      path: '/settings/activity'
-      fullPath: '/o/$orgId/settings/activity/'
-      preLoaderRoute: typeof OOrgIdSettingsActivityIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
-    '/o/$orgId/extensions/$extensionSlug/': {
-      id: '/o/$orgId/extensions/$extensionSlug/'
-      path: '/extensions/$extensionSlug'
-      fullPath: '/o/$orgId/extensions/$extensionSlug/'
-      preLoaderRoute: typeof OOrgIdExtensionsExtensionSlugIndexRouteImport
-      parentRoute: typeof OOrgIdRoute
-    }
     '/w/$workspaceId/settings/workspace/danger/': {
       id: '/w/$workspaceId/settings/workspace/danger/'
       path: '/settings/workspace/danger'
@@ -1209,6 +1055,33 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AccountRouteChildren {
+  AccountIndexRoute: typeof AccountIndexRoute
+  AccountAppearanceIndexRoute: typeof AccountAppearanceIndexRoute
+  AccountBillingIndexRoute: typeof AccountBillingIndexRoute
+  AccountDangerIndexRoute: typeof AccountDangerIndexRoute
+  AccountNotificationsIndexRoute: typeof AccountNotificationsIndexRoute
+  AccountProfileIndexRoute: typeof AccountProfileIndexRoute
+  AccountSecurityIndexRoute: typeof AccountSecurityIndexRoute
+  AccountUsageIndexRoute: typeof AccountUsageIndexRoute
+  AccountWorkspacesIndexRoute: typeof AccountWorkspacesIndexRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountIndexRoute: AccountIndexRoute,
+  AccountAppearanceIndexRoute: AccountAppearanceIndexRoute,
+  AccountBillingIndexRoute: AccountBillingIndexRoute,
+  AccountDangerIndexRoute: AccountDangerIndexRoute,
+  AccountNotificationsIndexRoute: AccountNotificationsIndexRoute,
+  AccountProfileIndexRoute: AccountProfileIndexRoute,
+  AccountSecurityIndexRoute: AccountSecurityIndexRoute,
+  AccountUsageIndexRoute: AccountUsageIndexRoute,
+  AccountWorkspacesIndexRoute: AccountWorkspacesIndexRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
+
 interface MeRouteChildren {
   MeIndexRoute: typeof MeIndexRoute
   MeInboxIndexRoute: typeof MeInboxIndexRoute
@@ -1234,46 +1107,6 @@ const SysRouteChildren: SysRouteChildren = {
 }
 
 const SysRouteWithChildren = SysRoute._addFileChildren(SysRouteChildren)
-
-interface OOrgIdRouteChildren {
-  OOrgIdIndexRoute: typeof OOrgIdIndexRoute
-  OOrgIdActivityIndexRoute: typeof OOrgIdActivityIndexRoute
-  OOrgIdBillingIndexRoute: typeof OOrgIdBillingIndexRoute
-  OOrgIdExtensionsIndexRoute: typeof OOrgIdExtensionsIndexRoute
-  OOrgIdSettingsIndexRoute: typeof OOrgIdSettingsIndexRoute
-  OOrgIdTeamIndexRoute: typeof OOrgIdTeamIndexRoute
-  OOrgIdUsageIndexRoute: typeof OOrgIdUsageIndexRoute
-  OOrgIdWorkspacesIndexRoute: typeof OOrgIdWorkspacesIndexRoute
-  OOrgIdExtensionsExtensionSlugIndexRoute: typeof OOrgIdExtensionsExtensionSlugIndexRoute
-  OOrgIdSettingsActivityIndexRoute: typeof OOrgIdSettingsActivityIndexRoute
-  OOrgIdSettingsBasicsIndexRoute: typeof OOrgIdSettingsBasicsIndexRoute
-  OOrgIdSettingsDangerIndexRoute: typeof OOrgIdSettingsDangerIndexRoute
-  OOrgIdTeamInvitationsIndexRoute: typeof OOrgIdTeamInvitationsIndexRoute
-  OOrgIdTeamMembersIndexRoute: typeof OOrgIdTeamMembersIndexRoute
-  OOrgIdTeamRolesIndexRoute: typeof OOrgIdTeamRolesIndexRoute
-}
-
-const OOrgIdRouteChildren: OOrgIdRouteChildren = {
-  OOrgIdIndexRoute: OOrgIdIndexRoute,
-  OOrgIdActivityIndexRoute: OOrgIdActivityIndexRoute,
-  OOrgIdBillingIndexRoute: OOrgIdBillingIndexRoute,
-  OOrgIdExtensionsIndexRoute: OOrgIdExtensionsIndexRoute,
-  OOrgIdSettingsIndexRoute: OOrgIdSettingsIndexRoute,
-  OOrgIdTeamIndexRoute: OOrgIdTeamIndexRoute,
-  OOrgIdUsageIndexRoute: OOrgIdUsageIndexRoute,
-  OOrgIdWorkspacesIndexRoute: OOrgIdWorkspacesIndexRoute,
-  OOrgIdExtensionsExtensionSlugIndexRoute:
-    OOrgIdExtensionsExtensionSlugIndexRoute,
-  OOrgIdSettingsActivityIndexRoute: OOrgIdSettingsActivityIndexRoute,
-  OOrgIdSettingsBasicsIndexRoute: OOrgIdSettingsBasicsIndexRoute,
-  OOrgIdSettingsDangerIndexRoute: OOrgIdSettingsDangerIndexRoute,
-  OOrgIdTeamInvitationsIndexRoute: OOrgIdTeamInvitationsIndexRoute,
-  OOrgIdTeamMembersIndexRoute: OOrgIdTeamMembersIndexRoute,
-  OOrgIdTeamRolesIndexRoute: OOrgIdTeamRolesIndexRoute,
-}
-
-const OOrgIdRouteWithChildren =
-  OOrgIdRoute._addFileChildren(OOrgIdRouteChildren)
 
 interface WWorkspaceIdRouteChildren {
   WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
@@ -1341,9 +1174,9 @@ const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRouteWithChildren,
   MeRoute: MeRouteWithChildren,
   SysRoute: SysRouteWithChildren,
-  OOrgIdRoute: OOrgIdRouteWithChildren,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   InvitationsIndexRoute: InvitationsIndexRoute,
   LoginIndexRoute: LoginIndexRoute,

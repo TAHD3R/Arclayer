@@ -5,7 +5,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { listAssets } from "@/api/assets";
-import { listOrganizationMembers } from "@/api/organization-members";
 import { listTeamMembers } from "@/api/team";
 import type { CommandEntry, CommandScope, CommandSection } from "@/lib/command/command-types";
 import {
@@ -17,10 +16,7 @@ import {
 } from "@/lib/command/entry-utils";
 import { buildAdminNavCommandEntries } from "@/lib/command/nav-command-items";
 import { resolveCommandSections, type CommandSource } from "@/lib/command/source-registry";
-import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
-import { useMeSettingsDialogStore } from "@/stores/use-me-settings-dialog-store";
-import { useWorkspaceSwitchDialogStore } from "@/stores/use-workspace-switch-dialog-store";
 import { useCommandRecentStore } from "@/stores/use-command-recent-store";
 import type { AdminNavItem } from "@/types/admin-nav";
 
@@ -38,10 +34,8 @@ function useDebouncedValue(value: string, delayMs: number): string {
 function buildActionEntries(params: {
   scope: CommandScope;
   t: (key: string) => string;
-  openWorkspaceSwitcher: (organizationId: string) => void;
-  openMeSettings: (tab: "profile" | "preferences" | "security" | "notifications") => void;
 }): CommandEntry[] {
-  const { scope, t, openWorkspaceSwitcher, openMeSettings } = params;
+  const { scope, t } = params;
   const actions: CommandEntry[] = [
     {
       id: "action:profile",
@@ -52,7 +46,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_PROFILE"), t("account:ME_TITLE")],
       icon: UserRound,
       shortcut: ["G", "P"],
-      action: { type: "callback", run: () => openMeSettings("profile") },
+      action: { type: "navigate", to: "/account/profile" },
     },
     {
       id: "action:preferences",
@@ -63,7 +57,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_PREFERENCES"), t("account:ME_TITLE")],
       icon: SlidersHorizontal,
       shortcut: ["G", ","],
-      action: { type: "callback", run: () => openMeSettings("preferences") },
+      action: { type: "navigate", to: "/account/appearance" },
     },
     {
       id: "action:security",
@@ -74,7 +68,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_SECURITY"), t("account:ME_TITLE")],
       icon: Shield,
       shortcut: ["G", "S"],
-      action: { type: "callback", run: () => openMeSettings("security") },
+      action: { type: "navigate", to: "/account/security" },
     },
     {
       id: "action:notifications",
@@ -92,7 +86,7 @@ function buildActionEntries(params: {
     },
   ];
 
-  if (scope.organizationId) {
+  if (scope.workspaceId) {
     actions.unshift({
       id: "action:workspace-switcher",
       key: "action:workspace-switcher",
@@ -103,8 +97,8 @@ function buildActionEntries(params: {
       icon: Workflow,
       shortcut: ["G", "W"],
       action: {
-        type: "callback",
-        run: () => openWorkspaceSwitcher(scope.organizationId as string),
+        type: "navigate",
+        to: "/account/workspaces",
       },
     });
   }
@@ -126,8 +120,6 @@ export function useAdminCommandPalette(props: {
   const favoritePaths = useFavoritesStore((state) => state.paths);
   const recentRecords = useCommandRecentStore((state) => state.records);
   const recordRecent = useCommandRecentStore((state) => state.record);
-  const openWorkspaceSwitcher = useWorkspaceSwitchDialogStore((state) => state.openDialog);
-  const openMeSettingsDialog = useMeSettingsDialogStore((state) => state.openDialog);
 
   const pageEntries = useMemo(
     () => buildAdminNavCommandEntries(props.navItems, t),
@@ -152,10 +144,8 @@ export function useAdminCommandPalette(props: {
       buildActionEntries({
         scope: props.scope,
         t,
-        openWorkspaceSwitcher: (organizationId) => openWorkspaceSwitcher({ organizationId }),
-        openMeSettings: (tab) => openMeSettingsDialog({ tab }),
       }),
-    [openMeSettingsDialog, openWorkspaceSwitcher, props.scope, t],
+    [props.scope, t],
   );
 
   const filteredActionEntries = useMemo(
@@ -168,24 +158,11 @@ export function useAdminCommandPalette(props: {
   );
 
   const usersQuery = useQuery({
-    queryKey: [
-      "command",
-      "users",
-      props.scope.kind,
-      props.scope.workspaceId,
-      props.scope.organizationId,
-      debouncedQuery,
-    ],
-    enabled:
-      isSearching &&
-      ((props.scope.kind === "workspace" && Boolean(props.scope.workspaceId)) ||
-        (props.scope.kind === "organization" && Boolean(props.scope.organizationId))),
+    queryKey: ["command", "users", props.scope.workspaceId, debouncedQuery],
+    enabled: isSearching && props.scope.kind === "workspace" && Boolean(props.scope.workspaceId),
     queryFn: async () => {
       if (props.scope.kind === "workspace" && props.scope.workspaceId) {
         return listTeamMembers(props.scope.workspaceId, { q: debouncedQuery, page: 1, size: 6 });
-      }
-      if (props.scope.kind === "organization") {
-        return listOrganizationMembers({ q: debouncedQuery, page: 1, size: 6 });
       }
       throw new Error("COMMAND_USERS_SCOPE_UNAVAILABLE");
     },
@@ -197,44 +174,6 @@ export function useAdminCommandPalette(props: {
   const userEntries = useMemo<CommandEntry[]>(() => {
     if (props.scope.kind === "workspace" && props.scope.workspaceId) {
       const to = `/w/${encodeURIComponent(props.scope.workspaceId)}/team/members/`;
-      return (usersQuery.data?.items ?? []).map((member) => {
-        const primary = (
-          member.displayName ||
-          member.username ||
-          member.email ||
-          member.userId
-        ).trim();
-        const secondary = member.email || member.username || member.userId;
-        return {
-          id: `user:${member.userId}`,
-          key: `user:${member.userId}`,
-          kind: "user",
-          title: primary,
-          subtitle: secondary,
-          keywords: [primary, secondary, member.userId],
-          avatar: { name: primary, assetRef: member.avatarUrl, shape: "circle" },
-          action: { type: "navigate", to, search: { q: secondary, memberId: member.userId } },
-          recent: {
-            enabled: true,
-            snapshot: {
-              key: `user:${member.userId}`,
-              kind: "user",
-              title: primary,
-              subtitle: secondary,
-              keywords: [primary, secondary, member.userId],
-              to,
-              search: { q: secondary, memberId: member.userId },
-              avatarName: primary,
-              avatarAssetRef: member.avatarUrl,
-              avatarShape: "circle",
-            },
-          },
-        };
-      });
-    }
-
-    if (props.scope.kind === "organization" && props.scope.organizationId) {
-      const to = buildOrganizationPath(props.scope.organizationId, "/team/members/");
       return (usersQuery.data?.items ?? []).map((member) => {
         const primary = (
           member.displayName ||

@@ -6,7 +6,8 @@ export const Route = createFileRoute("/me")({
 });
 
 function MeLayout() {
-  // Personal center settings are now accessed via dialog only; `/me/*` remains
-  // as a namespace for non-dialog pages like notifications inbox.
+  // `/me/*` remains as an account-scoped namespace for pages like notifications
+  // inbox that should render inside the account shell without requiring a menu
+  // entry.
   return <Outlet />;
 }

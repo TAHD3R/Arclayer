@@ -1,5 +1,6 @@
 import { getBootstrapState, repairBootstrapState } from "@/api/bootstrap";
 import { listMyWorkspaces } from "@/api/workspaces";
+import { pickDefaultWorkspaceId, workspaceHomePath } from "@/lib/routing/workspace-routing";
 
 export interface PostAuthRouteDecision {
   path: string;
@@ -8,17 +9,16 @@ export interface PostAuthRouteDecision {
 }
 
 /**
- * Post-auth routing policy (org-first):
- * - Ready bootstrap -> land on organization overview (`/`).
- * - Not ready but user has at least one workspace -> land on `/`.
- * - No resolvable workspace -> `/` (org overview fallback).
+ * Post-auth routing policy (workspace-first):
+ * - Prefer the remembered workspace when it still exists.
+ * - Auto-enter the only workspace when there is exactly one.
+ * - Otherwise send the user to account workspaces management.
  */
 export async function resolvePostAuthRoute(params: {
   lastWorkspaceId: string | null;
   attemptRepair?: boolean;
 }): Promise<PostAuthRouteDecision> {
   const { lastWorkspaceId, attemptRepair = true } = params;
-  void lastWorkspaceId;
 
   let repaired = false;
   let state = await getBootstrapState().catch(() => null);
@@ -28,25 +28,30 @@ export async function resolvePostAuthRoute(params: {
     state = await getBootstrapState().catch(() => state);
   }
 
-  if (state?.ready) {
+  const workspaces = await listMyWorkspaces().catch(() => ({ items: [] }));
+  const workspaceId = pickDefaultWorkspaceId({
+    workspaces: workspaces.items ?? [],
+    lastWorkspaceId,
+  });
+
+  if (workspaceId) {
     return {
-      path: "/",
-      workspaceId: null,
+      path: workspaceHomePath(workspaceId),
+      workspaceId,
       repaired,
     };
   }
 
-  const workspaces = await listMyWorkspaces().catch(() => ({ items: [] }));
-  if ((workspaces.items ?? []).length > 0) {
+  if (state?.ready || (workspaces.items ?? []).length > 0) {
     return {
-      path: "/",
+      path: "/account/workspaces",
       workspaceId: null,
       repaired,
     };
   }
 
   return {
-    path: "/",
+    path: "/account/workspaces",
     workspaceId: null,
     repaired,
   };

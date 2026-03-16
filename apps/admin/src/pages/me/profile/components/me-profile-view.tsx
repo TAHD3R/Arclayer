@@ -13,15 +13,12 @@ import { MeProfileLinkedAccountsSection } from "@/pages/me/profile/components/pr
 import { useAuthStore } from "@/stores/use-auth-store";
 
 type MeProfileViewProps = {
-  /**
-   * Personal center settings are dialog-only. This component is intended to be
-   * rendered inside `MeSettingsDialog`.
-   */
-  mode?: "dialog";
+  mode?: "page" | "dialog";
+  includeDanger?: boolean;
 };
 
-function MeProfileViewContent() {
-  const panelVariant = "dialog";
+function MeProfileViewContent(props: Required<MeProfileViewProps>) {
+  const panelVariant = props.mode === "dialog" ? "dialog" : "page";
   const { t } = useTranslation("account");
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -41,7 +38,7 @@ function MeProfileViewContent() {
 
   return (
     <MeSettingsCategoryLayout
-      showNav={false}
+      showNav={props.mode === "page"}
       categories={[
         {
           key: "profile",
@@ -65,20 +62,30 @@ function MeProfileViewContent() {
             </MeSettingPanel>
           ),
         },
-        {
-          key: "danger",
-          label: t("ME_DANGER_PANEL_TITLE"),
-          content: (
-            <MeSettingPanel title={t("ME_DANGER_PANEL_TITLE")} showDivider variant={panelVariant}>
-              <MeProfileDangerSection email={profile.email} redirect={redirect} />
-            </MeSettingPanel>
-          ),
-        },
+        ...(props.includeDanger
+          ? [
+              {
+                key: "danger",
+                label: t("ME_DANGER_PANEL_TITLE"),
+                content: (
+                  <MeSettingPanel
+                    title={t("ME_DANGER_PANEL_TITLE")}
+                    showDivider
+                    variant={panelVariant}
+                  >
+                    <MeProfileDangerSection email={profile.email} redirect={redirect} />
+                  </MeSettingPanel>
+                ),
+              },
+            ]
+          : []),
       ]}
     />
   );
 }
 
-export function MeProfileView(_props: MeProfileViewProps) {
-  return <MeProfileViewContent />;
+export function MeProfileView(props: MeProfileViewProps) {
+  return (
+    <MeProfileViewContent mode={props.mode ?? "page"} includeDanger={props.includeDanger ?? true} />
+  );
 }

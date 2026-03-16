@@ -78,11 +78,7 @@ export function useExtensionsMenuActions(input: {
 
   const buildConfigureHref = (extension: InstalledExtensionItem): string | null => {
     const extensionRef = getExtensionRef(extension);
-    if (isOrganizationScope) {
-      return input.organizationId
-        ? `/o/${encodeURIComponent(input.organizationId)}/extensions/${encodeURIComponent(extensionRef)}`
-        : null;
-    }
+    if (isOrganizationScope) return null;
     return input.workspaceId
       ? `/w/${input.workspaceId}/extensions/${encodeURIComponent(extensionRef)}`
       : null;
