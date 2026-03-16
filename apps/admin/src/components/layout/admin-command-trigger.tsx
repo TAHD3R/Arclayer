@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { CommandEntry, CommandSection } from "@/lib/command/command-types";
 import { UserAvatar } from "@/components/common/entity-avatar";
+import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { useClientPlatform } from "@celestial/hooks/use-client-platform";
 import { cn } from "@celestial/lib/utils";
 import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
@@ -92,8 +93,8 @@ function CommandTriggerButton(props: {
       onClick={props.onClick}
       data-state={props.open ? "open" : "closed"}
       className={cn(
-        "group flex h-10 w-full items-center gap-3 rounded-xl border border-border/50",
-        "bg-muted/85 px-3.5 text-left text-footnote text-label-secondary shadow-none",
+        "group flex h-8 w-full items-center gap-3 rounded-lg border border-border/50",
+        "bg-muted/85 px-3 text-left text-footnote text-label-secondary shadow-none",
         TRANSITION_CLASSNAME,
         "hover:bg-accent/70 hover:text-label-primary",
         "data-[state=open]:bg-accent data-[state=open]:text-foreground",
@@ -184,6 +185,13 @@ function CommandPanelFooter(props: {
         keyClassName="h-5 min-w-5 rounded-[5px] bg-background/70 px-2 text-callout uppercase tracking-[0.04em] text-label-secondary"
       />
       <span>{props.suffix}</span>
+      <AdminFullLogo
+        to="/"
+        ariaLabel="CelestialCMS"
+        width={72}
+        className="ml-auto h-4 shrink-0 opacity-70 transition-opacity hover:opacity-100"
+        imgClassName="h-4 w-auto"
+      />
     </div>
   );
 }
