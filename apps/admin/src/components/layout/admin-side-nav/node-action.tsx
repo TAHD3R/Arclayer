@@ -17,7 +17,11 @@ import {
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
 } from "./nav-node-styles";
-import { NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME, NAV_ITEM_HEIGHT_CLASSNAME } from "./nav-utils";
+import {
+  NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+  NAV_ITEM_HEIGHT_CLASSNAME,
+  NAV_ITEM_ROOT_INSET_CLASSNAME,
+} from "./nav-utils";
 import { iconSlot } from "./nav-icon-slot";
 
 type NodeActionProps = {
@@ -45,7 +49,6 @@ function NodeActionSub({
           NAV_ITEM_HEIGHT_CLASSNAME,
           "rounded-lg",
           INTERACTIVE_TRANSITION_CLASSNAME,
-          "text-callout",
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
           isActive && "font-semibold text-foreground!",
@@ -102,7 +105,7 @@ function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeAct
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
           NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
           isActive && "font-semibold text-foreground!",
-          "pl-5",
+          NAV_ITEM_ROOT_INSET_CLASSNAME,
           "group-data-[collapsible=icon]:gap-0",
           item.disabled ? DISABLED_ITEM_CLASSNAME : null,
         )}

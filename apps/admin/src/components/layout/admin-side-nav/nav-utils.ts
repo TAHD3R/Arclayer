@@ -1,8 +1,16 @@
 import type { AdminNavItem } from "@/types/admin-nav";
 
-export const NAV_ITEM_HEIGHT_CLASSNAME = "h-10";
+export const NAV_ITEM_HEIGHT_CLASSNAME = "h-8";
 export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
-  "group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0!";
+  "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0!";
+export const NAV_ITEM_ROOT_INSET_CLASSNAME = "pl-4";
+export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1";
+export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1";
+export const NAV_SECTION_LABEL_CLASSNAME = "h-auto pb-0.5 pt-2 text-caption";
+export const NAV_SECTION_TRIGGER_CLASSNAME =
+  "flex w-full items-center gap-1.5 pl-4 pr-2 text-left text-label-secondary";
+export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-4 gap-0.5 border-border/60";
+export const NAV_DIVIDER_CLASSNAME = "mx-4 my-0.5";
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);

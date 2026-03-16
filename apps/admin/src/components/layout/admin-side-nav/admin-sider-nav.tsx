@@ -22,6 +22,13 @@ import { NavNode } from "./nav-node";
 import { StarredNavSection } from "./starred-nav-section";
 import { useCollapsedDropdownController } from "./collapsed-dropdown";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "./nav-node-styles";
+import {
+  NAV_DIVIDER_CLASSNAME,
+  NAV_ROOT_MENU_GAP_CLASSNAME,
+  NAV_SECTION_CONTENT_PADDING_CLASSNAME,
+  NAV_SECTION_LABEL_CLASSNAME,
+  NAV_SECTION_TRIGGER_CLASSNAME,
+} from "./nav-utils";
 
 const SIDEBAR_COLLAPSE_TRANSITION_MS = 400;
 const SECTION_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
@@ -179,14 +186,14 @@ function ItemsSection(props: {
   const hoverDropdown = useCollapsedDropdownController();
   const [open, setOpen] = useState(true);
   const effectiveOpen = props.isCollapsed ? true : open;
-  const contentClassName = props.title ? "pt-1.5" : undefined;
+  const contentClassName = props.title ? NAV_SECTION_CONTENT_PADDING_CLASSNAME : undefined;
 
   const content = (
     <SidebarGroupContent className={contentClassName}>
       <SidebarMenu
         className={cn(
           "px-0",
-          "gap-0.5",
+          NAV_ROOT_MENU_GAP_CLASSNAME,
           "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
         )}
       >
@@ -204,7 +211,7 @@ function ItemsSection(props: {
               isCollapsed={props.isCollapsed}
               hoverDropdown={props.isCollapsed ? hoverDropdown : null}
             />
-            {item.dividerAfter ? <SidebarSeparator className="mx-5 my-1" /> : null}
+            {item.dividerAfter ? <SidebarSeparator className={NAV_DIVIDER_CLASSNAME} /> : null}
           </Fragment>
         ))}
       </SidebarMenu>
@@ -219,12 +226,8 @@ function ItemsSection(props: {
     <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
       <SidebarGroup className="p-0">
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel asChild className="h-auto pb-1 pt-3 text-caption">
-            <ButtonPrimitive
-              type="button"
-              tapScale={1}
-              className="flex w-full items-center gap-2 pl-5 pr-2 text-left text-label-secondary"
-            >
+          <SidebarGroupLabel asChild className={NAV_SECTION_LABEL_CLASSNAME}>
+            <ButtonPrimitive type="button" tapScale={1} className={NAV_SECTION_TRIGGER_CLASSNAME}>
               <span className="min-w-0 flex-1 truncate">{props.title}</span>
               <span className={cn("shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
                 <ChevronRightIcon

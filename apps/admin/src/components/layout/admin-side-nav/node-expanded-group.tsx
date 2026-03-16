@@ -29,20 +29,25 @@ import {
   NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
 } from "./nav-node-styles";
-import { NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME, NAV_ITEM_HEIGHT_CLASSNAME } from "./nav-utils";
+import {
+  NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+  NAV_ITEM_HEIGHT_CLASSNAME,
+  NAV_ITEM_ROOT_INSET_CLASSNAME,
+  NAV_SUBTREE_CLASSNAME,
+} from "./nav-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { iconSlot } from "./nav-icon-slot";
 import type { ResolvedChildItem } from "./node-collapsed-group";
 
 const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
-  "pt-1.5 overflow-hidden",
+  "pt-1 overflow-hidden",
   "motion-reduce:animate-none",
   "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
 
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
-  "relative z-10 h-10 rounded-lg text-callout text-label-secondary",
+  "relative z-10 h-8 rounded-lg text-footnote text-label-secondary",
   "transition-[color,background-color] duration-200 ease-out",
   "hover:bg-accent/40 hover:text-label-primary",
   "focus:bg-accent/40 focus:text-label-primary",
@@ -53,7 +58,7 @@ const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
 function GroupChildren({ children }: { children: ReactNode }) {
   return (
     <CollapsibleContent className={COLLAPSIBLE_CONTENT_CLASSNAME}>
-      <SidebarMenuSub className="gap-0.5 border-border/60 mx-0 ml-5">{children}</SidebarMenuSub>
+      <SidebarMenuSub className={NAV_SUBTREE_CLASSNAME}>{children}</SidebarMenuSub>
     </CollapsibleContent>
   );
 }
@@ -129,7 +134,7 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
       NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
       NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
       NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-      "pl-5",
+      NAV_ITEM_ROOT_INSET_CLASSNAME,
       "group-data-[collapsible=icon]:gap-0",
       item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
     );
@@ -267,7 +272,6 @@ export function NodeExpandedGroupSub({
     NAV_ITEM_HEIGHT_CLASSNAME,
     "rounded-lg",
     INTERACTIVE_TRANSITION_CLASSNAME,
-    "text-callout",
     NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
     NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
     item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",

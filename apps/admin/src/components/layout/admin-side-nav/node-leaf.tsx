@@ -16,6 +16,7 @@ import {
   isExactMatch,
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
+  NAV_ITEM_ROOT_INSET_CLASSNAME,
 } from "./nav-utils";
 import {
   DISABLED_ITEM_CLASSNAME,
@@ -59,7 +60,6 @@ function NodeLeafSub({
             NAV_ITEM_HEIGHT_CLASSNAME,
             "rounded-lg",
             INTERACTIVE_TRANSITION_CLASSNAME,
-            "text-callout",
             NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
             NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
             item.disabled ? DISABLED_ITEM_CLASSNAME : null,
@@ -124,7 +124,7 @@ function NodeLeafRoot({
             NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
             NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
             NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-            "pl-5",
+            NAV_ITEM_ROOT_INSET_CLASSNAME,
             "group-data-[collapsible=icon]:gap-0",
             item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
           )}

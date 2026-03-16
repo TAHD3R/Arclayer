@@ -29,11 +29,14 @@ import {
   isExactMatch,
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
+  NAV_ITEM_ROOT_INSET_CLASSNAME,
+  NAV_ROOT_MENU_GAP_CLASSNAME,
+  NAV_SUBTREE_CLASSNAME,
 } from "./nav-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 
 const STARRED_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
-  "pt-1.5 overflow-hidden",
+  "pt-1 overflow-hidden",
   "motion-reduce:animate-none",
   "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
@@ -62,12 +65,13 @@ function StarredTriggerButton(props: {
         isActive={props.hasActiveItem}
         tooltip={props.label}
         className={cn(
-          "relative z-10 rounded-lg pl-5 group-data-[collapsible=icon]:gap-0",
+          "relative z-10 rounded-lg group-data-[collapsible=icon]:gap-0",
           NAV_ITEM_HEIGHT_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
           NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+          NAV_ITEM_ROOT_INSET_CLASSNAME,
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -98,7 +102,7 @@ function StarredLeafNodes(props: {
   isCollapsed: boolean;
 }) {
   return (
-    <SidebarMenuSub className="mx-0 ml-5 gap-0.5 border-border/60">
+    <SidebarMenuSub className={NAV_SUBTREE_CLASSNAME}>
       {props.items.map((item) => (
         <NavNode
           key={item.key}
@@ -154,7 +158,8 @@ function StarredExpandedSection(props: {
       <SidebarGroupContent>
         <SidebarMenu
           className={cn(
-            "px-0 gap-0.5",
+            "px-0",
+            NAV_ROOT_MENU_GAP_CLASSNAME,
             "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
           )}
         >
@@ -206,7 +211,8 @@ export function StarredNavSection(props: {
       <SidebarGroupContent>
         <SidebarMenu
           className={cn(
-            "px-0 gap-0.5",
+            "px-0",
+            NAV_ROOT_MENU_GAP_CLASSNAME,
             "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
           )}
         >

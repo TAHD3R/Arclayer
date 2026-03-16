@@ -36,7 +36,7 @@ type NodeCollapsedGroupProps = {
 };
 
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
-  "relative z-10 h-10 rounded-lg text-callout text-label-secondary",
+  "relative z-10 h-8 rounded-lg text-footnote text-label-secondary",
   "transition-[color,background-color] duration-200 ease-out",
   "hover:bg-accent/40 hover:text-label-primary",
   "focus:bg-accent/40 focus:text-label-primary",
