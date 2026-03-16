@@ -4,9 +4,9 @@ import { useSortable } from "@dnd-kit/sortable";
 import { flexRender, type Header, type Table as ReactTable } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
 
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { TableHead, TableHeader, TableRow } from "@celestial/ui/table";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 
 import {
   resolveHeaderAlignClass,

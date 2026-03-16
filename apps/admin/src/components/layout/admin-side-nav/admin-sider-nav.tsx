@@ -1,13 +1,13 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import ChevronRightIcon from "@arclayer/ui/icons/chevron-right";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
 import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@celestial/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@arclayer/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -15,7 +15,7 @@ import {
   SidebarMenu,
   SidebarSeparator,
   useSidebar,
-} from "@celestial/ui/sidebar";
+} from "@arclayer/ui/sidebar";
 import { buildNavIndex, findActiveTrail, type OpenByParent } from "./nav-utils";
 import { resolveFavoriteNavItems } from "./favorite-nav-items";
 import { NavNode } from "./nav-node";
@@ -27,8 +27,8 @@ const SIDEBAR_COLLAPSE_TRANSITION_MS = 400;
 const SECTION_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "overflow-hidden",
   "motion-reduce:animate-none",
-  "data-[state=open]:animate-[celestial-collapsible-down_180ms_ease-out]",
-  "data-[state=closed]:animate-[celestial-collapsible-up_160ms_ease-in]",
+  "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
+  "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
 
 function useCollapsedRenderMode(isCollapsed: boolean): boolean {

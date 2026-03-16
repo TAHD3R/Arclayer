@@ -13,8 +13,8 @@ import {
   AuthLinkButton,
   AuthPasswordControl,
 } from "@/components/ui/auth-controls";
-import { Button } from "@celestial/ui/button";
-import { Field, FieldContent, FieldError } from "@celestial/ui/field";
+import { Button } from "@arclayer/ui/button";
+import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
 import type { RegisterFormValues } from "../types";
 import {

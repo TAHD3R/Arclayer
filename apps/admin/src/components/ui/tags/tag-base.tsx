@@ -2,7 +2,7 @@ import type { CSSProperties, HTMLAttributes, MouseEventHandler, ReactNode } from
 import { X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 const TAG_ICON_SIZE_PX = 12;
 const TAG_TEXT_STYLE_CLASSNAMES = {

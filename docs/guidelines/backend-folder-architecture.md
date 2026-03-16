@@ -133,7 +133,7 @@ If a new directory is introduced, include a minimal README or guideline entry.
 
 ### 7.1 Command execution
 
-- Run backend workflows through package scripts (`pnpm api`, `pnpm api:check`, `pnpm --filter @celestial/api <script>`, or `pnpm -C apps/api <script>`).
+- Run backend workflows through package scripts (`pnpm api`, `pnpm api:check`, `pnpm --filter @arclayer/api <script>`, or `pnpm -C apps/api <script>`).
 - Do not bypass scripts via direct `.venv` binary execution.
 
 ### 7.2 Public identifier contract

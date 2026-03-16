@@ -1,4 +1,4 @@
-import { usePrefersReducedMotion } from "@celestial/hooks/use-prefers-reduced-motion";
+import { usePrefersReducedMotion } from "@arclayer/hooks/use-prefers-reduced-motion";
 import { createContext, type ReactNode, useContext } from "react";
 
 export type ChromeTabsLabels = Readonly<{

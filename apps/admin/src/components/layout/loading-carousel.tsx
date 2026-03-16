@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 
 const DEFAULT_DURATION_MS = 4800;
 const CAROUSEL_EASE = [0.22, 1, 0.36, 1] as const;

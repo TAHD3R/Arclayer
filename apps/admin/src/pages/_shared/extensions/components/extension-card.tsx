@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 
 import { ExtensionIcon } from "./extension-icon";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import {
   ExtensionCategoryTag,
   ExtensionInstalledTag,

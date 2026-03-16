@@ -1,4 +1,4 @@
-# @celestial/api-client
+# @arclayer/api-client
 
 基于 FastAPI 的 OpenAPI 文档自动生成的 TypeScript SDK（含类型与请求方法）。
 
@@ -7,7 +7,7 @@
 在仓库根目录执行：
 
 ```bash
-pnpm --filter @celestial/api-client generate
+pnpm --filter @arclayer/api-client generate
 ```
 
 该命令会：
@@ -20,13 +20,13 @@ pnpm --filter @celestial/api-client generate
 在前端工程中添加依赖：
 
 ```bash
-pnpm --filter @celestial/admin add @celestial/api-client@workspace:*
+pnpm --filter @arclayer/admin add @arclayer/api-client@workspace:*
 ```
 
 初始化客户端配置（示例，具体以生成的 client 导出为准）：
 
 ```ts
-import { client } from "@celestial/api-client";
+import { client } from "@arclayer/api-client";
 
 client.setConfig({
   baseUrl: "http://127.0.0.1:8000",
@@ -36,7 +36,7 @@ client.setConfig({
 然后直接调用生成的 API 方法（示例）：
 
 ```ts
-import { servicesAuthServiceMe } from "@celestial/api-client";
+import { servicesAuthServiceMe } from "@arclayer/api-client";
 
 await servicesAuthServiceMe({});
 ```

@@ -20,7 +20,7 @@ def _write_zip(path, *, files: dict[str, str | bytes]) -> None:
 def test_theme_import_validates_manifest_and_entrypoints(tmp_path) -> None:
     z = tmp_path / "theme.zip"
     manifest = {
-        "themeId": "@celestial/theme-modern",
+        "themeId": "@arclayer/theme-modern",
         "name": "Modern",
         "version": "0.1.0",
         "entrypoints": {"tokensCss": "styles/tokens.css"},
@@ -37,7 +37,7 @@ def test_theme_import_validates_manifest_and_entrypoints(tmp_path) -> None:
 
     service = WorkspaceThemesService(get_settings())
     got_manifest, variants, presets, entrypoints = service._read_and_validate_theme_zip(z)  # type: ignore[attr-defined]
-    assert got_manifest.theme_id == "@celestial/theme-modern"
+    assert got_manifest.theme_id == "@arclayer/theme-modern"
     assert got_manifest.version == "0.1.0"
     assert variants is None
     assert presets is None
@@ -47,7 +47,7 @@ def test_theme_import_validates_manifest_and_entrypoints(tmp_path) -> None:
 def test_theme_import_rejects_executable_files(tmp_path) -> None:
     z = tmp_path / "theme.zip"
     manifest = {
-        "themeId": "celestial-theme-modern",
+        "themeId": "arclayer-theme-modern",
         "version": "0.1.0",
         "entrypoints": {"tokensCss": "tokens.css"},
     }
@@ -69,7 +69,7 @@ def test_theme_import_rejects_executable_files(tmp_path) -> None:
 def test_theme_import_validates_variant_payload_using_page_blueprint(tmp_path) -> None:
     z = tmp_path / "theme.zip"
     manifest = {
-        "themeId": "@celestial/theme-modern",
+        "themeId": "@arclayer/theme-modern",
         "version": "0.1.0",
         "entrypoints": {"tokensCss": "tokens.css"},
         "variants": [{"variantId": "home-a", "name": "Home A", "path": "variants/home.json"}],

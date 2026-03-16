@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (

@@ -12,13 +12,13 @@ import {
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 import { useDialogSnapshotState } from "@/pages/organization/team/shared/hooks/use-dialog-snapshot-state";
 import { CreateRoleDialog, DeleteRoleDialog } from "./roles-dialogs";
 import { RolesMatrixTable } from "./roles-matrix-table";

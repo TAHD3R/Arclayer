@@ -1,4 +1,4 @@
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 export const INTERACTIVE_TRANSITION_CLASSNAME = cn(
   "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)]",

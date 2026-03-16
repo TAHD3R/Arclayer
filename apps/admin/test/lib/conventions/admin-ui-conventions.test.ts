@@ -78,17 +78,25 @@ function visit(node: ts.Node, onNode: (n: ts.Node) => void) {
 }
 
 describe("admin UI conventions", () => {
-  it("does not import @celestial/ui/confirm-dialog in Admin (prefer explicit AlertDialog + Antd footer)", async () => {
+  it("does not import @arclayer/ui/confirm-dialog in Admin (prefer explicit AlertDialog + Antd footer)", async () => {
     const files = await listSourceFiles(SRC_ROOT);
     const violations: SourceViolation[] = [];
 
     const contents = await Promise.all(
-      files.map(async (file) => ({ file, code: await fs.readFile(file, "utf-8") })),
+      files.map(async (file) => ({
+        file,
+        code: await fs.readFile(file, "utf-8"),
+      })),
     );
 
     for (const { file, code } of contents) {
-      if (!code.includes("@celestial/ui/confirm-dialog")) continue;
-      violations.push({ file, line: 1, column: 1, message: "ConfirmDialog import found" });
+      if (!code.includes("@arclayer/ui/confirm-dialog")) continue;
+      violations.push({
+        file,
+        line: 1,
+        column: 1,
+        message: "ConfirmDialog import found",
+      });
     }
 
     expect(violations).toEqual([]);

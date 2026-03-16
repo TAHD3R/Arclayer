@@ -1,14 +1,14 @@
 import { Plus, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
-import { LoaderOne } from "@celestial/ui/loader";
+} from "@arclayer/ui/input-group";
+import { LoaderOne } from "@arclayer/ui/loader";
 import { MembersFilterPopover, type OrgMemberFilters } from "./members-filter-popover";
 
 interface OrganizationMembersInviteActionProps {

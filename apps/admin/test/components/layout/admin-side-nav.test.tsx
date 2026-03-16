@@ -7,7 +7,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
-import { Sidebar, SidebarMenuButton, SidebarProvider } from "@celestial/ui/sidebar";
+import { Sidebar, SidebarMenuButton, SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const mockT = (key: string) => `${mockLanguage}:${key}`;

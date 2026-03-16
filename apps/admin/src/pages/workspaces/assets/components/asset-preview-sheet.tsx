@@ -4,14 +4,8 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@celestial/ui/accordion";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@celestial/ui/sheet";
+} from "@arclayer/ui/accordion";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@arclayer/ui/sheet";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -19,15 +13,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@celestial/ui/alert-dialog";
+} from "@arclayer/ui/alert-dialog";
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@celestial/ui/radix-primitives/radix-alert-dialog";
-import { SettingActionItem } from "@celestial/ui/setting-action-item";
+} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
 import { copyToClipboard } from "@/lib/clipboard";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import {
   DropdownMenu,
@@ -35,7 +29,7 @@ import {
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
@@ -61,9 +55,9 @@ import {
   useAssetPreviewSheetController,
   type AssetMoreMenuItem,
 } from "./asset-preview-sheet-controller";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 type AssetMetadataItem = {
   key: string;

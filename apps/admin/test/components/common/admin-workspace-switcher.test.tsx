@@ -10,8 +10,8 @@ import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
-import { SidebarProvider } from "@celestial/ui/sidebar";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn();
 let mockPathname = "/w/ws-alpha/assets";

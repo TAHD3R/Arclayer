@@ -1,4 +1,4 @@
-import { Input } from "@celestial/ui/input";
+import { Input } from "@arclayer/ui/input";
 
 type DateTimeRangeFieldProps = {
   startValue?: string;

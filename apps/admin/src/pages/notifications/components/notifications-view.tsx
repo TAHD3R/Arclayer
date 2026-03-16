@@ -1,15 +1,15 @@
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
-import { ItemGroup, ItemSeparator } from "@celestial/ui/item";
-import { LoaderOne } from "@celestial/ui/loader";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/chrome-tabs";
+import { ItemGroup, ItemSeparator } from "@arclayer/ui/item";
+import { LoaderOne } from "@arclayer/ui/loader";
+import { cn } from "@arclayer/lib/utils";
 
 import type { ListStatus } from "../types";
 import { useNotifications } from "../hooks/use-notifications";

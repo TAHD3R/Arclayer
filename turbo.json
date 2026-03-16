@@ -50,7 +50,7 @@
       "persistent": true,
       "interruptible": true
     },
-    "@celestial/api#dev": {
+    "@arclayer/api#dev": {
       "cache": false,
       "persistent": true,
       "interruptible": true,
@@ -66,12 +66,9 @@
         "MAIL__SUPPRESS_SEND"
       ]
     },
-    "@celestial/api#test": {
+    "@arclayer/api#test": {
       "outputs": [],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/pyproject.toml"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"],
       "passThroughEnv": [
         "APPLICATION_ENV",
         "DATABASE_URL",
@@ -84,13 +81,10 @@
         "MAIL__SUPPRESS_SEND"
       ]
     },
-    "@celestial/api#test:integration": {
+    "@arclayer/api#test:integration": {
       "cache": false,
       "outputs": [],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/pyproject.toml"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"],
       "passThroughEnv": [
         "APPLICATION_ENV",
         "DATABASE_URL",
@@ -103,21 +97,15 @@
         "MAIL__SUPPRESS_SEND"
       ]
     },
-    "@celestial/api#lint": {
+    "@arclayer/api#lint": {
       "outputs": [],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/pyproject.toml"
-      ]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"]
     },
-    "@celestial/api#typecheck": {
+    "@arclayer/api#typecheck": {
       "outputs": [],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/pyproject.toml"
-      ]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"]
     },
-    "@celestial/api#db:migrate": {
+    "@arclayer/api#db:migrate": {
       "cache": false,
       "interactive": true,
       "passThroughEnv": [
@@ -130,7 +118,7 @@
         "PLUGIN__AUTO_MIGRATE"
       ]
     },
-    "@celestial/api#db:upgrade": {
+    "@arclayer/api#db:upgrade": {
       "cache": false,
       "interactive": true,
       "passThroughEnv": [
@@ -143,7 +131,7 @@
         "PLUGIN__AUTO_MIGRATE"
       ]
     },
-    "@celestial/api#jobs:worker": {
+    "@arclayer/api#jobs:worker": {
       "cache": false,
       "persistent": true,
       "interruptible": true,
@@ -157,7 +145,7 @@
         "PLUGIN__AUTO_MIGRATE"
       ]
     },
-    "@celestial/api#jobs:scheduler": {
+    "@arclayer/api#jobs:scheduler": {
       "cache": false,
       "persistent": true,
       "interruptible": true,

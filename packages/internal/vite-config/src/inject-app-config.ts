@@ -35,19 +35,19 @@ export function injectAppConfig(options: InjectAppConfigOptions): Plugin {
       })
       .catch(function (e) {
         if (__debug && typeof console !== "undefined" && console.warn) {
-          console.warn("[celestial] injectAppConfig failed to fetch runtime config", e);
+          console.warn("[arclayer] injectAppConfig failed to fetch runtime config", e);
         }
       });
   } catch (e) {
     if (__debug && typeof console !== "undefined" && console.warn) {
-      console.warn("[celestial] injectAppConfig failed", e);
+      console.warn("[arclayer] injectAppConfig failed", e);
     }
   }
 })();
 `.trim();
 
   return {
-    name: "celestial-inject-app-config",
+    name: "arclayer-inject-app-config",
     enforce: "pre",
     transformIndexHtml() {
       return [

@@ -5,14 +5,14 @@ import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationWorkspace } from "@/types/api";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";

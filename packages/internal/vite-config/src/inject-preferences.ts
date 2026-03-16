@@ -16,8 +16,8 @@ export interface InjectPreferencesOptions {
 
 export function injectPreferences(options: InjectPreferencesOptions = {}): Plugin {
   const storageKeys = options.storageKeys ?? {
-    themeMode: "celestial:admin:theme",
-    locale: "celestial:admin:locale",
+    themeMode: "arclayer:admin:theme",
+    locale: "arclayer:admin:locale",
   };
   const defaultThemeMode = options.defaultThemeMode ?? "system";
   const defaultLocale = options.defaultLocale ?? "auto";
@@ -52,14 +52,14 @@ export function injectPreferences(options: InjectPreferencesOptions = {}): Plugi
     document.documentElement.lang = locale;
   } catch (e) {
     if (__debug && typeof console !== "undefined" && console.warn) {
-      console.warn("[celestial] injectPreferences failed", e);
+      console.warn("[arclayer] injectPreferences failed", e);
     }
   }
 })();
 `.trim();
 
   return {
-    name: "celestial-inject-preferences",
+    name: "arclayer-inject-preferences",
     enforce: "pre",
     transformIndexHtml() {
       return [

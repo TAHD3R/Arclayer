@@ -1,5 +1,5 @@
-import { Form } from "@celestial/ui/form";
-import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
+import { Form } from "@arclayer/ui/form";
+import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
 import { WorkspaceSettingsTabs } from "../../components/workspace-settings-tabs";

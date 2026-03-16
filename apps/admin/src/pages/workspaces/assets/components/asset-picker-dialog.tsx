@@ -4,11 +4,11 @@ import { Search, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "@celestial/lib/utils";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { LoaderOne } from "@celestial/ui/loader";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { LoaderOne } from "@arclayer/ui/loader";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { AssetUploadDialog } from "./asset-upload-dialog";
 import {
   AssetsExplorerFolderTile,

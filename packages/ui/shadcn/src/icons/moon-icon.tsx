@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import type { Easing, SVGMotionProps } from "motion/react";
 
-import { useMediaPrefersReducedMotion } from "@celestial/hooks/use-media-prefers-reduced-motion";
+import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
 
 interface MoonIconProps extends Omit<SVGMotionProps<SVGSVGElement>, "strokeWidth"> {
   size?: number;

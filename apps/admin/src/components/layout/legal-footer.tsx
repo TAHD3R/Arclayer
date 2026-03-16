@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { AuthLinkButton } from "@/components/ui/auth-controls";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@celestial/ui/dialog";
+} from "@arclayer/ui/dialog";
 
 type LegalModal = "terms" | "privacy" | null;
 

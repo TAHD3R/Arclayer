@@ -6,8 +6,8 @@ import * as activityApi from "@/api/activity";
 import { listTeamUserOptions } from "@/api/team";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
-import { Button } from "@celestial/ui/button";
-import { LoaderOne } from "@celestial/ui/loader";
+import { Button } from "@arclayer/ui/button";
+import { LoaderOne } from "@arclayer/ui/loader";
 import { ActivityDetailDialog } from "@/pages/organization/activity/components/activity-detail-dialog";
 import {
   ActivityFilterPopover,

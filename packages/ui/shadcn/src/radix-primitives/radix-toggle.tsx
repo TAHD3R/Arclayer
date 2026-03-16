@@ -4,8 +4,8 @@ import * as React from "react";
 import { Toggle as TogglePrimitive } from "radix-ui";
 import { motion, AnimatePresence, type HTMLMotionProps } from "motion/react";
 
-import { getStrictContext } from "@celestial/lib/get-strict-context";
-import { useControlledState } from "@celestial/hooks/use-controlled-state";
+import { getStrictContext } from "@arclayer/lib/get-strict-context";
+import { useControlledState } from "@arclayer/hooks/use-controlled-state";
 
 type ToggleContextType = {
   isPressed: boolean;

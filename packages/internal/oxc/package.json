@@ -1,5 +1,5 @@
 {
-  "name": "@celestial/config",
+  "name": "@arclayer/config",
   "version": "0.0.0",
   "private": true,
   "type": "module"

@@ -4,17 +4,17 @@ import { Check, ChevronDown, X } from "lucide-react";
 import debounce from "lodash/debounce";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
-import { LoaderOne } from "@celestial/ui/loader";
-import { Button } from "@celestial/ui/button";
+import { LoaderOne } from "@arclayer/ui/loader";
+import { Button } from "@arclayer/ui/button";
 import {
   Command,
   CommandEmpty,
   CommandInput,
   CommandItem,
   CommandList,
-} from "@celestial/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import { cn } from "@arclayer/lib/utils";
 
 export type DebounceSelectOption = {
   label: ReactNode;

@@ -4,7 +4,7 @@ from typing import Any
 
 import pluggy
 
-PROJECT_NAME = "celestial"
+PROJECT_NAME = "arclayer"
 
 hookspec = pluggy.HookspecMarker(PROJECT_NAME)
 hookimpl = pluggy.HookimplMarker(PROJECT_NAME)

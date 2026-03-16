@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { UseFormReturn } from "react-hook-form";
 
-import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
-import { Accordion } from "@celestial/ui/accordion";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { Accordion } from "@arclayer/ui/accordion";
 import { DEFAULT_TIMEZONE } from "@/constants/datetime";
 import {
   DateTimeFormatLocalizationControl,

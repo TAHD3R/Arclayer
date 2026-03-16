@@ -150,7 +150,7 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
 `.trim();
 
   return {
-    name: "celestial-inject-loading-screen",
+    name: "arclayer-inject-loading-screen",
     enforce: "pre",
     transformIndexHtml() {
       return [

@@ -3,8 +3,8 @@ import clsx from "clsx";
 import { Star } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Button } from "@celestial/ui/button";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
+import { Button } from "@arclayer/ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@arclayer/ui/tooltip";
 
 import { ApiError } from "@/lib/http";
 import { useFavoritesStore } from "@/stores/use-favorites-store";

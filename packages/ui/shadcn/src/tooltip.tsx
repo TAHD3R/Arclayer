@@ -11,8 +11,8 @@ import {
   type TooltipProps as TooltipPrimitiveProps,
   type TooltipTriggerProps as TooltipTriggerPrimitiveProps,
   type TooltipContentProps as TooltipContentPrimitiveProps,
-} from "@celestial/ui/animate-tooltip";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/animate-tooltip";
+import { cn } from "@arclayer/lib/utils";
 
 type TooltipProviderProps = TooltipProviderPrimitiveProps;
 

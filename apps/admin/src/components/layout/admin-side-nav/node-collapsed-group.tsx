@@ -1,5 +1,5 @@
 import type { AdminNavItem } from "@/types/admin-nav";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,8 +7,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
-import { SidebarMenuItem } from "@celestial/ui/sidebar";
+} from "@arclayer/ui/dropdown-menu";
+import { SidebarMenuItem } from "@arclayer/ui/sidebar";
 
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import { WithBlockedTooltip } from "./blocked-tooltip";

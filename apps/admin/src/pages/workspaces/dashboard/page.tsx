@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
-import { Card, CardContent } from "@celestial/ui/card";
+import { Card, CardContent } from "@arclayer/ui/card";
 
 export function DashboardPage() {
   const { t } = useTranslation();

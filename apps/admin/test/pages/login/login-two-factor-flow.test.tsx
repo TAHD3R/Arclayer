@@ -190,7 +190,7 @@ describe("LoginPage two-factor challenge flow", () => {
 
   it("restores otp pane from sessionStorage when challenge is still active", async () => {
     sessionStorage.setItem(
-      "celestial:auth:challenge",
+      "arclayer:auth:challenge",
       JSON.stringify({
         state: {
           twoFactorToken: "challenge-2",

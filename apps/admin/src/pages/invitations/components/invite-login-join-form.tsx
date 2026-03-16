@@ -5,9 +5,9 @@ import { z } from "zod";
 
 import { AuthFieldError, AuthLinkButton, AuthPasswordControl } from "@/components/ui/auth-controls";
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import { Button } from "@celestial/ui/button";
-import { Checkbox } from "@celestial/ui/checkbox";
-import { Input } from "@celestial/ui/input";
+import { Button } from "@arclayer/ui/button";
+import { Checkbox } from "@arclayer/ui/checkbox";
+import { Input } from "@arclayer/ui/input";
 
 interface InviteLoginJoinFormProps {
   t: (key: string) => string;

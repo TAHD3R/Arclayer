@@ -1,8 +1,8 @@
 import { type ReactNode, useMemo, useState } from "react";
 
-import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { cn } from "@celestial/lib/utils";
+import ChevronRightIcon from "@arclayer/ui/icons/chevron-right";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
 
 type Description = ReactNode | string | string[] | undefined | null;
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 describe("cn", () => {
   it("joins truthy class names", () => {

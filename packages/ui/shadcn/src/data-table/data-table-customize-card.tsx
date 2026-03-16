@@ -21,7 +21,7 @@ import {
   DropdownCardHeader,
   DropdownCardRoot,
   DropdownCardTrigger,
-} from "@celestial/ui/dropdown-card";
+} from "@arclayer/ui/dropdown-card";
 
 import { DataTableDefaultIconButton } from "./data-table-icon-button";
 import {

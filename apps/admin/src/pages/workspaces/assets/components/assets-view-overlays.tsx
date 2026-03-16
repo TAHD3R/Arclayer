@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import type { AdminAssetFolder } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import { SelectedCountTag } from "@/components/ui/tags";
 import { AssetPreviewSheet } from "./asset-masonry-card";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";

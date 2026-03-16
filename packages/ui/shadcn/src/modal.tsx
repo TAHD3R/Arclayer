@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { cn } from "@celestial/lib/utils";
-import { useIsMobile } from "@celestial/hooks/use-media-query";
+import { cn } from "@arclayer/lib/utils";
+import { useIsMobile } from "@arclayer/hooks/use-media-query";
 import {
   Dialog,
   DialogClose,
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@celestial/ui/dialog";
+} from "@arclayer/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -22,7 +22,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@celestial/ui/drawer";
+} from "@arclayer/ui/drawer";
 
 const ModalContext = React.createContext<{ isMobile: boolean } | null>(null);
 

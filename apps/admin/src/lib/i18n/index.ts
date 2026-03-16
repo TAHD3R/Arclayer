@@ -8,7 +8,7 @@ import {
   SUPPORTED_LOCALES,
   detectBrowserLocale,
   normalizeLocale,
-} from "@celestial/runtime/i18n";
+} from "@arclayer/runtime/i18n";
 
 export type { AppLocale } from "@/lib/i18n/resources";
 export { DEFAULT_LOCALE, SUPPORTED_LOCALES, detectBrowserLocale, normalizeLocale };

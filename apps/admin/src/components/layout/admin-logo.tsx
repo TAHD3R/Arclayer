@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import type { ThemeMode } from "@celestial/theme/theme-mode";
+import type { ThemeMode } from "@arclayer/theme/theme-mode";
 
 function getFullLogoSrc(themeMode: ThemeMode) {
   return themeMode === "dark" ? "/logo-full-dark.svg" : "/logo-full.svg";

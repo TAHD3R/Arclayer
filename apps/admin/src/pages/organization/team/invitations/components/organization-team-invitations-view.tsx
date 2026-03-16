@@ -1,13 +1,13 @@
 import { Plus } from "lucide-react";
 
 import { DefaultPage } from "@/components/common/default-page";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
+} from "@arclayer/ui/chrome-tabs";
 import {
   InviteOrganizationMemberDialog,
   type InviteOrganizationMemberFormValues,

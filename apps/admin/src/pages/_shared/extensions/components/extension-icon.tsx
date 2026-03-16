@@ -5,7 +5,7 @@ import { Package } from "lucide-react";
 
 import { getAppConfig } from "@/constants/app-config";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 export interface ExtensionIconProps {
   name: string;

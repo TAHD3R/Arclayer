@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AvatarUploadSlot } from "@/components/common/avatar-upload-slot";
-import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { notifyError, notifySuccessText } from "@/lib/notifications";

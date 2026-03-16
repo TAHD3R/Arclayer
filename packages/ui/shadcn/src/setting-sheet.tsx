@@ -7,8 +7,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@celestial/ui/sheet";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/sheet";
+import { cn } from "@arclayer/lib/utils";
 
 type SettingSheetProps = {
   open: boolean;

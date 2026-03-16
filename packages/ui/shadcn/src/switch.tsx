@@ -5,8 +5,8 @@ import {
   SwitchThumb as SwitchThumbPrimitive,
   SwitchIcon as SwitchIconPrimitive,
   type SwitchProps as SwitchPrimitiveProps,
-} from "@celestial/ui/radix-primitives/radix-switch";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/radix-primitives/radix-switch";
+import { cn } from "@arclayer/lib/utils";
 
 type SwitchProps = SwitchPrimitiveProps & {
   pressedWidth?: number;

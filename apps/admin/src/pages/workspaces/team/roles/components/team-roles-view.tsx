@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { MoreVertical, Plus, Search, Trash2, X } from "lucide-react";
@@ -19,16 +19,16 @@ import {
 } from "@/api/rbac";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
-import { Button } from "@celestial/ui/button";
-import { Checkbox } from "@celestial/ui/checkbox";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Button } from "@arclayer/ui/button";
+import { Checkbox } from "@arclayer/ui/checkbox";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
-import { Spinner } from "@celestial/ui/spinner";
+} from "@arclayer/ui/input-group";
+import { Spinner } from "@arclayer/ui/spinner";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { zodResolver } from "@/lib/forms/zod-resolver";

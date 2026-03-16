@@ -8,8 +8,8 @@ import {
   AdminSidebarMainMenuSkeleton,
 } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
-import { Sidebar, SidebarContent } from "@celestial/ui/sidebar";
-import { cn } from "@celestial/lib/utils";
+import { Sidebar, SidebarContent } from "@arclayer/ui/sidebar";
+import { cn } from "@arclayer/lib/utils";
 
 export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;

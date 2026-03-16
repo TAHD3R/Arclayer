@@ -6,8 +6,8 @@ import {
   DataTablePresenter,
   type DataTableDensity,
   type DataTableToolsLabels,
-} from "@celestial/ui/data-table";
-import { Button } from "@celestial/ui/button";
+} from "@arclayer/ui/data-table";
+import { Button } from "@arclayer/ui/button";
 
 import {
   SecuritySessionsSearchToolbar,

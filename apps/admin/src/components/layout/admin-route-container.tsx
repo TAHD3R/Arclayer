@@ -1,6 +1,6 @@
 import type { CSSProperties, PropsWithChildren } from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 export type AdminRouteContainerProps = PropsWithChildren<{
   className?: string;

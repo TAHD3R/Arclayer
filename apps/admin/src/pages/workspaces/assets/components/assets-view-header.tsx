@@ -3,21 +3,21 @@ import type React from "react";
 import type { ReactNode } from "react";
 
 import type { AdminAssetTag } from "@/types/api";
-import ChevronDownIcon from "@celestial/ui/icons/chevron-down";
-import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@celestial/ui/chrome-tabs";
+import ChevronDownIcon from "@arclayer/ui/icons/chevron-down";
+import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 import { AssetsFilterPopover } from "./assets-filter-popover";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 
 interface AssetsFilterValue {
   mimePrefix?: string;

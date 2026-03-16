@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 export function DataTableScrollOverflowGradient(props: {
   enabled: boolean;

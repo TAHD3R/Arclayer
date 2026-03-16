@@ -1,10 +1,10 @@
 import { Controller } from "react-hook-form";
 
-import { Accordion } from "@celestial/ui/accordion";
-import { Button } from "@celestial/ui/button";
-import { NativeSelect, NativeSelectOption } from "@celestial/ui/native-select";
-import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
-import { SettingPanel } from "@celestial/ui/setting-panel";
+import { Accordion } from "@arclayer/ui/accordion";
+import { Button } from "@arclayer/ui/button";
+import { NativeSelect, NativeSelectOption } from "@arclayer/ui/native-select";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingPanel } from "@arclayer/ui/setting-panel";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";

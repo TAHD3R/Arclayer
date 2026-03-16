@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import preset from "@celestial/theme";
+import preset from "@arclayer/theme";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 

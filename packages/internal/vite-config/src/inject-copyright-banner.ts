@@ -33,7 +33,7 @@ export function injectCopyrightBanner(options: CopyrightBannerOptions): Plugin {
   const banner = options.bannerText?.trim() ? options.bannerText.trim() : buildDefaultBanner(meta);
 
   return {
-    name: "celestial-inject-copyright-banner",
+    name: "arclayer-inject-copyright-banner",
     apply: "build",
     generateBundle(_outputOptions, bundle) {
       for (const item of Object.values(bundle)) {

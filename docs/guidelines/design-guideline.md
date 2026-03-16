@@ -66,7 +66,7 @@ To avoid style drift across settings and management flows, use the following ove
 - Replace `Spin` with `LoaderOne` for loading indicators inside Admin overlays and popovers.
 - For form-oriented business overlays, default to `SettingDialog` instead of wiring `Dialog`
   primitives directly in feature files.
-- Admin must not use `@celestial/ui/confirm-dialog`. Prefer explicit `AlertDialog` for confirmations
+- Admin must not use `@arclayer/ui/confirm-dialog`. Prefer explicit `AlertDialog` for confirmations
   and keep footer actions owned by the feature (Antd `Button` + loading/disabled semantics).
 - All Antd `Button` usages in Admin must set `autoInsertSpace={false}` to avoid CJK spacing drift.
   This is enforced by `apps/admin/test/lib/conventions/admin-ui-conventions.test.ts`.

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { ChromeTabsList, ChromeTabsTrigger } from "@celestial/ui/chrome-tabs";
+import { ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 
 export function OrganizationSettingsTabs(props: { showBasics?: boolean }) {
   const { t } = useTranslation(["settings"]);

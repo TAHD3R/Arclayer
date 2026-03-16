@@ -1,4 +1,4 @@
-import type { ThemeMode } from "@celestial/theme/theme-mode";
+import type { ThemeMode } from "@arclayer/theme/theme-mode";
 
 import type { ThemePreference } from "@/types/stores";
 

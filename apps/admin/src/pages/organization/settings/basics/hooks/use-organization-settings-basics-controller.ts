@@ -11,7 +11,7 @@ import {
   patchOrganizationCoreSettings,
 } from "@/api/organization-settings";
 import { listOrganizationRoles } from "@/api/organization-rbac";
-import { useSavingKey } from "@celestial/hooks/use-saving-key";
+import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/constants/datetime";
 import { ApiError } from "@/lib/http";
 import { DEFAULT_LOCALE, normalizeLocale } from "@/lib/i18n";

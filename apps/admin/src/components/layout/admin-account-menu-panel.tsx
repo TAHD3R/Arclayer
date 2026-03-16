@@ -15,8 +15,8 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import type { AppLocale } from "@/lib/i18n";
-import { cn } from "@celestial/lib/utils";
-import { FloatingPanelButton, useFloatingPanel } from "@celestial/ui/floating-panel";
+import { cn } from "@arclayer/lib/utils";
+import { FloatingPanelButton, useFloatingPanel } from "@arclayer/ui/floating-panel";
 import type { ThemePreference } from "@/types/stores";
 
 type AccountMenuView = "root" | "language" | "appearance";

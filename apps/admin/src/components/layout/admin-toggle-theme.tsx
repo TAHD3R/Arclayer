@@ -3,9 +3,9 @@ import { useState } from "react";
 
 import { toggleThemeModeWithTransition } from "@/components/ui/theme-transition";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import { Button } from "@celestial/ui/button";
-import MoonIcon from "@celestial/ui/icons/moon-icon";
-import SunIcon from "@celestial/ui/icons/sun-icon";
+import { Button } from "@arclayer/ui/button";
+import MoonIcon from "@arclayer/ui/icons/moon-icon";
+import SunIcon from "@arclayer/ui/icons/sun-icon";
 
 export function AdminThemeModeToggle(props: { className?: string }) {
   const mode = usePreferencesStore((s) => s.themeMode);

@@ -20,8 +20,8 @@ import {
   type UseFloatingReturn,
 } from "@floating-ui/react";
 
-import { getStrictContext } from "@celestial/lib/get-strict-context";
-import { Slot, type WithAsChild } from "@celestial/ui/animate-slot";
+import { getStrictContext } from "@arclayer/lib/get-strict-context";
+import { Slot, type WithAsChild } from "@arclayer/ui/animate-slot";
 
 type Side = "top" | "bottom" | "left" | "right";
 type Align = "start" | "center" | "end";

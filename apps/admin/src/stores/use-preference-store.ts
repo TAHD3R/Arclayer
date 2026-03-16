@@ -28,7 +28,7 @@ import type {
   ThemePreference,
   WorkspaceLocaleCache,
 } from "@/types/stores";
-import { type ThemeMode } from "@celestial/theme/theme-mode";
+import { type ThemeMode } from "@arclayer/theme/theme-mode";
 
 function normalizeLocalePreferenceMode(input: unknown): LocalePreferenceMode {
   if (input === "explicit" || input === "browser" || input === "workspace") return input;

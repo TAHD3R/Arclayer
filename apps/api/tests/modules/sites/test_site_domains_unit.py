@@ -20,10 +20,10 @@ def test_site_resolver_normalize_host_ipv6_brackets() -> None:
 def test_dns_instruction_contract() -> None:
     settings = Settings(
         application={"deployment_mode": "saas"},
-        saas={"base_domain": "celestial.app"},
+        saas={"base_domain": "arclayer.app"},
         database={"enabled": False},
     )
     service = SiteDomainsService(settings)
     dns = service.build_dns_instruction(hostname="example.com", token="abc123")
-    assert dns.txt_record_name == "_celestial-site-verification.example.com"
-    assert dns.txt_record_value == "celestial-site-verification=abc123"
+    assert dns.txt_record_name == "_arclayer-site-verification.example.com"
+    assert dns.txt_record_value == "arclayer-site-verification=abc123"

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { QRCodeSVG, type QRPropsSVG } from "@rc-component/qrcode";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 type QRCodeProps = QRPropsSVG & {
   className?: string;

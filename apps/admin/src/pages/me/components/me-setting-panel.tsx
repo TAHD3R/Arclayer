@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { SettingPanel } from "@celestial/ui/setting-panel";
-import { cn } from "@celestial/lib/utils";
+import { SettingPanel } from "@arclayer/ui/setting-panel";
+import { cn } from "@arclayer/lib/utils";
 
 export type MeSettingPanelProps = {
   title: ReactNode;

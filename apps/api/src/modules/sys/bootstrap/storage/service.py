@@ -22,8 +22,8 @@ def _rustfs_dev_seed() -> dict[str, object]:
     """
 
     endpoint = "http://127.0.0.1:9000"
-    private_bucket = "celestial"
-    public_bucket = "celestial-public"
+    private_bucket = "arclayer"
+    public_bucket = "arclayer-public"
     return {
         "provider": "s3",
         "s3_endpoint_url": endpoint,

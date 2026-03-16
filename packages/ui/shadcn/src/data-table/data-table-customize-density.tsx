@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
 import type { DataTableDensity } from "./types";
 

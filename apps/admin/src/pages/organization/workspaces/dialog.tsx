@@ -6,9 +6,9 @@ import { useTranslation } from "react-i18next";
 
 import type { OrganizationWorkspace } from "@/types/api";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { Button } from "@celestial/ui/button";
-import { ComplexDialog } from "@celestial/ui/complex-dialog";
-import { ChromeTabsContent } from "@celestial/ui/chrome-tabs";
+import { Button } from "@arclayer/ui/button";
+import { ComplexDialog } from "@arclayer/ui/complex-dialog";
+import { ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 
 import {
   OrganizationWorkspacesDialogs,

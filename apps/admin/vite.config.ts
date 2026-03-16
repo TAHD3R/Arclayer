@@ -13,7 +13,7 @@ import {
   injectCopyrightBanner,
   injectLoadingScreen,
   injectPreferences,
-} from "@celestial/vite-plugin";
+} from "@arclayer/vite-plugin";
 
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, __dirname, "VITE_");
@@ -30,8 +30,8 @@ export default defineConfig(({ mode, command }) => {
   const plugins = [
     injectPreferences({
       storageKeys: {
-        themeMode: "celestial:admin:theme",
-        locale: "celestial:admin:locale",
+        themeMode: "arclayer:admin:theme",
+        locale: "arclayer:admin:locale",
       },
     }),
     injectLoadingScreen({

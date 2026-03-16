@@ -1,11 +1,5 @@
-import { Switch } from "@celestial/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
+import { Switch } from "@arclayer/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
 import type { LocalizationOption } from "@/lib/settings/general/localization-options";
 

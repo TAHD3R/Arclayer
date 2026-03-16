@@ -95,7 +95,7 @@ vi.mock("@/api/workspaces", () => ({
   listMyWorkspaces: vi.fn().mockResolvedValue({ items: [] }),
 }));
 
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
 
 function renderPanel() {

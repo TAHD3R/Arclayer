@@ -10,12 +10,12 @@ import {
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 import {
   DataTablePresenter,
   DataTableToolbarTools,
   useDataTableDensityPreference,
-} from "@celestial/ui/data-table";
+} from "@arclayer/ui/data-table";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 

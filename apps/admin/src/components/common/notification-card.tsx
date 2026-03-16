@@ -9,10 +9,10 @@ import {
   ItemHeader,
   ItemMedia,
   ItemTitle,
-} from "@celestial/ui/item";
-import { Button } from "@celestial/ui/button";
+} from "@arclayer/ui/item";
+import { Button } from "@arclayer/ui/button";
 import { formatRelativeTimeAt } from "@/lib/time/relative-time";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 interface NotificationCardProps {
   item: NotificationItem;

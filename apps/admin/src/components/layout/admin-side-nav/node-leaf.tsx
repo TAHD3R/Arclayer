@@ -1,12 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@celestial/ui/sidebar";
+} from "@arclayer/ui/sidebar";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";

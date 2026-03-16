@@ -8,9 +8,9 @@ import { useMutation } from "@tanstack/react-query";
 
 import type { TeamMember } from "@/types/api";
 import { resetTeamMemberPassword } from "@/api/team";
-import { Button } from "@celestial/ui/button";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { Input } from "@celestial/ui/input";
+import { Button } from "@arclayer/ui/button";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Input } from "@arclayer/ui/input";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

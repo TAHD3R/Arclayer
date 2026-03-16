@@ -5,7 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import type { OrganizationWorkspace } from "@/types/api";
 import { ContentGuard } from "@/components/common/content-guard";
-import { LoaderOne } from "@celestial/ui/loader";
+import { LoaderOne } from "@arclayer/ui/loader";
 
 import type { OrganizationWorkspacesTranslateFn, WorkspaceMenuItem } from "../types";
 import { WorkspaceCard } from "./workspace-card";

@@ -5,7 +5,7 @@ import clsx from "clsx";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { DefaultPage } from "@/components/common/default-page";
-import { Skeleton } from "@celestial/ui/skeleton";
+import { Skeleton } from "@arclayer/ui/skeleton";
 
 type RouteTransitionProps = PropsWithChildren<{
   className?: string;

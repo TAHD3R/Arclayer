@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
 import { SidebarMenu, SidebarMenuItem } from "./sidebar-menu";
 
 export type MiniCategoryNavItem = {

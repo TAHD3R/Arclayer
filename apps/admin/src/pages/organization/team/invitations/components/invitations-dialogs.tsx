@@ -6,21 +6,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@celestial/ui/alert-dialog";
+} from "@arclayer/ui/alert-dialog";
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@celestial/ui/radix-primitives/radix-alert-dialog";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
+} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import type { InviteOrganizationRoleOption } from "@/pages/organization/team/shared/components/invite-organization-member-dialog";
 
 import type { RenewExpiresInSeconds } from "../constants";

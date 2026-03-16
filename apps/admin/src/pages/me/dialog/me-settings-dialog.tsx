@@ -3,10 +3,10 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Bell, Shield, SlidersHorizontal, UserRound, X, type LucideIcon } from "lucide-react";
 
-import { ComplexDialog } from "@celestial/ui/complex-dialog";
-import { cn } from "@celestial/lib/utils";
-import { MiniCategoryNav } from "@celestial/ui/mini-category-nav";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { ComplexDialog } from "@arclayer/ui/complex-dialog";
+import { cn } from "@arclayer/lib/utils";
+import { MiniCategoryNav } from "@arclayer/ui/mini-category-nav";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { MeNotificationSettingsPage } from "@/pages/me/notifications/page";
 import { MePreferencesView } from "@/pages/me/preferences/components/me-preferences-view";
 import { MeProfileView } from "@/pages/me/profile/components/me-profile-view";

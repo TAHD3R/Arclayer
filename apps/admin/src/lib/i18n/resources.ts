@@ -36,7 +36,7 @@ import enAppearance from "@locales/en-US/appearance.json";
 import enRbac from "@locales/en-US/rbac.json";
 import enSys from "@locales/en-US/sys.json";
 
-import type { AppLocale } from "@celestial/runtime/i18n";
+import type { AppLocale } from "@arclayer/runtime/i18n";
 
 export const I18N_NAMESPACES = [
   "common",

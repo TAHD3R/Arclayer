@@ -4,15 +4,9 @@ import { useMemo } from "react";
 import { z } from "zod";
 
 import { EmailTagsField } from "@/components/ui/email-tags-field";
-import { Button } from "@celestial/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Button } from "@arclayer/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 
 export type InviteOrganizationMemberFormValues = {

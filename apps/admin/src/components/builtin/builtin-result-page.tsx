@@ -3,13 +3,13 @@ import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   Illust401LockedTerminal,
   Illust403ForbiddenGateway,
   Illust404BrokenLink,
   Illust500CrashedServer,
-} from "@celestial/ui/illustrations";
+} from "@arclayer/ui/illustrations";
 import {
   Empty,
   EmptyContent,
@@ -17,7 +17,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@celestial/ui/empty";
+} from "@arclayer/ui/empty";
 
 export type BuiltinResultVariant = "admin" | "fullscreen";
 

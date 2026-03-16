@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Collapsible, CollapsibleContent } from "@celestial/ui/collapsible";
-import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
-import { cn } from "@celestial/lib/utils";
+import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
+import ChevronRightIcon from "@arclayer/ui/icons/chevron-right";
+import { cn } from "@arclayer/lib/utils";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-} from "@celestial/ui/sidebar";
+} from "@arclayer/ui/sidebar";
 
 import { useCollapsedDropdownController } from "./collapsed-dropdown";
 import type { FavoriteNavItem } from "./favorite-nav-items";
@@ -35,8 +35,8 @@ import type { AdminNavItem } from "@/types/admin-nav";
 const STARRED_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "pt-1.5 overflow-hidden",
   "motion-reduce:animate-none",
-  "data-[state=open]:animate-[celestial-collapsible-down_180ms_ease-out]",
-  "data-[state=closed]:animate-[celestial-collapsible-up_160ms_ease-in]",
+  "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
+  "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
 
 function buildFavoriteLeafItems(items: readonly FavoriteNavItem[]): AdminNavItem[] {

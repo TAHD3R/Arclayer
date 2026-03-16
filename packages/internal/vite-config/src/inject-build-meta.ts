@@ -49,7 +49,7 @@ export function injectBuildMeta(options: InjectBuildMetaOptions): Plugin {
   });
 
   return {
-    name: "celestial-inject-build-meta",
+    name: "arclayer-inject-build-meta",
     apply: "build",
     config() {
       if (!defineGlobal) return;

@@ -1,7 +1,7 @@
 import { type Table as ReactTable } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
-import { DataTablePresenter, type DataTableDensity } from "@celestial/ui/data-table";
+import { DataTablePresenter, type DataTableDensity } from "@arclayer/ui/data-table";
 import type { TeamMember } from "@/types/api";
 
 type DataTableToolbarSlots = {

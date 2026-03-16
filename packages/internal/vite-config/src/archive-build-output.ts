@@ -29,7 +29,7 @@ export function archiveBuildOutput(options: ArchiveBuildOutputOptions): Plugin {
   let resolvedConfig: ResolvedConfig | null = null;
 
   return {
-    name: "celestial-archive-build-output",
+    name: "arclayer-archive-build-output",
     apply: "build",
     configResolved(cfg) {
       resolvedConfig = cfg;

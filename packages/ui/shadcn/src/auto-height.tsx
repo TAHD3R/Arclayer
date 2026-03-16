@@ -9,8 +9,8 @@ import {
   type Transition,
 } from "motion/react";
 
-import { useAutoHeight } from "@celestial/hooks/use-auto-height";
-import { Slot, type WithAsChild } from "@celestial/ui/animate-slot";
+import { useAutoHeight } from "@arclayer/hooks/use-auto-height";
+import { Slot, type WithAsChild } from "@arclayer/ui/animate-slot";
 
 type AutoHeightProps = WithAsChild<
   {

@@ -1,5 +1,5 @@
-import { cn } from "@celestial/lib/utils";
-import { Skeleton } from "@celestial/ui/skeleton";
+import { cn } from "@arclayer/lib/utils";
+import { Skeleton } from "@arclayer/ui/skeleton";
 
 export type PageSkeletonVariant = "form" | "masonry" | "table";
 

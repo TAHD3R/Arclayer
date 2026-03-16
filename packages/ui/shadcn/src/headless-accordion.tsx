@@ -9,8 +9,8 @@ import {
   type DisclosureButtonProps as DisclosureButtonPrimitiveProps,
   type DisclosurePanelProps as DisclosurePanelPrimitiveProps,
   type DisclosureProps as DisclosurePrimitiveProps,
-} from "@celestial/ui/headless-disclosure";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/headless-disclosure";
+import { cn } from "@arclayer/lib/utils";
 
 type AccordionProps<TTag extends React.ElementType = "div"> = React.ComponentProps<TTag> & {
   children: React.ReactNode;

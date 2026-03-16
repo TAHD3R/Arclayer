@@ -41,7 +41,7 @@ vi.mock("@/pages/me/security/components/security-sessions-section", () => ({
   MeSecuritySessionsSection: () => <div data-testid="security-sessions" />,
 }));
 
-vi.mock("@celestial/ui/tooltip", () => ({
+vi.mock("@arclayer/ui/tooltip", () => ({
   Tooltip: ({ children }: { children: ReactElement | ReactElement[] }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: ReactElement }) => <>{children}</>,
   TooltipContent: ({ children }: { children: ReactElement | string }) => <>{children}</>,

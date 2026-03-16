@@ -1,10 +1,10 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: celestial-postgres
+    container_name: arclayer-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DATABASE__NAME:-celestial}
+      POSTGRES_DB: ${DATABASE__NAME:-arclayer}
       POSTGRES_USER: ${DATABASE__USER:-postgres}
       POSTGRES_PASSWORD: ${DATABASE__PASSWORD:-postgres}
       POSTGRES_INITDB_ARGS: "--auth=scram-sha-256"
@@ -30,11 +30,11 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - celestial
+      - arclayer
 
   valkey:
     image: valkey/valkey:8.0-alpine
-    container_name: celestial-valkey
+    container_name: arclayer-valkey
     restart: unless-stopped
     command: ["valkey-server", "/etc/valkey/valkey.conf"]
     ports:
@@ -48,11 +48,11 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - celestial
+      - arclayer
 
   meilisearch:
     image: getmeili/meilisearch:v1.12.1
-    container_name: celestial-meilisearch
+    container_name: arclayer-meilisearch
     restart: unless-stopped
     environment:
       # Production should override this value. A non-empty key enables Meilisearch auth.
@@ -63,11 +63,11 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     networks:
-      - celestial
+      - arclayer
 
   rustfs:
     image: rustfs/rustfs:1.0.0-alpha.83-glibc
-    container_name: celestial-rustfs
+    container_name: arclayer-rustfs
     restart: unless-stopped
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
@@ -78,11 +78,11 @@ services:
     volumes:
       - rustfs_data:/data
     networks:
-      - celestial
+      - arclayer
 
   mailpit:
     image: axllent/mailpit:v1.29.2
-    container_name: celestial-mailpit
+    container_name: arclayer-mailpit
     restart: unless-stopped
     profiles: ["devtools"]
     ports:
@@ -91,11 +91,11 @@ services:
     volumes:
       - mailpit_data:/data
     networks:
-      - celestial
+      - arclayer
 
   dozzle:
     image: amir20/dozzle:v8.12.14
-    container_name: celestial-dozzle
+    container_name: arclayer-dozzle
     restart: unless-stopped
     profiles: ["devtools"]
     environment:
@@ -105,11 +105,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - celestial
+      - arclayer
 
   traefik-edge:
     image: traefik:v3.6.9
-    container_name: celestial-traefik-edge
+    container_name: arclayer-traefik-edge
     restart: unless-stopped
     profiles: ["edge"]
     ports:
@@ -138,11 +138,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - celestial
+      - arclayer
 
   edge-routes:
     image: alpine:3.20
-    container_name: celestial-edge-routes
+    container_name: arclayer-edge-routes
     restart: unless-stopped
     profiles: ["edge"]
     command: ["sh", "-c", "sleep infinity"]
@@ -175,11 +175,11 @@ services:
       - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-Permitted-Cross-Domain-Policies=none"
       - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-Download-Options=noopen"
     networks:
-      - celestial
+      - arclayer
 
   traefik:
     image: traefik:v3.6.9
-    container_name: celestial-traefik
+    container_name: arclayer-traefik
     restart: unless-stopped
     profiles: ["saas"]
     command: ["--configFile=/etc/traefik/traefik.yml"]
@@ -192,7 +192,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - celestial
+      - arclayer
 
 volumes:
   postgres_data:
@@ -203,5 +203,5 @@ volumes:
   traefik_edge_acme:
 
 networks:
-  celestial:
+  arclayer:
     driver: bridge

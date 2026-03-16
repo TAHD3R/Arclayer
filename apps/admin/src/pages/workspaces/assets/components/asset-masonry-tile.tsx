@@ -4,12 +4,12 @@ import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "
 import { useTranslation } from "react-i18next";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { type AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import { Button } from "@celestial/ui/button";
-import { Checkbox } from "@celestial/ui/checkbox";
-import { LoaderOne } from "@celestial/ui/loader";
+import { Button } from "@arclayer/ui/button";
+import { Checkbox } from "@arclayer/ui/checkbox";
+import { LoaderOne } from "@arclayer/ui/loader";
 import {
   ExcelDocumentIcon,
   GdocDocumentIcon,
@@ -22,7 +22,7 @@ import {
   VideoDocumentIcon,
   WordDocumentIcon,
   ZipDocumentIcon,
-} from "@celestial/ui/icons/document-icons";
+} from "@arclayer/ui/icons/document-icons";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { formatRelativeTime } from "@/lib/time/relative-time";

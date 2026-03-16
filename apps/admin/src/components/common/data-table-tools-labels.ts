@@ -1,4 +1,4 @@
-import type { DataTableToolsLabels } from "@celestial/ui/data-table";
+import type { DataTableToolsLabels } from "@arclayer/ui/data-table";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 

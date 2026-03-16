@@ -1,11 +1,5 @@
-import { Button } from "@celestial/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
+import { Button } from "@arclayer/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 

@@ -3,7 +3,7 @@
 import type { Table as ReactTable } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 import type { DataTableDensity } from "./types";
 

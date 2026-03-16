@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next";
 import type { UseFormReturn } from "react-hook-form";
 import clsx from "clsx";
 
-import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
-import { Accordion } from "@celestial/ui/accordion";
-import { Button } from "@celestial/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@celestial/ui/card";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { Accordion } from "@arclayer/ui/accordion";
+import { Button } from "@arclayer/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 import { SETUP_WORKSPACE_TEMPLATE_KEYS } from "@/lib/setup-template";
 import { SetupFieldShell, SetupInputControl, SetupTextarea } from "./setup-form-controls";
 import type { SetupSiteDraft, SetupWorkspaceTemplate } from "@/types/stores";

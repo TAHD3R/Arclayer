@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 import { CHART_CONTAINER_CLASSNAME } from "./chart.constants";
 import { ChartProvider } from "./chart-context";

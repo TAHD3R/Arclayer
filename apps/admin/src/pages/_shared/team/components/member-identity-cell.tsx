@@ -1,8 +1,8 @@
 import { useMemo, type ReactNode } from "react";
 import { Building2, FolderKanban } from "lucide-react";
 
-import { cn } from "@celestial/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@celestial/ui/tooltip";
+import { cn } from "@arclayer/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { BaseTag, lucideTagIcon } from "@/components/ui/tags/tag-base";
 

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Link2Off, RotateCcw } from "lucide-react";
 
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";
 import { renderUserLabel } from "@/pages/_shared/team/components/user-label";

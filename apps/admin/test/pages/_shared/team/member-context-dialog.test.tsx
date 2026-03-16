@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { MemberContextDialog } from "@/pages/_shared/team/components/member-context-dialog";
 
 beforeAll(() => {

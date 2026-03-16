@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import type { SVGMotionProps } from "motion/react";
 
-import { useMediaPrefersReducedMotion } from "@celestial/hooks/use-media-prefers-reduced-motion";
+import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
 
 interface RefreshIconProps extends SVGMotionProps<SVGSVGElement> {
   size?: number;

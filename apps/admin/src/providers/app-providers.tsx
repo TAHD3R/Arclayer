@@ -3,9 +3,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
-import { Toaster } from "@celestial/ui/sonner";
-import { TooltipProvider } from "@celestial/ui/tooltip";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { Toaster } from "@arclayer/ui/sonner";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
 import { queryClient } from "@/lib/query/query-client-instance";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 

@@ -4,7 +4,7 @@ import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { buttonVariants } from "@celestial/ui/button";
+import { buttonVariants } from "@arclayer/ui/button";
 import { SelectedCountTag } from "@/components/ui/tags";
 import { BaseTag } from "@/components/ui/tags/tag-base";
 

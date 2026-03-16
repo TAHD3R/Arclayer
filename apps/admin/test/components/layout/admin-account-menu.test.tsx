@@ -8,8 +8,8 @@ import * as authApi from "@/api/auth";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
-import { SidebarProvider } from "@celestial/ui/sidebar";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 

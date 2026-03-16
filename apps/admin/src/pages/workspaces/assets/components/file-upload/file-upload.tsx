@@ -12,12 +12,12 @@ import { useMemo } from "react";
 import { useDropzone, type FileError, type FileRejection } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 
-import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
-import { Button } from "@celestial/ui/button";
-import { FileTypeIcon } from "@celestial/ui/icons/file-type-icon";
-import { Progress } from "@celestial/ui/progress";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@arclayer/ui/tooltip";
+import { Button } from "@arclayer/ui/button";
+import { FileTypeIcon } from "@arclayer/ui/icons/file-type-icon";
+import { Progress } from "@arclayer/ui/progress";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
 export type FileUploadItemStatus = "pending" | "uploading" | "success" | "error" | "canceled";
 

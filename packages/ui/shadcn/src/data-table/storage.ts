@@ -2,10 +2,10 @@ import type { VisibilityState } from "@tanstack/react-table";
 
 import type { DataTableDensity } from "./types";
 
-const DEFAULT_VISIBILITY_KEY_PREFIX = "celestial:admin:dataTable:visibility";
+const DEFAULT_VISIBILITY_KEY_PREFIX = "arclayer:admin:dataTable:visibility";
 const DEFAULT_VISIBILITY_VERSION = "v1";
 
-const DEFAULT_PREFERENCES_KEY_PREFIX = "celestial:admin:dataTable:preferences";
+const DEFAULT_PREFERENCES_KEY_PREFIX = "arclayer:admin:dataTable:preferences";
 const DEFAULT_PREFERENCES_VERSION = "v1";
 
 export type DataTableVisibilityStorageOptions = {
@@ -13,7 +13,7 @@ export type DataTableVisibilityStorageOptions = {
    * Storage key prefix.
    *
    * Defaults to the Admin-compatible prefix so existing persisted visibility state remains stable.
-   * Other apps should override this (e.g. `celestial:studio:dataTable:visibility`).
+   * Other apps should override this (e.g. `arclayer:studio:dataTable:visibility`).
    */
   keyPrefix?: string;
   version?: string;
@@ -33,7 +33,7 @@ export type DataTablePreferencesStorageOptions = {
    * Storage key prefix.
    *
    * Defaults to the Admin-compatible prefix.
-   * Other apps should override this (e.g. `celestial:studio:dataTable:preferences`).
+   * Other apps should override this (e.g. `arclayer:studio:dataTable:preferences`).
    */
   keyPrefix?: string;
   version?: string;

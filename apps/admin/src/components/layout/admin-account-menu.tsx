@@ -14,13 +14,13 @@ import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profil
 import type { AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import {
   FloatingPanelContent,
   FloatingPanelRoot,
   FloatingPanelTrigger,
-} from "@celestial/ui/floating-panel";
-import { useSidebar } from "@celestial/ui/sidebar";
+} from "@arclayer/ui/floating-panel";
+import { useSidebar } from "@arclayer/ui/sidebar";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useMeSettingsDialogStore } from "@/stores/use-me-settings-dialog-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";

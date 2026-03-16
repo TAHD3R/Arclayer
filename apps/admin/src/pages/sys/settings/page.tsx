@@ -22,18 +22,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@celestial/ui/dialog";
+} from "@arclayer/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
+} from "@arclayer/ui/dropdown-menu";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
 import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { systemRuntimeQueryKey } from "@/lib/extensions/query-keys";
 import { useSysAuthStore } from "@/stores/use-sys-auth-store";
 import type { SysConfigDetail, SysConfigNamespaceSummary, SysConfigTestCheck } from "@/types/api";

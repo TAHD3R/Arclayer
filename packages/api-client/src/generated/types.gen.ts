@@ -26260,7 +26260,7 @@ export type SitesPublicResolveSiteByHostData = {
     /**
      * Host
      *
-     * Request host (e.g. philipcole.celestial.app, localhost:3100).
+     * Request host (e.g. philipcole.arclayer.app, localhost:3100).
      */
     host?: string | null;
   };

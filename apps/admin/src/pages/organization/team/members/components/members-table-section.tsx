@@ -10,14 +10,14 @@ import {
   DataTablePresenter,
   DataTableToolbarTools,
   useDataTableDensityPreference,
-} from "@celestial/ui/data-table";
+} from "@arclayer/ui/data-table";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
-import type { PageData } from "@celestial/ui/data-table";
+} from "@arclayer/ui/input-group";
+import type { PageData } from "@arclayer/ui/data-table";
 import type { OrganizationMember } from "@/types/api";
 import { MembersFilterPopover, type OrgMemberFilters } from "./members-filter-popover";
 

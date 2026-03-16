@@ -1,9 +1,9 @@
 import * as React from "react";
 import { Slot } from "radix-ui";
 
-import { HighlightItem } from "@celestial/ui/highlight";
-import { Skeleton } from "@celestial/ui/skeleton";
-import { cn } from "@celestial/lib/utils";
+import { HighlightItem } from "@arclayer/ui/highlight";
+import { Skeleton } from "@arclayer/ui/skeleton";
+import { cn } from "@arclayer/lib/utils";
 
 type SidebarMenuProps = React.ComponentProps<"ul">;
 

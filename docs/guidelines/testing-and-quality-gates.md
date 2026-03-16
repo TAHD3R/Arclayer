@@ -38,7 +38,7 @@ Canonical commands:
 
 - `pnpm api:check`
 - `pnpm api:test`
-- Optional focused execution: `pnpm --filter @celestial/api test:integration`
+- Optional focused execution: `pnpm --filter @arclayer/api test:integration`
 
 ### 4.2 Admin frontend (`apps/admin`)
 

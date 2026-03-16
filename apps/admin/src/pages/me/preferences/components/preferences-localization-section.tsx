@@ -1,15 +1,9 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingCard, SettingCardHeader } from "@celestial/ui/setting-card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
-import { Switch } from "@celestial/ui/switch";
+import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Switch } from "@arclayer/ui/switch";
 import { type AppLocale } from "@/lib/i18n";
 import { buildTimezoneOptions } from "@/lib/settings/general/localization-options";
 import { usePreferencesStore } from "@/stores/use-preference-store";

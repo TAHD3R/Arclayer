@@ -1,9 +1,9 @@
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
-import { Button } from "@celestial/ui/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@celestial/ui/input-group";
-import { PasswordInput } from "@celestial/ui/password-input";
+import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@arclayer/ui/input-group";
+import { PasswordInput } from "@arclayer/ui/password-input";
 
 type AuthFieldErrorProps = {
   message?: string;

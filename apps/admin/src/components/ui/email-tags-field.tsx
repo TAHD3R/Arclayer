@@ -2,9 +2,9 @@
 
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { EmailInputTag } from "@/components/ui/tags";
 
 type EmailTagsFieldProps = {

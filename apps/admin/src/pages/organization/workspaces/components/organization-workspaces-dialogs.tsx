@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import type { OrganizationWorkspace } from "@/types/api";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -9,14 +9,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@celestial/ui/alert-dialog";
+} from "@arclayer/ui/alert-dialog";
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@celestial/ui/radix-primitives/radix-alert-dialog";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
+} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import type { OrganizationWorkspacesTranslateFn } from "../types";
 

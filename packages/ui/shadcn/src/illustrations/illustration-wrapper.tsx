@@ -1,4 +1,4 @@
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 import type { IllustrationProps } from "./types";
 
@@ -25,7 +25,7 @@ export function IllustrationWrapper({
       className={cn("block w-full text-foreground", className)}
     >
       <defs>
-        <filter id="celestial-grain" x="-20%" y="-20%" width="140%" height="140%">
+        <filter id="arclayer-grain" x="-20%" y="-20%" width="140%" height="140%">
           <feTurbulence
             type="fractalNoise"
             baseFrequency="0.65"
@@ -45,7 +45,7 @@ export function IllustrationWrapper({
         width="100%"
         height="100%"
         fill="currentColor"
-        filter="url(#celestial-grain)"
+        filter="url(#arclayer-grain)"
         opacity="0.04"
         className="pointer-events-none"
       />

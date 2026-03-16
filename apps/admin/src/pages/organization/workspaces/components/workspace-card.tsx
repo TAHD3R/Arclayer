@@ -1,16 +1,16 @@
 import { MoreVertical } from "lucide-react";
 
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationWorkspace } from "@/types/api";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 
 import type { OrganizationWorkspacesTranslateFn, WorkspaceMenuItem } from "../types";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";

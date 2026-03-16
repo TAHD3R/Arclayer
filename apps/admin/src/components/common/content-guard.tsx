@@ -10,7 +10,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@celestial/ui/empty";
+} from "@arclayer/ui/empty";
 import {
   Illust401LockedTerminal,
   Illust403ForbiddenGateway,
@@ -19,10 +19,10 @@ import {
   Illust429OverloadedGauge,
   Illust500CrashedServer,
   IllustEmptyContainer,
-} from "@celestial/ui/illustrations";
-import { PageSkeleton, type PageSkeletonVariant } from "@celestial/ui/page-skeleton";
+} from "@arclayer/ui/illustrations";
+import { PageSkeleton, type PageSkeletonVariant } from "@arclayer/ui/page-skeleton";
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 
 export type ContentGuardProps = {
   loading: boolean;

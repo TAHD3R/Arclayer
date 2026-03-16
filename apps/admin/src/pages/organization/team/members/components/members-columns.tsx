@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreVertical, Trash2, UserCog } from "lucide-react";
 
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
 import type { OrganizationMember, OrganizationMemberWorkspace } from "@/types/api";
 import { OrgMembershipStatusTag, OrgRoleTag, OrgUserStatusTag } from "@/components/ui/tags";
@@ -11,8 +11,8 @@ import {
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
-} from "@celestial/ui/dropdown-menu";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@celestial/ui/tooltip";
+} from "@arclayer/ui/dropdown-menu";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@arclayer/ui/tooltip";
 import { membershipLabel, userStatusLabel } from "../utils";
 import { WorkspaceAssociationPopover } from "./workspace-association-popover";
 import { type ResolvedMemberWorkspace } from "../../shared/components/organization-member-workspace-list";

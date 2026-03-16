@@ -125,13 +125,13 @@ vi.mock("@/components/ui/theme-transition", () => ({
   setThemePreferenceWithTransition: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import {
   FloatingPanelContent,
   FloatingPanelRoot,
   FloatingPanelTrigger,
-} from "@celestial/ui/floating-panel";
-import { SidebarProvider } from "@celestial/ui/sidebar";
+} from "@arclayer/ui/floating-panel";
+import { SidebarProvider } from "@arclayer/ui/sidebar";
 import * as authApi from "@/api/auth";
 import { listMyOrganizations } from "@/api/me";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";

@@ -1,5 +1,5 @@
 import type { AdminNavItem } from "@/types/admin-nav";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 export function iconSlot(
   depth: number,

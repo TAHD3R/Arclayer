@@ -9,10 +9,10 @@ import {
   HighlightItem,
   type HighlightItemProps,
   type HighlightProps,
-} from "@celestial/ui/highlight";
-import { getStrictContext } from "@celestial/lib/get-strict-context";
-import { useControlledState } from "@celestial/hooks/use-controlled-state";
-import { useDataState } from "@celestial/hooks/use-data-state";
+} from "@arclayer/ui/highlight";
+import { getStrictContext } from "@arclayer/lib/get-strict-context";
+import { useControlledState } from "@arclayer/hooks/use-controlled-state";
+import { useDataState } from "@arclayer/hooks/use-data-state";
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@celestial/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
+import { Button } from "@arclayer/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import {
   type ResolvedMemberWorkspace,
   OrganizationMemberWorkspaceList,

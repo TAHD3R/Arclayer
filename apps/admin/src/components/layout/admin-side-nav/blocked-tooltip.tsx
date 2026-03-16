@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/types/admin-nav";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 function getBlockedTooltipText(
   item: AdminNavItem,

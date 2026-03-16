@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/auth-controls";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { Button } from "@celestial/ui/button";
-import { Field, FieldContent, FieldError } from "@celestial/ui/field";
+import { Button } from "@arclayer/ui/button";
+import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
 import { PASSWORD_PATTERN } from "../constants";
 import type { ResetPasswordFormValues, ResetPasswordViewProps } from "../types";

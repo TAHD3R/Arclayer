@@ -10,19 +10,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@celestial/ui/alert-dialog";
+} from "@arclayer/ui/alert-dialog";
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
-} from "@celestial/ui/radix-primitives/radix-alert-dialog";
-import { Button } from "@celestial/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
+} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { Button } from "@arclayer/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
 export type MoveAssetsToFolderModalProps = {
   open: boolean;

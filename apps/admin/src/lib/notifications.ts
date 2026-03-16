@@ -1,4 +1,4 @@
-import { message } from "@celestial/ui/admin-toast";
+import { message } from "@arclayer/ui/admin-toast";
 
 import { i18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/http";

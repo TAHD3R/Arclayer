@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { WORKSPACE_NAV_HOME_ITEM, WORKSPACE_NAV_SECTIONS } from "@/constants/menu/workspaces";
 import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
-import { useToggle } from "@celestial/hooks/use-toggle";
+import { useToggle } from "@arclayer/hooks/use-toggle";
 import { ORG_NAV_ITEMS } from "@/constants/menu/organization";
 import { mapOrgItemsWithPrefix, normalizePath } from "@/lib/admin-nav-utils";
 import { RouteProgress } from "@/components/layout/route-progress";
@@ -28,7 +28,7 @@ import {
   canAccessOrganizationScopedRoute,
   canRenderAdminCenterNav as canRenderAdminCenterSidebarNav,
 } from "@/layouts/admin-center-access";
-import { SidebarInset, SidebarProvider } from "@celestial/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
 import { AdminTopbar } from "@/components/layout/admin-topbar";

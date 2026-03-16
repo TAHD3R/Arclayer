@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 
 import { DefaultPage } from "@/components/common/default-page";
-import { Button } from "@celestial/ui/button";
-import { LoaderOne } from "@celestial/ui/loader";
+import { Button } from "@arclayer/ui/button";
+import { LoaderOne } from "@arclayer/ui/loader";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 
 import { clearSelection } from "@/lib/assets/asset-selection";

@@ -1,6 +1,6 @@
-import { Switch } from "@celestial/ui/switch";
+import { Switch } from "@arclayer/ui/switch";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 type SettingSwitchBlockProps = {
   checked: boolean;

@@ -2,8 +2,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import * as React from "react";
 
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { cn } from "@celestial/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
 import { TabsList } from "../tabs";
 import { useChromeTabsLabels, useChromeTabsReducedMotion } from "./chrome-tabs-provider";
 

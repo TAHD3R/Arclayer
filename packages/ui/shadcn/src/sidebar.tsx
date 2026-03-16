@@ -6,20 +6,14 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 import { type Transition } from "motion/react";
 
-import { useIsMobile } from "@celestial/hooks/use-is-mobile";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { Input } from "@celestial/ui/input";
-import { Separator } from "@celestial/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@celestial/ui/sheet";
-import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@celestial/ui/tooltip";
-import { Highlight, HighlightItem } from "@celestial/ui/highlight";
+import { useIsMobile } from "@arclayer/hooks/use-is-mobile";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { Input } from "@arclayer/ui/input";
+import { Separator } from "@arclayer/ui/separator";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@arclayer/ui/sheet";
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+import { Highlight, HighlightItem } from "@arclayer/ui/highlight";
 import {
   SidebarMenu,
   SidebarMenuAction,
@@ -30,7 +24,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "./sidebar-menu";
-import { getStrictContext } from "@celestial/lib/get-strict-context";
+import { getStrictContext } from "@arclayer/lib/get-strict-context";
 import { buttonVariants } from "./button-variants";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";

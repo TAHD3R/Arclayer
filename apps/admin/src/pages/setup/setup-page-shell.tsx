@@ -8,15 +8,15 @@ import {
   ExpandableScreen,
   ExpandableScreenContent,
   ExpandableScreenTrigger,
-} from "@celestial/ui/expandable-screen";
-import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
-import { Button } from "@celestial/ui/button";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+} from "@arclayer/ui/expandable-screen";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
+import { Button } from "@arclayer/ui/button";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { SetupFieldShell, SetupPasswordControl } from "@/components/setup/setup-form-controls";
 import type { SetupAccessMode, SetupWizardStep } from "@/types/stores";
 import { MAX_STEP, SETUP_PROGRESS_STAGE_ORDER } from "./constants";
 
-const ColorBendsLazy = lazy(() => import("@celestial/ui/color-bends"));
+const ColorBendsLazy = lazy(() => import("@arclayer/ui/color-bends"));
 
 type SetupStageMeta = {
   title: string;

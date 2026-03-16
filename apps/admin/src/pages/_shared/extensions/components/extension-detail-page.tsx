@@ -3,15 +3,15 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
-import { Button } from "@celestial/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@celestial/ui/card";
-import { Switch } from "@celestial/ui/switch";
+import { Button } from "@arclayer/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@arclayer/ui/card";
+import { Switch } from "@arclayer/ui/switch";
 import {
   ChromeTabs,
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
+} from "@arclayer/ui/chrome-tabs";
 
 import type { UIEmbedDescriptor } from "@/types/api";
 import type { InstalledExtensionItem } from "../types";

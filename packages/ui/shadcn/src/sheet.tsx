@@ -18,8 +18,8 @@ import {
   type SheetFooterProps as SheetFooterPrimitiveProps,
   type SheetTitleProps as SheetTitlePrimitiveProps,
   type SheetDescriptionProps as SheetDescriptionPrimitiveProps,
-} from "@celestial/ui/radix-primitives/radix-sheet";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/radix-primitives/radix-sheet";
+import { cn } from "@arclayer/lib/utils";
 import { XIcon } from "lucide-react";
 
 type SheetProps = SheetPrimitiveProps;

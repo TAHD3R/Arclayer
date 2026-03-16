@@ -1,10 +1,10 @@
 import * as React from "react";
 import type { AdminNavItem } from "@/types/admin-nav";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import {
   Button as ButtonPrimitive,
   type ButtonProps as ButtonPrimitiveProps,
-} from "@celestial/ui/button-primitive";
+} from "@arclayer/ui/button-primitive";
 
 import { NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME, NAV_ITEM_HEIGHT_CLASSNAME } from "./nav-utils";
 import {

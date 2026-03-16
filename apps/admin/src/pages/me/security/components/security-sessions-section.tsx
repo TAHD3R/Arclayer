@@ -11,9 +11,9 @@ import {
   useDataTable,
   useDataTableDensityPreference,
   type PageData,
-} from "@celestial/ui/data-table";
-import { Button } from "@celestial/ui/button";
-import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
+} from "@arclayer/ui/data-table";
+import { Button } from "@arclayer/ui/button";
+import { SettingCard, SettingCardContent, SettingCardHeader } from "@arclayer/ui/setting-card";
 
 import {
   buildSessionColumns,

@@ -1,5 +1,5 @@
-import { cn } from "@celestial/lib/utils";
-import { Skeleton } from "@celestial/ui/skeleton";
+import { cn } from "@arclayer/lib/utils";
+import { Skeleton } from "@arclayer/ui/skeleton";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 
 function SidebarNavRowSkeleton(props: { textWidthClassName: string }) {

@@ -12,9 +12,9 @@ import {
   AuthLinkButton,
   AuthPasswordControl,
 } from "@/components/ui/auth-controls";
-import { Checkbox } from "@celestial/ui/checkbox";
-import { Button } from "@celestial/ui/button";
-import { Field, FieldContent, FieldError } from "@celestial/ui/field";
+import { Checkbox } from "@arclayer/ui/checkbox";
+import { Button } from "@arclayer/ui/button";
+import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
 import type { LoginFormValues } from "../types";
 import {

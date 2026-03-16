@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { Tabs, TabsContent, TabsTrigger } from "../tabs";
 import { ChromeTabsList } from "./chrome-tabs-list";
 

@@ -2,8 +2,8 @@
 
 import { flexRender, type Cell, type Row, type Table as ReactTable } from "@tanstack/react-table";
 
-import { cn } from "@celestial/lib/utils";
-import { TableBody, TableCell, TableRow } from "@celestial/ui/table";
+import { cn } from "@arclayer/lib/utils";
+import { TableBody, TableCell, TableRow } from "@arclayer/ui/table";
 
 import { resolveCellPinStyle, shouldIgnoreRowClick } from "./data-table-presenter-utils";
 import type { DataTableDensity } from "./types";

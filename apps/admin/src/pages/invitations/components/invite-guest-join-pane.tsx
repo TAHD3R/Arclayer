@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, type Variants } from "motion/react";
 
 import { AuthLinkButton } from "@/components/ui/auth-controls";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import { InviteRegisterForm } from "./invite-register-form";
 import { InviteLoginJoinForm } from "./invite-login-join-form";
 import type { JoinMode } from "../types";

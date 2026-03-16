@@ -10,13 +10,13 @@ import {
   DataTablePresenter,
   DataTableToolbarTools,
   useDataTableDensityPreference,
-} from "@celestial/ui/data-table";
+} from "@arclayer/ui/data-table";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 
 import type {
   OrganizationWorkspacesTranslateFn,

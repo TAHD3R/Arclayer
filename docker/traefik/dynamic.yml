@@ -6,28 +6,28 @@ http:
     admin-api:
       entryPoints:
         - web
-      rule: "Host(`app.celestial.localhost`) && PathPrefix(`/api/`)"
+      rule: "Host(`app.arclayer.localhost`) && PathPrefix(`/api/`)"
       service: api
       priority: 20
 
     api:
       entryPoints:
         - web
-      rule: "Host(`api.celestial.localhost`)"
+      rule: "Host(`api.arclayer.localhost`)"
       service: api
       priority: 10
 
     admin:
       entryPoints:
         - web
-      rule: "Host(`app.celestial.localhost`)"
+      rule: "Host(`app.arclayer.localhost`)"
       service: admin
       priority: 10
 
     traefik-dashboard:
       entryPoints:
         - web
-      rule: "Host(`traefik.celestial.localhost`)"
+      rule: "Host(`traefik.arclayer.localhost`)"
       service: api@internal
       priority: 10
 

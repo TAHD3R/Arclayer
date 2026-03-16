@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MouseEventHandler, ReactNode } from "react";
 
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/auth-controls";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 
 export type InviteRegisterFormValues = {
   email?: string;

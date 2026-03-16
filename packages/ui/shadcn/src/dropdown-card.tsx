@@ -1,6 +1,6 @@
 import type * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 import {
   Popover,

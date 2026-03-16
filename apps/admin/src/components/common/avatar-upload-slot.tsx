@@ -1,9 +1,9 @@
 import { Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { cn } from "@celestial/lib/utils";
-import { Button } from "@celestial/ui/button";
-import { LoaderOne } from "@celestial/ui/loader";
+import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
+import { LoaderOne } from "@arclayer/ui/loader";
 import { OrganizationAvatar } from "./entity-avatar";
 
 export type AvatarUploadSlotProps = {

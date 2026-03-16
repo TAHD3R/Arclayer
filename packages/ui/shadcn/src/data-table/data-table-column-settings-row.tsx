@@ -5,9 +5,9 @@ import type { Table as ReactTable } from "@tanstack/react-table";
 import { useSortable } from "@dnd-kit/sortable";
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
-import { Switch } from "@celestial/ui/switch";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@celestial/ui/tooltip";
+import { cn } from "@arclayer/lib/utils";
+import { Switch } from "@arclayer/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 import { DataTableDefaultIconButton } from "./data-table-icon-button";
 import type { DataTableToolsLabels } from "./data-table-tools.types";

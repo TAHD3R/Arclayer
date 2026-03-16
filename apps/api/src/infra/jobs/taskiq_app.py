@@ -28,7 +28,7 @@ def _raise_if_fatal(exc: BaseException) -> None:
 def _build_broker() -> RedisStreamBroker:
     settings = get_settings()
     dsn = settings.taskiq.redis_dsn or settings.valkey.dsn
-    return RedisStreamBroker(url=dsn, queue_name=str(settings.taskiq.queue_name or "celestial:taskiq"))
+    return RedisStreamBroker(url=dsn, queue_name=str(settings.taskiq.queue_name or "arclayer:taskiq"))
 
 
 broker = _build_broker()

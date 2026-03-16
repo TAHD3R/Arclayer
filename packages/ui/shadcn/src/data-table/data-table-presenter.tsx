@@ -13,7 +13,7 @@ import {
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { type MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 import { DataTableColumnDragOverlay } from "./data-table-column-drag-overlay";
 import { DataTablePresenterBody } from "./data-table-presenter-body";

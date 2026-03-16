@@ -1,7 +1,7 @@
 import { motion, type Variants } from "motion/react";
 
 import { AuthLinkButton } from "@/components/ui/auth-controls";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import { OrganizationAvatar } from "@/components/common/entity-avatar";
 
 type InviteLoggedInPaneProps = {

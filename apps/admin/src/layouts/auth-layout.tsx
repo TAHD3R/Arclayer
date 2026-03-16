@@ -4,7 +4,7 @@ import { AuthBrandPanel } from "@/components/layout/auth-brand-panel";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { RouteTransition } from "@/components/layout/route-transition";
-import { useLockViewport } from "@celestial/hooks/use-lock-viewport";
+import { useLockViewport } from "@arclayer/hooks/use-lock-viewport";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 export function AuthLayout({ children }: PropsWithChildren) {

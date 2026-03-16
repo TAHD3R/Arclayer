@@ -4,17 +4,11 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { PasswordInput } from "@celestial/ui/password-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
-import { Switch } from "@celestial/ui/switch";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { PasswordInput } from "@arclayer/ui/password-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Switch } from "@arclayer/ui/switch";
 import type { SettingsOptionItem, SystemSettingsDetail, SettingsSchemaItem } from "@/types/api";
 
 type FormValues = Record<string, unknown>;

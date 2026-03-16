@@ -10,7 +10,7 @@ export interface ArclayerReactInspectorOptions {
   enabled?: boolean;
 }
 
-export function celestialReactInspector(options: ArclayerReactInspectorOptions = {}): Plugin[] {
+export function arclayerReactInspector(options: ArclayerReactInspectorOptions = {}): Plugin[] {
   const enabled = options.enabled ?? true;
   if (!enabled) return [];
 
@@ -29,7 +29,7 @@ export function celestialReactInspector(options: ArclayerReactInspectorOptions =
 
 export function reactInspectorTypeArgumentsFix(): Plugin {
   return {
-    name: "celestial-react-inspector-type-arguments-fix",
+    name: "arclayer-react-inspector-type-arguments-fix",
     apply: "serve",
     enforce: "pre",
     transform(code, id) {
@@ -534,7 +534,7 @@ export function injectReactInspectorOverlay(): Plugin {
 `.trim();
 
   return {
-    name: "celestial-react-inspector-overlay",
+    name: "arclayer-react-inspector-overlay",
     apply: "serve",
     enforce: "post",
     configResolved(config) {

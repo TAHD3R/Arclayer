@@ -3,14 +3,14 @@
 import { SlidersHorizontal } from "lucide-react";
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
   DropdownCardBody,
   DropdownCardContent,
   DropdownCardRoot,
   DropdownCardTrigger,
-} from "@celestial/ui/dropdown-card";
+} from "@arclayer/ui/dropdown-card";
 
 import { DataTableDefaultIconButton } from "./data-table-icon-button";
 import type {

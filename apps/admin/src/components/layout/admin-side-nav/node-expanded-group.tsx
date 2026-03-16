@@ -1,7 +1,7 @@
-import { Collapsible, CollapsibleContent } from "@celestial/ui/collapsible";
-import ChevronRightIcon from "@celestial/ui/icons/chevron-right";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
+import ChevronRightIcon from "@arclayer/ui/icons/chevron-right";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,14 +9,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@celestial/ui/sidebar";
+} from "@arclayer/ui/sidebar";
 import * as React from "react";
 import type { MouseEventHandler, ReactNode } from "react";
 
@@ -37,8 +37,8 @@ import type { ResolvedChildItem } from "./node-collapsed-group";
 const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "pt-1.5 overflow-hidden",
   "motion-reduce:animate-none",
-  "data-[state=open]:animate-[celestial-collapsible-down_180ms_ease-out]",
-  "data-[state=closed]:animate-[celestial-collapsible-up_160ms_ease-in]",
+  "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
+  "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
 
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(

@@ -25,21 +25,21 @@ import {
   DataTableToolbarTools,
   useDataTableDensityPreference,
   useDataTable,
-} from "@celestial/ui/data-table";
-import { Button } from "@celestial/ui/button";
+} from "@arclayer/ui/data-table";
+import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { TeamMembersFilterPopover } from "@/pages/workspaces/team/shared/components/team-members-filter-popover";
 import {

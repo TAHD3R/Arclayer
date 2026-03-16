@@ -17,7 +17,7 @@ export function isDevSetupOverrideEnabled(searchStr: string): boolean {
   }
 
   try {
-    return window.localStorage.getItem("celestial.dev.allow_setup") === "1";
+    return window.localStorage.getItem("arclayer.dev.allow_setup") === "1";
   } catch {
     return false;
   }

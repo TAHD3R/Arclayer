@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderOne } from "@celestial/ui/loader";
+import { LoaderOne } from "@arclayer/ui/loader";
 
 export function DataTableRefreshOverlay(props: { active: boolean }) {
   if (!props.active) return null;

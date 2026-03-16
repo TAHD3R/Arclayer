@@ -7,15 +7,15 @@ import { useTranslation } from "react-i18next";
 import { listOrganizationWorkspaceMembers } from "@/api/organization-workspaces";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationWorkspace, OrganizationWorkspaceMember } from "@/types/api";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
-import { LoaderOne } from "@celestial/ui/loader";
-import { Popover, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
+} from "@arclayer/ui/input-group";
+import { LoaderOne } from "@arclayer/ui/loader";
+import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 
 function normalizeQuery(input: string): string {
   return String(input || "").trim();

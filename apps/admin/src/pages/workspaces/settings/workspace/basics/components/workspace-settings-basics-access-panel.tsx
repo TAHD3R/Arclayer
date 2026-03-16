@@ -1,16 +1,10 @@
 import { Controller } from "react-hook-form";
 
-import { Accordion } from "@celestial/ui/accordion";
-import { Button } from "@celestial/ui/button";
-import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
-import { SettingPanel } from "@celestial/ui/setting-panel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
+import { Accordion } from "@arclayer/ui/accordion";
+import { Button } from "@arclayer/ui/button";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingPanel } from "@arclayer/ui/setting-panel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";

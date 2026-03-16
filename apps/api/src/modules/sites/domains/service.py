@@ -23,8 +23,8 @@ from apps.api.src.modules.sites.domains.schema import (
 from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
 
 _CACHE_KEY_PREFIX = "saas:site_resolve:host"
-_TXT_PREFIX = "celestial-site-verification="
-_TXT_LABEL = "_celestial-site-verification"
+_TXT_PREFIX = "arclayer-site-verification="
+_TXT_LABEL = "_arclayer-site-verification"
 
 
 class _DnsTxtLookupResult(BaseModel):
@@ -64,8 +64,8 @@ class SiteDomainsService(BaseService):
         #
         # Example:
         # - hostname: "example.com"
-        # - TXT name: "_celestial-site-verification.example.com"
-        # - TXT value: "celestial-site-verification=<token>"
+        # - TXT name: "_arclayer-site-verification.example.com"
+        # - TXT value: "arclayer-site-verification=<token>"
         txt_name = f"{_TXT_LABEL}.{hostname}".rstrip(".")
         return SiteDomainDnsInstructionOut(
             txtRecordName=txt_name,

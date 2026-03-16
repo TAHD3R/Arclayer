@@ -3,14 +3,14 @@ import { useTranslation } from "react-i18next";
 
 import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import { ContentGuard } from "@/components/common/content-guard";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 
 import { ExtensionCard } from "./extension-card";
 import type { ExtensionMenuItem, InstalledExtensionItem } from "../types";

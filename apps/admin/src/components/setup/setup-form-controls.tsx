@@ -1,15 +1,9 @@
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { AuthInputControl, AuthPasswordControl } from "@/components/ui/auth-controls";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
-import { Textarea } from "@celestial/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { Textarea } from "@arclayer/ui/textarea";
 
 type SetupFieldShellProps = {
   label?: React.ReactNode;

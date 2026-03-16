@@ -15,15 +15,15 @@ import {
   uploadPart,
   uploadOrganizationPart,
 } from "@/api/uploads";
-import { Button } from "@celestial/ui/button";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Button } from "@arclayer/ui/button";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import {
   FileUpload,
   type FileUploadItemStatus,
   type FileUploadPanelItem,
 } from "@/pages/workspaces/assets/components/file-upload/file-upload";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 
 type UploadItem = {

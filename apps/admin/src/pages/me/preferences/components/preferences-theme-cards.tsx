@@ -1,7 +1,7 @@
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import type { ThemePreference } from "@/types/stores";
 import { Monitor, Moon, Sun } from "lucide-react";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
 function AdminLayoutMockupContent({ isDark }: { isDark: boolean }) {
   const bg = isDark ? "hsl(220 10% 8%)" : "hsl(210 30% 98%)";

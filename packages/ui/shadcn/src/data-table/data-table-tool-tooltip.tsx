@@ -2,7 +2,7 @@
 
 import type * as React from "react";
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@celestial/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 export function DataTableToolTooltip(props: { label: string; children: React.ReactElement }) {
   return (

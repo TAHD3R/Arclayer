@@ -1,7 +1,7 @@
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
-import { Input } from "@celestial/ui/input";
+import { cn } from "@arclayer/lib/utils";
+import { Input } from "@arclayer/ui/input";
 
 type NumberInputProps = Omit<
   React.ComponentProps<typeof Input>,

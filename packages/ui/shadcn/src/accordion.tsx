@@ -10,8 +10,8 @@ import {
   type AccordionItemProps as AccordionItemPrimitiveProps,
   type AccordionTriggerProps as AccordionTriggerPrimitiveProps,
   type AccordionContentProps as AccordionContentPrimitiveProps,
-} from "@celestial/ui/radix-primitives/radix-accordion";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/radix-primitives/radix-accordion";
+import { cn } from "@arclayer/lib/utils";
 
 type AccordionProps = AccordionPrimitiveProps;
 

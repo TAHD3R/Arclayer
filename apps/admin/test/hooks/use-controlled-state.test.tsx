@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { useControlledState } from "@celestial/hooks/use-controlled-state";
+import { useControlledState } from "@arclayer/hooks/use-controlled-state";
 
 describe("useControlledState", () => {
   it("受控模式下应以 value 为单一真相来源", () => {

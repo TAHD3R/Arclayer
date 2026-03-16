@@ -32,7 +32,7 @@
 - 后端开发：`pnpm api`
 - 后端质量：`pnpm api:check`、`pnpm api:test`
 - 前端质量：`pnpm admin:check`、`pnpm portal:check`
-- 定向执行：`pnpm --filter @celestial/api typecheck`
+- 定向执行：`pnpm --filter @arclayer/api typecheck`
 - 子包执行：`pnpm -C apps/api typecheck`
 - 后端临时命令（必须走脚本）：`pnpm -C apps/api uv -- <command>`
 

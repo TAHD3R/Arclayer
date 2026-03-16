@@ -1,5 +1,5 @@
-import { Form } from "@celestial/ui/form";
-import { ChromeTabs, ChromeTabsContent } from "@celestial/ui/chrome-tabs";
+import { Form } from "@arclayer/ui/form";
+import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 
 import type { OrganizationSettingsTabKey } from "../../types";
 import { OrganizationSettingsTabs } from "../../components/organization-settings-tabs";

@@ -4,7 +4,7 @@ import * as React from "react";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { Select as SelectPrimitive } from "radix-ui";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 const DIALOG_OVERLAY_ROOT_SELECTOR = "[data-overlay-root=dialog]";
 const OVERLAY_ROOT_SELECTORS = [

@@ -2,7 +2,7 @@
 
 @config "../tailwind.config.ts";
 
-@import "@celestial/theme/tokens.css" layer(theme);
+@import "@arclayer/theme/tokens.css" layer(theme);
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is([data-theme="dark"] *));
@@ -148,7 +148,7 @@ body,
 }
 
 @layer utilities {
-  @keyframes celestial-collapsible-down {
+  @keyframes arclayer-collapsible-down {
     from {
       height: 0;
       opacity: 0;
@@ -161,7 +161,7 @@ body,
     }
   }
 
-  @keyframes celestial-collapsible-up {
+  @keyframes arclayer-collapsible-up {
     from {
       height: var(--radix-collapsible-content-height);
       opacity: 1;

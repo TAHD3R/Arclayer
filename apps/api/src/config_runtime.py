@@ -50,7 +50,7 @@ class TaskiqSettings(BaseSettings):
     )
 
     enabled: bool = Field(default=False)
-    queue_name: str = Field(default="celestial:taskiq")
+    queue_name: str = Field(default="arclayer:taskiq")
     redis_dsn: str | None = Field(default=None)
 
 
@@ -74,7 +74,7 @@ class TestingSettings(BaseSettings):
         validation_alias=AliasChoices("TEST_DATABASE__ENABLED", "TEST_DB_ENABLED"),
     )
     database_name: str = Field(
-        default="celestial_test",
+        default="arclayer_test",
         validation_alias=AliasChoices("TEST_DATABASE__NAME", "TEST_DB_NAME"),
     )
     valkey_enabled: bool = Field(
@@ -155,7 +155,7 @@ class AuthSettings(BaseSettings):
     class CookieSettings(BaseModel):
         enabled: bool = Field(default=False, description="Whether to store refresh token in an HttpOnly cookie.")
         name: str = Field(
-            default="celestial_refresh_token",
+            default="arclayer_refresh_token",
             min_length=1,
             max_length=128,
             description="Cookie name used to store refresh token.",
@@ -197,11 +197,11 @@ class AuthSettings(BaseSettings):
         validation_alias=AliasChoices("JWT_ALGORITHM", "APP_JWT_ALGORITHM"),
     )
     jwt_issuer: str = Field(
-        default="celestial",
+        default="arclayer",
         validation_alias=AliasChoices("JWT_ISSUER", "APP_JWT_ISSUER"),
     )
     jwt_audience: str = Field(
-        default="celestial",
+        default="arclayer",
         validation_alias=AliasChoices("JWT_AUDIENCE", "APP_JWT_AUDIENCE"),
     )
     access_token_ttl_seconds: int = Field(
@@ -391,11 +391,11 @@ class SaasSettings(BaseSettings):
     )
 
     base_domain: str = Field(
-        default="celestial.app",
-        description="Base domain for tenant subdomains (e.g. {workspace_slug}.celestial.app).",
+        default="arclayer.app",
+        description="Base domain for tenant subdomains (e.g. {workspace_slug}.arclayer.app).",
     )
     admin_url: str = Field(
-        default="https://admin.celestial.app",
+        default="https://admin.arclayer.app",
         description="Admin console URL.",
     )
     free_tier_page_limit: int = Field(default=20, ge=1, description="Max pages for free tier.")

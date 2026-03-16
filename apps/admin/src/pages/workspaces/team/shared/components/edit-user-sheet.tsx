@@ -10,14 +10,14 @@ import { PencilLine, Trash2, UploadCloud } from "lucide-react";
 import type { TeamMember } from "@/types/api";
 import { patchTeamMemberUser } from "@/api/team";
 import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
-import { Button } from "@celestial/ui/button";
+import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
   DropdownMenuTrigger,
-} from "@celestial/ui/dropdown-menu";
-import { Input } from "@celestial/ui/input";
+} from "@arclayer/ui/dropdown-menu";
+import { Input } from "@arclayer/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -25,7 +25,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@celestial/ui/sheet";
+} from "@arclayer/ui/sheet";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

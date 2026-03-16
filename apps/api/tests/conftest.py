@@ -73,7 +73,7 @@ def integration_db_settings(monkeypatch) -> Iterator[None]:
     monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "1")
-    monkeypatch.setenv("TEST_DATABASE__NAME", os.getenv("TEST_DATABASE__NAME", "celestial_test"))
+    monkeypatch.setenv("TEST_DATABASE__NAME", os.getenv("TEST_DATABASE__NAME", "arclayer_test"))
     # Integration tests may hit email invitation flows. Enable mail but suppress actual sending.
     monkeypatch.setenv("MAIL__ENABLED", "1")
     monkeypatch.setenv("MAIL__SUPPRESS_SEND", "1")

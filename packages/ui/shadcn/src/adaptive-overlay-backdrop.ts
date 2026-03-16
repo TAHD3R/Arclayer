@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { usePrefersReducedMotion } from "@celestial/hooks/use-prefers-reduced-motion";
+import { usePrefersReducedMotion } from "@arclayer/hooks/use-prefers-reduced-motion";
 
 export type AdaptiveOverlayBackdropMode = "blur" | "solid";
 

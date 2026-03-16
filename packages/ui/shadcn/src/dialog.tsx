@@ -21,8 +21,8 @@ import {
   type DialogTriggerProps as DialogTriggerPrimitiveProps,
   type DialogOverlayProps as DialogOverlayPrimitiveProps,
   type DialogCloseProps as DialogClosePrimitiveProps,
-} from "@celestial/ui/radix-primitives/radix-dialog";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/radix-primitives/radix-dialog";
+import { cn } from "@arclayer/lib/utils";
 
 const ALLOWED_EXTERNAL_DIALOG_INTERACTION_SELECTOR = [
   "[data-slot=select-content]",

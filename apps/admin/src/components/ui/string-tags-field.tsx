@@ -3,8 +3,8 @@
 import * as React from "react";
 import { X } from "lucide-react";
 
-import { cn } from "@celestial/lib/utils";
-import { Button } from "@celestial/ui/button";
+import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
 
 type StringTagsFieldProps = {
   value: string[];

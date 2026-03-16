@@ -1,4 +1,4 @@
-import { readRuntimeConfig, type AppConfig } from "@celestial/runtime/config";
+import { readRuntimeConfig, type AppConfig } from "@arclayer/runtime/config";
 
 declare global {
   interface Window {

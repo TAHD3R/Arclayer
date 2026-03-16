@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 
-import { MiniCategoryNav } from "@celestial/ui/mini-category-nav";
+import { MiniCategoryNav } from "@arclayer/ui/mini-category-nav";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 export type MeSettingsCategory = {
   key: string;

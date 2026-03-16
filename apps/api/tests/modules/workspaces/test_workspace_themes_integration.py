@@ -29,7 +29,7 @@ pytestmark = pytest.mark.integration
 
 def _write_theme_zip(path: Path) -> bytes:
     manifest = {
-        "themeId": "@celestial/theme-modern",
+        "themeId": "@arclayer/theme-modern",
         "name": "Modern",
         "version": "0.1.0",
         "entrypoints": {"tokensCss": "styles/tokens.css"},
@@ -196,7 +196,7 @@ async def test_workspace_theme_import_and_site_runtime_output(
             )
             assert resp.status_code == 200, resp.text
             data = resp.json()["data"]
-            assert data["themeId"] == "@celestial/theme-modern"
+            assert data["themeId"] == "@arclayer/theme-modern"
             assert data["version"] == "0.1.0"
             assert isinstance(data["tokensCssAssetId"], str) and data["tokensCssAssetId"]
 
@@ -209,7 +209,7 @@ async def test_workspace_theme_import_and_site_runtime_output(
             resp = await client.put(
                 f"/api/v1/sites/{site_pid}/settings",
                 params={"namespace": "theme.active", "token": token},
-                json={"value": {"themeId": "@celestial/theme-modern", "version": "0.1.0"}},
+                json={"value": {"themeId": "@arclayer/theme-modern", "version": "0.1.0"}},
             )
             assert resp.status_code == 200, resp.text
 
@@ -232,7 +232,7 @@ async def test_workspace_theme_import_and_site_runtime_output(
             assert resp.status_code == 200, resp.text
             runtime = resp.json()["data"]
             theme = runtime["theme"]
-            assert theme["themeId"] == "@celestial/theme-modern"
+            assert theme["themeId"] == "@arclayer/theme-modern"
             assert theme["version"] == "0.1.0"
             assert theme["cssVars"]["--color-primary"] == "#123456"
             assert isinstance(theme.get("tokensCssUrl"), str) and theme["tokensCssUrl"].startswith("/assets/")

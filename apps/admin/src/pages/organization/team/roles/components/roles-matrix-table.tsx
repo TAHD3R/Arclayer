@@ -3,13 +3,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuIconItem,
-} from "@celestial/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 import { MoreVertical, Trash2 } from "lucide-react";
 
-import { Button } from "@celestial/ui/button";
-import { Spinner } from "@celestial/ui/spinner";
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@celestial/ui/table";
-import { Checkbox } from "@celestial/ui/checkbox";
+import { Button } from "@arclayer/ui/button";
+import { Spinner } from "@arclayer/ui/spinner";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
+import { Checkbox } from "@arclayer/ui/checkbox";
 
 import type {
   DisplayOrganizationPermission,

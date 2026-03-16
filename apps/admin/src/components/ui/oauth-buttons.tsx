@@ -6,12 +6,12 @@ import { listSSOProviders } from "@/api/auth-sso";
 import { notifyErrorText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { AuthSSOProvider } from "@/types/api";
-import { Button } from "@celestial/ui/button";
-import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
-import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
-import GoogleIcon from "@celestial/ui/icons/google-icon";
-import { Separator } from "@celestial/ui/separator";
-import { cn } from "@celestial/lib/utils";
+import { Button } from "@arclayer/ui/button";
+import GitHubDarkIcon from "@arclayer/ui/icons/github-dark-icon";
+import GitHubLightIcon from "@arclayer/ui/icons/github-light-icon";
+import GoogleIcon from "@arclayer/ui/icons/google-icon";
+import { Separator } from "@arclayer/ui/separator";
+import { cn } from "@arclayer/lib/utils";
 
 export interface AuthOauthButtonsProps {
   disabled?: boolean;

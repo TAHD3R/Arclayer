@@ -9,10 +9,10 @@ import * as authApi from "@/api/auth";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { PasswordInput } from "@celestial/ui/password-input";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { PasswordInput } from "@arclayer/ui/password-input";
 import { DialogField } from "./dialog-field";
 
 export type MeProfileChangeEmailDialogProps = {

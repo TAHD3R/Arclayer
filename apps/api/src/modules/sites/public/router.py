@@ -43,7 +43,7 @@ async def resolve_site_by_host(
     ),
     host: str | None = Query(
         default=None,
-        description="Request host (e.g. philipcole.celestial.app, localhost:3100).",
+        description="Request host (e.g. philipcole.arclayer.app, localhost:3100).",
     ),
     svc: SiteService = Depends(get_site_service),
 ) -> ResponseModel[SiteResolveOut]:

@@ -8,8 +8,8 @@ import {
   type PopoverTriggerProps as PopoverTriggerPrimitiveProps,
   type PopoverContentProps as PopoverContentPrimitiveProps,
   type PopoverCloseProps as PopoverClosePrimitiveProps,
-} from "@celestial/ui/radix-primitives/radix-popover";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/radix-primitives/radix-popover";
+import { cn } from "@arclayer/lib/utils";
 
 type PopoverProps = PopoverPrimitiveProps;
 

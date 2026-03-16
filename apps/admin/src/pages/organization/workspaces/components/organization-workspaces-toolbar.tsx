@@ -7,13 +7,13 @@ import {
   ChromeTabsBar,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
+} from "@arclayer/ui/chrome-tabs";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 
 import type { OrganizationWorkspacesTab, OrganizationWorkspacesTranslateFn } from "../types";
 

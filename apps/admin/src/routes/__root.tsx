@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
-import { useSceneRevealTransition } from "@celestial/hooks/use-scene-reveal-transition";
+import { useSceneRevealTransition } from "@arclayer/hooks/use-scene-reveal-transition";
 import {
   isAuthScenePath,
   isDevToolsPath,

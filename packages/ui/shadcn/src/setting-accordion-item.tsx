@@ -1,8 +1,8 @@
 import { type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 
-import { AccordionContent, AccordionItem, AccordionTrigger } from "@celestial/ui/accordion";
-import { cn } from "@celestial/lib/utils";
+import { AccordionContent, AccordionItem, AccordionTrigger } from "@arclayer/ui/accordion";
+import { cn } from "@arclayer/lib/utils";
 import { Button } from "./button";
 
 const DEFAULT_TITLE_COLUMN_WIDTH_PX = 240;

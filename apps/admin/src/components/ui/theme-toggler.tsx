@@ -14,9 +14,9 @@ import {
 import {
   Button as ButtonPrimitive,
   type ButtonProps as ButtonPrimitiveProps,
-} from "@celestial/ui/button-primitive";
-import { buttonVariants } from "@celestial/ui/icon-button";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/button-primitive";
+import { buttonVariants } from "@arclayer/ui/icon-button";
+import { cn } from "@arclayer/lib/utils";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import type { ThemePreference } from "@/types/stores";

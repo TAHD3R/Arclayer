@@ -1,15 +1,9 @@
 import { Controller } from "react-hook-form";
 
-import { Accordion } from "@celestial/ui/accordion";
-import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
-import { SettingPanel } from "@celestial/ui/setting-panel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@celestial/ui/select";
+import { Accordion } from "@arclayer/ui/accordion";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingPanel } from "@arclayer/ui/setting-panel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import {
   DateTimeFormatLocalizationControl,
   TimezoneLocalizationControl,

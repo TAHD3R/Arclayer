@@ -5,8 +5,8 @@ import {
   DataTableToolbarTools,
   type DataTableDensity,
   type DataTableToolsLabels,
-} from "@celestial/ui/data-table";
-import { Input } from "@celestial/ui/input";
+} from "@arclayer/ui/data-table";
+import { Input } from "@arclayer/ui/input";
 
 type SearchToolbarProps = {
   searchInput: string;

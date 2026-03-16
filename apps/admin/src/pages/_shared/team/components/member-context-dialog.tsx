@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Building2, FolderKanban } from "lucide-react";
 
-import { cn } from "@celestial/lib/utils";
-import { Button } from "@celestial/ui/button";
+import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
-import { ComplexDialog } from "@celestial/ui/complex-dialog";
+} from "@arclayer/ui/chrome-tabs";
+import { ComplexDialog } from "@arclayer/ui/complex-dialog";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { BaseTag, lucideTagIcon } from "@/components/ui/tags/tag-base";
 import type { MemberIdentity } from "./member-identity-cell";

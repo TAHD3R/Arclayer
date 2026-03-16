@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);

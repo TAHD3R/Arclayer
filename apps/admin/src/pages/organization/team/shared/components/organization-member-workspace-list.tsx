@@ -5,14 +5,14 @@ import { useTranslation } from "react-i18next";
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 import type { OrganizationMemberWorkspace } from "@/types/api";
 import { TeamRoleTag } from "@/components/ui/tags";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 
 export type ResolvedMemberWorkspace = OrganizationMemberWorkspace & {
   description?: string | null;

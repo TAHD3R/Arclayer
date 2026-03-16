@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeftIcon } from "lucide-react";
 import { AnimatePresence, motion, MotionConfig, type Variants } from "motion/react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { useAdaptiveOverlayBackdropClassName } from "./adaptive-overlay-backdrop";
 import {
   focusInitialFloatingPanelTarget,

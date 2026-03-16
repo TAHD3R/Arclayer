@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { Textarea } from "@celestial/ui/textarea";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Textarea } from "@arclayer/ui/textarea";
 
 export type CreateAssetFolderDialogProps = {
   open: boolean;

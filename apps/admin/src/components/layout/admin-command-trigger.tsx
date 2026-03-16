@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import type { CommandEntry, CommandSection } from "@/lib/command/command-types";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
-import { useClientPlatform } from "@celestial/hooks/use-client-platform";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { useClientPlatform } from "@arclayer/hooks/use-client-platform";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
   Command,
   CommandGroup,
@@ -14,15 +14,15 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@celestial/ui/command";
+} from "@arclayer/ui/command";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@celestial/ui/dialog";
-import { Kbd, KbdGroup } from "@celestial/ui/kbd";
+} from "@arclayer/ui/dialog";
+import { Kbd, KbdGroup } from "@arclayer/ui/kbd";
 const MODIFIER_KEY = "k";
 const TRANSITION_CLASSNAME = cn(
   "transition-[color,background-color,border-color,box-shadow,opacity] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]",
@@ -187,7 +187,7 @@ function CommandPanelFooter(props: {
       <span>{props.suffix}</span>
       <AdminFullLogo
         to="/"
-        ariaLabel="CelestialCMS"
+        ariaLabel="Arclayer"
         width={72}
         className="ml-auto h-4 shrink-0 opacity-70 transition-opacity hover:opacity-100"
         imgClassName="h-4 w-auto"

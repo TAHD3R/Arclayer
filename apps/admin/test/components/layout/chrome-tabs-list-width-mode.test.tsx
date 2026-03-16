@@ -6,7 +6,7 @@ import {
   ChromeTabsList,
   ChromeTabsProvider,
   ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
+} from "@arclayer/ui/chrome-tabs";
 
 describe("ChromeTabsList widthMode", () => {
   beforeAll(() => {

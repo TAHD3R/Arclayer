@@ -7,9 +7,9 @@ import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { useSidebar } from "@celestial/ui/sidebar";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { useSidebar } from "@arclayer/ui/sidebar";
 import type { CommandScope } from "@/lib/command/command-types";
 
 const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
@@ -63,7 +63,7 @@ export function AdminTopbar(props: {
           </ButtonPrimitive>
 
           <div className="min-w-0 flex h-8 items-center">
-            <AdminFullLogo ariaLabel="CelestialCMS" width={100} className="flex h-8 items-center" />
+            <AdminFullLogo ariaLabel="Arclayer" width={100} className="flex h-8 items-center" />
           </div>
 
           <div className="min-w-0 max-w-[14rem] xl:max-w-[18rem] 2xl:max-w-[20rem]">

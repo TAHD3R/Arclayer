@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { TooltipProvider } from "@celestial/ui/tooltip";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
 import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
 
 vi.mock("react-i18next", () => ({

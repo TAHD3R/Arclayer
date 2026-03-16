@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@celestial/ui/button";
-import { Field, FieldContent, FieldError } from "@celestial/ui/field";
-import { Input } from "@celestial/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@celestial/ui/input-otp";
+import { Button } from "@arclayer/ui/button";
+import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
+import { Input } from "@arclayer/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { AuthLinkButton } from "@/components/ui/auth-controls";
 
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";

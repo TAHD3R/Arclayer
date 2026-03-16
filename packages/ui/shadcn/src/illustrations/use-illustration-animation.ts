@@ -1,4 +1,4 @@
-import { useMediaPrefersReducedMotion } from "@celestial/hooks/use-media-prefers-reduced-motion";
+import { useMediaPrefersReducedMotion } from "@arclayer/hooks/use-media-prefers-reduced-motion";
 
 /** Shared spring transition parameters. */
 export const SPRING = { stiffness: 300, damping: 35 } as const;

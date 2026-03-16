@@ -46,7 +46,7 @@ def _lock_key_for_asset(asset_id: UUID) -> int:
     """
 
     h = hashlib.blake2b(digest_size=8)
-    h.update(b"celestial:assets:thumbs:")
+    h.update(b"arclayer:assets:thumbs:")
     h.update(asset_id.bytes)
     value = int.from_bytes(h.digest(), "big", signed=False)
     return int(value % (2**63 - 1))

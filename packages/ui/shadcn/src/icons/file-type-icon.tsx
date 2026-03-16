@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 import { useMemo } from "react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 export type FileIconTheme = "light" | "dark";
 export type FileIconAutoTheme = FileIconTheme | "auto";

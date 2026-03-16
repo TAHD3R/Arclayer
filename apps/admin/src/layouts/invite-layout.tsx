@@ -6,10 +6,10 @@ import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
 import { LegalFooter } from "@/components/layout/legal-footer";
-import { useLockViewport } from "@celestial/hooks/use-lock-viewport";
+import { useLockViewport } from "@arclayer/hooks/use-lock-viewport";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
-const ColorBendsLazy = lazy(() => import("@celestial/ui/color-bends"));
+const ColorBendsLazy = lazy(() => import("@arclayer/ui/color-bends"));
 
 export function InviteLayout({ children }: PropsWithChildren) {
   const reducedMotion = usePrefersReducedMotion();

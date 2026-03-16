@@ -7,8 +7,8 @@ import { listMyWorkspaces } from "@/api/workspaces";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
 import { buildOrganizationPath } from "@/lib/routing/organization-routing";
-import { Button } from "@celestial/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@celestial/ui/card";
+import { Button } from "@arclayer/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@arclayer/ui/card";
 
 export function OrganizationOverviewPage() {
   const { orgId } = useParams({ from: "/o/$orgId/" });

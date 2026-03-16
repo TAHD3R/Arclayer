@@ -11,20 +11,20 @@ import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { NotificationCard } from "@/components/common/notification-card";
 import { ContentGuard } from "@/components/common/content-guard";
-import { Skeleton } from "@celestial/ui/skeleton";
+import { Skeleton } from "@arclayer/ui/skeleton";
 import {
   ChromeTabs,
   ChromeTabsList,
   ChromeTabsTrigger,
   ChromeTabsContent,
-} from "@celestial/ui/chrome-tabs";
-import { LoaderOne } from "@celestial/ui/loader";
-import { Button } from "@celestial/ui/button";
-import { useNowTick } from "@celestial/hooks/use-now-tick";
+} from "@arclayer/ui/chrome-tabs";
+import { LoaderOne } from "@arclayer/ui/loader";
+import { Button } from "@arclayer/ui/button";
+import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
 type NotificationPanelTab = "unread" | "all" | "read" | "archived";
 

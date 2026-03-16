@@ -2,19 +2,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@celestial/ui/button";
-import { SettingCard, SettingCardContent } from "@celestial/ui/setting-card";
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@celestial/ui/popover";
+import { Button } from "@arclayer/ui/button";
+import { SettingCard, SettingCardContent } from "@arclayer/ui/setting-card";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 
 import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
 import { ContentGuard } from "@/components/common/content-guard";
-import GitHubDarkIcon from "@celestial/ui/icons/github-dark-icon";
-import GitHubLightIcon from "@celestial/ui/icons/github-light-icon";
-import GoogleIcon from "@celestial/ui/icons/google-icon";
+import GitHubDarkIcon from "@arclayer/ui/icons/github-dark-icon";
+import GitHubLightIcon from "@arclayer/ui/icons/github-light-icon";
+import GoogleIcon from "@arclayer/ui/icons/google-icon";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 

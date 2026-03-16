@@ -1,1 +1,1 @@
-export { ApiError } from "@celestial/runtime/http";
+export { ApiError } from "@arclayer/runtime/http";

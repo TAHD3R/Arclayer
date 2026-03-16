@@ -7,8 +7,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@celestial/ui/dialog";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/dialog";
+import { cn } from "@arclayer/lib/utils";
 
 export type ComplexDialogSize = "md" | "lg" | "xl" | "full";
 

@@ -23,16 +23,16 @@ import { buildOrganizationPath } from "@/lib/routing/organization-routing";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 import {
   FloatingPanelButton,
   FloatingPanelContent,
   FloatingPanelRoot,
   FloatingPanelTrigger,
   useFloatingPanel,
-} from "@celestial/ui/floating-panel";
-import { Button } from "@celestial/ui/button";
-import { useSidebar } from "@celestial/ui/sidebar";
+} from "@arclayer/ui/floating-panel";
+import { Button } from "@arclayer/ui/button";
+import { useSidebar } from "@arclayer/ui/sidebar";
 
 import type { OrganizationWorkspace } from "@/types/api";
 

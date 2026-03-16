@@ -5,8 +5,8 @@ import { AuthLinkButton } from "@/components/ui/auth-controls";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { getErrorMessage } from "@/lib/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
-import { Button } from "@celestial/ui/button";
-import { Card } from "@celestial/ui/card";
+import { Button } from "@arclayer/ui/button";
+import { Card } from "@arclayer/ui/card";
 import { InviteTokenInputDialog } from "./invite-token-input-dialog";
 
 import { useAcceptInvite } from "../hooks/use-accept-invite";

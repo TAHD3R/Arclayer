@@ -5,7 +5,7 @@ import {
   ChromeTabsContent,
   ChromeTabsList,
   ChromeTabsTrigger,
-} from "@celestial/ui/chrome-tabs";
+} from "@arclayer/ui/chrome-tabs";
 
 import type { ExtensionScope } from "../types";
 import { useExtensions } from "../hooks/use-extensions";

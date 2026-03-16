@@ -1,7 +1,7 @@
 import { createContext, type HTMLAttributes, useCallback, useContext, useState } from "react";
 import { Slot } from "radix-ui";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 // Types
 type TimelineContextValue = {

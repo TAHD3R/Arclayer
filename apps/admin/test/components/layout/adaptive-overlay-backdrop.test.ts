@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getAdaptiveOverlayBackdropClassName,
   resolveAdaptiveOverlayBackdropMode,
-} from "@celestial/ui/adaptive-overlay-backdrop";
+} from "@arclayer/ui/adaptive-overlay-backdrop";
 
 describe("adaptive overlay backdrop", () => {
   it("keeps blur for normal capability environments", () => {

@@ -1,7 +1,7 @@
 import { LayoutGrid, List } from "lucide-react";
 
-import { Button } from "@celestial/ui/button";
-import { ButtonGroup } from "@celestial/ui/button-group";
+import { Button } from "@arclayer/ui/button";
+import { ButtonGroup } from "@arclayer/ui/button-group";
 import type { OrganizationWorkspacesTranslateFn, OrganizationWorkspacesViewMode } from "../types";
 
 export type WorkspacesViewModeToggleProps = {

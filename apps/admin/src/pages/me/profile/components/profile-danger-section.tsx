@@ -10,12 +10,12 @@ import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import { SettingCard, SettingCardHeader } from "@celestial/ui/setting-card";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { PasswordInput } from "@celestial/ui/password-input";
+import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { PasswordInput } from "@arclayer/ui/password-input";
 import type { DeleteMyAccountPayload } from "@/types/api";
 import { DialogField } from "./dialog-field";
 

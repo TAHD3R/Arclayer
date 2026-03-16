@@ -22,15 +22,15 @@ describe("AdminFullLogo", () => {
   });
 
   it("switches logo asset when theme mode changes at runtime", () => {
-    const view = render(<AdminFullLogo ariaLabel="CelestialCMS" width={100} />);
-    const link = screen.getByRole("link", { name: "CelestialCMS" });
+    const view = render(<AdminFullLogo ariaLabel="Arclayer" width={100} />);
+    const link = screen.getByRole("link", { name: "Arclayer" });
 
     expect(link.querySelector("img")).toHaveAttribute("src", "/logo-full.svg");
 
     act(() => {
       usePreferencesStore.setState({ themeMode: "dark", themePreference: "dark" });
     });
-    view.rerender(<AdminFullLogo ariaLabel="CelestialCMS" width={100} />);
+    view.rerender(<AdminFullLogo ariaLabel="Arclayer" width={100} />);
 
     expect(link.querySelector("img")).toHaveAttribute("src", "/logo-full-dark.svg");
   });

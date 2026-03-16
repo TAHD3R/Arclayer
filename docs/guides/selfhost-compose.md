@@ -122,7 +122,7 @@ Troubleshooting checklist if certificate issuance fails:
 - Port 80 reachable from the Internet (HTTP-01 challenge uses it)
 - DNS A/AAAA records point to the correct machine
 - No other service is binding to 80/443
-- Check Traefik logs: `docker logs celestial-traefik-edge`
+- Check Traefik logs: `docker logs arclayer-traefik-edge`
 
 ---
 
@@ -134,7 +134,7 @@ Point your host API process to the compose services via loopback:
 
 - `DATABASE__HOST=127.0.0.1`
 - `DATABASE__PORT=5432`
-- `DATABASE__NAME=celestial` (or your choice)
+- `DATABASE__NAME=arclayer` (or your choice)
 - `DATABASE__USER=postgres` (or your choice)
 - `DATABASE__PASSWORD=...`
 
@@ -164,7 +164,7 @@ Example env values for RustFS:
 
 - `STORAGE__PROVIDER=s3`
 - `STORAGE__S3_ENDPOINT_URL=http://127.0.0.1:9000`
-- `STORAGE__S3_BUCKET=celestial`
+- `STORAGE__S3_BUCKET=arclayer`
 - `STORAGE__S3_ACCESS_KEY_ID=rustfsadmin`
 - `STORAGE__S3_SECRET_ACCESS_KEY=rustfsadmin`
 - `STORAGE__S3_FORCE_PATH_STYLE=1` (recommended for many S3-compatible servers)

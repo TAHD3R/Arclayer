@@ -10,7 +10,7 @@ export interface ArclayerBuildArtifactsOptions {
   archive: ArchiveBuildOutputOptions;
 }
 
-export function celestialBuildArtifacts(options: ArclayerBuildArtifactsOptions): Plugin[] {
+export function arclayerBuildArtifacts(options: ArclayerBuildArtifactsOptions): Plugin[] {
   return [
     injectBuildMeta(options.buildMeta),
     injectCopyrightBanner(options.banner),

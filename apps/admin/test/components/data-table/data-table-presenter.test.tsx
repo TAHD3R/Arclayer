@@ -9,7 +9,7 @@ import {
   buildOrdering,
   collectColumnSortKeys,
   useDataTableCore,
-} from "@celestial/ui/data-table";
+} from "@arclayer/ui/data-table";
 
 function SortableTableHarness() {
   const data = React.useMemo(() => [{ name: "Alice" }], []);

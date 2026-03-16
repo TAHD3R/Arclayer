@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 
-import { ChromeTabsProvider } from "@celestial/ui/chrome-tabs";
-import { TooltipProvider } from "@celestial/ui/tooltip";
+import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { OrganizationSettingsDangerView } from "@/pages/organization/settings/danger/components/organization-settings-danger-view";
 import { WorkspaceSettingsDangerView } from "@/pages/workspaces/settings/workspace/danger/components/workspace-settings-danger-view";

@@ -1,10 +1,10 @@
 import { UserCog } from "lucide-react";
 import { useCallback } from "react";
 
-import { Button } from "@celestial/ui/button";
-import { Form } from "@celestial/ui/form";
-import { Input } from "@celestial/ui/input";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Button } from "@arclayer/ui/button";
+import { Form } from "@arclayer/ui/form";
+import { Input } from "@arclayer/ui/input";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { OrganizationSettingsBasicsController } from "../hooks/use-organization-settings-basics-controller";

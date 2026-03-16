@@ -13,7 +13,7 @@ import {
 } from "@/api/notifications";
 import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
-import { useNowTick } from "@celestial/hooks/use-now-tick";
+import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

@@ -368,7 +368,7 @@ class DatabaseSettings(BaseSettings):
     password: SecretStr = Field(
         default=SecretStr(""), validation_alias=AliasChoices("DB_PASSWORD", "DATABASE_PASSWORD")
     )
-    database: str = Field(default="celestial", validation_alias=AliasChoices("DB_NAME", "DATABASE_NAME"))
+    database: str = Field(default="arclayer", validation_alias=AliasChoices("DB_NAME", "DATABASE_NAME"))
     pool_size: int = Field(default=10, validation_alias=AliasChoices("DB_POOL_SIZE", "DATABASE_POOL_SIZE"))
     use_tz: bool = Field(default=True, validation_alias=AliasChoices("DB_USE_TZ", "DATABASE_USE_TZ"))
     timezone: str = Field(default="UTC", validation_alias=AliasChoices("DB_TIMEZONE", "DATABASE_TIMEZONE"))

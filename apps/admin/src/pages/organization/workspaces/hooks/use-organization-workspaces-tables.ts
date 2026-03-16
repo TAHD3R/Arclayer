@@ -2,7 +2,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import type { OrganizationWorkspace } from "@/types/api";
-import { useDataTable, type UseDataTableResult } from "@celestial/ui/data-table";
+import { useDataTable, type UseDataTableResult } from "@arclayer/ui/data-table";
 
 interface UseOrganizationWorkspacesTablesOptions {
   organizationId?: string;

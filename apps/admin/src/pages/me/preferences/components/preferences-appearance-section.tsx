@@ -2,12 +2,12 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
-import { cn } from "@celestial/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
-import { Button } from "@celestial/ui/button";
-import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
-import { Slider } from "@celestial/ui/slider";
-import { Switch } from "@celestial/ui/switch";
+import { cn } from "@arclayer/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
+import { Button } from "@arclayer/ui/button";
+import { SettingCard, SettingCardContent, SettingCardHeader } from "@arclayer/ui/setting-card";
+import { Slider } from "@arclayer/ui/slider";
+import { Switch } from "@arclayer/ui/switch";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { ThemeCard } from "@/pages/me/preferences/components/preferences-theme-cards";
 import { usePreferencesStore } from "@/stores/use-preference-store";

@@ -15,7 +15,7 @@ import {
   Illust500CrashedServer,
   IllustEmptyContainer,
   type IllustrationProps,
-} from "@celestial/ui/illustrations";
+} from "@arclayer/ui/illustrations";
 import {
   Empty,
   EmptyContent,
@@ -23,12 +23,12 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@celestial/ui/empty";
-import { Button } from "@celestial/ui/button";
-import { Card } from "@celestial/ui/card";
-import { ToggleGroup, ToggleGroupItem } from "@celestial/ui/toggle-group";
+} from "@arclayer/ui/empty";
+import { Button } from "@arclayer/ui/button";
+import { Card } from "@arclayer/ui/card";
+import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 type PreviewWidth = 280 | 360 | 440 | 520;
 

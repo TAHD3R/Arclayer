@@ -11,7 +11,7 @@ import {
   patchAsset,
 } from "@/api/assets";
 import type { AdminAssetTag, AdminAssetSummary, PageData } from "@/types/api";
-import TrashIcon from "@celestial/ui/icons/trash-icon";
+import TrashIcon from "@arclayer/ui/icons/trash-icon";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";

@@ -19,7 +19,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@celestial/ui/tooltip", () => ({
+vi.mock("@arclayer/ui/tooltip", () => ({
   Tooltip: ({ children }: PropsWithChildren) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: ReactElement }) => children,
   TooltipContent: ({ children }: PropsWithChildren) => <>{children}</>,

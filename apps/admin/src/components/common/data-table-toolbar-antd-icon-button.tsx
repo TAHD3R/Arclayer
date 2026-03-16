@@ -1,9 +1,9 @@
 import * as React from "react";
 
-import { cn } from "@celestial/lib/utils";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { buttonVariants } from "@celestial/ui/button";
-import type { DataTableIconButtonProps } from "@celestial/ui/data-table";
+import { cn } from "@arclayer/lib/utils";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { buttonVariants } from "@arclayer/ui/button";
+import type { DataTableIconButtonProps } from "@arclayer/ui/data-table";
 
 export const DataTableToolbarAntdIconButton = React.forwardRef<
   HTMLButtonElement,

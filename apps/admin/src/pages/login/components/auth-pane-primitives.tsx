@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { LegalFooter } from "@/components/layout/legal-footer";
-import { cn } from "@celestial/lib/utils";
-import { FieldTitle } from "@celestial/ui/field";
+import { cn } from "@arclayer/lib/utils";
+import { FieldTitle } from "@arclayer/ui/field";
 
 export const AUTH_PANE_STACK_CLASS = "grid gap-5";
 export const AUTH_FIELD_CLASS = "gap-2";

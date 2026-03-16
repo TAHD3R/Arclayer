@@ -10,10 +10,10 @@ import * as systemApi from "@/api/system";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { getErrorMessage, notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { PasswordInput } from "@celestial/ui/password-input";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { PasswordInput } from "@arclayer/ui/password-input";
 
 type RepairFormValues = {
   confirmText: string;

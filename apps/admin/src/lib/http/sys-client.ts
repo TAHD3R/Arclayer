@@ -1,4 +1,4 @@
-import { createApiClient, type ApiRequestOptions } from "@celestial/runtime/http";
+import { createApiClient, type ApiRequestOptions } from "@arclayer/runtime/http";
 
 import { getAppConfig } from "@/constants/app-config";
 import { getLocaleHeaders, getRequestCredentials } from "@/lib/http/request-context";

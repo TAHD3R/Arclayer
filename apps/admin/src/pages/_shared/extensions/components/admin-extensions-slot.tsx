@@ -4,8 +4,8 @@ import { useNavigate } from "@tanstack/react-router";
 
 import type { AdminUIExtension } from "@/types/api";
 import { listAdminUIExtensions } from "@/api/admin-extensions";
-import { Button } from "@celestial/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@celestial/ui/card";
+import { Button } from "@arclayer/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@arclayer/ui/card";
 import { notifyInfoText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 

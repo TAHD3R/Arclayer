@@ -1,4 +1,4 @@
-# @celestial/config
+# @arclayer/config
 
 Shared Oxlint/Oxfmt configuration for the monorepo.
 
@@ -7,5 +7,5 @@ Why this package exists
 - Keep lint/format config discoverable and versioned in the workspace.
 
 Usage
-- `oxlint -c ./node_modules/@celestial/config/.oxlintrc.json .`
-- `oxfmt -c ./node_modules/@celestial/config/.oxfmtrc.json .`
+- `oxlint -c ./node_modules/@arclayer/config/.oxlintrc.json .`
+- `oxfmt -c ./node_modules/@arclayer/config/.oxfmtrc.json .`

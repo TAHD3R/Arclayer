@@ -7,9 +7,9 @@ import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError } from "@/lib/notifications";
 import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
 import type { NotificationPreferenceChannel, NotificationPreferenceTopic } from "@/types/api";
-import { SettingActionItem } from "@celestial/ui/setting-action-item";
-import { Spinner } from "@celestial/ui/spinner";
-import { Switch } from "@celestial/ui/switch";
+import { SettingActionItem } from "@arclayer/ui/setting-action-item";
+import { Spinner } from "@arclayer/ui/spinner";
+import { Switch } from "@arclayer/ui/switch";
 
 type MeNotificationSettingsViewMode = "page" | "dialog";
 

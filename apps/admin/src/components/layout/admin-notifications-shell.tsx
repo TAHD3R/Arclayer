@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 
 import { AdminNotificationsPanel } from "@/components/layout/admin-notifications-panel";
-import { Button as ButtonPrimitive } from "@celestial/ui/button-primitive";
-import { useAdaptiveOverlayBackdropClassName } from "@celestial/ui/adaptive-overlay-backdrop";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
+import { useAdaptiveOverlayBackdropClassName } from "@arclayer/ui/adaptive-overlay-backdrop";
 
 const PANEL_WIDTH_CLASSNAME = "w-fit max-w-full";
 

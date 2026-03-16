@@ -11,7 +11,7 @@ import {
 } from "@headlessui/react";
 import { motion, AnimatePresence, type HTMLMotionProps } from "motion/react";
 
-import { getStrictContext } from "@celestial/lib/get-strict-context";
+import { getStrictContext } from "@arclayer/lib/get-strict-context";
 
 type DisclosureContextType = {
   isOpen: boolean;

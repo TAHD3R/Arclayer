@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { motion } from "motion/react";
 
-import { cn } from "@celestial/lib/utils";
+import { cn } from "@arclayer/lib/utils";
 
 interface LightRaysProps extends React.HTMLAttributes<HTMLDivElement> {
   ref?: React.Ref<HTMLDivElement>;

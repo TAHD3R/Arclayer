@@ -20,8 +20,8 @@ import {
   type AlertDialogOverlayProps as AlertDialogOverlayPrimitiveProps,
   type AlertDialogActionProps as AlertDialogActionPrimitiveProps,
   type AlertDialogCancelProps as AlertDialogCancelPrimitiveProps,
-} from "@celestial/ui/radix-primitives/radix-alert-dialog";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/radix-primitives/radix-alert-dialog";
+import { cn } from "@arclayer/lib/utils";
 import { buttonVariants } from "./button-variants";
 
 type AlertDialogProps = AlertDialogPrimitiveProps;

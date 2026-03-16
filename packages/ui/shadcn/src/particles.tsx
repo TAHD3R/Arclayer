@@ -3,9 +3,9 @@
 import * as React from "react";
 import { motion, AnimatePresence, type HTMLMotionProps } from "motion/react";
 
-import { Slot, type WithAsChild } from "@celestial/ui/animate-slot";
-import { useIsInView, type UseIsInViewOptions } from "@celestial/hooks/use-is-in-view";
-import { getStrictContext } from "@celestial/lib/get-strict-context";
+import { Slot, type WithAsChild } from "@arclayer/ui/animate-slot";
+import { useIsInView, type UseIsInViewOptions } from "@arclayer/hooks/use-is-in-view";
+import { getStrictContext } from "@arclayer/lib/get-strict-context";
 
 type Side = "top" | "bottom" | "left" | "right";
 type Align = "start" | "center" | "end";

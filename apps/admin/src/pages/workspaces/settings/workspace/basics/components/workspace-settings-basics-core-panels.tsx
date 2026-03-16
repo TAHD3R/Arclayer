@@ -1,7 +1,7 @@
-import { Accordion } from "@celestial/ui/accordion";
-import { Input } from "@celestial/ui/input";
-import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
-import { SettingPanel } from "@celestial/ui/setting-panel";
+import { Accordion } from "@arclayer/ui/accordion";
+import { Input } from "@arclayer/ui/input";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingPanel } from "@arclayer/ui/setting-panel";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";

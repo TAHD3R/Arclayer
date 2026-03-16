@@ -8,8 +8,8 @@ import { z } from "zod";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthInputControl, AuthLinkButton } from "@/components/ui/auth-controls";
-import { Button } from "@celestial/ui/button";
-import { Field, FieldContent, FieldError } from "@celestial/ui/field";
+import { Button } from "@arclayer/ui/button";
+import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
 import {
   AUTH_FIELD_CLASS,

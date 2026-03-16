@@ -7,14 +7,14 @@ import * as authApi from "@/api/auth";
 import { SecurityConfiguredTag, SecurityNotConfiguredTag } from "@/components/ui/tags";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
-import { Alert, AlertDescription, AlertTitle } from "@celestial/ui/alert";
-import { Button } from "@celestial/ui/button";
-import { Input } from "@celestial/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@celestial/ui/input-otp";
-import { PasswordInput } from "@celestial/ui/password-input";
-import { QRCode } from "@celestial/ui/qr-code";
-import { SettingCard, SettingCardContent, SettingCardHeader } from "@celestial/ui/setting-card";
-import { SettingDialog } from "@celestial/ui/setting-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
+import { PasswordInput } from "@arclayer/ui/password-input";
+import { QRCode } from "@arclayer/ui/qr-code";
+import { SettingCard, SettingCardContent, SettingCardHeader } from "@arclayer/ui/setting-card";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 const OTP_LENGTH = 6;
 

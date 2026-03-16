@@ -1,7 +1,7 @@
 import * as React from "react";
 
-import { SettingDialog } from "@celestial/ui/setting-dialog";
-import { SettingSheet } from "@celestial/ui/setting-sheet";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { SettingSheet } from "@arclayer/ui/setting-sheet";
 
 export type SettingOverlayType = "dialog" | "sheet";
 

@@ -6,8 +6,8 @@ import {
   RadioGroupIndicator as RadioGroupIndicatorPrimitive,
   type RadioGroupProps as RadioGroupPrimitiveProps,
   type RadioGroupItemProps as RadioGroupItemPrimitiveProps,
-} from "@celestial/ui/radix-primitives/radix-radio-group";
-import { cn } from "@celestial/lib/utils";
+} from "@arclayer/ui/radix-primitives/radix-radio-group";
+import { cn } from "@arclayer/lib/utils";
 
 type RadioGroupProps = RadioGroupPrimitiveProps;
 

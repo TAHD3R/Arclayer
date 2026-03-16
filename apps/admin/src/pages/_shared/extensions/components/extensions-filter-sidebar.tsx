@@ -1,14 +1,14 @@
 import { useTranslation } from "react-i18next";
 import { Search, X } from "lucide-react";
 
-import { MiniCategoryNav } from "@celestial/ui/mini-category-nav";
-import { Checkbox } from "@celestial/ui/checkbox";
+import { MiniCategoryNav } from "@arclayer/ui/mini-category-nav";
+import { Checkbox } from "@arclayer/ui/checkbox";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@celestial/ui/input-group";
+} from "@arclayer/ui/input-group";
 
 type ExtensionsFilterSidebarProps = {
   categories: { key: string; label: string }[];
