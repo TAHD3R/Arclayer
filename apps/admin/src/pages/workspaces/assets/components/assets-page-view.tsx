@@ -3,7 +3,7 @@ import { Plus } from "@arclayer/ui/icons/lucide-animated";
 
 import { DefaultPage } from "@/components/common/default-page";
 import { Button } from "@arclayer/ui/button";
-import { LoaderOne } from "@arclayer/ui/loader";
+import { Spinner } from "@arclayer/ui/spinner";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 
 import { clearSelection } from "@/lib/assets/asset-selection";
@@ -94,7 +94,6 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
   return (
     <DefaultPage
       title={t("nav:NAV_ASSETS")}
-      description={t("assets:ASSET_PAGE_DESC")}
       action={
         <Button onClick={() => setUploadOpen(true)}>
           <Plus size={16} />
@@ -218,7 +217,11 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
 
       {assetsQuery.hasNextPage ? (
         <div ref={sentinelRef} className="py-8 flex justify-center">
-          {assetsQuery.isFetchingNextPage ? <LoaderOne /> : <div className="h-6 w-6" />}
+          {assetsQuery.isFetchingNextPage ? (
+            <Spinner className="size-4 text-label-secondary" />
+          ) : (
+            <div className="h-4 w-4" />
+          )}
         </div>
       ) : null}
     </DefaultPage>

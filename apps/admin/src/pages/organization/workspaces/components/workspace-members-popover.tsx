@@ -14,8 +14,8 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@arclayer/ui/input-group";
-import { LoaderOne } from "@arclayer/ui/loader";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import { Spinner } from "@arclayer/ui/spinner";
 
 function normalizeQuery(input: string): string {
   return String(input || "").trim();
@@ -109,7 +109,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
           <div className="max-h-[420px] overflow-auto pr-1">
             {membersQuery.isLoading ? (
               <div className="flex justify-center py-8">
-                <LoaderOne />
+                <Spinner className="size-4 text-label-secondary" />
               </div>
             ) : membersQuery.isError ? (
               <div className="py-6 text-center">

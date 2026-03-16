@@ -4,7 +4,6 @@ import { Check, ChevronDown, X } from "@arclayer/ui/icons/lucide-animated";
 import debounce from "lodash/debounce";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
-import { LoaderOne } from "@arclayer/ui/loader";
 import { Button } from "@arclayer/ui/button";
 import {
   Command,
@@ -14,6 +13,7 @@ import {
   CommandList,
 } from "@arclayer/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import { Spinner } from "@arclayer/ui/spinner";
 import { cn } from "@arclayer/lib/utils";
 
 export type DebounceSelectOption = {
@@ -162,7 +162,7 @@ export function DebounceSelect<ValueType extends DebounceSelectOption = Debounce
           <CommandList className="max-h-72">
             {fetching ? (
               <div className="flex items-center justify-center py-4">
-                <LoaderOne />
+                <Spinner className="size-4 text-label-secondary" />
               </div>
             ) : null}
             {!fetching ? <CommandEmpty>{emptyText}</CommandEmpty> : null}

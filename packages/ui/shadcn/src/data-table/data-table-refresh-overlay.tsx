@@ -1,18 +1,14 @@
 "use client";
 
-import { LoaderOne } from "@arclayer/ui/loader";
+import { SpinnerOverlay } from "@arclayer/ui/spinner";
 
 export function DataTableRefreshOverlay(props: { active: boolean }) {
   if (!props.active) return null;
 
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
-    >
-      <div className="drop-shadow-xl">
-        <LoaderOne />
-      </div>
-    </div>
+    <SpinnerOverlay
+      spinnerContainerClassName="p-2.5 shadow-md shadow-black/10"
+      spinnerClassName="size-4"
+    />
   );
 }

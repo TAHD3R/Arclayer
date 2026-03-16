@@ -18,8 +18,8 @@ import {
   ChromeTabsTrigger,
   ChromeTabsContent,
 } from "@arclayer/ui/chrome-tabs";
-import { LoaderOne } from "@arclayer/ui/loader";
 import { Button } from "@arclayer/ui/button";
+import { Spinner } from "@arclayer/ui/spinner";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
@@ -415,7 +415,11 @@ export function AdminNotificationsPanel({
                     />
                   ))}
                   <div className="flex justify-center py-3">
-                    {listQuery.isFetchingNextPage ? <LoaderOne /> : <div className="h-6 w-6" />}
+                    <div className="flex h-6 w-6 items-center justify-center">
+                      {listQuery.isFetchingNextPage ? (
+                        <Spinner className="size-4 text-label-secondary" />
+                      ) : null}
+                    </div>
                   </div>
                   <div ref={sentinelRef} />
                 </div>

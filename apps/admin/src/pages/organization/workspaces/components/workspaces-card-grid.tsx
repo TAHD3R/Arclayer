@@ -5,7 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import type { OrganizationWorkspace } from "@/types/api";
 import { ContentGuard } from "@/components/common/content-guard";
-import { LoaderOne } from "@arclayer/ui/loader";
+import { Spinner } from "@arclayer/ui/spinner";
 
 import type { OrganizationWorkspacesTranslateFn, WorkspaceMenuItem } from "../types";
 import { WorkspaceCard } from "./workspace-card";
@@ -106,7 +106,9 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
       </div>
 
       <div className="flex justify-center py-4">
-        {query.isFetchingNextPage ? <LoaderOne /> : <div className="h-6 w-6" />}
+        <div className="flex h-6 w-6 items-center justify-center">
+          {query.isFetchingNextPage ? <Spinner className="size-4 text-label-secondary" /> : null}
+        </div>
       </div>
       <div ref={sentinelRef} />
     </ContentGuard>

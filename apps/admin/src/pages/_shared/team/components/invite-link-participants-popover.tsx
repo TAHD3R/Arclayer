@@ -13,10 +13,10 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@arclayer/ui/input-group";
-import { LoaderOne } from "@arclayer/ui/loader";
 import { notifyError } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import { Spinner } from "@arclayer/ui/spinner";
 import { UsesCountTag } from "@/components/ui/tags";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
@@ -114,7 +114,7 @@ export function InviteLinkParticipantsPopover(props: {
       <div className="mt-3">
         {query.isLoading ? (
           <div className="py-8 flex items-center justify-center">
-            <LoaderOne />
+            <Spinner className="size-4 text-label-secondary" />
           </div>
         ) : query.isError ? (
           <div className="py-6 text-center">

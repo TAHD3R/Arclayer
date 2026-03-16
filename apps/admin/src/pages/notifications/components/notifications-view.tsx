@@ -8,7 +8,7 @@ import {
   ChromeTabsTrigger,
 } from "@arclayer/ui/chrome-tabs";
 import { ItemGroup, ItemSeparator } from "@arclayer/ui/item";
-import { LoaderOne } from "@arclayer/ui/loader";
+import { Spinner } from "@arclayer/ui/spinner";
 import { cn } from "@arclayer/lib/utils";
 
 import type { ListStatus } from "../types";
@@ -118,7 +118,11 @@ export function NotificationsView() {
               </ItemGroup>
 
               <div className="flex justify-center py-4">
-                {n.listQuery.isFetchingNextPage ? <LoaderOne /> : <div className="h-6 w-6" />}
+                <div className="flex h-6 w-6 items-center justify-center">
+                  {n.listQuery.isFetchingNextPage ? (
+                    <Spinner className="size-4 text-label-secondary" />
+                  ) : null}
+                </div>
               </div>
               <div ref={n.sentinelRef} />
             </div>

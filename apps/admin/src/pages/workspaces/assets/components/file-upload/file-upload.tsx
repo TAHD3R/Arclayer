@@ -366,7 +366,7 @@ export function FileUploadList(props: FileUploadListProps) {
 export function FileUploadPanel(props: FileUploadPanelProps) {
   return (
     <div className={cn("flex flex-col", props.className)}>
-      <div className="px-5 pt-4">
+      <div className="px-5">
         <FileUploadDropZone
           isDisabled={props.isDisabled}
           hintSummary={props.dropZoneHintSummary}

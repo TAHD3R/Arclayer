@@ -1,15 +1,11 @@
-import { ImageOff, RotateCw } from "lucide-react";
-import { motion } from "motion/react";
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { cn } from "@arclayer/lib/utils";
 import { type AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
-import { LoaderOne } from "@arclayer/ui/loader";
 import {
   ExcelDocumentIcon,
   GdocDocumentIcon,
@@ -26,6 +22,7 @@ import {
 import { useAuthStore } from "@/stores/use-auth-store";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { formatRelativeTime } from "@/lib/time/relative-time";
+import { LazyAssetImage } from "./lazy-asset-image";
 
 export function findTagIdByName(tags: AdminAssetTag[], name: string): string | null {
   const needle = name.trim().toLowerCase();
@@ -54,132 +51,6 @@ export function initialsFromName(name: string): string {
   const parts = trimmed.split(/\\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
   return `${parts[0].slice(0, 1)}${parts[parts.length - 1].slice(0, 1)}`.toUpperCase();
-}
-
-export function LazyAssetImage(props: {
-  src: string;
-  alt: string;
-  className?: string;
-  eager?: boolean;
-  rootClassName?: string;
-  onLoaded?: (info: { naturalWidth: number; naturalHeight: number; aspectRatio: number }) => void;
-  onError?: () => void;
-  fit?: "cover" | "contain";
-  showErrorOverlay?: boolean;
-  errorText?: string;
-  retryText?: string;
-}) {
-  const { t } = useTranslation();
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const [shouldLoad, setShouldLoad] = useState(Boolean(props.eager));
-  const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">(
-    props.eager ? "loading" : "idle",
-  );
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    if (props.eager) {
-      setShouldLoad(true);
-      return;
-    }
-    const el = rootRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry?.isIntersecting) return;
-        setShouldLoad(true);
-        observer.disconnect();
-      },
-      { root: null, rootMargin: "600px", threshold: 0 },
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [props.eager]);
-
-  useEffect(() => {
-    // src 变化 / 用户重试 => 重新进入 loading。
-    if (!shouldLoad) return;
-    setStatus("loading");
-  }, [props.src, reloadKey, shouldLoad]);
-
-  const showErrorOverlay = Boolean(props.showErrorOverlay);
-  const showLoading = status === "loading";
-  const showError = status === "error";
-
-  return (
-    <div
-      ref={rootRef}
-      className={cn("absolute inset-0 bg-black/5 dark:bg-white/5", props.rootClassName)}
-    >
-      {shouldLoad ? (
-        <img
-          key={`${props.src}:${reloadKey}`}
-          src={props.src}
-          alt={props.alt}
-          draggable={false}
-          decoding="async"
-          className={cn(
-            "absolute inset-0 h-full w-full",
-            "block",
-            props.fit === "contain" ? "object-contain bg-black/5" : "object-cover",
-            showError ? "opacity-0" : undefined,
-            props.className,
-          )}
-          onLoad={(e) => {
-            setStatus("loaded");
-            const el = e.currentTarget;
-            const w = Number(el.naturalWidth || 0);
-            const h = Number(el.naturalHeight || 0);
-            const ar = w > 0 && h > 0 ? w / h : 4 / 3;
-            props.onLoaded?.({ naturalWidth: w, naturalHeight: h, aspectRatio: ar });
-          }}
-          onError={() => {
-            setStatus("error");
-            props.onError?.();
-          }}
-        />
-      ) : null}
-
-      {showLoading ? (
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="scale-75 opacity-80">
-            <LoaderOne />
-          </div>
-        </div>
-      ) : null}
-
-      {showError ? (
-        <div className="absolute inset-0 grid place-items-center bg-muted/25">
-          <div className="flex flex-col items-center gap-2 text-label-secondary">
-            <div className="rounded-full bg-background/70 p-3 shadow-sm">
-              <ImageOff className="size-5" />
-            </div>
-            <div className="text-caption">
-              {props.errorText || t("assets:ASSET_PREVIEW_LOAD_FAILED")}
-            </div>
-            {showErrorOverlay ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setStatus("loading");
-                  setReloadKey((v) => v + 1);
-                }}
-              >
-                <RotateCw size={16} />
-                {props.retryText || t("common:RETRY")}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 export function getVisibilityLabel(
@@ -302,6 +173,7 @@ export const AssetMasonryTile = memo(
     const moving = Boolean(props.moving);
     const [previewFailed, setPreviewFailed] = useState(false);
     const uploaderLabel = props.asset.uploaderName?.trim() || t("assets:ASSET_UPLOADER_UNKNOWN");
+    const titleId = useId();
 
     useEffect(() => {
       // When src changes (or tile switches), reset error state.
@@ -330,28 +202,23 @@ export const AssetMasonryTile = memo(
     }, [props.asset.ext, props.asset.mimeType, props.asset.name]);
 
     const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-      if (e.key === "Enter") {
+      if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         props.onOpen(props.asset);
       }
     };
 
     return (
-      <motion.div
+      <div
         ref={props.dragRef}
         className={cn(
           "group relative w-full overflow-hidden border border-border/50 bg-card",
           "rounded-lg",
-          "shadow-sm transition duration-200 hover:shadow-md",
+          "shadow-sm transition-[box-shadow,opacity,transform] duration-200 ease-out hover:shadow-md",
           "cursor-pointer outline-none select-none",
+          moving ? "scale-[0.985] opacity-0" : "scale-100 opacity-100",
           moving ? "pointer-events-none" : null,
         )}
-        animate={{
-          opacity: moving ? 0 : 1,
-          scale: moving ? 0.985 : 1,
-        }}
-        transition={{ duration: 0.14, ease: "easeOut" }}
-        style={{ willChange: "transform, opacity" }}
         role="button"
         tabIndex={0}
         data-asset-tile="true"
@@ -359,10 +226,13 @@ export const AssetMasonryTile = memo(
         {...(props.dragListeners as Record<string, unknown>)}
         onKeyDown={onKeyDown}
         onClick={(e) => props.onSelect(e)}
-        onDoubleClick={() => props.onOpen(props.asset)}
+        onDoubleClick={(event) => {
+          event.preventDefault();
+          props.onOpen(props.asset);
+        }}
         onContextMenu={(e) => props.onContextMenu?.(e)}
       >
-        <motion.div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
+        <div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
           {/* Top-left: uploader */}
           <div className="absolute left-3 top-3 z-10 pointer-events-none">
             <div
@@ -436,6 +306,7 @@ export const AssetMasonryTile = memo(
               )}
             >
               <Checkbox
+                aria-labelledby={titleId}
                 checked={selected}
                 onClick={(e) => e.stopPropagation()}
                 onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
@@ -445,12 +316,13 @@ export const AssetMasonryTile = memo(
             {/* Filename/description at the bottom */}
             {!previewFailed ? (
               <div className="absolute left-3 right-3 bottom-3">
-                <motion.div
+                <div
+                  id={titleId}
                   className={cn("text-title3 font-bold text-white", "truncate py-2 pr-8")}
                   title={props.asset.name}
                 >
                   {props.asset.name}
-                </motion.div>
+                </div>
                 {props.asset.description ? (
                   <div className={cn("mt-1 text-footnote text-white/85", "line-clamp-2")}>
                     {props.asset.description}
@@ -459,8 +331,8 @@ export const AssetMasonryTile = memo(
               </div>
             ) : null}
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     );
   },
   (prev, next) =>

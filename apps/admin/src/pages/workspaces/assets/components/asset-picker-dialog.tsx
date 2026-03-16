@@ -7,8 +7,8 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
-import { LoaderOne } from "@arclayer/ui/loader";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Spinner } from "@arclayer/ui/spinner";
 import { AssetUploadDialog } from "./asset-upload-dialog";
 import {
   AssetsExplorerFolderTile,
@@ -385,8 +385,8 @@ export function AssetPickerDialog(props: {
             }}
           >
             {isLoading ? (
-              <div className="py-10 flex justify-center">
-                <LoaderOne />
+              <div className="grid min-h-40 place-items-center">
+                <Spinner className="size-5 text-label-secondary" />
               </div>
             ) : masonryEntries.length === 0 ? (
               <div className="py-10 text-footnote text-label-secondary">

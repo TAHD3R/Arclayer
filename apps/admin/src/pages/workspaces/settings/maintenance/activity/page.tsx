@@ -7,7 +7,7 @@ import { listTeamUserOptions } from "@/api/team";
 import { ContentGuard } from "@/components/common/content-guard";
 import { DefaultPage } from "@/components/common/default-page";
 import { Button } from "@arclayer/ui/button";
-import { LoaderOne } from "@arclayer/ui/loader";
+import { Spinner } from "@arclayer/ui/spinner";
 import { ActivityDetailDialog } from "@/pages/organization/activity/components/activity-detail-dialog";
 import {
   ActivityFilterPopover,
@@ -111,7 +111,9 @@ export function WorkspaceActivityPage() {
             {t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}
           </Button>
 
-          {listQuery.isFetching && !listQuery.isLoading ? <LoaderOne /> : null}
+          {listQuery.isFetching && !listQuery.isLoading ? (
+            <Spinner className="size-4 text-label-secondary" />
+          ) : null}
         </div>
       }
     >

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
-import { LoaderOne } from "@arclayer/ui/loader";
+import { SpinnerOverlay } from "@arclayer/ui/spinner";
 import { OrganizationAvatar } from "./entity-avatar";
 
 export type AvatarUploadSlotProps = {
@@ -55,16 +55,7 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
         )}
       </button>
 
-      {props.loading ? (
-        <div
-          className={cn(
-            "absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-[1px]",
-            radiusClass,
-          )}
-        >
-          <LoaderOne />
-        </div>
-      ) : null}
+      {props.loading ? <SpinnerOverlay className={cn("bg-background/40", radiusClass)} /> : null}
 
       {canRemove ? (
         <Button

@@ -32,6 +32,7 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
+import { LazyAssetImage } from "./lazy-asset-image";
 import {
   downloadWithAuth,
   formatCreatedAt,
@@ -40,7 +41,6 @@ import {
   getPurposeLabel,
   getSafeAspectRatio,
   getVisibilityLabel,
-  LazyAssetImage,
   tagInputStyle,
 } from "./asset-masonry-tile";
 import {

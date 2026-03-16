@@ -1,19 +1,19 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Eye, FolderInput, FolderPlus, PencilLine, Settings2, Trash2 } from "lucide-react";
+import { FolderInput, FolderPlus, PencilLine, Trash2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { Masonry } from "masonic";
+import { useCallback, useMemo, useRef } from "react";
 import { flushSync } from "react-dom";
 
 import type { AdminAssetFolder } from "@/types/api";
-import { AssetMasonryTile } from "./asset-masonry-card";
 import {
   AssetsExplorerFolderDragOverlay,
   AssetsExplorerFolderTile,
   AssetsExplorerFolderUpTile,
 } from "./explorer/assets-explorer-folder-tiles";
+import { AssetsViewAssetRow } from "./assets-view-asset-row";
 import { ContentGuard } from "@/components/common/content-guard";
 import { Button } from "@arclayer/ui/button";
-import { LoaderOne } from "@arclayer/ui/loader";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -21,6 +21,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@arclayer/ui/context-menu";
+import { Spinner } from "@arclayer/ui/spinner";
 import {
   clearSelection,
   rangeSelect,
@@ -32,7 +33,6 @@ import { shouldClearMasonrySelectionOnMouseDown } from "@/lib/assets/masonry-int
 import { cn } from "@arclayer/lib/utils";
 
 import {
-  AssetDraggableProvider,
   DragSelectionOverlay,
   DND_ROOT_ID,
   DroppablePulse,
@@ -42,6 +42,7 @@ import {
   toFolderDndId,
 } from "./assets-view-dnd";
 import type { AssetsViewController } from "../hooks/use-assets-view-controller";
+import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 interface AssetsViewMasonrySectionProps {
   controller: AssetsViewController;
@@ -92,6 +93,92 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     draggingFolderId,
     setActive,
   } = controller;
+  const selectedIdsRef = useRef(selectedIds);
+  const orderedAssetIdsRef = useRef(orderedAssetIds);
+  const selectionSizeRef = useRef(selectedIds.size);
+  const openEditAccessDialogRef = useRef(openEditAccessDialog);
+  const openBulkDeleteDialogRef = useRef(openBulkDeleteDialog);
+  selectedIdsRef.current = selectedIds;
+  orderedAssetIdsRef.current = orderedAssetIds;
+  selectionSizeRef.current = selectedIds.size;
+  openEditAccessDialogRef.current = openEditAccessDialog;
+  openBulkDeleteDialogRef.current = openBulkDeleteDialog;
+
+  const handleAssetContextMenuCapture = useCallback(
+    (assetId: string) => {
+      setFocusedFolderId(null);
+      if (selectedIdsRef.current.has(assetId)) return;
+      setSelection((prev) => selectOnly(prev, assetId));
+    },
+    [setFocusedFolderId, setSelection],
+  );
+
+  const handleAssetSelect = useCallback(
+    (asset: AssetMasonryItem, event: React.MouseEvent<HTMLDivElement>) => {
+      setFocusedFolderId(null);
+      const assetId = asset.id;
+      if (event.shiftKey) {
+        setSelection((prev) => rangeSelect(prev, assetId, orderedAssetIdsRef.current));
+        return;
+      }
+      if (event.metaKey || event.ctrlKey) {
+        setSelection((prev) => toggleSelect(prev, assetId));
+        return;
+      }
+      setSelection((prev) => selectOrClearOnPlainClick(prev, assetId, event.detail));
+      if (event.detail >= 2) {
+        setActive(asset);
+      }
+    },
+    [setActive, setFocusedFolderId, setSelection],
+  );
+
+  const handleAssetToggleSelected = useCallback(
+    (assetId: string) => {
+      setFocusedFolderId(null);
+      setSelection((prev) => toggleSelect(prev, assetId));
+    },
+    [setFocusedFolderId, setSelection],
+  );
+
+  const handleAssetAspectRatio = useCallback(
+    (assetId: string, aspectRatio: number) => {
+      const safeAspectRatio =
+        Number.isFinite(aspectRatio) && aspectRatio > 0.05 ? aspectRatio : 4 / 3;
+      const previousAspectRatio = aspectRatioRef.current.get(assetId);
+      if (previousAspectRatio && Math.abs(previousAspectRatio - safeAspectRatio) < 0.02) {
+        return;
+      }
+      aspectRatioRef.current.set(assetId, safeAspectRatio);
+      forceLayoutTick((value) => value + 1);
+    },
+    [aspectRatioRef, forceLayoutTick],
+  );
+
+  const handleOpenMove = useCallback(() => {
+    setMoveModalOpen(true);
+  }, [setMoveModalOpen]);
+
+  const handleOpenEditAccess = useCallback(() => {
+    openEditAccessDialogRef.current();
+  }, []);
+
+  const handleOpenBulkDelete = useCallback(() => {
+    openBulkDeleteDialogRef.current();
+  }, []);
+  const masonryItems = useMemo(
+    () =>
+      masonryEntries.map((entry) => ({
+        key:
+          entry.kind === "asset"
+            ? entry.asset.id
+            : entry.kind === "folder"
+              ? `folder:${entry.folder.id}`
+              : "folder:__up__",
+        data: entry,
+      })),
+    [masonryEntries],
+  );
 
   return (
     <ContentGuard
@@ -200,9 +287,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
 
           <div className="flex items-center gap-2">
             {assetsQuery.isFetching && !assetsQuery.isFetchingNextPage ? (
-              <div className="scale-75 opacity-75">
-                <LoaderOne />
-              </div>
+              <Spinner className="size-4 text-label-secondary" />
             ) : null}
             <Button
               variant="ghost"
@@ -223,20 +308,13 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
           onMouseDown={(event) => {
             const target = event.target as HTMLElement | null;
             if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
+            if (selectedIds.size === 0 && !focusedFolderId) return;
             setSelection((prev) => clearSelection(prev));
             setFocusedFolderId(null);
           }}
         >
           <Masonry
-            items={masonryEntries.map((entry) => ({
-              key:
-                entry.kind === "asset"
-                  ? entry.asset.id
-                  : entry.kind === "folder"
-                    ? `folder:${entry.folder.id}`
-                    : "folder:__up__",
-              data: entry,
-            }))}
+            items={masonryItems}
             itemKey={(item) => item.key}
             columnWidth={260}
             columnGutter={16}
@@ -249,102 +327,21 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
               const entry = info.data as MasonryEntry;
               if (entry.kind === "asset") {
                 return (
-                  <AssetDraggableProvider assetId={entry.asset.id}>
-                    {(dnd) => (
-                      <ContextMenu>
-                        <ContextMenuTrigger asChild>
-                          <div
-                            onContextMenuCapture={() => {
-                              const assetId = entry.asset.id;
-                              setFocusedFolderId(null);
-                              if (selectedIds.has(assetId)) return;
-                              flushSync(() => {
-                                setSelection((prev) => selectOnly(prev, assetId));
-                              });
-                            }}
-                          >
-                            <AssetMasonryTile
-                              asset={entry.asset}
-                              selected={selectedIds.has(entry.asset.id)}
-                              moving={movingAssetIds.has(entry.asset.id)}
-                              dragRef={
-                                dnd.setNodeRef as unknown as (node: HTMLDivElement | null) => void
-                              }
-                              dragAttributes={dnd.attributes}
-                              dragListeners={dnd.listeners}
-                              onSelect={(event) => {
-                                setFocusedFolderId(null);
-                                const assetId = entry.asset.id;
-                                if (event.shiftKey) {
-                                  setSelection((prev) =>
-                                    rangeSelect(prev, assetId, orderedAssetIds),
-                                  );
-                                  return;
-                                }
-                                if (event.metaKey || event.ctrlKey) {
-                                  setSelection((prev) => toggleSelect(prev, assetId));
-                                  return;
-                                }
-                                setSelection((prev) =>
-                                  selectOrClearOnPlainClick(prev, assetId, event.detail),
-                                );
-                              }}
-                              onToggleSelected={(assetId) => {
-                                setFocusedFolderId(null);
-                                setSelection((prev) => toggleSelect(prev, assetId));
-                              }}
-                              onAspectRatio={(assetId, aspectRatio) => {
-                                const safeAspectRatio =
-                                  Number.isFinite(aspectRatio) && aspectRatio > 0.05
-                                    ? aspectRatio
-                                    : 4 / 3;
-                                const previousAspectRatio = aspectRatioRef.current.get(assetId);
-                                if (
-                                  previousAspectRatio &&
-                                  Math.abs(previousAspectRatio - safeAspectRatio) < 0.02
-                                ) {
-                                  return;
-                                }
-                                aspectRatioRef.current.set(assetId, safeAspectRatio);
-                                forceLayoutTick((value) => value + 1);
-                              }}
-                              onOpen={setActive}
-                            />
-                          </div>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                          {selectedIds.size <= 1 && (
-                            <ContextMenuIconItem
-                              icon={<Eye size={16} />}
-                              onSelect={() => setActive(entry.asset)}
-                            >
-                              {t("assets:ASSET_ACTION_OPEN")}
-                            </ContextMenuIconItem>
-                          )}
-                          <ContextMenuIconItem
-                            icon={<FolderInput size={16} />}
-                            onSelect={() => setMoveModalOpen(true)}
-                          >
-                            {t("assets:ASSET_ACTION_MOVE")}
-                          </ContextMenuIconItem>
-                          <ContextMenuIconItem
-                            icon={<Settings2 size={16} />}
-                            onSelect={() => openEditAccessDialog()}
-                          >
-                            {t("assets:ASSET_ACTION_EDIT_ACCESS")}
-                          </ContextMenuIconItem>
-                          <ContextMenuSeparator />
-                          <ContextMenuIconItem
-                            icon={<Trash2 size={16} />}
-                            className="text-destructive focus:text-destructive"
-                            onSelect={() => openBulkDeleteDialog()}
-                          >
-                            {t("assets:ASSET_ACTION_DELETE_SELECTED")}
-                          </ContextMenuIconItem>
-                        </ContextMenuContent>
-                      </ContextMenu>
-                    )}
-                  </AssetDraggableProvider>
+                  <AssetsViewAssetRow
+                    asset={entry.asset}
+                    selected={selectedIds.has(entry.asset.id)}
+                    moving={movingAssetIds.has(entry.asset.id)}
+                    selectionSizeRef={selectionSizeRef}
+                    onContextMenuCapture={handleAssetContextMenuCapture}
+                    onSelect={handleAssetSelect}
+                    onToggleSelected={handleAssetToggleSelected}
+                    onAspectRatio={handleAssetAspectRatio}
+                    onOpen={setActive}
+                    onOpenMove={handleOpenMove}
+                    onOpenEditAccess={handleOpenEditAccess}
+                    onOpenBulkDelete={handleOpenBulkDelete}
+                    t={t}
+                  />
                 );
               }
 

@@ -8,7 +8,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@arclayer/ui/input-group";
-import { LoaderOne } from "@arclayer/ui/loader";
+import { Spinner } from "@arclayer/ui/spinner";
 import { MembersFilterPopover, type OrgMemberFilters } from "./members-filter-popover";
 
 interface OrganizationMembersInviteActionProps {
@@ -81,7 +81,7 @@ export function OrganizationMembersToolbar({
         />
       </div>
 
-      {isFetching && !isLoading ? <LoaderOne /> : null}
+      {isFetching && !isLoading ? <Spinner className="size-4 text-label-secondary" /> : null}
     </div>
   );
 }
