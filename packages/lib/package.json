@@ -14,7 +14,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",
