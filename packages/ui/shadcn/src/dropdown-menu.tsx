@@ -59,6 +59,18 @@ function DropdownMenuContent({
   disableHighlight = false,
   ...props
 }: DropdownMenuContentProps) {
+  const content = disableHighlight ? (
+    children
+  ) : (
+    <DropdownMenuHighlightPrimitive
+      mode="parent"
+      className="pointer-events-none rounded-sm"
+      containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
+    >
+      {children}
+    </DropdownMenuHighlightPrimitive>
+  );
+
   return (
     <DropdownMenuContentPrimitive
       sideOffset={sideOffset}
@@ -68,14 +80,7 @@ function DropdownMenuContent({
       )}
       {...props}
     >
-      <DropdownMenuHighlightPrimitive
-        mode="parent"
-        enabled={!disableHighlight}
-        className="pointer-events-none rounded-sm"
-        containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
-      >
-        {children}
-      </DropdownMenuHighlightPrimitive>
+      {content}
     </DropdownMenuContentPrimitive>
   );
 }
@@ -317,6 +322,18 @@ function DropdownMenuSubContent({
   children,
   ...props
 }: DropdownMenuSubContentProps) {
+  const content = disableHighlight ? (
+    children
+  ) : (
+    <DropdownMenuHighlightPrimitive
+      mode="parent"
+      className="pointer-events-none rounded-sm"
+      containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
+    >
+      {children}
+    </DropdownMenuHighlightPrimitive>
+  );
+
   return (
     <DropdownMenuSubContentPrimitive
       className={cn(
@@ -325,14 +342,7 @@ function DropdownMenuSubContent({
       )}
       {...props}
     >
-      <DropdownMenuHighlightPrimitive
-        mode="parent"
-        enabled={!disableHighlight}
-        className="pointer-events-none rounded-sm"
-        containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
-      >
-        {children}
-      </DropdownMenuHighlightPrimitive>
+      {content}
     </DropdownMenuSubContentPrimitive>
   );
 }
