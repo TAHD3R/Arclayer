@@ -1,4 +1,4 @@
-import { Eye, MoreVertical, Plus, Search, UserCheck, UserCog, UserX, X } from "lucide-react";
+import { Eye, MoreVertical, Plus, UserCheck, UserCog, UserX } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -17,13 +17,11 @@ import {
 import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
 import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
-import { ContentGuard } from "@/components/common/content-guard";
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
-import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
+import { AdminDataTableSection } from "@/components/common/admin-data-table-section";
 import {
-  DataTableToolbarTools,
-  useDataTableDensityPreference,
+  useDataTableRowHeightPreference,
+  useDataTableWrapHeadersPreference,
   useDataTable,
 } from "@arclayer/ui/data-table";
 import { Button } from "@arclayer/ui/button";
@@ -34,14 +32,7 @@ import {
   DropdownMenuIconItem,
   DropdownMenuSeparator,
 } from "@arclayer/ui/dropdown-menu";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@arclayer/ui/input-group";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { TeamMembersFilterPopover } from "@/pages/workspaces/team/shared/components/team-members-filter-popover";
 import {
   DEFAULT_TEAM_MEMBER_PAGE_SIZE,
   DEFAULT_TEAM_MEMBER_SORT,
@@ -53,7 +44,6 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { EditMemberRolesDialog } from "@/pages/workspaces/team/shared/components/edit-member-roles-dialog";
 import { WorkspaceMemberContextDialog } from "@/pages/workspaces/team/shared/components/workspace-member-context-dialog";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import { TeamMembersDataTable } from "./members-data-table";
 import type { TeamMemberExtraQuery } from "../types";
 import {
   buildTeamMemberExtraQuery,
@@ -63,6 +53,7 @@ import {
   teamMembersQueryKey,
   teamMembersTableId,
 } from "../utils";
+import { TeamMembersPageToolbar } from "@/pages/workspaces/team/shared/components/team-members-page-toolbar";
 
 export function TeamMembersView(props: {
   initialSearchQuery?: string;
@@ -83,7 +74,8 @@ export function TeamMembersView(props: {
     () => teamMembersTableId(workspaceId ? String(workspaceId) : null),
     [workspaceId],
   );
-  const [density, setDensity] = useDataTableDensityPreference({ tableId: dataTableId });
+  const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId: dataTableId });
+  const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId: dataTableId });
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
 
@@ -419,7 +411,6 @@ export function TeamMembersView(props: {
     },
   });
 
-  const empty = !tableHook.isLoading && tableHook.items.length === 0;
   const table = tableHook.table;
   const pageData = tableHook.pageData;
   const toolsLabels = React.useMemo(() => buildDataTableToolsLabels(t), [t]);
@@ -441,70 +432,6 @@ export function TeamMembersView(props: {
     setInspectingMember(matched);
   }, [props.initialInspectMemberId, tableHook.items]);
 
-  const toolbarLeft = (
-    <>
-      <InputGroup className="w-[min(100%,22.5rem)]">
-        <InputGroupAddon>
-          <Search className="size-4 text-label-secondary" />
-        </InputGroupAddon>
-        <InputGroupInput
-          value={tableHook.searchInput}
-          onChange={(e) => tableHook.setSearchInput(e.target.value)}
-          placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
-        />
-        {tableHook.searchInput ? (
-          <InputGroupAddon align="inline-end">
-            <InputGroupButton
-              aria-label={t("common:CLEAR")}
-              size="icon-xs"
-              onClick={() => tableHook.setSearchInput("")}
-            >
-              <X className="size-3.5" />
-            </InputGroupButton>
-          </InputGroupAddon>
-        ) : null}
-      </InputGroup>
-
-      <TeamMembersFilterPopover
-        value={{
-          membershipStatus: filters.membershipStatus,
-          userStatus: filters.userStatus,
-          roleCode: filters.roleCode,
-        }}
-        onChange={(next) =>
-          setFilters({
-            membershipStatus: next.membershipStatus,
-            userStatus: next.userStatus,
-            roleCode: next.roleCode,
-          })
-        }
-        roles={rolesQuery.data?.items ?? []}
-        rolesLoading={rolesQuery.isLoading}
-        sort={sort}
-        onSortChange={(next) => {
-          setSort(next);
-          tableHook.setSorting(sortValueToTableSorting(next));
-        }}
-        defaultSort={DEFAULT_TEAM_MEMBER_SORT}
-      />
-    </>
-  );
-
-  const toolbarRight = (
-    <div className="flex items-center gap-2">
-      <DataTableToolbarTools
-        table={table}
-        density={density}
-        onDensityChange={setDensity}
-        onRefresh={() => void tableHook.refetch()}
-        refreshing={tableHook.isFetching}
-        onResetColumnVisibility={tableHook.resetColumnVisibility}
-        labels={toolsLabels}
-        components={{ IconButton: DataTableToolbarAntdIconButton }}
-      />
-    </div>
-  );
-
   return (
     <DefaultPage
       title={t("team:TEAM_MEMBERS_TITLE")}
@@ -517,109 +444,111 @@ export function TeamMembersView(props: {
           {t("team:TEAM_INVITE_MEMBER")}
         </Button>
       }
+      extra={
+        <TeamMembersPageToolbar
+          table={table}
+          searchInput={tableHook.searchInput}
+          onSearchInputChange={tableHook.setSearchInput}
+          filters={filters}
+          onFiltersChange={setFilters}
+          sort={sort}
+          onSortChange={(next) => {
+            setSort(next);
+            tableHook.setSorting(sortValueToTableSorting(next));
+          }}
+          roles={rolesQuery.data?.items ?? []}
+          rolesLoading={rolesQuery.isLoading}
+          rowHeight={rowHeight}
+          onRowHeightChange={setRowHeight}
+          wrapHeaders={wrapHeaders}
+          onWrapHeadersChange={setWrapHeaders}
+          refreshing={tableHook.isFetching}
+          onRefresh={() => void tableHook.refetch()}
+          onResetColumnVisibility={tableHook.resetColumnVisibility}
+          toolsLabels={toolsLabels}
+        />
+      }
     >
-      <ContentGuard
+      <AdminDataTableSection
+        table={table}
+        emptyText={t("team:TEAM_EMPTY_TABLE")}
+        emptyTitle={t("team:TEAM_EMPTY_TITLE")}
+        emptyDescription={t("team:TEAM_EMPTY_DESC")}
         loading={tableHook.isLoading}
         error={tableHook.error}
         onRetry={() => void tableHook.refetch()}
-        empty={empty}
-        loadingVariant="table"
-        emptyTitle={t("team:TEAM_EMPTY_TITLE")}
-        emptyDescription={t("team:TEAM_EMPTY_DESC")}
-        className="flex-1 min-h-0"
-      >
-        <TeamMembersDataTable
-          table={table}
-          emptyText={t("team:TEAM_EMPTY_TABLE")}
-          density={density}
-          toolbar={{ left: toolbarLeft, right: toolbarRight }}
-          refreshing={tableHook.isFetching && !tableHook.isLoading}
-        />
-
-        <EditMemberRolesDialog
-          open={Boolean(editingMember)}
-          onOpenChange={(open) => {
-            if (!open) {
-              setEditingMember(null);
-              setEditingRoleCode(null);
-            }
-          }}
-          member={editingMember}
-          roles={rolesQuery.data?.items ?? []}
-          rolesLoading={rolesQuery.isLoading}
-          value={editingRoleCode}
-          onChange={setEditingRoleCode}
-          confirmLoading={updateRolesMutation.isPending}
-          confirmDisabled={!canEditRoles}
-          onConfirm={() => {
-            if (!editingMember) return;
-            if (!canEditRoles) return;
-            updateRolesMutation.mutate({
-              membershipId: editingMember.membershipId,
-              roleCodes: editingRoleCode ? [editingRoleCode] : [],
-            });
-          }}
-        />
-
-        <WorkspaceMemberContextDialog
-          open={Boolean(inspectingMember)}
-          onOpenChange={(open) => {
-            if (!open) {
-              setInspectingMember(null);
-            }
-          }}
-          workspaceId={workspaceId ? String(workspaceId) : null}
-          member={inspectingMember}
-          currentUserId={currentUserId}
-          onAdjustRoles={(member) => {
-            setInspectingMember(null);
-            setEditingMember(member);
-            setEditingRoleCode(member.roleCodes?.[0] ?? null);
-          }}
-          onEnable={(membershipId) => enableMutation.mutate(membershipId)}
-          onDisable={(membershipId) => disableMutation.mutate(membershipId)}
-          rolesUpdateDisabled={rolesQueryFailed || rolesQuery.isLoading}
-        />
-
-        {pageData ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <div className="text-label-secondary text-footnote">
-              {t("team:TEAM_PAGINATION_TOTAL", {
-                total: pageData.total,
-                start: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-                end: Math.min(pageData.page * pageData.size, pageData.total),
-              })}
-            </div>
-            <DataPaginationControls
-              page={pageData.page}
-              size={pageData.size}
-              total={pageData.total}
-              t={t}
-              onChange={(nextPage, nextSize) => {
-                if (nextSize !== table.getState().pagination.pageSize) {
-                  table.setPageSize(nextSize);
-                }
-                table.setPageIndex(Math.max(0, nextPage - 1));
-              }}
-            />
-          </div>
-        ) : null}
-
-        <InviteMembersDialog
-          open={inviteOpen}
-          onOpenChange={setInviteOpen}
-          mode="email"
-          workspaceId={String(workspaceId || "")}
-          workspaceName={workspaceName}
-          roles={rolesQuery.data?.items ?? []}
-          rolesLoading={rolesQuery.isLoading}
-          onInvited={() =>
-            void queryClient.invalidateQueries({
-              queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
-            })
+        pageData={pageData}
+        onPaginationChange={(nextPage, nextSize) => {
+          if (nextSize !== table.getState().pagination.pageSize) {
+            table.setPageSize(nextSize);
           }
-        />
-      </ContentGuard>
+          table.setPageIndex(Math.max(0, nextPage - 1));
+        }}
+        t={t}
+        rowHeight={rowHeight}
+        wrapHeaders={wrapHeaders}
+        refreshing={tableHook.isFetching && !tableHook.isLoading}
+      />
+
+      <EditMemberRolesDialog
+        open={Boolean(editingMember)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingMember(null);
+            setEditingRoleCode(null);
+          }
+        }}
+        member={editingMember}
+        roles={rolesQuery.data?.items ?? []}
+        rolesLoading={rolesQuery.isLoading}
+        value={editingRoleCode}
+        onChange={setEditingRoleCode}
+        confirmLoading={updateRolesMutation.isPending}
+        confirmDisabled={!canEditRoles}
+        onConfirm={() => {
+          if (!editingMember) return;
+          if (!canEditRoles) return;
+          updateRolesMutation.mutate({
+            membershipId: editingMember.membershipId,
+            roleCodes: editingRoleCode ? [editingRoleCode] : [],
+          });
+        }}
+      />
+
+      <WorkspaceMemberContextDialog
+        open={Boolean(inspectingMember)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInspectingMember(null);
+          }
+        }}
+        workspaceId={workspaceId ? String(workspaceId) : null}
+        member={inspectingMember}
+        currentUserId={currentUserId}
+        onAdjustRoles={(member) => {
+          setInspectingMember(null);
+          setEditingMember(member);
+          setEditingRoleCode(member.roleCodes?.[0] ?? null);
+        }}
+        onEnable={(membershipId) => enableMutation.mutate(membershipId)}
+        onDisable={(membershipId) => disableMutation.mutate(membershipId)}
+        rolesUpdateDisabled={rolesQueryFailed || rolesQuery.isLoading}
+      />
+
+      <InviteMembersDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        mode="email"
+        workspaceId={String(workspaceId || "")}
+        workspaceName={workspaceName}
+        roles={rolesQuery.data?.items ?? []}
+        rolesLoading={rolesQuery.isLoading}
+        onInvited={() =>
+          void queryClient.invalidateQueries({
+            queryKey: teamMembersQueryKey(workspaceId ? String(workspaceId) : null),
+          })
+        }
+      />
     </DefaultPage>
   );
 }

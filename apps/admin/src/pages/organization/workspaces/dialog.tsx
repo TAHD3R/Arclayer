@@ -5,10 +5,15 @@ import { Plus } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import type { OrganizationWorkspace } from "@/types/api";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Button } from "@arclayer/ui/button";
 import { ComplexDialog } from "@arclayer/ui/complex-dialog";
-import { ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
+import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
+import {
+  useDataTableRowHeightPreference,
+  useDataTableWrapHeadersPreference,
+} from "@arclayer/ui/data-table";
 
 import {
   OrganizationWorkspacesDialogs,
@@ -16,7 +21,6 @@ import {
 } from "./components/organization-workspaces-dialogs";
 import { OrganizationWorkspacesToolbar } from "./components/organization-workspaces-toolbar";
 import { WorkspacesContentSection } from "./components/workspaces-table-section";
-import { WorkspacesViewModeToggle } from "./components/workspaces-view-mode-toggle";
 import { useOrganizationWorkspacesColumns } from "./components/workspaces-columns";
 import { useOrganizationWorkspacesMutations } from "./hooks/use-organization-workspaces-mutations";
 import {
@@ -235,38 +239,29 @@ function useOrganizationWorkspacesDialogController(args: {
 
 function DialogHeaderActions(props: {
   t: OrganizationWorkspacesTranslateFn;
-  viewMode: OrganizationWorkspacesViewMode;
-  onViewModeChange: (mode: OrganizationWorkspacesViewMode) => void;
   onCreateClick: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <WorkspacesViewModeToggle
-        t={props.t}
-        value={props.viewMode}
-        onChange={props.onViewModeChange}
-      />
-      <Button variant="default" onClick={props.onCreateClick}>
-        <Plus size={16} />
-        {props.t("common:ORG_WORKSPACES_CREATE")}
-      </Button>
-    </div>
+    <Button variant="default" onClick={props.onCreateClick}>
+      <Plus size={16} />
+      {props.t("common:ORG_WORKSPACES_CREATE")}
+    </Button>
   );
 }
 
 function ActiveTab(props: {
-  tableId: string;
   t: OrganizationWorkspacesTranslateFn;
   organizationId: string;
   viewMode: OrganizationWorkspacesViewMode;
   tableHook: OrganizationWorkspaceTableHook;
+  rowHeight: import("@arclayer/ui/data-table").DataTableRowHeight;
+  wrapHeaders: boolean;
   buildMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
   onEnter: (workspaceId: string) => void;
 }) {
   return (
-    <ChromeTabsContent value="active">
+    <ChromeTabsContent value="active" className="min-h-0 flex-1">
       <WorkspacesContentSection
-        tableId={props.tableId}
         viewMode={props.viewMode}
         tableHook={props.tableHook}
         emptyTitle={props.t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
@@ -274,6 +269,8 @@ function ActiveTab(props: {
         onRetry={() => void props.tableHook.refetch()}
         onRowClick={(row) => props.onEnter(row.original.workspaceId)}
         t={props.t}
+        rowHeight={props.rowHeight}
+        wrapHeaders={props.wrapHeaders}
         organizationId={props.organizationId}
         archived={false}
         searchInput={props.tableHook.searchInput}
@@ -285,23 +282,25 @@ function ActiveTab(props: {
 }
 
 function ArchivedTab(props: {
-  tableId: string;
   t: OrganizationWorkspacesTranslateFn;
   organizationId: string;
   viewMode: OrganizationWorkspacesViewMode;
   tableHook: OrganizationWorkspaceTableHook;
+  rowHeight: import("@arclayer/ui/data-table").DataTableRowHeight;
+  wrapHeaders: boolean;
   buildMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
 }) {
   return (
-    <ChromeTabsContent value="archived">
+    <ChromeTabsContent value="archived" className="min-h-0 flex-1">
       <WorkspacesContentSection
-        tableId={props.tableId}
         viewMode={props.viewMode}
         tableHook={props.tableHook}
         emptyTitle={props.t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}
         emptyDescription={props.t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC")}
         onRetry={() => void props.tableHook.refetch()}
         t={props.t}
+        rowHeight={props.rowHeight}
+        wrapHeaders={props.wrapHeaders}
         organizationId={props.organizationId}
         archived={true}
         searchInput={props.tableHook.searchInput}
@@ -317,6 +316,7 @@ function OrganizationWorkspacesDialogBody(props: {
   tab: OrganizationWorkspacesTab;
   onTabChange: (tab: OrganizationWorkspacesTab) => void;
   viewMode: OrganizationWorkspacesViewMode;
+  onViewModeChange: (viewMode: OrganizationWorkspacesViewMode) => void;
   activeTableId: string;
   archivedTableId: string;
   activeTableHook: OrganizationWorkspaceTableHook;
@@ -325,33 +325,80 @@ function OrganizationWorkspacesDialogBody(props: {
   buildMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
   onEnterWorkspace: (workspaceId: string) => void;
 }) {
+  const toolsLabels = buildDataTableToolsLabels(props.t);
+  const [activeRowHeight, setActiveRowHeight] = useDataTableRowHeightPreference({
+    tableId: props.activeTableId,
+  });
+  const [activeWrapHeaders, setActiveWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: props.activeTableId,
+  });
+  const [archivedRowHeight, setArchivedRowHeight] = useDataTableRowHeightPreference({
+    tableId: props.archivedTableId,
+  });
+  const [archivedWrapHeaders, setArchivedWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: props.archivedTableId,
+  });
+  const currentTableConfig =
+    props.tab === "active"
+      ? {
+          tableHook: props.activeTableHook,
+          rowHeight: activeRowHeight,
+          setRowHeight: setActiveRowHeight,
+          wrapHeaders: activeWrapHeaders,
+          setWrapHeaders: setActiveWrapHeaders,
+        }
+      : {
+          tableHook: props.archivedTableHook,
+          rowHeight: archivedRowHeight,
+          setRowHeight: setArchivedRowHeight,
+          wrapHeaders: archivedWrapHeaders,
+          setWrapHeaders: setArchivedWrapHeaders,
+        };
+
   return (
-    <OrganizationWorkspacesToolbar
-      t={props.t}
-      tab={props.tab}
-      onTabChange={props.onTabChange}
-      searchInput={props.currentTableHook.searchInput}
-      onSearchInputChange={props.currentTableHook.setSearchInput}
-      showSearchInput={props.viewMode === "card"}
+    <ChromeTabs
+      value={props.tab}
+      onValueChange={(value) => props.onTabChange(value === "archived" ? "archived" : "active")}
     >
-      <ActiveTab
-        tableId={props.activeTableId}
-        t={props.t}
-        organizationId={props.organizationId}
-        viewMode={props.viewMode}
-        tableHook={props.activeTableHook}
-        buildMenuItems={props.buildMenuItems}
-        onEnter={props.onEnterWorkspace}
-      />
-      <ArchivedTab
-        tableId={props.archivedTableId}
-        t={props.t}
-        organizationId={props.organizationId}
-        viewMode={props.viewMode}
-        tableHook={props.archivedTableHook}
-        buildMenuItems={props.buildMenuItems}
-      />
-    </OrganizationWorkspacesToolbar>
+      <div className="flex min-h-0 flex-col gap-4">
+        <OrganizationWorkspacesToolbar
+          t={props.t}
+          table={currentTableConfig.tableHook.table}
+          searchInput={props.currentTableHook.searchInput}
+          onSearchInputChange={props.currentTableHook.setSearchInput}
+          viewMode={props.viewMode}
+          onViewModeChange={props.onViewModeChange}
+          rowHeight={currentTableConfig.rowHeight}
+          onRowHeightChange={currentTableConfig.setRowHeight}
+          wrapHeaders={currentTableConfig.wrapHeaders}
+          onWrapHeadersChange={currentTableConfig.setWrapHeaders}
+          onRefresh={() => void currentTableConfig.tableHook.refetch()}
+          refreshing={currentTableConfig.tableHook.isFetching}
+          onResetColumnVisibility={currentTableConfig.tableHook.resetColumnVisibility}
+          labels={toolsLabels}
+        />
+
+        <ActiveTab
+          t={props.t}
+          organizationId={props.organizationId}
+          viewMode={props.viewMode}
+          tableHook={props.activeTableHook}
+          rowHeight={activeRowHeight}
+          wrapHeaders={activeWrapHeaders}
+          buildMenuItems={props.buildMenuItems}
+          onEnter={props.onEnterWorkspace}
+        />
+        <ArchivedTab
+          t={props.t}
+          organizationId={props.organizationId}
+          viewMode={props.viewMode}
+          tableHook={props.archivedTableHook}
+          rowHeight={archivedRowHeight}
+          wrapHeaders={archivedWrapHeaders}
+          buildMenuItems={props.buildMenuItems}
+        />
+      </div>
+    </ChromeTabs>
   );
 }
 
@@ -415,14 +462,7 @@ export function OrganizationWorkspacesDialog({
       size="xl"
       title={c.t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
       description={c.t("common:ORG_WORKSPACES_DESC")}
-      headerRight={
-        <DialogHeaderActions
-          t={c.t}
-          viewMode={c.viewMode}
-          onViewModeChange={c.setViewMode}
-          onCreateClick={() => c.setCreateOpen(true)}
-        />
-      }
+      headerRight={<DialogHeaderActions t={c.t} onCreateClick={() => c.setCreateOpen(true)} />}
       bodyClassName="pt-3"
     >
       <OrganizationWorkspacesDialogBody
@@ -431,6 +471,7 @@ export function OrganizationWorkspacesDialog({
         tab={c.tab}
         onTabChange={c.setTab}
         viewMode={c.viewMode}
+        onViewModeChange={c.setViewMode}
         activeTableId={c.activeTableId}
         archivedTableId={c.archivedTableId}
         activeTableHook={c.activeTableHook}

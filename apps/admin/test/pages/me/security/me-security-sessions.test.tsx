@@ -146,7 +146,7 @@ describe("MeSecuritySessionsSection", () => {
     ).toBeInTheDocument();
     const refreshButton = screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_REFRESH") });
     expect(
-      screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_CUSTOMIZE") }),
+      screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_VIEW_OPTIONS") }),
     ).toBeInTheDocument();
 
     await user.click(refreshButton);
@@ -165,15 +165,17 @@ describe("MeSecuritySessionsSection", () => {
     renderWithQuery(<MeSecuritySessionsSection />);
 
     await screen.findByText("Chrome on Windows");
-    await user.click(screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_CUSTOMIZE") }));
+    await user.click(
+      screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_VIEW_OPTIONS") }),
+    );
 
     await user.click(
-      screen.getByRole("switch", {
+      screen.getByRole("button", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
       }),
     );
     await user.click(
-      screen.getByRole("switch", {
+      screen.getByRole("button", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
     );

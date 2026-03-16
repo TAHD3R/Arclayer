@@ -15,14 +15,21 @@ import {
   SortStateIcon,
 } from "./data-table-presenter-utils";
 import { isDataTableColumnLocked } from "./data-table-column-settings-utils";
-import type { DataTableDensity } from "./types";
+import type { DataTableRowHeight } from "./types";
 
 type ColumnMeta = { kind?: string };
 
-function resolveHeaderDensityClass(density: DataTableDensity): string {
-  if (density === "compact") return "h-10";
-  if (density === "relaxed") return "h-14";
-  return "";
+function resolveHeaderHeightClass(rowHeight: DataTableRowHeight, wrapHeaders: boolean): string {
+  if (rowHeight === "short") return wrapHeaders ? "min-h-10" : "h-10";
+  if (rowHeight === "tall") return wrapHeaders ? "min-h-14" : "h-14";
+  if (rowHeight === "extraTall") return wrapHeaders ? "min-h-16" : "h-16";
+  return wrapHeaders ? "min-h-12" : "h-12";
+}
+
+function resolveHeaderContentClass(wrapHeaders: boolean): string {
+  return wrapHeaders
+    ? "whitespace-normal break-words leading-5 py-2"
+    : "truncate whitespace-nowrap";
 }
 
 function isSelectColumn(meta: unknown, columnId: string): boolean {
@@ -57,7 +64,8 @@ function toTransformStyle(
 
 function SortableHeaderCell<TData>(props: {
   header: Header<TData, unknown>;
-  density: DataTableDensity;
+  rowHeight: DataTableRowHeight;
+  wrapHeaders: boolean;
   headerCellClassName?: (header: Header<TData, unknown>) => string | undefined;
   dragging: { activeId: string | null; overId: string | null };
   hoveredColumnId: string | null;
@@ -106,13 +114,13 @@ function SortableHeaderCell<TData>(props: {
         alignClass,
         pinStyle.className,
         "!uppercase tracking-wider text-label-secondary select-none",
-        resolveHeaderDensityClass(props.density),
+        resolveHeaderHeightClass(props.rowHeight, props.wrapHeaders),
         selectColumn ? "px-0" : "",
         over ? "bg-muted/60 ring-1 ring-ring/40 shadow-sm" : "",
         active ? "opacity-35" : "",
         hovered ? "bg-accent/25" : "",
         sortable.isDragging ? "opacity-30" : "",
-        "transition-[background-color,box-shadow,opacity] duration-150",
+        "align-middle transition-[background-color,box-shadow,opacity] duration-150",
         props.headerCellClassName?.(header),
       )}
       style={cellStyle}
@@ -139,7 +147,7 @@ function SortableHeaderCell<TData>(props: {
             <ButtonPrimitive
               type="button"
               className={cn(
-                "group inline-flex items-center gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-muted/50",
+                "group inline-flex h-full items-center gap-1 rounded-sm px-1 transition-colors hover:bg-muted/50",
                 justifyClass,
               )}
               style={{ textTransform: "uppercase" }}
@@ -149,7 +157,14 @@ function SortableHeaderCell<TData>(props: {
               }}
               tapScale={1}
             >
-              <div className="min-w-0 truncate select-none">{content}</div>
+              <div
+                className={cn(
+                  "min-w-0 max-w-full select-none",
+                  resolveHeaderContentClass(props.wrapHeaders),
+                )}
+              >
+                {content}
+              </div>
               <SortStateIcon state={sorted} />
             </ButtonPrimitive>
           </div>
@@ -165,7 +180,10 @@ function SortableHeaderCell<TData>(props: {
             {...sortable.listeners}
           >
             <div
-              className="min-w-0 truncate select-none px-1 py-1"
+              className={cn(
+                "min-w-0 max-w-full select-none px-1",
+                resolveHeaderContentClass(props.wrapHeaders),
+              )}
               style={{ textTransform: "uppercase" }}
             >
               {content}
@@ -179,7 +197,8 @@ function SortableHeaderCell<TData>(props: {
 
 function StaticHeaderCell<TData>(props: {
   header: Header<TData, unknown>;
-  density: DataTableDensity;
+  rowHeight: DataTableRowHeight;
+  wrapHeaders: boolean;
   headerCellClassName?: (header: Header<TData, unknown>) => string | undefined;
 }) {
   const { header } = props;
@@ -199,8 +218,8 @@ function StaticHeaderCell<TData>(props: {
       className={cn(
         alignClass,
         pinStyle.className,
-        "!uppercase tracking-wider text-label-secondary select-none",
-        resolveHeaderDensityClass(props.density),
+        "!uppercase tracking-wider text-label-secondary select-none align-middle",
+        resolveHeaderHeightClass(props.rowHeight, props.wrapHeaders),
         selectColumn ? "px-0" : "",
         "transition-[background-color,box-shadow,opacity] duration-150",
         props.headerCellClassName?.(header),
@@ -208,14 +227,17 @@ function StaticHeaderCell<TData>(props: {
       style={pinStyle.style}
       data-pinned={pinned ? String(pinned) : undefined}
     >
-      {content}
+      <div className={cn("min-w-0 max-w-full", resolveHeaderContentClass(props.wrapHeaders))}>
+        {content}
+      </div>
     </TableHead>
   );
 }
 
 export function DataTablePresenterHeader<TData>(props: {
   table: ReactTable<TData>;
-  density: DataTableDensity;
+  rowHeight: DataTableRowHeight;
+  wrapHeaders: boolean;
   headerCellClassName?: (header: Header<TData, unknown>) => string | undefined;
   dragging: { activeId: string | null; overId: string | null };
   hoveredColumnId: string | null;
@@ -235,7 +257,8 @@ export function DataTablePresenterHeader<TData>(props: {
                 <StaticHeaderCell
                   key={header.id}
                   header={header}
-                  density={props.density}
+                  rowHeight={props.rowHeight}
+                  wrapHeaders={props.wrapHeaders}
                   headerCellClassName={props.headerCellClassName}
                 />
               );
@@ -245,7 +268,8 @@ export function DataTablePresenterHeader<TData>(props: {
               <SortableHeaderCell
                 key={header.id}
                 header={header}
-                density={props.density}
+                rowHeight={props.rowHeight}
+                wrapHeaders={props.wrapHeaders}
                 headerCellClassName={props.headerCellClassName}
                 dragging={props.dragging}
                 hoveredColumnId={props.hoveredColumnId}

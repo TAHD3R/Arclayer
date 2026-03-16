@@ -1,14 +1,18 @@
-import { Plus, Search, X } from "@arclayer/ui/icons/lucide-animated";
+import type { Table as ReactTable } from "@tanstack/react-table";
+import { Plus } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@arclayer/ui/input-group";
-import { Spinner } from "@arclayer/ui/spinner";
+  DataTableToolbarTools,
+  type DataTableRowHeight,
+  type DataTableToolsLabels,
+} from "@arclayer/ui/data-table";
+
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
+import type { OrganizationMember } from "@/types/api";
 import { MembersFilterPopover, type OrgMemberFilters } from "./members-filter-popover";
 
 interface OrganizationMembersInviteActionProps {
@@ -29,59 +33,74 @@ export function OrganizationMembersInviteAction({
 }
 
 interface OrganizationMembersToolbarProps {
+  table: ReactTable<OrganizationMember>;
   searchInput: string;
   onSearchInputChange: (value: string) => void;
   filters: OrgMemberFilters;
   onFiltersChange: (next: OrgMemberFilters) => void;
   roleOptions: Array<{ value: string; label: string }>;
-  isFetching: boolean;
-  isLoading: boolean;
+  rowHeight: DataTableRowHeight;
+  onRowHeightChange: (next: DataTableRowHeight) => void;
+  wrapHeaders: boolean;
+  onWrapHeadersChange: (next: boolean) => void;
+  refreshing: boolean;
+  onRefresh: () => void;
+  onResetColumnVisibility?: () => void;
+  toolsLabels: DataTableToolsLabels;
 }
 
 export function OrganizationMembersToolbar({
+  table,
   searchInput,
   onSearchInputChange,
   filters,
   onFiltersChange,
   roleOptions,
-  isFetching,
-  isLoading,
+  rowHeight,
+  onRowHeightChange,
+  wrapHeaders,
+  onWrapHeadersChange,
+  refreshing,
+  onRefresh,
+  onResetColumnVisibility,
+  toolsLabels,
 }: OrganizationMembersToolbarProps) {
   const { t } = useTranslation(["common", "team"]);
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
-        <InputGroup className="w-[min(100%,22.5rem)]">
-          <InputGroupAddon>
-            <Search className="size-4 text-label-secondary" />
-          </InputGroupAddon>
-          <InputGroupInput
+    <PageExtraToolbar
+      leading={
+        <>
+          <DataTableSearchInput
             value={searchInput}
-            onChange={(event) => onSearchInputChange(event.target.value)}
+            onChange={onSearchInputChange}
             placeholder={t("team:TEAM_SEARCH_PLACEHOLDER")}
+            clearLabel={t("common:CLEAR")}
           />
-          {searchInput ? (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                aria-label={t("common:CLEAR")}
-                size="icon-xs"
-                onClick={() => onSearchInputChange("")}
-              >
-                <X className="size-3.5" />
-              </InputGroupButton>
-            </InputGroupAddon>
-          ) : null}
-        </InputGroup>
 
-        <MembersFilterPopover
-          value={filters}
-          onChange={onFiltersChange}
-          roleOptions={roleOptions}
+          <MembersFilterPopover
+            value={filters}
+            onChange={onFiltersChange}
+            roleOptions={roleOptions}
+          />
+        </>
+      }
+      trailing={
+        <DataTableToolbarTools
+          table={table}
+          rowHeight={rowHeight}
+          onRowHeightChange={onRowHeightChange}
+          wrapHeaders={wrapHeaders}
+          onWrapHeadersChange={onWrapHeadersChange}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          onResetColumnVisibility={onResetColumnVisibility}
+          labels={toolsLabels}
+          components={{ IconButton: DataTableToolbarAntdIconButton }}
         />
-      </div>
-
-      {isFetching && !isLoading ? <Spinner className="size-4 text-label-secondary" /> : null}
-    </div>
+      }
+      leadingClassName="items-start"
+      trailingClassName="justify-end"
+    />
   );
 }

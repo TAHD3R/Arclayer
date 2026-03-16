@@ -10,7 +10,7 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { MoreVertical, Plus, Search, Trash2, X } from "lucide-react";
+import { MoreVertical, Plus, Trash2 } from "lucide-react";
 import {
   createWorkspaceRoleFromTemplate,
   deleteWorkspaceRole,
@@ -19,15 +19,10 @@ import {
 } from "@/api/rbac";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@arclayer/ui/input-group";
 import { Spinner } from "@arclayer/ui/spinner";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -279,30 +274,17 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
           {t("team:TEAM_ROLES_ADD_ROLE")}
         </Button>
       }
+      extra={
+        <DataTableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
+          clearLabel={t("common:CLEAR")}
+          className="max-w-[360px]"
+        />
+      }
     >
       <div className="flex flex-col gap-4">
-        <InputGroup className="max-w-[360px]">
-          <InputGroupAddon>
-            <Search className="h-4 w-4 text-label-secondary" />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
-          />
-          {search ? (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                aria-label={t("common:CLEAR")}
-                size="icon-xs"
-                onClick={() => setSearch("")}
-              >
-                <X className="size-3.5" />
-              </InputGroupButton>
-            </InputGroupAddon>
-          ) : null}
-        </InputGroup>
-
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (

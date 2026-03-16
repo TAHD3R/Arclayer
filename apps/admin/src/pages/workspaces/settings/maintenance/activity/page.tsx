@@ -86,8 +86,8 @@ export function WorkspaceActivityPage() {
       title={t("nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY")}
       description={t("activity:ACTIVITY_DESC_WORKSPACE")}
       contentClassName="min-h-0 flex flex-col"
-      action={
-        <div className="flex items-center gap-2">
+      extra={
+        <div className="flex flex-wrap items-center gap-2">
           <ActivityFilterPopover
             scope="workspace"
             workspaceId={workspaceId}
@@ -107,13 +107,17 @@ export function WorkspaceActivityPage() {
               }));
             }}
           />
-          <Button variant="outline" onClick={() => {}}>
-            {t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}
-          </Button>
 
           {listQuery.isFetching && !listQuery.isLoading ? (
             <Spinner className="size-4 text-label-secondary" />
           ) : null}
+        </div>
+      }
+      action={
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => {}}>
+            {t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}
+          </Button>
         </div>
       }
     >

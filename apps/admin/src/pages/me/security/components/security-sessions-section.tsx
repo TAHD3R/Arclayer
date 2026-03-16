@@ -3,13 +3,17 @@ import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
+import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import type { AuthSessionRow } from "@/types/api";
 import {
+  DataTableToolbarTools,
   useDataTable,
-  useDataTableDensityPreference,
+  useDataTableRowHeightPreference,
+  useDataTableWrapHeadersPreference,
   type PageData,
 } from "@arclayer/ui/data-table";
 import { Button } from "@arclayer/ui/button";
@@ -173,11 +177,16 @@ function useSessionsTableController(t: TranslateFn) {
     queryOptions: { retry: false, staleTime: 10 * 1000 },
   });
   refreshRef.current = () => table.refetch();
-  const [density, setDensity] = useDataTableDensityPreference({ tableId: "me:sessions" });
+  const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId: "me:sessions" });
+  const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: "me:sessions",
+  });
   return {
     table,
-    density,
-    setDensity,
+    rowHeight,
+    setRowHeight,
+    wrapHeaders,
+    setWrapHeaders,
     toolsLabels: buildDataTableToolsLabels(t),
     revokeOthersMutation,
   };
@@ -201,18 +210,35 @@ export function MeSecuritySessionsSection() {
         }
       />
       <SettingCardContent className="min-w-0 max-w-full overflow-x-hidden">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <DataTableSearchInput
+            value={controller.table.searchInput}
+            onChange={controller.table.setSearchInput}
+            placeholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
+            clearLabel={t("common:CLEAR")}
+            className="max-w-[320px]"
+          />
+
+          <DataTableToolbarTools
+            table={controller.table.table}
+            rowHeight={controller.rowHeight}
+            onRowHeightChange={controller.setRowHeight}
+            wrapHeaders={controller.wrapHeaders}
+            onWrapHeadersChange={controller.setWrapHeaders}
+            onRefresh={() => void controller.table.refetch()}
+            refreshing={controller.table.isFetching}
+            onResetColumnVisibility={controller.table.resetColumnVisibility}
+            labels={controller.toolsLabels}
+            components={{ IconButton: DataTableToolbarAntdIconButton }}
+          />
+        </div>
+
         <SecuritySessionsTableContent
           table={controller.table.table}
-          searchInput={controller.table.searchInput}
-          onSearchInputChange={controller.table.setSearchInput}
-          onRefresh={controller.table.refetch}
           isFetching={controller.table.isFetching}
           isLoading={controller.table.isLoading}
-          onResetColumnVisibility={controller.table.resetColumnVisibility}
-          density={controller.density}
-          onDensityChange={controller.setDensity}
-          toolsLabels={controller.toolsLabels}
-          searchPlaceholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
+          rowHeight={controller.rowHeight}
+          wrapHeaders={controller.wrapHeaders}
           emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
         />
       </SettingCardContent>

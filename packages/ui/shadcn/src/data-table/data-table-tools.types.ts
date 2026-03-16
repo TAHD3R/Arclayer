@@ -2,19 +2,25 @@
 
 import type * as React from "react";
 
-import type { DataTableDensity } from "./types";
+import type { DataTableDensity, DataTableRowHeight } from "./types";
 
 export type DataTableToolsLabels = {
-  customize: string;
-  customizeTitle: string;
-  customizeDescription: string;
+  viewOptions: string;
+  viewOptionsTitle: string;
+  viewOptionsDescription: string;
   columns: string;
   columnsTitle: string;
   columnsDescription: string;
-  density: string;
-  densityCompact: string;
-  densityDefault: string;
-  densityRelaxed: string;
+  columnsSearchPlaceholder: string;
+  columnsEmpty: string;
+  rowHeight: string;
+  rowHeightTitle: string;
+  rowHeightShort: string;
+  rowHeightMedium: string;
+  rowHeightTall: string;
+  rowHeightExtraTall: string;
+  headerOptions: string;
+  wrapHeaders: string;
   refresh: string;
   reset: string;
   pinLeft: string;
@@ -23,6 +29,13 @@ export type DataTableToolsLabels = {
   moveUp: string;
   moveDown: string;
   drag: string;
+  customize: string;
+  customizeTitle: string;
+  customizeDescription: string;
+  density: string;
+  densityCompact: string;
+  densityDefault: string;
+  densityRelaxed: string;
 };
 
 export type DataTableIconButtonProps = {
@@ -39,15 +52,15 @@ export type DataTableToolsComponents = {
 
 export type DataTableToolbarToolsProps<TData> = {
   table: import("@tanstack/react-table").Table<TData>;
-  density: DataTableDensity;
-  onDensityChange: (next: DataTableDensity) => void;
+  rowHeight?: DataTableRowHeight;
+  onRowHeightChange?: (next: DataTableRowHeight) => void;
+  wrapHeaders?: boolean;
+  onWrapHeadersChange?: (next: boolean) => void;
+  density?: DataTableDensity;
+  onDensityChange?: (next: DataTableDensity) => void;
   onRefresh: () => void;
   refreshing?: boolean;
   labels: DataTableToolsLabels;
   components?: DataTableToolsComponents;
-  /**
-   * Optional integration with `useDataTable()`:
-   * clears persisted visibility state before resetting visibility.
-   */
   onResetColumnVisibility?: () => void;
 };

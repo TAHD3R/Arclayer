@@ -1,10 +1,10 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
-import * as React from "react";
+import { RefreshCw } from "lucide-react";
 
-import { DataTableCustomizeCard } from "./data-table-customize-card";
+import { resolveDataTableRowHeight } from "./types";
+import { DataTableViewOptions } from "./data-table-view-options";
 import { DataTableDefaultIconButton } from "./data-table-icon-button";
 import { DataTableToolTooltip } from "./data-table-tool-tooltip";
 import type {
@@ -23,13 +23,16 @@ function resolveIconButton(components: DataTableToolsComponents | undefined) {
 
 export function DataTableToolbarTools<TData>(props: DataTableToolbarToolsProps<TData>) {
   const IconButton = resolveIconButton(props.components);
+  const rowHeight = resolveDataTableRowHeight(props.rowHeight ?? props.density);
 
   return (
     <div className="flex items-center gap-2">
-      <DataTableCustomizeCard
+      <DataTableViewOptions
         table={props.table as ReactTable<TData>}
-        density={props.density}
-        onDensityChange={props.onDensityChange}
+        rowHeight={rowHeight}
+        onRowHeightChange={props.onRowHeightChange ?? (() => undefined)}
+        wrapHeaders={props.wrapHeaders ?? false}
+        onWrapHeadersChange={props.onWrapHeadersChange ?? (() => undefined)}
         labels={props.labels}
         components={props.components}
         onResetColumnVisibility={props.onResetColumnVisibility}

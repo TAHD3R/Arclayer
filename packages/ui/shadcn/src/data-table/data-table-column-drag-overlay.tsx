@@ -5,20 +5,29 @@ import { flexRender } from "@tanstack/react-table";
 
 import { cn } from "@arclayer/lib/utils";
 
-import type { DataTableDensity } from "./types";
+import { resolveDataTableRowHeight, type DataTableDensity, type DataTableRowHeight } from "./types";
 
 const DEFAULT_OVERLAY_ROW_COUNT = 8;
 
-function resolveHeaderHeightClass(density: DataTableDensity): string {
-  if (density === "compact") return "h-10";
-  if (density === "relaxed") return "h-14";
+type LegacyDensityProps = {
+  density?: DataTableDensity;
+  rowHeight?: DataTableRowHeight;
+};
+
+function resolveHeaderHeightClass(value?: DataTableRowHeight | DataTableDensity): string {
+  const rowHeight = resolveDataTableRowHeight(value);
+  if (rowHeight === "short") return "h-10";
+  if (rowHeight === "tall") return "h-14";
+  if (rowHeight === "extraTall") return "h-16";
   return "h-12";
 }
 
-function resolveCellPaddingClass(density: DataTableDensity): string {
-  if (density === "compact") return "py-1.5";
-  if (density === "relaxed") return "py-3";
-  return "";
+function resolveCellPaddingClass(value?: DataTableRowHeight | DataTableDensity): string {
+  const rowHeight = resolveDataTableRowHeight(value);
+  if (rowHeight === "short") return "py-1.5";
+  if (rowHeight === "tall") return "py-3";
+  if (rowHeight === "extraTall") return "py-4";
+  return "py-2";
 }
 
 function resolveOverlayWidth(columnWidth: number | null | undefined): number {
@@ -27,17 +36,19 @@ function resolveOverlayWidth(columnWidth: number | null | undefined): number {
   return Math.round(width);
 }
 
-export function DataTableColumnDragOverlay<TData>(props: {
-  table: ReactTable<TData>;
-  columnId: string;
-  density: DataTableDensity;
-  width?: number | null;
-  rowCount?: number;
-}) {
+export function DataTableColumnDragOverlay<TData>(
+  props: {
+    table: ReactTable<TData>;
+    columnId: string;
+    width?: number | null;
+    rowCount?: number;
+  } & LegacyDensityProps,
+) {
   const rows = props.table.getRowModel().rows;
   const overlayRows = rows.slice(0, props.rowCount ?? DEFAULT_OVERLAY_ROW_COUNT);
   const column = props.table.getColumn(props.columnId);
   const width = resolveOverlayWidth(props.width ?? column?.getSize() ?? null);
+  const rowHeight = props.rowHeight ?? props.density;
 
   const header = props.table
     .getHeaderGroups()
@@ -47,12 +58,8 @@ export function DataTableColumnDragOverlay<TData>(props: {
   return (
     <div
       className={cn(
-        "pointer-events-none select-none overflow-hidden",
-        "rounded-lg",
-        "opacity-80 ring-2 ring-ring/50",
-        "bg-background",
-        "outline outline-1 outline-border/60",
-        "box-border",
+        "pointer-events-none select-none overflow-hidden rounded-lg opacity-80 ring-2 ring-ring/50",
+        "bg-background outline outline-1 outline-border/60 box-border",
       )}
       style={{ width, minWidth: width, maxWidth: width }}
     >
@@ -60,7 +67,7 @@ export function DataTableColumnDragOverlay<TData>(props: {
         className={cn(
           "px-2 uppercase tracking-wider text-label-secondary text-callout font-semibold",
           "flex items-center border-b border-border/60 bg-background",
-          resolveHeaderHeightClass(props.density),
+          resolveHeaderHeightClass(rowHeight),
         )}
       >
         <div className="truncate">
@@ -77,7 +84,7 @@ export function DataTableColumnDragOverlay<TData>(props: {
           return (
             <div
               key={row.id}
-              className={cn("px-2 py-2", resolveCellPaddingClass(props.density), "bg-background")}
+              className={cn("px-2 bg-background", resolveCellPaddingClass(rowHeight))}
             >
               <div className="min-w-0 w-full overflow-hidden text-callout">
                 {cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null}

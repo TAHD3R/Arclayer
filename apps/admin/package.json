@@ -17,13 +17,13 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@bprogress/react": "^1.2.7",
     "@arclayer/api-client": "workspace:*",
     "@arclayer/hooks": "workspace:*",
     "@arclayer/lib": "workspace:*",
     "@arclayer/runtime": "workspace:*",
     "@arclayer/theme": "workspace:*",
     "@arclayer/ui": "workspace:*",
+    "@bprogress/react": "^1.2.7",
     "@dnd-kit/core": "^6.3.1",
     "@floating-ui/react": "^0.27.16",
     "@headlessui/react": "^2.2.9",

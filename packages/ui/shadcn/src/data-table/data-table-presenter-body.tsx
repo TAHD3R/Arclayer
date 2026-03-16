@@ -6,7 +6,7 @@ import { cn } from "@arclayer/lib/utils";
 import { TableBody, TableCell, TableRow } from "@arclayer/ui/table";
 
 import { resolveCellPinStyle, shouldIgnoreRowClick } from "./data-table-presenter-utils";
-import type { DataTableDensity } from "./types";
+import type { DataTableRowHeight } from "./types";
 
 type ColumnMeta = { kind?: string };
 
@@ -14,10 +14,11 @@ const ACTIVE_COLUMN_FADE_CLASS = "opacity-35";
 const HOVERED_COLUMN_BG_CLASS = "bg-accent/25";
 const COLUMN_OVER_BG_CLASS = "bg-muted/60";
 
-function resolveCellDensityClass(density: DataTableDensity): string {
-  if (density === "compact") return "py-1.5";
-  if (density === "relaxed") return "py-3";
-  return "";
+function resolveCellPaddingClass(rowHeight: DataTableRowHeight): string {
+  if (rowHeight === "short") return "py-1.5";
+  if (rowHeight === "tall") return "py-3.5";
+  if (rowHeight === "extraTall") return "py-5";
+  return "py-2.5";
 }
 
 function isSelectColumn(meta: unknown, columnId: string): boolean {
@@ -28,7 +29,7 @@ function isSelectColumn(meta: unknown, columnId: string): boolean {
 export function DataTablePresenterBody<TData>(props: {
   table: ReactTable<TData>;
   emptyText: string;
-  density: DataTableDensity;
+  rowHeight: DataTableRowHeight;
   activeColumnId: string | null;
   overColumnId: string | null;
   hoveredColumnId: string | null;
@@ -79,7 +80,7 @@ export function DataTablePresenterBody<TData>(props: {
                   className={cn(
                     "overflow-hidden transition-colors duration-150",
                     pinStyle.className,
-                    resolveCellDensityClass(props.density),
+                    resolveCellPaddingClass(props.rowHeight),
                     selectColumn ? "px-0" : "",
                     isActiveColumn ? ACTIVE_COLUMN_FADE_CLASS : "",
                     isHoveredColumn ? HOVERED_COLUMN_BG_CLASS : "",

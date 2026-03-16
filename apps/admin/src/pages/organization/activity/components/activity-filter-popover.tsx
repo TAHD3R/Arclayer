@@ -1,19 +1,20 @@
-import { Filter, Search } from "lucide-react";
+import { CalendarRangeIcon, FunnelXIcon, ListFilterIcon } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 
-import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { Button } from "@arclayer/ui/button";
-import { Input } from "@arclayer/ui/input";
+import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
+import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
+import {
+  Filters,
+  createFilter,
+  type Filter,
+  type FilterFieldConfig,
+} from "@/components/reui/filters";
 import {
   DebounceSelect,
   type DebounceSelectOption,
 } from "@/pages/organization/activity/components/debounce-select";
-import {
-  listCatalogEventNames,
-  resolveCatalogEntry,
-} from "@/pages/organization/activity/constants";
 
 export type ActivityFilters = {
   occurredFrom?: string;
@@ -24,28 +25,90 @@ export type ActivityFilters = {
   subjectUserId?: string;
 };
 
-function normalizeFilters(filters: ActivityFilters): ActivityFilters {
-  const trimOrUndef = (v: string | undefined) => {
-    const s = String(v || "").trim();
-    return s ? s : undefined;
-  };
+type ActivityFilterValue = string;
 
-  return {
-    occurredFrom: trimOrUndef(filters.occurredFrom),
-    occurredTo: trimOrUndef(filters.occurredTo),
-    eventName: trimOrUndef(filters.eventName),
-    workspaceId: trimOrUndef(filters.workspaceId),
-    actorUserId: trimOrUndef(filters.actorUserId),
-    subjectUserId: trimOrUndef(filters.subjectUserId),
-  };
+function trimOrUndefined(value?: string | null): string | undefined {
+  const normalized = String(value || "").trim();
+  return normalized || undefined;
+}
+
+function toReuiFilters(value: ActivityFilters): Filter<ActivityFilterValue>[] {
+  const next: Filter<ActivityFilterValue>[] = [];
+
+  if (value.occurredFrom || value.occurredTo) {
+    next.push(createFilter("occurredAt", "is", [value.occurredFrom ?? "", value.occurredTo ?? ""]));
+  }
+  if (value.eventName) {
+    next.push(createFilter("eventName", "contains", [value.eventName]));
+  }
+  if (value.workspaceId) {
+    next.push(createFilter("workspaceId", "is", [value.workspaceId]));
+  }
+  if (value.actorUserId) {
+    next.push(createFilter("actorUserId", "is", [value.actorUserId]));
+  }
+  if (value.subjectUserId) {
+    next.push(createFilter("subjectUserId", "is", [value.subjectUserId]));
+  }
+
+  return next;
+}
+
+function fromReuiFilters(filters: Filter<ActivityFilterValue>[]): ActivityFilters {
+  const next: ActivityFilters = {};
+
+  for (const filter of filters) {
+    const first = filter.values[0];
+
+    if (filter.field === "occurredAt") {
+      const [occurredFrom, occurredTo] = filter.values;
+      next.occurredFrom =
+        typeof occurredFrom === "string" && occurredFrom ? occurredFrom : undefined;
+      next.occurredTo = typeof occurredTo === "string" && occurredTo ? occurredTo : undefined;
+      continue;
+    }
+
+    if (typeof first !== "string" || !first) continue;
+
+    if (filter.field === "eventName") {
+      next.eventName = first;
+      continue;
+    }
+    if (filter.field === "workspaceId") {
+      next.workspaceId = first;
+      continue;
+    }
+    if (filter.field === "actorUserId") {
+      next.actorUserId = first;
+      continue;
+    }
+    if (filter.field === "subjectUserId") {
+      next.subjectUserId = first;
+    }
+  }
+
+  return next;
+}
+
+function serializeFilters(filters: ActivityFilters): string {
+  return JSON.stringify({
+    occurredFrom: trimOrUndefined(filters.occurredFrom),
+    occurredTo: trimOrUndefined(filters.occurredTo),
+    eventName: trimOrUndefined(filters.eventName),
+    workspaceId: trimOrUndefined(filters.workspaceId),
+    actorUserId: trimOrUndefined(filters.actorUserId),
+    subjectUserId: trimOrUndefined(filters.subjectUserId),
+  });
+}
+
+function formatDateRange(values: ActivityFilterValue[]): string {
+  const [occurredFrom, occurredTo] = values;
+  const parts = [occurredFrom, occurredTo].filter(Boolean);
+  return parts.length ? parts.join(" - ") : "-";
 }
 
 export function ActivityFilterPopover(props: {
   scope: "workspace" | "org";
-  /**
-   * Workspace scope uses the current workspace to fetch user options (actor/subject).
-   * Org scope ignores this and uses `draft.workspaceId` instead.
-   */
   workspaceId?: string | null;
   value: ActivityFilters;
   defaultValue: ActivityFilters;
@@ -55,135 +118,149 @@ export function ActivityFilterPopover(props: {
   fetchUserOptions: (workspaceId: string, q: string) => Promise<DebounceSelectOption[]>;
 }) {
   const { t } = useTranslation(["activity", "common"]);
+  const [workspaceOption, setWorkspaceOption] = React.useState<DebounceSelectOption | undefined>();
+  const [actorOption, setActorOption] = React.useState<DebounceSelectOption | undefined>();
+  const [subjectOption, setSubjectOption] = React.useState<DebounceSelectOption | undefined>();
 
-  const [open, setOpen] = React.useState(false);
-  const [draft, setDraft] = React.useState<ActivityFilters>(() => props.value);
-
-  const [eventNameInput, setEventNameInput] = React.useState<string>(
-    () => props.value.eventName ?? "",
+  const filterItems = React.useMemo(() => toReuiFilters(props.value), [props.value]);
+  const reuiI18n = React.useMemo(
+    () => buildReuiFilterI18n(t, t("activity:ACTIVITY_FILTER_TITLE")),
+    [t],
   );
-
-  const [workspaceOption, setWorkspaceOption] = React.useState<DebounceSelectOption | undefined>(
-    undefined,
-  );
-  const [actorOption, setActorOption] = React.useState<DebounceSelectOption | undefined>(undefined);
-  const [subjectOption, setSubjectOption] = React.useState<DebounceSelectOption | undefined>(
-    undefined,
-  );
-
-  // Open -> draft/value sync. Close -> discard draft (apply only happens on "Done").
-  React.useEffect(() => {
-    if (!open) return;
-    setDraft(props.value);
-    setEventNameInput(props.value.eventName ?? "");
-  }, [open, props.value]);
-
   const selectedWorkspaceId =
     props.scope === "workspace"
-      ? (props.workspaceId ? String(props.workspaceId) : "").trim() || null
-      : (draft.workspaceId || "").trim() || null;
-
+      ? trimOrUndefined(props.workspaceId)
+      : trimOrUndefined(props.value.workspaceId);
   const canPickActorSubject = Boolean(selectedWorkspaceId);
+  const hasOverrides = serializeFilters(props.value) !== serializeFilters(props.defaultValue);
 
-  const eventNameOptions = React.useMemo(() => {
-    const needle = eventNameInput.trim().toLowerCase();
-    const names = listCatalogEventNames();
-    const filtered = needle
-      ? names.filter((n) => n.toLowerCase().includes(needle)).slice(0, 20)
-      : names.slice(0, 20);
+  const workspaceLabelById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of props.workspaceItems ?? []) {
+      map.set(item.workspaceId, item.name || item.slug || item.workspaceId);
+    }
+    return map;
+  }, [props.workspaceItems]);
 
-    return filtered.map((name) => {
-      const meta = resolveCatalogEntry(name);
-      const title = meta ? t(`activity:${meta.titleKey}`) : name;
-      return {
-        value: name,
-        label: (
-          <div className="min-w-0">
-            <div className="text-footnote font-medium truncate">{title}</div>
-            <div className="text-caption text-label-secondary font-mono truncate">{name}</div>
+  const buildUserField = React.useCallback(
+    (args: {
+      key: "actorUserId" | "subjectUserId";
+      label: string;
+      placeholder: string;
+      emptyText: string;
+      option: DebounceSelectOption | undefined;
+      setOption: (value: DebounceSelectOption | undefined) => void;
+      disabledPlaceholder?: string;
+    }): FilterFieldConfig<ActivityFilterValue> => ({
+      key: args.key,
+      label: args.label,
+      type: "custom",
+      operators: [{ value: "is", label: t("common:FILTER_OPERATOR_IS", { defaultValue: "is" }) }],
+      customRenderer: ({ values, onChange }) => {
+        const selectedId = typeof values[0] === "string" && values[0] ? values[0] : undefined;
+
+        return (
+          <div className="min-w-[18rem]">
+            <DebounceSelect
+              labelInValue
+              value={
+                selectedId ? (args.option ?? { value: selectedId, label: selectedId }) : undefined
+              }
+              allowClear
+              disabled={!canPickActorSubject}
+              placeholder={
+                canPickActorSubject
+                  ? args.placeholder
+                  : (args.disabledPlaceholder ?? args.placeholder)
+              }
+              emptyText={args.emptyText}
+              fetchOptions={async (search) => {
+                if (!selectedWorkspaceId) return [];
+                return props.fetchUserOptions(selectedWorkspaceId, search);
+              }}
+              onChange={(option) => {
+                if (option) {
+                  args.setOption({
+                    value: String(option.value),
+                    label: option.label,
+                    avatarUrl: option.avatarUrl ?? null,
+                  });
+                  onChange([String(option.value)]);
+                  return;
+                }
+                args.setOption(undefined);
+                onChange([]);
+              }}
+            />
           </div>
-        ),
-      };
-    });
-  }, [eventNameInput, t]);
+        );
+      },
+      customValueRenderer: (values) => {
+        const selectedId = typeof values[0] === "string" && values[0] ? values[0] : undefined;
+        if (!selectedId) return "-";
+        return args.option?.label ?? selectedId;
+      },
+    }),
+    [canPickActorSubject, props, selectedWorkspaceId, t],
+  );
 
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          title={t("activity:ACTIVITY_FILTER_TITLE")}
-          aria-label={t("activity:ACTIVITY_FILTER_TITLE")}
-        >
-          <Filter size={18} />
-          {t("activity:ACTIVITY_FILTER_TITLE")}
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent align="end" sideOffset={8} className="w-96 p-3">
-        <div className="font-bold">{t("activity:ACTIVITY_FILTER_TITLE")}</div>
-        <div className="mt-3 grid grid-cols-1 gap-3">
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
-            </div>
+  const fields = React.useMemo<FilterFieldConfig<ActivityFilterValue>[]>(() => {
+    const next: FilterFieldConfig<ActivityFilterValue>[] = [
+      {
+        key: "occurredAt",
+        label: t("activity:ACTIVITY_FIELD_OCCURRED_AT"),
+        type: "custom",
+        icon: <CalendarRangeIcon className="size-4" />,
+        operators: [{ value: "is", label: t("common:FILTER_OPERATOR_IS", { defaultValue: "is" }) }],
+        customRenderer: ({ values, onChange }) => (
+          <div className="min-w-[18rem]">
             <DateTimeRangeField
-              startValue={draft.occurredFrom}
-              endValue={draft.occurredTo}
+              startValue={values[0] || undefined}
+              endValue={values[1] || undefined}
               startAriaLabel={t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
               endAriaLabel={t("activity:ACTIVITY_FIELD_OCCURRED_AT")}
               startPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_START")}
               endPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_END")}
-              onChange={({ startValue, endValue }) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  occurredFrom: startValue,
-                  occurredTo: endValue,
-                }))
-              }
+              onChange={({ startValue, endValue }) => onChange([startValue ?? "", endValue ?? ""])}
             />
           </div>
+        ),
+        customValueRenderer: (values) => formatDateRange(values),
+      },
+      {
+        key: "eventName",
+        label: t("activity:ACTIVITY_FILTER_EVENT_NAME"),
+        type: "text",
+        placeholder: t("activity:ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER"),
+        operators: [
+          {
+            value: "contains",
+            label: t("common:FILTER_OPERATOR_CONTAINS", { defaultValue: "contains" }),
+          },
+        ],
+        defaultOperator: "contains",
+      },
+    ];
 
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("activity:ACTIVITY_FILTER_EVENT_NAME")}
-            </div>
+    if (props.scope === "org") {
+      next.push({
+        key: "workspaceId",
+        label: t("activity:ACTIVITY_FILTER_WORKSPACE"),
+        type: "custom",
+        operators: [{ value: "is", label: t("common:FILTER_OPERATOR_IS", { defaultValue: "is" }) }],
+        customRenderer: ({ values, onChange }) => {
+          const selectedId = typeof values[0] === "string" && values[0] ? values[0] : undefined;
 
-            <div className="relative">
-              <Input
-                list="activity-event-options"
-                value={eventNameInput}
-                onChange={(event) => {
-                  const v = String(event.target.value || "");
-                  setEventNameInput(v);
-                  setDraft((prev) => ({ ...prev, eventName: v.trim() ? v : undefined }));
-                }}
-                placeholder={t("activity:ACTIVITY_FILTER_EVENT_NAME_PLACEHOLDER")}
-                aria-label={t("activity:ACTIVITY_FILTER_EVENT_NAME")}
-                className="pl-9"
-              />
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-label-secondary" />
-              <datalist id="activity-event-options">
-                {eventNameOptions.map((option) => (
-                  <option key={String(option.value)} value={String(option.value)}>
-                    {String(option.value)}
-                  </option>
-                ))}
-              </datalist>
-            </div>
-          </div>
-
-          {props.scope === "org" ? (
-            <div className="grid grid-cols-1 gap-1.5">
-              <div className="text-footnote text-label-secondary">
-                {t("activity:ACTIVITY_FILTER_WORKSPACE")}
-              </div>
-
+          return (
+            <div className="min-w-[18rem]">
               <DebounceSelect
                 labelInValue
                 value={
-                  draft.workspaceId
-                    ? (workspaceOption ?? { value: draft.workspaceId, label: draft.workspaceId })
+                  selectedId
+                    ? (workspaceOption ?? {
+                        value: selectedId,
+                        label: workspaceLabelById.get(selectedId) ?? selectedId,
+                      })
                     : undefined
                 }
                 allowClear
@@ -191,152 +268,138 @@ export function ActivityFilterPopover(props: {
                 placeholder={t("activity:ACTIVITY_FILTER_WORKSPACE")}
                 emptyText={t("activity:ACTIVITY_FILTER_EMPTY")}
                 fetchOptions={async (search) => {
+                  const needle = trimOrUndefined(search)?.toLowerCase() ?? "";
                   const items = props.workspaceItems ?? [];
-                  const needle = (search || "").trim().toLowerCase();
                   const rows = !needle
                     ? items
-                    : items.filter((w) => {
-                        const hay =
-                          `${w.name || ""} ${w.slug || ""} ${w.workspaceId}`.toLowerCase();
-                        return hay.includes(needle);
+                    : items.filter((item) => {
+                        const haystack =
+                          `${item.name || ""} ${item.slug || ""} ${item.workspaceId}`.toLowerCase();
+                        return haystack.includes(needle);
                       });
 
-                  return rows.slice(0, 20).map((w) => ({
-                    value: w.workspaceId,
-                    label: w.name || w.slug || w.workspaceId,
+                  return rows.slice(0, 20).map((item) => ({
+                    value: item.workspaceId,
+                    label: item.name || item.slug || item.workspaceId,
                   }));
                 }}
                 onChange={(option) => {
-                  const selectedValue = option?.value ?? null;
-                  if (selectedValue) {
+                  if (option) {
                     setWorkspaceOption({
-                      value: String(selectedValue),
-                      label: option?.label ?? String(selectedValue),
+                      value: String(option.value),
+                      label: option.label,
                     });
-                  } else {
-                    setWorkspaceOption(undefined);
+                    onChange([String(option.value)]);
+                    return;
                   }
-
-                  setDraft((prev) => ({
-                    ...prev,
-                    workspaceId: selectedValue ? String(selectedValue) : undefined,
-                    // workspace 变化时，操作者/对象筛选需要重置（避免跨 workspace 误筛）
-                    actorUserId: undefined,
-                    subjectUserId: undefined,
-                  }));
-                  setActorOption(undefined);
-                  setSubjectOption(undefined);
+                  setWorkspaceOption(undefined);
+                  onChange([]);
                 }}
               />
             </div>
-          ) : null}
+          );
+        },
+        customValueRenderer: (values) => {
+          const selectedId = typeof values[0] === "string" && values[0] ? values[0] : undefined;
+          if (!selectedId) return "-";
+          return workspaceOption?.label ?? workspaceLabelById.get(selectedId) ?? selectedId;
+        },
+      });
+    }
 
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("activity:ACTIVITY_FILTER_ACTOR")}
-            </div>
-            <DebounceSelect
-              labelInValue
-              value={
-                draft.actorUserId
-                  ? (actorOption ?? { value: draft.actorUserId, label: draft.actorUserId })
-                  : undefined
-              }
-              allowClear
-              disabled={!canPickActorSubject}
-              placeholder={
-                canPickActorSubject
-                  ? t("activity:ACTIVITY_FILTER_ACTOR")
-                  : t("activity:ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE")
-              }
-              emptyText={t("activity:ACTIVITY_FILTER_EMPTY")}
-              fetchOptions={async (search) => {
-                if (!selectedWorkspaceId) return [];
-                return props.fetchUserOptions(selectedWorkspaceId, search);
-              }}
-              onChange={(option) => {
-                const selectedValue = option?.value ?? null;
-                if (selectedValue) {
-                  setActorOption({
-                    value: String(selectedValue),
-                    label: option?.label ?? String(selectedValue),
-                    avatarUrl: option?.avatarUrl ?? null,
-                  });
-                } else {
-                  setActorOption(undefined);
-                }
-                setDraft((prev) => ({
-                  ...prev,
-                  actorUserId: selectedValue ? String(selectedValue) : undefined,
-                }));
-              }}
-            />
-          </div>
+    next.push(
+      buildUserField({
+        key: "actorUserId",
+        label: t("activity:ACTIVITY_FILTER_ACTOR"),
+        placeholder: t("activity:ACTIVITY_FILTER_ACTOR"),
+        disabledPlaceholder: t("activity:ACTIVITY_FILTER_ACTOR_NEED_WORKSPACE"),
+        emptyText: t("activity:ACTIVITY_FILTER_EMPTY"),
+        option: actorOption,
+        setOption: setActorOption,
+      }),
+      buildUserField({
+        key: "subjectUserId",
+        label: t("activity:ACTIVITY_FILTER_SUBJECT"),
+        placeholder: t("activity:ACTIVITY_FILTER_SUBJECT"),
+        emptyText: t("activity:ACTIVITY_FILTER_EMPTY"),
+        option: subjectOption,
+        setOption: setSubjectOption,
+      }),
+    );
 
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("activity:ACTIVITY_FILTER_SUBJECT")}
-            </div>
-            <DebounceSelect
-              labelInValue
-              value={
-                draft.subjectUserId
-                  ? (subjectOption ?? { value: draft.subjectUserId, label: draft.subjectUserId })
-                  : undefined
-              }
-              allowClear
-              disabled={!canPickActorSubject}
-              placeholder={t("activity:ACTIVITY_FILTER_SUBJECT")}
-              emptyText={t("activity:ACTIVITY_FILTER_EMPTY")}
-              fetchOptions={async (search) => {
-                if (!selectedWorkspaceId) return [];
-                return props.fetchUserOptions(selectedWorkspaceId, search);
-              }}
-              onChange={(option) => {
-                const selectedValue = option?.value ?? null;
-                if (selectedValue) {
-                  setSubjectOption({
-                    value: String(selectedValue),
-                    label: option?.label ?? String(selectedValue),
-                    avatarUrl: option?.avatarUrl ?? null,
-                  });
-                } else {
-                  setSubjectOption(undefined);
-                }
-                setDraft((prev) => ({
-                  ...prev,
-                  subjectUserId: selectedValue ? String(selectedValue) : undefined,
-                }));
-              }}
-            />
-          </div>
-        </div>
+    return next;
+  }, [
+    actorOption,
+    buildUserField,
+    props.scope,
+    props.workspaceItems,
+    props.workspacesLoading,
+    setActorOption,
+    setSubjectOption,
+    subjectOption,
+    t,
+    workspaceLabelById,
+    workspaceOption,
+  ]);
 
-        <div className="mt-4 flex items-center justify-between">
-          <Button
-            onClick={() => {
-              setDraft(props.defaultValue);
-              setEventNameInput(props.defaultValue.eventName ?? "");
-              setWorkspaceOption(undefined);
-              setActorOption(undefined);
-              setSubjectOption(undefined);
-            }}
-          >
-            {t("activity:ACTIVITY_FILTER_RESET")}
+  const handleFiltersChange = React.useCallback(
+    (next: Filter<ActivityFilterValue>[]) => {
+      const nextWorkspaceId = trimOrUndefined(
+        typeof next.find((filter) => filter.field === "workspaceId")?.values[0] === "string"
+          ? (next.find((filter) => filter.field === "workspaceId")?.values[0] as string)
+          : undefined,
+      );
+      const workspaceChanged =
+        props.scope === "org" && nextWorkspaceId !== trimOrUndefined(props.value.workspaceId);
+      const sanitized = workspaceChanged
+        ? next.filter(
+            (filter) => filter.field !== "actorUserId" && filter.field !== "subjectUserId",
+          )
+        : next;
+
+      if (workspaceChanged) {
+        setActorOption(undefined);
+        setSubjectOption(undefined);
+      }
+
+      props.onApply(fromReuiFilters(sanitized));
+    },
+    [props, setActorOption, setSubjectOption],
+  );
+
+  return (
+    <>
+      <Filters
+        filters={filterItems}
+        fields={fields}
+        onChange={handleFiltersChange}
+        i18n={reuiI18n}
+        allowMultiple={false}
+        enableShortcut
+        shortcutKey="f"
+        shortcutLabel="F"
+        trigger={
+          <Button variant="outline">
+            <ListFilterIcon className="size-4" />
+            {t("activity:ACTIVITY_FILTER_TITLE")}
           </Button>
+        }
+      />
 
-          <PopoverClose asChild>
-            <Button
-              variant="default"
-              onClick={() => {
-                props.onApply(normalizeFilters(draft));
-              }}
-            >
-              {t("activity:ACTIVITY_FILTER_DONE")}
-            </Button>
-          </PopoverClose>
-        </div>
-      </PopoverContent>
-    </Popover>
+      {hasOverrides ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            setWorkspaceOption(undefined);
+            setActorOption(undefined);
+            setSubjectOption(undefined);
+            props.onApply(props.defaultValue);
+          }}
+        >
+          <FunnelXIcon className="size-4" />
+          {t("activity:ACTIVITY_FILTER_RESET", { defaultValue: t("common:CLEAR") })}
+        </Button>
+      ) : null}
+    </>
   );
 }

@@ -27,7 +27,7 @@ import {
   resolveDataTableColumnLabel,
   useNormalizedDataTableColumnOrder,
 } from "./data-table-column-settings-utils";
-import type { DataTableDensity } from "./types";
+import { resolveDataTableRowHeight, type DataTableDensity, type DataTableRowHeight } from "./types";
 import { useScrollOverflow } from "./use-scroll-overflow";
 
 type ColumnMeta = { kind?: string };
@@ -52,7 +52,9 @@ type DataTablePresenterProps<TData> = {
   className?: string;
   tableClassName?: string;
   toolbar?: DataTableToolbarSlots;
+  rowHeight?: DataTableRowHeight;
   density?: DataTableDensity;
+  wrapHeaders?: boolean;
   refreshing?: boolean;
   rowClassName?: (
     row: import("@tanstack/react-table").Row<TData>,
@@ -76,7 +78,9 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     className,
     tableClassName,
     toolbar,
-    density = "default",
+    rowHeight,
+    density,
+    wrapHeaders = false,
     refreshing = false,
     rowClassName,
     onRowClick,
@@ -84,12 +88,12 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     cellClassName,
   } = props;
 
+  const resolvedRowHeight = resolveDataTableRowHeight(rowHeight ?? density);
   const hasToolbarRow = Boolean(toolbar?.left || toolbar?.right);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const canScrollRight = useScrollOverflow(scrollRef);
 
-  // Compute total width of right-pinned columns for gradient positioning.
   const rightPinnedWidth = table.getRightLeafColumns().reduce((sum, col) => sum + col.getSize(), 0);
   const hasRightPinned = rightPinnedWidth > 0;
 
@@ -117,16 +121,16 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
       root.querySelector<HTMLElement>(`th[data-column-id="${attr}"]`);
     if (!el) return null;
     const rect = el.getBoundingClientRect();
-    const w = rect.width;
-    return Number.isFinite(w) && w > 0 ? w : null;
+    const width = rect.width;
+    return Number.isFinite(width) && width > 0 ? width : null;
   }, []);
 
   const onHeaderDragStart = useCallback(
-    (e: DragStartEvent) => {
-      const id = String(e.active.id);
+    (event: DragStartEvent) => {
+      const id = String(event.active.id);
       activeHeaderIdRef.current = id;
       initialOrderRef.current = [...normalizedOrder];
-      leafIdsRef.current = table.getAllLeafColumns().map((c) => c.id);
+      leafIdsRef.current = table.getAllLeafColumns().map((column) => column.id);
       lastValidOverHeaderIdRef.current = null;
       setActiveHeaderId(id);
       setActiveOverlayWidth(measureColumnWidth(id));
@@ -135,9 +139,9 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   );
 
   const onHeaderDragEnd = useCallback(
-    (e: DragEndEvent) => {
-      const nextOverId = e.over ? String(e.over.id) : null;
-      const nextActiveId = String(e.active.id);
+    (event: DragEndEvent) => {
+      const nextOverId = event.over ? String(event.over.id) : null;
+      const nextActiveId = String(event.active.id);
 
       const initialOrder = initialOrderRef.current;
       const leafIds = leafIdsRef.current;
@@ -170,7 +174,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
         return;
       }
 
-      const resolvedLeafIds = leafIds ?? table.getAllLeafColumns().map((c) => c.id);
+      const resolvedLeafIds = leafIds ?? table.getAllLeafColumns().map((column) => column.id);
       const normalized = normalizeDataTableColumnOrder(resolvedLeafIds, initialOrder);
       table.setColumnOrder(
         moveDataTableColumnInUnlockedZone(normalized, nextActiveId, resolvedOverId),
@@ -181,9 +185,9 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
 
   const activeHeaderLabel = useMemo(() => {
     if (!activeHeaderId) return null;
-    const col = table.getColumn(activeHeaderId);
-    if (!col) return activeHeaderId;
-    return resolveDataTableColumnLabel({ id: col.id, columnDef: col.columnDef });
+    const column = table.getColumn(activeHeaderId);
+    if (!column) return activeHeaderId;
+    return resolveDataTableColumnLabel({ id: column.id, columnDef: column.columnDef });
   }, [activeHeaderId, table]);
 
   const activeHeaderWidth = useMemo(() => {
@@ -193,8 +197,10 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
 
   const draggableLeafHeaderIds = table
     .getVisibleLeafColumns()
-    .filter((c) => !isLockedColumn({ id: c.id, columnDef: { meta: c.columnDef.meta } }))
-    .map((c) => c.id);
+    .filter(
+      (column) => !isLockedColumn({ id: column.id, columnDef: { meta: column.columnDef.meta } }),
+    )
+    .map((column) => column.id);
 
   const onHeaderHoverChange = useCallback((next: string | null) => {
     setHoveredColumnId(next);
@@ -227,20 +233,16 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
             rightOffset={rightPinnedWidth}
           />
 
-          {/* Render <table> directly — the Table component adds a nested overflow-auto
-              wrapper that would capture scroll events before our scrollRef container. */}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={onHeaderDragStart}
-            onDragOver={(e) => {
-              const nextOverId = e.over ? String(e.over.id) : null;
+            onDragOver={(event) => {
+              const nextOverId = event.over ? String(event.over.id) : null;
               setOverHeaderId(nextOverId);
 
               const nextActiveId = activeHeaderIdRef.current;
-              if (!nextOverId) return;
-              if (!nextActiveId) return;
-              if (nextOverId === nextActiveId) return;
+              if (!nextOverId || !nextActiveId || nextOverId === nextActiveId) return;
               if (isDataTableColumnLocked(nextActiveId) || isDataTableColumnLocked(nextOverId))
                 return;
 
@@ -270,7 +272,8 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               >
                 <DataTablePresenterHeader
                   table={table}
-                  density={density}
+                  rowHeight={resolvedRowHeight}
+                  wrapHeaders={wrapHeaders}
                   headerCellClassName={headerCellClassName}
                   dragging={{ activeId: activeHeaderId, overId: overHeaderId }}
                   hoveredColumnId={hoveredColumnId}
@@ -281,7 +284,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
               <DataTablePresenterBody
                 table={table}
                 emptyText={emptyText}
-                density={density}
+                rowHeight={resolvedRowHeight}
                 activeColumnId={activeHeaderId}
                 overColumnId={overHeaderId}
                 hoveredColumnId={hoveredColumnId}
@@ -299,7 +302,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                 <DataTableColumnDragOverlay
                   table={table}
                   columnId={activeHeaderId ?? ""}
-                  density={density}
+                  rowHeight={resolvedRowHeight}
                   width={activeHeaderWidth}
                 />
               ) : null}

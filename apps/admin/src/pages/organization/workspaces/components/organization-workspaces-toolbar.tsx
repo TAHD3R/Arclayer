@@ -1,90 +1,84 @@
-import type { ReactNode } from "react";
+import type { Table } from "@tanstack/react-table";
 
-import { Search, X } from "@arclayer/ui/icons/lucide-animated";
-
+import { ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 import {
-  ChromeTabs,
-  ChromeTabsBar,
-  ChromeTabsList,
-  ChromeTabsTrigger,
-} from "@arclayer/ui/chrome-tabs";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@arclayer/ui/input-group";
+  DataTableToolbarTools,
+  type DataTableRowHeight,
+  type DataTableToolsLabels,
+} from "@arclayer/ui/data-table";
 
-import type { OrganizationWorkspacesTab, OrganizationWorkspacesTranslateFn } from "../types";
+import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
+import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
+
+import type { OrganizationWorkspacesTranslateFn, OrganizationWorkspacesViewMode } from "../types";
+import { WorkspacesViewModeToggle } from "./workspaces-view-mode-toggle";
 
 interface OrganizationWorkspacesToolbarProps {
   t: OrganizationWorkspacesTranslateFn;
-  tab: OrganizationWorkspacesTab;
-  onTabChange: (nextTab: OrganizationWorkspacesTab) => void;
+  table: Table<any>;
   searchInput: string;
   onSearchInputChange: (nextValue: string) => void;
-  showSearchInput?: boolean;
-  children: ReactNode;
+  viewMode: OrganizationWorkspacesViewMode;
+  onViewModeChange: (nextMode: OrganizationWorkspacesViewMode) => void;
+  rowHeight: DataTableRowHeight;
+  onRowHeightChange: (next: DataTableRowHeight) => void;
+  wrapHeaders: boolean;
+  onWrapHeadersChange: (next: boolean) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+  onResetColumnVisibility?: () => void;
+  labels: DataTableToolsLabels;
 }
 
 export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolbarProps) {
-  const {
-    t,
-    tab,
-    onTabChange,
-    searchInput,
-    onSearchInputChange,
-    showSearchInput = true,
-    children,
-  } = props;
-
   return (
-    <ChromeTabs
-      value={tab}
-      onValueChange={(value) => onTabChange(value === "archived" ? "archived" : "active")}
-    >
-      <ChromeTabsBar
-        className="flex-wrap gap-y-2"
-        left={
-          <ChromeTabsList>
+    <PageExtraToolbar
+      leading={
+        <>
+          <ChromeTabsList className="w-auto">
             <ChromeTabsTrigger value="active">
-              {t("common:ORG_WORKSPACES_TAB_ACTIVE")}
+              {props.t("common:ORG_WORKSPACES_TAB_ACTIVE")}
             </ChromeTabsTrigger>
             <ChromeTabsTrigger value="archived">
-              {t("common:ORG_WORKSPACES_TAB_ARCHIVED")}
+              {props.t("common:ORG_WORKSPACES_TAB_ARCHIVED")}
             </ChromeTabsTrigger>
           </ChromeTabsList>
-        }
-        right={
-          <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
-            {showSearchInput ? (
-              <InputGroup className="w-[240px] sm:w-[280px] md:w-[320px]">
-                <InputGroupAddon>
-                  <Search className="size-4 text-label-secondary" />
-                </InputGroupAddon>
-                <InputGroupInput
-                  value={searchInput}
-                  onChange={(event) => onSearchInputChange(event.target.value)}
-                  placeholder={t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
-                />
-                {searchInput ? (
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupButton
-                      aria-label={t("common:CLEAR")}
-                      size="icon-xs"
-                      onClick={() => onSearchInputChange("")}
-                    >
-                      <X className="size-3.5" />
-                    </InputGroupButton>
-                  </InputGroupAddon>
-                ) : null}
-              </InputGroup>
-            ) : null}
-          </div>
-        }
-      />
 
-      {children}
-    </ChromeTabs>
+          <DataTableSearchInput
+            value={props.searchInput}
+            onChange={props.onSearchInputChange}
+            placeholder={props.t("common:ORG_WORKSPACES_SEARCH_PLACEHOLDER")}
+            clearLabel={props.t("common:CLEAR")}
+          />
+        </>
+      }
+      trailing={
+        <>
+          <WorkspacesViewModeToggle
+            t={props.t}
+            value={props.viewMode}
+            onChange={props.onViewModeChange}
+          />
+
+          {props.viewMode === "table" ? (
+            <DataTableToolbarTools
+              table={props.table}
+              rowHeight={props.rowHeight}
+              onRowHeightChange={props.onRowHeightChange}
+              wrapHeaders={props.wrapHeaders}
+              onWrapHeadersChange={props.onWrapHeadersChange}
+              onRefresh={props.onRefresh}
+              refreshing={props.refreshing}
+              onResetColumnVisibility={props.onResetColumnVisibility}
+              labels={props.labels}
+              components={{ IconButton: DataTableToolbarAntdIconButton }}
+            />
+          ) : null}
+        </>
+      }
+      leadingClassName="items-start"
+      trailingClassName="justify-end"
+    />
   );
 }

@@ -135,32 +135,33 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
   );
 
   return (
-    <DefaultPage
-      title={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
-      description={t("settings:SETTINGS_SITE_SETTINGS_DESC")}
+    <ChromeTabs
+      value={activeTab}
+      onValueChange={(next) => {
+        handleTabChange(next as GeneralSettingsTabKey);
+      }}
     >
-      <ContentGuard
-        loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}
-        loadingVariant="form"
-        error={loadError}
-        onRetry={loadError ? () => void workspaceCoreQuery.refetch() : undefined}
+      <DefaultPage
+        title={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
+        description={t("settings:SETTINGS_SITE_SETTINGS_DESC")}
+        extra={
+          <ChromeTabsList>
+            <ChromeTabsTrigger value="basics">
+              {t("settings:SETTINGS_SITE_SETTINGS_TAB_BASICS")}
+            </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="localization">
+              {t("settings:SETTINGS_SITE_SETTINGS_TAB_LOCALIZATION")}
+            </ChromeTabsTrigger>
+          </ChromeTabsList>
+        }
       >
-        <Form {...form}>
-          <ChromeTabs
-            value={activeTab}
-            onValueChange={(next) => {
-              handleTabChange(next as GeneralSettingsTabKey);
-            }}
-          >
-            <ChromeTabsList>
-              <ChromeTabsTrigger value="basics">
-                {t("settings:SETTINGS_SITE_SETTINGS_TAB_BASICS")}
-              </ChromeTabsTrigger>
-              <ChromeTabsTrigger value="localization">
-                {t("settings:SETTINGS_SITE_SETTINGS_TAB_LOCALIZATION")}
-              </ChromeTabsTrigger>
-            </ChromeTabsList>
-
+        <ContentGuard
+          loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}
+          loadingVariant="form"
+          error={loadError}
+          onRetry={loadError ? () => void workspaceCoreQuery.refetch() : undefined}
+        >
+          <Form {...form}>
             <ChromeTabsContent value="basics">
               <SiteSettingsTab
                 form={form}
@@ -182,9 +183,9 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
                 patch={patchWorkspace}
               />
             </ChromeTabsContent>
-          </ChromeTabs>
-        </Form>
-      </ContentGuard>
-    </DefaultPage>
+          </Form>
+        </ContentGuard>
+      </DefaultPage>
+    </ChromeTabs>
   );
 }

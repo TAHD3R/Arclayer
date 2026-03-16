@@ -6,24 +6,28 @@ import { useTranslation } from "react-i18next";
 
 import { type OrganizationWorkspace } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { Button } from "@arclayer/ui/button";
-import { ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
+import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
+import {
+  useDataTableRowHeightPreference,
+  useDataTableWrapHeadersPreference,
+} from "@arclayer/ui/data-table";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import {
   OrganizationWorkspacesDialogs,
   type CreateWorkspaceFormValues,
 } from "@/pages/organization/workspaces/components/organization-workspaces-dialogs";
 import { OrganizationWorkspacesToolbar } from "@/pages/organization/workspaces/components/organization-workspaces-toolbar";
+import { WorkspacesContentSection } from "@/pages/organization/workspaces/components/workspaces-table-section";
+import { useOrganizationWorkspacesColumns } from "@/pages/organization/workspaces/components/workspaces-columns";
+import { useOrganizationWorkspacesMutations } from "@/pages/organization/workspaces/hooks/use-organization-workspaces-mutations";
+import { useOrganizationWorkspacesTables } from "@/pages/organization/workspaces/hooks/use-organization-workspaces-tables";
 import type {
   OrganizationWorkspacesTab,
   OrganizationWorkspacesViewMode,
   WorkspaceMenuItem,
 } from "@/pages/organization/workspaces/types";
-import { useOrganizationWorkspacesColumns } from "@/pages/organization/workspaces/components/workspaces-columns";
-import { useOrganizationWorkspacesMutations } from "@/pages/organization/workspaces/hooks/use-organization-workspaces-mutations";
-import { useOrganizationWorkspacesTables } from "@/pages/organization/workspaces/hooks/use-organization-workspaces-tables";
-import { WorkspacesContentSection } from "@/pages/organization/workspaces/components/workspaces-table-section";
-import { WorkspacesViewModeToggle } from "@/pages/organization/workspaces/components/workspaces-view-mode-toggle";
 
 export function AccountWorkspacesPage() {
   const { create } = useSearch({ from: "/account/workspaces/" });
@@ -144,18 +148,48 @@ export function AccountWorkspacesPage() {
       organizationId: undefined,
       columns,
     });
-  const currentTableHook = tab === "active" ? activeTableHook : archivedTableHook;
+  const toolsLabels = buildDataTableToolsLabels(t);
+  const [activeRowHeight, setActiveRowHeight] = useDataTableRowHeightPreference({
+    tableId: activeTableId,
+  });
+  const [activeWrapHeaders, setActiveWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: activeTableId,
+  });
+  const [archivedRowHeight, setArchivedRowHeight] = useDataTableRowHeightPreference({
+    tableId: archivedTableId,
+  });
+  const [archivedWrapHeaders, setArchivedWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: archivedTableId,
+  });
+  const currentTableConfig =
+    tab === "active"
+      ? {
+          tableHook: activeTableHook,
+          rowHeight: activeRowHeight,
+          setRowHeight: setActiveRowHeight,
+          wrapHeaders: activeWrapHeaders,
+          setWrapHeaders: setActiveWrapHeaders,
+        }
+      : {
+          tableHook: archivedTableHook,
+          rowHeight: archivedRowHeight,
+          setRowHeight: setArchivedRowHeight,
+          wrapHeaders: archivedWrapHeaders,
+          setWrapHeaders: setArchivedWrapHeaders,
+        };
   const deleteConfirmMatches = deleteConfirmName.trim() === (confirmDelete?.name || "");
 
   return (
-    <DefaultPage
-      title={t("account:ACCOUNT_PAGE_WORKSPACES_TITLE")}
-      description={t("account:ACCOUNT_PAGE_WORKSPACES_DESC")}
-      contentClassName="min-h-0"
-      showFavoriteToggle={false}
-      action={
-        <div className="flex items-center gap-2">
-          <WorkspacesViewModeToggle t={t} value={viewMode} onChange={setViewMode} />
+    <ChromeTabs
+      value={tab}
+      onValueChange={(value) => setTab(value === "archived" ? "archived" : "active")}
+    >
+      <DefaultPage
+        title={t("account:ACCOUNT_PAGE_WORKSPACES_TITLE")}
+        description={t("account:ACCOUNT_PAGE_WORKSPACES_DESC")}
+        contentClassName="min-h-0 flex flex-col"
+        showFavoriteToggle={false}
+        action={
           <Button
             variant="default"
             onClick={() => {
@@ -165,20 +199,28 @@ export function AccountWorkspacesPage() {
             <Plus size={16} />
             {t("common:ORG_WORKSPACES_CREATE")}
           </Button>
-        </div>
-      }
-    >
-      <OrganizationWorkspacesToolbar
-        t={t}
-        tab={tab}
-        onTabChange={setTab}
-        searchInput={currentTableHook.searchInput}
-        onSearchInputChange={currentTableHook.setSearchInput}
-        showSearchInput={viewMode === "card"}
+        }
+        extra={
+          <OrganizationWorkspacesToolbar
+            t={t}
+            table={currentTableConfig.tableHook.table}
+            searchInput={currentTableConfig.tableHook.searchInput}
+            onSearchInputChange={currentTableConfig.tableHook.setSearchInput}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            rowHeight={currentTableConfig.rowHeight}
+            onRowHeightChange={currentTableConfig.setRowHeight}
+            wrapHeaders={currentTableConfig.wrapHeaders}
+            onWrapHeadersChange={currentTableConfig.setWrapHeaders}
+            onRefresh={() => void currentTableConfig.tableHook.refetch()}
+            refreshing={currentTableConfig.tableHook.isFetching}
+            onResetColumnVisibility={currentTableConfig.tableHook.resetColumnVisibility}
+            labels={toolsLabels}
+          />
+        }
       >
-        <ChromeTabsContent value="active">
+        <ChromeTabsContent value="active" className="min-h-0 flex-1">
           <WorkspacesContentSection
-            tableId={activeTableId}
             viewMode={viewMode}
             tableHook={activeTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
@@ -186,6 +228,8 @@ export function AccountWorkspacesPage() {
             onRetry={() => void activeTableHook.refetch()}
             onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
             t={t}
+            rowHeight={activeRowHeight}
+            wrapHeaders={activeWrapHeaders}
             organizationId={undefined}
             archived={false}
             searchInput={activeTableHook.searchInput}
@@ -194,22 +238,23 @@ export function AccountWorkspacesPage() {
           />
         </ChromeTabsContent>
 
-        <ChromeTabsContent value="archived">
+        <ChromeTabsContent value="archived" className="min-h-0 flex-1">
           <WorkspacesContentSection
-            tableId={archivedTableId}
             viewMode={viewMode}
             tableHook={archivedTableHook}
             emptyTitle={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}
             emptyDescription={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC")}
             onRetry={() => void archivedTableHook.refetch()}
             t={t}
+            rowHeight={archivedRowHeight}
+            wrapHeaders={archivedWrapHeaders}
             organizationId={undefined}
-            archived={true}
+            archived
             searchInput={archivedTableHook.searchInput}
             buildMenuItems={buildCardMenuItems}
           />
         </ChromeTabsContent>
-      </OrganizationWorkspacesToolbar>
+      </DefaultPage>
 
       <OrganizationWorkspacesDialogs
         t={t}
@@ -243,6 +288,6 @@ export function AccountWorkspacesPage() {
           },
         }}
       />
-    </DefaultPage>
+    </ChromeTabs>
   );
 }

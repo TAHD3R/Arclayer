@@ -1,20 +1,20 @@
 import type { VisibilityState } from "@tanstack/react-table";
 
-import type { DataTableDensity } from "./types";
+import {
+  isDataTableDensity,
+  isDataTableRowHeight,
+  resolveDataTableRowHeight,
+  type DataTableDensity,
+  type DataTableRowHeight,
+} from "./types";
 
 const DEFAULT_VISIBILITY_KEY_PREFIX = "arclayer:admin:dataTable:visibility";
 const DEFAULT_VISIBILITY_VERSION = "v1";
 
 const DEFAULT_PREFERENCES_KEY_PREFIX = "arclayer:admin:dataTable:preferences";
-const DEFAULT_PREFERENCES_VERSION = "v1";
+const DEFAULT_PREFERENCES_VERSION = "v2";
 
 export type DataTableVisibilityStorageOptions = {
-  /**
-   * Storage key prefix.
-   *
-   * Defaults to the Admin-compatible prefix so existing persisted visibility state remains stable.
-   * Other apps should override this (e.g. `arclayer:studio:dataTable:visibility`).
-   */
   keyPrefix?: string;
   version?: string;
 };
@@ -29,12 +29,6 @@ function resolveVisibilityOptions(
 }
 
 export type DataTablePreferencesStorageOptions = {
-  /**
-   * Storage key prefix.
-   *
-   * Defaults to the Admin-compatible prefix.
-   * Other apps should override this (e.g. `arclayer:studio:dataTable:preferences`).
-   */
   keyPrefix?: string;
   version?: string;
 };
@@ -42,11 +36,15 @@ export type DataTablePreferencesStorageOptions = {
 export type DataTablePreferencesState = {
   columnOrder?: string[];
   density?: DataTableDensity;
+  rowHeight?: DataTableRowHeight;
+  wrapHeaders?: boolean;
 };
 
 export type DataTablePreferencesPatch = {
   columnOrder?: string[] | null;
   density?: DataTableDensity | null;
+  rowHeight?: DataTableRowHeight | null;
+  wrapHeaders?: boolean | null;
 };
 
 function resolvePreferencesOptions(
@@ -116,10 +114,6 @@ export function clearVisibilityState(
   }
 }
 
-function isDensity(value: unknown): value is DataTableDensity {
-  return value === "compact" || value === "default" || value === "relaxed";
-}
-
 function normalizePreferencesState(input: unknown): DataTablePreferencesState | null {
   if (!input || typeof input !== "object") return null;
   const obj = input as Record<string, unknown>;
@@ -128,12 +122,23 @@ function normalizePreferencesState(input: unknown): DataTablePreferencesState | 
     ? obj.columnOrder.filter((x) => typeof x === "string" && x.trim()).map((x) => String(x))
     : undefined;
 
-  const density = isDensity(obj.density) ? obj.density : undefined;
+  const density = isDataTableDensity(obj.density) ? obj.density : undefined;
+  const rowHeight = isDataTableRowHeight(obj.rowHeight)
+    ? obj.rowHeight
+    : density
+      ? resolveDataTableRowHeight(density)
+      : undefined;
+  const wrapHeaders = typeof obj.wrapHeaders === "boolean" ? obj.wrapHeaders : undefined;
 
-  if (!columnOrder?.length && !density) return null;
+  if (!columnOrder?.length && !density && !rowHeight && typeof wrapHeaders === "undefined") {
+    return null;
+  }
+
   return {
     ...(columnOrder?.length ? { columnOrder } : {}),
     ...(density ? { density } : {}),
+    ...(rowHeight ? { rowHeight } : {}),
+    ...(typeof wrapHeaders === "boolean" ? { wrapHeaders } : {}),
   };
 }
 
@@ -189,6 +194,8 @@ export function updatePreferencesState(
   const merged: DataTablePreferencesState = {
     ...(prev?.columnOrder ? { columnOrder: prev.columnOrder } : {}),
     ...(prev?.density ? { density: prev.density } : {}),
+    ...(prev?.rowHeight ? { rowHeight: prev.rowHeight } : {}),
+    ...(typeof prev?.wrapHeaders === "boolean" ? { wrapHeaders: prev.wrapHeaders } : {}),
   };
 
   if (patch.columnOrder === null) delete merged.columnOrder;
@@ -197,7 +204,18 @@ export function updatePreferencesState(
   if (patch.density === null) delete merged.density;
   else if (patch.density !== undefined) merged.density = patch.density;
 
-  if (!merged.columnOrder?.length && !merged.density) {
+  if (patch.rowHeight === null) delete merged.rowHeight;
+  else if (patch.rowHeight !== undefined) merged.rowHeight = patch.rowHeight;
+
+  if (patch.wrapHeaders === null) delete merged.wrapHeaders;
+  else if (patch.wrapHeaders !== undefined) merged.wrapHeaders = patch.wrapHeaders;
+
+  if (
+    !merged.columnOrder?.length &&
+    !merged.density &&
+    !merged.rowHeight &&
+    typeof merged.wrapHeaders === "undefined"
+  ) {
     clearPreferencesState(tableId, options);
     return;
   }

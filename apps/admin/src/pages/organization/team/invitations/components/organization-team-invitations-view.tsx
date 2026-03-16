@@ -1,13 +1,14 @@
 import { Plus } from "@arclayer/ui/icons/lucide-animated";
 
 import { DefaultPage } from "@/components/common/default-page";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { Button } from "@arclayer/ui/button";
+import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 import {
-  ChromeTabs,
-  ChromeTabsContent,
-  ChromeTabsList,
-  ChromeTabsTrigger,
-} from "@arclayer/ui/chrome-tabs";
+  useDataTableRowHeightPreference,
+  useDataTableWrapHeadersPreference,
+} from "@arclayer/ui/data-table";
+import { TeamInvitationsPageExtra } from "@/pages/_shared/team/components/team-invitations-page-extra";
 import {
   InviteOrganizationMemberDialog,
   type InviteOrganizationMemberFormValues,
@@ -58,44 +59,102 @@ export function OrganizationTeamInvitationsView() {
     disableLinkPending,
     disableLinkById,
   } = useOrganizationTeamInvitations();
+  const toolsLabels = buildDataTableToolsLabels(t);
+  const [pendingRowHeight, setPendingRowHeight] = useDataTableRowHeightPreference({
+    tableId: "organization-invitations:pending",
+  });
+  const [pendingWrapHeaders, setPendingWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: "organization-invitations:pending",
+  });
+  const [processedRowHeight, setProcessedRowHeight] = useDataTableRowHeightPreference({
+    tableId: "organization-invitations:processed",
+  });
+  const [processedWrapHeaders, setProcessedWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: "organization-invitations:processed",
+  });
+  const [linksRowHeight, setLinksRowHeight] = useDataTableRowHeightPreference({
+    tableId: "organization-invite-links",
+  });
+  const [linksWrapHeaders, setLinksWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: "organization-invite-links",
+  });
+
+  const activeTableConfig =
+    tab === "pending"
+      ? {
+          tableHook: pendingTable,
+          placeholder: t("team:TEAM_INVITATIONS_SEARCH_PLACEHOLDER"),
+          rowHeight: pendingRowHeight,
+          setRowHeight: setPendingRowHeight,
+          wrapHeaders: pendingWrapHeaders,
+          setWrapHeaders: setPendingWrapHeaders,
+        }
+      : tab === "processed"
+        ? {
+            tableHook: processedTable,
+            placeholder: t("team:TEAM_INVITATIONS_SEARCH_PLACEHOLDER"),
+            rowHeight: processedRowHeight,
+            setRowHeight: setProcessedRowHeight,
+            wrapHeaders: processedWrapHeaders,
+            setWrapHeaders: setProcessedWrapHeaders,
+          }
+        : {
+            tableHook: linksTable,
+            placeholder: t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER"),
+            rowHeight: linksRowHeight,
+            setRowHeight: setLinksRowHeight,
+            wrapHeaders: linksWrapHeaders,
+            setWrapHeaders: setLinksWrapHeaders,
+          };
 
   return (
-    <DefaultPage
-      title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
-      description={t("common:ORG_INVITATIONS_DESC")}
-      action={
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => setLinkCreateOpen(true)}>
-            {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
-          </Button>
-          <Button onClick={() => setInviteOpen(true)}>
-            <Plus size={16} />
-            {t("common:ORG_MEMBERS_INVITE")}
-          </Button>
-        </div>
-      }
-      contentClassName="min-h-0 flex flex-col"
-    >
-      <ChromeTabs value={tab} onValueChange={(next) => setTab(next as OrgInvitationsTab)}>
-        <ChromeTabsList className="w-auto">
-          <ChromeTabsTrigger value="pending">
-            {t("team:TEAM_INVITATION_TAB_PENDING")}
-          </ChromeTabsTrigger>
-          <ChromeTabsTrigger value="processed">
-            {t("team:TEAM_INVITATION_TAB_PROCESSED")}
-          </ChromeTabsTrigger>
-          <ChromeTabsTrigger value="links">{t("team:TEAM_INVITATION_TAB_LINKS")}</ChromeTabsTrigger>
-        </ChromeTabsList>
-
+    <ChromeTabs value={tab} onValueChange={(next) => setTab(next as OrgInvitationsTab)}>
+      <DefaultPage
+        title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
+        description={t("common:ORG_INVITATIONS_DESC")}
+        action={
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => setLinkCreateOpen(true)}>
+              {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
+            </Button>
+            <Button onClick={() => setInviteOpen(true)}>
+              <Plus size={16} />
+              {t("common:ORG_MEMBERS_INVITE")}
+            </Button>
+          </div>
+        }
+        contentClassName="min-h-0 flex flex-col"
+        extra={
+          <TeamInvitationsPageExtra
+            tabs={[
+              { value: "pending", label: t("team:TEAM_INVITATION_TAB_PENDING") },
+              { value: "processed", label: t("team:TEAM_INVITATION_TAB_PROCESSED") },
+              { value: "links", label: t("team:TEAM_INVITATION_TAB_LINKS") },
+            ]}
+            table={activeTableConfig.tableHook.table}
+            searchInput={activeTableConfig.tableHook.searchInput}
+            onSearchInputChange={activeTableConfig.tableHook.setSearchInput}
+            searchPlaceholder={activeTableConfig.placeholder}
+            clearLabel={t("common:CLEAR")}
+            rowHeight={activeTableConfig.rowHeight}
+            onRowHeightChange={activeTableConfig.setRowHeight}
+            wrapHeaders={activeTableConfig.wrapHeaders}
+            onWrapHeadersChange={activeTableConfig.setWrapHeaders}
+            onRefresh={() => void activeTableConfig.tableHook.refetch()}
+            refreshing={activeTableConfig.tableHook.isFetching}
+            onResetColumnVisibility={activeTableConfig.tableHook.resetColumnVisibility}
+            labels={toolsLabels}
+          />
+        }
+      >
         <ChromeTabsContent value="pending" className="min-h-0 flex-1">
           <TeamInvitationsTableSection
             t={t}
             tableHook={pendingTable}
-            tableId="organization-invitations:pending"
-            placeholder={t("team:TEAM_INVITATIONS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("common:EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
-            showSearch
+            rowHeight={pendingRowHeight}
+            wrapHeaders={pendingWrapHeaders}
           />
         </ChromeTabsContent>
 
@@ -103,11 +162,10 @@ export function OrganizationTeamInvitationsView() {
           <TeamInvitationsTableSection
             t={t}
             tableHook={processedTable}
-            tableId="organization-invitations:processed"
-            placeholder={t("team:TEAM_INVITATIONS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("common:EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
-            showSearch
+            rowHeight={processedRowHeight}
+            wrapHeaders={processedWrapHeaders}
           />
         </ChromeTabsContent>
 
@@ -115,14 +173,13 @@ export function OrganizationTeamInvitationsView() {
           <TeamInvitationsTableSection
             t={t}
             tableHook={linksTable}
-            tableId="organization-invite-links"
-            placeholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("common:EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}
-            showSearch
+            rowHeight={linksRowHeight}
+            wrapHeaders={linksWrapHeaders}
           />
         </ChromeTabsContent>
-      </ChromeTabs>
+      </DefaultPage>
 
       <InviteOrganizationMemberDialog
         open={inviteOpen}
@@ -162,6 +219,6 @@ export function OrganizationTeamInvitationsView() {
         disableLinkPending={disableLinkPending}
         onDisableLink={disableLinkById}
       />
-    </DefaultPage>
+    </ChromeTabs>
   );
 }

@@ -1,22 +1,77 @@
-import { Filter } from "lucide-react";
 import { useMemo } from "react";
+import { CalendarRangeIcon, FunnelXIcon, ListFilterIcon, EyeIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
-import { Button } from "@arclayer/ui/button";
-import { Checkbox } from "@arclayer/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import type { AdminAssetTag } from "@/types/api";
+import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
+import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
+import { Button } from "@arclayer/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import {
+  Filters,
+  createFilter,
+  type Filter,
+  type FilterFieldConfig,
+} from "@/components/reui/filters";
+
 export type AssetsFilters = {
   mimePrefix?: string;
   visibility?: string;
   createdFrom?: string;
   createdTo?: string;
   tagIds?: string[];
-
-  // Reserved for future backend filtering dimensions.
 };
+
+type AssetFilterValue = string;
+
+const FILTER_OPERATORS = [{ value: "is", labelKey: "common:FILTER_OPERATOR_IS" }] as const;
+
+function toReuiFilters(value: AssetsFilters): Filter<AssetFilterValue>[] {
+  const next: Filter<AssetFilterValue>[] = [];
+
+  if (value.visibility) {
+    next.push(createFilter("visibility", "is", [value.visibility]));
+  }
+  if (value.tagIds?.length) {
+    next.push(createFilter("tagIds", "is_any_of", value.tagIds));
+  }
+  if (value.createdFrom || value.createdTo) {
+    next.push(createFilter("createdAt", "is", [value.createdFrom ?? "", value.createdTo ?? ""]));
+  }
+
+  return next;
+}
+
+function fromReuiFilters(filters: Filter<AssetFilterValue>[]): AssetsFilters {
+  const next: AssetsFilters = {};
+
+  for (const filter of filters) {
+    if (filter.field === "visibility") {
+      const first = filter.values[0];
+      if (typeof first === "string" && first) next.visibility = first;
+      continue;
+    }
+
+    if (filter.field === "tagIds") {
+      next.tagIds = filter.values.filter((value): value is string => typeof value === "string");
+      continue;
+    }
+
+    if (filter.field === "createdAt") {
+      const [createdFrom, createdTo] = filter.values;
+      next.createdFrom = typeof createdFrom === "string" && createdFrom ? createdFrom : undefined;
+      next.createdTo = typeof createdTo === "string" && createdTo ? createdTo : undefined;
+    }
+  }
+
+  return next;
+}
+
+function formatDateRange(values: AssetFilterValue[]): string {
+  const [createdFrom, createdTo] = values;
+  const parts = [createdFrom, createdTo].filter(Boolean);
+  return parts.length ? parts.join(" - ") : "-";
+}
 
 export function AssetsFilterPopover(props: {
   value: AssetsFilters;
@@ -29,15 +84,6 @@ export function AssetsFilterPopover(props: {
 }) {
   const { t } = useTranslation();
 
-  const visibilityOptions = useMemo(
-    () => [
-      { label: t("assets:ASSET_FILTER_VISIBILITY_ALL"), value: "all" },
-      { label: t("assets:ASSET_FILTER_VISIBILITY_PUBLIC"), value: "public" },
-      { label: t("assets:ASSET_FILTER_VISIBILITY_PRIVATE"), value: "private" },
-      { label: t("assets:ASSET_FILTER_VISIBILITY_SHARED"), value: "shared" },
-    ],
-    [t],
-  );
   const orderingOptions = useMemo(
     () => [
       { label: t("assets:ASSET_SORT_NEWEST"), value: "-created_at" },
@@ -47,144 +93,124 @@ export function AssetsFilterPopover(props: {
     ],
     [t],
   );
-
-  const selectedTagIds = props.value.tagIds ?? [];
-
-  const toggleTag = (tagId: string) => {
-    const nextTagIds = selectedTagIds.includes(tagId)
-      ? selectedTagIds.filter((value) => value !== tagId)
-      : [...selectedTagIds, tagId];
-    props.onChange({ ...props.value, tagIds: nextTagIds });
-  };
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" title={t("assets:ASSET_FILTER_TITLE")}>
-          <Filter size={18} />
-          {t("assets:ASSET_FILTER_TITLE")}
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent align="end" sideOffset={8} className="w-90 p-3">
-        <div className="font-bold">{t("assets:ASSET_FILTER_TITLE")}</div>
-        <div className="mt-3 grid grid-cols-1 gap-3">
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("assets:ASSET_FILTER_FIELD_SORT")}
-            </div>
-            <Select value={props.ordering} onValueChange={props.onOrderingChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start" position="popper">
-                {orderingOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("assets:ASSET_FILTER_FIELD_VISIBILITY")}
-            </div>
-            <Select
-              value={props.value.visibility ?? "all"}
-              onValueChange={(value) =>
-                props.onChange({
-                  ...props.value,
-                  visibility: value === "all" ? undefined : value,
-                })
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start" position="popper">
-                {visibilityOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
-            </div>
+  const filterItems = useMemo(() => toReuiFilters(props.value), [props.value]);
+  const reuiI18n = useMemo(() => buildReuiFilterI18n(t, t("assets:ASSET_FILTER_TITLE")), [t]);
+  const fields = useMemo<FilterFieldConfig<AssetFilterValue>[]>(
+    () => [
+      {
+        key: "visibility",
+        label: t("assets:ASSET_FILTER_FIELD_VISIBILITY"),
+        type: "select",
+        icon: <EyeIcon className="size-4" />,
+        searchable: false,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey, { defaultValue: "is" }),
+        })),
+        options: [
+          {
+            value: "public",
+            label: t("assets:ASSET_FILTER_VISIBILITY_PUBLIC"),
+          },
+          {
+            value: "private",
+            label: t("assets:ASSET_FILTER_VISIBILITY_PRIVATE"),
+          },
+          {
+            value: "shared",
+            label: t("assets:ASSET_FILTER_VISIBILITY_SHARED"),
+          },
+        ],
+      },
+      {
+        key: "createdAt",
+        label: t("assets:ASSET_FILTER_FIELD_CREATED_AT"),
+        type: "custom",
+        icon: <CalendarRangeIcon className="size-4" />,
+        operators: FILTER_OPERATORS.map((operator) => ({
+          value: operator.value,
+          label: t(operator.labelKey, { defaultValue: "is" }),
+        })),
+        customRenderer: ({ values, onChange }) => (
+          <div className="min-w-[18rem]">
             <DateTimeRangeField
-              startValue={props.value.createdFrom}
-              endValue={props.value.createdTo}
+              startValue={values[0] || undefined}
+              endValue={values[1] || undefined}
               startAriaLabel={t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
               endAriaLabel={t("assets:ASSET_FILTER_FIELD_CREATED_AT")}
               startPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_START")}
               endPlaceholder={t("activity:ACTIVITY_FILTER_RANGE_END")}
-              onChange={({ startValue, endValue }) =>
-                props.onChange({
-                  ...props.value,
-                  createdFrom: startValue,
-                  createdTo: endValue,
-                })
-              }
+              onChange={({ startValue, endValue }) => onChange([startValue ?? "", endValue ?? ""])}
             />
           </div>
+        ),
+        customValueRenderer: (values) => formatDateRange(values),
+      },
+      {
+        key: "tagIds",
+        label: t("assets:ASSET_FILTER_FIELD_TAGS"),
+        type: "multiselect",
+        searchable: true,
+        options: props.tags.map((tag) => ({
+          value: tag.id,
+          label: tag.name,
+        })),
+      },
+    ],
+    [props.tags, t],
+  );
+  const hasOverrides =
+    filterItems.length > 0 || props.ordering !== (props.defaultOrdering ?? "-created_at");
 
-          <div className="grid grid-cols-1 gap-1.5">
-            <div className="text-footnote text-label-secondary">
-              {t("assets:ASSET_FILTER_FIELD_TAGS")}
-            </div>
-            <div className="max-h-44 overflow-auto rounded-md border border-border/60">
-              {props.tagsLoading ? (
-                <div className="px-3 py-2 text-footnote text-label-secondary">
-                  {t("common:LOADING")}
-                </div>
-              ) : props.tags.length > 0 ? (
-                props.tags.map((tag) => {
-                  const checked = selectedTagIds.includes(tag.id);
-                  return (
-                    <label
-                      key={tag.id}
-                      className="flex cursor-pointer items-center gap-3 border-b border-border/60 px-3 py-2 last:border-b-0"
-                    >
-                      <Checkbox checked={checked} onCheckedChange={() => toggleTag(tag.id)} />
-                      <span className="min-w-0 flex-1 truncate text-footnote">{tag.name}</span>
-                    </label>
-                  );
-                })
-              ) : (
-                <div className="px-3 py-2 text-footnote text-label-secondary">
-                  {t("assets:ASSET_FILTER_TAGS_PLACEHOLDER")}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+  return (
+    <>
+      <Select value={props.ordering} onValueChange={props.onOrderingChange}>
+        <SelectTrigger className="w-[12rem] min-w-[12rem]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end" position="popper">
+          {orderingOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        <div className="mt-4 flex items-center justify-between">
-          <Button
-            onClick={() => {
-              props.onChange({
-                visibility: undefined,
-                createdFrom: undefined,
-                createdTo: undefined,
-                tagIds: [],
-              });
-              props.onOrderingChange(props.defaultOrdering ?? "-created_at");
-            }}
-          >
-            {t("assets:ASSET_FILTER_RESET")}
+      <Filters
+        filters={filterItems}
+        fields={fields}
+        onChange={(next) => props.onChange(fromReuiFilters(next))}
+        i18n={reuiI18n}
+        allowMultiple={false}
+        enableShortcut
+        shortcutKey="f"
+        shortcutLabel="F"
+        trigger={
+          <Button variant="outline" disabled={props.tagsLoading && props.tags.length === 0}>
+            <ListFilterIcon className="size-4" />
+            {t("assets:ASSET_FILTER_TITLE")}
           </Button>
+        }
+      />
 
-          <PopoverClose asChild>
-            <Button variant="default">{t("assets:ASSET_FILTER_DONE")}</Button>
-          </PopoverClose>
-        </div>
-      </PopoverContent>
-    </Popover>
+      {hasOverrides ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            props.onChange({
+              visibility: undefined,
+              createdFrom: undefined,
+              createdTo: undefined,
+              tagIds: [],
+            });
+            props.onOrderingChange(props.defaultOrdering ?? "-created_at");
+          }}
+        >
+          <FunnelXIcon className="size-4" />
+          {t("assets:ASSET_FILTER_RESET")}
+        </Button>
+      ) : null}
+    </>
   );
 }

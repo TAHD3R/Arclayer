@@ -16,15 +16,16 @@ import {
 } from "@/api/team";
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
-import { useDataTable } from "@arclayer/ui/data-table";
-import { Button } from "@arclayer/ui/button";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import {
-  ChromeTabs,
-  ChromeTabsContent,
-  ChromeTabsList,
-  ChromeTabsTrigger,
-} from "@arclayer/ui/chrome-tabs";
+  useDataTable,
+  useDataTableRowHeightPreference,
+  useDataTableWrapHeadersPreference,
+} from "@arclayer/ui/data-table";
+import { Button } from "@arclayer/ui/button";
+import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { TeamInvitationsPageExtra } from "@/pages/_shared/team/components/team-invitations-page-extra";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
 import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -591,60 +592,116 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       </Button>
     </div>
   );
+  const toolsLabels = buildDataTableToolsLabels(t);
+  const invitationsTableId = workspaceId ? `team-invitations:${workspaceId}` : "team-invitations";
+  const inviteLinksTableId = workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links";
+  const [pendingRowHeight, setPendingRowHeight] = useDataTableRowHeightPreference({
+    tableId: invitationsTableId,
+  });
+  const [pendingWrapHeaders, setPendingWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: invitationsTableId,
+  });
+  const [acceptedRowHeight, setAcceptedRowHeight] = useDataTableRowHeightPreference({
+    tableId: invitationsTableId,
+  });
+  const [acceptedWrapHeaders, setAcceptedWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: invitationsTableId,
+  });
+  const [linksRowHeight, setLinksRowHeight] = useDataTableRowHeightPreference({
+    tableId: inviteLinksTableId,
+  });
+  const [linksWrapHeaders, setLinksWrapHeaders] = useDataTableWrapHeadersPreference({
+    tableId: inviteLinksTableId,
+  });
+  const activeTableConfig =
+    tab === "pending"
+      ? {
+          tableHook: pendingTable,
+          placeholder: t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER"),
+          rowHeight: pendingRowHeight,
+          setRowHeight: setPendingRowHeight,
+          wrapHeaders: pendingWrapHeaders,
+          setWrapHeaders: setPendingWrapHeaders,
+        }
+      : tab === "accepted"
+        ? {
+            tableHook: acceptedTable,
+            placeholder: t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER"),
+            rowHeight: acceptedRowHeight,
+            setRowHeight: setAcceptedRowHeight,
+            wrapHeaders: acceptedWrapHeaders,
+            setWrapHeaders: setAcceptedWrapHeaders,
+          }
+        : {
+            tableHook: linksTable,
+            placeholder: t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER"),
+            rowHeight: linksRowHeight,
+            setRowHeight: setLinksRowHeight,
+            wrapHeaders: linksWrapHeaders,
+            setWrapHeaders: setLinksWrapHeaders,
+          };
   return (
-    <DefaultPage
-      title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
-      description={t("team:TEAM_INVITATIONS_DESC")}
-      className="h-full"
-      contentClassName="min-h-0 flex flex-col"
-      action={inviteAction}
-    >
-      <ChromeTabs value={tab} onValueChange={(next) => setTab(next as TabKey)}>
-        <ChromeTabsList className="w-auto">
-          <ChromeTabsTrigger value="pending">
-            {t("team:TEAM_INVITATIONS_TAB_PENDING")}
-          </ChromeTabsTrigger>
-          <ChromeTabsTrigger value="accepted">
-            {t("team:TEAM_INVITATIONS_TAB_ACCEPTED")}
-          </ChromeTabsTrigger>
-          <ChromeTabsTrigger value="links">
-            {t("team:TEAM_INVITATIONS_TAB_LINKS")}
-          </ChromeTabsTrigger>
-        </ChromeTabsList>
+    <ChromeTabs value={tab} onValueChange={(next) => setTab(next as TabKey)}>
+      <DefaultPage
+        title={t("nav:NAV_SETTINGS_TEAM_MEMBERS")}
+        description={t("team:TEAM_INVITATIONS_DESC")}
+        className="h-full"
+        contentClassName="min-h-0 flex flex-col"
+        action={inviteAction}
+        extra={
+          <TeamInvitationsPageExtra
+            tabs={[
+              { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
+              { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
+              { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
+            ]}
+            table={activeTableConfig.tableHook.table}
+            searchInput={activeTableConfig.tableHook.searchInput}
+            onSearchInputChange={activeTableConfig.tableHook.setSearchInput}
+            searchPlaceholder={activeTableConfig.placeholder}
+            clearLabel={t("common:CLEAR")}
+            rowHeight={activeTableConfig.rowHeight}
+            onRowHeightChange={activeTableConfig.setRowHeight}
+            wrapHeaders={activeTableConfig.wrapHeaders}
+            onWrapHeadersChange={activeTableConfig.setWrapHeaders}
+            onRefresh={() => void activeTableConfig.tableHook.refetch()}
+            refreshing={activeTableConfig.tableHook.isFetching}
+            onResetColumnVisibility={activeTableConfig.tableHook.resetColumnVisibility}
+            labels={toolsLabels}
+          />
+        }
+      >
         <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={pendingTable}
-            tableId={workspaceId ? `team-invitations:${workspaceId}` : "team-invitations"}
-            placeholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
-            showSearch
             t={t}
+            rowHeight={pendingRowHeight}
+            wrapHeaders={pendingWrapHeaders}
           />
         </ChromeTabsContent>
         <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={acceptedTable}
-            tableId={workspaceId ? `team-invitations:${workspaceId}` : "team-invitations"}
-            placeholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITATIONS_EMPTY_DESC")}
-            showSearch
             t={t}
+            rowHeight={acceptedRowHeight}
+            wrapHeaders={acceptedWrapHeaders}
           />
         </ChromeTabsContent>
         <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={linksTable}
-            tableId={workspaceId ? `team-invite-links:${workspaceId}` : "team-invite-links"}
-            placeholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
             emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}
             emptyDescription={t("team:TEAM_INVITE_LINKS_EMPTY_DESC")}
-            showSearch
             t={t}
+            rowHeight={linksRowHeight}
+            wrapHeaders={linksWrapHeaders}
           />
         </ChromeTabsContent>
-      </ChromeTabs>
+      </DefaultPage>
       <InviteMembersDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
@@ -706,6 +763,6 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         setRenewExpiresInSeconds={setRenewExpiresInSeconds}
         renewOptions={renewOptions}
       />
-    </DefaultPage>
+    </ChromeTabs>
   );
 }

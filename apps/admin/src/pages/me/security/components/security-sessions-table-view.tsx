@@ -2,17 +2,8 @@ import type { ColumnDef, Table as ReactTable } from "@tanstack/react-table";
 import { LogOut } from "@arclayer/ui/icons/lucide-animated";
 
 import { SecurityCurrentSessionTag } from "@/components/ui/tags";
-import {
-  DataTablePresenter,
-  type DataTableDensity,
-  type DataTableToolsLabels,
-} from "@arclayer/ui/data-table";
+import { DataTablePresenter, type DataTableRowHeight } from "@arclayer/ui/data-table";
 import { Button } from "@arclayer/ui/button";
-
-import {
-  SecuritySessionsSearchToolbar,
-  SecuritySessionsToolsToolbar,
-} from "./security-sessions-table-toolbar";
 
 export type SessionRow = {
   sessionId: string;
@@ -169,16 +160,10 @@ export function buildSessionColumns(props: ColumnFactoryProps): ColumnDef<Sessio
 
 type SecuritySessionsTableContentProps = {
   table: ReactTable<SessionRow>;
-  searchInput: string;
-  onSearchInputChange: (value: string) => void;
-  onRefresh: () => Promise<unknown> | void;
   isFetching: boolean;
   isLoading: boolean;
-  onResetColumnVisibility: () => void;
-  density: DataTableDensity;
-  onDensityChange: (next: DataTableDensity) => void;
-  toolsLabels: DataTableToolsLabels;
-  searchPlaceholder: string;
+  rowHeight: DataTableRowHeight;
+  wrapHeaders: boolean;
   emptyText: string;
 };
 
@@ -190,27 +175,8 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
           table={props.table}
           emptyText={props.emptyText}
           className="min-h-0 min-w-0 w-full"
-          toolbar={{
-            left: (
-              <SecuritySessionsSearchToolbar
-                searchInput={props.searchInput}
-                onSearchInputChange={props.onSearchInputChange}
-                placeholder={props.searchPlaceholder}
-              />
-            ),
-            right: (
-              <SecuritySessionsToolsToolbar
-                table={props.table}
-                density={props.density}
-                onDensityChange={props.onDensityChange}
-                onRefresh={props.onRefresh}
-                refreshing={props.isFetching}
-                onResetColumnVisibility={props.onResetColumnVisibility}
-                labels={props.toolsLabels}
-              />
-            ),
-          }}
-          density={props.density}
+          rowHeight={props.rowHeight}
+          wrapHeaders={props.wrapHeaders}
           refreshing={props.isFetching && !props.isLoading}
         />
       </div>

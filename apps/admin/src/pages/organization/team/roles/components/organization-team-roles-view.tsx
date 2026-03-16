@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, X } from "@arclayer/ui/icons/lucide-animated";
+import { Plus } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -11,14 +11,9 @@ import {
 } from "@/api/organization-rbac";
 import { DefaultPage } from "@/components/common/default-page";
 import { ContentGuard } from "@/components/common/content-guard";
+import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@arclayer/ui/input-group";
 import { useDialogSnapshotState } from "@/pages/organization/team/shared/hooks/use-dialog-snapshot-state";
 import { CreateRoleDialog, DeleteRoleDialog } from "./roles-dialogs";
 import { RolesMatrixTable } from "./roles-matrix-table";
@@ -154,30 +149,17 @@ export function OrganizationTeamRolesView() {
           {t("team:TEAM_ROLES_ADD_ROLE")}
         </Button>
       }
+      extra={
+        <DataTableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
+          clearLabel={t("common:CLEAR")}
+          className="max-w-[360px]"
+        />
+      }
     >
       <div className="space-y-4">
-        <InputGroup className="max-w-[360px]">
-          <InputGroupAddon>
-            <Search className="h-4 w-4 text-label-secondary" />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
-          />
-          {search ? (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                aria-label={t("common:CLEAR")}
-                size="icon-xs"
-                onClick={() => setSearch("")}
-              >
-                <X className="size-3.5" />
-              </InputGroupButton>
-            </InputGroupAddon>
-          ) : null}
-        </InputGroup>
-
         <RolesMatrixTable
           filteredRoles={filteredRoles}
           filteredPermissions={filteredPermissions}
