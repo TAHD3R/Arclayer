@@ -7,5 +7,10 @@ export const Route = createLazyFileRoute("/w/$workspaceId/content/site-builder/"
 });
 
 function SiteBuilderPlaceholder() {
-  return <PlaceholderPage titleKey="nav:NAV_CONTENT_SITE_BUILDER" />;
+  return (
+    <PlaceholderPage
+      titleKey="nav:NAV_CONTENT_SITE_BUILDER"
+      descriptionKey="common:WORKSPACE_SITE_BUILDER_DESC"
+    />
+  );
 }

@@ -7,5 +7,10 @@ export const Route = createLazyFileRoute("/w/$workspaceId/content/library/")({
 });
 
 function ContentLibraryPlaceholder() {
-  return <PlaceholderPage titleKey="nav:NAV_CONTENT_LIBRARY" />;
+  return (
+    <PlaceholderPage
+      titleKey="nav:NAV_CONTENT_LIBRARY"
+      descriptionKey="common:WORKSPACE_CONTENT_LIBRARY_DESC"
+    />
+  );
 }

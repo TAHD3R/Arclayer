@@ -7,5 +7,7 @@ export const Route = createLazyFileRoute("/w/$workspaceId/settings/seo/")({
 });
 
 function SeoPlaceholder() {
-  return <PlaceholderPage titleKey="nav:NAV_SETTINGS_SEO" />;
+  return (
+    <PlaceholderPage titleKey="nav:NAV_SETTINGS_SEO" descriptionKey="common:WORKSPACE_SEO_DESC" />
+  );
 }

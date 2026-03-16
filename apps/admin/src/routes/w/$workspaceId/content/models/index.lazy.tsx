@@ -7,5 +7,10 @@ export const Route = createLazyFileRoute("/w/$workspaceId/content/models/")({
 });
 
 function ContentModelsPlaceholder() {
-  return <PlaceholderPage titleKey="nav:NAV_CONTENT_MODELS" />;
+  return (
+    <PlaceholderPage
+      titleKey="nav:NAV_CONTENT_MODELS"
+      descriptionKey="common:WORKSPACE_CONTENT_MODELS_DESC"
+    />
+  );
 }
