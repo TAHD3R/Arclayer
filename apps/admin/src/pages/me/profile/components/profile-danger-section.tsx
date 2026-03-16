@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -17,6 +17,7 @@ import { Button } from "@celestial/ui/button";
 import { Input } from "@celestial/ui/input";
 import { PasswordInput } from "@celestial/ui/password-input";
 import type { DeleteMyAccountPayload } from "@/types/api";
+import { DialogField } from "./dialog-field";
 
 export type MeProfileDangerSectionProps = {
   email: string | null;
@@ -100,16 +101,6 @@ function buildDeleteAccountSchema(
     });
 }
 
-function DialogField(props: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <label className="text-callout text-label-primary">{props.label}</label>
-      {props.children}
-      {props.error ? <p className="text-footnote text-destructive">{props.error}</p> : null}
-    </div>
-  );
-}
-
 export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
   const { t } = useTranslation(["account", "auth", "errors", "common"]);
   const navigate = useNavigate();
@@ -153,6 +144,10 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
     defaultValues: EMPTY_VALUES,
     mode: "onTouched",
   });
+  const emailFieldId = useId();
+  const passwordFieldId = useId();
+  const codeFieldId = useId();
+  const backupCodeFieldId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -270,9 +265,11 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
 
           <DialogField
             label={t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL")}
+            htmlFor={emailFieldId}
             error={form.formState.errors.email?.message}
           >
             <Input
+              id={emailFieldId}
               {...form.register("email")}
               placeholder={
                 normalizedEmail || t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_PLACEHOLDER")
@@ -283,9 +280,11 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
           {requiresPassword ? (
             <DialogField
               label={t("account:ME_DELETE_ACCOUNT_CONFIRM_PASSWORD")}
+              htmlFor={passwordFieldId}
               error={form.formState.errors.password?.message}
             >
               <PasswordInput
+                id={passwordFieldId}
                 {...form.register("password")}
                 autoComplete="current-password"
                 placeholder={t("account:ME_DELETE_ACCOUNT_PASSWORD_PLACEHOLDER")}
@@ -297,9 +296,11 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
             <>
               <DialogField
                 label={t("account:ME_DELETE_ACCOUNT_2FA_CODE")}
+                htmlFor={codeFieldId}
                 error={form.formState.errors.code?.message}
               >
                 <Input
+                  id={codeFieldId}
                   {...form.register("code")}
                   placeholder={t("account:ME_DELETE_ACCOUNT_2FA_CODE_PLACEHOLDER")}
                 />
@@ -307,9 +308,11 @@ export function MeProfileDangerSection(props: MeProfileDangerSectionProps) {
 
               <DialogField
                 label={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE")}
+                htmlFor={backupCodeFieldId}
                 error={form.formState.errors.backupCode?.message}
               >
                 <Input
+                  id={backupCodeFieldId}
                   {...form.register("backupCode")}
                   placeholder={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE_PLACEHOLDER")}
                 />

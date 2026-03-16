@@ -224,7 +224,7 @@ def build_core_settings_schema() -> ConfigSchema:
                             "home_mode": "siteOnly",
                             "dedupe": True,
                         },
-                        label="Title policy (v1)",
+                        label="Title policy",
                         label_i18n="settings:SEO_TITLE_POLICY_V1_LABEL",
                         description="Structured title composition policy (parts tokens/literals).",
                         description_i18n="settings:SEO_TITLE_POLICY_V1_DESC",

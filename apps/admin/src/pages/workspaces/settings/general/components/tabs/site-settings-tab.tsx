@@ -23,9 +23,9 @@ import {
   formatTitlePolicySummary,
   normalizeLocalizedStringMapForSave,
   normalizeOptionalString,
-  normalizeTitlePolicyV1ForSave,
+  normalizeTitlePolicyForSave,
   resolveDefaultLocaleValue,
-  toApiTitlePolicyV1,
+  toApiTitlePolicy,
 } from "./site-settings-tab-helpers";
 import { SiteTitlePatternField } from "./site-title-pattern-field";
 
@@ -145,7 +145,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
   const siteSubtitleError = getFieldErrorMessage(form, "siteSubtitle");
   const siteUrlError = getFieldErrorMessage(form, "siteUrl");
   const siteContactEmailError = getFieldErrorMessage(form, "siteContactEmail");
-  const titlePolicyError = getFieldErrorMessage(form, "seoTitlePolicyV1");
+  const titlePolicyError = getFieldErrorMessage(form, "seoTitlePolicy");
 
   const isSiteNameDirty =
     values.siteName !== initialValues.siteName ||
@@ -160,7 +160,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
   const isSiteUrlDirty = values.siteUrl !== initialValues.siteUrl;
   const isSupportInboxDirty = values.siteContactEmail !== initialValues.siteContactEmail;
   const isTitlePolicyDirty =
-    JSON.stringify(values.seoTitlePolicyV1) !== JSON.stringify(initialValues.seoTitlePolicyV1);
+    JSON.stringify(values.seoTitlePolicy) !== JSON.stringify(initialValues.seoTitlePolicy);
 
   const handleLocalizedToggle = (
     enabledName: "siteNameI18nEnabled" | "siteDescriptionI18nEnabled",
@@ -318,17 +318,17 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
     });
 
   const saveTitlePattern = () =>
-    withSavingKey("seoTitlePolicyV1", async () => {
+    withSavingKey("seoTitlePolicy", async () => {
       try {
-        const next = normalizeTitlePolicyV1ForSave(
-          form.getValues("seoTitlePolicyV1") ?? initialValues.seoTitlePolicyV1,
+        const next = normalizeTitlePolicyForSave(
+          form.getValues("seoTitlePolicy") ?? initialValues.seoTitlePolicy,
           t,
         );
-        form.setValue("seoTitlePolicyV1", next, { shouldDirty: true });
-        form.clearErrors("seoTitlePolicyV1");
-        await patch({ seo: { title_policy_v1: toApiTitlePolicyV1(next) } });
+        form.setValue("seoTitlePolicy", next, { shouldDirty: true });
+        form.clearErrors("seoTitlePolicy");
+        await patch({ seo: { title_policy_v1: toApiTitlePolicy(next) } });
       } catch (error) {
-        form.setError("seoTitlePolicyV1", {
+        form.setError("seoTitlePolicy", {
           type: "validate",
           message:
             error instanceof Error
@@ -656,35 +656,35 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               title={t("settings:SETTINGS_SEO_TITLE_FORMAT_TITLE")}
               description={t("settings:SETTINGS_SEO_TITLE_FORMAT_DESC")}
               showSummary
-              summary={formatTitlePolicySummary(values.seoTitlePolicyV1)}
+              summary={formatTitlePolicySummary(values.seoTitlePolicy)}
               placeholder={t("settings:SETTINGS_NOT_SET")}
               keepRendered
               disabled={disabled}
               confirmText={t("settings:SETTINGS_SAVE")}
-              confirmLoading={savingKey === "seoTitlePolicyV1"}
+              confirmLoading={savingKey === "seoTitlePolicy"}
               onConfirm={saveTitlePattern}
               onReset={
                 isTitlePolicyDirty
                   ? () =>
-                      withSavingKey("reset:seoTitlePolicyV1", async () => {
-                        form.setValue("seoTitlePolicyV1", initialValues.seoTitlePolicyV1, {
+                      withSavingKey("reset:seoTitlePolicy", async () => {
+                        form.setValue("seoTitlePolicy", initialValues.seoTitlePolicy, {
                           shouldDirty: false,
                         });
-                        form.clearErrors("seoTitlePolicyV1");
+                        form.clearErrors("seoTitlePolicy");
                         await patch({
                           seo: {
-                            title_policy_v1: toApiTitlePolicyV1(initialValues.seoTitlePolicyV1),
+                            title_policy_v1: toApiTitlePolicy(initialValues.seoTitlePolicy),
                           },
                         });
                       })
                   : undefined
               }
               resetText={t("settings:SETTINGS_RESET")}
-              resetLoading={savingKey === "reset:seoTitlePolicyV1"}
+              resetLoading={savingKey === "reset:seoTitlePolicy"}
             >
               <Controller
                 control={form.control}
-                name="seoTitlePolicyV1"
+                name="seoTitlePolicy"
                 render={({ field }) => (
                   <div className="space-y-2">
                     <SiteTitlePatternField

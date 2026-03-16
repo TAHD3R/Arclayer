@@ -25,25 +25,55 @@ const [SwitchProvider, useSwitch] = getStrictContext<SwitchContextType>("SwitchC
 type SwitchProps = Omit<React.ComponentProps<typeof SwitchPrimitives.Root>, "asChild"> &
   HTMLMotionProps<"button">;
 
-function Switch(props: SwitchProps) {
+function Switch({
+  checked,
+  defaultChecked,
+  onCheckedChange,
+  whileTap,
+  initial,
+  animate,
+  variants,
+  transition,
+  onTapStart,
+  onTapCancel,
+  onTap,
+  ...rootProps
+}: SwitchProps) {
   const [isPressed, setIsPressed] = React.useState(false);
   const [isChecked, setIsChecked] = useControlledState({
-    value: props.checked,
-    defaultValue: props.defaultChecked,
-    onChange: props.onCheckedChange,
+    value: checked,
+    defaultValue: defaultChecked,
+    onChange: onCheckedChange,
   });
 
   return (
     <SwitchProvider value={{ isChecked, setIsChecked, isPressed, setIsPressed }}>
-      <SwitchPrimitives.Root {...props} onCheckedChange={setIsChecked} asChild>
+      <SwitchPrimitives.Root
+        {...rootProps}
+        checked={checked}
+        defaultChecked={defaultChecked}
+        onCheckedChange={setIsChecked}
+        asChild
+      >
         <motion.button
           data-slot="switch"
-          whileTap="tap"
-          initial={false}
-          onTapStart={() => setIsPressed(true)}
-          onTapCancel={() => setIsPressed(false)}
-          onTap={() => setIsPressed(false)}
-          {...props}
+          whileTap={whileTap ?? "tap"}
+          initial={initial ?? false}
+          animate={animate}
+          variants={variants}
+          transition={transition}
+          onTapStart={(event, info) => {
+            setIsPressed(true);
+            onTapStart?.(event, info);
+          }}
+          onTapCancel={(event, info) => {
+            setIsPressed(false);
+            onTapCancel?.(event, info);
+          }}
+          onTap={(event, info) => {
+            setIsPressed(false);
+            onTap?.(event, info);
+          }}
         />
       </SwitchPrimitives.Root>
     </SwitchProvider>

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { Button } from "@celestial/ui/button";
 import { Input } from "@celestial/ui/input";
 import { PasswordInput } from "@celestial/ui/password-input";
+import { DialogField } from "./dialog-field";
 
 export type MeProfilePasswordSectionProps = {
   redirect: string;
@@ -111,16 +112,6 @@ function buildPasswordSchema(
     });
 }
 
-function DialogField(props: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <label className="text-callout text-label-primary">{props.label}</label>
-      {props.children}
-      {props.error ? <p className="text-footnote text-destructive">{props.error}</p> : null}
-    </div>
-  );
-}
-
 export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
   const { t } = useTranslation(["account", "auth", "settings", "common"]);
   const navigate = useNavigate();
@@ -155,6 +146,11 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
     defaultValues: EMPTY_VALUES,
     mode: "onTouched",
   });
+  const oldPasswordFieldId = useId();
+  const newPasswordFieldId = useId();
+  const confirmPasswordFieldId = useId();
+  const codeFieldId = useId();
+  const backupCodeFieldId = useId();
 
   const cardTitle = hasPassword
     ? t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")
@@ -283,33 +279,50 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
           {hasPassword ? (
             <DialogField
               label={t("account:ME_SECURITY_OLD_PASSWORD")}
+              htmlFor={oldPasswordFieldId}
               error={form.formState.errors.oldPassword?.message}
             >
-              <PasswordInput {...form.register("oldPassword")} autoComplete="current-password" />
+              <PasswordInput
+                id={oldPasswordFieldId}
+                {...form.register("oldPassword")}
+                autoComplete="current-password"
+              />
             </DialogField>
           ) : null}
 
           <DialogField
             label={t("account:ME_SECURITY_NEW_PASSWORD")}
+            htmlFor={newPasswordFieldId}
             error={form.formState.errors.newPassword?.message}
           >
-            <PasswordInput {...form.register("newPassword")} autoComplete="new-password" />
+            <PasswordInput
+              id={newPasswordFieldId}
+              {...form.register("newPassword")}
+              autoComplete="new-password"
+            />
           </DialogField>
 
           <DialogField
             label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
+            htmlFor={confirmPasswordFieldId}
             error={form.formState.errors.confirmPassword?.message}
           >
-            <PasswordInput {...form.register("confirmPassword")} autoComplete="new-password" />
+            <PasswordInput
+              id={confirmPasswordFieldId}
+              {...form.register("confirmPassword")}
+              autoComplete="new-password"
+            />
           </DialogField>
 
           {requiresSetPasswordTwoFactor ? (
             <>
               <DialogField
                 label={t("account:ME_PROFILE_PASSWORD_2FA_CODE")}
+                htmlFor={codeFieldId}
                 error={form.formState.errors.code?.message}
               >
                 <Input
+                  id={codeFieldId}
                   {...form.register("code")}
                   placeholder={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
                 />
@@ -317,9 +330,11 @@ export function MeProfilePasswordSection(props: MeProfilePasswordSectionProps) {
 
               <DialogField
                 label={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE")}
+                htmlFor={backupCodeFieldId}
                 error={form.formState.errors.backupCode?.message}
               >
                 <Input
+                  id={backupCodeFieldId}
                   {...form.register("backupCode")}
                   placeholder={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
                 />

@@ -1,4 +1,4 @@
-import type { TitlePolicyV1 } from "@celestial/internal-types";
+import type { TitlePolicy } from "@/types/site-seo";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -35,7 +35,7 @@ export function resolveDefaultLocaleValue(
   return String(firstValue || "").trim();
 }
 
-export function toApiTitlePolicyV1(input: TitlePolicyV1): Record<string, unknown> {
+export function toApiTitlePolicy(input: TitlePolicy): Record<string, unknown> {
   return {
     parts: input.parts,
     home_mode: input.homeMode ?? "siteOnly",
@@ -43,7 +43,7 @@ export function toApiTitlePolicyV1(input: TitlePolicyV1): Record<string, unknown
   };
 }
 
-export function normalizeTitlePolicyV1ForSave(input: TitlePolicyV1, t: TranslateFn): TitlePolicyV1 {
+export function normalizeTitlePolicyForSave(input: TitlePolicy, t: TranslateFn): TitlePolicy {
   const raw = input as unknown as {
     parts?: unknown;
     homeMode?: unknown;
@@ -63,7 +63,7 @@ export function normalizeTitlePolicyV1ForSave(input: TitlePolicyV1, t: Translate
   }
 
   const allowedTokens = new Set(["pageTitle", "siteName", "siteSubtitle"]);
-  const parts: TitlePolicyV1["parts"] = [];
+  const parts: TitlePolicy["parts"] = [];
 
   for (const partUnknown of partsUnknown) {
     if (!partUnknown || typeof partUnknown !== "object" || Array.isArray(partUnknown)) {
@@ -118,7 +118,7 @@ export function normalizeTitlePolicyV1ForSave(input: TitlePolicyV1, t: Translate
   };
 }
 
-export function formatTitlePolicySummary(input: TitlePolicyV1): string {
+export function formatTitlePolicySummary(input: TitlePolicy): string {
   const tokens = input.parts
     .map((part) => (part.kind === "token" ? part.value : null))
     .filter((value): value is NonNullable<typeof value> => Boolean(value));

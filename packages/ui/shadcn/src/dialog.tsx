@@ -25,6 +25,7 @@ import {
 import { cn } from "@celestial/lib/utils";
 
 const ALLOWED_EXTERNAL_DIALOG_INTERACTION_SELECTOR = [
+  "[data-slot=select-content]",
   ".ant-select-dropdown",
   ".ant-picker-dropdown",
   ".ant-cascader-dropdown",

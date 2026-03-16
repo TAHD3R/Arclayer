@@ -1,5 +1,5 @@
-import type { TitlePolicyV1 } from "@celestial/internal-types";
 import type { UseFormReturn } from "react-hook-form";
+import type { TitlePolicy } from "@/types/site-seo";
 
 export type StorageProvider = "local" | "s3";
 
@@ -28,7 +28,7 @@ export type GeneralSettingsFormValues = {
   useBrowserTimeZone: boolean;
   dateFormat: string;
   useRelativeDateTime: boolean;
-  seoTitlePolicyV1: TitlePolicyV1;
+  seoTitlePolicy: TitlePolicy;
 
   storageProvider: StorageProvider;
   storagePublicBaseUrl: string;

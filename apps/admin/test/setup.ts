@@ -91,3 +91,27 @@ const globalWithResizeObserver = globalThis as unknown as {
 if (!globalWithResizeObserver.ResizeObserver) {
   globalWithResizeObserver.ResizeObserver = ResizeObserverStub;
 }
+
+type PointerCaptureCapableElement = Element & {
+  hasPointerCapture?: (pointerId: number) => boolean;
+  setPointerCapture?: (pointerId: number) => void;
+  releasePointerCapture?: (pointerId: number) => void;
+};
+
+const elementPrototype = Element.prototype as PointerCaptureCapableElement;
+
+if (!elementPrototype.hasPointerCapture) {
+  elementPrototype.hasPointerCapture = () => false;
+}
+
+if (!elementPrototype.setPointerCapture) {
+  elementPrototype.setPointerCapture = () => undefined;
+}
+
+if (!elementPrototype.releasePointerCapture) {
+  elementPrototype.releasePointerCapture = () => undefined;
+}
+
+if (!HTMLElement.prototype.scrollIntoView) {
+  HTMLElement.prototype.scrollIntoView = () => undefined;
+}

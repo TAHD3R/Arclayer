@@ -23,7 +23,7 @@ describe("date-time-localization-controls", () => {
     const select = screen.getByRole("combobox");
 
     expect(screen.getByRole("switch")).toBeInTheDocument();
-    expect(select.closest(".ant-select-disabled")).not.toBeNull();
+    expect(select).toBeDisabled();
   });
 
   it("disables date format selection when relative datetime mode is enabled", () => {
@@ -42,6 +42,6 @@ describe("date-time-localization-controls", () => {
     const select = screen.getByRole("combobox");
 
     expect(screen.getByRole("switch")).toBeInTheDocument();
-    expect(select.closest(".ant-select-disabled")).not.toBeNull();
+    expect(select).toBeDisabled();
   });
 });

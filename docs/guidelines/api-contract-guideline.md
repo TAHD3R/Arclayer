@@ -17,7 +17,7 @@ This guideline applies to:
 - Backend HTTP endpoints under `apps/api/src/modules/**/router.py`
 - Backend request/response schemas under `apps/api/src/modules/**/schema.py` and `apps/api/src/common/schemas/*`
 - Frontend API clients under `apps/admin/src/api`
-- Shared type packages that represent backend contracts (usually `packages/protocols/*` packages and `packages/internal/types`)
+- Shared type packages that represent backend contracts (usually `packages/protocols/*` packages)
 
 ## 3. Contract-First Design Rules (mandatory)
 

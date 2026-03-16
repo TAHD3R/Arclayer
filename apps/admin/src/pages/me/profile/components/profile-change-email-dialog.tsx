@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import { SettingDialog } from "@celestial/ui/setting-dialog";
 import { Button } from "@celestial/ui/button";
 import { Input } from "@celestial/ui/input";
 import { PasswordInput } from "@celestial/ui/password-input";
+import { DialogField } from "./dialog-field";
 
 export type MeProfileChangeEmailDialogProps = {
   open: boolean;
@@ -101,26 +102,6 @@ function buildSchema(
     });
 }
 
-function FieldError(props: { message?: string }) {
-  if (!props.message) return null;
-  return <p className="text-footnote text-destructive">{props.message}</p>;
-}
-
-function FieldBlock(props: {
-  children: React.ReactNode;
-  error?: string;
-  label: string;
-  className?: string;
-}) {
-  return (
-    <div className={props.className ?? "grid gap-1.5"}>
-      <label className="text-callout text-label-primary">{props.label}</label>
-      {props.children}
-      <FieldError message={props.error} />
-    </div>
-  );
-}
-
 export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProps) {
   const { t } = useTranslation(["account", "auth", "settings", "common"]);
   const navigate = useNavigate();
@@ -158,6 +139,11 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
     defaultValues: { ...EMPTY_VALUES, newEmail: normalizedEmail },
     mode: "onTouched",
   });
+  const newEmailFieldId = useId();
+  const codeFieldId = useId();
+  const passwordFieldId = useId();
+  const twoFactorCodeFieldId = useId();
+  const backupCodeFieldId = useId();
 
   useEffect(() => {
     if (!props.open) return;
@@ -248,22 +234,26 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
       }
     >
       <div className="grid gap-4">
-        <FieldBlock
+        <DialogField
           label={t("account:ME_PROFILE_EMAIL_NEW_EMAIL")}
+          htmlFor={newEmailFieldId}
           error={form.formState.errors.newEmail?.message}
         >
           <Input
+            id={newEmailFieldId}
             {...form.register("newEmail")}
             placeholder={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")}
           />
-        </FieldBlock>
+        </DialogField>
 
-        <FieldBlock
+        <DialogField
           label={t("account:ME_PROFILE_EMAIL_CODE")}
+          htmlFor={codeFieldId}
           error={form.formState.errors.code?.message}
         >
           <div className="flex gap-2">
             <Input
+              id={codeFieldId}
               {...form.register("code")}
               placeholder={t("account:ME_PROFILE_EMAIL_CODE_PLACEHOLDER")}
             />
@@ -287,20 +277,22 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
                 : t("account:ME_PROFILE_EMAIL_SEND_CODE")}
             </Button>
           </div>
-        </FieldBlock>
+        </DialogField>
 
         {requiresPassword ? (
           <>
-            <FieldBlock
+            <DialogField
               label={t("account:ME_PROFILE_EMAIL_PASSWORD")}
+              htmlFor={passwordFieldId}
               error={form.formState.errors.password?.message}
             >
               <PasswordInput
+                id={passwordFieldId}
                 {...form.register("password")}
                 placeholder={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")}
                 autoComplete="current-password"
               />
-            </FieldBlock>
+            </DialogField>
 
             <div>
               <Button
@@ -320,25 +312,29 @@ export function MeProfileChangeEmailDialog(props: MeProfileChangeEmailDialogProp
 
         {requiresTwoFactor ? (
           <>
-            <FieldBlock
+            <DialogField
               label={t("account:ME_PROFILE_EMAIL_2FA_CODE")}
+              htmlFor={twoFactorCodeFieldId}
               error={form.formState.errors.twoFactorCode?.message}
             >
               <Input
+                id={twoFactorCodeFieldId}
                 {...form.register("twoFactorCode")}
                 placeholder={t("account:ME_PROFILE_EMAIL_2FA_CODE_PLACEHOLDER")}
               />
-            </FieldBlock>
+            </DialogField>
 
-            <FieldBlock
+            <DialogField
               label={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE")}
+              htmlFor={backupCodeFieldId}
               error={form.formState.errors.backupCode?.message}
             >
               <Input
+                id={backupCodeFieldId}
                 {...form.register("backupCode")}
                 placeholder={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE_PLACEHOLDER")}
               />
-            </FieldBlock>
+            </DialogField>
           </>
         ) : null}
 

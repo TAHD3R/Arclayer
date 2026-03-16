@@ -1,6 +1,7 @@
 import type { SettingsDetail } from "@/types/api";
 
 import type { GeneralSettingsFormValues, StorageProvider } from "@/types/settings-general";
+import type { TitlePolicy, TitlePolicyPart } from "@/types/site-seo";
 import { pickBool, pickNumber, pickString, pickStringArray } from "./utils";
 
 /**
@@ -52,7 +53,7 @@ export function buildGeneralSettingsInitialValues(params: {
   const useRelativeDateTime =
     pickBool(workspaceValue, ["site_localization", "use_relative_datetime"]) ?? true;
 
-  const seoTitlePolicyV1 = parseTitlePolicyV1(
+  const seoTitlePolicy = parseTitlePolicy(
     pickUnknown(workspaceValue, ["seo", "title_policy_v1"]),
   ) ?? {
     parts: [
@@ -138,7 +139,7 @@ export function buildGeneralSettingsInitialValues(params: {
     useBrowserTimeZone,
     dateFormat,
     useRelativeDateTime,
-    seoTitlePolicyV1,
+    seoTitlePolicy,
 
     storageProvider,
     storagePublicBaseUrl,
@@ -181,15 +182,13 @@ function pickUnknown(obj: unknown, path: readonly string[]): unknown {
   return current;
 }
 
-function parseTitlePolicyV1(
-  input: unknown,
-): import("@celestial/internal-types").TitlePolicyV1 | null {
+function parseTitlePolicy(input: unknown): TitlePolicy | null {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
   const rec = input as Record<string, unknown>;
   const partsUnknown = rec.parts;
   if (!Array.isArray(partsUnknown)) return null;
 
-  const parts: import("@celestial/internal-types").TitlePolicyV1Part[] = [];
+  const parts: TitlePolicyPart[] = [];
   for (const p of partsUnknown) {
     if (!p || typeof p !== "object" || Array.isArray(p)) continue;
     const pr = p as Record<string, unknown>;

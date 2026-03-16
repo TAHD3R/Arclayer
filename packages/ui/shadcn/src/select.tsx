@@ -6,8 +6,48 @@ import { Select as SelectPrimitive } from "radix-ui";
 
 import { cn } from "@celestial/lib/utils";
 
+const DIALOG_OVERLAY_ROOT_SELECTOR = "[data-overlay-root=dialog]";
+const OVERLAY_ROOT_SELECTORS = [
+  "[data-slot=dialog-content]",
+  "[data-slot=sheet-content]",
+  "[data-slot=popover-content]",
+  "[data-slot=alert-dialog-content]",
+].join(", ");
+
+type SelectPortalContextValue = {
+  portalContainer?: HTMLElement;
+  setTriggerElement: (element: HTMLElement | null) => void;
+};
+
+const SelectPortalContext = React.createContext<SelectPortalContextValue | null>(null);
+
+function resolveSelectPortalContainer(
+  triggerElement?: HTMLElement | null,
+): HTMLElement | undefined {
+  if (typeof document === "undefined") return undefined;
+  if (!triggerElement) return document.body;
+
+  const dialogOverlayRoot = triggerElement.closest(DIALOG_OVERLAY_ROOT_SELECTOR);
+  if (dialogOverlayRoot instanceof HTMLElement) return dialogOverlayRoot;
+
+  const overlayRoot = triggerElement.closest(OVERLAY_ROOT_SELECTORS);
+  if (overlayRoot instanceof HTMLElement) return overlayRoot;
+
+  return document.body;
+}
+
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />;
+  const [triggerElement, setTriggerElement] = React.useState<HTMLElement | null>(null);
+  const portalContainer = React.useMemo(
+    () => resolveSelectPortalContainer(triggerElement),
+    [triggerElement],
+  );
+
+  return (
+    <SelectPortalContext.Provider value={{ portalContainer, setTriggerElement }}>
+      <SelectPrimitive.Root data-slot="select" {...props} />
+    </SelectPortalContext.Provider>
+  );
 }
 
 function SelectGroup({ ...props }: React.ComponentProps<typeof SelectPrimitive.Group>) {
@@ -26,8 +66,17 @@ function SelectTrigger({
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default";
 }) {
+  const portalContext = React.useContext(SelectPortalContext);
+  const handleRef = React.useCallback(
+    (node: HTMLButtonElement | null) => {
+      portalContext?.setTriggerElement(node);
+    },
+    [portalContext],
+  );
+
   return (
     <SelectPrimitive.Trigger
+      ref={handleRef}
       data-slot="select-trigger"
       data-size={size}
       className={cn(
@@ -51,8 +100,10 @@ function SelectContent({
   align = "center",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  const portalContext = React.useContext(SelectPortalContext);
+
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={portalContext?.portalContainer}>
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(

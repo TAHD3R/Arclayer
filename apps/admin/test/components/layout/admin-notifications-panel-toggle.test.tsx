@@ -160,7 +160,9 @@ describe("AdminNotificationsPanel toggle", () => {
       </AdminLayout>,
     );
 
-    const trigger = await screen.findByRole("button", { name: "nav:NAV_NOTIFICATIONS" });
+    const trigger = await screen.findByRole("button", {
+      name: "notifications:NOTIFICATIONS_OPEN_CENTER",
+    });
 
     await user.click(trigger);
     expect(await screen.findByText("NOTIFICATIONS_PAGE_TITLE")).toBeInTheDocument();
@@ -180,7 +182,9 @@ describe("AdminNotificationsPanel toggle", () => {
       </AdminLayout>,
     );
 
-    const trigger = await screen.findByRole("button", { name: "nav:NAV_NOTIFICATIONS" });
+    const trigger = await screen.findByRole("button", {
+      name: "notifications:NOTIFICATIONS_OPEN_CENTER",
+    });
     await user.click(trigger);
     expect(await screen.findByText("NOTIFICATIONS_PAGE_TITLE")).toBeInTheDocument();
 

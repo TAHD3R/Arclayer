@@ -47,8 +47,8 @@ describe("MePreferencesLocalizationSection", () => {
     await user.click(timezoneSwitch);
     await user.click(languageSwitch);
 
-    expect(timezoneSelect.closest(".ant-select-disabled")).not.toBeNull();
-    expect(languageSelect.closest(".ant-select-disabled")).not.toBeNull();
+    expect(timezoneSelect).toBeDisabled();
+    expect(languageSelect).toBeDisabled();
   });
 
   it("mounts select dropdown to dialog overlay root inside modal overlays", async () => {
@@ -68,9 +68,9 @@ describe("MePreferencesLocalizationSection", () => {
       await user.click(timezoneSelect);
 
       await waitFor(() => {
-        const dropdown = document.querySelector(".ant-select-dropdown");
+        const dropdown = document.querySelector("[data-slot='select-content']");
         expect(dropdown).not.toBeNull();
-        expect(dropdown?.parentElement).toBe(overlayRoot);
+        expect(overlayRoot.contains(dropdown)).toBe(true);
       });
     } finally {
       overlayRoot.remove();

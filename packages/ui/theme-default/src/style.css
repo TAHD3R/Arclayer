@@ -4,7 +4,7 @@
  * App-specific UI (debug tools, admin shells) should live in the app layer.
  */
 
-/* Core blocks (rendered by @celestial/renderer) */
+/* Core published-site blocks */
 [data-block-type="heading"] {
   margin: 0 0 12px;
   color: var(--color-foreground, #111827);
@@ -42,7 +42,7 @@
   border-top-color: rgba(17, 24, 39, 0.1);
 }
 
-/* Block error boundary (rendered by @celestial/renderer).
+/* Block error boundary for published-site rendering.
  * Keep styling minimal and themeable via CSS variables.
  */
 [data-celestial="block-error"] {

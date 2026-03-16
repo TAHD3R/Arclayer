@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import type { TitlePolicyV1 } from "@celestial/internal-types";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@celestial/ui/button";
@@ -13,6 +12,7 @@ import {
 } from "@celestial/ui/select";
 import { cn } from "@celestial/lib/utils";
 import { SettingSwitchBlock } from "@/components/settings/setting-switch-block";
+import type { TitlePolicy } from "@/types/site-seo";
 
 type TitlePatternPreset = "page-site" | "site-page" | "page-site-tagline" | "site-only";
 
@@ -39,7 +39,7 @@ const PRESET_OPTIONS: Array<{ value: TitlePatternPreset; labelKey: string; descK
   },
 ];
 
-function composeParts(preset: TitlePatternPreset, separator: string): TitlePolicyV1["parts"] {
+function composeParts(preset: TitlePatternPreset, separator: string): TitlePolicy["parts"] {
   const literal = { kind: "literal", value: separator } as const;
   if (preset === "site-only") return [{ kind: "token", value: "siteName" }];
   if (preset === "site-page") {
@@ -57,7 +57,7 @@ function composeParts(preset: TitlePatternPreset, separator: string): TitlePolic
   return [{ kind: "token", value: "pageTitle" }, literal, { kind: "token", value: "siteName" }];
 }
 
-function detectPreset(policy: TitlePolicyV1): TitlePatternPreset {
+function detectPreset(policy: TitlePolicy): TitlePatternPreset {
   const tokens = policy.parts.filter((part) => part.kind === "token").map((part) => part.value);
   if (tokens.join("|") === "siteName") return "site-only";
   if (tokens.join("|") === "siteName|pageTitle") return "site-page";
@@ -65,14 +65,14 @@ function detectPreset(policy: TitlePolicyV1): TitlePatternPreset {
   return "page-site";
 }
 
-function detectSeparator(policy: TitlePolicyV1): string {
+function detectSeparator(policy: TitlePolicy): string {
   const literal = policy.parts.find((part) => part.kind === "literal");
   if (!literal) return " - ";
   return literal.value;
 }
 
 function buildPreview(args: {
-  policy: TitlePolicyV1;
+  policy: TitlePolicy;
   pageTitle: string;
   siteName: string;
   siteSubtitle: string;
@@ -100,10 +100,10 @@ function buildPreview(args: {
 }
 
 export function SiteTitlePatternField(props: {
-  onChange: (next: TitlePolicyV1) => void;
+  onChange: (next: TitlePolicy) => void;
   siteName: string;
   siteSubtitle: string;
-  value: TitlePolicyV1;
+  value: TitlePolicy;
 }) {
   const { t } = useTranslation();
   const preset = useMemo(() => detectPreset(props.value), [props.value]);

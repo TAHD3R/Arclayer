@@ -139,7 +139,7 @@ describe("MeSecuritySessionsSection", () => {
     expect(screen.queryByText("2026-03-07T00:10:00Z")).not.toBeInTheDocument();
 
     const currentTag = screen.getByText(i18n.t("account:ME_SECURITY_SESSIONS_CURRENT"));
-    expect(currentTag.closest(".ant-tag")).not.toBeNull();
+    expect(currentTag).toBeVisible();
 
     expect(
       screen.getByPlaceholderText(i18n.t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")),
