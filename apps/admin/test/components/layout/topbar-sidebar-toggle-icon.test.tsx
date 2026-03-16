@@ -104,4 +104,19 @@ describe("topbar sidebar toggle icon", () => {
 
     expectAnimatedHamburgerIcon();
   });
+
+  it("AccountTopbar 使用工作区返回入口替代账号设置标题与描述", () => {
+    renderWithSidebar(
+      <AccountTopbar
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("workspace-switcher")).toBeInTheDocument();
+    expect(screen.queryByText("account:ACCOUNT_SETTINGS_TITLE")).toBeNull();
+    expect(screen.queryByText("account:ACCOUNT_SETTINGS_DESC")).toBeNull();
+  });
 });

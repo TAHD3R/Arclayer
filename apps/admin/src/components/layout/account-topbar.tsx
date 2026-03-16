@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
+import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { useSidebar } from "@arclayer/ui/sidebar";
@@ -22,7 +23,7 @@ export function AccountTopbar(props: {
   onNotificationToggle: () => void;
   className?: string;
 }) {
-  const { t } = useTranslation(["account", "notifications", "common"]);
+  const { t } = useTranslation(["notifications", "common"]);
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -49,13 +50,12 @@ export function AccountTopbar(props: {
             <AdminFullLogo ariaLabel="Arclayer" width={100} className="flex h-8 items-center" />
           </div>
 
-          <div className="min-w-0">
-            <div className="text-callout font-semibold text-foreground">
-              {t("account:ACCOUNT_SETTINGS_TITLE")}
-            </div>
-            <div className="text-caption text-label-secondary">
-              {t("account:ACCOUNT_SETTINGS_DESC")}
-            </div>
+          <div className="min-w-0 max-w-[18rem]">
+            <AdminWorkspaceSwitcher
+              variant="header"
+              showSidebarToggle={false}
+              className="min-w-0"
+            />
           </div>
         </div>
 
