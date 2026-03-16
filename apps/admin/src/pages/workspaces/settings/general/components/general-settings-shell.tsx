@@ -33,7 +33,7 @@ type GeneralSettingsPageProps = {
 };
 
 type GeneralSettingsTabNavigation = {
-  to: "/w/$workspaceId/settings/general/site" | "/w/$workspaceId/settings/general/localization";
+  to: "/w/$workspaceId/settings/site/basics" | "/w/$workspaceId/settings/site/localization";
   params: { workspaceId: string };
 };
 
@@ -43,12 +43,12 @@ function resolveGeneralSettingsTabNavigation(
 ): GeneralSettingsTabNavigation {
   if (tab === "localization") {
     return {
-      to: "/w/$workspaceId/settings/general/localization",
+      to: "/w/$workspaceId/settings/site/localization",
       params: { workspaceId },
     };
   }
   return {
-    to: "/w/$workspaceId/settings/general/site",
+    to: "/w/$workspaceId/settings/site/basics",
     params: { workspaceId },
   };
 }
@@ -136,8 +136,8 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
 
   return (
     <DefaultPage
-      title={t("settings:SETTINGS_SITE_IDENTITY_TITLE")}
-      description={t("settings:SETTINGS_SITE_IDENTITY_DESC")}
+      title={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
+      description={t("settings:SETTINGS_SITE_SETTINGS_DESC")}
     >
       <ContentGuard
         loading={workspaceCoreQuery.isLoading && !workspaceCoreQuery.data}
@@ -153,15 +153,15 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
             }}
           >
             <ChromeTabsList>
-              <ChromeTabsTrigger value="site">
-                {t("settings:SETTINGS_SITE_IDENTITY_TAB_SITE")}
+              <ChromeTabsTrigger value="basics">
+                {t("settings:SETTINGS_SITE_SETTINGS_TAB_BASICS")}
               </ChromeTabsTrigger>
               <ChromeTabsTrigger value="localization">
-                {t("settings:SETTINGS_SITE_IDENTITY_TAB_LOCALIZATION")}
+                {t("settings:SETTINGS_SITE_SETTINGS_TAB_LOCALIZATION")}
               </ChromeTabsTrigger>
             </ChromeTabsList>
 
-            <ChromeTabsContent value="site">
+            <ChromeTabsContent value="basics">
               <SiteSettingsTab
                 form={form}
                 initialValues={initialValues}

@@ -27,6 +27,10 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
   const canRemove = Boolean(props.onRemove) && (props.canRemove ?? true);
   const radiusClass = shape === "circle" ? "rounded-full" : "rounded-md";
   const isBusy = Boolean(props.loading) || Boolean(props.disabled);
+  const shellClassName = cn(
+    "inline-flex items-center justify-center overflow-hidden bg-muted/20 text-foreground ring-1 ring-border/60",
+    radiusClass,
+  );
 
   return (
     <div className={cn("relative inline-flex", props.className)}>
@@ -42,22 +46,13 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
           isBusy ? "cursor-not-allowed opacity-70" : "cursor-pointer",
         )}
       >
-        <OrganizationAvatar
-          name={typeof props.fallback === "string" ? props.fallback : undefined}
-          assetRef={props.src ?? undefined}
-          size={size}
-          className={cn("bg-muted/20 text-foreground ring-1 ring-border/60", radiusClass)}
-        />
-        {!props.src ? (
-          <span
-            className={cn(
-              "pointer-events-none absolute inset-0 flex items-center justify-center text-foreground",
-              radiusClass,
-            )}
-          >
+        {props.src ? (
+          <OrganizationAvatar assetRef={props.src} size={size} className={shellClassName} />
+        ) : (
+          <div className={cn(shellClassName, "font-medium")} style={{ width: size, height: size }}>
             {props.fallback}
-          </span>
-        ) : null}
+          </div>
+        )}
       </button>
 
       {props.loading ? (

@@ -3,7 +3,7 @@ import type { UseFormReturn } from "react-hook-form";
 
 export type StorageProvider = "local" | "s3";
 
-export type GeneralSettingsTabKey = "site" | "localization";
+export type GeneralSettingsTabKey = "basics" | "localization";
 
 export type GeneralSettingsFormValues = {
   siteName: string;

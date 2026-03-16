@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@celestial/ui/accordion";
 import { SettingAccordionItem } from "@celestial/ui/setting-accordion-item";
+import { SettingPanel } from "@celestial/ui/setting-panel";
 import {
   Select,
   SelectContent,
@@ -224,216 +225,244 @@ export function LocalizationSettingsTab({
   const dateFormatError = getFieldErrorMessage(form, "dateFormat");
 
   return (
-    <Accordion type="single" collapsible className="px-0">
-      <SettingAccordionItem
-        value="supportedLocales"
-        title={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_LABEL")}
-        description={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_DESC")}
-        showSummary
-        summary={(supportedLocales || []).join(", ") || "-"}
-        confirmText={t("settings:SETTINGS_SAVE")}
-        onConfirm={saveSupportedLocales}
-        confirmLoading={savingKey === "supportedLocales"}
-        onReset={
-          isSupportedLocalesDirty || isResettingSupportedLocales ? resetSupportedLocales : undefined
-        }
-        resetText={t("settings:SETTINGS_RESET")}
-        resetLoading={isResettingSupportedLocales}
-        disabled={disabled}
-      >
-        <Controller
-          control={form.control}
-          name="supportedLocales"
-          rules={{
-            validate: (value) => {
-              if (!Array.isArray(value) || value.length === 0) {
-                return t("setup:SETUP_VALIDATION_LOCALE_REQUIRED");
-              }
-              const invalid = value
-                .map((item) => (typeof item === "string" ? item.trim() : ""))
-                .filter(Boolean)
-                .find((item) => normalizeLocaleTag(item) === null);
-              if (!invalid) return true;
-              return t("settings:SITE_LOCALIZATION_INVALID_LOCALE_TAG", { tag: invalid });
-            },
-          }}
-          render={({ field }) => (
+    <SettingPanel
+      title={t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_TITLE")}
+      description={t("settings:SETTINGS_SITE_LOCALIZATION_PANEL_DESC")}
+    >
+      <div className="rounded-lg border border-border">
+        <Accordion type="single" collapsible className="px-0">
+          <SettingAccordionItem
+            value="supportedLocales"
+            variant="action"
+            title={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_LABEL")}
+            description={t("settings:SITE_LOCALIZATION_SUPPORTED_LOCALES_DESC")}
+            showSummary
+            summary={(supportedLocales || []).join(", ") || "-"}
+            placeholder={t("settings:SETTINGS_NOT_SET")}
+            keepRendered
+            confirmText={t("settings:SETTINGS_SAVE")}
+            onConfirm={saveSupportedLocales}
+            confirmLoading={savingKey === "supportedLocales"}
+            onReset={
+              isSupportedLocalesDirty || isResettingSupportedLocales
+                ? resetSupportedLocales
+                : undefined
+            }
+            resetText={t("settings:SETTINGS_RESET")}
+            resetLoading={isResettingSupportedLocales}
+            disabled={disabled}
+          >
+            <Controller
+              control={form.control}
+              name="supportedLocales"
+              rules={{
+                validate: (value) => {
+                  if (!Array.isArray(value) || value.length === 0) {
+                    return t("setup:SETUP_VALIDATION_LOCALE_REQUIRED");
+                  }
+                  const invalid = value
+                    .map((item) => (typeof item === "string" ? item.trim() : ""))
+                    .filter(Boolean)
+                    .find((item) => normalizeLocaleTag(item) === null);
+                  if (!invalid) return true;
+                  return t("settings:SITE_LOCALIZATION_INVALID_LOCALE_TAG", { tag: invalid });
+                },
+              }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <StringTagsField
+                    value={field.value ?? []}
+                    onChange={(next) => field.onChange(uniqLocales(next))}
+                    placeholder="e.g. zh-CN, en-US, fr-FR"
+                    disabled={disabled}
+                    normalizeValue={(item) => String(item || "").trim()}
+                  />
+                  {supportedLocalesError ? (
+                    <div className="text-footnote text-destructive">{supportedLocalesError}</div>
+                  ) : null}
+                </div>
+              )}
+            />
+          </SettingAccordionItem>
+
+          <SettingAccordionItem
+            value="defaultLocale"
+            variant="action"
+            title={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_LABEL")}
+            description={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_DESC")}
+            showSummary
+            summary={localeLabel}
+            placeholder={t("settings:SETTINGS_NOT_SET")}
+            keepRendered
+            confirmText={t("settings:SETTINGS_SAVE")}
+            onConfirm={saveDefaultLocale}
+            confirmLoading={savingKey === "defaultLocale"}
+            onReset={
+              isDefaultLocaleDirty || isResettingDefaultLocale ? resetDefaultLocale : undefined
+            }
+            resetText={t("settings:SETTINGS_RESET")}
+            resetLoading={isResettingDefaultLocale}
+            disabled={disabled}
+          >
+            <Controller
+              control={form.control}
+              name="defaultLocale"
+              rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <Select
+                    value={field.value || undefined}
+                    onValueChange={field.onChange}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t("common:SELECT")} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      {localeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {defaultLocaleError ? (
+                    <div className="text-footnote text-destructive">{defaultLocaleError}</div>
+                  ) : null}
+                </div>
+              )}
+            />
+          </SettingAccordionItem>
+
+          <SettingAccordionItem
+            value="fallbackLocale"
+            variant="action"
+            title={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}
+            description={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_DESC")}
+            showSummary
+            summary={fallbackLocale}
+            placeholder={t("settings:SETTINGS_NOT_SET")}
+            keepRendered
+            confirmText={t("settings:SETTINGS_SAVE")}
+            onConfirm={saveFallbackLocale}
+            confirmLoading={savingKey === "fallbackLocale"}
+            onReset={
+              isFallbackLocaleDirty || isResettingFallbackLocale ? resetFallbackLocale : undefined
+            }
+            resetText={t("settings:SETTINGS_RESET")}
+            resetLoading={isResettingFallbackLocale}
+            disabled={disabled}
+          >
+            <Controller
+              control={form.control}
+              name="fallbackLocale"
+              rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <Select
+                    value={field.value || undefined}
+                    onValueChange={field.onChange}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t("common:SELECT")} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      {localeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fallbackLocaleError ? (
+                    <div className="text-footnote text-destructive">{fallbackLocaleError}</div>
+                  ) : null}
+                </div>
+              )}
+            />
+          </SettingAccordionItem>
+
+          <SettingAccordionItem
+            value="timezone"
+            variant="action"
+            title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
+            description={t("settings:SETTINGS_SITE_TIMEZONE_DESC")}
+            showSummary
+            summary={timezoneLabel}
+            placeholder={t("settings:SETTINGS_NOT_SET")}
+            keepRendered
+            confirmText={t("settings:SETTINGS_SAVE")}
+            onConfirm={saveTimezone}
+            confirmLoading={savingKey === "timezone"}
+            onReset={isTimezoneDirty || isResettingTimezone ? resetTimezone : undefined}
+            resetText={t("settings:SETTINGS_RESET")}
+            resetLoading={isResettingTimezone}
+            disabled={disabled}
+          >
             <div className="space-y-2">
-              <StringTagsField
-                value={field.value ?? []}
-                onChange={(next) => field.onChange(uniqLocales(next))}
-                placeholder="e.g. zh-CN, en-US, fr-FR"
-                disabled={disabled}
-                normalizeValue={(item) => String(item || "").trim()}
+              <TimezoneLocalizationControl
+                selectValue={String(timezone || "")}
+                switchChecked={useBrowserTimeZone}
+                switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
+                switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
+                options={timezoneOptions}
+                onSelectChange={(value) => {
+                  form.setValue("timezone", value, { shouldDirty: true });
+                  form.clearErrors("timezone");
+                }}
+                onSwitchChange={(checked) => {
+                  form.setValue("useBrowserTimeZone", checked, { shouldDirty: true });
+                }}
               />
-              {supportedLocalesError ? (
-                <div className="text-footnote text-destructive">{supportedLocalesError}</div>
+              {timezoneError ? (
+                <div className="text-footnote text-destructive">{timezoneError}</div>
               ) : null}
             </div>
-          )}
-        />
-      </SettingAccordionItem>
+          </SettingAccordionItem>
 
-      <SettingAccordionItem
-        value="defaultLocale"
-        title={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_LABEL")}
-        description={t("settings:SITE_LOCALIZATION_DEFAULT_LOCALE_DESC")}
-        showSummary
-        summary={localeLabel}
-        confirmText={t("settings:SETTINGS_SAVE")}
-        onConfirm={saveDefaultLocale}
-        confirmLoading={savingKey === "defaultLocale"}
-        onReset={isDefaultLocaleDirty || isResettingDefaultLocale ? resetDefaultLocale : undefined}
-        resetText={t("settings:SETTINGS_RESET")}
-        resetLoading={isResettingDefaultLocale}
-        disabled={disabled}
-      >
-        <Controller
-          control={form.control}
-          name="defaultLocale"
-          rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
-          render={({ field }) => (
+          <SettingAccordionItem
+            value="dateFormat"
+            variant="action"
+            title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
+            description={t("settings:SETTINGS_SITE_DATE_FORMAT_DESC")}
+            showSummary
+            summary={dateFormatLabel}
+            placeholder={t("settings:SETTINGS_NOT_SET")}
+            keepRendered
+            confirmText={t("settings:SETTINGS_SAVE")}
+            onConfirm={saveDateFormat}
+            confirmLoading={savingKey === "dateFormat"}
+            onReset={isDateFormatDirty || isResettingDateFormat ? resetDateFormat : undefined}
+            resetText={t("settings:SETTINGS_RESET")}
+            resetLoading={isResettingDateFormat}
+            disabled={disabled}
+          >
             <div className="space-y-2">
-              <Select
-                value={field.value || undefined}
-                onValueChange={field.onChange}
-                disabled={disabled}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t("common:SELECT")} />
-                </SelectTrigger>
-                <SelectContent position="popper" align="start">
-                  {localeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {defaultLocaleError ? (
-                <div className="text-footnote text-destructive">{defaultLocaleError}</div>
+              <DateTimeFormatLocalizationControl
+                selectValue={String(dateFormat || "")}
+                switchChecked={useRelativeDateTime}
+                switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
+                switchDescription={t(
+                  "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC",
+                )}
+                options={dateFormatOptions}
+                onSelectChange={(value) => {
+                  form.setValue("dateFormat", value, { shouldDirty: true });
+                  form.clearErrors("dateFormat");
+                }}
+                onSwitchChange={(checked) => {
+                  form.setValue("useRelativeDateTime", checked, { shouldDirty: true });
+                }}
+              />
+              {dateFormatError ? (
+                <div className="text-footnote text-destructive">{dateFormatError}</div>
               ) : null}
             </div>
-          )}
-        />
-      </SettingAccordionItem>
-
-      <SettingAccordionItem
-        value="fallbackLocale"
-        title={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}
-        description={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_DESC")}
-        showSummary
-        summary={fallbackLocale}
-        confirmText={t("settings:SETTINGS_SAVE")}
-        onConfirm={saveFallbackLocale}
-        confirmLoading={savingKey === "fallbackLocale"}
-        onReset={
-          isFallbackLocaleDirty || isResettingFallbackLocale ? resetFallbackLocale : undefined
-        }
-        resetText={t("settings:SETTINGS_RESET")}
-        resetLoading={isResettingFallbackLocale}
-        disabled={disabled}
-      >
-        <Controller
-          control={form.control}
-          name="fallbackLocale"
-          rules={{ required: t("setup:SETUP_VALIDATION_LOCALE_REQUIRED") }}
-          render={({ field }) => (
-            <div className="space-y-2">
-              <Select
-                value={field.value || undefined}
-                onValueChange={field.onChange}
-                disabled={disabled}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t("common:SELECT")} />
-                </SelectTrigger>
-                <SelectContent position="popper" align="start">
-                  {localeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fallbackLocaleError ? (
-                <div className="text-footnote text-destructive">{fallbackLocaleError}</div>
-              ) : null}
-            </div>
-          )}
-        />
-      </SettingAccordionItem>
-
-      <SettingAccordionItem
-        value="timezone"
-        title={t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
-        description={t("settings:SETTINGS_SITE_TIMEZONE_DESC")}
-        showSummary
-        summary={timezoneLabel}
-        confirmText={t("settings:SETTINGS_SAVE")}
-        onConfirm={saveTimezone}
-        confirmLoading={savingKey === "timezone"}
-        onReset={isTimezoneDirty || isResettingTimezone ? resetTimezone : undefined}
-        resetText={t("settings:SETTINGS_RESET")}
-        resetLoading={isResettingTimezone}
-        disabled={disabled}
-      >
-        <div className="space-y-2">
-          <TimezoneLocalizationControl
-            selectValue={String(timezone || "")}
-            switchChecked={useBrowserTimeZone}
-            switchLabel={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_TITLE")}
-            switchDescription={t("settings:SETTINGS_LOCALIZATION_AUTO_TIMEZONE_SWITCH_DESC")}
-            options={timezoneOptions}
-            onSelectChange={(value) => {
-              form.setValue("timezone", value, { shouldDirty: true });
-              form.clearErrors("timezone");
-            }}
-            onSwitchChange={(checked) => {
-              form.setValue("useBrowserTimeZone", checked, { shouldDirty: true });
-            }}
-          />
-          {timezoneError ? (
-            <div className="text-footnote text-destructive">{timezoneError}</div>
-          ) : null}
-        </div>
-      </SettingAccordionItem>
-
-      <SettingAccordionItem
-        value="dateFormat"
-        title={t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
-        description={t("settings:SETTINGS_SITE_DATE_FORMAT_DESC")}
-        showSummary
-        summary={dateFormatLabel}
-        confirmText={t("settings:SETTINGS_SAVE")}
-        onConfirm={saveDateFormat}
-        confirmLoading={savingKey === "dateFormat"}
-        onReset={isDateFormatDirty || isResettingDateFormat ? resetDateFormat : undefined}
-        resetText={t("settings:SETTINGS_RESET")}
-        resetLoading={isResettingDateFormat}
-        disabled={disabled}
-      >
-        <div className="space-y-2">
-          <DateTimeFormatLocalizationControl
-            selectValue={String(dateFormat || "")}
-            switchChecked={useRelativeDateTime}
-            switchLabel={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE")}
-            switchDescription={t("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_DESC")}
-            options={dateFormatOptions}
-            onSelectChange={(value) => {
-              form.setValue("dateFormat", value, { shouldDirty: true });
-              form.clearErrors("dateFormat");
-            }}
-            onSwitchChange={(checked) => {
-              form.setValue("useRelativeDateTime", checked, { shouldDirty: true });
-            }}
-          />
-          {dateFormatError ? (
-            <div className="text-footnote text-destructive">{dateFormatError}</div>
-          ) : null}
-        </div>
-      </SettingAccordionItem>
-    </Accordion>
+          </SettingAccordionItem>
+        </Accordion>
+      </div>
+    </SettingPanel>
   );
 }
 

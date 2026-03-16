@@ -188,9 +188,7 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
         </AccordionTrigger>
       )}
       <AccordionContent keepRendered={props.keepRendered}>
-        <div
-          className={cn("flex w-full max-w-[32.5rem] flex-col gap-3 p-2", props.contentClassName)}
-        >
+        <div className={cn("flex w-full max-w-[40rem] flex-col gap-3 p-2", props.contentClassName)}>
           <fieldset
             disabled={busy}
             className={cn("m-0 min-w-0 border-0 p-0", busy ? "opacity-60" : undefined)}

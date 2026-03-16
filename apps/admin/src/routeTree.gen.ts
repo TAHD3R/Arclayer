@@ -43,8 +43,8 @@ import { Route as WWorkspaceIdTeamRolesIndexRouteImport } from './routes/w/$work
 import { Route as WWorkspaceIdTeamMembersIndexRouteImport } from './routes/w/$workspaceId/team/members/index'
 import { Route as WWorkspaceIdTeamInvitationsIndexRouteImport } from './routes/w/$workspaceId/team/invitations/index'
 import { Route as WWorkspaceIdSettingsWorkspaceIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/index'
+import { Route as WWorkspaceIdSettingsSiteIndexRouteImport } from './routes/w/$workspaceId/settings/site/index'
 import { Route as WWorkspaceIdSettingsSeoIndexRouteImport } from './routes/w/$workspaceId/settings/seo/index'
-import { Route as WWorkspaceIdSettingsGeneralIndexRouteImport } from './routes/w/$workspaceId/settings/general/index'
 import { Route as WWorkspaceIdExtensionsExtensionSlugIndexRouteImport } from './routes/w/$workspaceId/extensions/$extensionSlug/index'
 import { Route as OOrgIdTeamRolesIndexRouteImport } from './routes/o/$orgId/team/roles/index'
 import { Route as OOrgIdTeamMembersIndexRouteImport } from './routes/o/$orgId/team/members/index'
@@ -57,11 +57,11 @@ import { Route as WWorkspaceIdEditorEditorModeEntityIdRouteImport } from './rout
 import { Route as WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/danger/index'
 import { Route as WWorkspaceIdSettingsWorkspaceContentStrategyIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/content-strategy/index'
 import { Route as WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/basics/index'
+import { Route as WWorkspaceIdSettingsSiteLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/site/localization/index'
+import { Route as WWorkspaceIdSettingsSiteBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/site/basics/index'
 import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/status/index'
 import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
 import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/activity/index'
-import { Route as WWorkspaceIdSettingsGeneralSiteIndexRouteImport } from './routes/w/$workspaceId/settings/general/site/index'
-import { Route as WWorkspaceIdSettingsGeneralLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/general/localization/index'
 
 const SysRoute = SysRouteImport.update({
   id: '/sys',
@@ -291,6 +291,12 @@ const WWorkspaceIdSettingsWorkspaceIndexRoute =
     path: '/settings/workspace/',
     getParentRoute: () => WWorkspaceIdRoute,
   } as any)
+const WWorkspaceIdSettingsSiteIndexRoute =
+  WWorkspaceIdSettingsSiteIndexRouteImport.update({
+    id: '/settings/site/',
+    path: '/settings/site/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any)
 const WWorkspaceIdSettingsSeoIndexRoute =
   WWorkspaceIdSettingsSeoIndexRouteImport.update({
     id: '/settings/seo/',
@@ -301,12 +307,6 @@ const WWorkspaceIdSettingsSeoIndexRoute =
       (d) => d.Route,
     ),
   )
-const WWorkspaceIdSettingsGeneralIndexRoute =
-  WWorkspaceIdSettingsGeneralIndexRouteImport.update({
-    id: '/settings/general/',
-    path: '/settings/general/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any)
 const WWorkspaceIdExtensionsExtensionSlugIndexRoute =
   WWorkspaceIdExtensionsExtensionSlugIndexRouteImport.update({
     id: '/extensions/$extensionSlug/',
@@ -417,6 +417,26 @@ const WWorkspaceIdSettingsWorkspaceBasicsIndexRoute =
       (d) => d.Route,
     ),
   )
+const WWorkspaceIdSettingsSiteLocalizationIndexRoute =
+  WWorkspaceIdSettingsSiteLocalizationIndexRouteImport.update({
+    id: '/settings/site/localization/',
+    path: '/settings/site/localization/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/site/localization/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const WWorkspaceIdSettingsSiteBasicsIndexRoute =
+  WWorkspaceIdSettingsSiteBasicsIndexRouteImport.update({
+    id: '/settings/site/basics/',
+    path: '/settings/site/basics/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/site/basics/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const WWorkspaceIdSettingsMaintenanceStatusIndexRoute =
   WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport.update({
     id: '/settings/maintenance/status/',
@@ -444,26 +464,6 @@ const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
     getParentRoute: () => WWorkspaceIdRoute,
   } as any).lazy(() =>
     import('./routes/w/$workspaceId/settings/maintenance/activity/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const WWorkspaceIdSettingsGeneralSiteIndexRoute =
-  WWorkspaceIdSettingsGeneralSiteIndexRouteImport.update({
-    id: '/settings/general/site/',
-    path: '/settings/general/site/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/general/site/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const WWorkspaceIdSettingsGeneralLocalizationIndexRoute =
-  WWorkspaceIdSettingsGeneralLocalizationIndexRouteImport.update({
-    id: '/settings/general/localization/',
-    path: '/settings/general/localization/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/general/localization/index.lazy').then(
       (d) => d.Route,
     ),
   )
@@ -508,17 +508,17 @@ export interface FileRoutesByFullPath {
   '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
   '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
-  '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/site/': typeof WWorkspaceIdSettingsSiteIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
   '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
-  '/w/$workspaceId/settings/general/localization/': typeof WWorkspaceIdSettingsGeneralLocalizationIndexRoute
-  '/w/$workspaceId/settings/general/site/': typeof WWorkspaceIdSettingsGeneralSiteIndexRoute
   '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
+  '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
+  '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
   '/w/$workspaceId/settings/workspace/content-strategy/': typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   '/w/$workspaceId/settings/workspace/danger/': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
@@ -559,17 +559,17 @@ export interface FileRoutesByTo {
   '/o/$orgId/team/members': typeof OOrgIdTeamMembersIndexRoute
   '/o/$orgId/team/roles': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
-  '/w/$workspaceId/settings/general': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/site': typeof WWorkspaceIdSettingsSiteIndexRoute
   '/w/$workspaceId/settings/workspace': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesIndexRoute
-  '/w/$workspaceId/settings/general/localization': typeof WWorkspaceIdSettingsGeneralLocalizationIndexRoute
-  '/w/$workspaceId/settings/general/site': typeof WWorkspaceIdSettingsGeneralSiteIndexRoute
   '/w/$workspaceId/settings/maintenance/activity': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
+  '/w/$workspaceId/settings/site/basics': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
+  '/w/$workspaceId/settings/site/localization': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
   '/w/$workspaceId/settings/workspace/content-strategy': typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   '/w/$workspaceId/settings/workspace/danger': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
@@ -615,17 +615,17 @@ export interface FileRoutesById {
   '/o/$orgId/team/members/': typeof OOrgIdTeamMembersIndexRoute
   '/o/$orgId/team/roles/': typeof OOrgIdTeamRolesIndexRoute
   '/w/$workspaceId/extensions/$extensionSlug/': typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
-  '/w/$workspaceId/settings/general/': typeof WWorkspaceIdSettingsGeneralIndexRoute
   '/w/$workspaceId/settings/seo/': typeof WWorkspaceIdSettingsSeoIndexRoute
+  '/w/$workspaceId/settings/site/': typeof WWorkspaceIdSettingsSiteIndexRoute
   '/w/$workspaceId/settings/workspace/': typeof WWorkspaceIdSettingsWorkspaceIndexRoute
   '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
-  '/w/$workspaceId/settings/general/localization/': typeof WWorkspaceIdSettingsGeneralLocalizationIndexRoute
-  '/w/$workspaceId/settings/general/site/': typeof WWorkspaceIdSettingsGeneralSiteIndexRoute
   '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
+  '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
+  '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
   '/w/$workspaceId/settings/workspace/content-strategy/': typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   '/w/$workspaceId/settings/workspace/danger/': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
@@ -672,17 +672,17 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/members/'
     | '/o/$orgId/team/roles/'
     | '/w/$workspaceId/extensions/$extensionSlug/'
-    | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/seo/'
+    | '/w/$workspaceId/settings/site/'
     | '/w/$workspaceId/settings/workspace/'
     | '/w/$workspaceId/team/invitations/'
     | '/w/$workspaceId/team/members/'
     | '/w/$workspaceId/team/roles/'
-    | '/w/$workspaceId/settings/general/localization/'
-    | '/w/$workspaceId/settings/general/site/'
     | '/w/$workspaceId/settings/maintenance/activity/'
     | '/w/$workspaceId/settings/maintenance/snapshots/'
     | '/w/$workspaceId/settings/maintenance/status/'
+    | '/w/$workspaceId/settings/site/basics/'
+    | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
     | '/w/$workspaceId/settings/workspace/content-strategy/'
     | '/w/$workspaceId/settings/workspace/danger/'
@@ -723,17 +723,17 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/members'
     | '/o/$orgId/team/roles'
     | '/w/$workspaceId/extensions/$extensionSlug'
-    | '/w/$workspaceId/settings/general'
     | '/w/$workspaceId/settings/seo'
+    | '/w/$workspaceId/settings/site'
     | '/w/$workspaceId/settings/workspace'
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
     | '/w/$workspaceId/team/roles'
-    | '/w/$workspaceId/settings/general/localization'
-    | '/w/$workspaceId/settings/general/site'
     | '/w/$workspaceId/settings/maintenance/activity'
     | '/w/$workspaceId/settings/maintenance/snapshots'
     | '/w/$workspaceId/settings/maintenance/status'
+    | '/w/$workspaceId/settings/site/basics'
+    | '/w/$workspaceId/settings/site/localization'
     | '/w/$workspaceId/settings/workspace/basics'
     | '/w/$workspaceId/settings/workspace/content-strategy'
     | '/w/$workspaceId/settings/workspace/danger'
@@ -778,17 +778,17 @@ export interface FileRouteTypes {
     | '/o/$orgId/team/members/'
     | '/o/$orgId/team/roles/'
     | '/w/$workspaceId/extensions/$extensionSlug/'
-    | '/w/$workspaceId/settings/general/'
     | '/w/$workspaceId/settings/seo/'
+    | '/w/$workspaceId/settings/site/'
     | '/w/$workspaceId/settings/workspace/'
     | '/w/$workspaceId/team/invitations/'
     | '/w/$workspaceId/team/members/'
     | '/w/$workspaceId/team/roles/'
-    | '/w/$workspaceId/settings/general/localization/'
-    | '/w/$workspaceId/settings/general/site/'
     | '/w/$workspaceId/settings/maintenance/activity/'
     | '/w/$workspaceId/settings/maintenance/snapshots/'
     | '/w/$workspaceId/settings/maintenance/status/'
+    | '/w/$workspaceId/settings/site/basics/'
+    | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
     | '/w/$workspaceId/settings/workspace/content-strategy/'
     | '/w/$workspaceId/settings/workspace/danger/'
@@ -1049,18 +1049,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/settings/site/': {
+      id: '/w/$workspaceId/settings/site/'
+      path: '/settings/site'
+      fullPath: '/w/$workspaceId/settings/site/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsSiteIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/settings/seo/': {
       id: '/w/$workspaceId/settings/seo/'
       path: '/settings/seo'
       fullPath: '/w/$workspaceId/settings/seo/'
       preLoaderRoute: typeof WWorkspaceIdSettingsSeoIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/settings/general/': {
-      id: '/w/$workspaceId/settings/general/'
-      path: '/settings/general'
-      fullPath: '/w/$workspaceId/settings/general/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsGeneralIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
     '/w/$workspaceId/extensions/$extensionSlug/': {
@@ -1147,6 +1147,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/settings/site/localization/': {
+      id: '/w/$workspaceId/settings/site/localization/'
+      path: '/settings/site/localization'
+      fullPath: '/w/$workspaceId/settings/site/localization/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsSiteLocalizationIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/settings/site/basics/': {
+      id: '/w/$workspaceId/settings/site/basics/'
+      path: '/settings/site/basics'
+      fullPath: '/w/$workspaceId/settings/site/basics/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsSiteBasicsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/settings/maintenance/status/': {
       id: '/w/$workspaceId/settings/maintenance/status/'
       path: '/settings/maintenance/status'
@@ -1166,20 +1180,6 @@ declare module '@tanstack/react-router' {
       path: '/settings/maintenance/activity'
       fullPath: '/w/$workspaceId/settings/maintenance/activity/'
       preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/settings/general/site/': {
-      id: '/w/$workspaceId/settings/general/site/'
-      path: '/settings/general/site'
-      fullPath: '/w/$workspaceId/settings/general/site/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsGeneralSiteIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/settings/general/localization/': {
-      id: '/w/$workspaceId/settings/general/localization/'
-      path: '/settings/general/localization'
-      fullPath: '/w/$workspaceId/settings/general/localization/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsGeneralLocalizationIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
   }
@@ -1259,17 +1259,17 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute
   WWorkspaceIdEditorEditorModeEntityIdRoute: typeof WWorkspaceIdEditorEditorModeEntityIdRoute
   WWorkspaceIdExtensionsExtensionSlugIndexRoute: typeof WWorkspaceIdExtensionsExtensionSlugIndexRoute
-  WWorkspaceIdSettingsGeneralIndexRoute: typeof WWorkspaceIdSettingsGeneralIndexRoute
   WWorkspaceIdSettingsSeoIndexRoute: typeof WWorkspaceIdSettingsSeoIndexRoute
+  WWorkspaceIdSettingsSiteIndexRoute: typeof WWorkspaceIdSettingsSiteIndexRoute
   WWorkspaceIdSettingsWorkspaceIndexRoute: typeof WWorkspaceIdSettingsWorkspaceIndexRoute
   WWorkspaceIdTeamInvitationsIndexRoute: typeof WWorkspaceIdTeamInvitationsIndexRoute
   WWorkspaceIdTeamMembersIndexRoute: typeof WWorkspaceIdTeamMembersIndexRoute
   WWorkspaceIdTeamRolesIndexRoute: typeof WWorkspaceIdTeamRolesIndexRoute
-  WWorkspaceIdSettingsGeneralLocalizationIndexRoute: typeof WWorkspaceIdSettingsGeneralLocalizationIndexRoute
-  WWorkspaceIdSettingsGeneralSiteIndexRoute: typeof WWorkspaceIdSettingsGeneralSiteIndexRoute
   WWorkspaceIdSettingsMaintenanceActivityIndexRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
   WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
+  WWorkspaceIdSettingsSiteBasicsIndexRoute: typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
+  WWorkspaceIdSettingsSiteLocalizationIndexRoute: typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute: typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
   WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute: typeof WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute
   WWorkspaceIdSettingsWorkspaceDangerIndexRoute: typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
@@ -1285,23 +1285,23 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
     WWorkspaceIdEditorEditorModeEntityIdRoute,
   WWorkspaceIdExtensionsExtensionSlugIndexRoute:
     WWorkspaceIdExtensionsExtensionSlugIndexRoute,
-  WWorkspaceIdSettingsGeneralIndexRoute: WWorkspaceIdSettingsGeneralIndexRoute,
   WWorkspaceIdSettingsSeoIndexRoute: WWorkspaceIdSettingsSeoIndexRoute,
+  WWorkspaceIdSettingsSiteIndexRoute: WWorkspaceIdSettingsSiteIndexRoute,
   WWorkspaceIdSettingsWorkspaceIndexRoute:
     WWorkspaceIdSettingsWorkspaceIndexRoute,
   WWorkspaceIdTeamInvitationsIndexRoute: WWorkspaceIdTeamInvitationsIndexRoute,
   WWorkspaceIdTeamMembersIndexRoute: WWorkspaceIdTeamMembersIndexRoute,
   WWorkspaceIdTeamRolesIndexRoute: WWorkspaceIdTeamRolesIndexRoute,
-  WWorkspaceIdSettingsGeneralLocalizationIndexRoute:
-    WWorkspaceIdSettingsGeneralLocalizationIndexRoute,
-  WWorkspaceIdSettingsGeneralSiteIndexRoute:
-    WWorkspaceIdSettingsGeneralSiteIndexRoute,
   WWorkspaceIdSettingsMaintenanceActivityIndexRoute:
     WWorkspaceIdSettingsMaintenanceActivityIndexRoute,
   WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute:
     WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute,
   WWorkspaceIdSettingsMaintenanceStatusIndexRoute:
     WWorkspaceIdSettingsMaintenanceStatusIndexRoute,
+  WWorkspaceIdSettingsSiteBasicsIndexRoute:
+    WWorkspaceIdSettingsSiteBasicsIndexRoute,
+  WWorkspaceIdSettingsSiteLocalizationIndexRoute:
+    WWorkspaceIdSettingsSiteLocalizationIndexRoute,
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute:
     WWorkspaceIdSettingsWorkspaceBasicsIndexRoute,
   WWorkspaceIdSettingsWorkspaceContentStrategyIndexRoute:
