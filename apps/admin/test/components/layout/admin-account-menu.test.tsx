@@ -158,6 +158,16 @@ describe("AdminAccountMenu", () => {
     expect(screen.queryByRole("button", { name: "ACCOUNT_HELP_CENTER" })).toBeNull();
   });
 
+  it("账号菜单 action icon 会被约束为标准 16px 尺寸，不再膨胀到面板宽度", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+
+    const accountAction = screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" });
+    expect(accountAction.querySelector(".size-4")).not.toBeNull();
+  });
+
   it("点击语言偏好入口后只展示语言二级菜单", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);

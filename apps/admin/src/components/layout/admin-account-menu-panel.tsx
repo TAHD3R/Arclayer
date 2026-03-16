@@ -41,7 +41,7 @@ type PreferenceOption = {
   onClick: () => Promise<void> | void;
 };
 
-const PANEL_WIDTH_CLASSNAME = "w-[min(20.5rem,calc(100vw-1.25rem))]";
+const PANEL_WIDTH_CLASSNAME = "w-75";
 const MENU_ITEM_CLASSNAME = cn(
   "group transition-[background-color,color] duration-200",
   "hover:bg-accent hover:text-foreground",
@@ -54,8 +54,11 @@ const VIEW_TRANSITIONS = {
 };
 
 function withHoverState(node: ReactNode, isHovered: boolean) {
-  if (!isValidElement<{ isHovered?: boolean }>(node)) return node;
-  return cloneElement(node, { isHovered });
+  if (!isValidElement<{ isHovered?: boolean; className?: string }>(node)) return node;
+  return cloneElement(node, {
+    isHovered,
+    className: cn("size-4 shrink-0", node.props.className),
+  });
 }
 
 function MenuItemContent(props: {
@@ -68,9 +71,7 @@ function MenuItemContent(props: {
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
         {props.icon ? (
-          <span className="shrink-0 [&>svg]:size-4">
-            {withHoverState(props.icon, props.isHovered)}
-          </span>
+          <span className="shrink-0">{withHoverState(props.icon, props.isHovered)}</span>
         ) : null}
         <span className="min-w-0 truncate text-callout">{props.label}</span>
       </span>
