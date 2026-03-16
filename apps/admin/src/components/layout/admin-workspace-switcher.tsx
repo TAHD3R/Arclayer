@@ -111,7 +111,7 @@ const sidebarTriggerButtonClassName = cn(
 
 const headerTriggerButtonClassName = cn(
   HEADER_TRIGGER_HEIGHT_CLASSNAME,
-  "flex w-full min-w-0 items-center gap-2 rounded-lg border border-transparent",
+  "inline-flex max-w-full min-w-0 items-center gap-2 rounded-lg border border-transparent",
   "bg-transparent px-2 text-label-secondary shadow-none",
   "transition-[border-color,background-color,color] duration-200",
   "hover:bg-accent/60 hover:text-foreground",
@@ -806,7 +806,7 @@ export function AdminWorkspaceSwitcher({
 
   if (isHeaderVariant) {
     return (
-      <FloatingPanelRoot className={cn("w-full min-w-0", className)}>
+      <FloatingPanelRoot className={cn("inline-flex min-w-0 max-w-full", className)}>
         <FloatingPanelTrigger
           title={workspaceTriggerText}
           aria-label={label}
@@ -821,7 +821,7 @@ export function AdminWorkspaceSwitcher({
             className="shrink-0"
           />
 
-          <div className="min-w-0 flex-1 overflow-hidden text-left">
+          <div className="min-w-0 overflow-hidden text-left">
             <TruncatedText
               text={workspaceTriggerText}
               className="text-callout font-semibold text-foreground"

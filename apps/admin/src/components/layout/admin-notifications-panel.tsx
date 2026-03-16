@@ -32,7 +32,7 @@ const PANEL_PAGE_SIZE = 20;
 
 const PANEL_VARIANTS = {
   open: { opacity: 1, x: 0 },
-  closed: { opacity: 0, x: -16 },
+  closed: { opacity: 0, x: 16 },
 };
 
 const PANEL_TRANSITION = {

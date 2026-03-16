@@ -298,6 +298,7 @@ describe("AdminWorkspaceSwitcher (merged org + workspace)", () => {
     });
 
     expect(trigger.className).toContain("!h-11");
+    expect(trigger.className).toContain("inline-flex");
     expect(trigger.className).toContain("border-transparent");
 
     await waitFor(() => {

@@ -37,6 +37,17 @@ vi.mock("@/components/ui/theme-transition", () => ({
   setThemePreferenceWithTransition: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/i18n", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/i18n")>();
+  return {
+    ...actual,
+    i18n: {
+      ...actual.i18n,
+      changeLanguage: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+});
+
 function renderWithProviders(component: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -63,7 +74,7 @@ async function openAccountMenu(user: ReturnType<typeof userEvent.setup>) {
   if (!trigger) throw new Error("Missing account menu trigger");
   await user.click(trigger);
   await waitFor(() => {
-    expect(screen.getByRole("button", { name: "ACCOUNT_ACCOUNT_SETTINGS" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
   });
 }
 
@@ -124,20 +135,22 @@ describe("AdminAccountMenu", () => {
     vi.mocked(authApi.logout).mockResolvedValue(null);
   });
 
-  it("只展示账号统一入口 + 偏好项 + 快捷键 + 退出，不再展示组织/工作区/通知/帮助入口", async () => {
+  it("只展示统一账号入口 + 偏好子菜单入口 + 快捷键 + 退出，不再展示组织/工作区/通知/帮助入口", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
 
-    expect(await screen.findByRole("button", { name: "ACCOUNT_ACCOUNT_SETTINGS" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_THEME_SYSTEM" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_THEME_LIGHT" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_THEME_DARK" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeVisible();
+    expect(await screen.findByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "ACCOUNT_MENU_APPEARANCE" })).toBeVisible();
     expect(screen.getByRole("button", { name: "ACCOUNT_SHORTCUTS" })).toBeVisible();
     expect(screen.getByRole("button", { name: "ACCOUNT_LOGOUT" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_SYSTEM" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_LIGHT" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_DARK" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeNull();
 
     expect(screen.queryByRole("button", { name: "ACCOUNT_ORGANIZATION_SETTINGS" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_WORKSPACES" })).toBeNull();
@@ -145,16 +158,41 @@ describe("AdminAccountMenu", () => {
     expect(screen.queryByRole("button", { name: "ACCOUNT_HELP_CENTER" })).toBeNull();
   });
 
-  it("点击主题菜单项会更新偏好，并展示语言切换项", async () => {
+  it("点击语言偏好入口后只展示语言二级菜单", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(screen.getByRole("button", { name: "ACCOUNT_THEME_DARK" }));
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "common:BACK" })).toBeVisible();
+    });
+    expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_DARK" })).toBeNull();
+  });
+
+  it("点击外观入口后会进入二级菜单并更新主题偏好", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_APPEARANCE" }));
+    await user.click(await screen.findByRole("button", { name: "ACCOUNT_THEME_DARK" }));
 
     expect(setThemePreferenceWithTransition).toHaveBeenCalledWith("dark", { direction: "ltr" });
-    expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeVisible();
+  });
+
+  it("点击语言二级菜单项会更新语言偏好", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+    await user.click(await screen.findByRole("button", { name: "ACCOUNT_LANGUAGE_EN" }));
+
+    expect(usePreferencesStore.getState().locale).toBe("en-US");
   });
 
   it("点击退出会调用后端 logout，再清空本地登录态并跳转", async () => {

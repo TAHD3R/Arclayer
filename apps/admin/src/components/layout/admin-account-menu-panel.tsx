@@ -1,0 +1,310 @@
+import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Keyboard,
+  Languages,
+  LogOut,
+  Monitor,
+  Moon,
+  Sun,
+  UserCog,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { UserAvatar } from "@/components/common/entity-avatar";
+import type { AppLocale } from "@/lib/i18n";
+import { cn } from "@celestial/lib/utils";
+import { FloatingPanelButton, useFloatingPanel } from "@celestial/ui/floating-panel";
+import type { ThemePreference } from "@/types/stores";
+
+type AccountMenuView = "root" | "language" | "appearance";
+
+type AdminAccountPanelContentProps = {
+  displayName: string;
+  email: string | null;
+  avatarUrl: string | null;
+  themePreference: ThemePreference;
+  locale: AppLocale;
+  onLogout: () => Promise<void>;
+  onAccountSettings: () => Promise<void> | void;
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onLocaleChange: (next: AppLocale) => Promise<void> | void;
+  onShortcuts: () => Promise<void> | void;
+};
+
+type PreferenceOption = {
+  icon: ReactNode;
+  label: string;
+  selected: boolean;
+  onClick: () => Promise<void> | void;
+};
+
+const PANEL_WIDTH_CLASSNAME = "w-[min(22rem,calc(100vw-1.5rem))]";
+const MENU_ITEM_CLASSNAME = cn(
+  "group transition-colors",
+  "hover:bg-accent hover:text-foreground",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+);
+const VIEW_TRANSITIONS = {
+  enter: (direction: number) => ({ opacity: 0, x: direction > 0 ? 20 : -20 }),
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({ opacity: 0, x: direction > 0 ? -20 : 20 }),
+};
+
+function MenuItemContent(props: { icon?: ReactNode; label: string; right?: ReactNode }) {
+  return (
+    <>
+      <span className="flex min-w-0 flex-1 items-center gap-3">
+        {props.icon ? <span className="shrink-0 [&>svg]:size-4">{props.icon}</span> : null}
+        <span className="min-w-0 truncate text-callout">{props.label}</span>
+      </span>
+      {props.right ? (
+        <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
+          {props.right}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+function MenuDivider() {
+  return <div className="mx-4 my-2 h-px bg-border/60" />;
+}
+
+function MenuAction(props: {
+  icon?: ReactNode;
+  label: string;
+  right?: ReactNode;
+  onClick: () => Promise<void> | void;
+}) {
+  return (
+    <FloatingPanelButton className={MENU_ITEM_CLASSNAME} onClick={props.onClick}>
+      <MenuItemContent icon={props.icon} label={props.label} right={props.right} />
+    </FloatingPanelButton>
+  );
+}
+
+function ProfileSummary(props: {
+  displayName: string;
+  email: string | null;
+  avatarUrl: string | null;
+}) {
+  return (
+    <div className="px-4 pt-4 pb-3">
+      <div className="flex items-center gap-3">
+        <UserAvatar name={props.displayName} assetRef={props.avatarUrl} size={56} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-headline">{props.displayName}</div>
+          {props.email ? (
+            <div className="truncate text-callout text-label-secondary">{props.email}</div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RootMenu(props: {
+  onAccountSettings: () => Promise<void> | void;
+  onOpenAppearance: () => void;
+  onOpenLanguage: () => void;
+  onShortcuts: () => Promise<void> | void;
+  onLogout: () => Promise<void>;
+}) {
+  const { t } = useTranslation("account");
+  return (
+    <>
+      <div className="py-1">
+        <MenuAction
+          icon={<UserCog />}
+          label={t("ACCOUNT_MENU_ACCOUNT")}
+          onClick={props.onAccountSettings}
+        />
+        <MenuAction
+          icon={<Languages />}
+          label={t("ACCOUNT_MENU_LANGUAGE_PREFERENCES")}
+          right={<ArrowRight className="size-4" aria-hidden="true" />}
+          onClick={props.onOpenLanguage}
+        />
+        <MenuAction
+          icon={<Monitor />}
+          label={t("ACCOUNT_MENU_APPEARANCE")}
+          right={<ArrowRight className="size-4" aria-hidden="true" />}
+          onClick={props.onOpenAppearance}
+        />
+      </div>
+      <MenuDivider />
+      <div className="py-1">
+        <MenuAction
+          icon={<Keyboard />}
+          label={t("ACCOUNT_SHORTCUTS")}
+          onClick={props.onShortcuts}
+        />
+      </div>
+      <MenuDivider />
+      <div className="pb-4">
+        <MenuAction icon={<LogOut />} label={t("ACCOUNT_LOGOUT")} onClick={props.onLogout} />
+      </div>
+    </>
+  );
+}
+
+function buildPreferenceOptions(
+  view: Exclude<AccountMenuView, "root">,
+  t: (key: string) => string,
+  locale: AppLocale,
+  themePreference: ThemePreference,
+  onLocaleChange: (next: AppLocale) => Promise<void> | void,
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void,
+): PreferenceOption[] {
+  if (view === "language") {
+    return [
+      {
+        icon: <Languages />,
+        label: t("ACCOUNT_LANGUAGE_ZH"),
+        selected: locale === "zh-CN",
+        onClick: () => onLocaleChange("zh-CN"),
+      },
+      {
+        icon: <Languages />,
+        label: t("ACCOUNT_LANGUAGE_EN"),
+        selected: locale === "en-US",
+        onClick: () => onLocaleChange("en-US"),
+      },
+    ];
+  }
+
+  return [
+    {
+      icon: <Monitor />,
+      label: t("ACCOUNT_THEME_SYSTEM"),
+      selected: themePreference === "system",
+      onClick: () => onThemePreferenceChange("system"),
+    },
+    {
+      icon: <Sun />,
+      label: t("ACCOUNT_THEME_LIGHT"),
+      selected: themePreference === "light",
+      onClick: () => onThemePreferenceChange("light"),
+    },
+    {
+      icon: <Moon />,
+      label: t("ACCOUNT_THEME_DARK"),
+      selected: themePreference === "dark",
+      onClick: () => onThemePreferenceChange("dark"),
+    },
+  ];
+}
+
+function PreferenceSubmenu(props: {
+  view: Exclude<AccountMenuView, "root">;
+  locale: AppLocale;
+  themePreference: ThemePreference;
+  onBack: () => void;
+  onLocaleChange: (next: AppLocale) => Promise<void> | void;
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
+}) {
+  const { t } = useTranslation(["account", "common"]);
+  const translate = (key: string) => t(key) as string;
+  const options = buildPreferenceOptions(
+    props.view,
+    translate,
+    props.locale,
+    props.themePreference,
+    props.onLocaleChange,
+    props.onThemePreferenceChange,
+  );
+  return (
+    <>
+      <div className="py-1">
+        <MenuAction icon={<ArrowLeft />} label={translate("common:BACK")} onClick={props.onBack} />
+      </div>
+      <MenuDivider />
+      <div className="pb-4">
+        {options.map((option) => (
+          <MenuAction
+            key={option.label}
+            icon={option.icon}
+            label={option.label}
+            right={option.selected ? <Check className="size-4 text-primary" /> : null}
+            onClick={() => props.onSelectAndClose(option.onClick)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+export function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
+  const { isOpen, closeFloatingPanel } = useFloatingPanel();
+  const [view, setView] = useState<AccountMenuView>("root");
+  const [direction, setDirection] = useState(1);
+  useEffect(() => {
+    if (!isOpen) {
+      setView("root");
+      setDirection(1);
+    }
+  }, [isOpen]);
+  const onClickAndClose = async (fn: () => Promise<void> | void) => {
+    await fn();
+    closeFloatingPanel();
+  };
+  const showAppearance = () => {
+    setDirection(1);
+    setView("appearance");
+  };
+  const showLanguage = () => {
+    setDirection(1);
+    setView("language");
+  };
+  const showRoot = () => {
+    setDirection(-1);
+    setView("root");
+  };
+  return (
+    <div className={PANEL_WIDTH_CLASSNAME}>
+      <ProfileSummary
+        displayName={props.displayName}
+        email={props.email}
+        avatarUrl={props.avatarUrl}
+      />
+      <MenuDivider />
+      <div className="relative overflow-hidden">
+        <AnimatePresence initial={false} custom={direction} mode="wait">
+          <motion.div
+            key={view}
+            custom={direction}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            variants={VIEW_TRANSITIONS}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            {view === "root" ? (
+              <RootMenu
+                onAccountSettings={() => onClickAndClose(props.onAccountSettings)}
+                onOpenAppearance={showAppearance}
+                onOpenLanguage={showLanguage}
+                onShortcuts={() => onClickAndClose(props.onShortcuts)}
+                onLogout={() => onClickAndClose(props.onLogout)}
+              />
+            ) : (
+              <PreferenceSubmenu
+                view={view}
+                locale={props.locale}
+                themePreference={props.themePreference}
+                onBack={showRoot}
+                onLocaleChange={props.onLocaleChange}
+                onThemePreferenceChange={props.onThemePreferenceChange}
+                onSelectAndClose={onClickAndClose}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
