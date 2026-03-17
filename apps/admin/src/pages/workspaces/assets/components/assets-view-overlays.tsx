@@ -157,14 +157,14 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         {props.selectedCount > 1 && !props.active ? (
           <motion.div
             key="assets-selection-toolbar"
-            className="fixed bottom-0 right-0 left-[240px] z-30 pointer-events-none"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-30"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.12, ease: "easeOut" }}
           >
-            <div className="pointer-events-auto w-full border-t border-border bg-card shadow-[0_-16px_30px_-24px_rgba(0,0,0,0.28)]">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
+            <div className="pointer-events-auto w-full rounded-t-[20px] border border-b-0 border-border bg-card shadow-[0_-18px_36px_-28px_rgba(0,0,0,0.28)]">
+              <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
                 <div className="flex min-w-0 items-center gap-3">
                   <SelectedCountTag
                     label={props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}

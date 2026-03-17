@@ -180,6 +180,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                   setMoveFolderOpen(true);
                 }}
                 onDeleteFolder={openDeleteFolderDialog}
+                dropSuccessPulse={controller.dropSuccessPulse}
                 onOpenAsset={(asset) => setActive(asset)}
                 onRemoveRecentAsset={removeRecentAsset}
                 onClearRecentAssets={clearRecentAssets}
@@ -188,128 +189,130 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
           },
         }}
       >
-        <AssetsViewOverlays
-          t={t}
-          active={active}
-          setActive={setActive}
-          items={controller.items}
-          currentFolderPathLabel={currentFolderPathLabel}
-          moveModalOpen={moveModalOpen}
-          setMoveModalOpen={setMoveModalOpen}
-          folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
-          foldersLoading={foldersQuery.isLoading}
-          selectedCount={selectedIds.size}
-          bulkMovePending={bulkMoveMutation.isPending}
-          onMoveAssets={async (folderId) => {
-            const assetIds = Array.from(selectedIds);
-            if (!assetIds.length) return;
-            await bulkMoveMutation.mutateAsync({ assetIds, folderId });
-            setSelection((prev) => clearSelection(prev));
-          }}
-          editFolderOpen={editFolderOpen}
-          setEditFolderOpen={setEditFolderOpen}
-          editFolderTarget={editFolderTarget}
-          updateFolderPending={updateFolderMutation.isPending}
-          onUpdateFolder={async (value) => {
-            const folder = editFolderTarget;
-            if (!folder) return;
-            await updateFolderMutation.mutateAsync({
-              folderId: String(folder.id),
-              payload: { name: value.name, description: value.description },
-            });
-          }}
-          moveFolderOpen={moveFolderOpen}
-          setMoveFolderOpen={setMoveFolderOpen}
-          moveFolderTarget={moveFolderTarget}
-          onMoveFolder={async (parentId) => {
-            const folder = moveFolderTarget;
-            if (!folder) return;
-            await updateFolderMutation.mutateAsync({
-              folderId: String(folder.id),
-              payload: { parentId },
-            });
-          }}
-          editAccessOpen={editAccessOpen}
-          setEditAccessOpen={setEditAccessOpen}
-          editAccessMode={editAccessMode}
-          editAccessCurrent={editAccessCurrent}
-          bulkUpdatePending={bulkUpdateMutation.isPending}
-          onConfirmEditAccess={async (value) => {
-            const assetIds = Array.from(selectedIds);
-            if (!assetIds.length) return;
-            if (!value.visibility && !value.purpose && typeof value.indexable === "undefined") {
-              return;
-            }
-            await bulkUpdateMutation.mutateAsync({ assetIds, ...value });
-          }}
-          createFolderOpen={createFolderOpen}
-          setCreateFolderOpen={setCreateFolderOpen}
-          createParentLabel={createParentLabel}
-          createFolderPending={createFolderMutation.isPending}
-          onCreateFolder={async (name, description) => {
-            const parentId = createFolderParentId ?? currentFolderId;
-            await createFolderMutation.mutateAsync({ name, parentId, description });
-          }}
-          deleteFolderOpen={deleteFolderOpen}
-          setDeleteFolderOpen={setDeleteFolderOpen}
-          deleteFolderTarget={deleteFolderTarget}
-          deleteFolderPending={deleteFolderMutation.isPending}
-          onDeleteFolder={async (destinationFolderId) => {
-            const folder = deleteFolderTarget;
-            if (!folder) return;
-            await deleteFolderMutation.mutateAsync({
-              folderId: String(folder.id),
-              destinationFolderId,
-            });
-            if (String(currentFolderId || "") === String(folder.id)) {
-              setCurrentFolderId(destinationFolderId);
-            }
-          }}
-          bulkDeleteOpen={bulkDeleteOpen}
-          setBulkDeleteOpen={setBulkDeleteOpen}
-          bulkDeletePending={bulkDeleteMutation.isPending}
-          onConfirmBulkDelete={async () => {
-            const assetIds = Array.from(selectedIds);
-            if (!assetIds.length) return;
-            await bulkDeleteMutation.mutateAsync({ assetIds });
-            setSelection((prev) => clearSelection(prev));
-            setActive(null);
-            setBulkDeleteOpen(false);
-          }}
-          scope={scope}
-          uploadOpen={uploadOpen}
-          setUploadOpen={setUploadOpen}
-          currentFolderId={currentFolderId}
-          onUploaded={() => {
-            if (scopeKey) {
-              void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
-              void queryClient.invalidateQueries({ queryKey: ["assets", "tags", scopeKey] });
-              void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
-            }
-            void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
-            setUploadOpen(false);
-          }}
-          onClearSelection={() => {
-            setSelection((prev) => clearSelection(prev));
-          }}
-          onOpenMove={() => setMoveModalOpen(true)}
-          onOpenEditAccess={() => openEditAccessDialog()}
-          onOpenBulkDelete={() => openBulkDeleteDialog()}
-        />
+        <div className="relative flex min-h-0 min-w-0 w-full flex-1 flex-col">
+          <AssetsViewOverlays
+            t={t}
+            active={active}
+            setActive={setActive}
+            items={controller.items}
+            currentFolderPathLabel={currentFolderPathLabel}
+            moveModalOpen={moveModalOpen}
+            setMoveModalOpen={setMoveModalOpen}
+            folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
+            foldersLoading={foldersQuery.isLoading}
+            selectedCount={selectedIds.size}
+            bulkMovePending={bulkMoveMutation.isPending}
+            onMoveAssets={async (folderId) => {
+              const assetIds = Array.from(selectedIds);
+              if (!assetIds.length) return;
+              await bulkMoveMutation.mutateAsync({ assetIds, folderId });
+              setSelection((prev) => clearSelection(prev));
+            }}
+            editFolderOpen={editFolderOpen}
+            setEditFolderOpen={setEditFolderOpen}
+            editFolderTarget={editFolderTarget}
+            updateFolderPending={updateFolderMutation.isPending}
+            onUpdateFolder={async (value) => {
+              const folder = editFolderTarget;
+              if (!folder) return;
+              await updateFolderMutation.mutateAsync({
+                folderId: String(folder.id),
+                payload: { name: value.name, description: value.description },
+              });
+            }}
+            moveFolderOpen={moveFolderOpen}
+            setMoveFolderOpen={setMoveFolderOpen}
+            moveFolderTarget={moveFolderTarget}
+            onMoveFolder={async (parentId) => {
+              const folder = moveFolderTarget;
+              if (!folder) return;
+              await updateFolderMutation.mutateAsync({
+                folderId: String(folder.id),
+                payload: { parentId },
+              });
+            }}
+            editAccessOpen={editAccessOpen}
+            setEditAccessOpen={setEditAccessOpen}
+            editAccessMode={editAccessMode}
+            editAccessCurrent={editAccessCurrent}
+            bulkUpdatePending={bulkUpdateMutation.isPending}
+            onConfirmEditAccess={async (value) => {
+              const assetIds = Array.from(selectedIds);
+              if (!assetIds.length) return;
+              if (!value.visibility && !value.purpose && typeof value.indexable === "undefined") {
+                return;
+              }
+              await bulkUpdateMutation.mutateAsync({ assetIds, ...value });
+            }}
+            createFolderOpen={createFolderOpen}
+            setCreateFolderOpen={setCreateFolderOpen}
+            createParentLabel={createParentLabel}
+            createFolderPending={createFolderMutation.isPending}
+            onCreateFolder={async (name, description) => {
+              const parentId = createFolderParentId ?? currentFolderId;
+              await createFolderMutation.mutateAsync({ name, parentId, description });
+            }}
+            deleteFolderOpen={deleteFolderOpen}
+            setDeleteFolderOpen={setDeleteFolderOpen}
+            deleteFolderTarget={deleteFolderTarget}
+            deleteFolderPending={deleteFolderMutation.isPending}
+            onDeleteFolder={async (destinationFolderId) => {
+              const folder = deleteFolderTarget;
+              if (!folder) return;
+              await deleteFolderMutation.mutateAsync({
+                folderId: String(folder.id),
+                destinationFolderId,
+              });
+              if (String(currentFolderId || "") === String(folder.id)) {
+                setCurrentFolderId(destinationFolderId);
+              }
+            }}
+            bulkDeleteOpen={bulkDeleteOpen}
+            setBulkDeleteOpen={setBulkDeleteOpen}
+            bulkDeletePending={bulkDeleteMutation.isPending}
+            onConfirmBulkDelete={async () => {
+              const assetIds = Array.from(selectedIds);
+              if (!assetIds.length) return;
+              await bulkDeleteMutation.mutateAsync({ assetIds });
+              setSelection((prev) => clearSelection(prev));
+              setActive(null);
+              setBulkDeleteOpen(false);
+            }}
+            scope={scope}
+            uploadOpen={uploadOpen}
+            setUploadOpen={setUploadOpen}
+            currentFolderId={currentFolderId}
+            onUploaded={() => {
+              if (scopeKey) {
+                void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
+                void queryClient.invalidateQueries({ queryKey: ["assets", "tags", scopeKey] });
+                void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+              }
+              void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
+              setUploadOpen(false);
+            }}
+            onClearSelection={() => {
+              setSelection((prev) => clearSelection(prev));
+            }}
+            onOpenMove={() => setMoveModalOpen(true)}
+            onOpenEditAccess={() => openEditAccessDialog()}
+            onOpenBulkDelete={() => openBulkDeleteDialog()}
+          />
 
-        <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-hidden">
-          <AssetsViewMasonrySection controller={controller} />
-        </div>
-
-        {assetsQuery.hasNextPage ? (
-          <div ref={sentinelRef} className="py-8 flex justify-center">
-            {assetsQuery.isFetchingNextPage ? (
-              <Spinner className="size-4 text-label-secondary" />
-            ) : (
-              <div className="h-4 w-4" />
-            )}
+          <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-hidden">
+            <AssetsViewMasonrySection controller={controller} />
           </div>
-        ) : null}
+
+          {assetsQuery.hasNextPage ? (
+            <div ref={sentinelRef} className="flex justify-center py-8">
+              {assetsQuery.isFetchingNextPage ? (
+                <Spinner className="size-4 text-label-secondary" />
+              ) : (
+                <div className="h-4 w-4" />
+              )}
+            </div>
+          ) : null}
+        </div>
       </ColumnsPage>
     </AssetsViewDndSurface>
   );

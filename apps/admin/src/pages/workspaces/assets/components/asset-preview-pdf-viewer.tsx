@@ -100,7 +100,7 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
 
       <div
         ref={containerRef}
-        className="flex min-h-0 flex-1 items-start justify-center overflow-auto rounded-[20px] border border-border/60 bg-muted/20 p-6"
+        className="flex min-h-0 flex-1 items-start justify-center overflow-auto"
       >
         <Document
           file={file}
@@ -114,7 +114,7 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
           {loadError ? null : (
             <Page
               pageNumber={pageNumber}
-              width={Math.max(320, Math.min(containerWidth - 48, 1040))}
+              width={Math.max(320, Math.min(containerWidth, 1040))}
               renderAnnotationLayer={false}
               renderTextLayer={false}
             />

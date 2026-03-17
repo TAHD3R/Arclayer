@@ -1,6 +1,14 @@
 import { FileText, Music, Package } from "lucide-react";
 import { type InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,9 +33,40 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
 import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import { DND_ROOT_ID, parseFolderDndId, parseFolderItemDndId } from "../components/assets-view-dnd";
+import {
+  DND_ROOT_ID,
+  parseAssetItemDndId,
+  parseFolderDndId,
+  parseFolderItemDndId,
+} from "../components/assets-view-dnd";
 
 import { useAssetsRecentItems } from "./use-assets-recent-items";
+
+function getDraggedAssetIds(activeAssetId: string, selectedIds: Set<string>) {
+  if (!selectedIds.has(activeAssetId)) return [activeAssetId];
+  return Array.from(selectedIds);
+}
+
+function isSameFolderDrop(currentFolderId: string | null, destinationFolderId: string | null) {
+  return String(currentFolderId || "") === String(destinationFolderId || "");
+}
+
+function triggerDropPulse(
+  droppableId: string,
+  setDropSuccessPulse: Dispatch<
+    SetStateAction<{
+      droppableId: string;
+      nonce: number;
+    } | null>
+  >,
+) {
+  const nonce = Date.now();
+  setDropSuccessPulse({ droppableId, nonce });
+  window.setTimeout(() => {
+    setDropSuccessPulse((prev) => (prev?.nonce === nonce ? null : prev));
+  }, 300);
+}
+
 export function useAssetsViewController() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -64,6 +103,8 @@ export function useAssetsViewController() {
     indexable?: boolean;
   }>({});
   const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
+  const [draggingAssetIds, setDraggingAssetIds] = useState<string[]>([]);
+  const [draggingAssetLeadId, setDraggingAssetLeadId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [dropSuccessPulse, setDropSuccessPulse] = useState<{
     droppableId: string;
@@ -413,6 +454,8 @@ export function useAssetsViewController() {
     const folderMoveId = parseFolderItemDndId(activeId);
     if (folderMoveId) {
       setDraggingFolderId(folderMoveId);
+      setDraggingAssetIds([]);
+      setDraggingAssetLeadId(null);
       flushSync(() => {
         setFocusedFolderId(folderMoveId);
         setSelection((prev) => clearSelection(prev));
@@ -420,20 +463,42 @@ export function useAssetsViewController() {
       });
       return;
     }
+    const assetDragId = parseAssetItemDndId(activeId);
+    if (assetDragId) {
+      setDraggingFolderId(null);
+      setDraggingAssetLeadId(assetDragId);
+      setDraggingAssetIds(getDraggedAssetIds(assetDragId, selectedIds));
+      setFocusedFolderId(null);
+      return;
+    }
     setDraggingFolderId(null);
+    setDraggingAssetIds([]);
+    setDraggingAssetLeadId(null);
   };
   const onDragCancel = () => {
     setDraggingFolderId(null);
+    setDraggingAssetIds([]);
+    setDraggingAssetLeadId(null);
   };
   const onDragEnd = (event: DragEndEvent) => {
     void (async () => {
+      const activeId = String(event.active.id);
       const overId = event.over ? String(event.over.id) : "";
-      const folderMoveId = parseFolderItemDndId(String(event.active.id));
+      const folderMoveId = parseFolderItemDndId(activeId);
+      const assetDragId = parseAssetItemDndId(activeId);
       const folderId = overId ? parseFolderDndId(overId) : undefined;
       const canMove =
         overId === DND_ROOT_ID || (typeof folderId === "string" && folderId.length > 0);
       // Always clear drag visuals at the end of a drag gesture.
       setDraggingFolderId(null);
+      setDraggingAssetLeadId(null);
+      const draggedAssetIds =
+        assetDragId && draggingAssetIds.length
+          ? draggingAssetIds
+          : assetDragId
+            ? getDraggedAssetIds(assetDragId, selectedIds)
+            : [];
+      setDraggingAssetIds([]);
       if (!canMove) return;
       const destFolderId = folderId ?? null;
       if (folderMoveId) {
@@ -457,14 +522,24 @@ export function useAssetsViewController() {
           for (const c of children) stack.push(c);
         }
         if (destFolderId && descendants.has(String(destFolderId))) return;
-        const nonce = Date.now();
-        setDropSuccessPulse({ droppableId: overId, nonce });
-        window.setTimeout(() => {
-          setDropSuccessPulse((prev) => (prev?.nonce === nonce ? null : prev));
-        }, 300);
         await updateFolderMutation.mutateAsync({
           folderId: String(folderMoveId),
           payload: { parentId: destFolderId },
+        });
+        triggerDropPulse(overId, setDropSuccessPulse);
+        return;
+      }
+      if (assetDragId) {
+        if (draggedAssetIds.length === 0) return;
+        if (isSameFolderDrop(currentFolderId, destFolderId)) return;
+        await bulkMoveMutation.mutateAsync({ assetIds: draggedAssetIds, folderId: destFolderId });
+        triggerDropPulse(overId, setDropSuccessPulse);
+        const shouldClearSelection = draggedAssetIds.some((assetId) => selectedIds.has(assetId));
+        flushSync(() => {
+          if (shouldClearSelection) {
+            setSelection((prev) => clearSelection(prev));
+          }
+          setActive((prev) => (prev && draggedAssetIds.includes(String(prev.id)) ? null : prev));
         });
       }
     })();
@@ -511,6 +586,8 @@ export function useAssetsViewController() {
     editAccessCurrent,
     setEditAccessCurrent,
     draggingFolderId,
+    draggingAssetIds,
+    draggingAssetLeadId,
     setDraggingFolderId,
     sensors,
     dropSuccessPulse,

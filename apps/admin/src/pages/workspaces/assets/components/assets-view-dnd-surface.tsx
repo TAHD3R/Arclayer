@@ -4,14 +4,27 @@ import type { PropsWithChildren } from "react";
 
 import type { AssetsViewController } from "../hooks/use-assets-view-controller";
 import { AssetsExplorerFolderDragOverlay } from "./explorer/assets-explorer-folder-tiles";
-import { snapOverlayCenterToPointer } from "./assets-view-dnd";
+import { AssetsDragOverlayCard, snapOverlayCenterToPointer } from "./assets-view-dnd";
 
 export function AssetsViewDndSurface(
   props: PropsWithChildren<{ controller: AssetsViewController }>,
 ) {
   const { controller, children } = props;
-  const { t, sensors, onDragStart, onDragEnd, onDragCancel, draggingFolderId, folderById } =
-    controller;
+  const {
+    t,
+    sensors,
+    onDragStart,
+    onDragEnd,
+    onDragCancel,
+    draggingFolderId,
+    draggingAssetIds,
+    draggingAssetLeadId,
+    folderById,
+    items,
+  } = controller;
+  const draggingAsset = draggingAssetLeadId
+    ? (items.find((item) => item.id === draggingAssetLeadId) ?? null)
+    : null;
 
   return (
     <DndContext
@@ -31,6 +44,13 @@ export function AssetsViewDndSurface(
               folderName={
                 folderById.get(String(draggingFolderId))?.name || t("assets:ASSET_FOLDER")
               }
+            />
+          ) : draggingAsset ? (
+            <AssetsDragOverlayCard
+              key={`drag-asset-overlay:${draggingAsset.id}`}
+              asset={draggingAsset}
+              assetCount={draggingAssetIds.length || 1}
+              t={t}
             />
           ) : null}
         </AnimatePresence>

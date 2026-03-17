@@ -30,6 +30,7 @@ import {
   buildFolderPath,
   flattenFoldersDepthFirst,
 } from "./assets-folder-rail-utils";
+import { DroppablePulse, FolderDroppableProvider, toFolderDndId } from "./assets-view-dnd";
 
 type AssetsFolderRailFolderSectionProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -43,6 +44,10 @@ type AssetsFolderRailFolderSectionProps = {
   onEditFolder: (folder: AdminAssetFolder) => void;
   onMoveFolder: (folder: AdminAssetFolder) => void;
   onDeleteFolder: (folder: AdminAssetFolder) => void;
+  dropSuccessPulse?: {
+    droppableId: string;
+    nonce: number;
+  } | null;
 };
 
 function FolderCardSkeleton() {
@@ -105,74 +110,93 @@ function FolderCard(props: {
   onEditFolder: (folder: AdminAssetFolder) => void;
   onMoveFolder: (folder: AdminAssetFolder) => void;
   onDeleteFolder: (folder: AdminAssetFolder) => void;
+  dropPulseNonce: number | null;
 }) {
+  const droppableId = toFolderDndId(String(props.folder.id));
+
   return (
-    <div
-      className={cn(
-        "group col-span-1 flex cursor-pointer flex-col rounded-lg border bg-card p-4 shadow-sm transition-colors duration-200",
-        props.isActive
-          ? "border-primary/40 bg-primary/5 shadow-[0_12px_30px_-22px_rgba(24,24,27,0.32)]"
-          : "border-border hover:border-border/80 hover:bg-accent/35 hover:shadow-md",
-      )}
-      onClick={() => props.onSelectFolder(props.isActive ? null : String(props.folder.id))}
-    >
-      <div className="mb-4 flex flex-row justify-between gap-3">
-        <div className="grid size-10 place-items-center rounded-xl border border-border/60 bg-background/85 text-label-secondary">
-          <FolderClosed className="size-4" />
-        </div>
-        <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="opacity-70 transition-opacity group-hover:opacity-100"
-              >
-                <MoreVertical className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuIconItem
-                icon={<PencilLine className="size-4" />}
-                onSelect={() => props.onEditFolder(props.folder)}
-              >
-                {props.t("assets:ASSET_ACTION_EDIT_FOLDER")}
-              </DropdownMenuIconItem>
-              <DropdownMenuIconItem
-                icon={<FolderClosed className="size-4" />}
-                onSelect={() => props.onMoveFolder(props.folder)}
-              >
-                {props.t("assets:ASSET_ACTION_MOVE_FOLDER")}
-              </DropdownMenuIconItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuIconItem
-                icon={<Trash2 className="size-4" />}
-                variant="destructive"
-                onSelect={() => props.onDeleteFolder(props.folder)}
-              >
-                {props.t("assets:ASSET_ACTION_DELETE_FOLDER")}
-              </DropdownMenuIconItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      <div className="flex flex-col wrap-break-word" style={{ overflowWrap: "anywhere" }}>
-        <div className="text-headline font-semibold text-foreground">{props.folder.name}</div>
-        <div className="text-footnote line-clamp-2 text-label-secondary">
-          {props.folder.description || props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
-        </div>
-      </div>
-
-      <div className="mt-auto flex items-center gap-2 pt-4">
-        <Badge
-          variant={props.isActive ? "default" : "secondary"}
-          className="rounded-full px-2.5 py-0.5 text-[11px]"
+    <FolderDroppableProvider droppableId={droppableId}>
+      {({ setNodeRef, isOver }) => (
+        <DroppablePulse
+          droppableId={droppableId}
+          setNodeRef={setNodeRef}
+          isOver={isOver}
+          pulseNonce={props.dropPulseNonce}
+          className="w-full"
         >
-          {props.isActive ? props.t("assets:ASSET_FOLDER_CARD_SELECTED") : props.locationLabel}
-        </Badge>
-      </div>
-    </div>
+          <div
+            className={cn(
+              "group col-span-1 flex cursor-pointer flex-col rounded-lg border bg-card p-4 shadow-sm transition-[background-color,border-color,box-shadow] duration-200",
+              props.isActive
+                ? "border-primary/40 bg-primary/5 shadow-[0_12px_30px_-22px_rgba(24,24,27,0.32)]"
+                : "border-border hover:border-border/80 hover:bg-accent/35 hover:shadow-md",
+              isOver &&
+                "border-primary/55 bg-primary/8 ring-2 ring-primary/30 ring-offset-2 ring-offset-background shadow-[0_18px_36px_-24px_rgba(24,24,27,0.42)]",
+            )}
+            onClick={() => props.onSelectFolder(props.isActive ? null : String(props.folder.id))}
+          >
+            <div className="mb-4 flex flex-row justify-between gap-3">
+              <div className="grid size-10 place-items-center rounded-xl border border-border/60 bg-background/85 text-label-secondary">
+                <FolderClosed className="size-4" />
+              </div>
+              <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="opacity-70 transition-opacity group-hover:opacity-100"
+                    >
+                      <MoreVertical className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuIconItem
+                      icon={<PencilLine className="size-4" />}
+                      onSelect={() => props.onEditFolder(props.folder)}
+                    >
+                      {props.t("assets:ASSET_ACTION_EDIT_FOLDER")}
+                    </DropdownMenuIconItem>
+                    <DropdownMenuIconItem
+                      icon={<FolderClosed className="size-4" />}
+                      onSelect={() => props.onMoveFolder(props.folder)}
+                    >
+                      {props.t("assets:ASSET_ACTION_MOVE_FOLDER")}
+                    </DropdownMenuIconItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuIconItem
+                      icon={<Trash2 className="size-4" />}
+                      variant="destructive"
+                      onSelect={() => props.onDeleteFolder(props.folder)}
+                    >
+                      {props.t("assets:ASSET_ACTION_DELETE_FOLDER")}
+                    </DropdownMenuIconItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            <div className="flex flex-col wrap-break-word" style={{ overflowWrap: "anywhere" }}>
+              <div className="text-headline font-semibold text-foreground">{props.folder.name}</div>
+              <div className="text-footnote line-clamp-2 text-label-secondary">
+                {props.folder.description || props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
+              </div>
+            </div>
+
+            <div className="mt-auto flex items-center gap-2 pt-4">
+              <Badge
+                variant={props.isActive ? "default" : "secondary"}
+                className="rounded-full px-2.5 py-0.5 text-[11px]"
+              >
+                {props.isActive
+                  ? props.t("assets:ASSET_FOLDER_CARD_SELECTED")
+                  : props.locationLabel}
+              </Badge>
+            </div>
+          </div>
+        </DroppablePulse>
+      )}
+    </FolderDroppableProvider>
   );
 }
 
@@ -286,6 +310,11 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
                 onEditFolder={props.onEditFolder}
                 onMoveFolder={props.onMoveFolder}
                 onDeleteFolder={props.onDeleteFolder}
+                dropPulseNonce={
+                  props.dropSuccessPulse?.droppableId === toFolderDndId(String(folder.id))
+                    ? props.dropSuccessPulse.nonce
+                    : null
+                }
               />
             );
           })}

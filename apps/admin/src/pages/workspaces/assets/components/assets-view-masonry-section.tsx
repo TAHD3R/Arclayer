@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   useContainerPosition,
   useMasonry,
@@ -38,6 +38,18 @@ const MASONRY_COLUMN_WIDTH = 260;
 const MASONRY_GUTTER = 16;
 const MASONRY_ITEM_HEIGHT_ESTIMATE = 320;
 const MASONRY_SCROLL_FPS = 12;
+
+function getNearestAvailableWidth(element: HTMLElement | null) {
+  let current = element;
+
+  for (let guard = 0; guard < 6 && current; guard += 1) {
+    const width = Math.round(current.getBoundingClientRect().width || current.offsetWidth || 0);
+    if (width > 0) return width;
+    current = current.parentElement;
+  }
+
+  return 0;
+}
 
 function useViewportHeight() {
   const [height, setHeight] = useState(() =>
@@ -81,12 +93,17 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     setActive,
   } = controller;
   const orderedAssetIdsRef = useRef(orderedAssetIds);
-  const masonryShellRef = useRef<HTMLDivElement | null>(null);
-  const masonryContainerRef = useRef<HTMLElement | null>(null);
+  const masonryGridRef = useRef<HTMLElement | null>(null);
   const [observedShellWidth, setObservedShellWidth] = useState(0);
   const viewportHeight = useViewportHeight();
-  const masonryMeasureRef = masonryShellRef as MutableRefObject<HTMLElement | null>;
   orderedAssetIdsRef.current = orderedAssetIds;
+
+  const setMasonryGridRef = useCallback((node: HTMLElement | null) => {
+    masonryGridRef.current = node;
+    const nextWidth = getNearestAvailableWidth(node);
+    if (!nextWidth) return;
+    setObservedShellWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+  }, []);
 
   const handleAssetSelect = useCallback(
     (asset: AssetMasonryItem, event: React.MouseEvent<HTMLDivElement>) => {
@@ -128,9 +145,8 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   );
 
   const measureShellWidth = useCallback(() => {
-    const shell = masonryShellRef.current;
-    if (!shell) return;
-    const nextWidth = Math.round(shell.getBoundingClientRect().width);
+    const nextWidth = getNearestAvailableWidth(masonryGridRef.current);
+    if (!nextWidth) return;
     setObservedShellWidth((prev) => (prev === nextWidth ? prev : nextWidth));
   }, []);
   const masonryItems = useMemo<AssetMasonryRenderItem[]>(
@@ -157,9 +173,10 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     const baseKey = JSON.stringify(assetsListQueryKey);
     return getAssetsMasonryDatasetKey(baseKey, orderedAssetIds);
   }, [assetsListQueryKey, orderedAssetIds]);
-  const masonryContainerPosition = useContainerPosition(masonryMeasureRef, [
+  const masonryContainerPosition = useContainerPosition(masonryGridRef, [
     observedShellWidth,
     viewportHeight,
+    items.length,
   ]);
   const masonryWidth = masonryContainerPosition.width || observedShellWidth;
   const masonryMaxColumnCount = useMemo(
@@ -174,7 +191,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       rowGutter: MASONRY_GUTTER,
       maxColumnCount: masonryMaxColumnCount,
     },
-    [masonryDatasetKey],
+    [masonryDatasetKey, masonryWidth, masonryMaxColumnCount],
   );
   const resizeObserver = useResizeObserver(positioner);
   const { scrollTop, isScrolling } = useScroller(
@@ -188,7 +205,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     scrollTop,
     isScrolling,
     height: viewportHeight,
-    containerRef: masonryContainerRef,
+    containerRef: setMasonryGridRef,
     className: "min-w-0 w-full max-w-full",
     itemKey: getAssetsMasonryItemKey,
     itemHeightEstimate: MASONRY_ITEM_HEIGHT_ESTIMATE,
@@ -196,18 +213,38 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     render: AssetsViewMasonryRenderCell,
   });
 
-  useEffect(() => {
-    const shell = masonryShellRef.current;
+  useLayoutEffect(() => {
+    const shell = masonryGridRef.current;
     if (!shell) return;
-    measureShellWidth();
-    const observer = new ResizeObserver(() => measureShellWidth());
-    observer.observe(shell);
-    window.addEventListener("resize", measureShellWidth);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measureShellWidth);
+
+    let frameId = 0;
+    let cancelled = false;
+
+    const measureUntilReady = (attempt = 0) => {
+      if (cancelled) return;
+      measureShellWidth();
+      if (getNearestAvailableWidth(shell) > 0) return;
+      if (attempt >= 8) return;
+      frameId = window.requestAnimationFrame(() => measureUntilReady(attempt + 1));
     };
-  }, [measureShellWidth]);
+
+    measureUntilReady();
+
+    const observer = new ResizeObserver(() => {
+      measureUntilReady();
+    });
+    const handleResize = () => {
+      measureUntilReady();
+    };
+    observer.observe(shell);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+      observer.disconnect();
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [items.length, measureShellWidth]);
 
   return (
     <ContentGuard
@@ -240,7 +277,6 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       }
     >
       <div
-        ref={masonryShellRef}
         className="min-w-0 w-full max-w-full overflow-x-hidden select-none"
         onMouseDown={(event) => {
           if (event.button !== 0) return;

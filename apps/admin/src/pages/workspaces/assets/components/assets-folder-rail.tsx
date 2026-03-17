@@ -21,6 +21,10 @@ type AssetsFolderRailProps = {
   onEditFolder: (folder: AdminAssetFolder) => void;
   onMoveFolder: (folder: AdminAssetFolder) => void;
   onDeleteFolder: (folder: AdminAssetFolder) => void;
+  dropSuccessPulse?: {
+    droppableId: string;
+    nonce: number;
+  } | null;
   onOpenAsset: (asset: AssetMasonryItem) => void;
   onRemoveRecentAsset: (key: string) => void;
   onClearRecentAssets: () => void;
@@ -42,6 +46,7 @@ export function AssetsFolderRail(props: AssetsFolderRailProps) {
           onEditFolder={props.onEditFolder}
           onMoveFolder={props.onMoveFolder}
           onDeleteFolder={props.onDeleteFolder}
+          dropSuccessPulse={props.dropSuccessPulse}
         />
         <AssetsFolderRailRecentSection
           t={props.t}

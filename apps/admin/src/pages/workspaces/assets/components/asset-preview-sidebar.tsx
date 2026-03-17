@@ -3,13 +3,7 @@ import { Link2, Plus } from "lucide-react";
 import { Input } from "@arclayer/ui/input";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
-import {
-  AssetAddTagActionTag,
-  AssetIndexableTag,
-  AssetPurposeTag,
-  AssetUserTagChip,
-  AssetVisibilityTag,
-} from "@/components/ui/tags";
+import { AssetAddTagActionTag, AssetIndexableTag, AssetUserTagChip } from "@/components/ui/tags";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
@@ -27,8 +21,6 @@ import {
   formatCreatedAt,
   getIndexableLabel,
   getMimeLabel,
-  getPurposeLabel,
-  getVisibilityLabel,
   tagInputStyle,
 } from "./asset-masonry-tile";
 
@@ -93,6 +85,51 @@ function AssetShareLinks(props: { controller: AssetPreviewController }) {
 
 function AssetTagEditor(props: { controller: AssetPreviewController }) {
   return (
+    <div className="flex flex-wrap items-center gap-2">
+      {props.controller.selectedTags.map((tag) => (
+        <AssetUserTagChip
+          key={tag.id}
+          label={tag.name}
+          closable={true}
+          onClose={(event) => {
+            event.preventDefault();
+            props.controller.removeTag(tag.id);
+          }}
+        />
+      ))}
+      {props.controller.inputVisible ? (
+        <Input
+          ref={props.controller.inputRef}
+          type="text"
+          style={tagInputStyle}
+          className="h-[22px] w-[88px] px-2 text-caption"
+          value={props.controller.inputValue}
+          onChange={(event) => props.controller.setInputValue(event.target.value)}
+          onBlur={() => void props.controller.confirmAddTag()}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            void props.controller.confirmAddTag();
+          }}
+        />
+      ) : (
+        <AssetAddTagActionTag
+          className="bg-muted/20 hover:bg-accent/50"
+          label={
+            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+              <Plus size={14} />
+              <span>{props.controller.t("assets:ASSET_TAG_NEW")}</span>
+            </span>
+          }
+          onClick={() => props.controller.setInputVisible(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AssetDescriptionEditor(props: { controller: AssetPreviewController }) {
+  return (
     <div className="space-y-3">
       <textarea
         className="min-h-28 w-full resize-none rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-callout text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -103,46 +140,6 @@ function AssetTagEditor(props: { controller: AssetPreviewController }) {
           props.controller.setDescriptionDraft(event.target.value);
         }}
       />
-      <div className="flex flex-wrap items-center gap-2">
-        {props.controller.selectedTags.map((tag) => (
-          <AssetUserTagChip
-            key={tag.id}
-            label={tag.name}
-            closable={true}
-            onClose={(event) => {
-              event.preventDefault();
-              props.controller.removeTag(tag.id);
-            }}
-          />
-        ))}
-        {props.controller.inputVisible ? (
-          <Input
-            ref={props.controller.inputRef}
-            type="text"
-            style={tagInputStyle}
-            className="h-[22px] w-[88px] px-2 text-caption"
-            value={props.controller.inputValue}
-            onChange={(event) => props.controller.setInputValue(event.target.value)}
-            onBlur={() => void props.controller.confirmAddTag()}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              event.preventDefault();
-              void props.controller.confirmAddTag();
-            }}
-          />
-        ) : (
-          <AssetAddTagActionTag
-            className="bg-muted/20 hover:bg-accent/50"
-            label={
-              <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                <Plus size={14} />
-                <span>{props.controller.t("assets:ASSET_TAG_NEW")}</span>
-              </span>
-            }
-            onClick={() => props.controller.setInputVisible(true)}
-          />
-        )}
-      </div>
       {props.controller.saveState !== "idle" ? (
         <div className="text-caption text-label-secondary">
           {props.controller.saveState === "saving"
@@ -200,33 +197,21 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
 
       <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_ORGANIZATION")}>
         <div className="flex flex-wrap gap-2">
-          <AssetVisibilityTag
-            visibility={controller.displayVisibility}
-            label={getVisibilityLabel(controller.displayVisibility, controller.t)}
-          />
-          <AssetPurposeTag
-            purpose={controller.displayPurpose}
-            label={getPurposeLabel(controller.displayPurpose, controller.t)}
-          />
           <AssetIndexableTag
             indexable={active.indexable}
             label={getIndexableLabel(active.indexable, controller.t)}
           />
         </div>
-
-        <AssetInspectorList>
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_TAG_FIELD_TITLE")}
-            value={String(controller.selectedTags.length)}
-          />
-        </AssetInspectorList>
+        <div className="space-y-2">
+          <div className="text-caption text-label-secondary">
+            {controller.t("assets:ASSET_TAG_FIELD_TITLE")}
+          </div>
+          <AssetTagEditor controller={controller} />
+        </div>
       </AssetInspectorPanel>
 
-      <AssetInspectorPanel
-        title={controller.t("assets:ASSET_DIALOG_NOTES")}
-        description={controller.t("assets:ASSET_META_DESCRIPTION_PLACEHOLDER")}
-      >
-        <AssetTagEditor controller={controller} />
+      <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_NOTES")}>
+        <AssetDescriptionEditor controller={controller} />
       </AssetInspectorPanel>
 
       <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_SHARE")}>

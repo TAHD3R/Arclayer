@@ -14,9 +14,7 @@ export function AssetInspectorPanel(props: {
   return (
     <section className="space-y-4">
       <header className="space-y-1">
-        <div className="text-caption font-semibold uppercase tracking-[0.08em] text-label-secondary">
-          {props.title}
-        </div>
+        <div className="text-caption font-semibold text-label-secondary">{props.title}</div>
         {props.description ? (
           <p className="text-caption leading-5 text-label-secondary">{props.description}</p>
         ) : null}
@@ -42,9 +40,7 @@ export function AssetInspectorRow(props: {
 }) {
   return (
     <div className="grid gap-x-4 gap-y-1 py-3 md:grid-cols-[7rem_minmax(0,1fr)] md:items-start">
-      <div className="text-caption uppercase tracking-[0.08em] text-label-secondary">
-        {props.label}
-      </div>
+      <div className="text-caption text-label-secondary">{props.label}</div>
       <div className="min-w-0 text-footnote text-foreground md:text-right">{props.value}</div>
       {props.description ? (
         <div className="text-caption leading-5 text-label-secondary md:col-start-2 md:text-right">
@@ -64,12 +60,10 @@ export function AssetInspectorActionRow(props: {
   return (
     <button
       type="button"
-      className="grid w-full gap-x-4 gap-y-1 py-3 text-left transition-colors hover:text-primary md:grid-cols-[7rem_minmax(0,1fr)] md:items-start"
+      className="grid w-full -mx-3 gap-x-4 gap-y-1 rounded-xl px-3 py-3 text-left transition-[background-color,color] hover:bg-accent/45 hover:text-foreground focus-visible:bg-accent/45 md:grid-cols-[7rem_minmax(0,1fr)] md:items-start"
       onClick={props.onClick}
     >
-      <span className="text-caption uppercase tracking-[0.08em] text-label-secondary">
-        {props.label}
-      </span>
+      <span className="text-caption text-label-secondary">{props.label}</span>
       <span className="min-w-0 text-footnote text-foreground md:text-right">{props.value}</span>
     </button>
   );

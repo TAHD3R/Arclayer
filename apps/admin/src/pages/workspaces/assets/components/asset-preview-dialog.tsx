@@ -23,21 +23,16 @@ import {
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 
-import { AssetMimeTag, AssetPurposeTag, AssetVisibilityTag } from "@/components/ui/tags";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
-import {
-  downloadWithAuth,
-  getMimeLabel,
-  getPurposeLabel,
-  getVisibilityLabel,
-} from "./asset-masonry-tile";
+import { downloadWithAuth } from "./asset-masonry-tile";
 import {
   useAssetPreviewDialogController,
   type AssetMoreMenuItem,
 } from "./asset-preview-dialog-controller";
+import { AssetPreviewHeaderMeta } from "./asset-preview-header-meta";
 import { AssetPreviewSidebar } from "./asset-preview-sidebar";
 import { AssetPreviewStage } from "./asset-preview-stage";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
@@ -183,7 +178,9 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
         }}
         size="xl"
         title={active?.name ?? ""}
-        description={active ? controller.uploaderAndTimeText : undefined}
+        description={
+          active ? <AssetPreviewHeaderMeta active={active} controller={controller} /> : undefined
+        }
         headerRight={
           active ? (
             <PreviewToolbar
@@ -201,27 +198,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
       >
         {active ? (
           <div className="flex min-h-0 flex-1 bg-background">
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_12rem)]">
-              <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-3">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <AssetMimeTag
-                    title={active.mimeType || undefined}
-                    label={getMimeLabel(active.mimeType, controller.t)}
-                  />
-                  <AssetVisibilityTag
-                    visibility={controller.displayVisibility}
-                    label={getVisibilityLabel(controller.displayVisibility, controller.t)}
-                  />
-                  <AssetPurposeTag
-                    purpose={controller.displayPurpose}
-                    label={getPurposeLabel(controller.displayPurpose, controller.t)}
-                  />
-                </div>
-                <div className="shrink-0 text-caption text-label-secondary">
-                  {currentIndex >= 0 ? `${currentIndex + 1} / ${props.items.length}` : null}
-                </div>
-              </div>
-
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border/60 bg-background">
               <div className="min-h-0 flex-1 overflow-hidden">
                 <AssetPreviewStage
                   active={active}

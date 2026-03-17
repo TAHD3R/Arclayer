@@ -56,17 +56,24 @@ describe("AssetMasonryTile", () => {
     expect(onOpen).toHaveBeenCalledWith(asset);
   });
 
-  it("does not render a move handle button", () => {
+  it("renders a drag handle button for folder moves", () => {
     render(
       <AssetMasonryTile
         asset={asset}
         onSelect={vi.fn()}
         onOpen={vi.fn()}
         onToggleSelected={vi.fn()}
+        dragHandle={{
+          setNodeRef: vi.fn(),
+          setActivatorNodeRef: vi.fn(),
+          listeners: {},
+          attributes: {},
+          isDragging: false,
+        }}
       />,
     );
 
-    expect(screen.queryByLabelText("assets:ASSET_ACTION_MOVE")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("assets:ASSET_ACTION_MOVE")).toBeInTheDocument();
   });
 
   it("keeps checkbox clicks local to the checkbox", () => {

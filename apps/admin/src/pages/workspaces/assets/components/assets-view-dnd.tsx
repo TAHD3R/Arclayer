@@ -1,10 +1,14 @@
 import { useEffect, type ComponentProps, type ReactNode } from "react";
 import { DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
+import { Badge } from "@arclayer/ui/badge";
 import { motion } from "motion/react";
 import { useAnimationControls } from "motion/react";
 
+import type { AssetMasonryItem } from "@/types/assets-masonry";
+
 export const DND_FOLDER_PREFIX = "folder:";
 const DND_FOLDER_ITEM_PREFIX = "folderItem:";
+const DND_ASSET_ITEM_PREFIX = "assetItem:";
 export const DND_ROOT_ID = `${DND_FOLDER_PREFIX}__root__`;
 
 export function toFolderDndId(folderId: string) {
@@ -25,6 +29,17 @@ export function parseFolderDndId(id: string): string | null {
 export function parseFolderItemDndId(id: string): string | null {
   if (!id.startsWith(DND_FOLDER_ITEM_PREFIX)) return null;
   const raw = id.slice(DND_FOLDER_ITEM_PREFIX.length);
+  if (!raw) return null;
+  return raw;
+}
+
+export function toAssetItemDndId(assetId: string) {
+  return `${DND_ASSET_ITEM_PREFIX}${assetId}`;
+}
+
+export function parseAssetItemDndId(id: string): string | null {
+  if (!id.startsWith(DND_ASSET_ITEM_PREFIX)) return null;
+  const raw = id.slice(DND_ASSET_ITEM_PREFIX.length);
   if (!raw) return null;
   return raw;
 }
@@ -92,8 +107,10 @@ export const snapOverlayCenterToPointer: DragOverlayModifier = ({
 
 type DraggableBindings = {
   setNodeRef: (node: HTMLElement | null) => void;
+  setActivatorNodeRef?: (node: HTMLElement | null) => void;
   listeners: Record<string, unknown>;
   attributes: Record<string, unknown>;
+  isDragging: boolean;
 };
 
 export function FolderDraggableProvider(props: {
@@ -107,8 +124,28 @@ export function FolderDraggableProvider(props: {
 
   return props.children({
     setNodeRef: dnd.setNodeRef,
+    setActivatorNodeRef: dnd.setActivatorNodeRef,
     listeners: dnd.listeners as unknown as Record<string, unknown>,
     attributes: dnd.attributes as unknown as Record<string, unknown>,
+    isDragging: dnd.isDragging,
+  });
+}
+
+export function AssetDraggableProvider(props: {
+  assetId: string;
+  children: (bindings: DraggableBindings) => ReactNode;
+}) {
+  const dnd = useDraggable({
+    id: toAssetItemDndId(props.assetId),
+    data: { kind: "asset", assetId: props.assetId },
+  });
+
+  return props.children({
+    setNodeRef: dnd.setNodeRef,
+    setActivatorNodeRef: dnd.setActivatorNodeRef,
+    listeners: dnd.listeners as unknown as Record<string, unknown>,
+    attributes: dnd.attributes as unknown as Record<string, unknown>,
+    isDragging: dnd.isDragging,
   });
 }
 
@@ -129,10 +166,17 @@ export function DroppablePulse(props: {
 
   useEffect(() => {
     if (props.isOver) {
-      void controls.start({ scale: 1.02, transition: { duration: 0.12, ease: "easeOut" } });
+      void controls.start({
+        scale: 1.02,
+        x: [0, -1.5, 1.5, 0],
+        transition: {
+          scale: { duration: 0.12, ease: "easeOut" },
+          x: { duration: 0.24, ease: "easeInOut", repeat: Infinity },
+        },
+      });
       return;
     }
-    void controls.start({ scale: 1, transition: { duration: 0.12, ease: "easeOut" } });
+    void controls.start({ scale: 1, x: 0, transition: { duration: 0.12, ease: "easeOut" } });
   }, [controls, props.isOver]);
 
   useEffect(() => {
@@ -165,4 +209,53 @@ export function FolderDroppableProvider(props: {
     data: { kind: "folder", folderId: parseFolderDndId(props.droppableId) },
   });
   return props.children({ setNodeRef: dnd.setNodeRef, isOver: dnd.isOver });
+}
+
+export function AssetsDragOverlayCard(props: {
+  asset: AssetMasonryItem;
+  assetCount: number;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const mimeLabel = props.asset.ext || props.asset.mimeType || props.t("assets:ASSET_FILE_GENERIC");
+  return (
+    <motion.div
+      className="pointer-events-none select-none"
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
+      style={{ width: 220, willChange: "transform" }}
+    >
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-xl">
+        <div className="relative overflow-hidden bg-muted/20" style={{ aspectRatio: 4 / 3 }}>
+          {props.asset.previewUrl ? (
+            <img
+              src={props.asset.previewUrl}
+              alt={props.asset.name}
+              className="h-full w-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-caption font-medium text-label-secondary">
+              {String(mimeLabel).replace(/^\./, "").toUpperCase()}
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
+          <div className="absolute left-3 right-3 bottom-3">
+            <div
+              className="truncate text-footnote font-semibold text-white"
+              title={props.asset.name}
+            >
+              {props.asset.name}
+            </div>
+          </div>
+          {props.assetCount > 1 ? (
+            <Badge className="absolute right-3 top-3 rounded-full bg-background/92 text-foreground shadow-sm">
+              {props.t("assets:ASSET_SELECTED_COUNT", { count: props.assetCount })}
+            </Badge>
+          ) : null}
+        </div>
+      </div>
+    </motion.div>
+  );
 }

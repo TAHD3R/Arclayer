@@ -28,7 +28,7 @@ function AssetUnsupportedPreview(props: {
   publicUrl?: string;
 }) {
   return (
-    <div className="grid h-full min-h-[320px] place-items-center bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_52%),linear-gradient(180deg,rgba(15,23,42,0.04),rgba(15,23,42,0.02))] px-8">
+    <div className="grid h-full min-h-[320px] place-items-center bg-muted/10 px-8">
       <div className="max-w-md space-y-3 text-center">
         <div className="text-title3 font-semibold text-foreground">{props.title}</div>
         <p className="text-footnote leading-6 text-label-secondary">{props.description}</p>
@@ -83,7 +83,7 @@ function AssetImagePreview(props: AssetPreviewStageProps) {
   }, [candidates, currentSrc, loadFailed, props.failedPreviewRef, props.setPreviewSrc]);
 
   return (
-    <div className="relative h-full min-h-[320px] overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.09),transparent_52%),linear-gradient(180deg,rgba(15,23,42,0.07),rgba(15,23,42,0.03))]">
+    <div className="relative h-full min-h-[320px] overflow-hidden bg-muted/10">
       <div className="relative h-full w-full">
         {resolvedSrc ? (
           <LazyAssetImage
@@ -116,7 +116,6 @@ function AssetImagePreview(props: AssetPreviewStageProps) {
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/10 to-transparent" />
     </div>
   );
 }
@@ -207,7 +206,7 @@ export function AssetPreviewStage(props: AssetPreviewStageProps) {
   }
   if (kind === "audio" && props.active.contentUrl) {
     return (
-      <div className="grid h-full min-h-[320px] place-items-center bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_52%),linear-gradient(180deg,rgba(15,23,42,0.04),rgba(15,23,42,0.02))] px-8">
+      <div className="grid h-full min-h-[320px] place-items-center bg-muted/10 px-8">
         <audio
           className="w-full max-w-xl"
           controls
