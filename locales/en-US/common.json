@@ -233,7 +233,7 @@
   "WORKSPACE_SITE_BUILDER_DESC": "Plan site structure, routes, and publishing surfaces for this workspace.",
   "WORKSPACE_CONTENT_LIBRARY_DESC": "Curate reusable content assets and shared references for upcoming publishing flows.",
   "WORKSPACE_CONTENT_MODELS_DESC": "Define the structured content models and field contracts this workspace will use.",
-  "WORKSPACE_SEO_DESC": "Prepare search metadata defaults and discovery rules for the site in this workspace.",
+  "WORKSPACE_SEO_DESC": "Analyze search metadata defaults and discovery rules for the site in this workspace.",
   "PAGE_FORBIDDEN_DESC": "You don't have permission to access this area. If you think you should, contact your administrator.",
   "PAGE_FORBIDDEN_TITLE": "Access restricted",
   "PAGE_NOT_FOUND_DESC": "This page has vanished into the digital void. Check the link, or head back home.",

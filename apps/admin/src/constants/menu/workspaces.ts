@@ -72,7 +72,7 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         key: "settings.seo",
-        label: "SEO",
+        label: "SEO Analyze",
         labelKey: "nav:NAV_SETTINGS_SEO",
         to: "/settings/seo",
         icon: Search,
@@ -100,7 +100,7 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         key: "settings.team.roles",
-        label: "Roles & permissions",
+        label: "Permissions",
         labelKey: "nav:NAV_SETTINGS_TEAM_ROLES",
         to: "/team/roles",
         icon: Shield,
@@ -114,7 +114,7 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       {
         key: "settings.workspace",
-        label: "Settings",
+        label: "Workspace Settings",
         labelKey: "nav:NAV_SETTINGS_WORKSPACE",
         to: "/settings/workspace",
         icon: Settings2,

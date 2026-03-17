@@ -1,10 +1,10 @@
 {
   "TEAM_MEMBERS_TITLE": "成员",
   "TEAM_MEMBERS_DESC_LONG": "邀请团队成员与您在工作空间协作，并为站点分配默认角色。",
-  "TEAM_INVITATIONS_DESC": "查看发给你的邀请，并管理你创建的邀请链接。",
+  "TEAM_INVITATIONS_DESC": "管理当前工作空间的成员邀请与邀请链接。",
   "TEAM_WORKSPACE_FALLBACK": "工作空间",
-  "TEAM_ROLES_TITLE": "角色与权限",
-  "TEAM_ROLES_DESC": "通过角色与权限矩阵配置团队协作的访问控制。",
+  "TEAM_ROLES_TITLE": "权限",
+  "TEAM_ROLES_DESC": "通过权限矩阵和自定义角色管理当前工作空间的访问控制。",
   "TEAM_ROLES_SEARCH_PLACEHOLDER": "搜索权限/角色",
   "TEAM_ROLES_ADD_ROLE": "新增角色",
   "TEAM_ROLES_ADD_ROLE_DIALOG_TITLE": "新增角色",

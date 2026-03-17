@@ -1,10 +1,10 @@
 {
   "TEAM_MEMBERS_TITLE": "Members",
   "TEAM_MEMBERS_DESC_LONG": "Invite team members to collaborate in your Workspace and assign default roles across sites.",
-  "TEAM_INVITATIONS_DESC": "Review invitations sent to you and manage invite links you created.",
+  "TEAM_INVITATIONS_DESC": "Manage workspace invitations and invite links for new members.",
   "TEAM_WORKSPACE_FALLBACK": "Workspace",
-  "TEAM_ROLES_TITLE": "Roles & Permissions",
-  "TEAM_ROLES_DESC": "Configure access control for collaboration using a roles-permissions matrix.",
+  "TEAM_ROLES_TITLE": "Permissions",
+  "TEAM_ROLES_DESC": "Manage workspace access through permissions and custom roles.",
   "TEAM_ROLES_SEARCH_PLACEHOLDER": "Search permissions / roles",
   "TEAM_ROLES_ADD_ROLE": "Add role",
   "TEAM_ROLES_ADD_ROLE_DIALOG_TITLE": "Add role",
