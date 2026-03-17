@@ -1,13 +1,26 @@
+import { cn } from "@arclayer/lib/utils";
+
 import type { AdminNavItem } from "@/types/admin-nav";
 
 export const NAV_ITEM_HEIGHT_CLASSNAME = "h-8";
 export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
-  "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0!";
+  "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-1.5! group-data-[collapsible=icon]:mx-auto!";
 export const NAV_ITEM_ROOT_INSET_CLASSNAME = "pl-4";
-export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1 group-data-[collapsible=icon]:gap-2";
-export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1 group-data-[collapsible=icon]:pt-0";
-export const NAV_SECTION_LABEL_CLASSNAME =
-  "h-auto pb-0.5 pt-2 text-caption group-data-[collapsible=icon]:hidden";
+export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1";
+export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1";
+export const NAV_SECTION_LABEL_SHELL_CLASSNAME = "relative h-8 overflow-hidden";
+export const NAV_SECTION_LABEL_CLASSNAME = cn(
+  "min-h-0 text-caption",
+  "transition-opacity duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+  "group-data-[collapsible=icon]:opacity-0",
+  "group-data-[collapsible=icon]:pointer-events-none",
+);
+export const NAV_SECTION_DIVIDER_CLASSNAME = cn(
+  "pointer-events-none absolute -inset-x-2 top-1/2 h-px -translate-y-1/2 bg-border/70",
+  "transition-opacity duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+  "opacity-0",
+  "group-data-[collapsible=icon]:opacity-100",
+);
 export const NAV_SECTION_TRIGGER_CLASSNAME =
   "flex w-full items-center gap-1.5 pl-4 pr-2 text-left text-label-secondary";
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-4 gap-0.5 border-border/60";

@@ -160,7 +160,7 @@ function StarredExpandedSection(props: {
           className={cn(
             "px-0",
             NAV_ROOT_MENU_GAP_CLASSNAME,
-            "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+            "transition-[gap] duration-320 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           )}
         >
           <StarredTriggerButton
@@ -213,7 +213,7 @@ export function StarredNavSection(props: {
           className={cn(
             "px-0",
             NAV_ROOT_MENU_GAP_CLASSNAME,
-            "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+            "transition-[gap] duration-320 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           )}
         >
           <NodeCollapsedGroup

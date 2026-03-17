@@ -8,12 +8,7 @@ export function iconSlot(
 ) {
   const collapseMotionClassName =
     opts?.collapseMotion === "shift"
-      ? cn(
-          "transition-transform duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
-          // When the sidebar collapses, menu buttons become `size-8` with no padding.
-          // Shift the icon slot so the icon lands centered without relying on `justify-center` (not animatable).
-          "group-data-[collapsible=icon]:translate-x-1.5",
-        )
+      ? "transition-colors duration-320 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
       : null;
 
   if (depth === 0 && Icon) {

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import ChevronRightIcon from "@arclayer/ui/icons/chevron-right";
@@ -23,37 +23,21 @@ import { StarredNavSection } from "./starred-nav-section";
 import { useCollapsedDropdownController } from "./collapsed-dropdown";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "./nav-node-styles";
 import {
+  NAV_SECTION_DIVIDER_CLASSNAME,
   NAV_DIVIDER_CLASSNAME,
   NAV_ROOT_MENU_GAP_CLASSNAME,
   NAV_SECTION_CONTENT_PADDING_CLASSNAME,
   NAV_SECTION_LABEL_CLASSNAME,
+  NAV_SECTION_LABEL_SHELL_CLASSNAME,
   NAV_SECTION_TRIGGER_CLASSNAME,
 } from "./nav-utils";
 
-const SIDEBAR_COLLAPSE_TRANSITION_MS = 400;
 const SECTION_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
   "overflow-hidden",
   "motion-reduce:animate-none",
   "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
-
-function useCollapsedRenderMode(isCollapsed: boolean): boolean {
-  const [renderCollapsed, setRenderCollapsed] = useState(isCollapsed);
-
-  useEffect(() => {
-    if (!isCollapsed) {
-      setRenderCollapsed(false);
-      return undefined;
-    }
-    if (renderCollapsed) return undefined;
-
-    const timer = window.setTimeout(() => setRenderCollapsed(true), SIDEBAR_COLLAPSE_TRANSITION_MS);
-    return () => window.clearTimeout(timer);
-  }, [isCollapsed, renderCollapsed]);
-
-  return renderCollapsed;
-}
 
 function flattenStructuredItems(params: {
   homeItem?: AdminNavItem | null;
@@ -136,7 +120,6 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   );
   const navIndex = useMemo(() => buildNavIndex(allItems), [allItems]);
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
-  const collapsedMode = useCollapsedRenderMode(isCollapsed);
   const activeTrail = useMemo(() => findActiveTrail(allItems, pathname), [allItems, pathname]);
   const activeKeys = useMemo(() => new Set(activeTrail), [activeTrail]);
   const { openByParent, openChainForKey } = useOpenChain(navIndex);
@@ -168,7 +151,7 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
     activeKeys,
     openByParent,
     openChainForKey,
-    collapsedMode,
+    collapsedMode: isCollapsed,
     favoriteItems,
   };
 }
@@ -194,7 +177,7 @@ function ItemsSection(props: {
         className={cn(
           "px-0",
           NAV_ROOT_MENU_GAP_CLASSNAME,
-          "transition-[gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
+          "transition-[gap] duration-320 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         )}
       >
         {props.items.map((item) => (
@@ -225,21 +208,24 @@ function ItemsSection(props: {
   return (
     <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
       <SidebarGroup className="p-0">
-        <CollapsibleTrigger asChild>
-          <SidebarGroupLabel asChild className={NAV_SECTION_LABEL_CLASSNAME}>
-            <ButtonPrimitive type="button" tapScale={1} className={NAV_SECTION_TRIGGER_CLASSNAME}>
-              <span className="min-w-0 flex-1 truncate">{props.title}</span>
-              <span className={cn("shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-                <ChevronRightIcon
-                  size={16}
-                  expanded={effectiveOpen}
-                  className="shrink-0 text-label-secondary"
-                  aria-hidden="true"
-                />
-              </span>
-            </ButtonPrimitive>
-          </SidebarGroupLabel>
-        </CollapsibleTrigger>
+        <div className={NAV_SECTION_LABEL_SHELL_CLASSNAME}>
+          <div aria-hidden="true" className={NAV_SECTION_DIVIDER_CLASSNAME} />
+          <CollapsibleTrigger asChild>
+            <SidebarGroupLabel asChild className={NAV_SECTION_LABEL_CLASSNAME}>
+              <ButtonPrimitive type="button" tapScale={1} className={NAV_SECTION_TRIGGER_CLASSNAME}>
+                <span className="min-w-0 flex-1 truncate">{props.title}</span>
+                <span className={cn("shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                  <ChevronRightIcon
+                    size={16}
+                    expanded={effectiveOpen}
+                    className="shrink-0 text-label-secondary"
+                    aria-hidden="true"
+                  />
+                </span>
+              </ButtonPrimitive>
+            </SidebarGroupLabel>
+          </CollapsibleTrigger>
+        </div>
         <CollapsibleContent className={SECTION_COLLAPSIBLE_CONTENT_CLASSNAME}>
           {content}
         </CollapsibleContent>
@@ -258,7 +244,7 @@ function StructuredNavContent(props: {
   const { t } = useTranslation();
 
   return (
-    <div className={props.state.collapsedMode ? "flex flex-col gap-2" : undefined}>
+    <div className="flex flex-col">
       {props.homeItem ? (
         <ItemsSection
           items={[props.homeItem]}
