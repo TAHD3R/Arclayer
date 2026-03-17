@@ -8,7 +8,7 @@ import {
 } from "@arclayer/ui/adaptive-overlay-backdrop";
 
 describe("adaptive overlay backdrop", () => {
-  it("uses a subtle overlay for normal capability environments without backdrop blur", () => {
+  it("uses a subtle dark overlay for normal capability environments without backdrop blur", () => {
     const mode = resolveAdaptiveOverlayBackdropMode({
       prefersReducedMotion: false,
       saveData: false,
@@ -19,9 +19,10 @@ describe("adaptive overlay backdrop", () => {
     expect(mode).toBe("blur");
     expect(getAdaptiveOverlayBackdropClassName(mode)).toBe(SUBTLE_OVERLAY_BACKDROP_CLASSNAME);
     expect(getAdaptiveOverlayBackdropClassName(mode)).not.toContain("backdrop-blur");
+    expect(getAdaptiveOverlayBackdropClassName(mode)).toContain("bg-black/");
   });
 
-  it("falls back to a solid overlay for constrained environments", () => {
+  it("falls back to a stronger dark overlay for constrained environments", () => {
     const mode = resolveAdaptiveOverlayBackdropMode({
       prefersReducedMotion: false,
       saveData: true,
@@ -31,5 +32,6 @@ describe("adaptive overlay backdrop", () => {
 
     expect(mode).toBe("solid");
     expect(getAdaptiveOverlayBackdropClassName(mode)).toBe(STRONG_OVERLAY_BACKDROP_CLASSNAME);
+    expect(getAdaptiveOverlayBackdropClassName(mode)).toContain("dark:bg-black/");
   });
 });
