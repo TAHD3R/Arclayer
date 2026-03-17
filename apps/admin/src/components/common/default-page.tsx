@@ -117,7 +117,7 @@ export function DefaultPage({
   }, [leftSideSlot, rightSideSlot]);
 
   return (
-    <AdminRouteContainer className={clsx("h-full min-w-0", className)}>
+    <AdminRouteContainer className={clsx("min-h-full min-w-0", className)}>
       {hasSideSlots ? (
         <>
           <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">
@@ -142,25 +142,20 @@ export function DefaultPage({
             data-slot="default-page-shell"
           >
             {leftSideSlot ? <DefaultPageDesktopPane side="left" slot={leftSideSlot} /> : null}
-
-            <div className="flex min-h-0 min-w-0 flex-1">
-              <div className="flex min-h-0 min-w-0 w-full flex-1">
-                <DefaultPageMainRegion
-                  title={hideHeader ? undefined : title}
-                  description={hideHeader ? undefined : description}
-                  titleAdornment={
-                    hideHeader || !title || !showFavoriteToggle ? null : <FavoriteToggle />
-                  }
-                  action={hideHeader ? undefined : action}
-                  extra={hideHeader ? undefined : extra}
-                  contentClassName={contentClassName}
-                  paneToggles={[]}
-                  onOpenPane={() => undefined}
-                >
-                  {children}
-                </DefaultPageMainRegion>
-              </div>
-            </div>
+            <DefaultPageMainRegion
+              title={hideHeader ? undefined : title}
+              description={hideHeader ? undefined : description}
+              titleAdornment={
+                hideHeader || !title || !showFavoriteToggle ? null : <FavoriteToggle />
+              }
+              action={hideHeader ? undefined : action}
+              extra={hideHeader ? undefined : extra}
+              contentClassName={contentClassName}
+              paneToggles={[]}
+              onOpenPane={() => undefined}
+            >
+              {children}
+            </DefaultPageMainRegion>
 
             {rightSideSlot ? <DefaultPageDesktopPane side="right" slot={rightSideSlot} /> : null}
           </div>

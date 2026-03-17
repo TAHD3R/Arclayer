@@ -22,6 +22,8 @@ export type DefaultPageSideSlot = {
   minWidth?: number | string;
   maxWidth?: number | string;
   defaultWidth?: number | string;
+  sticky?: boolean;
+  stickyTop?: number | string;
 };
 
 export type DefaultPageSideSlots = {
@@ -38,6 +40,7 @@ type DefaultPageSideSlotStyle = CSSProperties & {
   "--default-page-side-slot-default-width"?: string;
   "--default-page-side-slot-max-width"?: string;
   "--default-page-side-slot-min-width"?: string;
+  "--default-page-side-slot-sticky-top"?: string;
 };
 
 export function resolvePageSlotSize(value: number | string | undefined, fallback: string): string {
@@ -60,6 +63,7 @@ function createPageSideSlotStyle(slot: DefaultPageSideSlot): DefaultPageSideSlot
       slot.maxWidth,
       DEFAULT_PAGE_SIDE_SLOT_MAX_WIDTH,
     ),
+    "--default-page-side-slot-sticky-top": resolvePageSlotSize(slot.stickyTop, "0px"),
   };
 }
 
@@ -79,18 +83,21 @@ export function DefaultPageDesktopPane(props: {
       exit={{ opacity: 0, x: props.side === "left" ? -12 : 12 }}
       transition={DEFAULT_PAGE_SIDE_SLOT_TRANSITION}
       className={clsx(
-        "flex h-full min-h-0 shrink-0",
+        "flex min-h-0 shrink-0 self-start",
         "[width:var(--default-page-side-slot-default-width)]",
         "min-w-[var(--default-page-side-slot-min-width)]",
         "max-w-[var(--default-page-side-slot-max-width)]",
       )}
       data-slot="default-page-side-slot"
       data-side={props.side}
+      data-sticky={props.slot.sticky ? "true" : "false"}
       style={createPageSideSlotStyle(props.slot)}
     >
       <aside
         className={clsx(
-          "flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden",
+          "flex min-h-0 w-full min-w-0 flex-col self-start",
+          props.slot.sticky &&
+            "sticky top-[var(--default-page-side-slot-sticky-top)] max-h-[calc(100vh-var(--default-page-side-slot-sticky-top))]",
           props.slot.className,
         )}
       >
@@ -133,7 +140,10 @@ export function DefaultPageMainRegion(props: {
 }) {
   return (
     <div
-      className={clsx("flex h-full min-h-0 min-w-0 w-full flex-1 flex-col", props.contentClassName)}
+      className={clsx(
+        "flex min-h-0 min-w-0 w-full flex-1 flex-col self-start",
+        props.contentClassName,
+      )}
       data-slot="default-page-main-region"
     >
       {props.title ||
@@ -182,7 +192,9 @@ export function DefaultPageMainRegion(props: {
         </header>
       ) : null}
       {props.children ? (
-        <div className="min-h-0 min-w-0 w-full flex-1">{props.children}</div>
+        <div className="min-h-0 min-w-0 w-full flex-1" data-slot="default-page-content">
+          {props.children}
+        </div>
       ) : null}
     </div>
   );

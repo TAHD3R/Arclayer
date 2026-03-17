@@ -14,7 +14,7 @@ function SysLayout() {
   const { t } = useTranslation("sys");
 
   return (
-    <AdminRouteContainer className="h-full">
+    <AdminRouteContainer className="min-h-full">
       <header className="mb-[18px]">
         <div className="text-largetitle select-none">{t("SYS_TITLE")}</div>
         <div className="mt-1 text-label-secondary select-none">{t("SYS_DESC")}</div>
