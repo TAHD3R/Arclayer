@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Link2, Plus } from "lucide-react";
 
 import { Input } from "@arclayer/ui/input";
 
@@ -10,10 +10,11 @@ import {
   AssetUserTagChip,
   AssetVisibilityTag,
 } from "@/components/ui/tags";
-import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
+import type { AssetMasonryItem } from "@/types/assets-masonry";
 
+import type { useAssetPreviewDialogController } from "./asset-preview-dialog-controller";
 import {
   AssetInspectorActionRow,
   AssetInspectorList,
@@ -22,7 +23,6 @@ import {
   AssetInspectorRow,
   AssetInspectorShell,
 } from "./asset-preview-inspector";
-import type { useAssetPreviewDialogController } from "./asset-preview-dialog-controller";
 import {
   formatCreatedAt,
   getIndexableLabel,
@@ -60,7 +60,7 @@ function AssetShareLinks(props: { controller: AssetPreviewController }) {
 
   if (!rows.length) {
     return (
-      <div className="rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-3 text-footnote text-label-secondary">
+      <div className="text-footnote leading-6 text-label-secondary">
         {props.controller.t("assets:ASSET_LINKS_REQUIRES_PUBLIC")}
       </div>
     );
@@ -68,16 +68,18 @@ function AssetShareLinks(props: { controller: AssetPreviewController }) {
 
   return (
     <AssetInspectorList>
-      {rows.map((row, index) => (
+      {rows.map((row) => (
         <AssetInspectorActionRow
           key={row.label}
           label={row.label}
           value={
-            <span className="line-clamp-2 font-mono text-caption break-all text-foreground">
-              {row.value}
+            <span className="inline-flex min-w-0 items-start gap-2">
+              <Link2 className="mt-0.5 size-3.5 shrink-0 text-label-tertiary" />
+              <span className="line-clamp-2 font-mono text-caption break-all text-foreground">
+                {row.value}
+              </span>
             </span>
           }
-          separate={index < rows.length - 1}
           onClick={() => {
             copyToClipboard(row.value)
               .then(() => notifySuccessText(props.controller.t("assets:ASSET_LINK_COPIED")))
@@ -91,9 +93,9 @@ function AssetShareLinks(props: { controller: AssetPreviewController }) {
 
 function AssetTagEditor(props: { controller: AssetPreviewController }) {
   return (
-    <>
+    <div className="space-y-3">
       <textarea
-        className="min-h-28 w-full resize-none rounded-xl border border-border/60 bg-background px-3 py-2 text-callout text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="min-h-28 w-full resize-none rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-callout text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
         placeholder={props.controller.t("assets:ASSET_META_DESCRIPTION_PLACEHOLDER")}
         value={props.controller.descriptionDraft}
         onChange={(event) => {
@@ -130,7 +132,7 @@ function AssetTagEditor(props: { controller: AssetPreviewController }) {
           />
         ) : (
           <AssetAddTagActionTag
-            className="bg-background hover:bg-accent/50"
+            className="bg-muted/20 hover:bg-accent/50"
             label={
               <span className="inline-flex items-center gap-1 whitespace-nowrap">
                 <Plus size={14} />
@@ -150,7 +152,7 @@ function AssetTagEditor(props: { controller: AssetPreviewController }) {
               : props.controller.t("assets:ASSET_SAVE_FAILED")}
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -160,7 +162,7 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
   return (
     <AssetInspectorShell>
       <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_OVERVIEW")}>
-        <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/75 px-3 py-3">
+        <div className="flex items-center gap-3">
           <UserAvatar
             name={controller.uploaderName}
             assetRef={active.uploaderAvatarUrl}
@@ -175,25 +177,19 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
             </div>
           </div>
         </div>
+
         <AssetInspectorList>
           <AssetInspectorRow
             label={controller.t("assets:ASSET_DIALOG_LOCATION")}
-            value={
-              <span className="break-words text-footnote text-foreground">
-                {props.currentFolderPathLabel}
-              </span>
-            }
-            separate
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_CREATED_AT")}
-            value={formatCreatedAt(active.createdAt, active.createdAtText, controller.dateTime)}
-            separate
+            value={<span className="break-words">{props.currentFolderPathLabel}</span>}
           />
           <AssetInspectorRow
             label={controller.t("assets:ASSET_META_SIZE")}
             value={active.sizeText || "-"}
-            separate
+          />
+          <AssetInspectorRow
+            label={controller.t("assets:ASSET_META_CREATED_AT")}
+            value={formatCreatedAt(active.createdAt, active.createdAtText, controller.dateTime)}
           />
           <AssetInspectorRow
             label={controller.t("assets:ASSET_META_MIME")}
@@ -203,37 +199,22 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
       </AssetInspectorPanel>
 
       <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_ORGANIZATION")}>
+        <div className="flex flex-wrap gap-2">
+          <AssetVisibilityTag
+            visibility={controller.displayVisibility}
+            label={getVisibilityLabel(controller.displayVisibility, controller.t)}
+          />
+          <AssetPurposeTag
+            purpose={controller.displayPurpose}
+            label={getPurposeLabel(controller.displayPurpose, controller.t)}
+          />
+          <AssetIndexableTag
+            indexable={active.indexable}
+            label={getIndexableLabel(active.indexable, controller.t)}
+          />
+        </div>
+
         <AssetInspectorList>
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_VISIBILITY")}
-            value={
-              <AssetVisibilityTag
-                visibility={controller.displayVisibility}
-                label={getVisibilityLabel(controller.displayVisibility, controller.t)}
-              />
-            }
-            separate
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_PURPOSE")}
-            value={
-              <AssetPurposeTag
-                purpose={controller.displayPurpose}
-                label={getPurposeLabel(controller.displayPurpose, controller.t)}
-              />
-            }
-            separate
-          />
-          <AssetInspectorRow
-            label={controller.t("assets:ASSET_META_INDEXABLE")}
-            value={
-              <AssetIndexableTag
-                indexable={active.indexable}
-                label={getIndexableLabel(active.indexable, controller.t)}
-              />
-            }
-            separate
-          />
           <AssetInspectorRow
             label={controller.t("assets:ASSET_TAG_FIELD_TITLE")}
             value={String(controller.selectedTags.length)}
@@ -241,7 +222,10 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
         </AssetInspectorList>
       </AssetInspectorPanel>
 
-      <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_NOTES")}>
+      <AssetInspectorPanel
+        title={controller.t("assets:ASSET_DIALOG_NOTES")}
+        description={controller.t("assets:ASSET_META_DESCRIPTION_PLACEHOLDER")}
+      >
         <AssetTagEditor controller={controller} />
       </AssetInspectorPanel>
 
@@ -254,7 +238,6 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
           <AssetInspectorRow
             label={controller.t("assets:ASSET_META_ID")}
             value={<AssetInspectorMono value={active.id} />}
-            separate
           />
           <AssetInspectorRow
             label={controller.t("assets:ASSET_META_SHA256")}

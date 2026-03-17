@@ -1,21 +1,5 @@
-import { flushSync } from "react-dom";
-import {
-  ChevronRight,
-  FolderInput,
-  FolderOpen,
-  FolderPlus,
-  GripVertical,
-  PencilLine,
-  Trash2,
-} from "lucide-react";
+import { ChevronRight, FolderOpen, GripVertical } from "lucide-react";
 
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuIconItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@arclayer/ui/context-menu";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@arclayer/ui/item";
 import { cn } from "@arclayer/lib/utils";
 
@@ -72,45 +56,33 @@ export function FolderTreeRootRow(props: {
           }
           className="block w-full"
         >
-          <ContextMenu>
-            <ContextMenuTrigger asChild>
-              <div>
-                <Item
-                  size="sm"
-                  variant={props.currentFolderId ? "outline" : "muted"}
-                  asChild
-                  className={cn(
-                    "w-full rounded-2xl bg-background transition-colors hover:bg-accent/35",
-                    isOver && "ring-1 ring-foreground/55",
-                    !props.currentFolderId && "bg-accent/45",
-                  )}
+          <div>
+            <Item
+              size="sm"
+              variant={props.currentFolderId ? "outline" : "muted"}
+              asChild
+              className={cn(
+                "w-full rounded-2xl bg-background transition-colors hover:bg-accent/35",
+                isOver && "ring-1 ring-foreground/55",
+                !props.currentFolderId && "bg-accent/45",
+              )}
+            >
+              <button type="button" onClick={props.onSelectFolder}>
+                <ItemMedia
+                  variant="icon"
+                  className="size-8 rounded-lg border-border/60 bg-muted/60"
                 >
-                  <button type="button" onClick={props.onSelectFolder}>
-                    <ItemMedia
-                      variant="icon"
-                      className="size-8 rounded-lg border-border/60 bg-muted/60"
-                    >
-                      <FolderOpen className="size-4 text-label-secondary" />
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle className="min-w-0 flex-1 truncate">
-                        {props.t("assets:ASSET_BREADCRUMB_ROOT")}
-                      </ItemTitle>
-                      <ItemDescription className="truncate">{description}</ItemDescription>
-                    </ItemContent>
-                  </button>
-                </Item>
-              </div>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuIconItem
-                icon={<FolderPlus className="size-4" />}
-                onSelect={props.onCreateFolder}
-              >
-                {props.t("assets:ASSET_ACTION_CREATE_FOLDER")}
-              </ContextMenuIconItem>
-            </ContextMenuContent>
-          </ContextMenu>
+                  <FolderOpen className="size-4 text-label-secondary" />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle className="min-w-0 flex-1 truncate">
+                    {props.t("assets:ASSET_BREADCRUMB_ROOT")}
+                  </ItemTitle>
+                  <ItemDescription className="truncate">{description}</ItemDescription>
+                </ItemContent>
+              </button>
+            </Item>
+          </div>
         </DroppablePulse>
       )}
     </FolderDroppableProvider>
@@ -164,103 +136,70 @@ export function FolderTreeNode(props: {
                 }
                 className="block w-full"
               >
-                <ContextMenu>
-                  <ContextMenuTrigger asChild>
-                    <div
-                      onContextMenuCapture={() => {
-                        flushSync(() => props.onFocusFolder(folderId));
+                <div
+                  className={cn("flex items-center gap-1 rounded-2xl", isOver && "bg-accent/25")}
+                >
+                  <button
+                    type="button"
+                    aria-label={props.folder.name}
+                    className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-lg text-label-secondary transition-colors",
+                      hasChildren
+                        ? "hover:bg-muted/70 hover:text-foreground"
+                        : "pointer-events-none opacity-0",
+                    )}
+                    style={{ marginInlineStart: indent }}
+                    onClick={() => {
+                      if (hasChildren) props.onToggleExpanded(folderId);
+                    }}
+                  >
+                    <ChevronRight
+                      className={cn("size-4 transition-transform", isExpanded && "rotate-90")}
+                    />
+                  </button>
+
+                  <Item
+                    size="sm"
+                    variant={isCurrent ? "muted" : isFocused ? "outline" : "default"}
+                    asChild
+                    className={cn(
+                      "min-w-0 flex-1 rounded-2xl bg-background transition-colors hover:bg-accent/35",
+                      isCurrent && "bg-accent/45",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        props.onFocusFolder(folderId);
+                        props.onSelectFolder(folderId);
                       }}
-                      className={cn(
-                        "flex items-center gap-1 rounded-2xl",
-                        isOver && "bg-accent/25",
-                      )}
                     >
-                      <button
-                        type="button"
-                        aria-label={props.folder.name}
-                        className={cn(
-                          "flex size-8 shrink-0 items-center justify-center rounded-lg text-label-secondary transition-colors",
-                          hasChildren
-                            ? "hover:bg-muted/70 hover:text-foreground"
-                            : "pointer-events-none opacity-0",
-                        )}
-                        style={{ marginInlineStart: indent }}
-                        onClick={() => {
-                          if (hasChildren) props.onToggleExpanded(folderId);
-                        }}
+                      <ItemMedia
+                        variant="icon"
+                        className="size-8 rounded-lg border-border/60 bg-muted/60"
                       >
-                        <ChevronRight
-                          className={cn("size-4 transition-transform", isExpanded && "rotate-90")}
-                        />
-                      </button>
+                        <FolderOpen className="size-4 text-label-secondary" />
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle className="min-w-0 flex-1 truncate">
+                          {props.folder.name}
+                        </ItemTitle>
+                        <ItemDescription className="truncate">{description}</ItemDescription>
+                      </ItemContent>
+                    </button>
+                  </Item>
 
-                      <Item
-                        size="sm"
-                        variant={isCurrent ? "muted" : isFocused ? "outline" : "default"}
-                        asChild
-                        className={cn(
-                          "min-w-0 flex-1 rounded-2xl bg-background transition-colors hover:bg-accent/35",
-                          isCurrent && "bg-accent/45",
-                        )}
-                      >
-                        <button type="button" onClick={() => props.onSelectFolder(folderId)}>
-                          <ItemMedia
-                            variant="icon"
-                            className="size-8 rounded-lg border-border/60 bg-muted/60"
-                          >
-                            <FolderOpen className="size-4 text-label-secondary" />
-                          </ItemMedia>
-                          <ItemContent>
-                            <ItemTitle className="min-w-0 flex-1 truncate">
-                              {props.folder.name}
-                            </ItemTitle>
-                            <ItemDescription className="truncate">{description}</ItemDescription>
-                          </ItemContent>
-                        </button>
-                      </Item>
-
-                      <button
-                        type="button"
-                        aria-label={props.t("assets:ASSET_ACTION_MOVE_FOLDER")}
-                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-label-secondary transition-colors hover:bg-muted/70 hover:text-foreground"
-                        {...(drag.attributes as Record<string, unknown>)}
-                        {...(drag.listeners as Record<string, unknown>)}
-                        onClick={(event) => event.preventDefault()}
-                      >
-                        <GripVertical className="size-4" />
-                      </button>
-                    </div>
-                  </ContextMenuTrigger>
-
-                  <ContextMenuContent>
-                    <ContextMenuIconItem
-                      icon={<FolderPlus className="size-4" />}
-                      onSelect={() => props.onCreateFolder(folderId)}
-                    >
-                      {props.t("assets:ASSET_ACTION_CREATE_FOLDER")}
-                    </ContextMenuIconItem>
-                    <ContextMenuIconItem
-                      icon={<PencilLine className="size-4" />}
-                      onSelect={() => props.onEditFolder(props.folder)}
-                    >
-                      {props.t("assets:ASSET_ACTION_EDIT_FOLDER")}
-                    </ContextMenuIconItem>
-                    <ContextMenuIconItem
-                      icon={<FolderInput className="size-4" />}
-                      onSelect={() => props.onMoveFolder(props.folder)}
-                    >
-                      {props.t("assets:ASSET_ACTION_MOVE_FOLDER")}
-                    </ContextMenuIconItem>
-                    <ContextMenuSeparator />
-                    <ContextMenuIconItem
-                      icon={<Trash2 className="size-4" />}
-                      className="text-destructive focus:text-destructive"
-                      onSelect={() => props.onDeleteFolder(props.folder)}
-                    >
-                      {props.t("assets:ASSET_ACTION_DELETE_FOLDER")}
-                    </ContextMenuIconItem>
-                  </ContextMenuContent>
-                </ContextMenu>
+                  <button
+                    type="button"
+                    aria-label={props.t("assets:ASSET_ACTION_MOVE_FOLDER")}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-lg text-label-secondary transition-colors hover:bg-muted/70 hover:text-foreground"
+                    {...(drag.attributes as Record<string, unknown>)}
+                    {...(drag.listeners as Record<string, unknown>)}
+                    onClick={(event) => event.preventDefault()}
+                  >
+                    <GripVertical className="size-4" />
+                  </button>
+                </div>
               </DroppablePulse>
             )}
           </FolderDroppableProvider>

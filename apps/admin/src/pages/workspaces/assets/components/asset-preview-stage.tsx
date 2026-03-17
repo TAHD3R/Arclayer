@@ -1,10 +1,11 @@
-import { useEffect, useMemo, type MutableRefObject } from "react";
+import { useEffect, useMemo, useState, type MutableRefObject } from "react";
 
 import { Button } from "@arclayer/ui/button";
+import { Spinner } from "@arclayer/ui/spinner";
 
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
-import { getAssetPreviewKind } from "./asset-preview-file-utils";
+import { buildAssetAuthHeaders, getAssetPreviewKind } from "./asset-preview-file-utils";
 import { AssetPreviewPdfViewer } from "./asset-preview-pdf-viewer";
 import { AssetPreviewTextViewer } from "./asset-preview-text-viewer";
 import { LazyAssetImage } from "./lazy-asset-image";
@@ -62,19 +63,32 @@ function AssetImagePreview(props: AssetPreviewStageProps) {
   );
   const preferredSrc = candidates[0] ?? null;
   const currentSrc = props.previewSrc || preferredSrc;
+  const { resolvedSrc, isLoading, loadFailed } = useResolvedPreviewSource({
+    source: currentSrc,
+    requiresAuth: Boolean(
+      currentSrc && props.active.contentUrl && currentSrc === props.active.contentUrl,
+    ),
+  });
 
   useEffect(() => {
     if (!preferredSrc) return;
     props.setPreviewSrc(preferredSrc);
-  }, [preferredSrc, props.active.id]);
+  }, [preferredSrc, props.active.id, props.setPreviewSrc]);
+
+  useEffect(() => {
+    if (!currentSrc || !loadFailed) return;
+    props.failedPreviewRef.current.add(currentSrc);
+    const next = candidates.find((url) => !props.failedPreviewRef.current.has(url));
+    props.setPreviewSrc(next && next !== currentSrc ? next : null);
+  }, [candidates, currentSrc, loadFailed, props.failedPreviewRef, props.setPreviewSrc]);
 
   return (
     <div className="relative h-full min-h-[320px] overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.09),transparent_52%),linear-gradient(180deg,rgba(15,23,42,0.07),rgba(15,23,42,0.03))]">
       <div className="relative h-full w-full">
-        {currentSrc ? (
+        {resolvedSrc ? (
           <LazyAssetImage
             eager
-            src={currentSrc}
+            src={resolvedSrc}
             alt={props.active.name}
             fit="contain"
             rootClassName="!bg-transparent"
@@ -84,11 +98,16 @@ function AssetImagePreview(props: AssetPreviewStageProps) {
             retryText={props.t("common:RETRY")}
             onLoaded={(info) => props.setPreviewAspectRatio(info.aspectRatio)}
             onError={() => {
+              if (!currentSrc) return;
               props.failedPreviewRef.current.add(currentSrc);
               const next = candidates.find((url) => !props.failedPreviewRef.current.has(url));
               props.setPreviewSrc(next && next !== currentSrc ? next : null);
             }}
           />
+        ) : isLoading ? (
+          <div className="absolute inset-0 grid place-items-center bg-muted/10">
+            <Spinner className="size-5 text-label-secondary" />
+          </div>
         ) : (
           <div className="absolute inset-0 grid place-items-center bg-muted/15">
             <div className="text-footnote text-label-secondary">
@@ -100,6 +119,62 @@ function AssetImagePreview(props: AssetPreviewStageProps) {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/10 to-transparent" />
     </div>
   );
+}
+
+function useResolvedPreviewSource(params: { source: string | null; requiresAuth: boolean }) {
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(params.source);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    if (!params.source) {
+      setResolvedSrc(null);
+      setIsLoading(false);
+      setLoadFailed(false);
+      return;
+    }
+    if (!params.requiresAuth) {
+      setResolvedSrc(params.source);
+      setIsLoading(false);
+      setLoadFailed(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let objectUrl: string | null = null;
+    setResolvedSrc(null);
+    setIsLoading(true);
+    setLoadFailed(false);
+
+    fetch(params.source, {
+      headers: buildAssetAuthHeaders(),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`image fetch failed: ${response.status}`);
+        }
+        return response.blob();
+      })
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setResolvedSrc(objectUrl);
+        setIsLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setResolvedSrc(null);
+        setIsLoading(false);
+        setLoadFailed(true);
+      });
+
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [params.requiresAuth, params.source]);
+
+  return { resolvedSrc, isLoading, loadFailed };
 }
 
 type AssetPreviewStageProps = {

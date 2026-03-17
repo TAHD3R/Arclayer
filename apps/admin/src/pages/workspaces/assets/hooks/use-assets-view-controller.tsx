@@ -21,17 +21,12 @@ import {
 } from "@/api/assets";
 import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { clearSelection, selectOnly, type AssetSelectionState } from "@/lib/assets/asset-selection";
+import { clearSelection, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
 import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
-import {
-  DND_ROOT_ID,
-  parseAssetDndId,
-  parseFolderDndId,
-  parseFolderItemDndId,
-} from "../components/assets-view-dnd";
+import { DND_ROOT_ID, parseFolderDndId, parseFolderItemDndId } from "../components/assets-view-dnd";
 export function useAssetsViewController() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -70,10 +65,8 @@ export function useAssetsViewController() {
     hasAssets: boolean;
     hasChildren: boolean;
   } | null>(null);
-  const [draggingAssetIds, setDraggingAssetIds] = useState<string[]>([]);
   const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-  const [movingAssetIds, setMovingAssetIds] = useState<Set<string>>(() => new Set());
   const [dropSuccessPulse, setDropSuccessPulse] = useState<{
     droppableId: string;
     nonce: number;
@@ -162,7 +155,6 @@ export function useAssetsViewController() {
     },
     onError: (err) => {
       notifyError(err);
-      setMovingAssetIds(new Set());
     },
   });
   const bulkDeleteMutation = useMutation({
@@ -436,7 +428,6 @@ export function useAssetsViewController() {
     const folderMoveId = parseFolderItemDndId(activeId);
     if (folderMoveId) {
       setDraggingFolderId(folderMoveId);
-      setDraggingAssetIds([]);
       flushSync(() => {
         setFocusedFolderId(folderMoveId);
         setSelection((prev) => clearSelection(prev));
@@ -444,23 +435,9 @@ export function useAssetsViewController() {
       });
       return;
     }
-    const assetId = parseAssetDndId(activeId);
-    if (!assetId) return;
-    setFocusedFolderId(null);
     setDraggingFolderId(null);
-    if (!selectedIds.has(assetId)) {
-      // Start dragging an unselected asset => select it first.
-      flushSync(() => {
-        setSelection((prev) => selectOnly(prev, assetId));
-      });
-      setDraggingAssetIds([assetId]);
-      return;
-    }
-    const ids = Array.from(selectedIds);
-    setDraggingAssetIds(ids);
   };
   const onDragCancel = () => {
-    setDraggingAssetIds([]);
     setDraggingFolderId(null);
   };
   const onDragEnd = (event: DragEndEvent) => {
@@ -471,7 +448,6 @@ export function useAssetsViewController() {
       const canMove =
         overId === DND_ROOT_ID || (typeof folderId === "string" && folderId.length > 0);
       // Always clear drag visuals at the end of a drag gesture.
-      setDraggingAssetIds([]);
       setDraggingFolderId(null);
       if (!canMove) return;
       const destFolderId = folderId ?? null;
@@ -505,23 +481,7 @@ export function useAssetsViewController() {
           folderId: String(folderMoveId),
           payload: { parentId: destFolderId },
         });
-        return;
       }
-      if (String(destFolderId || "") === String(currentFolderId || "")) return;
-      const assetIds = Array.from(selectedIds);
-      if (!assetIds.length) return;
-      const nonce = Date.now();
-      setDropSuccessPulse({ droppableId: overId, nonce });
-      window.setTimeout(() => {
-        setDropSuccessPulse((prev) => (prev?.nonce === nonce ? null : prev));
-      }, 300);
-      setMovingAssetIds(new Set(assetIds));
-      // Clear selection immediately; items will fade out before list refresh.
-      setSelection((prev) => clearSelection(prev));
-      setActive(null);
-      await bulkMoveMutation.mutateAsync({ assetIds, folderId: destFolderId });
-      // Keep them hidden a bit longer to avoid flicker if the list hasn't refreshed yet.
-      window.setTimeout(() => setMovingAssetIds(new Set()), 350);
     })();
   };
   return {
@@ -563,13 +523,9 @@ export function useAssetsViewController() {
     setEditAccessCurrent,
     folderNotEmptyInfo,
     setFolderNotEmptyInfo,
-    draggingAssetIds,
-    setDraggingAssetIds,
     draggingFolderId,
     setDraggingFolderId,
     sensors,
-    movingAssetIds,
-    setMovingAssetIds,
     dropSuccessPulse,
     setDropSuccessPulse,
     searchInput,

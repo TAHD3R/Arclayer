@@ -1,21 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Masonry } from "masonic";
-import { FolderPlus, Upload } from "lucide-react";
 
 import { Button } from "@arclayer/ui/button";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuIconItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@arclayer/ui/context-menu";
 
 import { ContentGuard } from "@/components/common/content-guard";
 import {
   clearSelection,
   rangeSelect,
-  selectOnly,
   selectOrClearOnPlainClick,
   toggleSelect,
 } from "@/lib/assets/asset-selection";
@@ -40,43 +31,18 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     setSearchQuery,
     setFilters,
     setMoreOpen,
-    currentFolderId,
     setFocusedFolderId,
     setSelection,
-    setUploadOpen,
-    setCreateFolderOpen,
-    setCreateFolderParentId,
     selectedIds,
-    movingAssetIds,
     orderedAssetIds,
     aspectRatioRef,
     forceLayoutTick,
-    setMoveModalOpen,
-    openEditAccessDialog,
-    openBulkDeleteDialog,
     setActive,
   } = controller;
-  const selectedIdsRef = useRef(selectedIds);
   const orderedAssetIdsRef = useRef(orderedAssetIds);
-  const selectionSizeRef = useRef(selectedIds.size);
-  const openEditAccessDialogRef = useRef(openEditAccessDialog);
-  const openBulkDeleteDialogRef = useRef(openBulkDeleteDialog);
   const masonryShellRef = useRef<HTMLDivElement | null>(null);
   const [masonryWidth, setMasonryWidth] = useState(0);
-  selectedIdsRef.current = selectedIds;
   orderedAssetIdsRef.current = orderedAssetIds;
-  selectionSizeRef.current = selectedIds.size;
-  openEditAccessDialogRef.current = openEditAccessDialog;
-  openBulkDeleteDialogRef.current = openBulkDeleteDialog;
-
-  const handleAssetContextMenuCapture = useCallback(
-    (assetId: string) => {
-      setFocusedFolderId(null);
-      if (selectedIdsRef.current.has(assetId)) return;
-      setSelection((prev) => selectOnly(prev, assetId));
-    },
-    [setFocusedFolderId, setSelection],
-  );
 
   const handleAssetSelect = useCallback(
     (asset: AssetMasonryItem, event: React.MouseEvent<HTMLDivElement>) => {
@@ -165,81 +131,44 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         ) : null
       }
     >
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div
-            ref={masonryShellRef}
-            className="min-w-0 w-full max-w-full overflow-x-hidden select-none"
-            onMouseDown={(event) => {
-              const target = event.target as HTMLElement | null;
-              if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
-              if (selectedIds.size === 0) return;
-              setSelection((prev) => clearSelection(prev));
-            }}
-            onContextMenuCapture={(event) => {
-              const target = event.target as HTMLElement | null;
-              if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
-              setFocusedFolderId(null);
-            }}
-          >
-            <Masonry
-              key={masonryWidth || "initial"}
-              className="min-w-0 w-full max-w-full"
-              items={masonryItems}
-              itemKey={(item) => item.key}
-              columnWidth={260}
-              columnGutter={16}
-              rowGutter={16}
-              maxColumnCount={5}
-              itemHeightEstimate={320}
-              overscanBy={1.5}
-              render={({ data }) => {
-                const asset = data.data as AssetMasonryItem;
-                return (
-                  <AssetsViewAssetRow
-                    asset={asset}
-                    selected={selectedIds.has(asset.id)}
-                    moving={movingAssetIds.has(asset.id)}
-                    selectionSizeRef={selectionSizeRef}
-                    onContextMenuCapture={handleAssetContextMenuCapture}
-                    onSelect={handleAssetSelect}
-                    onToggleSelected={handleAssetToggleSelected}
-                    onAspectRatio={handleAssetAspectRatio}
-                    onOpen={setActive}
-                    onOpenMove={() => setMoveModalOpen(true)}
-                    onOpenEditAccess={() => openEditAccessDialogRef.current()}
-                    onOpenBulkDelete={() => openBulkDeleteDialogRef.current()}
-                    t={t}
-                  />
-                );
-              }}
-            />
-          </div>
-        </ContextMenuTrigger>
-
-        <ContextMenuContent>
-          <ContextMenuIconItem icon={<Upload size={16} />} onSelect={() => setUploadOpen(true)}>
-            {t("assets:ASSET_ACTION_UPLOAD")}
-          </ContextMenuIconItem>
-          <ContextMenuIconItem
-            icon={<FolderPlus size={16} />}
-            onSelect={() => {
-              setCreateFolderParentId(currentFolderId);
-              setCreateFolderOpen(true);
-            }}
-          >
-            {t("assets:ASSET_ACTION_CREATE_FOLDER")}
-          </ContextMenuIconItem>
-          {selectedIds.size > 0 ? (
-            <>
-              <ContextMenuSeparator />
-              <ContextMenuIconItem onSelect={() => setSelection((prev) => clearSelection(prev))}>
-                {t("assets:ASSET_CLEAR_SELECTION")}
-              </ContextMenuIconItem>
-            </>
-          ) : null}
-        </ContextMenuContent>
-      </ContextMenu>
+      <div
+        ref={masonryShellRef}
+        className="min-w-0 w-full max-w-full overflow-x-hidden select-none"
+        onMouseDown={(event) => {
+          if (event.button !== 0) return;
+          const target = event.target as HTMLElement | null;
+          if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
+          if (selectedIds.size === 0) return;
+          setSelection((prev) => clearSelection(prev));
+          setFocusedFolderId(null);
+        }}
+      >
+        <Masonry
+          key={masonryWidth || "initial"}
+          className="min-w-0 w-full max-w-full"
+          items={masonryItems}
+          itemKey={(item) => item.key}
+          columnWidth={260}
+          columnGutter={16}
+          rowGutter={16}
+          maxColumnCount={5}
+          itemHeightEstimate={320}
+          overscanBy={1.5}
+          render={({ data }) => {
+            const asset = data.data as AssetMasonryItem;
+            return (
+              <AssetsViewAssetRow
+                asset={asset}
+                selected={selectedIds.has(asset.id)}
+                onSelect={handleAssetSelect}
+                onToggleSelected={handleAssetToggleSelected}
+                onAspectRatio={handleAssetAspectRatio}
+                onOpen={setActive}
+              />
+            );
+          }}
+        />
+      </div>
     </ContentGuard>
   );
 }

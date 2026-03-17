@@ -24,10 +24,10 @@ describe("asset-selection", () => {
     expect(next.lastActiveId).toBe("c");
   });
 
-  test("selectOrClearOnPlainClick clears selection when clicking the only selected item (single click)", () => {
+  test("selectOrClearOnPlainClick keeps the only selected item selected on single click", () => {
     const next = selectOrClearOnPlainClick(state(["a"], "a"), "a", 1);
-    expect(next.selectedIds.size).toBe(0);
-    expect(next.lastActiveId).toBe(null);
+    expect(Array.from(next.selectedIds)).toEqual(["a"]);
+    expect(next.lastActiveId).toBe("a");
   });
 
   test("selectOrClearOnPlainClick keeps selection on the second click of a double-click", () => {

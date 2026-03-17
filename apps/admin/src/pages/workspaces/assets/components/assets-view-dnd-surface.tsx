@@ -4,22 +4,14 @@ import type { PropsWithChildren } from "react";
 
 import type { AssetsViewController } from "../hooks/use-assets-view-controller";
 import { AssetsExplorerFolderDragOverlay } from "./explorer/assets-explorer-folder-tiles";
-import { DragSelectionOverlay, snapOverlayCenterToPointer } from "./assets-view-dnd";
+import { snapOverlayCenterToPointer } from "./assets-view-dnd";
 
 export function AssetsViewDndSurface(
   props: PropsWithChildren<{ controller: AssetsViewController }>,
 ) {
   const { controller, children } = props;
-  const {
-    t,
-    sensors,
-    onDragStart,
-    onDragEnd,
-    onDragCancel,
-    draggingAssetIds,
-    draggingFolderId,
-    folderById,
-  } = controller;
+  const { t, sensors, onDragStart, onDragEnd, onDragCancel, draggingFolderId, folderById } =
+    controller;
 
   return (
     <DndContext
@@ -32,9 +24,7 @@ export function AssetsViewDndSurface(
 
       <DragOverlay modifiers={[snapOverlayCenterToPointer]}>
         <AnimatePresence>
-          {draggingAssetIds.length > 0 ? (
-            <DragSelectionOverlay count={draggingAssetIds.length} key="drag-selection-overlay" />
-          ) : draggingFolderId ? (
+          {draggingFolderId ? (
             <AssetsExplorerFolderDragOverlay
               key="drag-folder-overlay"
               folderLabel={t("assets:ASSET_FOLDER")}

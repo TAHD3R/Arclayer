@@ -21,8 +21,11 @@ export function AssetsExplorerFolderUpTile(props: {
         "rounded-lg shadow-sm transition duration-200 hover:shadow-md",
         "cursor-pointer outline-none select-none",
       )}
-      onClick={props.onClick}
-      onDoubleClick={props.onDoubleClick}
+      onClick={(event) => {
+        props.onClick();
+        if (event.detail < 2) return;
+        props.onDoubleClick();
+      }}
       onKeyDown={(e) => {
         if (e.key !== "Enter") return;
         props.onDoubleClick();
@@ -72,8 +75,11 @@ export const AssetsExplorerFolderTile = forwardRef<
         props.className,
       )}
       {...props.rootProps}
-      onClick={props.onClick}
-      onDoubleClick={props.onDoubleClick}
+      onClick={(event) => {
+        props.onClick();
+        if (event.detail < 2) return;
+        props.onDoubleClick();
+      }}
       onKeyDown={(e) => {
         if (e.key !== "Enter") return;
         props.onDoubleClick();

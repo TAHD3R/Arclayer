@@ -3,14 +3,9 @@ import { DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
 import { motion } from "motion/react";
 import { useAnimationControls } from "motion/react";
 
-export const DND_ASSET_PREFIX = "asset:";
 export const DND_FOLDER_PREFIX = "folder:";
 const DND_FOLDER_ITEM_PREFIX = "folderItem:";
 export const DND_ROOT_ID = `${DND_FOLDER_PREFIX}__root__`;
-
-export function toAssetDndId(assetId: string) {
-  return `${DND_ASSET_PREFIX}${assetId}`;
-}
 
 export function toFolderDndId(folderId: string) {
   return `${DND_FOLDER_PREFIX}${folderId}`;
@@ -18,11 +13,6 @@ export function toFolderDndId(folderId: string) {
 
 export function toFolderItemDndId(folderId: string) {
   return `${DND_FOLDER_ITEM_PREFIX}${folderId}`;
-}
-
-export function parseAssetDndId(id: string): string | null {
-  if (!id.startsWith(DND_ASSET_PREFIX)) return null;
-  return id.slice(DND_ASSET_PREFIX.length);
 }
 
 export function parseFolderDndId(id: string): string | null {
@@ -106,22 +96,6 @@ type DraggableBindings = {
   attributes: Record<string, unknown>;
 };
 
-export function AssetDraggableProvider(props: {
-  assetId: string;
-  children: (bindings: DraggableBindings) => ReactNode;
-}) {
-  const dnd = useDraggable({
-    id: toAssetDndId(props.assetId),
-    data: { kind: "asset", assetId: props.assetId },
-  });
-
-  return props.children({
-    setNodeRef: dnd.setNodeRef,
-    listeners: dnd.listeners as unknown as Record<string, unknown>,
-    attributes: dnd.attributes as unknown as Record<string, unknown>,
-  });
-}
-
 export function FolderDraggableProvider(props: {
   folderId: string;
   children: (bindings: DraggableBindings) => ReactNode;
@@ -191,52 +165,4 @@ export function FolderDroppableProvider(props: {
     data: { kind: "folder", folderId: parseFolderDndId(props.droppableId) },
   });
   return props.children({ setNodeRef: dnd.setNodeRef, isOver: dnd.isOver });
-}
-
-export function DragSelectionOverlay(props: { count: number }) {
-  const stackCount = Math.min(3, Math.max(1, props.count));
-  const offset = (stackCount - 1) * 8;
-  const width = 156 + offset;
-  const height = 104 + offset;
-
-  return (
-    <motion.div
-      className="relative inline-block pointer-events-none select-none"
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.12, ease: "easeOut" }}
-      style={{ willChange: "transform", width, height }}
-    >
-      <div className="relative h-full w-full">
-        {Array.from({ length: stackCount }).map((_, idx) => (
-          <div
-            key={idx}
-            className="absolute left-0 top-0 overflow-hidden rounded-lg border border-border bg-card"
-            style={{
-              transform: `translate(${idx * 8}px, ${idx * 8}px)`,
-              width: 156,
-              height: 104,
-            }}
-          >
-            <div className="relative h-full w-full bg-muted/20">
-              <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted/10 via-muted/35 to-muted/10" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,hsl(var(--foreground)/0.08),transparent_55%),radial-gradient(circle_at_80%_70%,hsl(var(--foreground)/0.06),transparent_60%)] opacity-70" />
-              <div className="absolute inset-0 flex items-end p-3">
-                <div className="w-full space-y-2 opacity-70">
-                  <div className="h-2 w-2/3 bg-foreground/10" />
-                  <div className="h-2 w-1/2 bg-foreground/5" />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      {props.count > 1 ? (
-        <div className="absolute right-2 top-2 border border-border bg-card px-2 py-1 text-caption font-semibold">
-          {props.count}
-        </div>
-      ) : null}
-    </motion.div>
-  );
 }

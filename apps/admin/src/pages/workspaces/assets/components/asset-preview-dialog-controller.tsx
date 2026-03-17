@@ -15,6 +15,7 @@ import TrashIcon from "@arclayer/ui/icons/trash-icon";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
+import { toMasonryItem } from "@/lib/assets/to-masonry-item";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
@@ -51,7 +52,34 @@ export function useAssetPreviewDialogController(props: {
   );
   const uiLocale = usePreferencesStore((s) => s.locale);
   const adminDateTime = useAdminDateTimeFormatter({ workspaceId });
-  const active = props.active;
+  const baseActive = props.active;
+
+  const detailQuery = useQuery({
+    queryKey: ["assets", "detail", scopeKey, baseActive?.id],
+    queryFn: async () => {
+      if (!baseActive?.id) throw new Error("missing asset id");
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return getAssetDetail(String(workspaceId), baseActive.id);
+    },
+    enabled: Boolean(scopeKey) && Boolean(baseActive?.id),
+    staleTime: 20 * 1000,
+  });
+
+  const active = useMemo(() => {
+    if (!baseActive) return null;
+    if (!detailQuery.data) return baseActive;
+    return {
+      ...toMasonryItem(detailQuery.data, { aspectRatioOverride: baseActive.aspectRatio }),
+      description: detailQuery.data.description || baseActive.description,
+    } satisfies AssetMasonryItem;
+  }, [baseActive, detailQuery.data]);
+  const thumbs = useMemo(() => {
+    if (!active?.thumbBaseUrl) return [];
+    const base = active.thumbBaseUrl;
+    const widths = [400, 800, 1200, 1600] as const;
+    return widths.map((w) => ({ key: `w${w}`, url: `${base}?w=${w}`, label: `${w}px` }));
+  }, [active?.thumbBaseUrl]);
+  const isImage = Boolean(active?.mimeType?.startsWith("image/"));
   const activeAspectRatio = active ? getSafeAspectRatio(active.aspectRatio) : 4 / 3;
   const [previewAspectRatio, setPreviewAspectRatio] = useState<number | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
@@ -61,26 +89,6 @@ export function useAssetPreviewDialogController(props: {
     uploaderName,
     createdAtText: active?.createdAtText,
     t,
-  });
-
-  const thumbs = useMemo(() => {
-    if (!active?.thumbBaseUrl) return [];
-    const base = active.thumbBaseUrl;
-    const widths = [400, 800, 1200, 1600] as const;
-    return widths.map((w) => ({ key: `w${w}`, url: `${base}?w=${w}`, label: `${w}px` }));
-  }, [active?.thumbBaseUrl]);
-
-  const isImage = Boolean(active?.mimeType?.startsWith("image/"));
-
-  const detailQuery = useQuery({
-    queryKey: ["assets", "detail", scopeKey, active?.id],
-    queryFn: async () => {
-      if (!active?.id) throw new Error("missing asset id");
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return getAssetDetail(String(workspaceId), active.id);
-    },
-    enabled: Boolean(scopeKey) && Boolean(active?.id),
-    staleTime: 20 * 1000,
   });
 
   const tagsQuery = useQuery({
@@ -189,9 +197,9 @@ export function useAssetPreviewDialogController(props: {
 
   useEffect(() => {
     failedPreviewRef.current = new Set();
-    setPreviewSrc(previewCandidates[0] || null);
+    setPreviewSrc(null);
     setPreviewAspectRatio(null);
-  }, [active?.id, previewCandidates]);
+  }, [active?.id]);
 
   const initializedIdRef = useRef<string | null>(null);
   const dirtyRef = useRef<{ description: boolean; tags: boolean }>({

@@ -153,10 +153,10 @@ export function FileUploadListItemProgressFill(props: FileUploadListItemProps) {
       <div
         aria-hidden="true"
         className={cn(
-          "absolute inset-0 size-full bg-secondary transition duration-100 ease-linear",
+          "absolute inset-y-0 left-0 rounded-[inherit] bg-primary/6 transition-[width,opacity] duration-100 ease-linear dark:bg-primary/12",
           isComplete ? "opacity-0" : null,
         )}
-        style={{ transform: `translateX(-${100 - progress}%)` }}
+        style={{ width: `${progress}%` }}
       />
 
       <div className="relative shrink-0">
@@ -307,8 +307,9 @@ export function FileUploadDropZone(props: FileUploadDropZoneProps) {
         <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
           <Button
             variant="link"
+            size="inline"
             disabled={props.isDisabled}
-            className={cn("h-auto p-0 text-body font-medium")}
+            className="m-0 h-auto p-0 text-body font-medium"
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -377,7 +378,11 @@ export function FileUploadPanel(props: FileUploadPanelProps) {
 
       {props.items.length ? (
         <div className="px-5 pt-4 pb-5">
-          <div className={cn("mt-3 max-h-80 overflow-x-hidden overflow-y-auto bg-background")}>
+          <div
+            className={cn(
+              "mt-3 max-h-80 overflow-x-hidden overflow-y-auto rounded-xl border border-border/60 bg-card p-3",
+            )}
+          >
             <FileUploadList className="pr-1">
               {props.items.map((it) => (
                 <FileUploadListItemProgressFill

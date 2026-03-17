@@ -1,5 +1,4 @@
 import { memo, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
-import { GripVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
@@ -156,22 +155,16 @@ export const AssetMasonryTile = memo(
   function AssetMasonryTile(props: {
     asset: AssetMasonryItem;
     selected?: boolean;
-    moving?: boolean;
     onToggleSelected?: (id: string) => void;
     onSelect: (e: React.MouseEvent<HTMLDivElement>) => void;
     onOpen: (asset: AssetMasonryItem) => void;
     onAspectRatio?: (id: string, aspectRatio: number) => void;
-    onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
-    dragRef?: (node: HTMLDivElement | null) => void;
-    dragAttributes?: Record<string, unknown>;
-    dragListeners?: Record<string, unknown>;
   }) {
     const { t } = useTranslation();
     const aspectRatio = getSafeAspectRatio(props.asset.aspectRatio);
     const selected = Boolean(props.selected);
     const overlayVisible = selected;
     const hasPreview = Boolean(props.asset.previewUrl);
-    const moving = Boolean(props.moving);
     const [previewFailed, setPreviewFailed] = useState(false);
     const uploaderLabel = props.asset.uploaderName?.trim() || t("assets:ASSET_UPLOADER_UNKNOWN");
     const titleId = useId();
@@ -211,25 +204,25 @@ export const AssetMasonryTile = memo(
 
     return (
       <div
-        ref={props.dragRef}
         className={cn(
           "group relative w-full overflow-hidden border border-border/50 bg-card",
           "rounded-lg",
           "shadow-sm transition-[box-shadow,opacity,transform] duration-200 ease-out hover:shadow-md",
           "cursor-pointer outline-none select-none",
-          moving ? "scale-[0.985] opacity-0" : "scale-100 opacity-100",
-          moving ? "pointer-events-none" : null,
+          "scale-100 opacity-100",
         )}
         role="button"
         tabIndex={0}
         data-asset-tile="true"
         onKeyDown={onKeyDown}
-        onClick={(e) => props.onSelect(e)}
-        onDoubleClick={(event) => {
+        onClick={(event) => {
+          props.onSelect(event);
+          // Selection updates can swap the tile subtree between the two clicks,
+          // so rely on click.detail instead of native dblclick synthesis.
+          if (event.detail < 2) return;
           event.preventDefault();
           props.onOpen(props.asset);
         }}
-        onContextMenu={(e) => props.onContextMenu?.(e)}
       >
         <div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
           {/* Top-left: uploader */}
@@ -304,25 +297,14 @@ export const AssetMasonryTile = memo(
                 selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
               )}
             >
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label={t("assets:ASSET_ACTION_MOVE")}
-                  className="flex size-7 items-center justify-center rounded-md bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
-                  {...(props.dragAttributes as Record<string, unknown>)}
-                  {...(props.dragListeners as Record<string, unknown>)}
-                  onClick={(event) => event.stopPropagation()}
-                  onDoubleClick={(event) => event.stopPropagation()}
-                >
-                  <GripVertical className="size-4" />
-                </button>
-                <Checkbox
-                  aria-labelledby={titleId}
-                  checked={selected}
-                  onClick={(e) => e.stopPropagation()}
-                  onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
-                />
-              </div>
+              <Checkbox
+                aria-labelledby={titleId}
+                checked={selected}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
+                onDoubleClick={(event) => event.stopPropagation()}
+                onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
+              />
             </div>
 
             {/* Filename/description at the bottom */}
@@ -347,8 +329,7 @@ export const AssetMasonryTile = memo(
       </div>
     );
   },
-  (prev, next) =>
-    prev.asset === next.asset && prev.selected === next.selected && prev.moving === next.moving,
+  (prev, next) => prev.asset === next.asset && prev.selected === next.selected,
 );
 
 export function buildUploaderAndTimeText(params: {

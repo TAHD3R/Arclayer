@@ -1,22 +1,9 @@
 import type { ReactNode } from "react";
 
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from "@arclayer/ui/item";
-
-import { Frame, FramePanel } from "@/components/reui/frame";
+import { cn } from "@arclayer/lib/utils";
 
 export function AssetInspectorShell(props: { children: ReactNode }) {
-  return (
-    <Frame variant="inverse" spacing="sm" stacked dense className="w-full">
-      {props.children}
-    </Frame>
-  );
+  return <div className="space-y-8">{props.children}</div>;
 }
 
 export function AssetInspectorPanel(props: {
@@ -25,25 +12,25 @@ export function AssetInspectorPanel(props: {
   children: ReactNode;
 }) {
   return (
-    <FramePanel className="space-y-3">
-      <div className="space-y-1">
+    <section className="space-y-4">
+      <header className="space-y-1">
         <div className="text-caption font-semibold uppercase tracking-[0.08em] text-label-secondary">
           {props.title}
         </div>
         {props.description ? (
           <p className="text-caption leading-5 text-label-secondary">{props.description}</p>
         ) : null}
-      </div>
+      </header>
       {props.children}
-    </FramePanel>
+    </section>
   );
 }
 
-export function AssetInspectorList(props: { children: ReactNode }) {
+export function AssetInspectorList(props: { children: ReactNode; className?: string }) {
   return (
-    <ItemGroup className="rounded-xl border border-border/60 bg-background/80">
+    <div className={cn("[&>*+*]:border-t [&>*+*]:border-border/50", props.className)}>
       {props.children}
-    </ItemGroup>
+    </div>
   );
 }
 
@@ -54,22 +41,17 @@ export function AssetInspectorRow(props: {
   separate?: boolean;
 }) {
   return (
-    <>
-      <Item size="sm" className="items-start gap-3 px-3 py-3">
-        <ItemContent className="gap-0.5">
-          <ItemDescription className="text-caption uppercase tracking-[0.08em] text-label-secondary!">
-            {props.label}
-          </ItemDescription>
-          <ItemTitle className="w-full min-w-0 text-foreground">{props.value}</ItemTitle>
-          {props.description ? (
-            <ItemDescription className="text-caption leading-5">
-              {props.description}
-            </ItemDescription>
-          ) : null}
-        </ItemContent>
-      </Item>
-      {props.separate ? <ItemSeparator className="border-border/60" /> : null}
-    </>
+    <div className="grid gap-x-4 gap-y-1 py-3 md:grid-cols-[7rem_minmax(0,1fr)] md:items-start">
+      <div className="text-caption uppercase tracking-[0.08em] text-label-secondary">
+        {props.label}
+      </div>
+      <div className="min-w-0 text-footnote text-foreground md:text-right">{props.value}</div>
+      {props.description ? (
+        <div className="text-caption leading-5 text-label-secondary md:col-start-2 md:text-right">
+          {props.description}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -80,23 +62,16 @@ export function AssetInspectorActionRow(props: {
   separate?: boolean;
 }) {
   return (
-    <>
-      <Item
-        asChild
-        size="sm"
-        className="cursor-pointer px-3 py-3 transition-colors hover:bg-accent/40"
-      >
-        <button type="button" onClick={props.onClick}>
-          <ItemContent className="gap-0.5">
-            <ItemDescription className="text-caption uppercase tracking-[0.08em] text-label-secondary!">
-              {props.label}
-            </ItemDescription>
-            <ItemTitle className="w-full min-w-0 text-foreground">{props.value}</ItemTitle>
-          </ItemContent>
-        </button>
-      </Item>
-      {props.separate ? <ItemSeparator className="border-border/60" /> : null}
-    </>
+    <button
+      type="button"
+      className="grid w-full gap-x-4 gap-y-1 py-3 text-left transition-colors hover:text-primary md:grid-cols-[7rem_minmax(0,1fr)] md:items-start"
+      onClick={props.onClick}
+    >
+      <span className="text-caption uppercase tracking-[0.08em] text-label-secondary">
+        {props.label}
+      </span>
+      <span className="min-w-0 text-footnote text-foreground md:text-right">{props.value}</span>
+    </button>
   );
 }
 
