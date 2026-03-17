@@ -4,7 +4,7 @@ export const NAV_ITEM_HEIGHT_CLASSNAME = "h-8";
 export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
   "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0!";
 export const NAV_ITEM_ROOT_INSET_CLASSNAME = "pl-4";
-export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1";
+export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1 group-data-[collapsible=icon]:gap-2";
 export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1";
 export const NAV_SECTION_LABEL_CLASSNAME = "h-auto pb-0.5 pt-2 text-caption";
 export const NAV_SECTION_TRIGGER_CLASSNAME =
