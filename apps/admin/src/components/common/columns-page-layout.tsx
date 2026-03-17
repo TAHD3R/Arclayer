@@ -1,19 +1,17 @@
 import type { CSSProperties, ReactNode } from "react";
 import { motion } from "motion/react";
 import clsx from "clsx";
-import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
-import { Button } from "@arclayer/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@arclayer/ui/sheet";
 
-const DEFAULT_PAGE_SIDE_SLOT_MIN_WIDTH = "18rem";
-const DEFAULT_PAGE_SIDE_SLOT_MAX_WIDTH = "28rem";
-const DEFAULT_PAGE_SIDE_SLOT_DEFAULT_WIDTH = "22rem";
-const DEFAULT_PAGE_SIDE_SLOT_TRANSITION = {
+const COLUMNS_PAGE_SIDE_SLOT_MIN_WIDTH = "18rem";
+const COLUMNS_PAGE_SIDE_SLOT_MAX_WIDTH = "28rem";
+const COLUMNS_PAGE_SIDE_SLOT_DEFAULT_WIDTH = "22rem";
+const COLUMNS_PAGE_SIDE_SLOT_TRANSITION = {
   duration: 0.22,
   ease: [0.22, 1, 0.36, 1] as const,
 };
 
-export type DefaultPageSideSlot = {
+export type ColumnsPageSideSlot = {
   content: ReactNode;
   title?: ReactNode;
   description?: ReactNode;
@@ -26,54 +24,57 @@ export type DefaultPageSideSlot = {
   stickyTop?: number | string;
 };
 
-export type DefaultPageSideSlots = {
-  left?: DefaultPageSideSlot;
-  right?: DefaultPageSideSlot;
+export type ColumnsPageSideSlots = {
+  left?: ColumnsPageSideSlot;
+  right?: ColumnsPageSideSlot;
 };
 
-export type PaneToggle = {
+export type ColumnsPagePaneToggle = {
   side: "left" | "right";
-  slot: DefaultPageSideSlot;
+  slot: ColumnsPageSideSlot;
 };
 
-type DefaultPageSideSlotStyle = CSSProperties & {
-  "--default-page-side-slot-default-width"?: string;
-  "--default-page-side-slot-max-width"?: string;
-  "--default-page-side-slot-min-width"?: string;
-  "--default-page-side-slot-sticky-top"?: string;
+type ColumnsPageSideSlotStyle = CSSProperties & {
+  "--columns-page-side-slot-default-width"?: string;
+  "--columns-page-side-slot-max-width"?: string;
+  "--columns-page-side-slot-min-width"?: string;
+  "--columns-page-side-slot-sticky-top"?: string;
 };
 
-export function resolvePageSlotSize(value: number | string | undefined, fallback: string): string {
+function resolvePageSlotSize(value: number | string | undefined, fallback: string): string {
   if (typeof value === "number") return `${value}px`;
   if (typeof value === "string" && value.trim()) return value;
   return fallback;
 }
 
-function createPageSideSlotStyle(slot: DefaultPageSideSlot): DefaultPageSideSlotStyle {
+function createPageSideSlotStyle(slot: ColumnsPageSideSlot): ColumnsPageSideSlotStyle {
   return {
-    "--default-page-side-slot-default-width": resolvePageSlotSize(
+    "--columns-page-side-slot-default-width": resolvePageSlotSize(
       slot.defaultWidth,
-      DEFAULT_PAGE_SIDE_SLOT_DEFAULT_WIDTH,
+      COLUMNS_PAGE_SIDE_SLOT_DEFAULT_WIDTH,
     ),
-    "--default-page-side-slot-min-width": resolvePageSlotSize(
+    "--columns-page-side-slot-min-width": resolvePageSlotSize(
       slot.minWidth,
-      DEFAULT_PAGE_SIDE_SLOT_MIN_WIDTH,
+      COLUMNS_PAGE_SIDE_SLOT_MIN_WIDTH,
     ),
-    "--default-page-side-slot-max-width": resolvePageSlotSize(
+    "--columns-page-side-slot-max-width": resolvePageSlotSize(
       slot.maxWidth,
-      DEFAULT_PAGE_SIDE_SLOT_MAX_WIDTH,
+      COLUMNS_PAGE_SIDE_SLOT_MAX_WIDTH,
     ),
-    "--default-page-side-slot-sticky-top": resolvePageSlotSize(slot.stickyTop, "0px"),
+    "--columns-page-side-slot-sticky-top": resolvePageSlotSize(slot.stickyTop, "0px"),
   };
 }
 
-export function getPaneLabel(slot: DefaultPageSideSlot, side: "left" | "right"): ReactNode {
+export function getColumnsPagePaneLabel(
+  slot: ColumnsPageSideSlot,
+  side: "left" | "right",
+): ReactNode {
   return slot.mobileLabel ?? slot.title ?? (side === "left" ? "Left panel" : "Right panel");
 }
 
-export function DefaultPageDesktopPane(props: {
+export function ColumnsPageDesktopPane(props: {
   side: "left" | "right";
-  slot: DefaultPageSideSlot;
+  slot: ColumnsPageSideSlot;
 }) {
   return (
     <motion.div
@@ -81,14 +82,14 @@ export function DefaultPageDesktopPane(props: {
       initial={{ opacity: 0, x: props.side === "left" ? -12 : 12 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: props.side === "left" ? -12 : 12 }}
-      transition={DEFAULT_PAGE_SIDE_SLOT_TRANSITION}
+      transition={COLUMNS_PAGE_SIDE_SLOT_TRANSITION}
       className={clsx(
         "flex min-h-0 shrink-0 self-start",
-        "[width:var(--default-page-side-slot-default-width)]",
-        "min-w-[var(--default-page-side-slot-min-width)]",
-        "max-w-[var(--default-page-side-slot-max-width)]",
+        "[width:var(--columns-page-side-slot-default-width)]",
+        "min-w-[var(--columns-page-side-slot-min-width)]",
+        "max-w-[var(--columns-page-side-slot-max-width)]",
       )}
-      data-slot="default-page-side-slot"
+      data-slot="columns-page-side-slot"
       data-side={props.side}
       data-sticky={props.slot.sticky ? "true" : "false"}
       style={createPageSideSlotStyle(props.slot)}
@@ -97,7 +98,7 @@ export function DefaultPageDesktopPane(props: {
         className={clsx(
           "flex min-h-0 w-full min-w-0 flex-col self-start",
           props.slot.sticky &&
-            "sticky top-[var(--default-page-side-slot-sticky-top)] max-h-[calc(100vh-var(--default-page-side-slot-sticky-top))]",
+            "sticky top-[var(--columns-page-side-slot-sticky-top)] max-h-[calc(100vh-var(--columns-page-side-slot-sticky-top))]",
           props.slot.className,
         )}
       >
@@ -107,8 +108,8 @@ export function DefaultPageDesktopPane(props: {
   );
 }
 
-export function DefaultPageMobilePaneSheet(props: {
-  toggle: PaneToggle;
+export function ColumnsPageMobilePaneSheet(props: {
+  toggle: ColumnsPagePaneToggle;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -116,7 +117,7 @@ export function DefaultPageMobilePaneSheet(props: {
     <Sheet open={props.open} onOpenChange={props.onOpenChange}>
       <SheetContent side={props.toggle.side} className="w-[min(90vw,28rem)] p-0" showCloseButton>
         <SheetHeader>
-          <SheetTitle>{getPaneLabel(props.toggle.slot, props.toggle.side)}</SheetTitle>
+          <SheetTitle>{getColumnsPagePaneLabel(props.toggle.slot, props.toggle.side)}</SheetTitle>
           {props.toggle.slot.description ? (
             <SheetDescription>{props.toggle.slot.description}</SheetDescription>
           ) : null}
@@ -124,78 +125,5 @@ export function DefaultPageMobilePaneSheet(props: {
         <div className="flex min-h-0 flex-1 overflow-auto">{props.toggle.slot.content}</div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-export function DefaultPageMainRegion(props: {
-  title?: ReactNode;
-  description?: ReactNode;
-  titleAdornment?: ReactNode;
-  action?: ReactNode;
-  extra?: ReactNode;
-  contentClassName?: string;
-  paneToggles: PaneToggle[];
-  onOpenPane: (side: "left" | "right") => void;
-  children?: ReactNode;
-}) {
-  return (
-    <div
-      className={clsx(
-        "flex min-h-0 min-w-0 w-full flex-1 flex-col self-start",
-        props.contentClassName,
-      )}
-      data-slot="default-page-main-region"
-    >
-      {props.title ||
-      props.description ||
-      props.action ||
-      props.extra ||
-      props.paneToggles.length > 0 ? (
-        <header className="mb-4">
-          {props.title || props.action || props.paneToggles.length > 0 ? (
-            <div className="flex items-center justify-between gap-4">
-              <div className="my-2 flex min-w-0 items-end gap-2">
-                {props.title ? (
-                  <div className="text-title text-label-primary select-none">{props.title}</div>
-                ) : null}
-                {props.titleAdornment}
-              </div>
-              <div className="inline-flex shrink-0 items-center gap-2.5">
-                {props.paneToggles.length > 0 ? (
-                  <div className="inline-flex items-center gap-1 lg:hidden">
-                    {props.paneToggles.map((toggle) => (
-                      <Button
-                        key={toggle.side}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => props.onOpenPane(toggle.side)}
-                        aria-label={String(getPaneLabel(toggle.slot, toggle.side))}
-                      >
-                        {toggle.side === "left" ? (
-                          <PanelLeftOpen className="size-4" />
-                        ) : (
-                          <PanelRightOpen className="size-4" />
-                        )}
-                        <span className="sr-only">{getPaneLabel(toggle.slot, toggle.side)}</span>
-                      </Button>
-                    ))}
-                  </div>
-                ) : null}
-                {props.action}
-              </div>
-            </div>
-          ) : null}
-          {props.description ? (
-            <div className="text-callout text-label-secondary select-none">{props.description}</div>
-          ) : null}
-          {props.extra ? <div className="mt-3.5">{props.extra}</div> : null}
-        </header>
-      ) : null}
-      {props.children ? (
-        <div className="min-h-0 min-w-0 w-full flex-1" data-slot="default-page-content">
-          {props.children}
-        </div>
-      ) : null}
-    </div>
   );
 }

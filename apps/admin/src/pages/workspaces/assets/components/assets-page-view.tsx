@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Plus } from "@arclayer/ui/icons/lucide-animated";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { ColumnsPage } from "@/components/common/columns-page";
 import { Button } from "@arclayer/ui/button";
 import { Spinner } from "@arclayer/ui/spinner";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
@@ -109,7 +109,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
 
   return (
     <AssetsViewDndSurface controller={controller}>
-      <DefaultPage
+      <ColumnsPage
         title={t("nav:NAV_ASSETS")}
         action={
           <Button onClick={() => setUploadOpen(true)}>
@@ -292,7 +292,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             )}
           </div>
         ) : null}
-      </DefaultPage>
+      </ColumnsPage>
     </AssetsViewDndSurface>
   );
 }

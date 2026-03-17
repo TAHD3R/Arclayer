@@ -1,0 +1,89 @@
+import { useMemo, useState } from "react";
+import clsx from "clsx";
+
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
+
+import {
+  ColumnsPageDesktopPane,
+  ColumnsPageMobilePaneSheet,
+  getColumnsPagePaneLabel,
+  type ColumnsPagePaneToggle,
+  type ColumnsPageSideSlots,
+} from "./columns-page-layout";
+import { PageMainRegion, shouldHidePageHeader, type BasePageProps } from "./page-main-region";
+
+export type ColumnsPageProps = BasePageProps & {
+  sideSlots: ColumnsPageSideSlots;
+};
+
+export function ColumnsPage({
+  title,
+  description,
+  showFavoriteToggle = true,
+  action,
+  extra,
+  sideSlots,
+  children,
+  className,
+  contentClassName,
+}: ColumnsPageProps) {
+  const hideHeader = shouldHidePageHeader(children);
+  const leftSideSlot = hideHeader ? undefined : sideSlots?.left;
+  const rightSideSlot = hideHeader ? undefined : sideSlots?.right;
+  const hasSideSlots = Boolean(leftSideSlot || rightSideSlot);
+  const [mobileOpenSide, setMobileOpenSide] = useState<"left" | "right" | null>(null);
+  const paneToggles = useMemo<ColumnsPagePaneToggle[]>(() => {
+    const out: ColumnsPagePaneToggle[] = [];
+    if (leftSideSlot) out.push({ side: "left", slot: leftSideSlot });
+    if (rightSideSlot) out.push({ side: "right", slot: rightSideSlot });
+    return out;
+  }, [leftSideSlot, rightSideSlot]);
+
+  const mainRegion = (
+    <PageMainRegion
+      title={hideHeader ? undefined : title}
+      description={hideHeader ? undefined : description}
+      showFavoriteToggle={hideHeader ? false : showFavoriteToggle}
+      action={hideHeader ? undefined : action}
+      extra={hideHeader ? undefined : extra}
+      contentClassName={contentClassName}
+      paneToggles={paneToggles.map((toggle) => ({
+        side: toggle.side,
+        label: getColumnsPagePaneLabel(toggle.slot, toggle.side),
+      }))}
+      onOpenPane={setMobileOpenSide}
+    >
+      {children}
+    </PageMainRegion>
+  );
+
+  return (
+    <AdminRouteContainer className={clsx("min-h-full min-w-0", className)}>
+      {hasSideSlots ? (
+        <>
+          <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>
+
+          <div
+            className="hidden min-h-0 min-w-0 w-full flex-1 lg:flex"
+            data-slot="columns-page-shell"
+          >
+            {leftSideSlot ? <ColumnsPageDesktopPane side="left" slot={leftSideSlot} /> : null}
+            {mainRegion}
+            {rightSideSlot ? <ColumnsPageDesktopPane side="right" slot={rightSideSlot} /> : null}
+          </div>
+
+          {paneToggles.map((toggle) => (
+            <ColumnsPageMobilePaneSheet
+              key={toggle.side}
+              toggle={toggle}
+              open={mobileOpenSide === toggle.side}
+              onOpenChange={(open) => setMobileOpenSide(open ? toggle.side : null)}
+            />
+          ))}
+        </>
+      ) : (
+        mainRegion
+      )}
+    </AdminRouteContainer>
+  );
+}
