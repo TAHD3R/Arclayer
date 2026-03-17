@@ -17,17 +17,15 @@ import { downloadWithAuth } from "./asset-masonry-tile";
 export type RecentLayoutMode = "single" | "multi";
 
 const recentCardBaseClassName =
-  "group relative overflow-hidden rounded-lg border text-white transition-all duration-300";
+  "group relative overflow-hidden rounded-lg border text-card-foreground transition-all duration-300";
 
 const recentCardInactiveClassName =
   "border-border/60 bg-card hover:border-border hover:-translate-y-[1px] dark:border-white/10 dark:bg-[#111111] dark:hover:border-white/16";
 const recentCardActiveClassName = "border-border bg-card dark:border-white/18 dark:bg-[#161616]";
-
-const recentPreviewFrostClassName =
-  "absolute inset-0 bg-[linear-gradient(120deg,rgba(10,10,10,0.08)_0%,rgba(10,10,10,0.14)_22%,rgba(10,10,10,0.28)_48%,rgba(10,10,10,0.52)_74%,rgba(10,10,10,0.72)_100%)] backdrop-blur-sm";
-
-const recentFallbackFrostClassName =
-  "absolute inset-0 bg-[linear-gradient(120deg,rgba(10,10,10,0.05)_0%,rgba(10,10,10,0.12)_24%,rgba(10,10,10,0.24)_50%,rgba(10,10,10,0.42)_74%,rgba(10,10,10,0.60)_100%)] backdrop-blur-sm";
+const recentTextShadowClassName =
+  "[text-shadow:0_1px_2px_rgba(15,23,42,0.14)] dark:[text-shadow:0_1px_2px_rgba(255,255,255,0.14)]";
+const recentMetaValueClassName = "text-callout text-label-primary/72 dark:text-white/74";
+const recentMetaDescriptionClassName = "text-callout text-label-primary/62 dark:text-white/66";
 
 function getRecentCardAccent(asset: AssetMasonryItem) {
   const mimeType = (asset.mimeType || "").toLowerCase();
@@ -63,10 +61,9 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
             filter: "saturate(1.04) contrast(1.06)",
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.10),transparent_26%)] opacity-80" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/[0.04] via-black/[0.10] to-black/[0.32]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,8,0.08)_0%,rgba(8,8,8,0.12)_24%,rgba(8,8,8,0.22)_48%,rgba(8,8,8,0.44)_72%,rgba(8,8,8,0.68)_100%)]" />
-        <div className={recentPreviewFrostClassName} />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.22),transparent_26%)] opacity-80 dark:bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.10),transparent_26%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/4 via-white/8 to-white/18 dark:from-black/[0.04] dark:via-black/[0.10] dark:to-black/[0.32]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0.08)_22%,rgba(241,245,249,0.18)_44%,rgba(221,230,239,0.36)_68%,rgba(204,214,224,0.58)_100%)] dark:bg-[linear-gradient(90deg,rgba(8,8,8,0.10)_0%,rgba(8,8,8,0.14)_22%,rgba(8,8,8,0.24)_44%,rgba(8,8,8,0.44)_68%,rgba(8,8,8,0.70)_100%)]" />
       </>
     );
   }
@@ -74,11 +71,11 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
   return (
     <>
       <div className={cn("absolute inset-0 bg-gradient-to-br", getRecentCardAccent(props.asset))} />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(255,255,255,0.07),transparent_24%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(255,255,255,0.16),transparent_24%)] dark:bg-[radial-gradient(circle_at_16%_18%,rgba(255,255,255,0.07),transparent_24%)]" />
       <div
         className={cn(
-          "absolute left-7 top-6 opacity-[0.06]",
-          props.compact ? "scale-[2.6]" : "scale-[3.1]",
+          "absolute left-6 top-5 opacity-[0.08]",
+          props.compact ? "scale-[1.9]" : "scale-[2.2]",
         )}
       >
         <FileTypeIcon
@@ -86,21 +83,22 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
           mimeType={props.asset.mimeType}
           theme="light"
           size={64}
-          className="text-white/85"
+          className="text-label-primary/80 dark:text-white/85"
         />
       </div>
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,8,0.04)_0%,rgba(8,8,8,0.08)_26%,rgba(8,8,8,0.18)_50%,rgba(8,8,8,0.36)_72%,rgba(8,8,8,0.58)_100%)]" />
-      <div className={recentFallbackFrostClassName} />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.10)_0%,rgba(255,255,255,0.16)_26%,rgba(241,245,249,0.22)_50%,rgba(226,232,240,0.32)_72%,rgba(214,223,233,0.46)_100%)] dark:bg-[linear-gradient(90deg,rgba(8,8,8,0.06)_0%,rgba(8,8,8,0.10)_26%,rgba(8,8,8,0.18)_50%,rgba(8,8,8,0.36)_72%,rgba(8,8,8,0.60)_100%)]" />
     </>
   );
 }
 
 function RecentMetaLine(props: { sizeText?: string | null; lastOpenedText: string }) {
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-white/74">
-      {props.sizeText ? <span>{props.sizeText}</span> : null}
-      {props.sizeText ? <span className="size-1 rounded-full bg-white/20" /> : null}
-      <span className="text-white/58">{props.lastOpenedText}</span>
+    <div
+      className={cn("mt-1 flex flex-wrap items-center gap-x-3 gap-y-1", recentTextShadowClassName)}
+    >
+      {props.sizeText ? <span className={recentMetaValueClassName}>{props.sizeText}</span> : null}
+      {props.sizeText ? <span className="size-1 rounded-full bg-border/90" /> : null}
+      <span className={recentMetaDescriptionClassName}>{props.lastOpenedText}</span>
     </div>
   );
 }
@@ -116,7 +114,10 @@ function RecentAssetActions(props: {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-white/60 opacity-0 transition hover:bg-white/8 hover:text-white focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
+          className={cn(
+            "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-label-secondary opacity-0 transition hover:bg-accent/70 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100",
+            recentTextShadowClassName,
+          )}
           aria-label={props.t("common:MORE")}
         >
           <EllipsisVertical className="size-4" />
@@ -196,7 +197,12 @@ export function RecentAssetCard(props: {
             onClick={() => props.onOpenAsset(props.entry.asset)}
             className="mt-5 flex flex-1 flex-col justify-end text-left"
           >
-            <div className="line-clamp-2 text-headline font-semibold tracking-tight text-white/[0.96] [text-shadow:0_1px_1px_rgba(0,0,0,0.28)]">
+            <div
+              className={cn(
+                "line-clamp-2 text-headline font-semibold tracking-tight text-label-primary",
+                recentTextShadowClassName,
+              )}
+            >
               {props.entry.asset.name}
             </div>
             <RecentMetaLine
@@ -218,7 +224,12 @@ export function RecentAssetCard(props: {
           onClick={() => props.onOpenAsset(props.entry.asset)}
           className="min-w-0 flex-1 text-left"
         >
-          <div className="truncate text-headline font-semibold tracking-tight text-white/[0.96] [text-shadow:0_1px_1px_rgba(0,0,0,0.28)]">
+          <div
+            className={cn(
+              "truncate text-headline font-semibold tracking-tight text-label-primary",
+              recentTextShadowClassName,
+            )}
+          >
             {props.entry.asset.name}
           </div>
           <RecentMetaLine

@@ -23,7 +23,10 @@ const folderCardBaseClassName =
   "group relative aspect-square overflow-hidden rounded-lg border text-card-foreground transition-all duration-300";
 
 const folderActionButtonClassName =
-  "inline-flex size-7 items-center justify-center rounded-full text-label-tertiary opacity-0 transition hover:bg-accent/70 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 dark:text-white/58 dark:hover:bg-white/8 dark:hover:text-white";
+  "inline-flex size-8 items-center justify-center rounded-full text-label-tertiary opacity-0 transition hover:bg-accent/70 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100";
+
+const folderGlyphDecorationClassName =
+  "pointer-events-none absolute -bottom-3 -right-1 scale-[2.55] opacity-[0.24] transition-transform duration-300 group-hover:scale-[2.7] xl:-bottom-4 xl:right-0 xl:scale-[3] xl:group-hover:scale-[3.15]";
 
 function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: string }) {
   const sizeClassName = props.large ? "size-16" : "size-8";
@@ -46,7 +49,7 @@ function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: s
 
 function FolderMetaLine(props: { label: string }) {
   return (
-    <div className="relative mt-auto flex items-center gap-1.5 pt-3 text-caption leading-4 text-label-tertiary dark:text-white/42 xl:gap-2 xl:pt-4 xl:leading-5">
+    <div className="relative mt-auto flex items-center gap-1.5 pt-3 text-caption leading-4 text-label-tertiary xl:gap-2 xl:pt-4 xl:leading-5">
       <svg viewBox="0 0 20 20" className="size-3.5 shrink-0 stroke-current fill-none xl:size-4">
         <path
           d="M3.5 6.5h4l1.4-2h7.6a1.5 1.5 0 0 1 1.5 1.5v7.5A1.5 1.5 0 0 1 16.5 15h-13A1.5 1.5 0 0 1 2 13.5V8a1.5 1.5 0 0 1 1.5-1.5Z"
@@ -67,7 +70,7 @@ function FolderCardMenu(props: {
   onDeleteFolder: (folder: AdminAssetFolder) => void;
 }) {
   return (
-    <div className="absolute right-3 top-3 z-10" onClick={(event) => event.stopPropagation()}>
+    <div className="absolute top-0 right-0 z-10" onClick={(event) => event.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className={folderActionButtonClassName}>
@@ -145,16 +148,16 @@ export function FolderAddCard(props: {
           )}
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(15,23,42,0.06),transparent_24%)] opacity-80 dark:bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.05),transparent_24%)]" />
-          <div className="pointer-events-none absolute -bottom-4 right-1 scale-[2.35] opacity-[0.05] transition-transform duration-300 group-hover:scale-[2.45] xl:-bottom-5 xl:right-2 xl:scale-[2.8] xl:group-hover:scale-[2.9]">
-            <FolderGlyph large withPlus className="text-slate-950/12 dark:text-white/5" />
+          <div className={folderGlyphDecorationClassName}>
+            <FolderGlyph large withPlus className="text-slate-950/24 dark:text-white/22" />
           </div>
 
           <div className="relative flex h-full flex-col">
             <div className="mt-4 flex min-h-0 flex-1 flex-col xl:mt-5">
-              <div className="pr-7 text-headline font-semibold tracking-tight leading-5 text-label-primary dark:text-white/95 xl:pr-8">
+              <div className="pr-10 text-headline font-semibold tracking-tight leading-5 text-label-primary xl:pr-11">
                 {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
               </div>
-              <div className="mt-1.5 max-w-[18ch] text-caption leading-[1.35] text-label-secondary dark:text-white/46 xl:mt-2 xl:leading-[1.45]">
+              <div className="mt-1.5 max-w-[18ch] text-caption leading-[1.35] text-label-secondary xl:mt-2 xl:leading-[1.45]">
                 {props.currentFolder
                   ? props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_IN", {
                       name: props.currentFolder.name,
@@ -210,8 +213,8 @@ export function FolderCard(props: {
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(15,23,42,0.06),transparent_26%)] dark:bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,0.05),transparent_26%)]" />
             <div className="absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0)_100%)] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0)_100%)] xl:h-20" />
-            <div className="pointer-events-none absolute -bottom-4 right-1 scale-[2.35] opacity-[0.05] transition-transform duration-300 group-hover:scale-[2.45] xl:-bottom-5 xl:right-2 xl:scale-[2.8] xl:group-hover:scale-[2.9]">
-              <FolderGlyph large className="text-slate-950/12 dark:text-white/5" />
+            <div className={folderGlyphDecorationClassName}>
+              <FolderGlyph large className="text-slate-950/24 dark:text-white/22" />
             </div>
 
             <div className="relative flex h-full flex-col">
@@ -227,14 +230,14 @@ export function FolderCard(props: {
                 className="mt-4 flex min-h-0 flex-1 flex-col xl:mt-5"
                 style={{ overflowWrap: "anywhere" }}
               >
-                <div className="pr-7 text-headline font-semibold tracking-tight leading-5 text-label-primary dark:text-white/96 xl:pr-8">
+                <div className="pr-10 text-headline font-semibold tracking-tight leading-5 text-label-primary xl:pr-11">
                   {props.folder.name}
                 </div>
                 <FolderDescriptionTooltip
                   text={props.folder.description}
                   emptyText={props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
                   disabled={props.tooltipDisabled}
-                  className="mt-1.5 min-h-0 text-caption leading-[1.35] text-label-secondary dark:text-white/48 xl:mt-2 xl:leading-[1.45]"
+                  className="mt-1.5 min-h-0 text-caption leading-[1.35] text-label-secondary xl:mt-2 xl:leading-[1.45]"
                 />
                 <FolderMetaLine label={metaLabel} />
               </div>
