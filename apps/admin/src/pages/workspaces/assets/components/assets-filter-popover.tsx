@@ -1,5 +1,16 @@
 import { useMemo } from "react";
-import { CalendarRangeIcon, FunnelXIcon, ListFilterIcon, EyeIcon } from "lucide-react";
+import {
+  AudioLinesIcon,
+  CalendarRangeIcon,
+  EyeIcon,
+  FileCode2Icon,
+  FileTextIcon,
+  FunnelXIcon,
+  ImageIcon,
+  ListFilterIcon,
+  TagsIcon,
+  VideoIcon,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminAssetTag } from "@/types/api";
@@ -110,17 +121,38 @@ export function AssetsFilterPopover(props: {
         key: "mimePrefix",
         label: t("assets:ASSET_FILTER_FIELD_TYPE"),
         type: "select",
+        icon: <ImageIcon className="size-4" />,
         searchable: false,
         operators: FILTER_OPERATORS.map((operator) => ({
           value: operator.value,
           label: t(operator.labelKey, { defaultValue: "is" }),
         })),
         options: [
-          { value: "image/", label: t("assets:ASSET_FILTER_TYPE_IMAGE") },
-          { value: "video/", label: t("assets:ASSET_FILTER_TYPE_VIDEO") },
-          { value: "audio/", label: t("assets:ASSET_FILTER_TYPE_AUDIO") },
-          { value: "text/", label: t("assets:ASSET_FILTER_TYPE_TEXT") },
-          { value: "application/", label: t("assets:ASSET_FILTER_TYPE_APP") },
+          {
+            value: "image/",
+            label: t("assets:ASSET_FILTER_TYPE_IMAGE"),
+            icon: <ImageIcon className="size-4" />,
+          },
+          {
+            value: "video/",
+            label: t("assets:ASSET_FILTER_TYPE_VIDEO"),
+            icon: <VideoIcon className="size-4" />,
+          },
+          {
+            value: "audio/",
+            label: t("assets:ASSET_FILTER_TYPE_AUDIO"),
+            icon: <AudioLinesIcon className="size-4" />,
+          },
+          {
+            value: "text/",
+            label: t("assets:ASSET_FILTER_TYPE_TEXT"),
+            icon: <FileTextIcon className="size-4" />,
+          },
+          {
+            value: "application/",
+            label: t("assets:ASSET_FILTER_TYPE_APP"),
+            icon: <FileCode2Icon className="size-4" />,
+          },
         ],
       },
       {
@@ -176,6 +208,7 @@ export function AssetsFilterPopover(props: {
         key: "tagIds",
         label: t("assets:ASSET_FILTER_FIELD_TAGS"),
         type: "multiselect",
+        icon: <TagsIcon className="size-4" />,
         searchable: true,
         options: props.tags.map((tag) => ({
           value: tag.id,

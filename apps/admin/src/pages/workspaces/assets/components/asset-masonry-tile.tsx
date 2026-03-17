@@ -1,4 +1,5 @@
 import { memo, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
+import { GripVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
@@ -222,8 +223,6 @@ export const AssetMasonryTile = memo(
         role="button"
         tabIndex={0}
         data-asset-tile="true"
-        {...(props.dragAttributes as Record<string, unknown>)}
-        {...(props.dragListeners as Record<string, unknown>)}
         onKeyDown={onKeyDown}
         onClick={(e) => props.onSelect(e)}
         onDoubleClick={(event) => {
@@ -305,12 +304,25 @@ export const AssetMasonryTile = memo(
                 selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
               )}
             >
-              <Checkbox
-                aria-labelledby={titleId}
-                checked={selected}
-                onClick={(e) => e.stopPropagation()}
-                onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
-              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={t("assets:ASSET_ACTION_MOVE")}
+                  className="flex size-7 items-center justify-center rounded-md bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+                  {...(props.dragAttributes as Record<string, unknown>)}
+                  {...(props.dragListeners as Record<string, unknown>)}
+                  onClick={(event) => event.stopPropagation()}
+                  onDoubleClick={(event) => event.stopPropagation()}
+                >
+                  <GripVertical className="size-4" />
+                </button>
+                <Checkbox
+                  aria-labelledby={titleId}
+                  checked={selected}
+                  onClick={(e) => e.stopPropagation()}
+                  onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
+                />
+              </div>
             </div>
 
             {/* Filename/description at the bottom */}

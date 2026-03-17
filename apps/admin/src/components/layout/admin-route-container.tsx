@@ -17,9 +17,12 @@ export function AdminRouteContainer({
   children,
 }: AdminRouteContainerProps) {
   return (
-    <div className={cn("w-full h-full min-h-0 flex flex-col", className)} style={style}>
+    <div className={cn("flex h-full min-h-0 min-w-0 w-full flex-col", className)} style={style}>
       <div
-        className={cn("w-full flex-1 min-h-0 flex flex-col px-10 pt-8 pb-20", innerClassName)}
+        className={cn(
+          "flex h-full min-h-0 min-w-0 w-full flex-1 flex-col px-10 pt-8 pb-20",
+          innerClassName,
+        )}
         style={innerStyle}
       >
         {children}

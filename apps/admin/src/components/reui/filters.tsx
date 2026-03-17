@@ -644,10 +644,33 @@ function SelectOptionsPopover<T = unknown>({
   const inputRef = useRef<HTMLInputElement>(null);
   const context = useFilterContext();
   const baseId = useId();
+  const isMultiSelect = field.type === "multiselect" || values.length > 1;
+  const effectiveValues = (field.value !== undefined ? (field.value as T[]) : values) || [];
+  const selectedOptions = field.options?.filter((opt) => effectiveValues.includes(opt.value)) || [];
+  const unselectedOptions =
+    field.options?.filter((opt) => !effectiveValues.includes(opt.value)) || [];
+  const filteredSelectedOptions = selectedOptions;
+  const filteredUnselectedOptions = unselectedOptions.filter((opt) =>
+    opt.label.toLowerCase().includes(searchInput.toLowerCase()),
+  );
+  const allFilteredOptions = useMemo(
+    () => [...filteredSelectedOptions, ...filteredUnselectedOptions],
+    [filteredSelectedOptions, filteredUnselectedOptions],
+  );
 
   useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchInput, open]);
+    if (!open) {
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    const preferredIndex = allFilteredOptions.findIndex((option) =>
+      effectiveValues.includes(option.value as T),
+    );
+    setHighlightedIndex(
+      preferredIndex >= 0 ? preferredIndex : allFilteredOptions.length > 0 ? 0 : -1,
+    );
+  }, [allFilteredOptions, effectiveValues, open, searchInput]);
 
   useEffect(() => {
     if (highlightedIndex >= 0 && open) {
@@ -655,24 +678,6 @@ function SelectOptionsPopover<T = unknown>({
       element?.scrollIntoView({ block: "nearest" });
     }
   }, [highlightedIndex, open, baseId]);
-
-  const isMultiSelect = field.type === "multiselect" || values.length > 1;
-  const effectiveValues = (field.value !== undefined ? (field.value as T[]) : values) || [];
-
-  const selectedOptions = field.options?.filter((opt) => effectiveValues.includes(opt.value)) || [];
-  const unselectedOptions =
-    field.options?.filter((opt) => !effectiveValues.includes(opt.value)) || [];
-
-  // Filter options based on search input
-  const filteredSelectedOptions = selectedOptions; // Keep all selected visible
-  const filteredUnselectedOptions = unselectedOptions.filter((opt) =>
-    opt.label.toLowerCase().includes(searchInput.toLowerCase()),
-  );
-
-  const allFilteredOptions = useMemo(
-    () => [...filteredSelectedOptions, ...filteredUnselectedOptions],
-    [filteredSelectedOptions, filteredUnselectedOptions],
-  );
 
   const handleClose = () => {
     setOpen(false);
@@ -1098,10 +1103,6 @@ function FilterSubmenuContent<T = unknown>({
   const baseId = useId();
 
   useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchInput]);
-
-  useEffect(() => {
     if (highlightedIndex >= 0 && isActive) {
       const element = document.getElementById(`${baseId}-item-${highlightedIndex}`);
       element?.scrollIntoView({ block: "nearest" });
@@ -1122,8 +1123,14 @@ function FilterSubmenuContent<T = unknown>({
   useEffect(() => {
     if (!isActive) {
       setHighlightedIndex(-1);
+      return;
     }
-  }, [isActive]);
+
+    const preferredIndex = filteredOptions.findIndex((option) =>
+      currentValues.includes(option.value),
+    );
+    setHighlightedIndex(preferredIndex >= 0 ? preferredIndex : filteredOptions.length > 0 ? 0 : -1);
+  }, [currentValues, filteredOptions, isActive, searchInput]);
 
   return (
     <div className="flex flex-col" onMouseEnter={onActive}>
@@ -1307,10 +1314,6 @@ export function Filters<T = unknown>({
   }, [enableShortcut, shortcutKey, addFilterOpen]);
 
   useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [menuSearchInput]);
-
-  useEffect(() => {
     if (highlightedIndex >= 0 && addFilterOpen) {
       const element = document.getElementById(`${rootId}-item-${highlightedIndex}`);
       element?.scrollIntoView({ block: "nearest" });
@@ -1406,8 +1409,10 @@ export function Filters<T = unknown>({
   useEffect(() => {
     if (!addFilterOpen) {
       setHighlightedIndex(-1);
+      return;
     }
-  }, [addFilterOpen]);
+    setHighlightedIndex(filteredFields.length > 0 ? 0 : -1);
+  }, [addFilterOpen, filteredFields.length, menuSearchInput]);
 
   return (
     <FilterContext.Provider
@@ -1443,7 +1448,11 @@ export function Filters<T = unknown>({
                 </Button>
               )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent className={cn("w-[220px]", menuPopupClassName)} align="start">
+            <DropdownMenuContent
+              className={cn("w-[220px]", menuPopupClassName)}
+              align="start"
+              disableHighlight
+            >
               {showSearchInput && (
                 <>
                   <div className="relative">
@@ -1572,6 +1581,7 @@ export function Filters<T = unknown>({
                               onOpenChange={(open) => {
                                 if (open) {
                                   setOpenSubMenu((prev) => (prev === fieldKey ? prev : fieldKey));
+                                  setActiveMenu(fieldKey);
                                 } else {
                                   if (openSubMenu === fieldKey) {
                                     setOpenSubMenu(null);
@@ -1591,7 +1601,7 @@ export function Filters<T = unknown>({
                                 {field.icon}
                                 <span>{field.label}</span>
                               </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-[200px]">
+                              <DropdownMenuSubContent className="w-[200px]" disableHighlight>
                                 <FilterSubmenuContent
                                   field={field}
                                   currentValues={currentValues}
@@ -1669,7 +1679,7 @@ export function Filters<T = unknown>({
                             aria-selected={isHighlighted}
                             data-highlighted={isHighlighted || undefined}
                             onMouseEnter={() => setHighlightedIndex(index)}
-                            onClick={() => field.key && addFilter(field.key)}
+                            onSelect={() => field.key && addFilter(field.key)}
                           >
                             {field.icon}
                             <span>{field.label}</span>

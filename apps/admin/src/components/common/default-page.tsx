@@ -1,30 +1,31 @@
-import { Children, Fragment, isValidElement, type ReactNode, useState } from "react";
+import { Children, Fragment, isValidElement, type ReactNode, useMemo, useState } from "react";
 import clsx from "clsx";
 import { Star } from "@arclayer/ui/icons/lucide-animated";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@arclayer/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 
+import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { ApiError } from "@/lib/http";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
-import { AdminRouteContainer } from "@/components/layout/admin-route-container";
-import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
 
-const DEFAULT_PAGE_HEADER_CLASSNAME = "mb-4";
+import {
+  DefaultPageDesktopPane,
+  DefaultPageMainRegion,
+  DefaultPageMobilePaneSheet,
+  type PaneToggle,
+  type DefaultPageSideSlots,
+} from "./default-page-layout";
 
 export type DefaultPageProps = {
   title?: ReactNode;
   description?: ReactNode;
-  /**
-   * Whether to show the built-in favorite toggle next to title.
-   * Default: true (existing behavior).
-   *
-   * Some pages (e.g. skeleton / pending state) may want a title layout without interactive controls.
-   */
   showFavoriteToggle?: boolean;
   action?: ReactNode;
   extra?: ReactNode;
+  sideSlots?: DefaultPageSideSlots;
   children?: ReactNode;
   className?: string;
   contentClassName?: string;
@@ -37,11 +38,6 @@ function FavoriteToggle() {
   const toggle = useFavoritesStore((s) => s.toggle);
   const isFavorited = paths.includes(pathname);
   const [hovered, setHovered] = useState(false);
-
-  const label = isFavorited ? t("common:FAVORITE_REMOVE") : t("common:FAVORITE_ADD");
-  const tooltip = isFavorited
-    ? t("common:FAVORITE_REMOVE_TOOLTIP")
-    : t("common:FAVORITE_ADD_TOOLTIP");
 
   return (
     <Tooltip side="bottom">
@@ -66,37 +62,27 @@ function FavoriteToggle() {
               hovered || isFavorited ? "fill-current" : "fill-transparent",
             )}
           />
-          <span>{label}</span>
+          <span>{isFavorited ? t("common:FAVORITE_REMOVE") : t("common:FAVORITE_ADD")}</span>
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
+      <TooltipContent>
+        {isFavorited ? t("common:FAVORITE_REMOVE_TOOLTIP") : t("common:FAVORITE_ADD_TOOLTIP")}
+      </TooltipContent>
     </Tooltip>
   );
 }
 
 function resolveContentGuardError(node: ReactNode): unknown | null {
   let current: ReactNode = node;
-
   for (let depth = 0; depth < 3; depth += 1) {
     const asArray = Children.toArray(current);
     if (asArray.length !== 1) return null;
-
     const only = asArray[0];
     if (!isValidElement(only)) return null;
-
-    if (only.type === ContentGuard) {
-      const props = only.props as ContentGuardProps;
-      return props.error ?? null;
-    }
-
-    if (only.type === Fragment) {
-      current = (only.props as { children?: ReactNode }).children;
-      continue;
-    }
-
-    return null;
+    if (only.type === ContentGuard) return (only.props as ContentGuardProps).error ?? null;
+    if (only.type !== Fragment) return null;
+    current = (only.props as { children?: ReactNode }).children;
   }
-
   return null;
 }
 
@@ -112,43 +98,96 @@ export function DefaultPage({
   showFavoriteToggle = true,
   action,
   extra,
+  sideSlots,
   children,
   className,
   contentClassName,
 }: DefaultPageProps) {
   const contentGuardError = resolveContentGuardError(children);
   const hideHeader = shouldHideHeaderForError(contentGuardError);
+  const leftSideSlot = hideHeader ? undefined : sideSlots?.left;
+  const rightSideSlot = hideHeader ? undefined : sideSlots?.right;
+  const hasSideSlots = Boolean(leftSideSlot || rightSideSlot);
+  const [mobileOpenSide, setMobileOpenSide] = useState<"left" | "right" | null>(null);
+  const paneToggles = useMemo(() => {
+    const out: PaneToggle[] = [];
+    if (leftSideSlot) out.push({ side: "left", slot: leftSideSlot });
+    if (rightSideSlot) out.push({ side: "right", slot: rightSideSlot });
+    return out;
+  }, [leftSideSlot, rightSideSlot]);
 
   return (
-    <AdminRouteContainer className={clsx("h-full", className)}>
-      {!hideHeader && (title || description || action || extra) && (
-        <header className={DEFAULT_PAGE_HEADER_CLASSNAME}>
-          {(title || action) && (
-            <div className="flex items-center justify-between gap-4">
-              <div className={clsx("my-2 flex min-w-0 items-end gap-2")}>
-                {title ? (
-                  <div className="text-title text-label-primary select-none">{title}</div>
-                ) : null}
-                {title && showFavoriteToggle ? <FavoriteToggle /> : null}
+    <AdminRouteContainer className={clsx("h-full min-w-0", className)}>
+      {hasSideSlots ? (
+        <>
+          <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">
+            <DefaultPageMainRegion
+              title={hideHeader ? undefined : title}
+              description={hideHeader ? undefined : description}
+              titleAdornment={
+                hideHeader || !title || !showFavoriteToggle ? null : <FavoriteToggle />
+              }
+              action={hideHeader ? undefined : action}
+              extra={hideHeader ? undefined : extra}
+              contentClassName={contentClassName}
+              paneToggles={paneToggles}
+              onOpenPane={setMobileOpenSide}
+            >
+              {children}
+            </DefaultPageMainRegion>
+          </div>
+
+          <div
+            className="hidden min-h-0 min-w-0 w-full flex-1 lg:flex"
+            data-slot="default-page-shell"
+          >
+            {leftSideSlot ? <DefaultPageDesktopPane side="left" slot={leftSideSlot} /> : null}
+
+            <div className="flex min-h-0 min-w-0 flex-1">
+              <div className="flex min-h-0 min-w-0 w-full flex-1">
+                <DefaultPageMainRegion
+                  title={hideHeader ? undefined : title}
+                  description={hideHeader ? undefined : description}
+                  titleAdornment={
+                    hideHeader || !title || !showFavoriteToggle ? null : <FavoriteToggle />
+                  }
+                  action={hideHeader ? undefined : action}
+                  extra={hideHeader ? undefined : extra}
+                  contentClassName={contentClassName}
+                  paneToggles={[]}
+                  onOpenPane={() => undefined}
+                >
+                  {children}
+                </DefaultPageMainRegion>
               </div>
-
-              {action ? (
-                <div className="shrink-0 inline-flex items-center gap-2.5">{action}</div>
-              ) : null}
             </div>
-          )}
 
-          {description ? (
-            <div className="text-callout text-label-secondary select-none">{description}</div>
-          ) : null}
+            {rightSideSlot ? <DefaultPageDesktopPane side="right" slot={rightSideSlot} /> : null}
+          </div>
 
-          {extra ? <div className="mt-3.5">{extra}</div> : null}
-        </header>
+          {paneToggles.map((toggle) => (
+            <DefaultPageMobilePaneSheet
+              key={toggle.side}
+              toggle={toggle}
+              open={mobileOpenSide === toggle.side}
+              onOpenChange={(open) => setMobileOpenSide(open ? toggle.side : null)}
+            />
+          ))}
+        </>
+      ) : (
+        <DefaultPageMainRegion
+          title={hideHeader ? undefined : title}
+          description={hideHeader ? undefined : description}
+          titleAdornment={hideHeader || !title || !showFavoriteToggle ? null : <FavoriteToggle />}
+          action={hideHeader ? undefined : action}
+          extra={hideHeader ? undefined : extra}
+          contentClassName={contentClassName}
+          paneToggles={[]}
+          onOpenPane={() => undefined}
+        >
+          {children}
+        </DefaultPageMainRegion>
       )}
-
-      {children ? (
-        <div className={clsx("min-w-0 flex-1 min-h-0", contentClassName)}>{children}</div>
-      ) : null}
     </AdminRouteContainer>
   );
 }

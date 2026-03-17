@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 
 from apps.api.src.common.schemas import BaseOut, BaseSchema, TimestampMixin
 from apps.api.src.common.types.public_uuid import PublicUUID
@@ -50,12 +50,12 @@ class AuditEventListQuery(BaseSchema):
     occurred_from: datetime | None = Field(
         default=None,
         description="Filter: occurred_at >= this timestamp (UTC).",
-        validation_alias="from",
+        validation_alias=AliasChoices("occurredFrom", "from"),
     )
     occurred_to: datetime | None = Field(
         default=None,
         description="Filter: occurred_at <= this timestamp (UTC).",
-        validation_alias="to",
+        validation_alias=AliasChoices("occurredTo", "to"),
     )
     event_name: str | None = Field(default=None, description="Filter: event name (contains).")
     workspace_id: PublicUUID | None = Field(default=None, description="Filter: workspace id.")

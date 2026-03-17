@@ -142,11 +142,11 @@ export function RouteTransition({
 
   return (
     <MotionConfig transition={transition}>
-      <div className={clsx("relative min-h-full", className)}>
+      <div className={clsx("relative flex h-full min-h-full min-w-0 w-full flex-col", className)}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={displayedPathname}
-            className="w-full h-full"
+            className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col"
             initial={
               reducedMotion
                 ? { opacity: 1 }

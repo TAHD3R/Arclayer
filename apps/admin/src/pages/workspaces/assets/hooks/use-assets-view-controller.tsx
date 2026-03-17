@@ -273,6 +273,32 @@ export function useAssetsViewController() {
       notifyError(err);
     },
   });
+  const reorderFoldersMutation = useMutation({
+    mutationFn: async (folders: AdminAssetFolder[]) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      await Promise.all(
+        folders.map((folder, index) =>
+          updateAssetFolder(String(workspaceId), String(folder.id), { sortOrder: index }),
+        ),
+      );
+      return folders.map((folder, index) => ({ ...folder, sortOrder: index }));
+    },
+    onSuccess: (nextFolders) => {
+      if (scopeKey) {
+        queryClient.setQueryData(["assets", "folders", scopeKey], (old: unknown) => {
+          const data = old as PageData<AdminAssetFolder> | undefined;
+          if (!data) return old;
+          const nextById = new Map(nextFolders.map((folder) => [String(folder.id), folder]));
+          const items = data.items.map((folder) => nextById.get(String(folder.id)) ?? folder);
+          return Object.assign({}, data, { items });
+        });
+        void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
+      }
+    },
+    onError: (err) => {
+      notifyError(err);
+    },
+  });
   const deleteFolderMutation = useMutation({
     mutationFn: (folderId: string) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
@@ -581,6 +607,7 @@ export function useAssetsViewController() {
     bulkUpdateMutation,
     createFolderMutation,
     updateFolderMutation,
+    reorderFoldersMutation,
     deleteFolderMutation,
     openEditAccessDialog,
     createParentLabel,

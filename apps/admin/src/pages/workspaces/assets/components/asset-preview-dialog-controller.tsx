@@ -38,7 +38,7 @@ export type AssetMoreMenuItem =
     }
   | { type: "separator" };
 
-export function useAssetPreviewSheetController(props: {
+export function useAssetPreviewDialogController(props: {
   active: AssetMasonryItem | null;
   onClose: () => void;
 }) {

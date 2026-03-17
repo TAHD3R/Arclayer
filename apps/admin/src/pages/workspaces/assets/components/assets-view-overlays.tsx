@@ -5,7 +5,7 @@ import type { AdminAssetFolder } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Button } from "@arclayer/ui/button";
 import { SelectedCountTag } from "@/components/ui/tags";
-import { AssetPreviewSheet } from "./asset-masonry-card";
+import { AssetPreviewDialog } from "./asset-preview-dialog";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";
 import { CreateAssetFolderDialog } from "./create-asset-folder-dialog";
 import { FolderNotEmptyDialog } from "./folder-not-empty-dialog";
@@ -23,6 +23,8 @@ interface AssetsViewOverlaysProps {
   t: (key: string, options?: Record<string, unknown>) => string;
   active: AssetMasonryItem | null;
   setActive: React.Dispatch<React.SetStateAction<AssetMasonryItem | null>>;
+  items: AssetMasonryItem[];
+  currentFolderPathLabel: string;
   moveModalOpen: boolean;
   setMoveModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   folders: AdminAssetFolder[];
@@ -76,7 +78,13 @@ interface AssetsViewOverlaysProps {
 export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
   return (
     <>
-      <AssetPreviewSheet active={props.active} onClose={() => props.setActive(null)} />
+      <AssetPreviewDialog
+        active={props.active}
+        items={props.items}
+        currentFolderPathLabel={props.currentFolderPathLabel}
+        onSelectAsset={(asset) => props.setActive(asset)}
+        onClose={() => props.setActive(null)}
+      />
       <MoveAssetsToFolderModal
         open={props.moveModalOpen}
         onOpenChange={props.setMoveModalOpen}
@@ -148,7 +156,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         />
       ) : null}
       <AnimatePresence>
-        {props.selectedCount > 0 ? (
+        {props.selectedCount > 1 && !props.active ? (
           <motion.div
             key="assets-selection-toolbar"
             className="fixed bottom-0 right-0 left-[240px] z-30 pointer-events-none"

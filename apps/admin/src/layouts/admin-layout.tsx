@@ -265,7 +265,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
                   }
                   loadingVariant="form"
                 >
-                  <RouteTransition className="w-full">{children ?? <Outlet />}</RouteTransition>
+                  <RouteTransition className="h-full w-full">
+                    {children ?? <Outlet />}
+                  </RouteTransition>
                 </ContentGuard>
               </div>
             </SidebarInset>

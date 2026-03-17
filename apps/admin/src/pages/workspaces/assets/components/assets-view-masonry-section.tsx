@@ -1,18 +1,7 @@
-import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { FolderInput, FolderPlus, PencilLine, Trash2 } from "lucide-react";
-import { AnimatePresence } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Masonry } from "masonic";
-import { useCallback, useMemo, useRef } from "react";
-import { flushSync } from "react-dom";
+import { FolderPlus, Upload } from "lucide-react";
 
-import type { AdminAssetFolder } from "@/types/api";
-import {
-  AssetsExplorerFolderDragOverlay,
-  AssetsExplorerFolderTile,
-  AssetsExplorerFolderUpTile,
-} from "./explorer/assets-explorer-folder-tiles";
-import { AssetsViewAssetRow } from "./assets-view-asset-row";
-import { ContentGuard } from "@/components/common/content-guard";
 import { Button } from "@arclayer/ui/button";
 import {
   ContextMenu,
@@ -21,7 +10,8 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@arclayer/ui/context-menu";
-import { Spinner } from "@arclayer/ui/spinner";
+
+import { ContentGuard } from "@/components/common/content-guard";
 import {
   clearSelection,
   rangeSelect,
@@ -30,67 +20,40 @@ import {
   toggleSelect,
 } from "@/lib/assets/asset-selection";
 import { shouldClearMasonrySelectionOnMouseDown } from "@/lib/assets/masonry-interactions";
-import { cn } from "@arclayer/lib/utils";
-
-import {
-  DragSelectionOverlay,
-  DND_ROOT_ID,
-  DroppablePulse,
-  FolderDraggableProvider,
-  FolderDroppableProvider,
-  snapOverlayCenterToPointer,
-  toFolderDndId,
-} from "./assets-view-dnd";
-import type { AssetsViewController } from "../hooks/use-assets-view-controller";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
+
+import type { AssetsViewController } from "../hooks/use-assets-view-controller";
+import { AssetsViewAssetRow } from "./assets-view-asset-row";
 
 interface AssetsViewMasonrySectionProps {
   controller: AssetsViewController;
 }
-
-type MasonryEntry = AssetsViewController["masonryEntries"][number];
 
 export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const { controller } = props;
   const {
     t,
     assetsQuery,
-    masonryEntries,
+    items,
     explicitFilterActive,
     setSearchInput,
     setSearchQuery,
     setFilters,
     setMoreOpen,
-    sensors,
-    onDragStart,
-    onDragEnd,
-    onDragCancel,
-    dropSuccessPulse,
-    setCurrentFolderId,
+    currentFolderId,
     setFocusedFolderId,
     setSelection,
-    folderPath,
-    folderById,
-    currentFolderId,
-    focusedFolderId,
+    setUploadOpen,
+    setCreateFolderOpen,
+    setCreateFolderParentId,
     selectedIds,
     movingAssetIds,
     orderedAssetIds,
     aspectRatioRef,
     forceLayoutTick,
-    foldersQuery,
-    setCreateFolderParentId,
-    setCreateFolderOpen,
-    setEditFolderTarget,
-    setEditFolderOpen,
-    setMoveFolderTarget,
-    setMoveFolderOpen,
-    tryDeleteFolder,
     setMoveModalOpen,
     openEditAccessDialog,
     openBulkDeleteDialog,
-    draggingAssetIds,
-    draggingFolderId,
     setActive,
   } = controller;
   const selectedIdsRef = useRef(selectedIds);
@@ -98,6 +61,8 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const selectionSizeRef = useRef(selectedIds.size);
   const openEditAccessDialogRef = useRef(openEditAccessDialog);
   const openBulkDeleteDialogRef = useRef(openBulkDeleteDialog);
+  const masonryShellRef = useRef<HTMLDivElement | null>(null);
+  const [masonryWidth, setMasonryWidth] = useState(0);
   selectedIdsRef.current = selectedIds;
   orderedAssetIdsRef.current = orderedAssetIds;
   selectionSizeRef.current = selectedIds.size;
@@ -126,11 +91,8 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         return;
       }
       setSelection((prev) => selectOrClearOnPlainClick(prev, assetId, event.detail));
-      if (event.detail >= 2) {
-        setActive(asset);
-      }
     },
-    [setActive, setFocusedFolderId, setSelection],
+    [setFocusedFolderId, setSelection],
   );
 
   const handleAssetToggleSelected = useCallback(
@@ -155,30 +117,23 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     [aspectRatioRef, forceLayoutTick],
   );
 
-  const handleOpenMove = useCallback(() => {
-    setMoveModalOpen(true);
-  }, [setMoveModalOpen]);
-
-  const handleOpenEditAccess = useCallback(() => {
-    openEditAccessDialogRef.current();
-  }, []);
-
-  const handleOpenBulkDelete = useCallback(() => {
-    openBulkDeleteDialogRef.current();
-  }, []);
   const masonryItems = useMemo(
-    () =>
-      masonryEntries.map((entry) => ({
-        key:
-          entry.kind === "asset"
-            ? entry.asset.id
-            : entry.kind === "folder"
-              ? `folder:${entry.folder.id}`
-              : "folder:__up__",
-        data: entry,
-      })),
-    [masonryEntries],
+    () => items.map((asset) => ({ key: asset.id, data: asset })),
+    [items],
   );
+
+  useEffect(() => {
+    const shell = masonryShellRef.current;
+    if (!shell) return;
+    const updateWidth = () => {
+      const nextWidth = Math.round(shell.getBoundingClientRect().width);
+      setMasonryWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+    };
+    updateWidth();
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(shell);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <ContentGuard
@@ -187,7 +142,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       error={assetsQuery.isError ? assetsQuery.error : null}
       onRetry={() => void assetsQuery.refetch()}
       errorDescription={assetsQuery.isError ? t("assets:ASSET_LIST_LOAD_FAILED_DESC") : undefined}
-      empty={masonryEntries.length === 0}
+      empty={items.length === 0}
       emptyTitle={
         explicitFilterActive ? t("assets:ASSET_EMPTY_SEARCH_TITLE") : t("assets:ASSET_EMPTY")
       }
@@ -210,279 +165,81 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         ) : null
       }
     >
-      <DndContext
-        sensors={sensors}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragCancel={onDragCancel}
-      >
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-footnote">
-            <FolderDroppableProvider droppableId={DND_ROOT_ID}>
-              {({ setNodeRef, isOver }) => (
-                <DroppablePulse
-                  droppableId={DND_ROOT_ID}
-                  setNodeRef={setNodeRef}
-                  isOver={isOver}
-                  pulseNonce={
-                    dropSuccessPulse?.droppableId === DND_ROOT_ID ? dropSuccessPulse.nonce : null
-                  }
-                >
-                  <div className={cn("inline-flex", isOver ? "ring-1 ring-foreground/60" : null)}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setCurrentFolderId(null);
-                        setFocusedFolderId(null);
-                        setSelection((prev) => clearSelection(prev));
-                      }}
-                    >
-                      {t("assets:ASSET_BREADCRUMB_ROOT")}
-                    </Button>
-                  </div>
-                </DroppablePulse>
-              )}
-            </FolderDroppableProvider>
-
-            {folderPath.map((folder) => {
-              const folderDroppableId = toFolderDndId(String(folder.id));
-              return (
-                <div key={String(folder.id)} className="flex items-center gap-2">
-                  <span className="text-label-secondary">/</span>
-                  <FolderDroppableProvider droppableId={folderDroppableId}>
-                    {({ setNodeRef, isOver }) => (
-                      <DroppablePulse
-                        droppableId={folderDroppableId}
-                        setNodeRef={setNodeRef}
-                        isOver={isOver}
-                        pulseNonce={
-                          dropSuccessPulse?.droppableId === folderDroppableId
-                            ? dropSuccessPulse.nonce
-                            : null
-                        }
-                      >
-                        <div
-                          className={cn("inline-flex", isOver ? "ring-1 ring-foreground/60" : null)}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setCurrentFolderId(String(folder.id));
-                              setFocusedFolderId(null);
-                              setSelection((prev) => clearSelection(prev));
-                            }}
-                          >
-                            {folder.name}
-                          </Button>
-                        </div>
-                      </DroppablePulse>
-                    )}
-                  </FolderDroppableProvider>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {assetsQuery.isFetching && !assetsQuery.isFetchingNextPage ? (
-              <Spinner className="size-4 text-label-secondary" />
-            ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCreateFolderParentId(currentFolderId);
-                setCreateFolderOpen(true);
-              }}
-            >
-              <FolderPlus size={16} />
-              {t("assets:ASSET_ACTION_CREATE_FOLDER")}
-            </Button>
-          </div>
-        </div>
-
-        <div
-          className="select-none"
-          onMouseDown={(event) => {
-            const target = event.target as HTMLElement | null;
-            if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
-            if (selectedIds.size === 0 && !focusedFolderId) return;
-            setSelection((prev) => clearSelection(prev));
-            setFocusedFolderId(null);
-          }}
-        >
-          <Masonry
-            items={masonryItems}
-            itemKey={(item) => item.key}
-            columnWidth={260}
-            columnGutter={16}
-            rowGutter={16}
-            maxColumnCount={5}
-            itemHeightEstimate={320}
-            overscanBy={1.5}
-            render={({ data }) => {
-              const info = data;
-              const entry = info.data as MasonryEntry;
-              if (entry.kind === "asset") {
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            ref={masonryShellRef}
+            className="min-w-0 w-full max-w-full overflow-x-hidden select-none"
+            onMouseDown={(event) => {
+              const target = event.target as HTMLElement | null;
+              if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
+              if (selectedIds.size === 0) return;
+              setSelection((prev) => clearSelection(prev));
+            }}
+            onContextMenuCapture={(event) => {
+              const target = event.target as HTMLElement | null;
+              if (!shouldClearMasonrySelectionOnMouseDown(target)) return;
+              setFocusedFolderId(null);
+            }}
+          >
+            <Masonry
+              key={masonryWidth || "initial"}
+              className="min-w-0 w-full max-w-full"
+              items={masonryItems}
+              itemKey={(item) => item.key}
+              columnWidth={260}
+              columnGutter={16}
+              rowGutter={16}
+              maxColumnCount={5}
+              itemHeightEstimate={320}
+              overscanBy={1.5}
+              render={({ data }) => {
+                const asset = data.data as AssetMasonryItem;
                 return (
                   <AssetsViewAssetRow
-                    asset={entry.asset}
-                    selected={selectedIds.has(entry.asset.id)}
-                    moving={movingAssetIds.has(entry.asset.id)}
+                    asset={asset}
+                    selected={selectedIds.has(asset.id)}
+                    moving={movingAssetIds.has(asset.id)}
                     selectionSizeRef={selectionSizeRef}
                     onContextMenuCapture={handleAssetContextMenuCapture}
                     onSelect={handleAssetSelect}
                     onToggleSelected={handleAssetToggleSelected}
                     onAspectRatio={handleAssetAspectRatio}
                     onOpen={setActive}
-                    onOpenMove={handleOpenMove}
-                    onOpenEditAccess={handleOpenEditAccess}
-                    onOpenBulkDelete={handleOpenBulkDelete}
+                    onOpenMove={() => setMoveModalOpen(true)}
+                    onOpenEditAccess={() => openEditAccessDialogRef.current()}
+                    onOpenBulkDelete={() => openBulkDeleteDialogRef.current()}
                     t={t}
                   />
                 );
-              }
+              }}
+            />
+          </div>
+        </ContextMenuTrigger>
 
-              if (entry.kind === "folderUp") {
-                return (
-                  <AssetsExplorerFolderUpTile
-                    label={t("assets:ASSET_FOLDER_UP")}
-                    onClick={() => {
-                      setFocusedFolderId("__up__");
-                      setSelection((prev) => clearSelection(prev));
-                      setActive(null);
-                    }}
-                    onDoubleClick={() => {
-                      const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
-                      const currentFolder = folders.find((folder) => folder.id === currentFolderId);
-                      setCurrentFolderId(
-                        currentFolder?.parentId ? String(currentFolder.parentId) : null,
-                      );
-                    }}
-                  />
-                );
-              }
-
-              const folderDroppableId = toFolderDndId(String(entry.folder.id));
-              return (
-                <FolderDraggableProvider folderId={String(entry.folder.id)}>
-                  {(drag) => (
-                    <FolderDroppableProvider droppableId={folderDroppableId}>
-                      {({ setNodeRef, isOver }) => (
-                        <DroppablePulse
-                          droppableId={folderDroppableId}
-                          setNodeRef={setNodeRef}
-                          isOver={isOver}
-                          pulseNonce={
-                            dropSuccessPulse?.droppableId === folderDroppableId
-                              ? dropSuccessPulse.nonce
-                              : null
-                          }
-                          className="block w-full"
-                        >
-                          <ContextMenu>
-                            <ContextMenuTrigger asChild>
-                              <div
-                                onContextMenuCapture={() => {
-                                  flushSync(() => {
-                                    setFocusedFolderId(entry.folder.id);
-                                    setSelection((prev) => clearSelection(prev));
-                                    setActive(null);
-                                  });
-                                }}
-                              >
-                                <AssetsExplorerFolderTile
-                                  ref={
-                                    drag.setNodeRef as unknown as (
-                                      node: HTMLDivElement | null,
-                                    ) => void
-                                  }
-                                  folder={entry.folder}
-                                  folderLabel={t("assets:ASSET_FOLDER")}
-                                  focused={focusedFolderId === entry.folder.id}
-                                  isOver={isOver}
-                                  rootProps={{
-                                    ...(drag.attributes as unknown as Record<string, unknown>),
-                                    ...(drag.listeners as unknown as Record<string, unknown>),
-                                  }}
-                                  onClick={() => {
-                                    setFocusedFolderId(entry.folder.id);
-                                    setSelection((prev) => clearSelection(prev));
-                                    setActive(null);
-                                  }}
-                                  onDoubleClick={() => {
-                                    setCurrentFolderId(entry.folder.id);
-                                    setFocusedFolderId(null);
-                                  }}
-                                />
-                              </div>
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                              <ContextMenuIconItem
-                                icon={<FolderPlus size={16} />}
-                                onSelect={() => {
-                                  setCreateFolderParentId(String(entry.folder.id));
-                                  setCreateFolderOpen(true);
-                                }}
-                              >
-                                {t("assets:ASSET_ACTION_CREATE_FOLDER")}
-                              </ContextMenuIconItem>
-                              <ContextMenuIconItem
-                                icon={<PencilLine size={16} />}
-                                onSelect={() => {
-                                  setEditFolderTarget(entry.folder);
-                                  setEditFolderOpen(true);
-                                }}
-                              >
-                                {t("assets:ASSET_ACTION_EDIT_FOLDER")}
-                              </ContextMenuIconItem>
-                              <ContextMenuIconItem
-                                icon={<FolderInput size={16} />}
-                                onSelect={() => {
-                                  setMoveFolderTarget(entry.folder);
-                                  setMoveFolderOpen(true);
-                                }}
-                              >
-                                {t("assets:ASSET_ACTION_MOVE_FOLDER")}
-                              </ContextMenuIconItem>
-                              <ContextMenuSeparator />
-                              <ContextMenuIconItem
-                                icon={<Trash2 size={16} />}
-                                className="text-destructive focus:text-destructive"
-                                onSelect={() => void tryDeleteFolder(entry.folder)}
-                              >
-                                {t("assets:ASSET_ACTION_DELETE_FOLDER")}
-                              </ContextMenuIconItem>
-                            </ContextMenuContent>
-                          </ContextMenu>
-                        </DroppablePulse>
-                      )}
-                    </FolderDroppableProvider>
-                  )}
-                </FolderDraggableProvider>
-              );
+        <ContextMenuContent>
+          <ContextMenuIconItem icon={<Upload size={16} />} onSelect={() => setUploadOpen(true)}>
+            {t("assets:ASSET_ACTION_UPLOAD")}
+          </ContextMenuIconItem>
+          <ContextMenuIconItem
+            icon={<FolderPlus size={16} />}
+            onSelect={() => {
+              setCreateFolderParentId(currentFolderId);
+              setCreateFolderOpen(true);
             }}
-          />
-        </div>
-
-        <DragOverlay modifiers={[snapOverlayCenterToPointer]}>
-          <AnimatePresence>
-            {draggingAssetIds.length > 0 ? (
-              <DragSelectionOverlay count={draggingAssetIds.length} key="drag-selection-overlay" />
-            ) : draggingFolderId ? (
-              <AssetsExplorerFolderDragOverlay
-                key="drag-folder-overlay"
-                folderLabel={t("assets:ASSET_FOLDER")}
-                folderName={
-                  folderById.get(String(draggingFolderId))?.name || t("assets:ASSET_FOLDER")
-                }
-              />
-            ) : null}
-          </AnimatePresence>
-        </DragOverlay>
-      </DndContext>
+          >
+            {t("assets:ASSET_ACTION_CREATE_FOLDER")}
+          </ContextMenuIconItem>
+          {selectedIds.size > 0 ? (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuIconItem onSelect={() => setSelection((prev) => clearSelection(prev))}>
+                {t("assets:ASSET_CLEAR_SELECTION")}
+              </ContextMenuIconItem>
+            </>
+          ) : null}
+        </ContextMenuContent>
+      </ContextMenu>
     </ContentGuard>
   );
 }
