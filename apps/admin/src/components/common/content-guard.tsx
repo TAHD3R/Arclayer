@@ -1,6 +1,8 @@
 import { useMemo, type ReactNode } from "react";
+import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { ApiError } from "@/lib/http";
 import { getErrorMessage } from "@/lib/notifications";
 import {
@@ -51,6 +53,11 @@ export type ContentGuardProps = {
   children?: ReactNode;
 };
 
+const EMPTY_STATE_TRANSITION = {
+  duration: 0.24,
+  ease: [0.22, 1, 0.36, 1],
+} as const;
+
 function pickErrorTitle(err: unknown, t: (key: string) => string): string {
   if (err instanceof ApiError) {
     if (err.status === 401) return t("common:PAGE_UNAUTHORIZED_TITLE");
@@ -92,6 +99,7 @@ function pickErrorIllustration(err: unknown) {
 
 export function ContentGuard(props: ContentGuardProps) {
   const { t } = useTranslation();
+  const reducedMotion = usePrefersReducedMotion();
 
   const error = props.error ?? null;
   const variant = props.variant ?? "default";
@@ -159,22 +167,28 @@ export function ContentGuard(props: ContentGuardProps) {
   if (props.empty) {
     const hasExtra = Boolean(props.emptyExtra);
     const content = (
-      <Empty className={emptyClassName}>
-        <EmptyHeader>
-          {mediaVariant === "illustration" ? (
-            <EmptyMedia className="mb-0">
-              <IllustEmptyContainer className={illustrationClassName} />
-            </EmptyMedia>
-          ) : null}
-          <EmptyTitle className={titleClassName}>
-            {props.emptyTitle ?? t("common:EMPTY_TITLE")}
-          </EmptyTitle>
-          <EmptyDescription className={descriptionClassName}>
-            {props.emptyDescription ?? t("common:EMPTY_DESC")}
-          </EmptyDescription>
-        </EmptyHeader>
-        {hasExtra ? <EmptyContent>{props.emptyExtra}</EmptyContent> : null}
-      </Empty>
+      <motion.div
+        initial={reducedMotion ? false : { opacity: 0, y: 10, scale: 0.985 }}
+        animate={reducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+        transition={reducedMotion ? undefined : EMPTY_STATE_TRANSITION}
+      >
+        <Empty className={emptyClassName}>
+          <EmptyHeader>
+            {mediaVariant === "illustration" ? (
+              <EmptyMedia className="mb-0">
+                <IllustEmptyContainer className={illustrationClassName} />
+              </EmptyMedia>
+            ) : null}
+            <EmptyTitle className={titleClassName}>
+              {props.emptyTitle ?? t("common:EMPTY_TITLE")}
+            </EmptyTitle>
+            <EmptyDescription className={descriptionClassName}>
+              {props.emptyDescription ?? t("common:EMPTY_DESC")}
+            </EmptyDescription>
+          </EmptyHeader>
+          {hasExtra ? <EmptyContent>{props.emptyExtra}</EmptyContent> : null}
+        </Empty>
+      </motion.div>
     );
 
     if (container === "admin-route") {

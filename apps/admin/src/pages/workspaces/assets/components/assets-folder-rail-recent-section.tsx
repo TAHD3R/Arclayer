@@ -1,6 +1,7 @@
-import { EllipsisVertical, Eye, Trash2 } from "lucide-react";
+import { EllipsisVertical, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { ContentGuard } from "@/components/common/content-guard";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import { cn } from "@arclayer/lib/utils";
@@ -14,7 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 import { Skeleton } from "@arclayer/ui/skeleton";
 
 import { RecentAssetCard, type RecentLayoutMode } from "./assets-folder-rail-recent-card";
@@ -59,11 +59,113 @@ function RecentFileGridSkeleton() {
   );
 }
 
-export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSectionProps) {
-  const [layoutMode, setLayoutMode] = useState<RecentLayoutMode>("single");
+type RecentSectionBodyProps = AssetsFolderRailRecentSectionProps & {
+  layoutMode: RecentLayoutMode;
+  gridClassName: string;
+  recentLoading: boolean;
+};
+
+function RecentSectionMenu(props: {
+  t: AssetsFolderRailRecentSectionProps["t"];
+  hasRecentAssets: boolean;
+  layoutMode: RecentLayoutMode;
+  onLayoutModeChange: (mode: RecentLayoutMode) => void;
+  onClearRecentAssets: () => void;
+}) {
+  if (!props.hasRecentAssets) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label={props.t("common:MORE")}>
+          <EllipsisVertical className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuRadioGroup
+          value={props.layoutMode}
+          onValueChange={(value) =>
+            props.onLayoutModeChange(value === "multi" ? "multi" : "single")
+          }
+        >
+          <DropdownMenuRadioItem value="single">
+            {props.t("assets:ASSET_FOLDER_LAYOUT_SINGLE")}
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="multi">
+            {props.t("assets:ASSET_FOLDER_LAYOUT_MULTI")}
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuIconItem
+          icon={<Trash2 className="size-4" />}
+          variant="destructive"
+          onSelect={props.onClearRecentAssets}
+        >
+          {props.t("assets:ASSET_ACTION_CLEAR_RECENT")}
+        </DropdownMenuIconItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function RecentSectionBody(props: RecentSectionBodyProps) {
   const dateTime = useAdminDateTimeFormatter({
     workspaceId: props.scope?.type === "workspace" ? String(props.scope.id) : null,
   });
+
+  if (props.recentLoading) {
+    return (
+      <div className={cn("grid gap-3", props.gridClassName)}>
+        {Array.from({ length: 3 }).map((_, index) =>
+          props.layoutMode === "single" ? (
+            <RecentFileRowSkeleton key={index} />
+          ) : (
+            <RecentFileGridSkeleton key={index} />
+          ),
+        )}
+      </div>
+    );
+  }
+
+  if (props.recentAssets.length === 0) {
+    return (
+      <ContentGuard
+        loading={false}
+        empty
+        variant="compact"
+        className="py-2"
+        emptyTitle={props.t("assets:ASSET_RECENT_EMPTY")}
+        emptyDescription={props.t("assets:ASSET_RECENT_EMPTY_DESC")}
+      />
+    );
+  }
+
+  return (
+    <div className={cn("grid gap-3", props.gridClassName)}>
+      {props.recentAssets.map((entry) => {
+        const lastOpenedText = props.t("assets:ASSET_RECENT_LAST_OPENED", {
+          value: dateTime.formatDateTime(entry.visitedAt),
+        });
+
+        return (
+          <RecentAssetCard
+            key={entry.key}
+            t={props.t}
+            entry={entry}
+            layoutMode={props.layoutMode}
+            isActive={props.activeAssetId === entry.asset.id}
+            lastOpenedText={lastOpenedText}
+            onOpenAsset={props.onOpenAsset}
+            onRemoveRecentAsset={props.onRemoveRecentAsset}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSectionProps) {
+  const [layoutMode, setLayoutMode] = useState<RecentLayoutMode>("single");
   const recentLoading = props.foldersLoading && props.recentAssets.length === 0;
   const gridClassName = layoutMode === "single" ? "grid-cols-1" : "grid-cols-2";
 
@@ -73,84 +175,21 @@ export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSecti
         <div className="text-[15px] font-semibold text-foreground">
           {props.t("assets:ASSET_RECENT_TITLE")}
         </div>
-        {props.recentAssets.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label={props.t("common:MORE")}>
-                <EllipsisVertical className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuRadioGroup
-                value={layoutMode}
-                onValueChange={(value) => setLayoutMode(value === "multi" ? "multi" : "single")}
-              >
-                <DropdownMenuRadioItem value="single">
-                  {props.t("assets:ASSET_FOLDER_LAYOUT_SINGLE")}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="multi">
-                  {props.t("assets:ASSET_FOLDER_LAYOUT_MULTI")}
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuIconItem
-                icon={<Trash2 className="size-4" />}
-                variant="destructive"
-                onSelect={props.onClearRecentAssets}
-              >
-                {props.t("assets:ASSET_ACTION_CLEAR_RECENT")}
-              </DropdownMenuIconItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
+        <RecentSectionMenu
+          t={props.t}
+          hasRecentAssets={props.recentAssets.length > 0}
+          layoutMode={layoutMode}
+          onLayoutModeChange={setLayoutMode}
+          onClearRecentAssets={props.onClearRecentAssets}
+        />
       </div>
 
-      {recentLoading ? (
-        <div className={cn("grid gap-3", gridClassName)}>
-          {Array.from({ length: 3 }).map((_, index) =>
-            layoutMode === "single" ? (
-              <RecentFileRowSkeleton key={index} />
-            ) : (
-              <RecentFileGridSkeleton key={index} />
-            ),
-          )}
-        </div>
-      ) : null}
-
-      {!recentLoading && props.recentAssets.length === 0 ? (
-        <Empty className="rounded-[22px] border border-dashed border-border/60 bg-muted/15 px-4 py-8">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Eye className="size-5" />
-            </EmptyMedia>
-            <EmptyTitle className="text-title3">{props.t("assets:ASSET_RECENT_EMPTY")}</EmptyTitle>
-            <EmptyDescription>{props.t("assets:ASSET_RECENT_EMPTY_DESC")}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : null}
-
-      {!recentLoading && props.recentAssets.length > 0 ? (
-        <div className={cn("grid gap-3", gridClassName)}>
-          {props.recentAssets.map((entry) => {
-            const lastOpenedText = props.t("assets:ASSET_RECENT_LAST_OPENED", {
-              value: dateTime.formatDateTime(entry.visitedAt),
-            });
-
-            return (
-              <RecentAssetCard
-                key={entry.key}
-                t={props.t}
-                entry={entry}
-                layoutMode={layoutMode}
-                isActive={props.activeAssetId === entry.asset.id}
-                lastOpenedText={lastOpenedText}
-                onOpenAsset={props.onOpenAsset}
-                onRemoveRecentAsset={props.onRemoveRecentAsset}
-              />
-            );
-          })}
-        </div>
-      ) : null}
+      <RecentSectionBody
+        {...props}
+        layoutMode={layoutMode}
+        gridClassName={gridClassName}
+        recentLoading={recentLoading}
+      />
     </section>
   );
 }
