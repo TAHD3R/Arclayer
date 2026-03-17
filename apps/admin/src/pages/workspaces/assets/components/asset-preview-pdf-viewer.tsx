@@ -63,7 +63,7 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
   if (!file) return null;
 
   return (
-    <div className="flex h-full min-h-[320px] flex-col gap-4">
+    <div className="flex h-full min-h-[320px] flex-col">
       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/70 px-4 py-3">
         <div>
           <div className="text-footnote font-medium text-foreground">PDF</div>
