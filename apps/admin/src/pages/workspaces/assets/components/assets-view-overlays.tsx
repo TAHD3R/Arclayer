@@ -77,6 +77,77 @@ interface AssetsViewOverlaysProps {
   onOpenBulkDelete: () => void;
 }
 
+export function AssetsSelectionToolbar(
+  props: Pick<
+    AssetsViewOverlaysProps,
+    | "t"
+    | "selectedCount"
+    | "bulkMovePending"
+    | "bulkUpdatePending"
+    | "bulkDeletePending"
+    | "onClearSelection"
+    | "onOpenMove"
+    | "onOpenEditAccess"
+    | "onOpenBulkDelete"
+  >,
+) {
+  return (
+    <AnimatePresence>
+      {props.selectedCount > 1 ? (
+        <motion.div
+          key="assets-selection-toolbar"
+          className="pointer-events-none sticky bottom-0 z-30 mt-auto w-full"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.12, ease: "easeOut" }}
+        >
+          <div className="pointer-events-auto w-full border-t border-border bg-card shadow-[0_-18px_36px_-28px_rgba(0,0,0,0.28)]">
+            <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 pt-3 pb-5 sm:px-6 lg:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <SelectedCountTag
+                  label={props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}
+                />
+                <Button variant="ghost" size="sm" onClick={props.onClearSelection}>
+                  {props.t("assets:ASSET_CLEAR_SELECTION")}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={props.onOpenMove}
+                  disabled={props.bulkMovePending}
+                >
+                  <FolderInput size={16} />
+                  {props.t("assets:ASSET_ACTION_MOVE")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={props.onOpenEditAccess}
+                  disabled={props.bulkUpdatePending}
+                >
+                  <Settings2 size={16} />
+                  {props.t("assets:ASSET_ACTION_EDIT_ACCESS")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={props.onOpenBulkDelete}
+                  disabled={props.bulkDeletePending}
+                >
+                  <Trash2 size={16} />
+                  {props.t("assets:ASSET_ACTION_DELETE_SELECTED")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
   return (
     <>
@@ -155,59 +226,6 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
           onUploaded={props.onUploaded}
         />
       ) : null}
-      <AnimatePresence>
-        {props.selectedCount > 1 && !props.active ? (
-          <motion.div
-            key="assets-selection-toolbar"
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-30"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.12, ease: "easeOut" }}
-          >
-            <div className="pointer-events-auto w-full rounded-t-[20px] border border-b-0 border-border bg-card shadow-[0_-18px_36px_-28px_rgba(0,0,0,0.28)]">
-              <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-                <div className="flex min-w-0 items-center gap-3">
-                  <SelectedCountTag
-                    label={props.t("assets:ASSET_SELECTED_COUNT", { count: props.selectedCount })}
-                  />
-                  <Button variant="ghost" size="sm" onClick={props.onClearSelection}>
-                    {props.t("assets:ASSET_CLEAR_SELECTION")}
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={props.onOpenMove}
-                    disabled={props.bulkMovePending}
-                  >
-                    <FolderInput size={16} />
-                    {props.t("assets:ASSET_ACTION_MOVE")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={props.onOpenEditAccess}
-                    disabled={props.bulkUpdatePending}
-                  >
-                    <Settings2 size={16} />
-                    {props.t("assets:ASSET_ACTION_EDIT_ACCESS")}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={props.onOpenBulkDelete}
-                    disabled={props.bulkDeletePending}
-                  >
-                    <Trash2 size={16} />
-                    {props.t("assets:ASSET_ACTION_DELETE_SELECTED")}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
     </>
   );
 }

@@ -370,6 +370,10 @@ export function useAssetsViewController() {
     filters.tagIds,
     ordering,
   ]);
+  useEffect(() => {
+    if (selectedIds.size <= 1) return;
+    setActive((prev) => (prev ? null : prev));
+  }, [selectedIds]);
   const openEditAccessDialog = () => {
     const ids = Array.from(selectedIds);
     if (ids.length <= 0) return;

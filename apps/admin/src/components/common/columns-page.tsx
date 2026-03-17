@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
 
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
@@ -14,6 +14,7 @@ import { PageMainRegion, shouldHidePageHeader, type BasePageProps } from "./page
 
 export type ColumnsPageProps = BasePageProps & {
   sideSlots: ColumnsPageSideSlots;
+  overlay?: ReactNode;
 };
 
 export function ColumnsPage({
@@ -23,6 +24,7 @@ export function ColumnsPage({
   action,
   extra,
   sideSlots,
+  overlay,
   children,
   className,
   contentClassName,
@@ -58,7 +60,7 @@ export function ColumnsPage({
   );
 
   return (
-    <AdminRouteContainer className={clsx("min-h-full min-w-0", className)}>
+    <AdminRouteContainer className={clsx("min-h-full min-w-0", className)} overlay={overlay}>
       {hasSideSlots ? (
         <>
           <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>

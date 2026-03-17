@@ -12,7 +12,7 @@ import { AssetsFolderRail } from "./assets-folder-rail";
 import { AssetsViewDndSurface } from "./assets-view-dnd-surface";
 import { AssetsViewHeader } from "./assets-view-header";
 import { AssetsViewMasonrySection } from "./assets-view-masonry-section";
-import { AssetsViewOverlays } from "./assets-view-overlays";
+import { AssetsSelectionToolbar, AssetsViewOverlays } from "./assets-view-overlays";
 
 export function AssetsPageView(props: { initialSearchQuery?: string; initialAssetId?: string }) {
   const controller = useAssetsViewController();
@@ -125,6 +125,21 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     <AssetsViewDndSurface controller={controller}>
       <ColumnsPage
         title={t("nav:NAV_ASSETS")}
+        overlay={
+          <AssetsSelectionToolbar
+            t={t}
+            selectedCount={selectedIds.size}
+            bulkMovePending={bulkMoveMutation.isPending}
+            bulkUpdatePending={bulkUpdateMutation.isPending}
+            bulkDeletePending={bulkDeleteMutation.isPending}
+            onClearSelection={() => {
+              setSelection((prev) => clearSelection(prev));
+            }}
+            onOpenMove={() => setMoveModalOpen(true)}
+            onOpenEditAccess={() => openEditAccessDialog()}
+            onOpenBulkDelete={() => openBulkDeleteDialog()}
+          />
+        }
         action={
           <Button onClick={() => setUploadOpen(true)}>
             <Plus size={16} />
