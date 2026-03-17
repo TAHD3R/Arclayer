@@ -27,7 +27,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@arclayer/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   InputGroup,
@@ -907,11 +907,7 @@ function SelectOptionsPopover<T = unknown>({
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className={cn("w-[200px] px-0", field.className)}
-        disableHighlight
-      >
+      <DropdownMenuContent align="start" className={cn("w-[200px] px-0", field.className)}>
         {renderMenuContent()}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1448,11 +1444,7 @@ export function Filters<T = unknown>({
                 </Button>
               )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className={cn("w-[220px]", menuPopupClassName)}
-              align="start"
-              disableHighlight
-            >
+            <DropdownMenuContent className={cn("w-[220px]", menuPopupClassName)} align="start">
               {showSearchInput && (
                 <>
                   <div className="relative">
@@ -1601,7 +1593,7 @@ export function Filters<T = unknown>({
                                 {field.icon}
                                 <span>{field.label}</span>
                               </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-[200px]" disableHighlight>
+                              <DropdownMenuSubContent className="w-[200px]">
                                 <FilterSubmenuContent
                                   field={field}
                                   currentValues={currentValues}

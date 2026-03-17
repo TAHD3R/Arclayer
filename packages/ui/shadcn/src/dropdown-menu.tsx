@@ -36,6 +36,35 @@ import {
 import { cn } from "@arclayer/lib/utils";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
 
+type DropdownMenuHighlightMode = "parent" | "item";
+
+const DropdownMenuHighlightModeContext = React.createContext<DropdownMenuHighlightMode>("parent");
+
+function useDropdownMenuHighlightMode() {
+  return React.useContext(DropdownMenuHighlightModeContext);
+}
+
+function getDropdownMenuItemStateClassName(
+  highlightMode: DropdownMenuHighlightMode,
+  variant: "default" | "destructive",
+) {
+  if (highlightMode === "item") {
+    return variant === "destructive"
+      ? "data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive dark:data-[highlighted]:bg-destructive/20"
+      : "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground";
+  }
+
+  return variant === "destructive"
+    ? "data-[highlighted]:text-destructive"
+    : "data-[highlighted]:text-accent-foreground";
+}
+
+function getDropdownMenuSelectableStateClassName(highlightMode: DropdownMenuHighlightMode) {
+  return highlightMode === "item"
+    ? "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+    : "data-[highlighted]:text-accent-foreground";
+}
+
 type DropdownMenuProps = DropdownMenuPrimitiveProps;
 
 function DropdownMenu(props: DropdownMenuProps) {
@@ -59,6 +88,8 @@ function DropdownMenuContent({
   disableHighlight = false,
   ...props
 }: DropdownMenuContentProps) {
+  const highlightMode = disableHighlight ? "item" : "parent";
+
   return (
     <DropdownMenuContentPrimitive
       sideOffset={sideOffset}
@@ -68,14 +99,16 @@ function DropdownMenuContent({
       )}
       {...props}
     >
-      <DropdownMenuHighlightPrimitive
-        mode="parent"
-        enabled={!disableHighlight}
-        className="pointer-events-none rounded-sm"
-        containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
-      >
-        {children}
-      </DropdownMenuHighlightPrimitive>
+      <DropdownMenuHighlightModeContext.Provider value={highlightMode}>
+        <DropdownMenuHighlightPrimitive
+          mode="parent"
+          enabled={!disableHighlight}
+          className="pointer-events-none rounded-sm"
+          containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
+        >
+          {children}
+        </DropdownMenuHighlightPrimitive>
+      </DropdownMenuHighlightModeContext.Provider>
     </DropdownMenuContentPrimitive>
   );
 }
@@ -98,6 +131,8 @@ function DropdownMenuItem({
   disabled,
   ...props
 }: DropdownMenuItemProps) {
+  const highlightMode = useDropdownMenuHighlightMode();
+
   return (
     <DropdownMenuHighlightItemPrimitive
       className="w-full"
@@ -111,7 +146,8 @@ function DropdownMenuItem({
         data-inset={inset}
         data-variant={variant}
         className={cn(
-          "focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive relative flex w-full cursor-default items-center gap-2 rounded-sm p-2 text-callout outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          "focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive relative flex w-full cursor-default items-center gap-2 rounded-sm p-2 text-callout outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          getDropdownMenuItemStateClassName(highlightMode, variant),
           className,
         )}
         {...props}
@@ -163,6 +199,8 @@ function DropdownMenuCheckboxItem({
   disabled,
   ...props
 }: DropdownMenuCheckboxItemProps) {
+  const highlightMode = useDropdownMenuHighlightMode();
+
   return (
     <DropdownMenuHighlightItemPrimitive
       className="w-full"
@@ -172,7 +210,8 @@ function DropdownMenuCheckboxItem({
       <DropdownMenuCheckboxItemPrimitive
         disabled={disabled}
         className={cn(
-          "focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-2 pr-2 pl-8 text-callout outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          "focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-2 pr-2 pl-8 text-callout outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          getDropdownMenuSelectableStateClassName(highlightMode),
           className,
         )}
         checked={checked}
@@ -206,6 +245,8 @@ function DropdownMenuRadioItem({
   disabled,
   ...props
 }: DropdownMenuRadioItemProps) {
+  const highlightMode = useDropdownMenuHighlightMode();
+
   return (
     <DropdownMenuHighlightItemPrimitive
       className="w-full"
@@ -215,7 +256,8 @@ function DropdownMenuRadioItem({
       <DropdownMenuRadioItemPrimitive
         disabled={disabled}
         className={cn(
-          "focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-2 pr-2 pl-8 text-callout outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          "focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-2 pr-2 pl-8 text-callout outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          getDropdownMenuSelectableStateClassName(highlightMode),
           className,
         )}
         {...props}
@@ -284,6 +326,8 @@ function DropdownMenuSubTrigger({
   children,
   ...props
 }: DropdownMenuSubTriggerProps) {
+  const highlightMode = useDropdownMenuHighlightMode();
+
   return (
     <DropdownMenuHighlightItemPrimitive
       className="w-full"
@@ -294,7 +338,9 @@ function DropdownMenuSubTrigger({
         disabled={disabled}
         data-inset={inset}
         className={cn(
-          "focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex w-full cursor-default items-center gap-2 rounded-sm p-2 text-callout outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          "focus:text-accent-foreground data-[state=open]:text-accent-foreground flex w-full cursor-default items-center gap-2 rounded-sm p-2 text-callout outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          getDropdownMenuSelectableStateClassName(highlightMode),
+          highlightMode === "item" && "data-[state=open]:bg-accent",
           "data-[state=open]:[&_[data-slot=chevron]]:rotate-90 [&_[data-slot=chevron]]:transition-transform [&_[data-slot=chevron]]:duration-300 [&_[data-slot=chevron]]:ease-in-out",
           className,
         )}
@@ -317,6 +363,8 @@ function DropdownMenuSubContent({
   children,
   ...props
 }: DropdownMenuSubContentProps) {
+  const highlightMode = disableHighlight ? "item" : "parent";
+
   return (
     <DropdownMenuSubContentPrimitive
       className={cn(
@@ -325,14 +373,16 @@ function DropdownMenuSubContent({
       )}
       {...props}
     >
-      <DropdownMenuHighlightPrimitive
-        mode="parent"
-        enabled={!disableHighlight}
-        className="pointer-events-none rounded-sm"
-        containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
-      >
-        {children}
-      </DropdownMenuHighlightPrimitive>
+      <DropdownMenuHighlightModeContext.Provider value={highlightMode}>
+        <DropdownMenuHighlightPrimitive
+          mode="parent"
+          enabled={!disableHighlight}
+          className="pointer-events-none rounded-sm"
+          containerClassName="relative flex w-full min-w-0 flex-col items-stretch"
+        >
+          {children}
+        </DropdownMenuHighlightPrimitive>
+      </DropdownMenuHighlightModeContext.Provider>
     </DropdownMenuSubContentPrimitive>
   );
 }

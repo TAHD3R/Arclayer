@@ -20,7 +20,7 @@ const FIELDS: FilterFieldConfig<FilterValue>[] = [
 ];
 
 describe("Filters", () => {
-  it("uses item-level highlight for add-filter menus and still applies submenu selections", async () => {
+  it("uses shared dropdown highlight for add-filter menus and still applies submenu selections", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -37,7 +37,7 @@ describe("Filters", () => {
     await user.click(screen.getByText("Type"));
     await user.click(await screen.findByText("Image"));
 
-    expect(document.querySelector('[data-slot="motion-highlight"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="motion-highlight"]')).toBeInTheDocument();
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith([
       expect.objectContaining({
@@ -67,6 +67,6 @@ describe("Filters", () => {
       .find(Boolean);
 
     expect(selectedOption).toHaveAttribute("data-highlighted", "true");
-    expect(document.querySelector('[data-slot="motion-highlight"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="motion-highlight"]')).toBeInTheDocument();
   });
 });
