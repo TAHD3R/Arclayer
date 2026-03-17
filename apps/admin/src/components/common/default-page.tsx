@@ -20,16 +20,18 @@ export function DefaultPage({
 
   return (
     <AdminRouteContainer className={clsx("min-h-full min-w-0", className)}>
-      <PageMainRegion
-        title={hideHeader ? undefined : title}
-        description={hideHeader ? undefined : description}
-        showFavoriteToggle={hideHeader ? false : showFavoriteToggle}
-        action={hideHeader ? undefined : action}
-        extra={hideHeader ? undefined : extra}
-        contentClassName={contentClassName}
-      >
-        {children}
-      </PageMainRegion>
+      <div className="flex min-h-0 min-w-0 w-full" data-slot="default-page-shell">
+        <PageMainRegion
+          title={hideHeader ? undefined : title}
+          description={hideHeader ? undefined : description}
+          showFavoriteToggle={hideHeader ? false : showFavoriteToggle}
+          action={hideHeader ? undefined : action}
+          extra={hideHeader ? undefined : extra}
+          contentClassName={contentClassName}
+        >
+          {children}
+        </PageMainRegion>
+      </div>
     </AdminRouteContainer>
   );
 }

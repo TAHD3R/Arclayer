@@ -41,13 +41,16 @@ describe("DefaultPage", () => {
     const title = screen.getByText("Assets");
     const favoriteButton = screen.getByRole("button", { name: /common:FAVORITE_ADD/ });
     const titleCluster = title.parentElement;
-    const body = document.querySelector('[data-slot="page-main-region"]');
+    const shell = document.querySelector('[data-slot="default-page-shell"]');
+    const body = shell?.querySelector('[data-slot="page-main-region"]');
     const content = body?.querySelector('[data-slot="page-content"]');
 
     expect(title).toHaveClass("text-title", "text-label-primary");
     expect(titleCluster).toHaveClass("items-end");
     expect(favoriteButton).toHaveAttribute("data-size", "sm");
     expect(favoriteButton).toHaveClass("h-8", "leading-none");
+    expect(shell).toHaveClass("flex", "min-h-0", "min-w-0", "w-full");
+    expect(shell).not.toHaveClass("flex-1");
     expect(body).toHaveClass(
       "flex",
       "min-h-0",
