@@ -1,18 +1,18 @@
 import {
+  Blocks,
   Database,
-  File,
-  Gauge,
   Globe,
   History,
-  Image,
-  List,
-  Navigation2,
+  Images,
+  LayoutDashboard,
+  LibraryBig,
+  MailPlus,
   Puzzle,
   Search,
-  ShieldCheck,
+  Settings2,
+  Shield,
   Users,
-  UserPlus,
-} from "@arclayer/ui/icons/lucide-animated";
+} from "lucide-react";
 
 import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 export type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
@@ -26,7 +26,7 @@ export const WORKSPACE_NAV_HOME_ITEM: AdminNavItem = {
   label: "Dashboard",
   labelKey: "nav:NAV_DASHBOARD",
   to: "/",
-  icon: Gauge,
+  icon: LayoutDashboard,
 };
 
 export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
@@ -40,21 +40,21 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
         label: "Assets",
         labelKey: "nav:NAV_ASSETS",
         to: "/assets",
-        icon: Image,
+        icon: Images,
       },
       {
         key: "content.siteBuilder",
         label: "Site Builder",
         labelKey: "nav:NAV_CONTENT_SITE_BUILDER",
         to: "/content/site-builder",
-        icon: File,
+        icon: Blocks,
       },
       {
         key: "content.library",
         label: "Content Library",
         labelKey: "nav:NAV_CONTENT_LIBRARY",
         to: "/content/library",
-        icon: List,
+        icon: LibraryBig,
       },
       {
         key: "content.models",
@@ -96,14 +96,14 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
         label: "Invitations",
         labelKey: "nav:NAV_SETTINGS_TEAM_MEMBERS",
         to: "/team/invitations",
-        icon: UserPlus,
+        icon: MailPlus,
       },
       {
         key: "settings.team.roles",
         label: "Roles & permissions",
         labelKey: "nav:NAV_SETTINGS_TEAM_ROLES",
         to: "/team/roles",
-        icon: ShieldCheck,
+        icon: Shield,
       },
     ],
   },
@@ -117,7 +117,7 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
         label: "Settings",
         labelKey: "nav:NAV_SETTINGS_WORKSPACE",
         to: "/settings/workspace",
-        icon: Navigation2,
+        icon: Settings2,
       },
       {
         key: "extensions",

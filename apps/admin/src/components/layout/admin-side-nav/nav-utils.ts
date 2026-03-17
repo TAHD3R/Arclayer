@@ -5,8 +5,9 @@ export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
   "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0!";
 export const NAV_ITEM_ROOT_INSET_CLASSNAME = "pl-4";
 export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1 group-data-[collapsible=icon]:gap-2";
-export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1";
-export const NAV_SECTION_LABEL_CLASSNAME = "h-auto pb-0.5 pt-2 text-caption";
+export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1 group-data-[collapsible=icon]:pt-0";
+export const NAV_SECTION_LABEL_CLASSNAME =
+  "h-auto pb-0.5 pt-2 text-caption group-data-[collapsible=icon]:hidden";
 export const NAV_SECTION_TRIGGER_CLASSNAME =
   "flex w-full items-center gap-1.5 pl-4 pr-2 text-left text-label-secondary";
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-4 gap-0.5 border-border/60";

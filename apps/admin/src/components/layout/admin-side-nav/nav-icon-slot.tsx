@@ -4,7 +4,7 @@ import { cn } from "@arclayer/lib/utils";
 export function iconSlot(
   depth: number,
   Icon: AdminNavItem["icon"] | undefined,
-  opts?: { isActive?: boolean; isHovered?: boolean; collapseMotion?: "shift" | "none" },
+  opts?: { isActive?: boolean; collapseMotion?: "shift" | "none" },
 ) {
   const collapseMotionClassName =
     opts?.collapseMotion === "shift"
@@ -26,7 +26,7 @@ export function iconSlot(
         )}
         aria-hidden="true"
       >
-        <Icon className="size-full" isHovered={opts?.isHovered} />
+        <Icon className="size-full" />
       </span>
     );
   }

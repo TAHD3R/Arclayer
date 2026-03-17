@@ -258,7 +258,7 @@ function StructuredNavContent(props: {
   const { t } = useTranslation();
 
   return (
-    <>
+    <div className={props.state.collapsedMode ? "flex flex-col gap-2" : undefined}>
       {props.homeItem ? (
         <ItemsSection
           items={[props.homeItem]}
@@ -291,7 +291,7 @@ function StructuredNavContent(props: {
           isCollapsed={props.state.collapsedMode}
         />
       ))}
-    </>
+    </div>
   );
 }
 

@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
@@ -95,17 +94,14 @@ function NodeLeafRoot({
   onNavigate,
 }: NodeLeafProps & { onNavigate: (to: string) => void }) {
   const Icon = item.icon;
-  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <SidebarMenuItem
       className="group/nav-item"
       onPointerEnter={() => {
-        setIsHovered(true);
         if (!hoverDropdown || !item.to || item.disabled) return;
         hoverDropdown.close();
       }}
-      onPointerLeave={() => setIsHovered(false)}
       onFocusCapture={() => {
         if (!hoverDropdown || !item.to || item.disabled) return;
         hoverDropdown.close();
@@ -134,7 +130,7 @@ function NodeLeafRoot({
             onNavigate(item.to);
           }}
         >
-          {iconSlot(depth, Icon, { isActive: isSelected, isHovered, collapseMotion: "shift" })}
+          {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
           <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
             {label}
           </span>

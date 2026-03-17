@@ -1,4 +1,4 @@
-import { Bell, CircleHelp, ExternalLink } from "@arclayer/ui/icons/lucide-animated";
+import { Bell, ExternalLink, LifeBuoy } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
@@ -18,7 +18,7 @@ export const COMMON_FOOTER_NAV_ITEMS: AdminNavItem[] = [
     key: "help-center",
     label: "Support",
     labelKey: "nav:NAV_HELP_CENTER",
-    icon: CircleHelp,
+    icon: LifeBuoy,
     position: "footer",
     trailingIcon: ExternalLink,
   },

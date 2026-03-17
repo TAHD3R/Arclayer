@@ -150,7 +150,7 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
         onMouseLeave={() => setIsHovered(false)}
         {...triggerProps}
       >
-        {iconSlot(0, Icon, { isActive: isTrailActive, isHovered, collapseMotion: "shift" })}
+        {iconSlot(0, Icon, { isActive: isTrailActive, collapseMotion: "shift" })}
         <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           {label}
         </span>

@@ -27,8 +27,6 @@ export const CollapsedNavButton = React.forwardRef<HTMLButtonElement, CollapsedN
     { label, Icon, isActive, isDisabled, className, ...props }: CollapsedNavButtonProps,
     ref,
   ) {
-    const [isHovered, setIsHovered] = React.useState(false);
-
     return (
       <ButtonPrimitive
         ref={ref}
@@ -48,11 +46,9 @@ export const CollapsedNavButton = React.forwardRef<HTMLButtonElement, CollapsedN
           isDisabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
           className,
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         {...props}
       >
-        {iconSlot(0, Icon, { isActive, isHovered })}
+        {iconSlot(0, Icon, { isActive })}
         <span className="sr-only">{label}</span>
       </ButtonPrimitive>
     );

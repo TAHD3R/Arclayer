@@ -77,7 +77,7 @@ function StarredTriggerButton(props: {
         onMouseLeave={() => setIsHovered(false)}
         onClick={props.onToggle}
       >
-        {iconSlot(0, Star, { isActive: props.hasActiveItem, isHovered, collapseMotion: "shift" })}
+        {iconSlot(0, Star, { isActive: props.hasActiveItem, collapseMotion: "shift" })}
         <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           {props.label}
         </span>
