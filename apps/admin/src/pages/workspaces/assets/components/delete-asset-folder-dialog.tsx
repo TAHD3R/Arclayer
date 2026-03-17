@@ -36,8 +36,6 @@ export type DeleteAssetFolderDialogProps = {
 
 type DeleteStrategy = "root" | "folder";
 
-const ROOT_VALUE = "__root__";
-
 function buildFolderPathLabel(folderId: string, folderById: Map<string, AdminAssetFolder>): string {
   const names = buildFolderPath(folderId, folderById).map((folder) => folder.name);
   return names.join(" / ") || folderId;
@@ -62,12 +60,12 @@ function collectDescendantIds(folderId: string, folders: AdminAssetFolder[]): Se
 export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
   const { t } = useTranslation();
   const [strategy, setStrategy] = useState<DeleteStrategy>("root");
-  const [target, setTarget] = useState<string>(ROOT_VALUE);
+  const [target, setTarget] = useState<string>("");
 
   useEffect(() => {
     if (!props.open) return;
     setStrategy("root");
-    setTarget(ROOT_VALUE);
+    setTarget("");
   }, [props.open, props.folder?.id]);
 
   const folderById = useMemo(() => buildFolderById(props.folders), [props.folders]);
@@ -85,9 +83,7 @@ export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
   }, [folderById, props.folder, props.folders]);
 
   const confirmDisabled =
-    !props.folder ||
-    Boolean(props.confirmLoading) ||
-    (strategy === "folder" && (target === ROOT_VALUE || !target));
+    !props.folder || Boolean(props.confirmLoading) || (strategy === "folder" && !target);
 
   return (
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -107,7 +103,7 @@ export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
             onValueChange={(value) => setStrategy(value === "folder" ? "folder" : "root")}
             className="gap-3"
           >
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border/70 px-4 py-3 transition-colors hover:border-border">
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl px-1 py-1">
               <RadioGroupItem value="root" className="mt-1" />
               <div className="space-y-1">
                 <div className="font-semibold text-foreground">
@@ -118,7 +114,7 @@ export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
                 </div>
               </div>
             </label>
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border/70 px-4 py-3 transition-colors hover:border-border">
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl px-1 py-1">
               <RadioGroupItem value="folder" className="mt-1" />
               <div className="min-w-0 flex-1 space-y-3">
                 <div className="space-y-1">
@@ -130,7 +126,7 @@ export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
                   </div>
                 </div>
                 <Select
-                  value={target}
+                  value={target || undefined}
                   onValueChange={setTarget}
                   disabled={strategy !== "folder" || props.confirmLoading}
                 >

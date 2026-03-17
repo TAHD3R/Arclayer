@@ -1,24 +1,25 @@
-import { ArrowUpRight, Download, EllipsisVertical, Eye, Trash2 } from "lucide-react";
+import { EllipsisVertical, Eye, Trash2 } from "lucide-react";
+import { useState } from "react";
 
-import type { ResolvedRecentAsset } from "@/lib/assets/assets-recent";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
-import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
-import { FileTypeIcon } from "@arclayer/ui/icons/file-type-icon";
 import { Skeleton } from "@arclayer/ui/skeleton";
 
-import { downloadWithAuth } from "./asset-masonry-tile";
-import { LazyAssetImage } from "./lazy-asset-image";
+import { RecentAssetCard, type RecentLayoutMode } from "./assets-folder-rail-recent-card";
+import type { ResolvedRecentAsset } from "@/lib/assets/assets-recent";
+import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 type AssetsFolderRailRecentSectionProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -31,10 +32,10 @@ type AssetsFolderRailRecentSectionProps = {
   onClearRecentAssets: () => void;
 };
 
-function RecentFileSkeleton() {
+function RecentFileRowSkeleton() {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 shadow-sm">
-      <Skeleton className="size-14 rounded-md" />
+      <Skeleton className="size-16 rounded-md" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-4/5" />
         <Skeleton className="h-3 w-20" />
@@ -45,38 +46,26 @@ function RecentFileSkeleton() {
   );
 }
 
-function RecentAssetMedia(props: { asset: AssetMasonryItem }) {
-  if (props.asset.previewUrl) {
-    return (
-      <div className="relative size-14 shrink-0 overflow-hidden rounded-md border border-border/50 bg-muted/45">
-        <LazyAssetImage
-          src={props.asset.previewUrl}
-          alt={props.asset.name}
-          fit="cover"
-          rootClassName="absolute inset-0"
-          className="size-full"
-        />
-      </div>
-    );
-  }
-
+function RecentFileGridSkeleton() {
   return (
-    <div className="grid size-14 shrink-0 place-items-center rounded-md border border-border/50 bg-muted/45">
-      <FileTypeIcon
-        filename={props.asset.name}
-        mimeType={props.asset.mimeType}
-        theme="auto"
-        className="size-9"
-      />
+    <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+      <Skeleton className="aspect-[4/3] w-full rounded-md" />
+      <div className="mt-3 space-y-2">
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-full" />
+      </div>
     </div>
   );
 }
 
 export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSectionProps) {
+  const [layoutMode, setLayoutMode] = useState<RecentLayoutMode>("single");
   const dateTime = useAdminDateTimeFormatter({
     workspaceId: props.scope?.type === "workspace" ? String(props.scope.id) : null,
   });
   const recentLoading = props.foldersLoading && props.recentAssets.length === 0;
+  const gridClassName = layoutMode === "single" ? "grid-cols-1" : "grid-cols-2";
 
   return (
     <section className="mt-6 space-y-3 border-t border-border/50 pt-5">
@@ -92,6 +81,18 @@ export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSecti
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={layoutMode}
+                onValueChange={(value) => setLayoutMode(value === "multi" ? "multi" : "single")}
+              >
+                <DropdownMenuRadioItem value="single">
+                  {props.t("assets:ASSET_FOLDER_LAYOUT_SINGLE")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="multi">
+                  {props.t("assets:ASSET_FOLDER_LAYOUT_MULTI")}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
               <DropdownMenuIconItem
                 icon={<Trash2 className="size-4" />}
                 variant="destructive"
@@ -105,10 +106,14 @@ export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSecti
       </div>
 
       {recentLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <RecentFileSkeleton key={index} />
-          ))}
+        <div className={cn("grid gap-3", gridClassName)}>
+          {Array.from({ length: 3 }).map((_, index) =>
+            layoutMode === "single" ? (
+              <RecentFileRowSkeleton key={index} />
+            ) : (
+              <RecentFileGridSkeleton key={index} />
+            ),
+          )}
         </div>
       ) : null}
 
@@ -125,91 +130,25 @@ export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSecti
       ) : null}
 
       {!recentLoading && props.recentAssets.length > 0 ? (
-        <div className="space-y-3">
-          {props.recentAssets.map((entry) => (
-            <div
-              key={entry.key}
-              className={cn(
-                "group flex items-center gap-3 rounded-lg border bg-card px-3 py-3 shadow-sm transition-colors duration-200",
-                props.activeAssetId === entry.asset.id
-                  ? "border-primary/30 bg-primary/5 shadow-[0_14px_32px_-24px_rgba(24,24,27,0.3)]"
-                  : "border-border hover:border-border/80 hover:bg-accent/35 hover:shadow-md",
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => props.onOpenAsset(entry.asset)}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              >
-                <RecentAssetMedia asset={entry.asset} />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-semibold text-foreground">
-                    {entry.asset.name}
-                  </div>
-                  <div className="mt-0.5 text-[12px] text-label-secondary">
-                    {entry.asset.sizeText || "—"}
-                  </div>
-                  <div className="mt-1 text-[12px] text-label-secondary">
-                    {props.t("assets:ASSET_RECENT_LAST_OPENED", {
-                      value: dateTime.formatDateTime(entry.visitedAt),
-                    })}
-                  </div>
-                </div>
-              </button>
+        <div className={cn("grid gap-3", gridClassName)}>
+          {props.recentAssets.map((entry) => {
+            const lastOpenedText = props.t("assets:ASSET_RECENT_LAST_OPENED", {
+              value: dateTime.formatDateTime(entry.visitedAt),
+            });
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0 opacity-0 transition-all duration-200 group-hover:opacity-100 data-[state=open]:opacity-100"
-                    aria-label={props.t("common:MORE")}
-                  >
-                    <EllipsisVertical className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuIconItem
-                    icon={<Eye className="size-4" />}
-                    onSelect={() => props.onOpenAsset(entry.asset)}
-                  >
-                    {props.t("assets:ASSET_ACTION_OPEN")}
-                  </DropdownMenuIconItem>
-                  {entry.asset.publicUrl ? (
-                    <DropdownMenuIconItem
-                      icon={<ArrowUpRight className="size-4" />}
-                      onSelect={() =>
-                        window.open(entry.asset.publicUrl, "_blank", "noopener,noreferrer")
-                      }
-                    >
-                      {props.t("assets:ASSET_ACTION_OPEN_IN_NEW_TAB")}
-                    </DropdownMenuIconItem>
-                  ) : null}
-                  {entry.asset.contentUrl ? (
-                    <DropdownMenuIconItem
-                      icon={<Download className="size-4" />}
-                      onSelect={() => {
-                        void downloadWithAuth({
-                          url: entry.asset.contentUrl as string,
-                          filename: entry.asset.name,
-                        });
-                      }}
-                    >
-                      {props.t("assets:ASSET_ACTION_DOWNLOAD")}
-                    </DropdownMenuIconItem>
-                  ) : null}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuIconItem
-                    icon={<Trash2 className="size-4" />}
-                    variant="destructive"
-                    onSelect={() => props.onRemoveRecentAsset(entry.key)}
-                  >
-                    {props.t("assets:ASSET_ACTION_REMOVE_RECENT")}
-                  </DropdownMenuIconItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
+            return (
+              <RecentAssetCard
+                key={entry.key}
+                t={props.t}
+                entry={entry}
+                layoutMode={layoutMode}
+                isActive={props.activeAssetId === entry.asset.id}
+                lastOpenedText={lastOpenedText}
+                onOpenAsset={props.onOpenAsset}
+                onRemoveRecentAsset={props.onRemoveRecentAsset}
+              />
+            );
+          })}
         </div>
       ) : null}
     </section>

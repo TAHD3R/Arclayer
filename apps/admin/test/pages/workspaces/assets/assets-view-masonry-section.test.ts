@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getAssetsMasonryDatasetKey,
+  getAssetsMasonryMaxColumnCount,
   getAssetsMasonryItemKey,
 } from "@/pages/workspaces/assets/components/assets-view-masonry-keys";
 
@@ -16,5 +17,11 @@ describe("AssetsViewMasonrySection", () => {
 
   it("includes the ordered asset ids in the masonry dataset key", () => {
     expect(getAssetsMasonryDatasetKey("query-key", ["a", "b", "c"])).toBe("query-key:a|b|c");
+  });
+
+  it("caps masonry columns based on the available width", () => {
+    expect(getAssetsMasonryMaxColumnCount(0)).toBe(5);
+    expect(getAssetsMasonryMaxColumnCount(900)).toBe(3);
+    expect(getAssetsMasonryMaxColumnCount(3200)).toBe(8);
   });
 });

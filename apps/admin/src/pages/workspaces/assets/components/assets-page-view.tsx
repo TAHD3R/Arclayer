@@ -145,8 +145,9 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
           right: {
             title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
             mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
-            minWidth: "19rem",
-            maxWidth: "25rem",
+            minWidth: "20rem",
+            maxWidth: "34rem",
+            defaultWidth: "clamp(21rem, 24vw, 30rem)",
             content: (
               <AssetsFolderRail
                 t={t}
