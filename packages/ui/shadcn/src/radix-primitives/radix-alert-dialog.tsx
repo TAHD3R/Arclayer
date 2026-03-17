@@ -64,6 +64,8 @@ function AlertDialogOverlay({
   transition = { duration: 0.2, ease: "easeInOut" },
   ...props
 }: AlertDialogOverlayProps) {
+  const { isOpen } = useAlertDialog();
+
   return (
     <AlertDialogPrimitive.Overlay data-slot="alert-dialog-overlay" asChild forceMount>
       <motion.div
@@ -72,6 +74,7 @@ function AlertDialogOverlay({
         animate={{ opacity: 1, filter: "blur(0px)" }}
         exit={{ opacity: 0, filter: "blur(4px)" }}
         transition={transition}
+        style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />
     </AlertDialogPrimitive.Overlay>
@@ -96,6 +99,7 @@ function AlertDialogContent({
   transition = { type: "spring", stiffness: 150, damping: 25 },
   ...props
 }: AlertDialogContentProps) {
+  const { isOpen } = useAlertDialog();
   const initialRotation = from === "bottom" || from === "left" ? "20deg" : "-20deg";
   const isVertical = from === "top" || from === "bottom";
   const rotateAxis = isVertical ? "rotateX" : "rotateY";
@@ -127,6 +131,7 @@ function AlertDialogContent({
           transform: `perspective(500px) ${rotateAxis}(${initialRotation}) scale(0.8)`,
         }}
         transition={transition}
+        style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />
     </AlertDialogPrimitive.Content>

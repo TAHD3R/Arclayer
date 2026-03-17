@@ -35,6 +35,9 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setCreateFolderOpen,
     createFolderParentId,
     setCreateFolderParentId,
+    createFolderSeedAssetIds,
+    setCreateFolderSeedAssetIds,
+    createFolderSeedAssetCount,
     editFolderOpen,
     setEditFolderOpen,
     editFolderTarget,
@@ -111,6 +114,13 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
       ].join(" / ")
     : t("assets:ASSET_BREADCRUMB_ROOT");
 
+  const setCreateFolderDialogOpen = (open: boolean) => {
+    setCreateFolderOpen(open);
+    if (open) return;
+    setCreateFolderParentId(null);
+    setCreateFolderSeedAssetIds([]);
+  };
+
   return (
     <AssetsViewDndSurface controller={controller}>
       <ColumnsPage
@@ -169,7 +179,8 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                 }}
                 onCreateFolder={(parentId) => {
                   setCreateFolderParentId(parentId);
-                  setCreateFolderOpen(true);
+                  setCreateFolderSeedAssetIds([]);
+                  setCreateFolderDialogOpen(true);
                 }}
                 onEditFolder={(folder) => {
                   setEditFolderTarget(folder);
@@ -184,6 +195,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                 tooltipDisabled={
                   Boolean(controller.draggingFolderId) || controller.draggingAssetIds.length > 0
                 }
+                isDraggingAssets={controller.draggingAssetIds.length > 0}
                 onOpenAsset={(asset) => setActive(asset)}
                 onRemoveRecentAsset={removeRecentAsset}
                 onClearRecentAssets={clearRecentAssets}
@@ -248,12 +260,26 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
               await bulkUpdateMutation.mutateAsync({ assetIds, ...value });
             }}
             createFolderOpen={createFolderOpen}
-            setCreateFolderOpen={setCreateFolderOpen}
+            setCreateFolderOpen={setCreateFolderDialogOpen}
             createParentLabel={createParentLabel}
             createFolderPending={createFolderMutation.isPending}
+            createFolderAssetCount={createFolderSeedAssetCount}
             onCreateFolder={async (name, description) => {
               const parentId = createFolderParentId ?? currentFolderId;
-              await createFolderMutation.mutateAsync({ name, parentId, description });
+              const nextFolder = await createFolderMutation.mutateAsync({
+                name,
+                parentId,
+                description,
+              });
+              if (!createFolderSeedAssetIds.length) return;
+              await bulkMoveMutation.mutateAsync({
+                assetIds: createFolderSeedAssetIds,
+                folderId: String(nextFolder.id),
+              });
+              setSelection((prev) => clearSelection(prev));
+              setActive((prev) =>
+                prev && createFolderSeedAssetIds.includes(String(prev.id)) ? null : prev,
+              );
             }}
             deleteFolderOpen={deleteFolderOpen}
             setDeleteFolderOpen={setDeleteFolderOpen}

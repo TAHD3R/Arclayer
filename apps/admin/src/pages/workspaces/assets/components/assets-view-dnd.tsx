@@ -9,6 +9,7 @@ import type { AssetMasonryItem } from "@/types/assets-masonry";
 export const DND_FOLDER_PREFIX = "folder:";
 const DND_FOLDER_ITEM_PREFIX = "folderItem:";
 const DND_ASSET_ITEM_PREFIX = "assetItem:";
+const DND_CREATE_FOLDER_PREFIX = "folderCreate:";
 export const DND_ROOT_ID = `${DND_FOLDER_PREFIX}__root__`;
 
 export function toFolderDndId(folderId: string) {
@@ -42,6 +43,17 @@ export function parseAssetItemDndId(id: string): string | null {
   const raw = id.slice(DND_ASSET_ITEM_PREFIX.length);
   if (!raw) return null;
   return raw;
+}
+
+export function toCreateFolderDndId(parentFolderId: string | null) {
+  return `${DND_CREATE_FOLDER_PREFIX}${parentFolderId ?? "__root__"}`;
+}
+
+export function parseCreateFolderDndId(id: string): string | null | undefined {
+  if (!id.startsWith(DND_CREATE_FOLDER_PREFIX)) return undefined;
+  const raw = id.slice(DND_CREATE_FOLDER_PREFIX.length);
+  if (!raw) return undefined;
+  return raw === "__root__" ? null : raw;
 }
 
 type DragOverlayModifier = NonNullable<ComponentProps<typeof DragOverlay>["modifiers"]>[number];
@@ -209,6 +221,23 @@ export function FolderDroppableProvider(props: {
     data: { kind: "folder", folderId: parseFolderDndId(props.droppableId) },
   });
   return props.children({ setNodeRef: dnd.setNodeRef, isOver: dnd.isOver });
+}
+
+export function CreateFolderDroppableProvider(props: {
+  parentFolderId: string | null;
+  children: (bindings: DroppableBindings & { droppableId: string }) => ReactNode;
+}) {
+  const droppableId = toCreateFolderDndId(props.parentFolderId);
+  const dnd = useDroppable({
+    id: droppableId,
+    data: { kind: "create-folder", parentFolderId: props.parentFolderId },
+  });
+
+  return props.children({
+    droppableId,
+    setNodeRef: dnd.setNodeRef,
+    isOver: dnd.isOver,
+  });
 }
 
 export function AssetsDragOverlayCard(props: {

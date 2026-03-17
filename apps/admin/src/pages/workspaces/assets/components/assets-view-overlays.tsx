@@ -52,9 +52,10 @@ interface AssetsViewOverlaysProps {
     indexable?: boolean;
   }) => Promise<void>;
   createFolderOpen: boolean;
-  setCreateFolderOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setCreateFolderOpen: (open: boolean) => void;
   createParentLabel: string;
   createFolderPending: boolean;
+  createFolderAssetCount?: number;
   onCreateFolder: (name: string, description: string | null) => Promise<void>;
   deleteFolderOpen: boolean;
   setDeleteFolderOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -127,6 +128,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         onOpenChange={props.setCreateFolderOpen}
         parentLabel={props.createParentLabel}
         confirmLoading={props.createFolderPending}
+        assetCount={props.createFolderAssetCount}
         onCreate={props.onCreateFolder}
       />
       <DeleteAssetFolderDialog

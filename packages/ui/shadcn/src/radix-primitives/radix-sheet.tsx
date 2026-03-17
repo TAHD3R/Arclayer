@@ -64,6 +64,8 @@ function SheetOverlay({
   transition = { duration: 0.2, ease: "easeInOut" },
   ...props
 }: SheetOverlayProps) {
+  const { isOpen } = useSheet();
+
   return (
     <SheetPrimitive.Overlay asChild forceMount>
       <motion.div
@@ -73,6 +75,7 @@ function SheetOverlay({
         animate={{ opacity: 1, filter: "blur(0px)" }}
         exit={{ opacity: 0, filter: "blur(4px)" }}
         transition={transition}
+        style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />
     </SheetPrimitive.Overlay>
@@ -93,6 +96,7 @@ function SheetContent({
   children,
   ...props
 }: SheetContentProps) {
+  const { isOpen } = useSheet();
   const axis = side === "left" || side === "right" ? "x" : "y";
 
   const offscreen: Record<Side, { x?: string; y?: string; opacity: number }> = {
@@ -120,6 +124,7 @@ function SheetContent({
         exit={offscreen[side]}
         style={{
           position: "fixed",
+          pointerEvents: isOpen ? "auto" : "none",
           ...positionStyle[side],
           ...style,
         }}

@@ -179,7 +179,11 @@ function DropdownMenuSubContent({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={transition}
-              style={{ willChange: "opacity, transform", ...style }}
+              style={{
+                willChange: "opacity, transform",
+                pointerEvents: isOpen ? "auto" : "none",
+                ...style,
+              }}
               {...props}
             />
           </DropdownMenuPrimitive.SubContent>
@@ -272,7 +276,11 @@ function DropdownMenuContent({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={transition}
-              style={{ willChange: "opacity, transform", ...style }}
+              style={{
+                willChange: "opacity, transform",
+                pointerEvents: isOpen ? "auto" : "none",
+                ...style,
+              }}
               {...props}
             />
           </DropdownMenuPrimitive.Content>

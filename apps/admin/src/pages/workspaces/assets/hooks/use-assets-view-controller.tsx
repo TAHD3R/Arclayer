@@ -36,6 +36,7 @@ import type { AssetMasonryItem } from "@/types/assets-masonry";
 import {
   DND_ROOT_ID,
   parseAssetItemDndId,
+  parseCreateFolderDndId,
   parseFolderDndId,
   parseFolderItemDndId,
 } from "../components/assets-view-dnd";
@@ -89,6 +90,7 @@ export function useAssetsViewController() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [createFolderParentId, setCreateFolderParentId] = useState<string | null>(null);
+  const [createFolderSeedAssetIds, setCreateFolderSeedAssetIds] = useState<string[]>([]);
   const [editFolderOpen, setEditFolderOpen] = useState(false);
   const [editFolderTarget, setEditFolderTarget] = useState<AdminAssetFolder | null>(null);
   const [moveFolderOpen, setMoveFolderOpen] = useState(false);
@@ -390,6 +392,7 @@ export function useAssetsViewController() {
     if (!pid) return t("assets:ASSET_BREADCRUMB_ROOT");
     return folderById.get(String(pid))?.name || t("assets:ASSET_BREADCRUMB_ROOT");
   }, [createFolderParentId, currentFolderId, folderById, t]);
+  const createFolderSeedAssetCount = createFolderSeedAssetIds.length;
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -486,6 +489,7 @@ export function useAssetsViewController() {
       const overId = event.over ? String(event.over.id) : "";
       const folderMoveId = parseFolderItemDndId(activeId);
       const assetDragId = parseAssetItemDndId(activeId);
+      const createFolderDropParentId = overId ? parseCreateFolderDndId(overId) : undefined;
       const folderId = overId ? parseFolderDndId(overId) : undefined;
       const canMove =
         overId === DND_ROOT_ID || (typeof folderId === "string" && folderId.length > 0);
@@ -499,9 +503,9 @@ export function useAssetsViewController() {
             ? getDraggedAssetIds(assetDragId, selectedIds)
             : [];
       setDraggingAssetIds([]);
-      if (!canMove) return;
       const destFolderId = folderId ?? null;
       if (folderMoveId) {
+        if (!canMove) return;
         if (String(destFolderId || "") === String(folderMoveId || "")) return;
         const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
         const childrenByParent = new Map<string, string[]>();
@@ -531,6 +535,13 @@ export function useAssetsViewController() {
       }
       if (assetDragId) {
         if (draggedAssetIds.length === 0) return;
+        if (createFolderDropParentId !== undefined) {
+          setCreateFolderParentId(createFolderDropParentId);
+          setCreateFolderSeedAssetIds(draggedAssetIds);
+          setCreateFolderOpen(true);
+          return;
+        }
+        if (!canMove) return;
         if (isSameFolderDrop(currentFolderId, destFolderId)) return;
         await bulkMoveMutation.mutateAsync({ assetIds: draggedAssetIds, folderId: destFolderId });
         triggerDropPulse(overId, setDropSuccessPulse);
@@ -567,6 +578,9 @@ export function useAssetsViewController() {
     setCreateFolderOpen,
     createFolderParentId,
     setCreateFolderParentId,
+    createFolderSeedAssetIds,
+    setCreateFolderSeedAssetIds,
+    createFolderSeedAssetCount,
     editFolderOpen,
     setEditFolderOpen,
     editFolderTarget,

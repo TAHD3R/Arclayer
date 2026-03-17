@@ -31,7 +31,12 @@ import {
   flattenFoldersDepthFirst,
 } from "./assets-folder-rail-utils";
 import { FolderDescriptionTooltip } from "./folder-description-tooltip";
-import { DroppablePulse, FolderDroppableProvider, toFolderDndId } from "./assets-view-dnd";
+import {
+  CreateFolderDroppableProvider,
+  DroppablePulse,
+  FolderDroppableProvider,
+  toFolderDndId,
+} from "./assets-view-dnd";
 
 type AssetsFolderRailFolderSectionProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -50,6 +55,7 @@ type AssetsFolderRailFolderSectionProps = {
     nonce: number;
   } | null;
   tooltipDisabled?: boolean;
+  isDraggingAssets?: boolean;
 };
 
 function FolderCardSkeleton() {
@@ -75,31 +81,46 @@ function FolderAddCard(props: {
   t: AssetsFolderRailFolderSectionProps["t"];
   currentFolder: AdminAssetFolder | null;
   onCreateFolder: (parentId: string | null) => void;
+  isDraggingAssets?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      onClick={() =>
-        props.onCreateFolder(props.currentFolder ? String(props.currentFolder.id) : null)
-      }
-      className="group flex min-h-40 flex-col rounded-lg border border-dashed border-border/70 bg-transparent p-4 text-left transition-colors duration-200 hover:border-primary/45 hover:bg-primary/5"
+    <CreateFolderDroppableProvider
+      parentFolderId={props.currentFolder ? String(props.currentFolder.id) : null}
     >
-      <div className="mb-4 flex items-start gap-3">
-        <div className="grid size-10 place-items-center rounded-xl border border-dashed border-border/70 bg-background/70 text-label-secondary transition-colors group-hover:border-primary/40 group-hover:text-primary">
-          <FolderPlus className="size-4" />
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <div className="text-headline font-semibold text-foreground">
-          {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
-        </div>
-        <div className="text-footnote text-label-secondary">
-          {props.currentFolder
-            ? props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_IN", { name: props.currentFolder.name })
-            : props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_ROOT")}
-        </div>
-      </div>
-    </button>
+      {({ setNodeRef, isOver }) => (
+        <button
+          ref={setNodeRef}
+          type="button"
+          onClick={() =>
+            props.onCreateFolder(props.currentFolder ? String(props.currentFolder.id) : null)
+          }
+          className={cn(
+            "group flex min-h-40 flex-col rounded-lg border border-dashed p-4 text-left transition-colors duration-200",
+            isOver && props.isDraggingAssets
+              ? "border-primary/55 bg-primary/8 ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+              : "border-border/70 bg-transparent hover:border-primary/45 hover:bg-primary/5",
+          )}
+        >
+          <div className="mb-4 flex items-start gap-3">
+            <div className="grid size-10 place-items-center rounded-xl border border-dashed border-border/70 bg-background/70 text-label-secondary transition-colors group-hover:border-primary/40 group-hover:text-primary">
+              <FolderPlus className="size-4" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-headline font-semibold text-foreground">
+              {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
+            </div>
+            <div className="text-footnote text-label-secondary">
+              {props.currentFolder
+                ? props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_IN", {
+                    name: props.currentFolder.name,
+                  })
+                : props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_ROOT")}
+            </div>
+          </div>
+        </button>
+      )}
+    </CreateFolderDroppableProvider>
   );
 }
 
@@ -287,6 +308,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
             t={props.t}
             currentFolder={currentFolder}
             onCreateFolder={props.onCreateFolder}
+            isDraggingAssets={props.isDraggingAssets}
           />
         </div>
       ) : null}
@@ -328,6 +350,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
             t={props.t}
             currentFolder={currentFolder}
             onCreateFolder={props.onCreateFolder}
+            isDraggingAssets={props.isDraggingAssets}
           />
         </div>
       ) : null}

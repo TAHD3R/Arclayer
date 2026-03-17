@@ -58,6 +58,8 @@ function DialogOverlay({
   transition = { duration: 0.2, ease: "easeInOut" },
   ...props
 }: DialogOverlayProps) {
+  const { isOpen } = useDialog();
+
   return (
     <DialogPrimitive.Overlay data-slot="dialog-overlay" asChild forceMount>
       <motion.div
@@ -66,6 +68,7 @@ function DialogOverlay({
         animate={{ opacity: 1, filter: "blur(0px)" }}
         exit={{ opacity: 0, filter: "blur(4px)" }}
         transition={transition}
+        style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />
     </DialogPrimitive.Overlay>
@@ -92,6 +95,7 @@ function DialogContent({
   transition = { type: "spring", stiffness: 150, damping: 25 },
   ...props
 }: DialogContentProps) {
+  const { isOpen } = useDialog();
   const initialOffset =
     from === "top"
       ? ({ y: -14 } as const)
@@ -134,6 +138,7 @@ function DialogContent({
           ...initialOffset,
         }}
         transition={transition}
+        style={{ pointerEvents: isOpen ? "auto" : "none", ...props.style }}
         {...props}
       />
     </DialogPrimitive.Content>

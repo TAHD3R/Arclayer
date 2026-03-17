@@ -11,6 +11,7 @@ export type CreateAssetFolderDialogProps = {
   onOpenChange: (open: boolean) => void;
   parentLabel?: string;
   confirmLoading?: boolean;
+  assetCount?: number;
   onCreate: (name: string, description: string | null) => Promise<void> | void;
 };
 
@@ -26,17 +27,24 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
   }, [props.open]);
 
   const canSubmit = name.trim().length > 0 && !props.confirmLoading;
+  const hasSeedAssets = (props.assetCount ?? 0) > 0;
+  const dialogDescription = hasSeedAssets
+    ? props.parentLabel
+      ? t("assets:ASSET_FOLDER_CREATE_AND_MOVE_DESC_IN", {
+          parent: props.parentLabel,
+          count: props.assetCount,
+        })
+      : t("assets:ASSET_FOLDER_CREATE_AND_MOVE_DESC", { count: props.assetCount })
+    : props.parentLabel
+      ? t("assets:ASSET_FOLDER_CREATE_DESC_IN", { parent: props.parentLabel })
+      : t("assets:ASSET_FOLDER_CREATE_DESC");
 
   return (
     <SettingDialog
       open={props.open}
       onOpenChange={props.onOpenChange}
       title={t("assets:ASSET_FOLDER_CREATE_TITLE")}
-      description={
-        props.parentLabel
-          ? t("assets:ASSET_FOLDER_CREATE_DESC_IN", { parent: props.parentLabel })
-          : t("assets:ASSET_FOLDER_CREATE_DESC")
-      }
+      description={dialogDescription}
       footer={
         <>
           <Button
@@ -54,7 +62,9 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
               props.onOpenChange(false);
             }}
           >
-            {t("assets:ASSET_FOLDER_CREATE_CONFIRM")}
+            {hasSeedAssets
+              ? t("assets:ASSET_FOLDER_CREATE_AND_MOVE_CONFIRM")
+              : t("assets:ASSET_FOLDER_CREATE_CONFIRM")}
           </Button>
         </>
       }

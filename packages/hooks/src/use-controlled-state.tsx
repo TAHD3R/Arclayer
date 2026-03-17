@@ -13,18 +13,26 @@ export function useControlledState<T, Rest extends any[] = []>(
 ): readonly [T, (next: T, ...args: Rest) => void] {
   const { value, defaultValue, onChange } = props;
   const isControlled = value !== undefined;
+  const skipNextControlledSyncRef = React.useRef(false);
 
   const [state, setInternalState] = React.useState<T>(
     isControlled ? (value as T) : (defaultValue as T),
   );
 
-  React.useEffect(() => {
-    if (isControlled) setInternalState(value as T);
-  }, [isControlled, value]);
+  React.useLayoutEffect(() => {
+    if (!isControlled) return;
+    if (skipNextControlledSyncRef.current) {
+      skipNextControlledSyncRef.current = false;
+      return;
+    }
+    if (Object.is(state, value)) return;
+    setInternalState(value as T);
+  });
 
   const setState = React.useCallback(
     (next: T, ...args: Rest) => {
-      if (!isControlled) setInternalState(next);
+      if (isControlled) skipNextControlledSyncRef.current = true;
+      setInternalState(next);
       onChange?.(next, ...args);
     },
     [isControlled, onChange],

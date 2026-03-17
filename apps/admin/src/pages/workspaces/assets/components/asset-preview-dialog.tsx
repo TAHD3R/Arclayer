@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, EllipsisVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, EllipsisVertical, X } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 import {
@@ -52,6 +52,7 @@ function PreviewToolbar(props: {
   nextAsset: AssetMasonryItem | null;
   onSelectAsset: (asset: AssetMasonryItem) => void;
   onAction: (key: AssetMoreActionKey) => void;
+  onClose: () => void;
   menuItems: AssetMoreMenuItem[];
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
@@ -104,6 +105,15 @@ function PreviewToolbar(props: {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-9"
+        aria-label="Close"
+        onClick={props.onClose}
+      >
+        <X className="size-4" />
+      </Button>
     </div>
   );
 }
@@ -188,6 +198,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
               nextAsset={nextAsset}
               onSelectAsset={props.onSelectAsset}
               onAction={handleMoreAction}
+              onClose={props.onClose}
               menuItems={controller.moreMenuItems}
               t={controller.t}
             />

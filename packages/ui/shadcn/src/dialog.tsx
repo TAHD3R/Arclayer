@@ -106,7 +106,7 @@ function DialogContent({
       <DialogOverlay />
       <div
         data-overlay-root="dialog"
-        className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <DialogContentPrimitive
           className={cn(
