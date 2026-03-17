@@ -17,12 +17,17 @@ import { downloadWithAuth } from "./asset-masonry-tile";
 export type RecentLayoutMode = "single" | "multi";
 
 const recentCardBaseClassName =
-  "group relative overflow-hidden rounded-lg border bg-[#111111] text-white shadow-[0_18px_50px_rgba(0,0,0,0.32)] transition-all duration-300";
+  "group relative overflow-hidden rounded-lg border text-white transition-all duration-300";
 
 const recentCardInactiveClassName =
-  "border-white/10 bg-[#111111] hover:border-white/16 hover:-translate-y-[1px]";
-const recentCardActiveClassName =
-  "border-white/18 bg-[#161616] shadow-[0_20px_56px_rgba(0,0,0,0.36)]";
+  "border-border/60 bg-card hover:border-border hover:-translate-y-[1px] dark:border-white/10 dark:bg-[#111111] dark:hover:border-white/16";
+const recentCardActiveClassName = "border-border bg-card dark:border-white/18 dark:bg-[#161616]";
+
+const recentPreviewFrostClassName =
+  "absolute inset-0 bg-[linear-gradient(120deg,rgba(10,10,10,0.08)_0%,rgba(10,10,10,0.14)_22%,rgba(10,10,10,0.28)_48%,rgba(10,10,10,0.52)_74%,rgba(10,10,10,0.72)_100%)] backdrop-blur-sm";
+
+const recentFallbackFrostClassName =
+  "absolute inset-0 bg-[linear-gradient(120deg,rgba(10,10,10,0.05)_0%,rgba(10,10,10,0.12)_24%,rgba(10,10,10,0.24)_50%,rgba(10,10,10,0.42)_74%,rgba(10,10,10,0.60)_100%)] backdrop-blur-sm";
 
 function getRecentCardAccent(asset: AssetMasonryItem) {
   const mimeType = (asset.mimeType || "").toLowerCase();
@@ -61,7 +66,7 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.10),transparent_26%)] opacity-80" />
         <div className="absolute inset-0 bg-gradient-to-br from-black/[0.04] via-black/[0.10] to-black/[0.32]" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,8,0.08)_0%,rgba(8,8,8,0.12)_24%,rgba(8,8,8,0.22)_48%,rgba(8,8,8,0.44)_72%,rgba(8,8,8,0.68)_100%)]" />
-        <div className="absolute inset-y-0 right-0 w-[46%] bg-[linear-gradient(135deg,rgba(10,10,10,0.02)_0%,rgba(10,10,10,0.10)_20%,rgba(10,10,10,0.24)_42%,rgba(10,10,10,0.46)_65%,rgba(10,10,10,0.72)_100%)] backdrop-blur-[1.5px]" />
+        <div className={recentPreviewFrostClassName} />
       </>
     );
   }
@@ -85,7 +90,7 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
         />
       </div>
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,8,0.04)_0%,rgba(8,8,8,0.08)_26%,rgba(8,8,8,0.18)_50%,rgba(8,8,8,0.36)_72%,rgba(8,8,8,0.58)_100%)]" />
-      <div className="absolute inset-y-0 right-0 w-[42%] bg-[linear-gradient(135deg,rgba(10,10,10,0.00)_0%,rgba(10,10,10,0.10)_24%,rgba(10,10,10,0.24)_46%,rgba(10,10,10,0.42)_68%,rgba(10,10,10,0.62)_100%)] backdrop-blur-[1px]" />
+      <div className={recentFallbackFrostClassName} />
     </>
   );
 }
