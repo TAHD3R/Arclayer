@@ -406,7 +406,6 @@ export function AdminNotificationsPanel({
                       key={n.id}
                       item={n}
                       nowMs={nowMs}
-                      locale={i18n.language}
                       isRead={Boolean(n.readAt)}
                       compact
                       onNavigate={() => void openTarget(n)}

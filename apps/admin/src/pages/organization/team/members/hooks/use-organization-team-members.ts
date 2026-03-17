@@ -19,7 +19,7 @@ import type {
 import { getOrganizationRbacMatrix, listOrganizationRoles } from "@/api/organization-rbac";
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { useDataTable } from "@arclayer/ui/data-table";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -68,7 +68,7 @@ export function useOrganizationTeamMembers(
   const hydratedSearchRef = useRef<string | null>(null);
   const hydratedInspectRef = useRef<string | null>(null);
   const [roleDraft, setRoleDraft] = useState<string>("");
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useOrganizationDateTimeFormatter();
 
   const rolesQuery = useQuery({
     queryKey: ["organization", "rbac", "roles"],

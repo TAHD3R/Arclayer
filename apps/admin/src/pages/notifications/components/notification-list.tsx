@@ -7,7 +7,6 @@ import { ItemSeparator } from "@arclayer/ui/item";
 type NotificationListProps = {
   items: NotificationItem[];
   nowMs: number;
-  locale: string;
   isRead: boolean;
   onNavigate: (n: NotificationItem) => void;
   onMarkRead?: (n: NotificationItem) => void;
@@ -18,7 +17,6 @@ type NotificationListProps = {
 export function NotificationList({
   items,
   nowMs,
-  locale,
   isRead,
   onNavigate,
   onMarkRead,
@@ -42,7 +40,6 @@ export function NotificationList({
               <NotificationCard
                 item={n}
                 nowMs={nowMs}
-                locale={locale}
                 isRead={isRead}
                 onNavigate={() => onNavigate(n)}
                 onMarkRead={!isRead && onMarkRead ? () => onMarkRead(n) : undefined}

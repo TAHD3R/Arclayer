@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatAdminDateTimeValue,
+  resolveAdminDateTimeWorkspaceId,
   resolveAdminLocalizationSnapshot,
 } from "@/hooks/use-admin-date-time-formatter";
 
@@ -46,6 +47,14 @@ describe("formatAdminDateTimeValue", () => {
 });
 
 describe("resolveAdminLocalizationSnapshot", () => {
+  it("honors an explicit null workspace scope override", () => {
+    expect(resolveAdminDateTimeWorkspaceId({ workspaceId: null }, "ws-from-store")).toBeNull();
+  });
+
+  it("falls back to the current workspace when no override is provided", () => {
+    expect(resolveAdminDateTimeWorkspaceId(undefined, "ws-from-store")).toBe("ws-from-store");
+  });
+
   it("uses current UI locale while keeping workspace date settings", () => {
     const resolved = resolveAdminLocalizationSnapshot({
       workspaceLocalization: {

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import type { ActivityEvent, OrganizationMember } from "@/types/api";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
 import { resolveCatalogEntry } from "@/pages/organization/activity/constants";
 
 type OverviewPermission = {
@@ -50,7 +50,7 @@ export function OrganizationMemberInspectOverviewTab({
   recentActivity,
 }: OrganizationMemberInspectOverviewTabProps) {
   const { t } = useTranslation(["common", "activity"]);
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useOrganizationDateTimeFormatter();
 
   const grantedPermissions = permissions.filter((permission) => permission.granted);
   const topPermissionNames = grantedPermissions

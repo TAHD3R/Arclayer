@@ -3,8 +3,8 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
+import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
 import type { OrganizationWorkspace } from "@/types/api";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
@@ -35,7 +35,7 @@ export function useOrganizationWorkspacesColumns(
     onUnarchiveWorkspace,
     onEnterWorkspace,
   } = options;
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useOrganizationDateTimeFormatter();
 
   return useMemo<Array<ColumnDef<OrganizationWorkspace, unknown>>>(
     () => [

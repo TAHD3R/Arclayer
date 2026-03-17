@@ -6,8 +6,10 @@ import {
   Users,
   Wrench,
 } from "@arclayer/ui/icons/lucide-animated";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
 import type { NotificationCategory, NotificationItem } from "@/types/api";
 import {
   Item,
@@ -18,13 +20,11 @@ import {
   ItemTitle,
 } from "@arclayer/ui/item";
 import { Button } from "@arclayer/ui/button";
-import { formatRelativeTimeAt } from "@/lib/time/relative-time";
 import { cn } from "@arclayer/lib/utils";
 
 interface NotificationCardProps {
   item: NotificationItem;
   nowMs: number;
-  locale: string;
   isRead: boolean;
   onNavigate: () => void;
   onMarkRead?: () => void;
@@ -44,7 +44,6 @@ function pickCategoryIcon(category: NotificationCategory) {
 export function NotificationCard({
   item,
   nowMs,
-  locale,
   isRead,
   onNavigate,
   onMarkRead,
@@ -53,8 +52,12 @@ export function NotificationCard({
   compact = false,
 }: NotificationCardProps) {
   const { t } = useTranslation("notifications");
+  const dateTime = useOrganizationDateTimeFormatter();
   const Icon = pickCategoryIcon(item.category);
-  const timeText = formatRelativeTimeAt(item.createdAt, locale, nowMs);
+  const timeText = useMemo(
+    () => dateTime.formatDateTime(item.createdAt),
+    [dateTime, item.createdAt, nowMs],
+  );
 
   return (
     <Item

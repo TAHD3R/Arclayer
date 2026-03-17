@@ -1,4 +1,7 @@
+import { format } from "date-fns";
+
 import { FULL_DATE_TIME_FORMAT } from "@/constants/datetime";
+import { resolveDateFnsLocale } from "@/lib/time/date-fns-locale";
 
 export type DateFormatPattern =
   | "YYYY-MM-DD"
@@ -7,45 +10,61 @@ export type DateFormatPattern =
   | "DD/MM/YYYY"
   | typeof FULL_DATE_TIME_FORMAT;
 
+const DATE_PART_TYPES = ["year", "month", "day", "hour", "minute"] as const;
+const LEGACY_PATTERN_MAP = {
+  "YYYY-MM-DD": "yyyy-MM-dd",
+  "YYYY/MM/DD": "yyyy/MM/dd",
+  "MM/DD/YYYY": "MM/dd/yyyy",
+  "DD/MM/YYYY": "dd/MM/yyyy",
+} as const;
+
 function pickPart(parts: Intl.DateTimeFormatPart[], type: string): string | null {
   const found = parts.find((p) => p.type === type);
   return found?.value ?? null;
 }
 
-function normalizePattern(input: string | undefined): DateFormatPattern {
-  if (
-    input === "YYYY-MM-DD" ||
-    input === "YYYY/MM/DD" ||
-    input === "MM/DD/YYYY" ||
-    input === "DD/MM/YYYY" ||
-    input === FULL_DATE_TIME_FORMAT
-  ) {
-    return input;
-  }
-  return "YYYY-MM-DD";
+function normalizePattern(input: string | undefined): string {
+  if (!input) return LEGACY_PATTERN_MAP["YYYY-MM-DD"];
+  if (input === FULL_DATE_TIME_FORMAT) return FULL_DATE_TIME_FORMAT;
+  return LEGACY_PATTERN_MAP[input as keyof typeof LEGACY_PATTERN_MAP] ?? input;
 }
 
-function formatFullDateTime(params: {
-  date: Date;
-  locale: string;
-  timeZone: string;
-  includeTime: boolean;
-}): string {
+function buildZonedDate(params: { date: Date; locale: string; timeZone: string }): Date | null {
   const formatter = new Intl.DateTimeFormat(params.locale || undefined, {
     timeZone: params.timeZone || undefined,
     year: "numeric",
-    month: "long",
-    day: "numeric",
-    ...(params.includeTime
-      ? {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }
-      : null),
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
+  const parts = formatter.formatToParts(params.date);
+  const values = Object.fromEntries(
+    DATE_PART_TYPES.map((type) => [type, pickPart(parts, type)]),
+  ) as Record<(typeof DATE_PART_TYPES)[number], string | null>;
 
-  return formatter.format(params.date);
+  if (!values.year || !values.month || !values.day || !values.hour || !values.minute) {
+    return null;
+  }
+
+  return new Date(
+    Date.UTC(
+      Number(values.year),
+      Number(values.month) - 1,
+      Number(values.day),
+      Number(values.hour),
+      Number(values.minute),
+    ),
+  );
+}
+
+function resolveDateTimePattern(pattern: string, includeTime: boolean): string {
+  if (pattern === FULL_DATE_TIME_FORMAT) {
+    return includeTime ? "PPpp" : "PP";
+  }
+  if (!includeTime) return pattern;
+  return `${pattern} HH:mm`;
 }
 
 export function formatDateTimeWithPattern(params: {
@@ -57,47 +76,24 @@ export function formatDateTimeWithPattern(params: {
 }): string {
   const pattern = normalizePattern(params.dateFormat);
   const includeTime = params.includeTime ?? true;
-
-  if (pattern === FULL_DATE_TIME_FORMAT) {
-    return formatFullDateTime({
-      date: params.date,
-      locale: params.locale,
-      timeZone: params.timeZone,
-      includeTime,
-    });
+  const zonedDate = buildZonedDate(params);
+  if (!zonedDate) {
+    return new Intl.DateTimeFormat(params.locale || undefined, {
+      timeZone: params.timeZone || undefined,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      ...(includeTime
+        ? {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }
+        : null),
+    }).format(params.date);
   }
 
-  const dtf = new Intl.DateTimeFormat(params.locale || undefined, {
-    timeZone: params.timeZone || undefined,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    ...(includeTime
-      ? {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }
-      : null),
+  return format(zonedDate, resolveDateTimePattern(pattern, includeTime), {
+    locale: resolveDateFnsLocale(params.locale),
   });
-
-  const parts = dtf.formatToParts(params.date);
-  const y = pickPart(parts, "year");
-  const m = pickPart(parts, "month");
-  const d = pickPart(parts, "day");
-  const hh = pickPart(parts, "hour");
-  const mm = pickPart(parts, "minute");
-
-  if (!y || !m || !d) return dtf.format(params.date);
-
-  const dateText = (() => {
-    if (pattern === "YYYY/MM/DD") return `${y}/${m}/${d}`;
-    if (pattern === "MM/DD/YYYY") return `${m}/${d}/${y}`;
-    if (pattern === "DD/MM/YYYY") return `${d}/${m}/${y}`;
-    return `${y}-${m}-${d}`;
-  })();
-
-  if (!includeTime) return dateText;
-  if (!hh || !mm) return dateText;
-  return `${dateText} ${hh}:${mm}`;
 }

@@ -35,6 +35,7 @@ import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
 import { cn } from "@arclayer/lib/utils";
 import { systemRuntimeQueryKey } from "@/lib/extensions/query-keys";
+import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
 import { useSysAuthStore } from "@/stores/use-sys-auth-store";
 import type { SysConfigDetail, SysConfigNamespaceSummary, SysConfigTestCheck } from "@/types/api";
 import { ExtensionSettingsForm } from "@/pages/_shared/extensions/components/extension-settings-form";
@@ -49,6 +50,7 @@ function isSuperAdminRequired(error: unknown): boolean {
 
 export function SysSettingsPage() {
   const { t } = useTranslation(["sys", "settings", "common"]);
+  const dateTime = useOrganizationDateTimeFormatter();
   const navigate = useNavigate();
   const { namespace } = useParams({ from: "/sys/settings/$namespace/" });
   const queryClient = useQueryClient();
@@ -352,7 +354,7 @@ export function SysSettingsPage() {
                       ) : null}
                     </div>
                     <div className="mt-1 text-caption text-label-secondary">
-                      {new Date(rev.createdAt).toLocaleString()}
+                      {dateTime.formatDateTime(rev.createdAt)}
                     </div>
                   </div>
                 );

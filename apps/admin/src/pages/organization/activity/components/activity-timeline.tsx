@@ -13,7 +13,7 @@ import {
   TimelineItem,
   TimelineSeparator,
 } from "@arclayer/ui/timeline";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { cn } from "@arclayer/lib/utils";
 
@@ -136,7 +136,7 @@ function getEventIndicator(level?: ActivityEventLevel) {
 
 export function ActivityTimeline(props: ActivityTimelineProps) {
   const { t } = useTranslation(["activity"]);
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useOrganizationDateTimeFormatter();
 
   const groups = React.useMemo(
     () =>
@@ -201,7 +201,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
   );
 }
 
-type DateTimeFormatter = ReturnType<typeof useWorkspaceDateTimeFormatter>;
+type DateTimeFormatter = ReturnType<typeof useOrganizationDateTimeFormatter>;
 
 type ActivityTimelineEntryProps = {
   event: ActivityEvent;

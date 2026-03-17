@@ -53,6 +53,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "i18next": "^25.8.0",
+    "date-fns": "catalog:",
     "lodash": "catalog:",
     "lucide-react": "^0.525.0",
     "masonic": "^4.1.0",

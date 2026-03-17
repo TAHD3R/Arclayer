@@ -90,7 +90,6 @@ export function NotificationsView() {
                 <NotificationList
                   items={status === "all" ? n.unreadItems : n.items}
                   nowMs={n.nowMs}
-                  locale={n.locale}
                   isRead={false}
                   onNavigate={(item) => void n.navigateToTarget(item)}
                   onMarkRead={(item) => void n.markRead(item)}
@@ -107,7 +106,6 @@ export function NotificationsView() {
                     <NotificationList
                       items={n.readItems}
                       nowMs={n.nowMs}
-                      locale={n.locale}
                       isRead
                       onNavigate={(item) => n.navigateToReadTarget(item)}
                       onArchive={(item) => void n.archiveItem(item)}

@@ -64,6 +64,16 @@ export type ResolveAdminLocalizationSnapshotParams = {
   browserTimeZone: string;
 };
 
+export function resolveAdminDateTimeWorkspaceId(
+  params: { workspaceId?: string | null } | undefined,
+  workspaceIdFromStore: string | null | undefined,
+): string | null {
+  if (params && Object.prototype.hasOwnProperty.call(params, "workspaceId")) {
+    return params.workspaceId ?? null;
+  }
+  return workspaceIdFromStore ?? null;
+}
+
 export function formatAdminDateTimeValue(params: {
   date: Date | null;
   localization: AdminLocalizationSnapshot;
@@ -122,7 +132,7 @@ export function useAdminDateTimeFormatter(params?: { workspaceId?: string | null
   const preferencesLocale = usePreferencesStore((state) => state.locale);
   const preferencesTimeZone = usePreferencesStore((state) => state.timeZonePreference);
 
-  const workspaceId = params?.workspaceId ?? workspaceIdFromStore ?? null;
+  const workspaceId = resolveAdminDateTimeWorkspaceId(params, workspaceIdFromStore);
 
   const workspaceQuery = useQuery({
     queryKey: ["settings", "workspace", "core", workspaceId],

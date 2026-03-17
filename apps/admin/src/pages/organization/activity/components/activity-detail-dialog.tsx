@@ -6,7 +6,7 @@ import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { resolveCatalogEntry } from "@/pages/organization/activity/constants";
 import { ActivityUserPill } from "@/pages/organization/activity/components/activity-user-pill";
-import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
+import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
 
 function safeJsonStringify(value: unknown): string {
   try {
@@ -45,7 +45,7 @@ export function ActivityDetailDialog(props: {
   workspaceLabelById?: Record<string, string>;
 }) {
   const { t } = useTranslation(["activity"]);
-  const dateTime = useWorkspaceDateTimeFormatter();
+  const dateTime = useOrganizationDateTimeFormatter();
 
   const event = props.event;
   const hideMetaBlocks = event?.eventName === "workspace.member.roles.updated";
