@@ -167,7 +167,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
           />
         }
         sideSlots={{
-          right: {
+          left: {
             title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
             mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
             minWidth: "20rem",
