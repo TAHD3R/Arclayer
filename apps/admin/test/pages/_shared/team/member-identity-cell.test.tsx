@@ -2,7 +2,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { TooltipProvider } from "@arclayer/ui/tooltip";
 import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
 
 vi.mock("react-i18next", () => ({
@@ -29,21 +28,19 @@ beforeAll(() => {
 
 function renderCell(onOpenDetails = vi.fn()) {
   return render(
-    <TooltipProvider openDelay={0} closeDelay={0}>
-      <MemberIdentityCell
-        member={{
-          displayName: "Ada Lovelace",
-          username: "ada",
-          email: "ada@example.com",
-          avatarUrl: "/avatars/ada.png",
-        }}
-        description="Can manage members and content"
-        scopeLabel="Organization"
-        roleLabel="Administrator"
-        statusLabel="Active"
-        onOpenDetails={onOpenDetails}
-      />
-    </TooltipProvider>,
+    <MemberIdentityCell
+      member={{
+        displayName: "Ada Lovelace",
+        username: "ada",
+        email: "ada@example.com",
+        avatarUrl: "/avatars/ada.png",
+      }}
+      description="Can manage members and content"
+      scopeLabel="Organization"
+      roleLabel="Administrator"
+      statusLabel="Active"
+      onOpenDetails={onOpenDetails}
+    />,
   );
 }
 
@@ -61,6 +58,7 @@ describe("MemberIdentityCell", () => {
       expect(screen.getByText("Administrator")).toBeVisible();
       expect(screen.getByText("Active")).toBeVisible();
       expect(screen.getByText("Organization")).toBeVisible();
+      expect(screen.getByText("Can manage members and content")).toBeVisible();
     });
 
     await user.click(trigger);

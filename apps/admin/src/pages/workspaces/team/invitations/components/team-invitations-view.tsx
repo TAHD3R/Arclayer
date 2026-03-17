@@ -320,11 +320,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
           defaultHidden: true,
         },
         header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
-        cell: ({ row }) => (
-          <span>
-            {row.original.acceptedBy?.displayName || row.original.acceptedBy?.username || "-"}
-          </span>
-        ),
+        cell: ({ row }) => renderUserLabel(row.original.acceptedBy),
       },
       {
         id: "processedAt",

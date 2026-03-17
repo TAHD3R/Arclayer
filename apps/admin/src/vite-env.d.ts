@@ -11,3 +11,10 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module "virtual:arclayer-app-config" {
+  import type { AppConfig } from "@arclayer/runtime/config";
+
+  export const appConfig: AppConfig;
+  export default appConfig;
+}

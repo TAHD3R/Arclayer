@@ -1,6 +1,10 @@
 import * as React from "react";
 
-import { UserAvatar } from "@/components/common/entity-avatar";
+import {
+  UserIdentityInline,
+  getUserIdentityPrimaryLabel,
+  getUserIdentitySecondaryLabel,
+} from "@/pages/_shared/team/components/user-identity";
 
 export type ActivityUserSummary = {
   id: string;
@@ -10,9 +14,7 @@ export type ActivityUserSummary = {
 };
 
 export function renderUserDisplayName(user: ActivityUserSummary | null | undefined): string {
-  if (!user) return "-";
-  const primary = (user.displayName || user.username || user.id || "").trim();
-  return primary || "-";
+  return getUserIdentityPrimaryLabel(user);
 }
 
 export function ActivityUserPill(props: {
@@ -22,19 +24,25 @@ export function ActivityUserPill(props: {
 }) {
   const size = props.size ?? 24;
   const user = props.user;
-  if (!user) return <span className="text-label-secondary">-</span>;
+  const fallbackSecondary = getUserIdentitySecondaryLabel(user);
+  const inlineSecondary = props.secondary ?? fallbackSecondary;
+  const cardDescription =
+    typeof props.secondary === "string" &&
+    fallbackSecondary &&
+    fallbackSecondary !== props.secondary
+      ? fallbackSecondary
+      : null;
 
-  const primary = renderUserDisplayName(user);
-  const secondary = props.secondary;
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      <UserAvatar name={primary} assetRef={user.avatarUrl} size={size} />
-      <div className="min-w-0">
-        <div className="text-footnote font-medium truncate">{primary}</div>
-        {secondary ? (
-          <div className="text-caption text-label-secondary truncate">{secondary}</div>
-        ) : null}
-      </div>
-    </div>
+    <UserIdentityInline
+      user={user ?? null}
+      avatarSize={size}
+      className="min-w-0"
+      inlineSecondary={inlineSecondary}
+      cardDescription={cardDescription}
+      triggerClassName="gap-2"
+      primaryClassName="truncate text-footnote font-medium"
+      secondaryClassName="truncate text-caption text-label-secondary"
+    />
   );
 }

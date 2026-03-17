@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./inject-app-config": "./src/inject-app-config.ts",
+    "./static-app-config": "./src/static-app-config.ts",
     "./inject-preferences": "./src/inject-preferences.ts",
     "./inject-loading-screen": "./src/inject-loading-screen.ts",
     "./inject-build-meta": "./src/inject-build-meta.ts",

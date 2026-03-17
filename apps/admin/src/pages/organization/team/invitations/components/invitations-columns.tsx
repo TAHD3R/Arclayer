@@ -205,15 +205,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
           defaultHidden: true,
         },
         header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
-        cell: ({ row }) => (
-          <span>
-            {row.original.acceptedBy?.displayName ||
-              row.original.acceptedBy?.username ||
-              row.original.revokedBy?.displayName ||
-              row.original.revokedBy?.username ||
-              "-"}
-          </span>
-        ),
+        cell: ({ row }) => renderUserLabel(row.original.acceptedBy ?? row.original.revokedBy),
       },
       {
         id: "processedAt",
