@@ -2,11 +2,20 @@ import path from "path";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { staticAppConfig } from "@arclayer/vite-plugin";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   root: __dirname,
   plugins: [
+    staticAppConfig({
+      config: {
+        title: "Arclayer",
+        apiBaseUrl: "",
+        apiPrefix: "/api/v1",
+      },
+      description: "Arclayer Admin",
+    }),
     tanstackRouter({
       target: "react",
       autoCodeSplitting: true,

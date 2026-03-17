@@ -20,7 +20,8 @@ import { Spinner } from "@arclayer/ui/spinner";
 import { UsesCountTag } from "@/components/ui/tags";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
-import { UserLabel } from "./user-label";
+import { InvitationUserLabel } from "./invitation-user-label";
+import { buildInvitationUserDetails } from "./invitation-user-details";
 
 function normalizeQuery(input: string): string {
   return String(input || "").trim();
@@ -32,6 +33,7 @@ export function InviteLinkParticipantsPopover(props: {
   linkId: string;
   usesCount: number;
   primaryUser: TeamUserRef | null;
+  lastUsedAt?: string | null;
 }) {
   const { t } = useTranslation(["team", "common"]);
   const dateTime = useWorkspaceDateTimeFormatter({ workspaceId: props.workspaceId || undefined });
@@ -141,7 +143,15 @@ export function InviteLinkParticipantsPopover(props: {
                   >
                     <div className="flex items-center justify-between gap-3 w-full min-w-0">
                       <div className="min-w-0">
-                        <UserLabel user={item.user} />
+                        <InvitationUserLabel
+                          user={item.user}
+                          details={buildInvitationUserDetails({
+                            t,
+                            dateTime,
+                            lastUsedAt: item.usedAt,
+                            lastUsedAtLabel: t("team:TEAM_INVITE_LINKS_COL_LAST_USED"),
+                          })}
+                        />
                       </div>
                       <div className="text-caption text-label-secondary whitespace-nowrap">
                         {dateTime.formatDateTime(item.usedAt, { emptyValue: "-" })}
@@ -204,7 +214,16 @@ export function InviteLinkParticipantsPopover(props: {
         >
           <UsesCountTag label={props.usesCount} />
           <div className="min-w-0 flex-1">
-            <UserLabel user={props.primaryUser} />
+            <InvitationUserLabel
+              user={props.primaryUser}
+              usesCount={props.usesCount}
+              details={buildInvitationUserDetails({
+                t,
+                dateTime,
+                lastUsedAt: props.lastUsedAt,
+                lastUsedAtLabel: t("team:TEAM_INVITE_LINKS_COL_LAST_USED"),
+              })}
+            />
           </div>
         </ButtonPrimitive>
       </PopoverTrigger>

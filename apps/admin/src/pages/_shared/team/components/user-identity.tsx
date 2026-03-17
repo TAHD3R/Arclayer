@@ -21,7 +21,8 @@ export type UserIdentity = {
 export type UserIdentityInlineProps = {
   user: UserIdentity | null;
   avatarSize?: number;
-  inlineSecondary?: React.ReactNode;
+  triggerSecondary?: React.ReactNode;
+  cardSecondary?: React.ReactNode;
   cardDescription?: React.ReactNode;
   cardBadges?: React.ReactNode;
   onClick?: () => void;
@@ -141,13 +142,18 @@ function renderTriggerElement(props: {
         aria-label={props.primary}
         onClick={props.onClick}
         className={props.className}
+        data-user-identity-trigger=""
       >
         {props.children}
       </button>
     );
   }
 
-  return <div className={props.className}>{props.children}</div>;
+  return (
+    <div className={props.className} data-user-identity-trigger="">
+      {props.children}
+    </div>
+  );
 }
 
 export function UserIdentityInline(props: UserIdentityInlineProps) {
@@ -156,16 +162,31 @@ export function UserIdentityInline(props: UserIdentityInlineProps) {
   }
 
   const primary = getUserIdentityPrimaryLabel(props.user);
-  const secondary = props.inlineSecondary ?? getUserIdentitySecondaryLabel(props.user);
+  const defaultSecondary = getUserIdentitySecondaryLabel(props.user);
+  const triggerSecondary =
+    props.triggerSecondary === undefined ? defaultSecondary : props.triggerSecondary;
+  const cardSecondary = props.cardSecondary === undefined ? defaultSecondary : props.cardSecondary;
   const interactive = Boolean(props.onClick);
+  const hasHoverCard =
+    hasRenderableContent(cardSecondary) ||
+    hasRenderableContent(props.cardDescription) ||
+    hasRenderableContent(props.cardBadges);
   const trigger = renderTriggerElement({
     interactive,
     primary,
     onClick: props.onClick,
-    className: cn("flex min-w-0 items-center gap-2", props.triggerClassName),
+    className: cn(
+      "flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors",
+      hasHoverCard ? "hover:bg-accent/45" : null,
+      interactive ? "cursor-pointer" : hasHoverCard ? "cursor-default" : null,
+      interactive
+        ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        : null,
+      props.triggerClassName,
+    ),
     children: renderTriggerContent({
       primary,
-      secondary,
+      secondary: triggerSecondary,
       avatarSize: props.avatarSize ?? 24,
       avatarUrl: props.user.avatarUrl,
       infoClassName: props.infoClassName,
@@ -173,11 +194,6 @@ export function UserIdentityInline(props: UserIdentityInlineProps) {
       secondaryClassName: props.secondaryClassName,
     }),
   });
-
-  const hasHoverCard =
-    hasRenderableContent(secondary) ||
-    hasRenderableContent(props.cardDescription) ||
-    hasRenderableContent(props.cardBadges);
 
   if (!hasHoverCard) {
     return <div className={props.className}>{trigger}</div>;
@@ -199,7 +215,7 @@ export function UserIdentityInline(props: UserIdentityInlineProps) {
         >
           <UserIdentityCard
             primary={primary}
-            secondary={secondary}
+            secondary={cardSecondary}
             avatarUrl={props.user.avatarUrl}
             description={props.cardDescription}
             badges={props.cardBadges}

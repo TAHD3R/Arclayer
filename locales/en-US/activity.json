@@ -24,6 +24,7 @@
   "ACTIVITY_FIELD_TRACE_ID": "Trace ID",
   "ACTIVITY_FIELD_ACTOR": "Actor",
   "ACTIVITY_FIELD_SUBJECT": "Subject",
+  "ACTIVITY_FIELD_REFERENCE": "Identity reference",
   "ACTIVITY_FIELD_PROPERTIES": "Properties",
   "ACTIVITY_DAY_TODAY": "Today",
   "ACTIVITY_DAY_YESTERDAY": "Yesterday",

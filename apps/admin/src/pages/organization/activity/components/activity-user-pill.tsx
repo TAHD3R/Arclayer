@@ -1,10 +1,12 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   UserIdentityInline,
   getUserIdentityPrimaryLabel,
   getUserIdentitySecondaryLabel,
 } from "@/pages/_shared/team/components/user-identity";
+import { UserIdentityMetaList } from "@/pages/_shared/team/components/user-identity-meta";
 
 export type ActivityUserSummary = {
   id: string;
@@ -22,23 +24,29 @@ export function ActivityUserPill(props: {
   secondary?: React.ReactNode;
   size?: number;
 }) {
+  const { t } = useTranslation(["activity"]);
   const size = props.size ?? 24;
   const user = props.user;
+  const primary = getUserIdentityPrimaryLabel(user);
   const fallbackSecondary = getUserIdentitySecondaryLabel(user);
-  const inlineSecondary = props.secondary ?? fallbackSecondary;
+  const referenceText =
+    typeof props.secondary === "string" || typeof props.secondary === "number"
+      ? String(props.secondary).trim()
+      : "";
   const cardDescription =
-    typeof props.secondary === "string" &&
-    fallbackSecondary &&
-    fallbackSecondary !== props.secondary
-      ? fallbackSecondary
-      : null;
+    referenceText && referenceText !== primary && referenceText !== fallbackSecondary ? (
+      <UserIdentityMetaList
+        items={[{ label: t("activity:ACTIVITY_FIELD_REFERENCE"), value: referenceText }]}
+      />
+    ) : null;
 
   return (
     <UserIdentityInline
       user={user ?? null}
       avatarSize={size}
       className="min-w-0"
-      inlineSecondary={inlineSecondary}
+      triggerSecondary={null}
+      cardSecondary={fallbackSecondary || referenceText || null}
       cardDescription={cardDescription}
       triggerClassName="gap-2"
       primaryClassName="truncate text-footnote font-medium"

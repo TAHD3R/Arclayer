@@ -31,11 +31,12 @@ import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/i
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import { renderUserLabel } from "@/pages/_shared/team/components/user-label";
 import type { RenewExpiresInSeconds, TabKey } from "../types";
 import { TeamInvitationsTableSection } from "@/pages/_shared/team/components/team-invitations-table-section";
 import { TeamInvitationsDialogs } from "./invitations-dialogs";
 import { InvitationRoleTag, InvitationStatusTag } from "@/components/ui/tags";
+import { InvitationUserLabel } from "@/pages/_shared/team/components/invitation-user-label";
+import { buildInvitationUserDetails } from "@/pages/_shared/team/components/invitation-user-details";
 
 export function TeamInvitationsView(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "nav", "common"]);
@@ -196,7 +197,26 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
           defaultHidden: true,
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-        cell: ({ row }) => renderUserLabel(row.original.createdBy),
+        cell: ({ row }) => {
+          const invitation = row.original;
+          const roleName = invitation.roleCode ? roleNameByCode.get(invitation.roleCode) : null;
+          const status = invitation.status;
+          return (
+            <InvitationUserLabel
+              user={invitation.createdBy}
+              roleLabel={roleName}
+              status={status}
+              statusLabel={renderInvitationStatus(status)}
+              details={buildInvitationUserDetails({
+                t,
+                dateTime,
+                inviteeEmail: invitation.email,
+                createdAt: invitation.createdAt,
+                expiresAt: invitation.expiresAt,
+              })}
+            />
+          );
+        },
       },
 
       {
@@ -320,7 +340,28 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
           defaultHidden: true,
         },
         header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
-        cell: ({ row }) => renderUserLabel(row.original.acceptedBy),
+        cell: ({ row }) => {
+          const invitation = row.original;
+          const roleName = invitation.roleCode ? roleNameByCode.get(invitation.roleCode) : null;
+          const status = invitation.status;
+          return (
+            <InvitationUserLabel
+              user={invitation.acceptedBy}
+              roleLabel={roleName}
+              status={status}
+              statusLabel={renderInvitationStatus(status)}
+              details={buildInvitationUserDetails({
+                t,
+                dateTime,
+                inviteeEmail: invitation.email,
+                createdAt: invitation.createdAt,
+                expiresAt: invitation.expiresAt,
+                processedAt: invitation.acceptedAt || invitation.revokedAt,
+                processedAtLabel: t("team:TEAM_INVITATIONS_COL_PROCESSED"),
+              })}
+            />
+          );
+        },
       },
       {
         id: "processedAt",
@@ -360,7 +401,25 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
           defaultHidden: true,
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-        cell: ({ row }) => renderUserLabel(row.original.createdBy),
+        cell: ({ row }) => {
+          const link = row.original;
+          const roleName = link.roleCode ? roleNameByCode.get(link.roleCode) : null;
+          return (
+            <InvitationUserLabel
+              user={link.createdBy}
+              roleLabel={roleName}
+              usesCount={Number(link.usesCount || 0)}
+              details={buildInvitationUserDetails({
+                t,
+                dateTime,
+                createdAt: link.createdAt,
+                expiresAt: link.expiresAt,
+                lastUsedAt: link.lastUsedAt,
+                lastUsedAtLabel: t("team:TEAM_INVITE_LINKS_COL_LAST_USED"),
+              })}
+            />
+          );
+        },
       },
       {
         accessorKey: "code",
@@ -416,6 +475,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
               linkId={row.original.id}
               usesCount={uses}
               primaryUser={primaryUser}
+              lastUsedAt={row.original.lastUsedAt}
             />
           );
         },

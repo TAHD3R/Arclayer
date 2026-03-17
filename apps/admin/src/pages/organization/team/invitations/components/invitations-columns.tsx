@@ -5,13 +5,18 @@ import { Link2Off, RotateCcw } from "lucide-react";
 import { Button } from "@arclayer/ui/button";
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";
-import { renderUserLabel } from "@/pages/_shared/team/components/user-label";
 import { InvitationRoleTag, InvitationStatusTag } from "@/components/ui/tags";
+import { InvitationUserLabel } from "@/pages/_shared/team/components/invitation-user-label";
+import { buildInvitationUserDetails } from "@/pages/_shared/team/components/invitation-user-details";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
 type DateFormatterLike = {
   formatDate: (
+    iso: string | null | undefined,
+    options?: { emptyValue?: string; invalidValue?: string },
+  ) => string;
+  formatDateTime: (
     iso: string | null | undefined,
     options?: { emptyValue?: string; invalidValue?: string },
   ) => string;
@@ -80,7 +85,26 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
           defaultHidden: true,
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-        cell: ({ row }) => renderUserLabel(row.original.createdBy),
+        cell: ({ row }) => {
+          const invitation = row.original;
+          const roleName = invitation.roleCode ? roleNameByCode.get(invitation.roleCode) : null;
+          const status = invitation.status;
+          return (
+            <InvitationUserLabel
+              user={invitation.createdBy}
+              roleLabel={roleName}
+              status={status}
+              statusLabel={invitationStatusLabel(status)}
+              details={buildInvitationUserDetails({
+                t,
+                dateTime,
+                inviteeEmail: invitation.email,
+                createdAt: invitation.createdAt,
+                expiresAt: invitation.expiresAt,
+              })}
+            />
+          );
+        },
       },
       {
         id: "status",
@@ -205,7 +229,28 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
           defaultHidden: true,
         },
         header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
-        cell: ({ row }) => renderUserLabel(row.original.acceptedBy ?? row.original.revokedBy),
+        cell: ({ row }) => {
+          const invitation = row.original;
+          const roleName = invitation.roleCode ? roleNameByCode.get(invitation.roleCode) : null;
+          const status = invitation.status;
+          return (
+            <InvitationUserLabel
+              user={invitation.acceptedBy ?? invitation.revokedBy}
+              roleLabel={roleName}
+              status={status}
+              statusLabel={invitationStatusLabel(status)}
+              details={buildInvitationUserDetails({
+                t,
+                dateTime,
+                inviteeEmail: invitation.email,
+                createdAt: invitation.createdAt,
+                expiresAt: invitation.expiresAt,
+                processedAt: invitation.acceptedAt || invitation.revokedAt,
+                processedAtLabel: t("team:TEAM_INVITATIONS_COL_PROCESSED"),
+              })}
+            />
+          );
+        },
       },
       {
         id: "processedAt",
@@ -250,7 +295,25 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
           defaultHidden: true,
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
-        cell: ({ row }) => renderUserLabel(row.original.createdBy),
+        cell: ({ row }) => {
+          const link = row.original;
+          const roleName = link.roleCode ? roleNameByCode.get(link.roleCode) : null;
+          return (
+            <InvitationUserLabel
+              user={link.createdBy}
+              roleLabel={roleName}
+              usesCount={Number(link.usesCount || 0)}
+              details={buildInvitationUserDetails({
+                t,
+                dateTime,
+                createdAt: link.createdAt,
+                expiresAt: link.expiresAt,
+                lastUsedAt: link.lastUsedAt,
+                lastUsedAtLabel: t("team:TEAM_INVITE_LINKS_COL_LAST_USED"),
+              })}
+            />
+          );
+        },
       },
       {
         id: "code",
@@ -284,6 +347,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
               linkId={row.original.id}
               usesCount={uses}
               primaryUser={primaryUser}
+              lastUsedAt={row.original.lastUsedAt}
             />
           );
         },

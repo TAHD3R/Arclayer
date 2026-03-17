@@ -191,6 +191,8 @@
   "TEAM_INVITATIONS_COL_EXPIRES": "Expires",
   "TEAM_INVITATIONS_COL_CREATED": "Date",
   "TEAM_INVITATIONS_COL_ACCEPTED": "Accepted",
+  "TEAM_INVITATIONS_COL_PROCESSED": "Processed",
   "TEAM_INVITATIONS_SENT_AT": "Sent at {{datetime}}",
+  "TEAM_INVITE_LINKS_COL_LAST_USED": "Last used",
   "TEAM_PAGINATION_TOTAL": "{{total}} total ({{start}}-{{end}})"
 }

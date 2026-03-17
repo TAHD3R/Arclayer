@@ -57,11 +57,7 @@ export function MemberIdentityCell(props: MemberIdentityCellProps) {
       cardBadges={renderedBadges}
       onClick={props.onOpenDetails}
       className={props.className}
-      triggerClassName={
-        "gap-3 rounded-lg px-1 py-1 text-left transition-colors hover:bg-accent/45 " +
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
-        (props.onOpenDetails ? "cursor-pointer" : "cursor-default")
-      }
+      triggerClassName="gap-3"
       primaryClassName="truncate font-medium text-foreground"
       secondaryClassName="truncate text-caption text-label-secondary"
     />

@@ -4,6 +4,12 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ActivityUserPill } from "@/pages/organization/activity/components/activity-user-pill";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {
     writable: true,
@@ -37,11 +43,13 @@ describe("ActivityUserPill", () => {
     );
 
     expect(screen.queryByText("alice")).toBeNull();
+    expect(screen.queryByText("user_123")).toBeNull();
 
     await user.hover(screen.getByText("Alice Johnson"));
 
     await waitFor(() => {
       expect(screen.getByText("alice")).toBeVisible();
+      expect(screen.getByText("user_123")).toBeVisible();
     });
   });
 });
