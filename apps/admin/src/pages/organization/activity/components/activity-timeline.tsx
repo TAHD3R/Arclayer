@@ -307,7 +307,7 @@ function ActivityTimelineEntry({
               <p className="mt-1 text-label-secondary wrap-break-word">{eventDesc}</p>
             ) : null}
           </header>
-          <div>
+          <div className="mt-2">
             <ActivityUserPill user={actor} size={24} />
           </div>
         </article>

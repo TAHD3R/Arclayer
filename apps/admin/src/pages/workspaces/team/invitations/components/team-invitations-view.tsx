@@ -396,6 +396,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     return [
       {
         id: "creator",
+        size: 240,
+        minSize: 220,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
           defaultHidden: true,
@@ -423,8 +425,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         accessorKey: "code",
-        size: 240,
-        minSize: 220,
+        size: 180,
+        minSize: 160,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_CODE"),
           sortKey: "display_code",
@@ -457,8 +459,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       },
       {
         id: "participant",
-        size: 200,
-        minSize: 180,
+        size: 240,
+        minSize: 220,
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_PARTICIPANT"),
           sortKey: "uses_count",
