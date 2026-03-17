@@ -108,6 +108,7 @@ export type {
   ListAdminAssetsParams,
   AdminAssetFolderCreateRequest,
   AdminAssetFolderUpdateRequest,
+  AdminAssetFolderDeleteRequest,
   AdminAssetFolderDeleteOut,
   AdminAssetDeleteOut,
   AdminAssetMoveRequest,

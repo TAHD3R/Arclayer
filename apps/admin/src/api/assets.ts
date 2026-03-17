@@ -9,6 +9,7 @@ import type {
   PatchAdminAssetPayload,
   ListAdminAssetsParams,
   AdminAssetFolderCreateRequest,
+  AdminAssetFolderDeleteRequest,
   AdminAssetFolderUpdateRequest,
   AdminAssetFolderDeleteOut,
   AdminAssetDeleteOut,
@@ -120,6 +121,19 @@ export async function deleteAssetFolder(
 ): Promise<AdminAssetFolderDeleteOut> {
   return api.delete<AdminAssetFolderDeleteOut>(
     workspacePath(workspaceId, `/asset-folders/${folderId}`),
+  );
+}
+
+export async function deleteAssetFolderWithMove(
+  workspaceId: string,
+  folderId: string,
+  payload: AdminAssetFolderDeleteRequest,
+): Promise<AdminAssetFolderDeleteOut> {
+  return api.post<AdminAssetFolderDeleteOut>(
+    workspacePath(workspaceId, `/asset-folders/${folderId}/delete`),
+    {
+      destinationFolderId: payload.destinationFolderId ?? null,
+    },
   );
 }
 

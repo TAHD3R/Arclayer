@@ -91,6 +91,10 @@ export type AdminAssetFolderDeleteOut = {
   id: string;
 };
 
+export type AdminAssetFolderDeleteRequest = {
+  destinationFolderId?: string | null;
+};
+
 export type AdminAssetDeleteOut = {
   id: string;
   deletedAt: string;

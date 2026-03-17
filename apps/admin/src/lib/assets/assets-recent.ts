@@ -1,0 +1,119 @@
+import type { AssetMasonryItem } from "@/types/assets-masonry";
+
+export type RecentAssetSnapshot = Pick<
+  AssetMasonryItem,
+  | "id"
+  | "name"
+  | "previewUrl"
+  | "thumbBaseUrl"
+  | "mimeType"
+  | "ext"
+  | "sizeText"
+  | "createdAtText"
+  | "aspectRatio"
+  | "createdAt"
+  | "sizeBytes"
+  | "checksumSha256"
+  | "visibility"
+  | "purpose"
+  | "indexable"
+  | "publicUrl"
+  | "downloadUrl"
+  | "contentUrl"
+  | "uploaderName"
+  | "uploaderAvatarUrl"
+>;
+
+export type RecentAssetRecord = {
+  key: string;
+  workspaceId: string;
+  visitedAt: string;
+  asset: RecentAssetSnapshot;
+};
+
+export type ResolvedRecentAsset = {
+  key: string;
+  visitedAt: string;
+  asset: AssetMasonryItem;
+};
+
+type TouchRecentAssetInput = {
+  workspaceId: string;
+  asset: RecentAssetSnapshot;
+  visitedAt?: string;
+};
+
+export function toRecentAssetSnapshot(asset: AssetMasonryItem): RecentAssetSnapshot {
+  return {
+    id: asset.id,
+    name: asset.name,
+    previewUrl: asset.previewUrl,
+    thumbBaseUrl: asset.thumbBaseUrl,
+    mimeType: asset.mimeType,
+    ext: asset.ext,
+    sizeText: asset.sizeText,
+    createdAtText: asset.createdAtText,
+    aspectRatio: asset.aspectRatio,
+    createdAt: asset.createdAt,
+    sizeBytes: asset.sizeBytes,
+    checksumSha256: asset.checksumSha256,
+    visibility: asset.visibility,
+    purpose: asset.purpose,
+    indexable: asset.indexable,
+    publicUrl: asset.publicUrl,
+    downloadUrl: asset.downloadUrl,
+    contentUrl: asset.contentUrl,
+    uploaderName: asset.uploaderName,
+    uploaderAvatarUrl: asset.uploaderAvatarUrl,
+  };
+}
+
+export function touchRecentAssetRecord(
+  records: RecentAssetRecord[],
+  input: TouchRecentAssetInput,
+  limit = 8,
+): RecentAssetRecord[] {
+  const next: RecentAssetRecord = {
+    key: `${input.workspaceId}:${input.asset.id}`,
+    workspaceId: input.workspaceId,
+    visitedAt: input.visitedAt ?? new Date().toISOString(),
+    asset: input.asset,
+  };
+
+  return [next, ...records.filter((record) => record.key !== next.key)].slice(0, limit);
+}
+
+export function removeRecentAssetRecord(
+  records: RecentAssetRecord[],
+  key: string,
+): RecentAssetRecord[] {
+  return records.filter((record) => record.key !== key);
+}
+
+export function clearRecentAssetWorkspaceRecords(
+  records: RecentAssetRecord[],
+  workspaceId: string,
+): RecentAssetRecord[] {
+  return records.filter((record) => record.workspaceId !== workspaceId);
+}
+
+export function resolveRecentAssets(params: {
+  records: RecentAssetRecord[];
+  items: AssetMasonryItem[];
+  workspaceId: string | null;
+  limit?: number;
+}): ResolvedRecentAsset[] {
+  if (!params.workspaceId) return [];
+
+  const liveById = new Map(params.items.map((item) => [String(item.id), item]));
+  const limit = params.limit ?? 6;
+
+  return params.records
+    .filter((record) => record.workspaceId === params.workspaceId)
+    .slice(0, limit)
+    .map((record) => ({
+      key: record.key,
+      visitedAt: record.visitedAt,
+      asset: liveById.get(String(record.asset.id)) ?? record.asset,
+    }));
+}

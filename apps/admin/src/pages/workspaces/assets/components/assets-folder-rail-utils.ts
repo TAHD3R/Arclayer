@@ -50,3 +50,17 @@ export function buildFolderPath(
   }
   return path;
 }
+
+export function flattenFoldersDepthFirst(folders: AdminAssetFolder[]): AdminAssetFolder[] {
+  const childrenByParent = buildChildrenByParent(folders);
+  const out: AdminAssetFolder[] = [];
+  const walk = (parentId: string | null) => {
+    const children = childrenByParent.get(parentId) ?? [];
+    for (const child of children) {
+      out.push(child);
+      walk(String(child.id));
+    }
+  };
+  walk(null);
+  return out;
+}

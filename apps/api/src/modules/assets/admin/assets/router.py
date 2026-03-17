@@ -20,6 +20,7 @@ from apps.api.src.modules.assets.admin.assets.schema import (
     AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
     AdminAssetFolderDeleteOut,
+    AdminAssetFolderDeleteRequest,
     AdminAssetFolderOut,
     AdminAssetFolderUpdateRequest,
     AdminAssetListQuery,
@@ -197,6 +198,22 @@ async def delete_asset_folder(
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderDeleteOut]:
     deleted = await service.delete_folder(scope=_workspace_scope(ctx), folder_id=folder_id)
+    return JsonResponse.success(data=deleted)
+
+
+@router.post(
+    "/asset-folders/{folder_id}/delete",
+    response_model=ResponseModel[AdminAssetFolderDeleteOut],
+    summary="Delete asset folder with content migration",
+    dependencies=[require_workspace_permission("system:assets:manage")],
+)
+async def delete_asset_folder_with_move(
+    folder_id: PublicUUID,
+    payload: AdminAssetFolderDeleteRequest,
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    service: AdminAssetsService = Depends(get_admin_assets_service),
+) -> ResponseModel[AdminAssetFolderDeleteOut]:
+    deleted = await service.delete_folder(scope=_workspace_scope(ctx), folder_id=folder_id, payload=payload)
     return JsonResponse.success(data=deleted)
 
 

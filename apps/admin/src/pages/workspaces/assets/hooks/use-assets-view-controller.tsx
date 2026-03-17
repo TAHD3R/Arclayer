@@ -15,8 +15,7 @@ import {
   bulkMoveAssets,
   bulkUpdateAssets,
   createAssetFolder,
-  deleteAssetFolder,
-  listAssets,
+  deleteAssetFolderWithMove,
   updateAssetFolder,
 } from "@/api/assets";
 import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api";
@@ -27,6 +26,8 @@ import { useAssetsExplorerController } from "../components/explorer/use-assets-e
 import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { DND_ROOT_ID, parseFolderDndId, parseFolderItemDndId } from "../components/assets-view-dnd";
+
+import { useAssetsRecentItems } from "./use-assets-recent-items";
 export function useAssetsViewController() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -53,6 +54,8 @@ export function useAssetsViewController() {
   const [editFolderTarget, setEditFolderTarget] = useState<AdminAssetFolder | null>(null);
   const [moveFolderOpen, setMoveFolderOpen] = useState(false);
   const [moveFolderTarget, setMoveFolderTarget] = useState<AdminAssetFolder | null>(null);
+  const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<AdminAssetFolder | null>(null);
   const [editAccessOpen, setEditAccessOpen] = useState(false);
   const [editAccessMode, setEditAccessMode] = useState<"single" | "bulk">("bulk");
   const [editAccessCurrent, setEditAccessCurrent] = useState<{
@@ -60,11 +63,6 @@ export function useAssetsViewController() {
     purpose?: string;
     indexable?: boolean;
   }>({});
-  const [folderNotEmptyInfo, setFolderNotEmptyInfo] = useState<{
-    folderName: string;
-    hasAssets: boolean;
-    hasChildren: boolean;
-  } | null>(null);
   const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [dropSuccessPulse, setDropSuccessPulse] = useState<{
@@ -93,6 +91,7 @@ export function useAssetsViewController() {
     setFocusedFolderId,
     filters,
     setFilters,
+    effectiveVisibility,
     ordering,
     setOrdering,
     explicitFilterActive,
@@ -106,6 +105,11 @@ export function useAssetsViewController() {
     folderById,
     folderPath,
   } = explorer;
+  const { recentAssets, removeRecentAsset, clearRecentAssets } = useAssetsRecentItems({
+    workspaceId,
+    active,
+    items,
+  });
   const [moreOpen, setMoreOpen] = useState(false);
   const [moreHovered, setMoreHovered] = useState(false);
   const typeTabValue = useMemo(() => {
@@ -292,9 +296,11 @@ export function useAssetsViewController() {
     },
   });
   const deleteFolderMutation = useMutation({
-    mutationFn: (folderId: string) => {
+    mutationFn: (input: { folderId: string; destinationFolderId: string | null }) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      return deleteAssetFolder(String(workspaceId), folderId);
+      return deleteAssetFolderWithMove(String(workspaceId), input.folderId, {
+        destinationFolderId: input.destinationFolderId,
+      });
     },
     onSuccess: () => {
       if (scopeKey)
@@ -398,30 +404,9 @@ export function useAssetsViewController() {
     if (selectedIds.size <= 0) return;
     setBulkDeleteOpen(true);
   };
-  const tryDeleteFolder = async (folder: AdminAssetFolder) => {
-    try {
-      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      const folders = (foldersQuery.data?.items ?? []) as AdminAssetFolder[];
-      const hasChildren = folders.some((f) => String(f.parentId || "") === String(folder.id));
-      // We don't have counts in folder list; do a cheap existence check by fetching 1 item.
-      const page = await listAssets(String(workspaceId), {
-        page: 1,
-        size: 1,
-        folderId: String(folder.id),
-      });
-      const hasAssets = (page.total || 0) > 0;
-      if (hasAssets || hasChildren) {
-        setFolderNotEmptyInfo({ folderName: folder.name, hasAssets, hasChildren });
-        return;
-      }
-      // Empty folder => delete directly (no dialog).
-      await deleteFolderMutation.mutateAsync(String(folder.id));
-      if (String(currentFolderId || "") === String(folder.id)) {
-        setCurrentFolderId(folder.parentId ? String(folder.parentId) : null);
-      }
-    } catch (err) {
-      notifyError(err);
-    }
+  const openDeleteFolderDialog = (folder: AdminAssetFolder) => {
+    setDeleteFolderTarget(folder);
+    setDeleteFolderOpen(true);
   };
   const onDragStart = (event: DragStartEvent) => {
     const activeId = String(event.active.id);
@@ -515,14 +500,16 @@ export function useAssetsViewController() {
     setMoveFolderOpen,
     moveFolderTarget,
     setMoveFolderTarget,
+    deleteFolderOpen,
+    setDeleteFolderOpen,
+    deleteFolderTarget,
+    setDeleteFolderTarget,
     editAccessOpen,
     setEditAccessOpen,
     editAccessMode,
     setEditAccessMode,
     editAccessCurrent,
     setEditAccessCurrent,
-    folderNotEmptyInfo,
-    setFolderNotEmptyInfo,
     draggingFolderId,
     setDraggingFolderId,
     sensors,
@@ -538,6 +525,7 @@ export function useAssetsViewController() {
     setFocusedFolderId,
     filters,
     setFilters,
+    effectiveVisibility,
     ordering,
     setOrdering,
     explicitFilterActive,
@@ -546,6 +534,9 @@ export function useAssetsViewController() {
     assetsListQueryKey,
     assetsQuery,
     items,
+    recentAssets,
+    removeRecentAsset,
+    clearRecentAssets,
     orderedAssetIds,
     masonryEntries,
     folderById,
@@ -568,7 +559,7 @@ export function useAssetsViewController() {
     openEditAccessDialog,
     createParentLabel,
     openBulkDeleteDialog,
-    tryDeleteFolder,
+    openDeleteFolderDialog,
     onDragStart,
     onDragCancel,
     onDragEnd,

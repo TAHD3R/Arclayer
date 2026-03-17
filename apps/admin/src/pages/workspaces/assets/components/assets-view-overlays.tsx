@@ -8,7 +8,7 @@ import { SelectedCountTag } from "@/components/ui/tags";
 import { AssetPreviewDialog } from "./asset-preview-dialog";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";
 import { CreateAssetFolderDialog } from "./create-asset-folder-dialog";
-import { FolderNotEmptyDialog } from "./folder-not-empty-dialog";
+import { DeleteAssetFolderDialog } from "./delete-asset-folder-dialog";
 import { MoveAssetsToFolderModal } from "./move-assets-to-folder-modal";
 import { MoveFolderModal } from "./move-folder-modal";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
@@ -56,10 +56,11 @@ interface AssetsViewOverlaysProps {
   createParentLabel: string;
   createFolderPending: boolean;
   onCreateFolder: (name: string, description: string | null) => Promise<void>;
-  folderNotEmptyInfo: { folderName: string; hasAssets: boolean; hasChildren: boolean } | null;
-  setFolderNotEmptyInfo: React.Dispatch<
-    React.SetStateAction<{ folderName: string; hasAssets: boolean; hasChildren: boolean } | null>
-  >;
+  deleteFolderOpen: boolean;
+  setDeleteFolderOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  deleteFolderTarget: AdminAssetFolder | null;
+  deleteFolderPending: boolean;
+  onDeleteFolder: (destinationFolderId: string | null) => Promise<void>;
   bulkDeleteOpen: boolean;
   setBulkDeleteOpen: React.Dispatch<React.SetStateAction<boolean>>;
   bulkDeletePending: boolean;
@@ -128,17 +129,14 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         confirmLoading={props.createFolderPending}
         onCreate={props.onCreateFolder}
       />
-      {props.folderNotEmptyInfo ? (
-        <FolderNotEmptyDialog
-          open={Boolean(props.folderNotEmptyInfo)}
-          onOpenChange={(open) => {
-            if (!open) props.setFolderNotEmptyInfo(null);
-          }}
-          folderName={props.folderNotEmptyInfo.folderName}
-          hasAssets={props.folderNotEmptyInfo.hasAssets}
-          hasChildren={props.folderNotEmptyInfo.hasChildren}
-        />
-      ) : null}
+      <DeleteAssetFolderDialog
+        open={props.deleteFolderOpen}
+        onOpenChange={props.setDeleteFolderOpen}
+        folder={props.deleteFolderTarget}
+        folders={props.folders}
+        confirmLoading={props.deleteFolderPending}
+        onConfirm={props.onDeleteFolder}
+      />
       <BulkDeleteAssetsDialog
         open={props.bulkDeleteOpen}
         onOpenChange={props.setBulkDeleteOpen}

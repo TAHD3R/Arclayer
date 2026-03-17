@@ -64,10 +64,10 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [focusedFolderId, setFocusedFolderId] = useState<string | null>(null);
   const [filters, setFilters] = useState<AssetsFilters>(() => ({
-    visibility: opts.defaultVisibility ?? "public",
     ...opts.initialFilters,
   }));
   const [ordering, setOrdering] = useState<string>(opts.defaultOrdering ?? "-created_at");
+  const effectiveVisibility = filters.visibility ?? opts.defaultVisibility;
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -132,7 +132,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         mimePrefix: filters.mimePrefix,
         folderId: currentFolderId || undefined,
         folderIsNull: currentFolderId ? undefined : true,
-        visibility: filters.visibility,
+        visibility: effectiveVisibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
         tagIds: filters.tagIds,
@@ -145,7 +145,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
       filters.createdTo,
       filters.mimePrefix,
       filters.tagIds,
-      filters.visibility,
+      effectiveVisibility,
       ordering,
       opts.purpose,
       searchQuery,
@@ -165,7 +165,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             mimePrefix: filters.mimePrefix,
             folderId: currentFolderId || undefined,
             folderIsNull: currentFolderId ? undefined : true,
-            visibility: filters.visibility,
+            visibility: effectiveVisibility,
             createdFrom: filters.createdFrom,
             createdTo: filters.createdTo,
             tagIds: filters.tagIds,
@@ -195,7 +195,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     filters.createdTo,
     filters.mimePrefix,
     filters.tagIds,
-    filters.visibility,
+    effectiveVisibility,
     ordering,
     opts.pagination,
     searchQuery,
@@ -212,7 +212,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
         mimePrefix: filters.mimePrefix,
         folderId: currentFolderId || undefined,
         folderIsNull: currentFolderId ? undefined : true,
-        visibility: filters.visibility,
+        visibility: effectiveVisibility,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
         tagIds: filters.tagIds,
@@ -232,7 +232,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
             mimePrefix: filters.mimePrefix,
             folderId: currentFolderId || undefined,
             folderIsNull: currentFolderId ? undefined : true,
-            visibility: filters.visibility,
+            visibility: effectiveVisibility,
             createdFrom: filters.createdFrom,
             createdTo: filters.createdTo,
             tagIds: filters.tagIds,
@@ -299,7 +299,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
           purpose: opts.purpose,
           q: searchQuery || undefined,
           mimePrefix: filters.mimePrefix,
-          visibility: filters.visibility,
+          visibility: effectiveVisibility,
           createdFrom: filters.createdFrom,
           createdTo: filters.createdTo,
           tagIds: filters.tagIds,
@@ -318,7 +318,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
           purpose: opts.purpose,
           q: searchQuery || undefined,
           mimePrefix: filters.mimePrefix,
-          visibility: filters.visibility,
+          visibility: effectiveVisibility,
           createdFrom: filters.createdFrom,
           createdTo: filters.createdTo,
           tagIds: filters.tagIds,
@@ -405,6 +405,7 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
 
     filters,
     setFilters,
+    effectiveVisibility,
     ordering,
     setOrdering,
 

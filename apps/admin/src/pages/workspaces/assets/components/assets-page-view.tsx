@@ -43,17 +43,17 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setMoveFolderOpen,
     moveFolderTarget,
     setMoveFolderTarget,
+    deleteFolderOpen,
+    setDeleteFolderOpen,
+    deleteFolderTarget,
     editAccessOpen,
     setEditAccessOpen,
     editAccessMode,
     editAccessCurrent,
-    folderNotEmptyInfo,
-    setFolderNotEmptyInfo,
     searchInput,
     setSearchInput,
     currentFolderId,
     setCurrentFolderId,
-    focusedFolderId,
     setFocusedFolderId,
     filters,
     setFilters,
@@ -63,6 +63,9 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     tagsQuery,
     assetsQuery,
     assetsListQueryKey,
+    recentAssets,
+    removeRecentAsset,
+    clearRecentAssets,
     moreOpen,
     setMoreOpen,
     moreHovered,
@@ -76,10 +79,11 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     bulkUpdateMutation,
     createFolderMutation,
     updateFolderMutation,
-    reorderFoldersMutation,
+    deleteFolderMutation,
     openEditAccessDialog,
     createParentLabel,
     openBulkDeleteDialog,
+    openDeleteFolderDialog,
   } = controller;
   const hydratedSearchRef = useRef<string | null>(null);
   const hydratedAssetIdRef = useRef<string | null>(null);
@@ -146,20 +150,22 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             content: (
               <AssetsFolderRail
                 t={t}
+                scope={scope}
                 folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
                 foldersLoading={foldersQuery.isLoading}
+                foldersError={foldersQuery.isError}
+                onRetryFolders={() => {
+                  void foldersQuery.refetch();
+                }}
                 currentFolderId={currentFolderId}
-                focusedFolderId={focusedFolderId}
-                currentAssetCount={controller.items.length}
-                dropSuccessPulse={controller.dropSuccessPulse}
-                reorderPending={reorderFoldersMutation.isPending}
+                activeAssetId={active?.id ?? null}
+                recentAssets={recentAssets}
                 onSelectFolder={(folderId) => {
                   setCurrentFolderId(folderId);
                   setFocusedFolderId(folderId);
                   setSelection((prev) => clearSelection(prev));
                   setActive(null);
                 }}
-                onFocusFolder={setFocusedFolderId}
                 onCreateFolder={(parentId) => {
                   setCreateFolderParentId(parentId);
                   setCreateFolderOpen(true);
@@ -172,12 +178,10 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                   setMoveFolderTarget(folder);
                   setMoveFolderOpen(true);
                 }}
-                onDeleteFolder={(folder) => {
-                  void controller.tryDeleteFolder(folder);
-                }}
-                onReorderFolders={async (folders) => {
-                  await reorderFoldersMutation.mutateAsync(folders);
-                }}
+                onDeleteFolder={openDeleteFolderDialog}
+                onOpenAsset={(asset) => setActive(asset)}
+                onRemoveRecentAsset={removeRecentAsset}
+                onClearRecentAssets={clearRecentAssets}
               />
             ),
           },
@@ -245,8 +249,21 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             const parentId = createFolderParentId ?? currentFolderId;
             await createFolderMutation.mutateAsync({ name, parentId, description });
           }}
-          folderNotEmptyInfo={folderNotEmptyInfo}
-          setFolderNotEmptyInfo={setFolderNotEmptyInfo}
+          deleteFolderOpen={deleteFolderOpen}
+          setDeleteFolderOpen={setDeleteFolderOpen}
+          deleteFolderTarget={deleteFolderTarget}
+          deleteFolderPending={deleteFolderMutation.isPending}
+          onDeleteFolder={async (destinationFolderId) => {
+            const folder = deleteFolderTarget;
+            if (!folder) return;
+            await deleteFolderMutation.mutateAsync({
+              folderId: String(folder.id),
+              destinationFolderId,
+            });
+            if (String(currentFolderId || "") === String(folder.id)) {
+              setCurrentFolderId(destinationFolderId);
+            }
+          }}
           bulkDeleteOpen={bulkDeleteOpen}
           setBulkDeleteOpen={setBulkDeleteOpen}
           bulkDeletePending={bulkDeleteMutation.isPending}

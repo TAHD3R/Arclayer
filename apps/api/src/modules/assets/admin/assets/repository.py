@@ -139,6 +139,37 @@ class AdminAssetsRepository(BaseRepository):
     async def delete_folder(self, *, scope: AssetScope, folder_id: UUID) -> None:
         await AssetFolderRecord.filter(id=folder_id, **scope_filter_kwargs(scope)).delete()
 
+    async def move_assets_in_folder(
+        self,
+        *,
+        scope: AssetScope,
+        from_folder_id: UUID,
+        to_folder_id: UUID | None,
+        updated_at,
+    ) -> int:
+        return int(
+            await AssetRecord.filter(
+                deleted_at=None,
+                folder_id=from_folder_id,
+                **scope_filter_kwargs(scope),
+            ).update(folder_id=to_folder_id, updated_at=updated_at)
+        )
+
+    async def move_child_folders(
+        self,
+        *,
+        scope: AssetScope,
+        from_folder_id: UUID,
+        to_parent_id: UUID | None,
+        updated_at,
+    ) -> int:
+        return int(
+            await AssetFolderRecord.filter(
+                parent_id=from_folder_id,
+                **scope_filter_kwargs(scope),
+            ).update(parent_id=to_parent_id, updated_at=updated_at)
+        )
+
     async def collect_descendant_folder_ids(self, *, scope: AssetScope, root_folder_id: UUID) -> list[UUID]:
         # We intentionally do this in Python (single query) to keep DB/storage agnostic.
         rows = await AssetFolderRecord.filter(**scope_filter_kwargs(scope)).values("id", "parent_id")

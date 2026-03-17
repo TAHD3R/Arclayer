@@ -15,6 +15,7 @@ import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import type { AssetsViewController } from "../hooks/use-assets-view-controller";
 import { AssetsViewAssetRow } from "./assets-view-asset-row";
+import { getAssetsMasonryDatasetKey, getAssetsMasonryItemKey } from "./assets-view-masonry-keys";
 
 interface AssetsViewMasonrySectionProps {
   controller: AssetsViewController;
@@ -25,6 +26,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const {
     t,
     assetsQuery,
+    assetsListQueryKey,
     items,
     explicitFilterActive,
     setSearchInput,
@@ -87,6 +89,10 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     () => items.map((asset) => ({ key: asset.id, data: asset })),
     [items],
   );
+  const masonryDatasetKey = useMemo(() => {
+    const baseKey = JSON.stringify(assetsListQueryKey);
+    return getAssetsMasonryDatasetKey(baseKey, orderedAssetIds);
+  }, [assetsListQueryKey, orderedAssetIds]);
 
   useEffect(() => {
     const shell = masonryShellRef.current;
@@ -144,10 +150,10 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         }}
       >
         <Masonry
-          key={masonryWidth || "initial"}
+          key={`${masonryWidth || "initial"}:${masonryDatasetKey}`}
           className="min-w-0 w-full max-w-full"
           items={masonryItems}
-          itemKey={(item) => item.key}
+          itemKey={getAssetsMasonryItemKey}
           columnWidth={260}
           columnGutter={16}
           rowGutter={16}

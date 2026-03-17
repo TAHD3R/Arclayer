@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   dataTableVisibility: "arclayer:admin:dataTable:visibility",
   favorites: "arclayer:admin:favorites",
   commandRecent: "arclayer:admin:commandRecent",
+  assetsRecent: "arclayer:admin:assetsRecent",
   notificationPanelPinned: "arclayer:admin:notificationPanelPinned",
   sidebarOpen: "arclayer:admin:sidebarOpen",
   showNotificationsBadge: "arclayer:admin:showNotificationsBadge",

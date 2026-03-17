@@ -116,6 +116,13 @@ class AdminAssetFolderDeleteOut(BaseSchema):
     id: PublicUUID = Field(..., description="Deleted folder id.")
 
 
+class AdminAssetFolderDeleteRequest(BaseSchema):
+    destination_folder_id: PublicUUID | None = Field(
+        default=None,
+        description="Move direct child folders and assets to this folder before deletion. Null = move to root.",
+    )
+
+
 class AdminAssetMoveRequest(BaseSchema):
     folder_id: PublicUUID | None = Field(default=None, description="Target folder id (null = move to root).")
 

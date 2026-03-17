@@ -30,6 +30,7 @@ from apps.api.src.modules.assets.admin.assets.schema import (
     AdminAssetDetailOut,
     AdminAssetFolderCreateRequest,
     AdminAssetFolderDeleteOut,
+    AdminAssetFolderDeleteRequest,
     AdminAssetFolderOut,
     AdminAssetFolderUpdateRequest,
     AdminAssetListQuery,
@@ -743,10 +744,78 @@ class AdminAssetsService(BaseService):
             folder = await self.repo.save_folder_updates(folder, updates=updates)
         return AdminAssetFolderOut.model_validate(folder, from_attributes=True)
 
-    async def delete_folder(self, *, scope: AssetScope, folder_id: UUID) -> AdminAssetFolderDeleteOut:
+    async def _validate_folder_delete_destination(
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        destination_folder_id: UUID | None,
+    ) -> None:
+        if destination_folder_id is None:
+            return
+
+        if destination_folder_id == folder_id:
+            raise BadRequest(
+                message=_ts("ASSET_FOLDER_PARENT_INVALID", "文件夹父级不合法"),
+                error="ASSET_FOLDER_PARENT_INVALID",
+            )
+
+        destination = await self.repo.get_folder(scope=scope, folder_id=destination_folder_id)
+        if destination is None:
+            raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
+
+        descendants = await self.repo.collect_descendant_folder_ids(scope=scope, root_folder_id=folder_id)
+        if destination_folder_id in descendants:
+            raise BadRequest(
+                message=_ts("ASSET_FOLDER_PARENT_INVALID", "文件夹父级不合法"),
+                error="ASSET_FOLDER_PARENT_INVALID",
+            )
+
+    async def _move_folder_contents(
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        destination_folder_id: UUID | None,
+    ) -> None:
+        now = datetime.now(tz=UTC)
+        await self.repo.move_child_folders(
+            scope=scope,
+            from_folder_id=folder_id,
+            to_parent_id=destination_folder_id,
+            updated_at=now,
+        )
+        await self.repo.move_assets_in_folder(
+            scope=scope,
+            from_folder_id=folder_id,
+            to_folder_id=destination_folder_id,
+            updated_at=now,
+        )
+
+    async def delete_folder(
+        self,
+        *,
+        scope: AssetScope,
+        folder_id: UUID,
+        payload: AdminAssetFolderDeleteRequest | None = None,
+    ) -> AdminAssetFolderDeleteOut:
         folder = await self.repo.get_folder(scope=scope, folder_id=folder_id)
         if folder is None:
             raise NotFound(message=_ts("ASSET_FOLDER_NOT_FOUND", "文件夹不存在"), error="ASSET_FOLDER_NOT_FOUND")
+
+        if payload is not None:
+            await self._validate_folder_delete_destination(
+                scope=scope,
+                folder_id=folder_id,
+                destination_folder_id=payload.destination_folder_id,
+            )
+            await self._move_folder_contents(
+                scope=scope,
+                folder_id=folder_id,
+                destination_folder_id=payload.destination_folder_id,
+            )
+            await self.repo.delete_folder(scope=scope, folder_id=folder_id)
+            return AdminAssetFolderDeleteOut(id=folder_id)
 
         has_children = await self.repo.folder_has_children(scope=scope, folder_id=folder_id)
         if has_children:
