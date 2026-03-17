@@ -1,5 +1,4 @@
-import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import {
   useContainerPosition,
   useMasonry,
@@ -9,7 +8,6 @@ import {
 } from "masonic";
 
 import { Button } from "@arclayer/ui/button";
-import { useSidebar } from "@arclayer/ui/sidebar";
 
 import { ContentGuard } from "@/components/common/content-guard";
 import {
@@ -22,7 +20,10 @@ import { shouldClearMasonrySelectionOnMouseDown } from "@/lib/assets/masonry-int
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import type { AssetsViewController } from "../hooks/use-assets-view-controller";
-import { AssetsViewAssetRow } from "./assets-view-asset-row";
+import {
+  AssetsViewMasonryRenderCell,
+  type AssetMasonryRenderItem,
+} from "./assets-view-masonry-render-cell";
 import {
   getAssetsMasonryDatasetKey,
   getAssetsMasonryItemKey,
@@ -37,11 +38,6 @@ const MASONRY_COLUMN_WIDTH = 260;
 const MASONRY_GUTTER = 16;
 const MASONRY_ITEM_HEIGHT_ESTIMATE = 320;
 const MASONRY_SCROLL_FPS = 12;
-const SIDEBAR_WIDTH_TRANSITION_MS = 460;
-const MASONRY_ITEM_STYLE = {
-  transition:
-    "top 220ms cubic-bezier(0.22,1,0.36,1), left 220ms cubic-bezier(0.22,1,0.36,1), width 220ms cubic-bezier(0.22,1,0.36,1)",
-} satisfies CSSProperties;
 
 function useViewportHeight() {
   const [height, setHeight] = useState(() =>
@@ -88,8 +84,8 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const masonryShellRef = useRef<HTMLDivElement | null>(null);
   const masonryContainerRef = useRef<HTMLElement | null>(null);
   const [observedShellWidth, setObservedShellWidth] = useState(0);
-  const { state: sidebarState } = useSidebar();
   const viewportHeight = useViewportHeight();
+  const masonryMeasureRef = masonryShellRef as MutableRefObject<HTMLElement | null>;
   orderedAssetIdsRef.current = orderedAssetIds;
 
   const handleAssetSelect = useCallback(
@@ -131,23 +127,38 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     [aspectRatioRef, forceLayoutTick],
   );
 
-  const masonryItems = useMemo(
-    () => items.map((asset) => ({ key: asset.id, data: asset })),
-    [items],
-  );
-  const masonryDatasetKey = useMemo(() => {
-    const baseKey = JSON.stringify(assetsListQueryKey);
-    return getAssetsMasonryDatasetKey(baseKey, orderedAssetIds);
-  }, [assetsListQueryKey, orderedAssetIds]);
   const measureShellWidth = useCallback(() => {
     const shell = masonryShellRef.current;
     if (!shell) return;
     const nextWidth = Math.round(shell.getBoundingClientRect().width);
     setObservedShellWidth((prev) => (prev === nextWidth ? prev : nextWidth));
   }, []);
-  const masonryContainerPosition = useContainerPosition(masonryContainerRef, [
+  const masonryItems = useMemo<AssetMasonryRenderItem[]>(
+    () =>
+      items.map((asset) => ({
+        key: asset.id,
+        asset,
+        selected: selectedIds.has(asset.id),
+        onOpenAsset: setActive,
+        onSelectAsset: handleAssetSelect,
+        onToggleSelected: handleAssetToggleSelected,
+        onAspectRatio: handleAssetAspectRatio,
+      })),
+    [
+      handleAssetAspectRatio,
+      handleAssetSelect,
+      handleAssetToggleSelected,
+      items,
+      selectedIds,
+      setActive,
+    ],
+  );
+  const masonryDatasetKey = useMemo(() => {
+    const baseKey = JSON.stringify(assetsListQueryKey);
+    return getAssetsMasonryDatasetKey(baseKey, orderedAssetIds);
+  }, [assetsListQueryKey, orderedAssetIds]);
+  const masonryContainerPosition = useContainerPosition(masonryMeasureRef, [
     observedShellWidth,
-    sidebarState,
     viewportHeight,
   ]);
   const masonryWidth = masonryContainerPosition.width || observedShellWidth;
@@ -182,20 +193,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     itemKey: getAssetsMasonryItemKey,
     itemHeightEstimate: MASONRY_ITEM_HEIGHT_ESTIMATE,
     overscanBy: 1.5,
-    itemStyle: MASONRY_ITEM_STYLE,
-    render: ({ data }) => {
-      const asset = data.data as AssetMasonryItem;
-      return (
-        <AssetsViewAssetRow
-          asset={asset}
-          selected={selectedIds.has(asset.id)}
-          onSelect={handleAssetSelect}
-          onToggleSelected={handleAssetToggleSelected}
-          onAspectRatio={handleAssetAspectRatio}
-          onOpen={setActive}
-        />
-      );
-    },
+    render: AssetsViewMasonryRenderCell,
   });
 
   useEffect(() => {
@@ -210,20 +208,6 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       window.removeEventListener("resize", measureShellWidth);
     };
   }, [measureShellWidth]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    let frameId = 0;
-    const startAt = window.performance.now();
-    const tick = () => {
-      measureShellWidth();
-      if (window.performance.now() - startAt < SIDEBAR_WIDTH_TRANSITION_MS) {
-        frameId = window.requestAnimationFrame(tick);
-      }
-    };
-    frameId = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frameId);
-  }, [measureShellWidth, sidebarState]);
 
   return (
     <ContentGuard
