@@ -25,6 +25,7 @@ type AssetsFolderRailProps = {
     droppableId: string;
     nonce: number;
   } | null;
+  tooltipDisabled?: boolean;
   onOpenAsset: (asset: AssetMasonryItem) => void;
   onRemoveRecentAsset: (key: string) => void;
   onClearRecentAssets: () => void;
@@ -47,6 +48,7 @@ export function AssetsFolderRail(props: AssetsFolderRailProps) {
           onMoveFolder={props.onMoveFolder}
           onDeleteFolder={props.onDeleteFolder}
           dropSuccessPulse={props.dropSuccessPulse}
+          tooltipDisabled={props.tooltipDisabled}
         />
         <AssetsFolderRailRecentSection
           t={props.t}

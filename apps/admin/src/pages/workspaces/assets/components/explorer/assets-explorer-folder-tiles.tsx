@@ -122,7 +122,7 @@ export function AssetsExplorerFolderDragOverlay(props: {
     <motion.div
       className="relative inline-block pointer-events-none select-none"
       initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ opacity: 0.72, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.12, ease: "easeOut" }}
       style={{ willChange: "transform", width: 156, height: 104 }}

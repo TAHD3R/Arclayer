@@ -221,12 +221,12 @@ export function AssetsDragOverlayCard(props: {
     <motion.div
       className="pointer-events-none select-none"
       initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ opacity: 0.72, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.12, ease: "easeOut" }}
       style={{ width: 220, willChange: "transform" }}
     >
-      <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-xl">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-2xl">
         <div className="relative overflow-hidden bg-muted/20" style={{ aspectRatio: 4 / 3 }}>
           {props.asset.previewUrl ? (
             <img

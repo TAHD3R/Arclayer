@@ -181,6 +181,9 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
                 }}
                 onDeleteFolder={openDeleteFolderDialog}
                 dropSuccessPulse={controller.dropSuccessPulse}
+                tooltipDisabled={
+                  Boolean(controller.draggingFolderId) || controller.draggingAssetIds.length > 0
+                }
                 onOpenAsset={(asset) => setActive(asset)}
                 onRemoveRecentAsset={removeRecentAsset}
                 onClearRecentAssets={clearRecentAssets}

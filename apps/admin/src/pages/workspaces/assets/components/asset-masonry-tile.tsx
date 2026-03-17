@@ -1,4 +1,3 @@
-import { GripVertical } from "lucide-react";
 import { memo, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -213,6 +212,8 @@ export const AssetMasonryTile = memo(
     return (
       <div
         ref={props.dragHandle?.setNodeRef}
+        {...props.dragHandle?.attributes}
+        {...props.dragHandle?.listeners}
         className={cn(
           "group relative w-full overflow-hidden border border-border/50 bg-card",
           "rounded-lg",
@@ -307,22 +308,7 @@ export const AssetMasonryTile = memo(
                 selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
               )}
             >
-              <div className="flex items-center gap-2">
-                {props.dragHandle ? (
-                  <button
-                    type="button"
-                    ref={props.dragHandle.setActivatorNodeRef}
-                    className="flex size-8 cursor-grab items-center justify-center rounded-full border border-white/18 bg-black/40 text-white/88 backdrop-blur-sm transition-colors hover:bg-black/55 active:cursor-grabbing"
-                    aria-label={t("assets:ASSET_ACTION_MOVE")}
-                    onClickCapture={(event) => event.stopPropagation()}
-                    onDoubleClickCapture={(event) => event.stopPropagation()}
-                    onPointerDownCapture={(event) => event.stopPropagation()}
-                    {...props.dragHandle.attributes}
-                    {...props.dragHandle.listeners}
-                  >
-                    <GripVertical className="size-4" />
-                  </button>
-                ) : null}
+              <div className="flex items-center">
                 <Checkbox
                   aria-labelledby={titleId}
                   checked={selected}

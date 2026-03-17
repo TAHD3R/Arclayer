@@ -30,6 +30,7 @@ import {
   buildFolderPath,
   flattenFoldersDepthFirst,
 } from "./assets-folder-rail-utils";
+import { FolderDescriptionTooltip } from "./folder-description-tooltip";
 import { DroppablePulse, FolderDroppableProvider, toFolderDndId } from "./assets-view-dnd";
 
 type AssetsFolderRailFolderSectionProps = {
@@ -48,6 +49,7 @@ type AssetsFolderRailFolderSectionProps = {
     droppableId: string;
     nonce: number;
   } | null;
+  tooltipDisabled?: boolean;
 };
 
 function FolderCardSkeleton() {
@@ -111,6 +113,7 @@ function FolderCard(props: {
   onMoveFolder: (folder: AdminAssetFolder) => void;
   onDeleteFolder: (folder: AdminAssetFolder) => void;
   dropPulseNonce: number | null;
+  tooltipDisabled?: boolean;
 }) {
   const droppableId = toFolderDndId(String(props.folder.id));
 
@@ -178,9 +181,11 @@ function FolderCard(props: {
 
             <div className="flex flex-col wrap-break-word" style={{ overflowWrap: "anywhere" }}>
               <div className="text-headline font-semibold text-foreground">{props.folder.name}</div>
-              <div className="text-footnote line-clamp-2 text-label-secondary">
-                {props.folder.description || props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
-              </div>
+              <FolderDescriptionTooltip
+                text={props.folder.description}
+                emptyText={props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
+                disabled={props.tooltipDisabled}
+              />
             </div>
 
             <div className="mt-auto flex items-center gap-2 pt-4">
@@ -315,6 +320,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
                     ? props.dropSuccessPulse.nonce
                     : null
                 }
+                tooltipDisabled={props.tooltipDisabled}
               />
             );
           })}

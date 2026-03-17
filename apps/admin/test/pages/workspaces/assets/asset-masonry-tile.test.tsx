@@ -56,7 +56,8 @@ describe("AssetMasonryTile", () => {
     expect(onOpen).toHaveBeenCalledWith(asset);
   });
 
-  it("renders a drag handle button for folder moves", () => {
+  it("binds drag activator listeners on the tile root instead of a separate handle", () => {
+    const onPointerDown = vi.fn();
     render(
       <AssetMasonryTile
         asset={asset}
@@ -66,14 +67,21 @@ describe("AssetMasonryTile", () => {
         dragHandle={{
           setNodeRef: vi.fn(),
           setActivatorNodeRef: vi.fn(),
-          listeners: {},
-          attributes: {},
+          listeners: { onPointerDown },
+          attributes: { "data-dnd-activator": "tile" },
           isDragging: false,
         }}
       />,
     );
 
-    expect(screen.getByLabelText("assets:ASSET_ACTION_MOVE")).toBeInTheDocument();
+    const tile = document.querySelector('[data-asset-tile="true"]');
+
+    expect(tile).toHaveAttribute("data-dnd-activator", "tile");
+    expect(screen.queryByLabelText("assets:ASSET_ACTION_MOVE")).not.toBeInTheDocument();
+
+    fireEvent.pointerDown(tile as HTMLElement);
+
+    expect(onPointerDown).toHaveBeenCalledTimes(1);
   });
 
   it("keeps checkbox clicks local to the checkbox", () => {
