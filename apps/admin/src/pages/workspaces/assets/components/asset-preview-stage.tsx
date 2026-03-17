@@ -30,7 +30,7 @@ function AssetUnsupportedPreview(props: {
   return (
     <div className="grid h-full min-h-[320px] place-items-center bg-muted/10 px-8">
       <div className="max-w-md space-y-3 text-center">
-        <div className="text-title3 font-semibold text-foreground">{props.title}</div>
+        <div className="text-title3 font-semibold text-label-primary">{props.title}</div>
         <p className="text-footnote leading-6 text-label-secondary">{props.description}</p>
         <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
           {props.publicUrl ? (

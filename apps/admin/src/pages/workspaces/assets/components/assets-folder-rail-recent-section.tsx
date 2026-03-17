@@ -34,26 +34,29 @@ type AssetsFolderRailRecentSectionProps = {
 
 function RecentFileRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 shadow-sm">
-      <Skeleton className="size-16 rounded-md" />
-      <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-24" />
+    <div className="min-h-[6.5rem] rounded-lg border border-white/8 bg-[#101010] px-4 py-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.26)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <Skeleton className="h-5 w-4/5 rounded-full bg-white/10" />
+          <Skeleton className="h-4 w-20 rounded-full bg-white/8" />
+          <Skeleton className="h-4 w-32 rounded-full bg-white/8" />
+        </div>
+        <Skeleton className="size-10 rounded-full bg-white/10" />
       </div>
-      <Skeleton className="size-8 rounded-full" />
     </div>
   );
 }
 
 function RecentFileGridSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
-      <Skeleton className="aspect-[4/3] w-full rounded-md" />
-      <div className="mt-3 space-y-2">
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-3 w-full" />
+    <div className="min-h-[11.75rem] rounded-lg border border-white/8 bg-[#101010] p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.26)]">
+      <div className="flex items-start justify-end">
+        <Skeleton className="size-8 rounded-full bg-white/10" />
+      </div>
+      <div className="mt-6 space-y-3">
+        <Skeleton className="h-5 w-4/5 rounded-full bg-white/10" />
+        <Skeleton className="h-4 w-16 rounded-full bg-white/8" />
+        <Skeleton className="h-4 w-full rounded-full bg-white/8" />
       </div>
     </div>
   );
@@ -133,7 +136,7 @@ function RecentSectionBody(props: RecentSectionBodyProps) {
         loading={false}
         empty
         variant="compact"
-        className="py-2"
+        className="rounded-lg border border-dashed border-white/8 bg-[#101010] px-4 py-8"
         emptyTitle={props.t("assets:ASSET_RECENT_EMPTY")}
         emptyDescription={props.t("assets:ASSET_RECENT_EMPTY_DESC")}
       />
@@ -170,9 +173,9 @@ export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSecti
   const gridClassName = layoutMode === "single" ? "grid-cols-1" : "grid-cols-2";
 
   return (
-    <section className="mt-6 space-y-3 border-t border-border/50 pt-5">
+    <section className="mt-8 space-y-3.5 border-t border-border/50 pt-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[15px] font-semibold text-foreground">
+        <div className="text-title3 font-semibold text-label-primary">
           {props.t("assets:ASSET_RECENT_TITLE")}
         </div>
         <RecentSectionMenu

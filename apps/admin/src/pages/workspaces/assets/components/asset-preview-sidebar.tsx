@@ -166,7 +166,7 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
             size={40}
           />
           <div className="min-w-0">
-            <div className="truncate text-footnote font-semibold text-foreground">
+            <div className="truncate text-footnote font-semibold text-label-primary">
               {controller.uploaderName}
             </div>
             <div className="truncate text-caption text-label-secondary">

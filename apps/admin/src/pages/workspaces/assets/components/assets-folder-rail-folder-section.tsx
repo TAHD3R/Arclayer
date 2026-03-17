@@ -1,17 +1,9 @@
-import {
-  EllipsisVertical,
-  FolderClosed,
-  FolderPlus,
-  MoreVertical,
-  PencilLine,
-  Trash2,
-} from "lucide-react";
+import { EllipsisVertical, FolderClosed, FolderPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { AdminAssetFolder } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu,
@@ -23,20 +15,14 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
-import { Skeleton } from "@arclayer/ui/skeleton";
 
 import {
   buildFolderById,
   buildFolderPath,
   flattenFoldersDepthFirst,
 } from "./assets-folder-rail-utils";
-import { FolderDescriptionTooltip } from "./folder-description-tooltip";
-import {
-  CreateFolderDroppableProvider,
-  DroppablePulse,
-  FolderDroppableProvider,
-  toFolderDndId,
-} from "./assets-view-dnd";
+import { FolderAddCard, FolderCard, FolderCardSkeleton } from "./assets-folder-rail-folder-cards";
+import { toFolderDndId } from "./assets-view-dnd";
 
 type AssetsFolderRailFolderSectionProps = {
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -58,174 +44,6 @@ type AssetsFolderRailFolderSectionProps = {
   isDraggingAssets?: boolean;
 };
 
-function FolderCardSkeleton() {
-  return (
-    <div className="flex min-h-40 flex-col rounded-lg border border-border/60 bg-card p-4 shadow-sm">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <Skeleton className="size-10 rounded-xl" />
-        <Skeleton className="size-8 rounded-full" />
-      </div>
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-3/4" />
-      </div>
-      <div className="mt-auto pt-4">
-        <Skeleton className="h-5 w-20 rounded-full" />
-      </div>
-    </div>
-  );
-}
-
-function FolderAddCard(props: {
-  t: AssetsFolderRailFolderSectionProps["t"];
-  currentFolder: AdminAssetFolder | null;
-  onCreateFolder: (parentId: string | null) => void;
-  isDraggingAssets?: boolean;
-}) {
-  return (
-    <CreateFolderDroppableProvider
-      parentFolderId={props.currentFolder ? String(props.currentFolder.id) : null}
-    >
-      {({ setNodeRef, isOver }) => (
-        <button
-          ref={setNodeRef}
-          type="button"
-          onClick={() =>
-            props.onCreateFolder(props.currentFolder ? String(props.currentFolder.id) : null)
-          }
-          className={cn(
-            "group flex min-h-40 flex-col rounded-lg border border-dashed p-4 text-left transition-colors duration-200",
-            isOver && props.isDraggingAssets
-              ? "border-primary/55 bg-primary/8 ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
-              : "border-border/70 bg-transparent hover:border-primary/45 hover:bg-primary/5",
-          )}
-        >
-          <div className="mb-4 flex items-start gap-3">
-            <div className="grid size-10 place-items-center rounded-xl border border-dashed border-border/70 bg-background/70 text-label-secondary transition-colors group-hover:border-primary/40 group-hover:text-primary">
-              <FolderPlus className="size-4" />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <div className="text-headline font-semibold text-foreground">
-              {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
-            </div>
-            <div className="text-footnote text-label-secondary">
-              {props.currentFolder
-                ? props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_IN", {
-                    name: props.currentFolder.name,
-                  })
-                : props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_ROOT")}
-            </div>
-          </div>
-        </button>
-      )}
-    </CreateFolderDroppableProvider>
-  );
-}
-
-function FolderCard(props: {
-  t: AssetsFolderRailFolderSectionProps["t"];
-  folder: AdminAssetFolder;
-  isActive: boolean;
-  locationLabel: string;
-  onSelectFolder: (folderId: string | null) => void;
-  onEditFolder: (folder: AdminAssetFolder) => void;
-  onMoveFolder: (folder: AdminAssetFolder) => void;
-  onDeleteFolder: (folder: AdminAssetFolder) => void;
-  dropPulseNonce: number | null;
-  tooltipDisabled?: boolean;
-}) {
-  const droppableId = toFolderDndId(String(props.folder.id));
-
-  return (
-    <FolderDroppableProvider droppableId={droppableId}>
-      {({ setNodeRef, isOver }) => (
-        <DroppablePulse
-          droppableId={droppableId}
-          setNodeRef={setNodeRef}
-          isOver={isOver}
-          pulseNonce={props.dropPulseNonce}
-          className="w-full"
-        >
-          <div
-            className={cn(
-              "group col-span-1 flex cursor-pointer flex-col rounded-lg border bg-card p-4 shadow-sm transition-[background-color,border-color,box-shadow] duration-200",
-              props.isActive
-                ? "border-primary/40 bg-primary/5 shadow-[0_12px_30px_-22px_rgba(24,24,27,0.32)]"
-                : "border-border hover:border-border/80 hover:bg-accent/35 hover:shadow-md",
-              isOver &&
-                "border-primary/55 bg-primary/8 ring-2 ring-primary/30 ring-offset-2 ring-offset-background shadow-[0_18px_36px_-24px_rgba(24,24,27,0.42)]",
-            )}
-            onClick={() => props.onSelectFolder(props.isActive ? null : String(props.folder.id))}
-          >
-            <div className="mb-4 flex flex-row justify-between gap-3">
-              <div className="grid size-10 place-items-center rounded-xl border border-border/60 bg-background/85 text-label-secondary">
-                <FolderClosed className="size-4" />
-              </div>
-              <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="opacity-70 transition-opacity group-hover:opacity-100"
-                    >
-                      <MoreVertical className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuIconItem
-                      icon={<PencilLine className="size-4" />}
-                      onSelect={() => props.onEditFolder(props.folder)}
-                    >
-                      {props.t("assets:ASSET_ACTION_EDIT_FOLDER")}
-                    </DropdownMenuIconItem>
-                    <DropdownMenuIconItem
-                      icon={<FolderClosed className="size-4" />}
-                      onSelect={() => props.onMoveFolder(props.folder)}
-                    >
-                      {props.t("assets:ASSET_ACTION_MOVE_FOLDER")}
-                    </DropdownMenuIconItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuIconItem
-                      icon={<Trash2 className="size-4" />}
-                      variant="destructive"
-                      onSelect={() => props.onDeleteFolder(props.folder)}
-                    >
-                      {props.t("assets:ASSET_ACTION_DELETE_FOLDER")}
-                    </DropdownMenuIconItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            <div className="flex flex-col wrap-break-word" style={{ overflowWrap: "anywhere" }}>
-              <div className="text-headline font-semibold text-foreground">{props.folder.name}</div>
-              <FolderDescriptionTooltip
-                text={props.folder.description}
-                emptyText={props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
-                disabled={props.tooltipDisabled}
-              />
-            </div>
-
-            <div className="mt-auto flex items-center gap-2 pt-4">
-              <Badge
-                variant={props.isActive ? "default" : "secondary"}
-                className="rounded-full px-2.5 py-0.5 text-[11px]"
-              >
-                {props.isActive
-                  ? props.t("assets:ASSET_FOLDER_CARD_SELECTED")
-                  : props.locationLabel}
-              </Badge>
-            </div>
-          </div>
-        </DroppablePulse>
-      )}
-    </FolderDroppableProvider>
-  );
-}
-
 export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSectionProps) {
   const [layoutMode, setLayoutMode] = useState<"single" | "multi">("multi");
   const folderById = useMemo(() => buildFolderById(props.folders), [props.folders]);
@@ -238,7 +56,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
   return (
     <section className="space-y-3.5">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[15px] font-semibold text-foreground">
+        <div className="text-title3 font-semibold text-label-primary">
           {props.t("assets:ASSET_FOLDER_PANEL_TITLE")}
         </div>
         <DropdownMenu>
@@ -293,7 +111,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length === 0 ? (
         <div className={cn("grid gap-3", gridClassName)}>
-          <Empty className="rounded-[22px] border border-dashed border-border/60 bg-muted/15 px-4 py-8">
+          <Empty className="rounded-lg border border-dashed border-border/60 bg-muted/15 px-4 py-8">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <FolderClosed className="size-5" />

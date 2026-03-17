@@ -66,7 +66,7 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
     <div className="flex h-full min-h-[320px] flex-col">
       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/70 px-4 py-3">
         <div>
-          <div className="text-footnote font-medium text-foreground">PDF</div>
+          <div className="text-footnote font-medium text-label-primary">PDF</div>
           <div className="text-caption text-label-secondary">
             {pageCount > 0
               ? props.t("assets:ASSET_PDF_PAGE_STATUS", {
@@ -124,7 +124,7 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
         {loadError ? (
           <div className="flex min-h-[320px] items-center justify-center text-center">
             <div className="space-y-2">
-              <div className="text-title3 font-semibold text-foreground">
+              <div className="text-title3 font-semibold text-label-primary">
                 {props.t("assets:ASSET_PREVIEW_LOAD_FAILED")}
               </div>
               <div className="text-footnote text-label-secondary">{loadError}</div>

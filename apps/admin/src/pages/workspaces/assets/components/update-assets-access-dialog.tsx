@@ -153,10 +153,10 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
     >
       <div className="grid gap-4">
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground">
+          <label className="text-callout font-semibold text-label-primary">
             {t("assets:ASSET_META_VISIBILITY")}
           </label>
-          <div className="text-label-secondary">
+          <div className="text-footnote text-label-secondary">
             {t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
           </div>
           <Select value={visibility} onValueChange={setVisibility} disabled={disabled}>
@@ -174,8 +174,12 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
         </div>
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground">{t("assets:ASSET_META_PURPOSE")}</label>
-          <div className="text-label-secondary">{t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}</div>
+          <label className="text-callout font-semibold text-label-primary">
+            {t("assets:ASSET_META_PURPOSE")}
+          </label>
+          <div className="text-footnote text-label-secondary">
+            {t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}
+          </div>
           <Select value={purpose} onValueChange={setPurpose} disabled={disabled}>
             <SelectTrigger className="w-full">
               <SelectValue />
@@ -191,10 +195,12 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
         </div>
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground">
+          <label className="text-callout font-semibold text-label-primary">
             {t("assets:ASSET_META_INDEXABLE")}
           </label>
-          <div className="text-label-secondary">{t("assets:ASSET_EDIT_ACCESS_INDEXABLE_HELP")}</div>
+          <div className="text-footnote text-label-secondary">
+            {t("assets:ASSET_EDIT_ACCESS_INDEXABLE_HELP")}
+          </div>
           <Select value={indexable} onValueChange={setIndexable} disabled={disabled}>
             <SelectTrigger className="w-full">
               <SelectValue />

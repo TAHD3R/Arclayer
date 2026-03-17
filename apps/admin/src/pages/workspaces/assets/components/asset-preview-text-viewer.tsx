@@ -81,7 +81,7 @@ export function AssetPreviewTextViewer(props: AssetPreviewTextViewerProps) {
     return (
       <div className="flex min-h-[320px] items-center justify-center rounded-[20px] border border-border/60 bg-card/70 p-8 text-center">
         <div className="space-y-2">
-          <div className="text-title3 font-semibold text-foreground">
+          <div className="text-title3 font-semibold text-label-primary">
             {props.t("assets:ASSET_PREVIEW_LOAD_FAILED")}
           </div>
           <div className="text-footnote text-label-secondary">{error}</div>

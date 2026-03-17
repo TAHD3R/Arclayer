@@ -135,10 +135,10 @@ export function MoveFolderModal(props: MoveFolderModalProps) {
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
+            <label className="text-callout font-semibold text-label-primary">
               {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET")}
             </label>
-            <div className="text-label-secondary">
+            <div className="text-footnote text-label-secondary">
               {t("assets:ASSET_FOLDER_MOVE_FIELD_TARGET_HELP")}
             </div>
             <Select value={target} onValueChange={setTarget} disabled={props.foldersLoading}>

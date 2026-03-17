@@ -285,10 +285,10 @@ export function AssetPickerDialog(props: {
           <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-end gap-3">
               <div className="grid min-w-[280px] flex-1 gap-1.5">
-                <label className="font-semibold text-foreground">
+                <label className="text-callout font-semibold text-label-primary">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH")}
                 </label>
-                <div className="text-label-secondary">
+                <div className="text-footnote text-label-secondary">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
                 </div>
                 <div className="relative w-full max-w-[320px]">

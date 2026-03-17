@@ -74,8 +74,12 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
     >
       <div className="grid gap-4">
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground">{t("assets:ASSET_FOLDER_NAME")}</label>
-          <div className="text-label-secondary">{t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}</div>
+          <label className="text-callout font-semibold text-label-primary">
+            {t("assets:ASSET_FOLDER_NAME")}
+          </label>
+          <div className="text-footnote text-label-secondary">
+            {t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}
+          </div>
           <Input
             autoFocus
             value={name}
@@ -86,10 +90,10 @@ export function UpdateAssetFolderDialog(props: UpdateAssetFolderDialogProps) {
         </div>
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground">
+          <label className="text-callout font-semibold text-label-primary">
             {t("assets:ASSET_FOLDER_DESCRIPTION")}
           </label>
-          <div className="text-label-secondary">
+          <div className="text-footnote text-label-secondary">
             {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
           </div>
           <Textarea

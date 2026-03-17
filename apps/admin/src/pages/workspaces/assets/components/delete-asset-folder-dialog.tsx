@@ -106,10 +106,10 @@ export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
             <label className="flex cursor-pointer items-start gap-3 rounded-2xl px-1 py-1">
               <RadioGroupItem value="root" className="mt-1" />
               <div className="space-y-1">
-                <div className="font-semibold text-foreground">
+                <div className="text-callout font-semibold text-label-primary">
                   {t("assets:ASSET_FOLDER_DELETE_OPTION_ROOT")}
                 </div>
-                <div className="text-sm text-label-secondary">
+                <div className="text-footnote text-label-secondary">
                   {t("assets:ASSET_FOLDER_DELETE_OPTION_ROOT_DESC")}
                 </div>
               </div>
@@ -118,10 +118,10 @@ export function DeleteAssetFolderDialog(props: DeleteAssetFolderDialogProps) {
               <RadioGroupItem value="folder" className="mt-1" />
               <div className="min-w-0 flex-1 space-y-3">
                 <div className="space-y-1">
-                  <div className="font-semibold text-foreground">
+                  <div className="text-callout font-semibold text-label-primary">
                     {t("assets:ASSET_FOLDER_DELETE_OPTION_FOLDER")}
                   </div>
-                  <div className="text-sm text-label-secondary">
+                  <div className="text-footnote text-label-secondary">
                     {t("assets:ASSET_FOLDER_DELETE_OPTION_FOLDER_DESC")}
                   </div>
                 </div>
