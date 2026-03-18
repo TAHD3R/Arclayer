@@ -46,7 +46,6 @@ body,
     margin: 0;
     font-size: var(--font-size-body);
     line-height: var(--line-height-body);
-    letter-spacing: var(--tracking-body);
   }
 
   .overflow-y-auto,

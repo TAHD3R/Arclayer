@@ -47,7 +47,6 @@ const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
 const COLLAPSED_GROUP_LABEL_STYLE = {
   fontSize: "var(--font-size-headline)",
   lineHeight: "var(--line-height-headline)",
-  letterSpacing: "var(--tracking-headline)",
   fontWeight: "var(--font-weight-headline)",
 } as const;
 

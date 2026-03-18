@@ -58,7 +58,7 @@ function TreeLeafButton(props: {
 
 function SidebarSectionLabel(props: { label: string }) {
   return (
-    <div className="px-3 pt-4 pb-2 text-[0.7rem] font-semibold tracking-[0.18em] text-label-secondary/80 uppercase">
+    <div className="px-3 pt-4 pb-2 text-[0.7rem] font-semibold text-label-secondary/80 ">
       {props.label}
     </div>
   );

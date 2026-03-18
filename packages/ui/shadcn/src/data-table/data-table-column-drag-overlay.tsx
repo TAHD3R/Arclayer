@@ -65,7 +65,7 @@ export function DataTableColumnDragOverlay<TData>(
     >
       <div
         className={cn(
-          "px-2 uppercase tracking-wider text-label-secondary text-callout font-semibold",
+          "px-2 text-label-secondary text-callout font-semibold",
           "flex items-center border-b border-border/60 bg-background",
           resolveHeaderHeightClass(rowHeight),
         )}

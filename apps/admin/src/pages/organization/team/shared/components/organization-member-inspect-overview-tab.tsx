@@ -21,7 +21,7 @@ type OrganizationMemberInspectOverviewTabProps = {
 function SummaryCard(props: { title: string; body: React.ReactNode; footer?: React.ReactNode }) {
   return (
     <section className="rounded-xl border border-border/60 bg-card p-4">
-      <div className="text-callout font-bold uppercase text-label-secondary">{props.title}</div>
+      <div className="text-callout font-bold text-label-secondary">{props.title}</div>
       <div className="mt-3 space-y-2">{props.body}</div>
       {props.footer ? (
         <div className="mt-3 text-callout text-label-secondary">{props.footer}</div>

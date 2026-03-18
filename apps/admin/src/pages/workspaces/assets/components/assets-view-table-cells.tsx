@@ -53,7 +53,7 @@ export function AssetPreviewCell(props: { asset: AssetMasonryItem; subtitle: str
         {props.asset.previewUrl ? (
           <LazyAssetImage src={props.asset.previewUrl} alt={props.asset.name} fit="cover" />
         ) : (
-          <span className="px-2 text-caption font-semibold uppercase text-label-secondary">
+          <span className="px-2 text-caption font-semibold text-label-secondary">
             {extensionLabel.slice(0, 4)}
           </span>
         )}

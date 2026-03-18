@@ -154,7 +154,7 @@ export function FolderAddCard(props: {
 
           <div className="relative flex h-full flex-col">
             <div className="flex min-h-0 flex-1 flex-col ">
-              <div className="pr-10 text-headline font-semibold tracking-tight leading-5 text-label-primary xl:pr-11">
+              <div className="pr-10 text-headline font-semibold leading-5 text-label-primary xl:pr-11">
                 {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
               </div>
               <div className="mt-1.5 max-w-[18ch] text-caption leading-[1.35] text-label-secondary xl:mt-2 xl:leading-[1.45]">
@@ -227,7 +227,7 @@ export function FolderCard(props: {
               />
 
               <div className="flex min-h-0 flex-1 flex-col" style={{ overflowWrap: "anywhere" }}>
-                <div className="pr-10 text-headline font-semibold tracking-tight leading-5 text-label-primary xl:pr-11">
+                <div className="pr-10 text-headline font-semibold leading-5 text-label-primary xl:pr-11">
                   {props.folder.name}
                 </div>
                 <FolderDescriptionTooltip

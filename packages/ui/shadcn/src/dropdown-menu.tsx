@@ -303,7 +303,7 @@ type DropdownMenuShortcutProps = DropdownMenuShortcutPrimitiveProps;
 function DropdownMenuShortcut({ className, ...props }: DropdownMenuShortcutProps) {
   return (
     <DropdownMenuShortcutPrimitive
-      className={cn("text-label-secondary ml-auto text-footnote tracking-widest", className)}
+      className={cn("text-label-secondary ml-auto text-footnote ", className)}
       {...props}
     />
   );

@@ -40,7 +40,7 @@ export function AuthPaneHeader(props: {
         <AdminFullLogo to="/login" ariaLabel="Arclayer" width={132} />
       </div>
       <div className="grid gap-2">
-        <h1 className="select-none text-largetitle leading-none tracking-[-0.03em] text-label-primary">
+        <h1 className="select-none text-largetitle leading-none text-label-primary">
           {t(props.titleKey)}
         </h1>
         <p className="max-w-[30ch] select-none text-title3 font-normal leading-relaxed text-label-secondary text-pretty">

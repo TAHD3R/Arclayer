@@ -50,11 +50,11 @@ function SortableTableHarness() {
 }
 
 describe("DataTablePresenter", () => {
-  it("sortable header button forces uppercase text rendering", () => {
+  it("sortable header button does not force uppercase text rendering", () => {
     render(<SortableTableHarness />);
 
     const headerButton = screen.getByRole("button", { name: "Name" });
-    expect(headerButton).toHaveStyle({ textTransform: "uppercase" });
+    expect(headerButton).not.toHaveStyle({ textTransform: "uppercase" });
   });
 
   it("sortable header opens a menu for sort actions", async () => {

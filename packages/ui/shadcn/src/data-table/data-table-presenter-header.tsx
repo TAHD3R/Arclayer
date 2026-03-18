@@ -105,7 +105,7 @@ function resolveHeaderCellState<TData>(
       ? null
       : flexRender(header.column.columnDef.header, header.getContext()),
     className: cn(
-      "group/header-cell relative !uppercase tracking-wider text-label-secondary select-none align-middle",
+      "group/header-cell relative text-label-secondary select-none align-middle",
       alignClass,
       pinStyle.className,
       resolveHeaderHeightClass(rowHeight, wrapHeaders),
@@ -226,7 +226,6 @@ function StaticHeaderCell<TData>(
               resolveLockedColumnContentPaddingClass(columnMeta, columnId),
               resolveHeaderContentClass(props.wrapHeaders),
             )}
-            style={{ textTransform: "uppercase" }}
           >
             {state.content}
           </div>

@@ -51,7 +51,7 @@ function ShortcutKeys(props: {
         <Kbd
           key={key}
           className={cn(
-            "h-6 min-w-6 rounded-md border border-transparent px-2.5 text-caption font-semibold tracking-[0.03em]",
+            "h-6 min-w-6 rounded-md border border-transparent px-2.5 text-caption font-semibold ",
             props.keyClassName,
           )}
         >
@@ -68,7 +68,7 @@ function EntryShortcut(props: { shortcut: readonly string[] }) {
       {props.shortcut.map((key) => (
         <Kbd
           key={key}
-          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-background/70 px-2 text-caption font-semibold uppercase tracking-[0.04em] text-label-secondary"
+          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-background/70 px-2 text-caption font-semibold text-label-secondary"
         >
           {key}
         </Kbd>
@@ -182,7 +182,7 @@ function CommandPanelFooter(props: {
       <ShortcutKeys
         platform={props.platform}
         className="gap-1"
-        keyClassName="h-5 min-w-5 rounded-[5px] bg-background/70 px-2 text-callout uppercase tracking-[0.04em] text-label-secondary"
+        keyClassName="h-5 min-w-5 rounded-[5px] bg-background/70 px-2 text-callout text-label-secondary"
       />
       <span>{props.suffix}</span>
       <AdminFullLogo
@@ -264,7 +264,7 @@ export function AdminCommandTrigger(props: {
               "[&_[cmdk-input]]:h-14 [&_[cmdk-input]]:py-0 [&_[cmdk-input]]:text-headline [&_[cmdk-input]]:font-medium [&_[cmdk-input]]:placeholder:text-label-secondary",
               "[&_[cmdk-list]]:max-h-[35rem] [&_[cmdk-list]]:px-3 [&_[cmdk-list]]:py-2",
               "[&_[cmdk-group]]:p-0 [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:pb-2 [&_[cmdk-group-heading]]:pt-2.5",
-              "[&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:tracking-[0.02em] [&_[cmdk-group-heading]]:text-label-secondary",
+              "[&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-label-secondary",
             )}
           >
             <CommandInput

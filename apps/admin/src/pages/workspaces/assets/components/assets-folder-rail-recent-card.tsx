@@ -199,7 +199,7 @@ export function RecentAssetCard(props: {
           >
             <div
               className={cn(
-                "line-clamp-2 text-headline font-semibold tracking-tight text-label-primary",
+                "line-clamp-2 text-headline font-semibold text-label-primary",
                 recentTextShadowClassName,
               )}
             >
@@ -226,7 +226,7 @@ export function RecentAssetCard(props: {
         >
           <div
             className={cn(
-              "truncate text-headline font-semibold tracking-tight text-label-primary",
+              "truncate text-headline font-semibold text-label-primary",
               recentTextShadowClassName,
             )}
           >

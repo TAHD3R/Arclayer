@@ -24,9 +24,7 @@ export function AccountSettingsStateCard(props: AccountSettingsStateCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2">
           {props.eyebrow ? (
-            <div className="text-caption font-semibold uppercase tracking-[0.14em] text-label-secondary">
-              {props.eyebrow}
-            </div>
+            <div className="text-caption font-semibold text-label-secondary">{props.eyebrow}</div>
           ) : null}
           <div className="text-title3 font-semibold text-foreground">{props.title}</div>
         </div>

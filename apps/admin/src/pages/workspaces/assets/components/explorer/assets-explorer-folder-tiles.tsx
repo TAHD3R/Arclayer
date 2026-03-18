@@ -92,7 +92,7 @@ export const AssetsExplorerFolderTile = forwardRef<
           <div className="relative flex h-full flex-col justify-between p-4">
             <div className="flex items-center gap-2 ">
               <Folder size={18} className="opacity-80" />
-              <span className="text-title3 font-bold tracking-wide">{props.folderLabel}</span>
+              <span className="text-title3 font-bold ">{props.folderLabel}</span>
             </div>
             <div className="min-w-0">
               <div className="font-semibold truncate" title={props.folder.name}>
@@ -132,7 +132,7 @@ export function AssetsExplorerFolderDragOverlay(props: {
         <div className="relative flex h-full flex-col justify-between p-3">
           <div className="flex items-center gap-2 text-label-secondary">
             <Folder size={18} className="opacity-80" />
-            <span className="text-footnote tracking-wide">{props.folderLabel}</span>
+            <span className="text-footnote ">{props.folderLabel}</span>
           </div>
           <div className="min-w-0">
             <div className="font-semibold truncate" title={props.folderName}>

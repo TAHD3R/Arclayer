@@ -43,7 +43,6 @@ export function DataTableColumnHeaderMenu<TData>(props: {
           props.justifyClass,
           resolveHeaderContentClass(props.wrapHeaders),
         )}
-        style={{ textTransform: "uppercase" }}
       >
         {props.content}
       </div>
@@ -59,7 +58,6 @@ export function DataTableColumnHeaderMenu<TData>(props: {
             "group inline-flex min-h-8 max-w-full items-center gap-1 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50",
             props.justifyClass,
           )}
-          style={{ textTransform: "uppercase" }}
           tapScale={1}
         >
           <div className={cn("min-w-0 max-w-full", resolveHeaderContentClass(props.wrapHeaders))}>
