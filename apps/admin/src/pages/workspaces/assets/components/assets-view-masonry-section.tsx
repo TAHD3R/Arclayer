@@ -44,6 +44,7 @@ interface AssetsViewMasonrySectionProps {
 const MASONRY_COLUMN_WIDTH = 260;
 const MASONRY_GUTTER = 16;
 const MASONRY_ITEM_HEIGHT_ESTIMATE = 320;
+const MASONRY_OVERSCAN_BY = 2;
 function getNearestAvailableWidth(element: HTMLElement | null) {
   let current = element;
 
@@ -269,8 +270,8 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const masonryWidth = observedShellWidth;
   const masonryDatasetKey = useMemo(() => {
     const baseKey = JSON.stringify(assetsListQueryKey);
-    return getAssetsMasonryDatasetKey(baseKey, orderedAssetIds, masonryItems.length);
-  }, [assetsListQueryKey, masonryItems.length, orderedAssetIds]);
+    return getAssetsMasonryDatasetKey(baseKey, orderedAssetIds);
+  }, [assetsListQueryKey, orderedAssetIds]);
 
   useEffect(() => {
     nextPageRequestRef.current = false;
@@ -318,7 +319,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     className: "min-w-0 w-full max-w-full",
     itemKey: getAssetsMasonryItemKey,
     itemHeightEstimate: MASONRY_ITEM_HEIGHT_ESTIMATE,
-    overscanBy: 1.5,
+    overscanBy: MASONRY_OVERSCAN_BY,
     render: AssetsViewMasonryRenderCell,
     onRender: maybeLoadMore,
   });

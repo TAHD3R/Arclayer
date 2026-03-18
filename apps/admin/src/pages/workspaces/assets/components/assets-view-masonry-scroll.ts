@@ -7,6 +7,8 @@ type AssetsMasonryScrollState = {
 };
 
 const SCROLL_STOP_DELAY_MS = 120;
+const SCROLL_FPS = 12;
+const SCROLL_THROTTLE_MS = 1000 / SCROLL_FPS;
 
 function canScroll(style: CSSStyleDeclaration) {
   return /(auto|scroll|overlay)/.test(`${style.overflow} ${style.overflowY} ${style.overflowX}`);
@@ -84,8 +86,10 @@ export function useAssetsMasonryScrollState(
     const viewport = resolveAssetsMasonryScrollViewport(node);
     let frameId = 0;
     let stopTimer = 0;
+    let throttleTimer = 0;
+    let lastScrollSync = 0;
 
-    const syncState = (isScrolling: boolean) => {
+    const setScrollingState = (isScrolling: boolean) => {
       const next = measureScrollState(node, viewport, fallbackHeight);
       setState((prev) => {
         if (
@@ -103,18 +107,34 @@ export function useAssetsMasonryScrollState(
       });
     };
 
-    const scheduleSync = () => {
+    const syncIdleState = () => {
+      setScrollingState(false);
+    };
+
+    const flushScrollSync = () => {
+      throttleTimer = 0;
+      lastScrollSync = performance.now();
+      setScrollingState(true);
       window.clearTimeout(stopTimer);
-      syncState(true);
-      stopTimer = window.setTimeout(() => syncState(false), SCROLL_STOP_DELAY_MS);
+      stopTimer = window.setTimeout(syncIdleState, SCROLL_STOP_DELAY_MS);
+    };
+
+    const scheduleSync = () => {
+      const now = performance.now();
+      if (now - lastScrollSync >= SCROLL_THROTTLE_MS) {
+        flushScrollSync();
+        return;
+      }
+      window.clearTimeout(throttleTimer);
+      throttleTimer = window.setTimeout(flushScrollSync, SCROLL_THROTTLE_MS);
     };
 
     const onResize = () => {
       if (frameId) window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => syncState(false));
+      frameId = window.requestAnimationFrame(syncIdleState);
     };
 
-    syncState(false);
+    syncIdleState();
 
     const scrollTarget = viewport.kind === "element" ? viewport.node : window;
 
@@ -128,6 +148,7 @@ export function useAssetsMasonryScrollState(
     return () => {
       if (frameId) window.cancelAnimationFrame(frameId);
       window.clearTimeout(stopTimer);
+      window.clearTimeout(throttleTimer);
       scrollTarget.removeEventListener("scroll", scheduleSync);
       window.removeEventListener("resize", onResize);
       observer.disconnect();

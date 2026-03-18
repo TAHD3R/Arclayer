@@ -22,10 +22,8 @@ describe("AssetsViewMasonrySection", () => {
     expect(getAssetsMasonryItemKey({ key: "asset-1" }, 0)).toBe("asset-1");
   });
 
-  it("includes the ordered asset ids in the masonry dataset key", () => {
-    expect(getAssetsMasonryDatasetKey("query-key", ["a", "b", "c"], 5)).toBe(
-      "query-key:a|b|c:render:5",
-    );
+  it("uses query identity and ordered asset ids for the masonry dataset key", () => {
+    expect(getAssetsMasonryDatasetKey("query-key", ["a", "b", "c"])).toBe("query-key:a|b|c");
   });
 
   it("caps masonry columns based on the available width", () => {
