@@ -153,7 +153,7 @@ export function FolderAddCard(props: {
           </div>
 
           <div className="relative flex h-full flex-col">
-            <div className="mt-4 flex min-h-0 flex-1 flex-col xl:mt-5">
+            <div className="flex min-h-0 flex-1 flex-col ">
               <div className="pr-10 text-headline font-semibold tracking-tight leading-5 text-label-primary xl:pr-11">
                 {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
               </div>
@@ -226,10 +226,7 @@ export function FolderCard(props: {
                 onDeleteFolder={props.onDeleteFolder}
               />
 
-              <div
-                className="mt-4 flex min-h-0 flex-1 flex-col xl:mt-5"
-                style={{ overflowWrap: "anywhere" }}
-              >
+              <div className="flex min-h-0 flex-1 flex-col" style={{ overflowWrap: "anywhere" }}>
                 <div className="pr-10 text-headline font-semibold tracking-tight leading-5 text-label-primary xl:pr-11">
                   {props.folder.name}
                 </div>
