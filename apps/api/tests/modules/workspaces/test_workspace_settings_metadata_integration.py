@@ -88,10 +88,11 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             assert data["name"] == "My Blog"
             assert data["slug"] == "default"
 
-            # Workspace slug is immutable after creation.
+            # Workspace slug is updatable in the current metadata API.
             resp = await client.patch(
                 f"/api/v1/workspaces/{ws_pid}",
                 json={"slug": "my-blog"},
             )
-            assert resp.status_code == 400
-            assert resp.json()["error"] == "WORKSPACE_SLUG_IMMUTABLE"
+            assert resp.status_code == 200
+            data = resp.json()["data"]
+            assert data["slug"] == "my-blog"

@@ -5,6 +5,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.registry import create_app
 from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
@@ -59,14 +60,19 @@ async def test_core_domain_short_paths(prepared_db) -> None:
         app.dependency_overrides[get_current_user] = _fake_user
         app.dependency_overrides[get_current_user_id] = _fake_user_id
 
+        workspace_id = encode_uuid(ws.id)
+
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            # Admin menu (core)
-            resp = await client.get(f"/api/v1/workspaces/{ws.id}/menus/me")
+            # Workspace detail short path (core)
+            resp = await client.get(f"/api/v1/workspaces/{workspace_id}")
             assert resp.status_code == 200
-            assert "items" in resp.json()["data"]
+            detail = resp.json()["data"]
+            assert detail["id"] == workspace_id
+            assert detail["name"] == "Site"
+            assert detail["slug"] == ws.slug
 
             # RBAC roles (workspace-scoped read)
-            resp = await client.get(f"/api/v1/workspaces/{ws.id}/rbac/roles?page=1&size=10")
+            resp = await client.get(f"/api/v1/workspaces/{workspace_id}/rbac/roles?page=1&size=10")
             assert resp.status_code == 200
             page = resp.json()["data"]
             assert "items" in page

@@ -70,7 +70,7 @@ class TestingSettings(BaseSettings):
     )
 
     database_enabled: bool = Field(
-        default=False,
+        default=True,
         validation_alias=AliasChoices("TEST_DATABASE__ENABLED", "TEST_DB_ENABLED"),
     )
     database_name: str = Field(
@@ -78,7 +78,7 @@ class TestingSettings(BaseSettings):
         validation_alias=AliasChoices("TEST_DATABASE__NAME", "TEST_DB_NAME"),
     )
     valkey_enabled: bool = Field(
-        default=False,
+        default=True,
         validation_alias=AliasChoices("TEST_VALKEY__ENABLED", "TEST_CACHE_ENABLED"),
     )
     valkey_db: int = Field(

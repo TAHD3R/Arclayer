@@ -71,7 +71,10 @@ addopts = "-ra -q --import-mode=importlib --cov=apps.api.src --cov-report=term-m
 testpaths = ["apps/api/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-markers = ["integration: tests that require external services (database, valkey)"]
+markers = [
+    "integration: tests that require external services (database, valkey)",
+    "unit: tests that exercise dependency-light units without external services",
+]
 
 [tool.pyright]
 include = ["apps/api"]

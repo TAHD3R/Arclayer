@@ -71,17 +71,43 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
             site_res = await client.get(f"/api/v1/workspaces/{ws_pid}/site")
             assert site_res.status_code == 200, site_res.text
 
-            page_type_res = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/content/types",
-                json={"code": "page", "name": "Page", "kind": "page"},
+            page_model_res = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/content/models",
+                json={
+                    "key": "page",
+                    "name": "Page",
+                    "category": "site_builder",
+                    "defaultEditor": "visual",
+                    "fields": [
+                        {"key": "title", "label": "Title", "scalar": "text", "required": True},
+                        {"key": "body", "label": "Body", "scalar": "long_text", "required": False},
+                    ],
+                    "capabilities": ["versioned", "routable", "treeable", "visual_editable", "publishable"],
+                    "routing": {"mode": "single", "slugField": "title"},
+                    "workflow": {"states": ["draft", "published"], "initialState": "draft"},
+                    "views": [],
+                },
             )
-            assert page_type_res.status_code == 201, page_type_res.text
+            assert page_model_res.status_code == 201, page_model_res.text
 
-            post_type_res = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/content/types",
-                json={"code": "article", "name": "Article", "kind": "post"},
+            article_model_res = await client.post(
+                f"/api/v1/workspaces/{ws_pid}/content/models",
+                json={
+                    "key": "article",
+                    "name": "Article",
+                    "category": "content_library",
+                    "defaultEditor": "rich_text",
+                    "fields": [
+                        {"key": "title", "label": "Title", "scalar": "text", "required": True},
+                        {"key": "summary", "label": "Summary", "scalar": "long_text", "required": False},
+                    ],
+                    "capabilities": ["versioned", "routable", "rich_text_editable", "publishable"],
+                    "routing": {"mode": "single", "slugField": "title"},
+                    "workflow": {"states": ["draft", "published"], "initialState": "draft"},
+                    "views": [],
+                },
             )
-            assert post_type_res.status_code == 201, post_type_res.text
+            assert article_model_res.status_code == 201, article_model_res.text
 
             models_res = await client.get(f"/api/v1/workspaces/{ws_pid}/content/models")
             assert models_res.status_code == 200, models_res.text
@@ -94,6 +120,9 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
             assert "kind" not in page_model
             assert page_model["category"] == "site_builder"
             assert page_model["defaultEditor"] == "visual"
+            assert page_model["routingSchema"]["slug_field"] == "title"
+            assert page_model["workflowPolicy"]["initial_state"] == "draft"
+            assert page_model["fieldSchema"]["body"]["scalar"] == "long_text"
             assert {"versioned", "routable", "treeable", "visual_editable", "publishable"}.issubset(
                 set(page_model["capabilities"])
             )
@@ -101,6 +130,9 @@ async def test_workspace_content_models_list_maps_legacy_types_to_model_contract
             assert "kind" not in article_model
             assert article_model["category"] == "content_library"
             assert article_model["defaultEditor"] == "rich_text"
+            assert article_model["routingSchema"]["slug_field"] == "title"
+            assert article_model["workflowPolicy"]["initial_state"] == "draft"
+            assert article_model["fieldSchema"]["summary"]["scalar"] == "long_text"
             assert {"versioned", "routable", "rich_text_editable", "publishable"}.issubset(
                 set(article_model["capabilities"])
             )
@@ -159,36 +191,45 @@ async def test_workspace_content_models_list_preserves_explicit_model_contract_p
             assert site_res.status_code == 200, site_res.text
 
             create_res = await client.post(
-                f"/api/v1/workspaces/{ws_pid}/content/types",
+                f"/api/v1/workspaces/{ws_pid}/content/models",
                 json={
-                    "code": "author",
+                    "key": "author",
                     "name": "Author",
-                    "kind": "custom",
-                    "fieldSchema": {
-                        "version": 1,
-                        "fields": [
-                            {"key": "display_name", "type": "text"},
-                            {"key": "bio", "type": "rich_text"},
-                        ],
-                    },
-                    "editorSchema": {
-                        "category": "content_library",
-                        "description": "Profiles used across posts, layouts, and testimonials.",
-                        "capabilities": [
-                            "versioned",
-                            "routable",
-                            "has_relations",
-                            "localizable",
-                            "publishable",
-                            "seo_managed",
-                        ],
-                        "defaultEditor": "form",
-                        "relationSchema": {"avatar": {"target": "asset", "kind": "one"}},
-                        "routingSchema": {"mode": "slug_only", "pattern": "/authors/:slug"},
-                        "presentationSchema": {"allowed": ["form_data", "seo"]},
-                        "viewSchema": {"defaultView": "table"},
-                    },
-                    "workflowPolicy": {"supportsSchedule": False},
+                    "description": "Profiles used across posts, layouts, and testimonials.",
+                    "category": "content_library",
+                    "defaultEditor": "form",
+                    "fields": [
+                        {"key": "display_name", "label": "Display Name", "scalar": "text", "required": True},
+                        {"key": "bio", "label": "Bio", "scalar": "long_text", "required": False},
+                    ],
+                    "relations": [
+                        {
+                            "key": "avatar",
+                            "relation": "one_to_one",
+                            "targetModelKey": "asset",
+                            "required": False,
+                            "config": {"kind": "asset"},
+                        }
+                    ],
+                    "capabilities": [
+                        "versioned",
+                        "routable",
+                        "has_relations",
+                        "localizable",
+                        "publishable",
+                        "seo_managed",
+                    ],
+                    "routing": {"mode": "single", "slugField": "display_name"},
+                    "presentation": {"allowedKinds": ["form_data", "seo"]},
+                    "views": [
+                        {
+                            "key": "table_main",
+                            "label": "Main Table",
+                            "type": "table",
+                            "config": {"columns": ["display_name", "avatar"]},
+                        }
+                    ],
+                    "workflow": {"states": ["draft", "published"], "initialState": "draft"},
                 },
             )
             assert create_res.status_code == 201, create_res.text
@@ -201,6 +242,7 @@ async def test_workspace_content_models_list_preserves_explicit_model_contract_p
             assert author_model["category"] == "content_library"
             assert author_model["description"] == "Profiles used across posts, layouts, and testimonials."
             assert author_model["defaultEditor"] == "form"
+            assert author_model["fieldSchema"]["bio"]["scalar"] == "long_text"
             assert author_model["capabilities"] == [
                 "versioned",
                 "routable",
@@ -209,8 +251,16 @@ async def test_workspace_content_models_list_preserves_explicit_model_contract_p
                 "publishable",
                 "seo_managed",
             ]
-            assert author_model["relationSchema"] == {"avatar": {"target": "asset", "kind": "one"}}
-            assert author_model["routingSchema"] == {"mode": "slug_only", "pattern": "/authors/:slug"}
-            assert author_model["presentationSchema"] == {"allowed": ["form_data", "seo"]}
-            assert author_model["viewSchema"] == {"defaultView": "table"}
-            assert author_model["workflowPolicy"] == {"supportsSchedule": False}
+            assert author_model["relationSchema"] == {
+                "avatar": {
+                    "relation": "one_to_one",
+                    "targetModelKey": "asset",
+                    "required": False,
+                    "config": {"kind": "asset"},
+                }
+            }
+            assert author_model["routingSchema"] == {"mode": "single", "slug_field": "display_name"}
+            assert author_model["presentationSchema"] == {"allowedKinds": ["form_data", "seo"]}
+            assert author_model["viewSchema"]["views"][0]["type"] == "table"
+            assert author_model["viewSchema"]["views"][0]["enabled"] is True
+            assert author_model["workflowPolicy"] == {"states": ["draft", "published"], "initial_state": "draft"}

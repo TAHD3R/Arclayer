@@ -4,7 +4,6 @@ import os
 import sys
 from collections.abc import AsyncGenerator, Iterator
 from pathlib import Path
-from uuid import uuid4
 
 import asyncpg
 import pytest
@@ -40,8 +39,9 @@ def base_test_env(monkeypatch) -> Iterator[None]:
     Rationale:
     - `get_settings()` loads `.env` first. In local dev this often enables DB/Valkey, which makes
       pure unit tests flaky/hanging in sandboxed environments (no external sockets).
-    - Integration tests opt-in via `RUN_INTEGRATION_TESTS=1` and explicitly enable DB/Valkey using
-      `TEST_DATABASE__ENABLED` / `TEST_VALKEY__ENABLED`.
+    - Integration tests opt-in via `RUN_INTEGRATION_TESTS=1`. Test DB/Valkey backends default to
+      enabled in test mode and can still be explicitly disabled via
+      `TEST_DATABASE__ENABLED=0` / `TEST_VALKEY__ENABLED=0`.
     """
 
     # External dependencies off by default.
@@ -64,16 +64,18 @@ def _integration_enabled() -> bool:
     return os.getenv("RUN_INTEGRATION_TESTS") == "1"
 
 
-@pytest.fixture
-def integration_db_settings(monkeypatch) -> Iterator[None]:
-    if not _integration_enabled():
-        pytest.skip("integration tests disabled")
+def _activate_integration_env(monkeypatch) -> None:
+    """
+    Switch settings loading into test mode and let TEST_* values come from env files.
+
+    Integration backends default to enabled in test mode. `apps/api/.env`, `.env.test`, `.env.local`,
+    or exported `TEST_DATABASE__*` / `TEST_VALKEY__*` keys can override the defaults when a test needs
+    to disable or customize them.
+    """
 
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
-    monkeypatch.setenv("TEST_DATABASE__ENABLED", "1")
-    monkeypatch.setenv("TEST_DATABASE__NAME", os.getenv("TEST_DATABASE__NAME", "arclayer_test"))
     # Integration tests may hit email invitation flows. Enable mail but suppress actual sending.
     monkeypatch.setenv("MAIL__ENABLED", "1")
     monkeypatch.setenv("MAIL__SUPPRESS_SEND", "1")
@@ -82,8 +84,27 @@ def integration_db_settings(monkeypatch) -> Iterator[None]:
     # ORM discovery must only load the canonical model package.
     monkeypatch.setenv("DATABASE__CORE_MODELS", '["apps.api.src.models"]')
     monkeypatch.setenv("DATABASE__PLUGIN_PACKAGES", '["apps.api.src.plugins"]')
-    # Ensure subsequent `get_settings()` calls see the updated integration env.
     get_settings.cache_clear()
+
+
+def _require_test_backend_enabled(*, enabled: bool, flag_name: str, backend_name: str) -> None:
+    if enabled:
+        return
+    pytest.skip(f"{backend_name} integration backend disabled; set {flag_name}=true")
+
+
+@pytest.fixture
+def integration_db_settings(monkeypatch) -> Iterator[None]:
+    if not _integration_enabled():
+        pytest.skip("integration tests disabled")
+
+    _activate_integration_env(monkeypatch)
+    settings = get_settings()
+    _require_test_backend_enabled(
+        enabled=settings.testing.database_enabled,
+        flag_name="TEST_DATABASE__ENABLED",
+        backend_name="database",
+    )
     yield
 
 
@@ -92,20 +113,14 @@ def integration_valkey_settings(monkeypatch) -> str:
     if not _integration_enabled():
         pytest.skip("integration tests disabled")
 
-    prefix = os.getenv("TEST_VALKEY__PREFIX") or f"test:{uuid4().hex}"
-    monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
-    monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
-    # Default integration Valkey connection matches repo `docker-compose.yml`.
-    monkeypatch.setenv("VALKEY__HOST", os.getenv("VALKEY__HOST", "127.0.0.1"))
-    monkeypatch.setenv("VALKEY__PORT", os.getenv("VALKEY__PORT", "6379"))
-    monkeypatch.setenv("TEST_VALKEY__ENABLED", "1")
-    monkeypatch.setenv("TEST_VALKEY__DB", os.getenv("TEST_VALKEY__DB", "15"))
-    monkeypatch.setenv("TEST_VALKEY__DEFAULT_TTL", os.getenv("TEST_VALKEY__DEFAULT_TTL", "5"))
-    monkeypatch.setenv("TEST_VALKEY__PREFIX", prefix)
-    # `get_settings()` is cached; clear it so valkey gets enabled for the app under test.
-    get_settings.cache_clear()
-    return prefix
+    _activate_integration_env(monkeypatch)
+    settings = get_settings()
+    _require_test_backend_enabled(
+        enabled=settings.testing.valkey_enabled,
+        flag_name="TEST_VALKEY__ENABLED",
+        backend_name="valkey",
+    )
+    return settings.testing.valkey_prefix or "test"
 
 
 @pytest.fixture
