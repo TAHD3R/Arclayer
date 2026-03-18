@@ -15,6 +15,7 @@ export function DefaultPage({
   children,
   className,
   contentClassName,
+  contentContainerClassName,
 }: DefaultPageProps) {
   const hideHeader = shouldHidePageHeader(children);
 
@@ -28,6 +29,7 @@ export function DefaultPage({
           action={hideHeader ? undefined : action}
           extra={hideHeader ? undefined : extra}
           contentClassName={contentClassName}
+          contentContainerClassName={contentContainerClassName}
         >
           {children}
         </PageMainRegion>

@@ -14,7 +14,7 @@ function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
       <div className="truncate font-medium text-foreground">{props.row.name}</div>
       <div className="truncate text-caption text-label-secondary">
         {[
-          props.row.modelName || t("CONTENT_LIBRARY_ROW_FORMLESS_CLAY"),
+          props.row.modelName || t("CONTENT_LIBRARY_ROW_UNTYPED"),
           props.row.slug,
           props.row.locale,
         ].join(" · ")}

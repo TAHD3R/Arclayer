@@ -74,4 +74,25 @@ describe("DefaultPage", () => {
     expect(screen.queryByText("Assets")).not.toBeInTheDocument();
     expect(screen.queryByText("Library overview")).not.toBeInTheDocument();
   });
+
+  it("supports an opt-in centered content container without changing the default shell", () => {
+    render(
+      <DefaultPage title="Assets" contentContainerClassName="mx-auto max-w-4xl">
+        <div>Body</div>
+      </DefaultPage>,
+    );
+
+    const contentContainer = document.querySelector('[data-slot="page-main-container"]');
+
+    expect(contentContainer).toHaveClass(
+      "flex",
+      "min-h-0",
+      "min-w-0",
+      "w-full",
+      "flex-1",
+      "flex-col",
+      "mx-auto",
+      "max-w-4xl",
+    );
+  });
 });

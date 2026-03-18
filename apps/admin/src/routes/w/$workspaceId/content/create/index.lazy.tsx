@@ -2,7 +2,7 @@ import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { ContentBootstrapPage } from "@/pages/workspaces/content/bootstrap/page";
 
-export const Route = createLazyFileRoute("/w/$workspaceId/content/bootstrap/")({
+export const Route = createLazyFileRoute("/w/$workspaceId/content/create/")({
   component: BootstrapRouteComponent,
 });
 

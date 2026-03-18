@@ -15,8 +15,8 @@ export function workspaceContentLibraryPath(workspaceId: string): string {
   return `/w/${encodeURIComponent(workspaceId)}/content/library`;
 }
 
-export function workspaceContentBootstrapPath(workspaceId: string): string {
-  return `/w/${encodeURIComponent(workspaceId)}/content/bootstrap`;
+export function workspaceContentCreatePath(workspaceId: string): string {
+  return `/w/${encodeURIComponent(workspaceId)}/content/create`;
 }
 
 export function buildWorkspaceContentEditorUrl(params: {

@@ -1,32 +1,17 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
 
 import { applyContentBootstrapShape, createContentItem } from "@/api/content";
-import { getWorkspaceSite, issueWorkspaceSitePreviewToken } from "@/api/workspace-site";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { DEFAULT_LOCALE, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
-import {
-  buildWorkspaceContentEditorUrl,
-  workspaceContentLibraryPath,
-} from "@/lib/routing/workspace-content-routing";
-import { buildLocaleOptions } from "@/lib/settings/general/localization-options";
+import { workspaceContentLibraryPath } from "@/lib/routing/workspace-content-routing";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import type { AdminContentItem } from "@/types/api";
 
 import { buildContentItemsQueryKey } from "../../library/utils";
-import { CONTENT_BOOTSTRAP_CAPABILITY_PACKS } from "../definitions";
-import {
-  applyPresetSelection,
-  createEmptyShapeSelection,
-  detachPreset,
-  toggleCapabilityPack,
-} from "../state";
-import type { ContentBootstrapPresetKey, ContentBootstrapShapeSelection } from "../types";
-
-const PREVIEW_TOKEN_TTL_SECONDS = 600;
+import { applyPresetSelection } from "../state";
+import type { ContentBootstrapPresetKey } from "../types";
 
 function resolveDefaultLocale(params: {
   preferenceLocale: AppLocale;
@@ -36,11 +21,9 @@ function resolveDefaultLocale(params: {
 }
 
 function useBootstrapLocaleState() {
-  const { t } = useTranslation("content");
   const preferenceLocale = usePreferencesStore((state) => state.locale);
   const workspaceLocalization = useWorkspaceLocalization();
   const workspaceLocale = workspaceLocalization.localization.locale;
-  const localeOptions = React.useMemo(() => buildLocaleOptions(t), [t]);
   const [locale, setLocale] = React.useState<AppLocale>(() =>
     resolveDefaultLocale({ preferenceLocale, workspaceLocale }),
   );
@@ -49,7 +32,7 @@ function useBootstrapLocaleState() {
     setLocale(resolveDefaultLocale({ preferenceLocale, workspaceLocale }));
   }, [preferenceLocale, workspaceLocale]);
 
-  return { locale, localeOptions, setLocale };
+  return locale;
 }
 
 function useInvalidateContentItems(workspaceId: string) {
@@ -60,133 +43,85 @@ function useInvalidateContentItems(workspaceId: string) {
   }, [queryClient, workspaceId]);
 }
 
-function useCreateDraftMutation(params: {
+function buildStarterPresetPayload(presetKey: ContentBootstrapPresetKey) {
+  const selection = applyPresetSelection(presetKey);
+  return {
+    presetKey: selection.presetKey,
+    presetState: selection.presetState,
+    capabilityPackIds: selection.capabilityPackIds,
+  };
+}
+
+function useContinueWithStarterMutation(params: {
   workspaceId: string;
   title: string;
   locale: AppLocale;
+  presetKey: ContentBootstrapPresetKey | null;
   invalidateItems: () => Promise<void>;
-  onDraftCreated: (item: AdminContentItem) => void;
+  onSuccess: () => void;
 }) {
   return useMutation({
     mutationFn: async () => {
       const nextTitle = params.title.trim();
       if (!nextTitle) throw new Error("CONTENT_BOOTSTRAP_TITLE_REQUIRED");
-      return createContentItem(params.workspaceId, { title: nextTitle, locale: params.locale });
-    },
-    onSuccess: async (item) => {
-      params.onDraftCreated(item);
+      if (!params.presetKey) throw new Error("CONTENT_BOOTSTRAP_PRESET_REQUIRED");
+
+      const draftItem = await createContentItem(params.workspaceId, {
+        title: nextTitle,
+        locale: params.locale,
+      });
+      await applyContentBootstrapShape(
+        params.workspaceId,
+        draftItem.id,
+        buildStarterPresetPayload(params.presetKey),
+      );
       await params.invalidateItems();
+    },
+    onSuccess: () => {
+      params.onSuccess();
     },
     onError: (error) => notifyError(error),
   });
 }
 
-function useContinueToEditorMutation(params: {
-  workspaceId: string;
-  draftItem: AdminContentItem | null;
-  shapeSelection: ContentBootstrapShapeSelection;
-  invalidateItems: () => Promise<void>;
-}) {
-  return useMutation({
-    mutationFn: async () => {
-      if (!params.draftItem) throw new Error("CONTENT_BOOTSTRAP_DRAFT_REQUIRED");
-      const shaped = await applyContentBootstrapShape(params.workspaceId, params.draftItem.id, {
-        presetKey: params.shapeSelection.presetKey,
-        presetState: params.shapeSelection.presetState,
-        capabilityPackIds: params.shapeSelection.capabilityPackIds,
-      });
-      const [site, previewToken] = await Promise.all([
-        getWorkspaceSite(params.workspaceId),
-        issueWorkspaceSitePreviewToken(params.workspaceId, {
-          ttlSeconds: PREVIEW_TOKEN_TTL_SECONDS,
-        }),
-      ]);
-      await params.invalidateItems();
-      return buildWorkspaceContentEditorUrl({
-        siteId: site.siteId,
-        itemId: shaped.id,
-        token: previewToken.token,
-        returnTo: workspaceContentLibraryPath(params.workspaceId),
-      });
-    },
-    onSuccess: (editorUrl) => {
-      window.location.replace(editorUrl);
-    },
-    onError: (error) => notifyError(error),
-  });
-}
-
-function useShapeSelectionActions() {
-  const [shapeSelection, setShapeSelection] = React.useState<ContentBootstrapShapeSelection>(
-    createEmptyShapeSelection(),
-  );
-
+function useStarterPresetSelection() {
+  const [selectedPresetKey, setSelectedPresetKey] =
+    React.useState<ContentBootstrapPresetKey | null>(null);
   const selectPreset = React.useCallback((presetKey: ContentBootstrapPresetKey) => {
-    setShapeSelection(applyPresetSelection(presetKey));
+    setSelectedPresetKey(presetKey);
   }, []);
-
-  const togglePack = React.useCallback(
-    (packId: (typeof CONTENT_BOOTSTRAP_CAPABILITY_PACKS)[number]["id"]) => {
-      setShapeSelection((current) => toggleCapabilityPack(current, packId));
-    },
-    [],
-  );
-
-  const clearPreset = React.useCallback(() => {
-    setShapeSelection((current) => detachPreset(current));
-  }, []);
-
-  return { shapeSelection, setShapeSelection, selectPreset, togglePack, clearPreset };
+  return { selectedPresetKey, selectPreset };
 }
 
 export function useContentBootstrapController(workspaceId: string) {
   const navigate = useNavigate();
-  const { locale, localeOptions, setLocale } = useBootstrapLocaleState();
+  const locale = useBootstrapLocaleState();
   const invalidateItems = useInvalidateContentItems(workspaceId);
   const [title, setTitle] = React.useState("");
-  const [draftItem, setDraftItem] = React.useState<AdminContentItem | null>(null);
-  const { shapeSelection, setShapeSelection, selectPreset, togglePack, clearPreset } =
-    useShapeSelectionActions();
-  const createDraftMutation = useCreateDraftMutation({
-    workspaceId,
-    title,
-    locale,
-    invalidateItems,
-    onDraftCreated: (item) => {
-      setDraftItem(item);
-      setShapeSelection(createEmptyShapeSelection());
-    },
-  });
-  const continueMutation = useContinueToEditorMutation({
-    workspaceId,
-    draftItem,
-    shapeSelection,
-    invalidateItems,
-  });
+  const { selectedPresetKey, selectPreset } = useStarterPresetSelection();
 
   const navigateToLibrary = React.useCallback(() => {
     void navigate({ to: workspaceContentLibraryPath(workspaceId) });
   }, [navigate, workspaceId]);
 
-  return {
-    locale,
-    localeOptions,
+  const continueMutation = useContinueWithStarterMutation({
+    workspaceId,
     title,
-    draftItem,
-    shapeSelection,
-    draftCreated: Boolean(draftItem),
-    busy: createDraftMutation.isPending || continueMutation.isPending,
-    createDraftPending: createDraftMutation.isPending,
+    locale,
+    presetKey: selectedPresetKey,
+    invalidateItems,
+    onSuccess: navigateToLibrary,
+  });
+
+  return {
+    title,
+    selectedPresetKey,
+    busy: continueMutation.isPending,
     continuePending: continueMutation.isPending,
-    canCreateDraft: title.trim().length > 0,
-    hasPresetSelection: Boolean(shapeSelection.presetKey),
+    canContinue: title.trim().length > 0 && Boolean(selectedPresetKey),
     setTitle,
-    setLocale,
-    createDraft: () => createDraftMutation.mutate(),
-    continueToEditor: () => continueMutation.mutate(),
-    detachPreset: clearPreset,
+    continueWithStarter: () => continueMutation.mutate(),
     navigateToLibrary,
     selectPreset,
-    toggleCapabilityPack: togglePack,
   };
 }

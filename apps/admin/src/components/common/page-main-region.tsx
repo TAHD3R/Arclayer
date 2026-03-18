@@ -20,6 +20,7 @@ export type BasePageProps = {
   children?: ReactNode;
   className?: string;
   contentClassName?: string;
+  contentContainerClassName?: string;
 };
 
 export type PagePaneToggle = {
@@ -99,6 +100,7 @@ export function PageMainRegion(props: {
   action?: ReactNode;
   extra?: ReactNode;
   contentClassName?: string;
+  contentContainerClassName?: string;
   paneToggles?: PagePaneToggle[];
   onOpenPane?: (side: "left" | "right") => void;
   children?: ReactNode;
@@ -116,52 +118,66 @@ export function PageMainRegion(props: {
       )}
       data-slot="page-main-region"
     >
-      {props.title || props.description || props.action || props.extra || paneToggles.length > 0 ? (
-        <header className="mb-4">
-          {props.title || props.action || paneToggles.length > 0 ? (
-            <div className="flex items-center justify-between gap-4">
-              <div className="my-2 flex min-w-0 items-end gap-2">
-                {props.title ? (
-                  <div className="text-title text-label-primary select-none">{props.title}</div>
-                ) : null}
-                {titleAdornment}
+      <div
+        className={clsx(
+          "flex min-h-0 min-w-0 w-full flex-1 flex-col",
+          props.contentContainerClassName,
+        )}
+        data-slot="page-main-container"
+      >
+        {props.title ||
+        props.description ||
+        props.action ||
+        props.extra ||
+        paneToggles.length > 0 ? (
+          <header className="mb-4">
+            {props.title || props.action || paneToggles.length > 0 ? (
+              <div className="flex items-center justify-between gap-4">
+                <div className="my-2 flex min-w-0 items-end gap-2">
+                  {props.title ? (
+                    <div className="text-title text-label-primary select-none">{props.title}</div>
+                  ) : null}
+                  {titleAdornment}
+                </div>
+                <div className="inline-flex shrink-0 items-center gap-2.5">
+                  {paneToggles.length > 0 ? (
+                    <div className="inline-flex items-center gap-1 lg:hidden">
+                      {paneToggles.map((toggle) => (
+                        <Button
+                          key={toggle.side}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onOpenPane(toggle.side)}
+                          aria-label={String(toggle.label)}
+                        >
+                          {toggle.side === "left" ? (
+                            <PanelLeftOpen className="size-4" />
+                          ) : (
+                            <PanelRightOpen className="size-4" />
+                          )}
+                          <span className="sr-only">{toggle.label}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {props.action}
+                </div>
               </div>
-              <div className="inline-flex shrink-0 items-center gap-2.5">
-                {paneToggles.length > 0 ? (
-                  <div className="inline-flex items-center gap-1 lg:hidden">
-                    {paneToggles.map((toggle) => (
-                      <Button
-                        key={toggle.side}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onOpenPane(toggle.side)}
-                        aria-label={String(toggle.label)}
-                      >
-                        {toggle.side === "left" ? (
-                          <PanelLeftOpen className="size-4" />
-                        ) : (
-                          <PanelRightOpen className="size-4" />
-                        )}
-                        <span className="sr-only">{toggle.label}</span>
-                      </Button>
-                    ))}
-                  </div>
-                ) : null}
-                {props.action}
+            ) : null}
+            {props.description ? (
+              <div className="text-callout text-label-secondary select-none">
+                {props.description}
               </div>
-            </div>
-          ) : null}
-          {props.description ? (
-            <div className="text-callout text-label-secondary select-none">{props.description}</div>
-          ) : null}
-          {props.extra ? <div className="mt-3.5">{props.extra}</div> : null}
-        </header>
-      ) : null}
-      {props.children ? (
-        <div className="min-h-0 min-w-0 w-full flex-1" data-slot="page-content">
-          {props.children}
-        </div>
-      ) : null}
+            ) : null}
+            {props.extra ? <div className="mt-3.5">{props.extra}</div> : null}
+          </header>
+        ) : null}
+        {props.children ? (
+          <div className="min-h-0 min-w-0 w-full flex-1" data-slot="page-content">
+            {props.children}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

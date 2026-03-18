@@ -18,81 +18,54 @@ vi.mock("@/pages/workspaces/content/bootstrap/hooks/use-content-bootstrap-contro
 }));
 
 describe("ContentBootstrapPage", () => {
-  test("renders step one while draft creation has not happened", () => {
+  test("renders a single-step create form with start-from options", () => {
     mocked.useContentBootstrapController.mockReturnValue({
-      locale: "en-US",
-      localeOptions: [{ value: "en-US", label: "English" }],
       title: "",
-      draftItem: null,
-      shapeSelection: { presetKey: null, presetState: "none", capabilityPackIds: [] },
-      draftCreated: false,
+      selectedPresetKey: null,
       busy: false,
-      createDraftPending: false,
       continuePending: false,
-      canCreateDraft: false,
-      hasPresetSelection: false,
+      canContinue: false,
       setTitle: vi.fn(),
       setLocale: vi.fn(),
-      createDraft: vi.fn(),
-      continueToEditor: vi.fn(),
-      detachPreset: vi.fn(),
+      continueWithStarter: vi.fn(),
       navigateToLibrary: vi.fn(),
       selectPreset: vi.fn(),
-      toggleCapabilityPack: vi.fn(),
     });
 
     render(<ContentBootstrapPage workspaceId="ws-1" />);
 
-    expect(screen.getAllByText("CONTENT_BOOTSTRAP_STEP_ONE_TITLE").length).toBeGreaterThan(0);
-    expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CREATE_DRAFT")).toBeInTheDocument();
-    expect(screen.queryByText("my-draft")).not.toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_CREATE_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_START_FROM_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_PRESET_PAGE_NAME")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE")).toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_BOOTSTRAP_STEP_TWO_TITLE")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE_TO_EDITOR"),
+    ).not.toBeInTheDocument();
   });
 
-  test("renders step two summary and shaping controls after draft creation", () => {
+  test("reflects the selected start-from template", () => {
     mocked.useContentBootstrapController.mockReturnValue({
-      locale: "en-US",
-      localeOptions: [{ value: "en-US", label: "English" }],
       title: "My draft",
-      draftItem: {
-        id: "item-1",
-        workspaceId: "ws-1",
-        siteId: "site-1",
-        slug: "my-draft",
-        title: "My draft",
-        status: "draft",
-        visibility: "private",
-        locale: "en-US",
-        bootstrapPresetState: "selected",
-        capabilityPackIds: ["publishable"],
-        draftVersion: 1,
-        updatedAt: "2026-03-19T00:00:00Z",
-      },
-      shapeSelection: {
-        presetKey: "post",
-        presetState: "selected",
-        capabilityPackIds: ["publishable", "taxonomy_enabled", "seo_managed", "schedulable"],
-      },
-      draftCreated: true,
+      selectedPresetKey: "post",
       busy: false,
-      createDraftPending: false,
       continuePending: false,
-      canCreateDraft: true,
-      hasPresetSelection: true,
+      canContinue: true,
       setTitle: vi.fn(),
       setLocale: vi.fn(),
-      createDraft: vi.fn(),
-      continueToEditor: vi.fn(),
-      detachPreset: vi.fn(),
+      continueWithStarter: vi.fn(),
       navigateToLibrary: vi.fn(),
       selectPreset: vi.fn(),
-      toggleCapabilityPack: vi.fn(),
     });
 
     render(<ContentBootstrapPage workspaceId="ws-1" />);
 
-    expect(screen.getByText("My draft")).toBeInTheDocument();
-    expect(screen.getByText("my-draft")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_STEP_TWO_TITLE")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE_TO_EDITOR")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_CREATE_TITLE")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("My draft")).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: /CONTENT_BOOTSTRAP_PRESET_POST_NAME/i }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE")).toBeInTheDocument();
   });
 });

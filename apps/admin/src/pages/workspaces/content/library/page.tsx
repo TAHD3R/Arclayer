@@ -19,7 +19,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminContentModel } from "@/types/api";
-import { workspaceContentBootstrapPath } from "@/lib/routing/workspace-content-routing";
+import { workspaceContentCreatePath } from "@/lib/routing/workspace-content-routing";
 import { useContentLibraryTableColumns } from "./content-library-table-columns";
 import { ContentLibraryNewContentButton } from "./components/content-library-new-content-button";
 import { ContentLibrarySidebar } from "./components/content-library-sidebar";
@@ -158,6 +158,12 @@ export function ContentLibraryPage() {
       description={t("content:CONTENT_LIBRARY_DESC")}
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
+      action={
+        <ContentLibraryPrimaryAction
+          workspaceId={workspaceId ? String(workspaceId) : null}
+          onNavigate={() => void navigate({ to: workspaceContentCreatePath(String(workspaceId)) })}
+        />
+      }
       extra={
         <ContentLibraryToolbar
           table={tableHook.table}
@@ -176,14 +182,6 @@ export function ContentLibraryPage() {
           onResetColumnVisibility={tableHook.resetColumnVisibility}
           toolsLabels={toolsLabels}
           modelOptions={models.map((model) => ({ value: model.key, label: model.name }))}
-          primaryAction={
-            <ContentLibraryPrimaryAction
-              workspaceId={workspaceId ? String(workspaceId) : null}
-              onNavigate={() =>
-                void navigate({ to: workspaceContentBootstrapPath(String(workspaceId)) })
-              }
-            />
-          }
         />
       }
       sideSlots={{
@@ -217,16 +215,6 @@ export function ContentLibraryPage() {
           isInitialEmptyState
             ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
             : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
-        }
-        emptyExtra={
-          workspaceId ? (
-            <ContentLibraryNewContentButton
-              visible={isInitialEmptyState}
-              onClick={() =>
-                void navigate({ to: workspaceContentBootstrapPath(String(workspaceId)) })
-              }
-            />
-          ) : null
         }
         loading={modelsQuery.isLoading || itemsQuery.isLoading}
         error={dataError}

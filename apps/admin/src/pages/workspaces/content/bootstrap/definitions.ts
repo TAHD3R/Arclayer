@@ -123,7 +123,3 @@ export const CONTENT_BOOTSTRAP_PRESET_MAP = new Map<
   ContentBootstrapPresetKey,
   ContentBootstrapPresetDefinition
 >(CONTENT_BOOTSTRAP_PRESETS.map((preset) => [preset.key, preset]));
-
-export const CONTENT_BOOTSTRAP_CAPABILITY_PACK_MAP = new Map(
-  CONTENT_BOOTSTRAP_CAPABILITY_PACKS.map((pack) => [pack.id, pack]),
-);
