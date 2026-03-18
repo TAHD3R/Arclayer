@@ -1,16 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { PlaceholderPage } from "@/pages/placeholder/page";
+import { ContentLibraryPage } from "@/pages/workspaces/content/library/page";
 
 export const Route = createLazyFileRoute("/w/$workspaceId/content/library/")({
-  component: ContentLibraryPlaceholder,
+  component: ContentLibraryPage,
 });
-
-function ContentLibraryPlaceholder() {
-  return (
-    <PlaceholderPage
-      titleKey="nav:NAV_CONTENT_LIBRARY"
-      descriptionKey="common:WORKSPACE_CONTENT_LIBRARY_DESC"
-    />
-  );
-}

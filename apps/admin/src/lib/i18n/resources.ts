@@ -16,6 +16,7 @@ import zhActivity from "@locales/zh-CN/activity.json";
 import zhAppearance from "@locales/zh-CN/appearance.json";
 import zhRbac from "@locales/zh-CN/rbac.json";
 import zhSys from "@locales/zh-CN/sys.json";
+import zhContent from "@locales/zh-CN/content.json";
 
 import enCommon from "@locales/en-US/common.json";
 import enNav from "@locales/en-US/nav.json";
@@ -35,6 +36,7 @@ import enActivity from "@locales/en-US/activity.json";
 import enAppearance from "@locales/en-US/appearance.json";
 import enRbac from "@locales/en-US/rbac.json";
 import enSys from "@locales/en-US/sys.json";
+import enContent from "@locales/en-US/content.json";
 
 import type { AppLocale } from "@arclayer/runtime/i18n";
 
@@ -54,6 +56,7 @@ export const I18N_NAMESPACES = [
   "notifications",
   "command",
   "assets",
+  "content",
   "errors",
   "auth",
   "plugin",
@@ -76,6 +79,7 @@ export const i18nResources = {
     notifications: zhNotifications,
     command: zhCommand,
     assets: zhAssets,
+    content: zhContent,
     errors: zhErrors,
     auth: zhAuth,
     plugin: zhPlugin,
@@ -96,6 +100,7 @@ export const i18nResources = {
     notifications: enNotifications,
     command: enCommand,
     assets: enAssets,
+    content: enContent,
     errors: enErrors,
     auth: enAuth,
     plugin: enPlugin,

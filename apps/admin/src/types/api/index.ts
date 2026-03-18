@@ -121,6 +121,19 @@ export type {
 } from "./assets";
 export type { AdminAssetUsage, UpsertAdminAssetUsagePayload } from "./asset-usages";
 
+// Content
+export type {
+  AdminContentItem,
+  AdminContentItemStatus,
+  AdminContentItemVisibility,
+  AdminContentModel,
+  AdminContentModelCapability,
+  AdminContentModelCategory,
+  AdminContentVersion,
+  ListAdminContentItemsParams,
+  ListAdminContentModelsParams,
+} from "./content";
+
 // Uploads
 export type {
   UploadInitRequest,
