@@ -8,25 +8,18 @@ Settings workflows are implemented on `SiteService` and will be extracted here a
 
 import secrets
 import time
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from pydantic import ValidationError
 
-from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.core.http.pagination import PageData
 from apps.api.src.modules.sites import schema as sites_schema
 from apps.api.src.modules.sites.namespaces.service import EDITOR_GLOBAL_SECTIONS_NAMESPACE, EDITOR_STYLE_NAMESPACE
 
 if TYPE_CHECKING:
     from apps.api.src.config import Settings
     from apps.api.src.modules.sites.repository import SitesRepository
-
-
-class _PageTreeLister(Protocol):
-    async def list_pages_tree(self, *, site_id: UUID) -> PageData[sites_schema.SitePageTreeNodeOut]: ...
 
 
 class SiteSettingsMixin:
@@ -91,29 +84,6 @@ class SiteSettingsMixin:
             namespace=EDITOR_GLOBAL_SECTIONS_NAMESPACE,
             payload=sites_schema.SiteSettingUpsertIn(value=self._dump_global_sections_value(items)),
         )
-
-    @staticmethod
-    def _to_visual_sitemap_node(page: sites_schema.SitePageTreeNodeOut) -> sites_schema.SiteVisualSitemapNodeOut:
-        title = (page.title or "").strip() or page.path
-        return sites_schema.SiteVisualSitemapNodeOut(
-            id=encode_uuid(page.id),
-            title=title,
-            path=page.path,
-            page_id=page.id,
-            children=[SiteSettingsMixin._to_visual_sitemap_node(child) for child in page.children],
-        )
-
-    @staticmethod
-    def _collect_sitemap_updated_at_ms(nodes: Sequence[sites_schema.SitePageTreeNodeOut]) -> int:
-        updated_at_ms = 0
-        stack = list(nodes)
-        while stack:
-            node = stack.pop()
-            if node.updated_at is not None:
-                updated_at_ms = max(updated_at_ms, int(node.updated_at.timestamp() * 1000))
-            if node.children:
-                stack.extend(node.children)
-        return updated_at_ms
 
     async def get_site_style(self, *, site_id: UUID) -> sites_schema.SiteStyleOut:
         setting = await self.get_site_setting(site_id=site_id, namespace=EDITOR_STYLE_NAMESPACE)
@@ -217,9 +187,3 @@ class SiteSettingsMixin:
 
         await self._save_global_sections(site_id=site_id, items=next_items)
         return sites_schema.SiteGlobalSectionDeleteOut(id=target_section_id)
-
-    async def get_visual_sitemap(self, *, site_id: UUID) -> sites_schema.SiteVisualSitemapOut:
-        tree = await cast(_PageTreeLister, self).list_pages_tree(site_id=site_id)
-        nodes = [self._to_visual_sitemap_node(page) for page in tree.items]
-        updated_at_ms = self._collect_sitemap_updated_at_ms(tree.items)
-        return sites_schema.SiteVisualSitemapOut(nodes=nodes, updated_at_ms=updated_at_ms)

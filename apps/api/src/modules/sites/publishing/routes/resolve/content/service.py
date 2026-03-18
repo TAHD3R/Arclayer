@@ -7,6 +7,7 @@ from apps.api.src.common.services.base import BaseService
 from apps.api.src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
 from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.modules.sites.design.schema import PageBlueprint
+from apps.api.src.modules.sites.publishing.content_snapshot import build_canonical_content_snapshot
 from apps.api.src.modules.sites.publishing.includes.service import PublishingIncludesService
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.schema import (
@@ -37,39 +38,46 @@ class ContentPageRouteResolver(BaseService):
         pathname: str,
         mode: Literal["public", "preview"],
     ) -> SiteRouteResolveOut | None:
-        entry = await self._repo.get_content_page_entry_by_path(site_id=site_id, path=pathname)
-        if entry is None:
+        item = await self._repo.get_content_page_entry_by_path(site_id=site_id, path=pathname)
+        if item is None:
             return None
 
-        meta_title = entry.title if isinstance(entry.title, str) and entry.title.strip() else None
+        meta_title = item.title if isinstance(item.title, str) and item.title.strip() else None
         meta_desc = None
-        raw_fields = getattr(entry, "field_values", None)
-        if isinstance(raw_fields, dict):
-            raw_desc = raw_fields.get("description")
-            if isinstance(raw_desc, str) and raw_desc.strip():
-                meta_desc = raw_desc.strip()
         page_meta = (
             SiteResolvedPageMetaOut(title=meta_title, description=meta_desc)
             if meta_title is not None or meta_desc is not None
             else None
         )
 
-        draft_rev = int(entry.draft_revision or 0)
-        published_rev = int(entry.published_revision or 0)
+        draft_rev = int(item.draft_version or 0)
+        published_rev = int(item.published_version or 0)
         use_rev = published_rev if mode == "public" else (draft_rev or published_rev)
         state: Literal["draft", "published"] | None = None
         if use_rev:
             state = "published" if mode == "public" else ("draft" if draft_rev else "published")
 
         if use_rev:
-            rev_rec = await self._repo.get_content_revision_by_number(
-                entry_id=UUID(str(entry.id)), revision=int(use_rev)
+            version = await self._repo.get_content_revision_by_number(
+                entry_id=UUID(str(item.id)), revision=int(use_rev)
             )
-            if rev_rec is not None and isinstance(rev_rec.snapshot, dict):
-                snapshot = rev_rec.snapshot
-                raw_doc = snapshot.get("page_blueprint")
-                if raw_doc is None:
-                    raw_doc = snapshot.get("design_document")
+            if version is not None:
+                presentations = await self._repo.list_content_presentations(version_id=version.id)
+                seo_profile = await self._repo.get_content_seo_profile(version_id=version.id)
+                snapshot = build_canonical_content_snapshot(
+                    item=item,
+                    version=version,
+                    presentations=presentations,
+                    seo_profile=seo_profile,
+                )
+                meta_title = snapshot.meta_title
+                meta_desc = snapshot.meta_description
+                page_meta = (
+                    SiteResolvedPageMetaOut(title=meta_title, description=meta_desc)
+                    if meta_title is not None or meta_desc is not None
+                    else None
+                )
+                raw_doc = snapshot.raw_page_blueprint
                 if raw_doc is not None:
                     try:
                         doc = PageBlueprint.model_validate(raw_doc)
@@ -78,20 +86,14 @@ class ContentPageRouteResolver(BaseService):
                             "Failed to load page blueprint", error="PAGE_BLUEPRINT_INVALID"
                         ) from exc
 
-                    primary_fields_raw = snapshot.get("field_values")
-                    primary_fields: dict = primary_fields_raw if isinstance(primary_fields_raw, dict) else {}
-                    if isinstance(entry.title, str) and entry.title.strip():
-                        primary_fields = {**primary_fields, "title": entry.title.strip()}
-                    if meta_desc is not None:
-                        primary_fields = {**primary_fields, "description": meta_desc}
-
+                    primary_fields = snapshot.fields
                     root = doc.nodes_by_id.get(doc.root_id)
                     root_ds = getattr(root, "data_sources", None)
                     preferred_primary_public = (
                         getattr(root_ds, "primary_entry_id", None) if root_ds is not None else None
                     )
 
-                    primary_entry_id = UUID(str(entry.id))
+                    primary_entry_id = UUID(str(item.id))
                     primary_entry_fields = primary_fields
 
                     if isinstance(preferred_primary_public, str) and preferred_primary_public.strip():
@@ -128,7 +130,7 @@ class ContentPageRouteResolver(BaseService):
                         match=SiteRouteMatchOut(
                             kind="page",
                             params={},
-                            page_id=UUID(str(entry.id)),
+                            page_id=UUID(str(item.id)),
                             variant_id=None,
                             revision=int(use_rev),
                             revision_state=state,
@@ -153,7 +155,7 @@ class ContentPageRouteResolver(BaseService):
                 match=SiteRouteMatchOut(
                     kind="page",
                     params={},
-                    page_id=UUID(str(entry.id)),
+                    page_id=UUID(str(item.id)),
                     revision=None,
                     revision_state=None,
                     draft_revision=draft_rev,

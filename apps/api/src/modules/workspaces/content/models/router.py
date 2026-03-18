@@ -22,12 +22,10 @@ from apps.api.src.modules.workspaces.content.models.canonical_service import (
     WorkspaceContentCanonicalModelsService,
 )
 from apps.api.src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
-from apps.api.src.modules.workspaces.content.service import WorkspaceContentService
-from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id, get_workspace_content_service
+from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
 
-models_router = APIRouter(prefix="/models")
 canonical_models_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
     tags=["Workspace: Content"],
@@ -60,26 +58,6 @@ def _to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutation
 
 def get_workspace_content_canonical_models_service() -> WorkspaceContentCanonicalModelsService:
     return WorkspaceContentCanonicalModelsService(repo=WorkspaceContentModelsRepository())
-
-
-@models_router.get(
-    "",
-    response_model=ResponseModel[PageData[ContentModelOut]],
-    response_model_exclude_none=True,
-    summary="List content models (workspace RBAC protected)",
-)
-async def list_workspace_content_models(
-    site_id: Annotated[UUID, Depends(_resolve_site_id)],
-    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
-    service: Annotated[WorkspaceContentService, Depends(get_workspace_content_service)],
-    params: PageParams = Depends(get_page_params),
-) -> ResponseModel[PageData[ContentModelOut]]:
-    data = await service.list_models_paginated(
-        workspace_id=ctx.workspace_id,
-        site_id=site_id,
-        params=params,
-    )
-    return Response.success(data=data)
 
 
 @canonical_models_router.post(

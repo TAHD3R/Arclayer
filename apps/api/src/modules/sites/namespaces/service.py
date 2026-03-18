@@ -9,7 +9,6 @@ THEME_VARS_NAMESPACE = "theme.vars"
 THEME_CONFIG_NAMESPACE = "theme.config"
 EDITOR_STYLE_NAMESPACE = "site.editor.style"
 EDITOR_GLOBAL_SECTIONS_NAMESPACE = "site.editor.global_sections"
-ROUTE_TEMPLATES_VERSION_NAMESPACE = "site.route_templates.version"
 
 DEFAULT_MAX_CONTENT_REF_DEPTH: Final = 8
 

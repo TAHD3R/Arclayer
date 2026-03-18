@@ -97,35 +97,3 @@ class PresenceStore:
             await self._client.srem(key, *stale)
 
         return results
-
-
-class RouteTemplateVersionStore:
-    """
-    Cross-instance route template cache version store.
-
-    Storage model:
-    - `sites:route-templates:<siteId>:version` => int (as string)
-
-    Notes:
-    - We intentionally use a simple get/set surface area to stay compatible with ValkeyClientLike.
-    - Version value does not have to be sequential; it only needs to change on mutations.
-    """
-
-    def __init__(self, client: ValkeyClientLike) -> None:
-        self._client = client
-
-    def _key(self, *, site_id: UUID) -> str:
-        return f"sites:route-templates:{site_id}:version"
-
-    async def get(self, *, site_id: UUID) -> int | None:
-        raw = await self._client.get(self._key(site_id=site_id))
-        if raw is None:
-            return None
-        try:
-            v = int(raw)
-        except (TypeError, ValueError):
-            return None
-        return v if v >= 0 else None
-
-    async def set(self, *, site_id: UUID, version: int) -> None:
-        await self._client.set(self._key(site_id=site_id), str(int(version)))

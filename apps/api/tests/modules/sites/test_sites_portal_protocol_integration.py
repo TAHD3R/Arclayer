@@ -1,54 +1,15 @@
 from __future__ import annotations
 
-from uuid import uuid4
-
 import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from tortoise import Tortoise
 
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.config import get_settings
-from apps.api.src.core.database.orm import close_orm, init_orm
-from apps.api.src.core.registry import create_app
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.organization import Organization
-from apps.api.src.models.organization.user import User, UserCredential, UserStatus
-from apps.api.src.models.sites.site import SiteRecord
-from apps.api.src.models.sites.site_entry import EntryRecord, EntryRevisionRecord, EntryTypeRecord
-from apps.api.src.models.sites.site_page import SitePageRecord, SitePageRevisionRecord, SitePageVisibility
-from apps.api.src.models.sites.site_route_template import RouteTemplateRecord
+from apps.api.src.common.utils.public_ids import decode_public_id
 from apps.api.src.models.system.setting import SettingRecord
 from apps.api.src.models.workspaces.workspace import Workspace
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.scopes import SCOPE_TYPE_SITE, SCOPE_TYPE_WORKSPACE
-from apps.api.tests.utils.tortoise import reset_postgres_schema
+from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
 
 pytestmark = pytest.mark.integration
-
-
-@pytest_asyncio.fixture
-async def prepared_schema(integration_db_settings, integration_valkey_settings, monkeypatch) -> None:
-    """
-    Prepare DB schema for integration tests.
-
-    Note:
-    - We disable plugin system to keep the test focused on Portal/Sites protocol.
-    - Schema is created via `Tortoise.generate_schemas()` (test-only), not Aerich.
-    """
-
-    _ = integration_valkey_settings
-    monkeypatch.setenv("PLUGIN__ENABLED", "0")
-    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
-    monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
-    monkeypatch.setenv("SETUP__ENABLED", "0")
-    get_settings.cache_clear()
-
-    settings = get_settings()
-    await init_orm(settings)
-    await reset_postgres_schema()
-    await Tortoise.generate_schemas(safe=True)
-    await close_orm()
 
 
 def _design_doc(title: str) -> dict:
@@ -111,381 +72,238 @@ def _get_seo_title_from_resolved_document(payload: dict) -> str | None:
     title = seo.get("title")
     if not isinstance(title, dict):
         return None
-    v = title.get("en-US")
-    return v if isinstance(v, str) else None
+    value = title.get("en-US")
+    return value if isinstance(value, str) else None
 
 
-async def test_sites_public_preview_draft_publish_flow(prepared_schema) -> None:
-    _ = prepared_schema
+def _page_model_payload() -> dict:
+    return {
+        "key": "page",
+        "name": "Page",
+        "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
+        "relations": [],
+        "capabilities": ["versioned", "publishable", "routable", "visual_editable"],
+        "routing": {"mode": "single", "slugField": "title"},
+        "workflow": {"states": ["draft", "published"], "initialState": "draft"},
+        "views": [],
+    }
 
-    app = create_app()
-    transport = ASGITransport(app=app, raise_app_exceptions=False)
 
-    async with app.router.lifespan_context(app):
-        # Arrange tenant + site.
-        user = await User.create(username=f"u_{uuid4().hex[:10]}", status=UserStatus.ACTIVE)
-        await UserCredential.create(user_id=user.id, password_hash="x")
-        org = await Organization.create(slug=f"org_{uuid4().hex[:10]}", name="Test Org", logo_url=None, is_active=True)
-        await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
-        ws = await Workspace.create(
-            organization_id=org.id,
-            slug="ws",
-            name="Workspace",
-            is_active=True,
-            created_by_user_id=user.id,
-        )
+def _item_payload(slug: str, title: str) -> dict:
+    return {
+        "modelKey": "page",
+        "slug": slug,
+        "title": title,
+        "locale": "en-US",
+        "visibility": "public",
+        "status": "draft",
+    }
 
-        # Ensure deterministic sitemap base URL in self-host mode.
+
+def _draft_payload(*, expected_version: int, title: str, seo_description: str) -> dict:
+    return {
+        "expectedVersion": expected_version,
+        "changeSummary": f"{title} draft",
+        "fieldsSnapshot": {"title": title},
+        "presentations": [
+            {"kind": "form_data", "payload": {"title": title}},
+            {"kind": "visual_blueprint", "payload": _design_doc(title)},
+            {
+                "kind": "seo",
+                "payload": {
+                    "metaTitle": f"{title} | Arclayer",
+                    "metaDescription": seo_description,
+                },
+            },
+        ],
+    }
+
+
+async def _create_item(client, workspace_id: str, *, slug: str, title: str) -> str:
+    response = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items",
+        json=_item_payload(slug, title),
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["data"]["id"]
+
+
+async def _save_draft(
+    client,
+    workspace_id: str,
+    *,
+    item_id: str,
+    expected_version: int,
+    title: str,
+    seo_description: str,
+) -> None:
+    response = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        json=_draft_payload(
+            expected_version=expected_version,
+            title=title,
+            seo_description=seo_description,
+        ),
+    )
+    assert response.status_code == 201, response.text
+
+
+async def _publish_version(client, workspace_id: str, *, item_id: str, version_number: int) -> None:
+    response = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/publish",
+        json={},
+    )
+    assert response.status_code == 200, response.text
+
+
+async def _bind_route(client, workspace_id: str, *, item_id: str, path: str) -> None:
+    response = await client.put(
+        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{item_id}",
+        json={"locale": "en-US", "path": path, "isActive": True},
+    )
+    assert response.status_code == 200, response.text
+
+
+async def test_sites_public_preview_draft_publish_flow(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        workspace_uuid = decode_public_id(workspace_id)
+        workspace = await Workspace.get(id=workspace_uuid)
         await SettingRecord.create(
             scope_type=SCOPE_TYPE_WORKSPACE,
-            scope_id=ws.id,
+            scope_id=workspace_uuid,
             namespace=CORE_SETTINGS_NAMESPACE,
             value={"site": {"url": "https://example.test"}},
             updated_by=None,
         )
 
-        site = await SiteRecord.create(
-            workspace_id=ws.id,
-            slug="demo",
-            name="Demo",
-            default_locale="zh-CN",
-            fallback_locale="en-US",
-            is_active=True,
-            created_by_user_id=user.id,
-        )
-        site_pid = encode_uuid(site.id)
+        site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+        assert site_res.status_code == 200, site_res.text
+        site_id = site_res.json()["data"]["siteId"]
+        site_uuid = decode_public_id(site_id)
 
-        # DB-backed runtime config should override defaults.
         await SettingRecord.create(
             scope_type=SCOPE_TYPE_SITE,
-            scope_id=site.id,
+            scope_id=site_uuid,
             namespace="site.runtime",
-            value={
-                "theme": {"cssVars": {"--color-primary": "#ff0000"}},
-                "fonts": [],
-            },
+            value={"theme": {"cssVars": {"--color-primary": "#ff0000"}}, "fonts": []},
             updated_by=None,
         )
 
-        # Static page (/about) with published rev=1.
-        about = await SitePageRecord.create(
-            site_id=site.id,
-            path="/about",
-            parent_id=None,
-            sort_order=0,
-            visibility=SitePageVisibility.PUBLIC,
-            draft_rev=1,
-            published_rev=1,
-            created_by_user_id=user.id,
+        model_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_page_model_payload(),
         )
-        await SitePageRevisionRecord.create(
-            page_id=about.id,
-            rev=1,
-            document=None,
-            design_document=_design_doc("About v1"),
-            created_by_user_id=user.id,
-        )
+        assert model_res.status_code == 201, model_res.text
 
-        # Static page for /blog/hello (to test static priority over template match).
-        blog_hello = await SitePageRecord.create(
-            site_id=site.id,
-            path="/blog/hello",
-            parent_id=None,
-            sort_order=0,
-            visibility=SitePageVisibility.PUBLIC,
-            draft_rev=1,
-            published_rev=1,
-            created_by_user_id=user.id,
-        )
-        await SitePageRevisionRecord.create(
-            page_id=blog_hello.id,
-            rev=1,
-            document=None,
-            design_document=_design_doc("Static /blog/hello"),
-            created_by_user_id=user.id,
-        )
+        about_item_id = await _create_item(client, workspace_id, slug="about", title="About")
+        world_item_id = await _create_item(client, workspace_id, slug="world", title="World")
+        new_item_id = await _create_item(client, workspace_id, slug="new", title="New")
 
-        # Entry type + entry + published revision.
-        et = await EntryTypeRecord.create(site_id=site.id, code="blog_post", name="Blog Post", fields_schema=None)
-        entry = await EntryRecord.create(
-            site_id=site.id,
-            entry_type_id=et.id,
-            slug="hello",
-            draft_rev=1,
-            published_rev=1,
-            created_by_user_id=user.id,
+        await _save_draft(
+            client,
+            workspace_id,
+            item_id=about_item_id,
+            expected_version=0,
+            title="About v1",
+            seo_description="About description",
         )
-        await EntryRevisionRecord.create(
-            entry_id=entry.id,
-            rev=1,
-            data=None,
-            document=None,
-            design_document=_design_doc("Entry /blog/:slug hello"),
-            created_by_user_id=user.id,
-        )
+        await _publish_version(client, workspace_id, item_id=about_item_id, version_number=1)
+        await _bind_route(client, workspace_id, item_id=about_item_id, path="/about")
 
-        # Another published entry (no static page) to validate sitemap includes dynamic entries.
-        entry2 = await EntryRecord.create(
-            site_id=site.id,
-            entry_type_id=et.id,
-            slug="world",
-            draft_rev=1,
-            published_rev=1,
-            created_by_user_id=user.id,
+        await _save_draft(
+            client,
+            workspace_id,
+            item_id=world_item_id,
+            expected_version=0,
+            title="Entry world v1",
+            seo_description="World v1 description",
         )
-        await EntryRevisionRecord.create(
-            entry_id=entry2.id,
-            rev=1,
-            data={"title": "World From Data"},
-            document=None,
-            design_document=_design_doc("Entry /blog/:slug world"),
-            created_by_user_id=user.id,
+        await _publish_version(client, workspace_id, item_id=world_item_id, version_number=1)
+        await _bind_route(client, workspace_id, item_id=world_item_id, path="/blog/world")
+
+        resp = await client.get("/api/v1/sites/resolve", params={"workspaceSlug": workspace.slug})
+        assert resp.status_code == 200
+        assert resp.json()["data"]["siteId"] == site_id
+
+        resp = await client.get(f"/api/v1/sites/{site_id}/runtime", params={"mode": "public"})
+        assert resp.status_code == 200
+        assert resp.json()["data"]["theme"]["cssVars"]["--color-primary"] == "#ff0000"
+
+        resp = await client.get(f"/api/v1/sites/{site_id}/runtime", params={"mode": "preview"})
+        assert resp.status_code == 403
+
+        resp = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
+        assert resp.status_code == 201
+        token = resp.json()["data"]["token"]
+        assert isinstance(token, str) and token
+
+        await _save_draft(
+            client,
+            workspace_id,
+            item_id=world_item_id,
+            expected_version=1,
+            title="Entry world v2 (draft)",
+            seo_description="World v2 description",
         )
 
-        # Route template /blog/:slug -> blog_post
-        await RouteTemplateRecord.create(
-            site_id=site.id,
-            path_pattern="/blog/:slug",
-            entry_type_id=et.id,
-            template_page_revision_id=None,
-            is_active=True,
+        resp = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/world", "mode": "public"},
         )
+        assert resp.status_code == 200
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v1"
+        ds = resp.json()["data"].get("dataSources") or {}
+        assert ds.get("primaryEntry", {}).get("data", {}).get("fields", {}).get("title") == "Entry world v1"
 
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.get("/api/v1/sites/resolve", params={"workspaceSlug": "ws"})
-            assert resp.status_code == 200
-            assert resp.json()["data"]["siteId"] == site_pid
+        resp = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/world", "mode": "preview", "token": token},
+        )
+        assert resp.status_code == 200
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft)"
+        ds = resp.json()["data"].get("dataSources") or {}
+        assert ds.get("primaryEntry", {}).get("data", {}).get("fields", {}).get("title") == "Entry world v2 (draft)"
 
-            resp = await client.get(f"/api/v1/sites/{site_pid}/runtime", params={"mode": "public"})
-            assert resp.status_code == 200
-            assert resp.json()["data"]["theme"]["cssVars"]["--color-primary"] == "#ff0000"
+        await _save_draft(
+            client,
+            workspace_id,
+            item_id=new_item_id,
+            expected_version=0,
+            title="Entry new v1 (draft)",
+            seo_description="New v1 description",
+        )
+        await _bind_route(client, workspace_id, item_id=new_item_id, path="/blog/new")
 
-            # Preview token required for preview runtime.
-            resp = await client.get(f"/api/v1/sites/{site_pid}/runtime", params={"mode": "preview"})
-            assert resp.status_code == 403
+        resp = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/new", "mode": "public"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["data"]["match"]["kind"] == "not_found"
 
-            # Issue preview token (stored in Valkey with TTL).
-            resp = await client.post(f"/api/v1/sites/{site_pid}/preview-tokens", json={"ttlSeconds": 600})
-            assert resp.status_code == 201
-            token = resp.json()["data"]["token"]
-            assert isinstance(token, str) and token
+        resp = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/new", "mode": "preview", "token": token},
+        )
+        assert resp.status_code == 200
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry new v1 (draft)"
 
-            # Entry draft + publish flow (v1).
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/entries/draft",
-                params={"token": token},
-                json={
-                    "entryTypeCode": "blog_post",
-                    "slug": "world",
-                    "pageBlueprint": _design_doc("Entry world v2 (draft)"),
-                    "expectedRevision": 1,
-                },
-            )
-            assert resp.status_code == 201
-            assert resp.json()["data"]["revision"] == 2
+        await _publish_version(client, workspace_id, item_id=new_item_id, version_number=1)
+        await _publish_version(client, workspace_id, item_id=world_item_id, version_number=2)
 
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/entries/publish",
-                params={"token": token},
-                json={"entryTypeCode": "blog_post", "slug": "world", "revision": 2},
-            )
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 2
+        resp = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/world", "mode": "public"},
+        )
+        assert resp.status_code == 200
+        assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft)"
 
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/routes/resolve",
-                params={"path": "/blog/world", "mode": "public"},
-            )
-            assert resp.status_code == 200
-            assert _get_seo_title_from_resolved_document(resp.json()) == "Entry world v2 (draft)"
-            ds = resp.json()["data"].get("dataSources") or {}
-            assert ds.get("primaryEntry", {}).get("data", {}).get("fields", {}).get("title") == "World From Data"
-
-            # Creating a new entry from scratch should allow expectedRevision=0.
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/entries/draft",
-                params={"token": token},
-                json={
-                    "entryTypeCode": "blog_post",
-                    "slug": "new",
-                    "pageBlueprint": _design_doc("Entry new v1 (draft)"),
-                    "expectedRevision": 0,
-                },
-            )
-            assert resp.status_code == 201
-            assert resp.json()["data"]["revision"] == 1
-
-            # Wrong expectedRevision should return 409 conflict.
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/entries/draft",
-                params={"token": token},
-                json={
-                    "entryTypeCode": "blog_post",
-                    "slug": "new",
-                    "pageBlueprint": _design_doc("Entry new v2 (draft)"),
-                    "expectedRevision": 0,
-                },
-            )
-            assert resp.status_code == 409
-
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/entries/publish",
-                params={"token": token},
-                json={"entryTypeCode": "blog_post", "slug": "new", "revision": 1},
-            )
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 1
-
-            # Publishing an unknown slug should return 404.
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/entries/publish",
-                params={"token": token},
-                json={"entryTypeCode": "blog_post", "slug": "missing", "revision": 1},
-            )
-            assert resp.status_code == 404
-
-            # Unknown entry type should return 404.
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/entries/draft",
-                params={"token": token},
-                json={
-                    "entryTypeCode": "missing_type",
-                    "slug": "x",
-                    "pageBlueprint": _design_doc("Entry x"),
-                    "expectedRevision": 0,
-                },
-            )
-            assert resp.status_code == 404
-
-            # Public sitemap should include published + public pages and entries.
-            resp = await client.get(f"/api/v1/sites/{site_pid}/sitemap.xml")
-            assert resp.status_code == 200
-            xml = resp.text
-            assert "https://example.test/about" in xml
-            assert "https://example.test/blog/hello" in xml  # static page
-            assert "https://example.test/blog/world" in xml  # dynamic entry (no static override)
-
-            # Page revisions: published is public, draft requires token.
-            resp = await client.get(f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/published")
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 1
-            assert _get_seo_title_from_resolved_document(resp.json()) == "About v1"
-
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
-                params={"token": token},
-            )
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 1
-
-            # Static route should win over template match (/blog/hello).
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/routes/resolve",
-                params={"path": "/blog/hello", "mode": "public"},
-            )
-            assert resp.status_code == 200
-            payload = resp.json()["data"]
-            assert payload["match"]["kind"] == "page"
-            assert _get_seo_title_from_resolved_document(resp.json()) == "Static /blog/hello"
-
-            # Save a draft for /about (rev=2).
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/routes/draft",
-                params={"token": token},
-                json={"path": "/about", "pageBlueprint": _design_doc("About v2 (draft)"), "expectedRevision": 1},
-            )
-            assert resp.status_code == 201
-            assert resp.json()["data"]["revision"] == 2
-
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
-                params={"token": token},
-            )
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 2
-            assert _get_seo_title_from_resolved_document(resp.json()) == "About v2 (draft)"
-
-            # Public mode still sees published v1.
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/routes/resolve",
-                params={"path": "/about", "mode": "public"},
-            )
-            assert resp.status_code == 200
-            assert _get_seo_title_from_resolved_document(resp.json()) == "About v1"
-
-            # Preview mode sees latest draft v2.
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/routes/resolve",
-                params={"path": "/about", "mode": "preview", "token": token},
-            )
-            assert resp.status_code == 200
-            assert _get_seo_title_from_resolved_document(resp.json()) == "About v2 (draft)"
-
-            # Publishing makes v2 visible to public.
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/routes/publish",
-                params={"token": token},
-                json={"path": "/about", "revision": 2},
-            )
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 2
-
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/routes/resolve",
-                params={"path": "/about", "mode": "public"},
-            )
-            assert resp.status_code == 200
-            assert _get_seo_title_from_resolved_document(resp.json()) == "About v2 (draft)"
-
-            resp = await client.get(f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/published")
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 2
-
-            # Optimistic lock mismatch -> 409 Conflict.
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/routes/draft",
-                params={"token": token},
-                json={"path": "/about", "pageBlueprint": _design_doc("About v3"), "expectedRevision": 1},
-            )
-            assert resp.status_code == 409
-
-            # Preferred editor entrypoints: save/publish by pageId.
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/draft",
-                params={"token": token},
-                json={
-                    "pageBlueprint": _design_doc("About v3 (draft by id)"),
-                    "expectedRevision": 2,
-                },
-            )
-            assert resp.status_code == 201
-            assert resp.json()["data"]["pageId"] == encode_uuid(about.id)
-            assert resp.json()["data"]["revision"] == 3
-
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/routes/resolve",
-                params={"path": "/about", "mode": "preview", "token": token},
-            )
-            assert resp.status_code == 200
-            assert _get_seo_title_from_resolved_document(resp.json()) == "About v3 (draft by id)"
-
-            resp = await client.post(
-                f"/api/v1/sites/{site_pid}/pages/{encode_uuid(about.id)}/revisions/publish",
-                params={"token": token},
-                json={"revision": 3},
-            )
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 3
-
-            resp = await client.get(
-                f"/api/v1/sites/{site_pid}/routes/resolve",
-                params={"path": "/about", "mode": "public"},
-            )
-            assert resp.status_code == 200
-            assert _get_seo_title_from_resolved_document(resp.json()) == "About v3 (draft by id)"
-
-            # Entry revisions: ensure published snapshot is accessible.
-            resp = await client.get(f"/api/v1/sites/{site_pid}/entries/{encode_uuid(entry.id)}/revisions/published")
-            assert resp.status_code == 200
-            assert resp.json()["data"]["revision"] == 1
-            assert _get_seo_title_from_resolved_document(resp.json()) == "Entry /blog/:slug hello"
+        resp = await client.get(f"/api/v1/sites/{site_id}/sitemap.xml")
+        assert resp.status_code == 200
+        xml = resp.text
+        assert "https://example.test/about" in xml
+        assert "https://example.test/blog/world" in xml
+        assert "https://example.test/blog/new" in xml

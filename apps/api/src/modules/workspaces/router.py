@@ -27,7 +27,6 @@ from apps.api.src.modules.workspaces.content.models.router import (
 from apps.api.src.modules.workspaces.content.presentations.router import (
     presentations_router as workspace_content_presentations_router,
 )
-from apps.api.src.modules.workspaces.content.router import router as workspace_legacy_content_router
 from apps.api.src.modules.workspaces.content.routing.router import (
     canonical_routing_router as workspace_content_routing_router,
 )
@@ -61,7 +60,6 @@ router.include_router(workspace_rbac_router)
 router.include_router(workspace_assets_router)
 router.include_router(workspace_admin_router)
 router.include_router(workspace_themes_router)
-router.include_router(workspace_legacy_content_router)
 router.include_router(workspace_content_models_router)
 router.include_router(workspace_content_items_router)
 router.include_router(workspace_content_presentations_router)

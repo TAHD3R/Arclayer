@@ -3,18 +3,12 @@
 import type { Client, Options as Options2, TDataShape } from "./client";
 import { client } from "./client.gen";
 import type {
-  DeliveryGetDeliveryEntryData,
-  DeliveryGetDeliveryEntryErrors,
-  DeliveryGetDeliveryEntryResponses,
   DeliveryGetDeliveryMenuData,
   DeliveryGetDeliveryMenuErrors,
   DeliveryGetDeliveryMenuResponses,
   DeliveryGetDeliveryStyleData,
   DeliveryGetDeliveryStyleErrors,
   DeliveryGetDeliveryStyleResponses,
-  DeliveryListDeliveryEntriesData,
-  DeliveryListDeliveryEntriesErrors,
-  DeliveryListDeliveryEntriesResponses,
   MeAbortUploadData,
   MeAbortUploadErrors,
   MeAbortUploadResponses,
@@ -336,51 +330,15 @@ import type {
   SitePatternsUpdateSitePatternData,
   SitePatternsUpdateSitePatternErrors,
   SitePatternsUpdateSitePatternResponses,
-  SitesCreateEntryData,
-  SitesCreateEntryErrors,
-  SitesCreateEntryResponses,
-  SitesCreateEntryTypeData,
-  SitesCreateEntryTypeErrors,
-  SitesCreateEntryTypeResponses,
   SitesCreatePreviewTokenData,
   SitesCreatePreviewTokenErrors,
   SitesCreatePreviewTokenResponses,
   SitesCreateSiteDomainData,
   SitesCreateSiteDomainErrors,
   SitesCreateSiteDomainResponses,
-  SitesCreateSitePageData,
-  SitesCreateSitePageErrors,
-  SitesCreateSitePageResponses,
-  SitesCreateSiteRouteTemplateData,
-  SitesCreateSiteRouteTemplateErrors,
-  SitesCreateSiteRouteTemplateResponses,
-  SitesDeleteEntryData,
-  SitesDeleteEntryErrors,
-  SitesDeleteEntryResponses,
-  SitesDeleteEntryTypeData,
-  SitesDeleteEntryTypeErrors,
-  SitesDeleteEntryTypeResponses,
   SitesDeleteSiteDomainData,
   SitesDeleteSiteDomainErrors,
   SitesDeleteSiteDomainResponses,
-  SitesDeleteSitePageData,
-  SitesDeleteSitePageErrors,
-  SitesDeleteSitePageResponses,
-  SitesDeleteSiteRouteTemplateData,
-  SitesDeleteSiteRouteTemplateErrors,
-  SitesDeleteSiteRouteTemplateResponses,
-  SitesGetDraftEntryRevisionData,
-  SitesGetDraftEntryRevisionErrors,
-  SitesGetDraftEntryRevisionResponses,
-  SitesGetDraftPageRevisionData,
-  SitesGetDraftPageRevisionErrors,
-  SitesGetDraftPageRevisionResponses,
-  SitesGetPublishedEntryRevisionData,
-  SitesGetPublishedEntryRevisionErrors,
-  SitesGetPublishedEntryRevisionResponses,
-  SitesGetPublishedPageRevisionData,
-  SitesGetPublishedPageRevisionErrors,
-  SitesGetPublishedPageRevisionResponses,
   SitesGetSitemapXmlData,
   SitesGetSitemapXmlErrors,
   SitesGetSitemapXmlResponses,
@@ -393,78 +351,24 @@ import type {
   SitesHeartbeatPresenceData,
   SitesHeartbeatPresenceErrors,
   SitesHeartbeatPresenceResponses,
-  SitesListEntriesData,
-  SitesListEntriesErrors,
-  SitesListEntriesResponses,
-  SitesListEntryTypesData,
-  SitesListEntryTypesErrors,
-  SitesListEntryTypesResponses,
   SitesListPresenceData,
   SitesListPresenceErrors,
   SitesListPresenceResponses,
   SitesListSiteDomainsData,
   SitesListSiteDomainsErrors,
   SitesListSiteDomainsResponses,
-  SitesListSitePagesTreeData,
-  SitesListSitePagesTreeErrors,
-  SitesListSitePagesTreeResponses,
-  SitesListSiteRouteTemplatesData,
-  SitesListSiteRouteTemplatesErrors,
-  SitesListSiteRouteTemplatesResponses,
-  SitesMoveSitePageData,
-  SitesMoveSitePageErrors,
-  SitesMoveSitePageResponses,
   SitesPublicGetSiteContextData,
   SitesPublicGetSiteContextErrors,
   SitesPublicGetSiteContextResponses,
   SitesPublicResolveSiteByHostData,
   SitesPublicResolveSiteByHostErrors,
   SitesPublicResolveSiteByHostResponses,
-  SitesPublishPageRevisionData,
-  SitesPublishPageRevisionErrors,
-  SitesPublishPageRevisionResponses,
-  SitesPublishSiteEntryData,
-  SitesPublishSiteEntryErrors,
-  SitesPublishSiteEntryResponses,
-  SitesPublishSiteRouteData,
-  SitesPublishSiteRouteErrors,
-  SitesPublishSiteRouteResponses,
   SitesResolveSiteRouteData,
   SitesResolveSiteRouteErrors,
   SitesResolveSiteRouteResponses,
-  SitesRollbackEntryRevisionData,
-  SitesRollbackEntryRevisionErrors,
-  SitesRollbackEntryRevisionResponses,
-  SitesRollbackPageRevisionData,
-  SitesRollbackPageRevisionErrors,
-  SitesRollbackPageRevisionResponses,
-  SitesSavePageRevisionDraftData,
-  SitesSavePageRevisionDraftErrors,
-  SitesSavePageRevisionDraftResponses,
-  SitesSaveSiteEntryDraftData,
-  SitesSaveSiteEntryDraftErrors,
-  SitesSaveSiteEntryDraftResponses,
-  SitesSaveSiteRouteDraftData,
-  SitesSaveSiteRouteDraftErrors,
-  SitesSaveSiteRouteDraftResponses,
-  SitesUnpublishSiteEntryData,
-  SitesUnpublishSiteEntryErrors,
-  SitesUnpublishSiteEntryResponses,
-  SitesUpdateEntryData,
-  SitesUpdateEntryErrors,
-  SitesUpdateEntryResponses,
-  SitesUpdateEntryTypeData,
-  SitesUpdateEntryTypeErrors,
-  SitesUpdateEntryTypeResponses,
   SitesUpdateSiteDomainData,
   SitesUpdateSiteDomainErrors,
   SitesUpdateSiteDomainResponses,
-  SitesUpdateSitePageData,
-  SitesUpdateSitePageErrors,
-  SitesUpdateSitePageResponses,
-  SitesUpdateSiteRouteTemplateData,
-  SitesUpdateSiteRouteTemplateErrors,
-  SitesUpdateSiteRouteTemplateResponses,
   SitesUpsertSiteSettingData,
   SitesUpsertSiteSettingErrors,
   SitesUpsertSiteSettingResponses,
@@ -582,39 +486,12 @@ import type {
   WorkspacesCreateWebhookSubscriptionData,
   WorkspacesCreateWebhookSubscriptionErrors,
   WorkspacesCreateWebhookSubscriptionResponses,
-  WorkspacesCreateWorkspaceContentBlockData,
-  WorkspacesCreateWorkspaceContentBlockErrors,
-  WorkspacesCreateWorkspaceContentBlockResponses,
-  WorkspacesCreateWorkspaceContentEntryData,
-  WorkspacesCreateWorkspaceContentEntryErrors,
-  WorkspacesCreateWorkspaceContentEntryResponses,
   WorkspacesCreateWorkspaceContentItemCanonicalData,
   WorkspacesCreateWorkspaceContentItemCanonicalErrors,
   WorkspacesCreateWorkspaceContentItemCanonicalResponses,
-  WorkspacesCreateWorkspaceContentMenuData,
-  WorkspacesCreateWorkspaceContentMenuErrors,
-  WorkspacesCreateWorkspaceContentMenuItemData,
-  WorkspacesCreateWorkspaceContentMenuItemErrors,
-  WorkspacesCreateWorkspaceContentMenuItemResponses,
-  WorkspacesCreateWorkspaceContentMenuResponses,
   WorkspacesCreateWorkspaceContentModelData,
   WorkspacesCreateWorkspaceContentModelErrors,
   WorkspacesCreateWorkspaceContentModelResponses,
-  WorkspacesCreateWorkspaceContentPageData,
-  WorkspacesCreateWorkspaceContentPageErrors,
-  WorkspacesCreateWorkspaceContentPageResponses,
-  WorkspacesCreateWorkspaceContentRouteBindingData,
-  WorkspacesCreateWorkspaceContentRouteBindingErrors,
-  WorkspacesCreateWorkspaceContentRouteBindingResponses,
-  WorkspacesCreateWorkspaceContentRouteData,
-  WorkspacesCreateWorkspaceContentRouteErrors,
-  WorkspacesCreateWorkspaceContentRouteResponses,
-  WorkspacesCreateWorkspaceContentTypeData,
-  WorkspacesCreateWorkspaceContentTypeErrors,
-  WorkspacesCreateWorkspaceContentTypeResponses,
-  WorkspacesCreateWorkspaceContentViewData,
-  WorkspacesCreateWorkspaceContentViewErrors,
-  WorkspacesCreateWorkspaceContentViewResponses,
   WorkspacesCreateWorkspaceSitePreviewTokenData,
   WorkspacesCreateWorkspaceSitePreviewTokenErrors,
   WorkspacesCreateWorkspaceSitePreviewTokenResponses,
@@ -623,6 +500,9 @@ import type {
   WorkspacesDeleteAssetFolderData,
   WorkspacesDeleteAssetFolderErrors,
   WorkspacesDeleteAssetFolderResponses,
+  WorkspacesDeleteAssetFolderWithMoveData,
+  WorkspacesDeleteAssetFolderWithMoveErrors,
+  WorkspacesDeleteAssetFolderWithMoveResponses,
   WorkspacesDeleteAssetResponses,
   WorkspacesDeleteAssetUsageByRefData,
   WorkspacesDeleteAssetUsageByRefDeleteData,
@@ -642,36 +522,6 @@ import type {
   WorkspacesDeleteThemeData,
   WorkspacesDeleteThemeErrors,
   WorkspacesDeleteThemeResponses,
-  WorkspacesDeleteWorkspaceContentBlockData,
-  WorkspacesDeleteWorkspaceContentBlockErrors,
-  WorkspacesDeleteWorkspaceContentBlockResponses,
-  WorkspacesDeleteWorkspaceContentEntryData,
-  WorkspacesDeleteWorkspaceContentEntryErrors,
-  WorkspacesDeleteWorkspaceContentEntryResponses,
-  WorkspacesDeleteWorkspaceContentMenuData,
-  WorkspacesDeleteWorkspaceContentMenuErrors,
-  WorkspacesDeleteWorkspaceContentMenuItemData,
-  WorkspacesDeleteWorkspaceContentMenuItemErrors,
-  WorkspacesDeleteWorkspaceContentMenuItemResponses,
-  WorkspacesDeleteWorkspaceContentMenuResponses,
-  WorkspacesDeleteWorkspaceContentPageData,
-  WorkspacesDeleteWorkspaceContentPageErrors,
-  WorkspacesDeleteWorkspaceContentPageResponses,
-  WorkspacesDeleteWorkspaceContentRouteBindingData,
-  WorkspacesDeleteWorkspaceContentRouteBindingErrors,
-  WorkspacesDeleteWorkspaceContentRouteBindingResponses,
-  WorkspacesDeleteWorkspaceContentRouteData,
-  WorkspacesDeleteWorkspaceContentRouteErrors,
-  WorkspacesDeleteWorkspaceContentRouteResponses,
-  WorkspacesDeleteWorkspaceContentTreeNodeData,
-  WorkspacesDeleteWorkspaceContentTreeNodeErrors,
-  WorkspacesDeleteWorkspaceContentTreeNodeResponses,
-  WorkspacesDeleteWorkspaceContentTypeData,
-  WorkspacesDeleteWorkspaceContentTypeErrors,
-  WorkspacesDeleteWorkspaceContentTypeResponses,
-  WorkspacesDeleteWorkspaceContentViewData,
-  WorkspacesDeleteWorkspaceContentViewErrors,
-  WorkspacesDeleteWorkspaceContentViewResponses,
   WorkspacesDeleteWorkspaceData,
   WorkspacesDeleteWorkspaceErrors,
   WorkspacesDeleteWorkspaceResponses,
@@ -710,33 +560,6 @@ import type {
   WorkspacesGetUploadStatusData,
   WorkspacesGetUploadStatusErrors,
   WorkspacesGetUploadStatusResponses,
-  WorkspacesGetWorkspaceContentActiveThemeData,
-  WorkspacesGetWorkspaceContentActiveThemeErrors,
-  WorkspacesGetWorkspaceContentActiveThemeResponses,
-  WorkspacesGetWorkspaceContentEffectiveStyleData,
-  WorkspacesGetWorkspaceContentEffectiveStyleErrors,
-  WorkspacesGetWorkspaceContentEffectiveStyleResponses,
-  WorkspacesGetWorkspaceContentEntryData,
-  WorkspacesGetWorkspaceContentEntryErrors,
-  WorkspacesGetWorkspaceContentEntryResponses,
-  WorkspacesGetWorkspaceContentEntryRevisionData,
-  WorkspacesGetWorkspaceContentEntryRevisionErrors,
-  WorkspacesGetWorkspaceContentEntryRevisionResponses,
-  WorkspacesGetWorkspaceContentGlobalStyleData,
-  WorkspacesGetWorkspaceContentGlobalStyleErrors,
-  WorkspacesGetWorkspaceContentGlobalStyleResponses,
-  WorkspacesGetWorkspaceContentItemData,
-  WorkspacesGetWorkspaceContentItemErrors,
-  WorkspacesGetWorkspaceContentItemResponses,
-  WorkspacesGetWorkspaceContentItemVersionData,
-  WorkspacesGetWorkspaceContentItemVersionErrors,
-  WorkspacesGetWorkspaceContentItemVersionResponses,
-  WorkspacesGetWorkspaceContentPageData,
-  WorkspacesGetWorkspaceContentPageErrors,
-  WorkspacesGetWorkspaceContentPageResponses,
-  WorkspacesGetWorkspaceContentPageRevisionData,
-  WorkspacesGetWorkspaceContentPageRevisionErrors,
-  WorkspacesGetWorkspaceContentPageRevisionResponses,
   WorkspacesGetWorkspaceContentSeoProfileData,
   WorkspacesGetWorkspaceContentSeoProfileErrors,
   WorkspacesGetWorkspaceContentSeoProfileResponses,
@@ -829,57 +652,21 @@ import type {
   WorkspacesListWorkspaceContentBindingsData,
   WorkspacesListWorkspaceContentBindingsErrors,
   WorkspacesListWorkspaceContentBindingsResponses,
-  WorkspacesListWorkspaceContentBlocksData,
-  WorkspacesListWorkspaceContentBlocksErrors,
-  WorkspacesListWorkspaceContentBlocksResponses,
-  WorkspacesListWorkspaceContentBlockUsagesData,
-  WorkspacesListWorkspaceContentBlockUsagesErrors,
-  WorkspacesListWorkspaceContentBlockUsagesResponses,
-  WorkspacesListWorkspaceContentEntriesData,
-  WorkspacesListWorkspaceContentEntriesErrors,
-  WorkspacesListWorkspaceContentEntriesResponses,
-  WorkspacesListWorkspaceContentGlobalSlotsData,
-  WorkspacesListWorkspaceContentGlobalSlotsErrors,
-  WorkspacesListWorkspaceContentGlobalSlotsResponses,
   WorkspacesListWorkspaceContentHierarchyNodesCanonicalData,
   WorkspacesListWorkspaceContentHierarchyNodesCanonicalErrors,
   WorkspacesListWorkspaceContentHierarchyNodesCanonicalResponses,
-  WorkspacesListWorkspaceContentItemsData,
-  WorkspacesListWorkspaceContentItemsErrors,
-  WorkspacesListWorkspaceContentItemsResponses,
-  WorkspacesListWorkspaceContentMenusData,
-  WorkspacesListWorkspaceContentMenusErrors,
-  WorkspacesListWorkspaceContentMenusResponses,
+  WorkspacesListWorkspaceContentItemsCanonicalData,
+  WorkspacesListWorkspaceContentItemsCanonicalErrors,
+  WorkspacesListWorkspaceContentItemsCanonicalResponses,
   WorkspacesListWorkspaceContentModelsCanonicalData,
   WorkspacesListWorkspaceContentModelsCanonicalErrors,
   WorkspacesListWorkspaceContentModelsCanonicalResponses,
-  WorkspacesListWorkspaceContentModelsData,
-  WorkspacesListWorkspaceContentModelsErrors,
-  WorkspacesListWorkspaceContentModelsResponses,
-  WorkspacesListWorkspaceContentPagesTreeData,
-  WorkspacesListWorkspaceContentPagesTreeErrors,
-  WorkspacesListWorkspaceContentPagesTreeResponses,
   WorkspacesListWorkspaceContentPresentationsData,
   WorkspacesListWorkspaceContentPresentationsErrors,
   WorkspacesListWorkspaceContentPresentationsResponses,
   WorkspacesListWorkspaceContentRouteBindingsCanonicalData,
   WorkspacesListWorkspaceContentRouteBindingsCanonicalErrors,
   WorkspacesListWorkspaceContentRouteBindingsCanonicalResponses,
-  WorkspacesListWorkspaceContentRouteBindingsData,
-  WorkspacesListWorkspaceContentRouteBindingsErrors,
-  WorkspacesListWorkspaceContentRouteBindingsResponses,
-  WorkspacesListWorkspaceContentRoutesData,
-  WorkspacesListWorkspaceContentRoutesErrors,
-  WorkspacesListWorkspaceContentRoutesResponses,
-  WorkspacesListWorkspaceContentTreeNodesData,
-  WorkspacesListWorkspaceContentTreeNodesErrors,
-  WorkspacesListWorkspaceContentTreeNodesResponses,
-  WorkspacesListWorkspaceContentTypesData,
-  WorkspacesListWorkspaceContentTypesErrors,
-  WorkspacesListWorkspaceContentTypesResponses,
-  WorkspacesListWorkspaceContentViewsData,
-  WorkspacesListWorkspaceContentViewsErrors,
-  WorkspacesListWorkspaceContentViewsResponses,
   WorkspacesListWorkspaceUiEmbedsData,
   WorkspacesListWorkspaceUiEmbedsErrors,
   WorkspacesListWorkspaceUiEmbedsResponses,
@@ -900,9 +687,6 @@ import type {
   WorkspacesMoveAssetData,
   WorkspacesMoveAssetErrors,
   WorkspacesMoveAssetResponses,
-  WorkspacesMoveWorkspaceContentPageData,
-  WorkspacesMoveWorkspaceContentPageErrors,
-  WorkspacesMoveWorkspaceContentPageResponses,
   WorkspacesPatchAssetData,
   WorkspacesPatchAssetErrors,
   WorkspacesPatchAssetResponses,
@@ -927,51 +711,24 @@ import type {
   WorkspacesPresignUploadPartData,
   WorkspacesPresignUploadPartErrors,
   WorkspacesPresignUploadPartResponses,
-  WorkspacesPreviewWorkspaceContentViewData,
-  WorkspacesPreviewWorkspaceContentViewErrors,
-  WorkspacesPreviewWorkspaceContentViewResponses,
-  WorkspacesPublishWorkspaceContentEntryData,
-  WorkspacesPublishWorkspaceContentEntryErrors,
-  WorkspacesPublishWorkspaceContentEntryResponses,
   WorkspacesPublishWorkspaceContentItemVersionCanonicalData,
   WorkspacesPublishWorkspaceContentItemVersionCanonicalErrors,
   WorkspacesPublishWorkspaceContentItemVersionCanonicalResponses,
-  WorkspacesPublishWorkspaceContentPageData,
-  WorkspacesPublishWorkspaceContentPageErrors,
-  WorkspacesPublishWorkspaceContentPageResponses,
   WorkspacesRenewEmailInviteData,
   WorkspacesRenewEmailInviteErrors,
   WorkspacesRenewEmailInviteResponses,
   WorkspacesRenewInviteLinkData,
   WorkspacesRenewInviteLinkErrors,
   WorkspacesRenewInviteLinkResponses,
-  WorkspacesReorderWorkspaceContentMenuItemsData,
-  WorkspacesReorderWorkspaceContentMenuItemsErrors,
-  WorkspacesReorderWorkspaceContentMenuItemsResponses,
-  WorkspacesRepairWorkspaceContentPagesRouteTreeData,
-  WorkspacesRepairWorkspaceContentPagesRouteTreeErrors,
-  WorkspacesRepairWorkspaceContentPagesRouteTreeResponses,
   WorkspacesResetMemberPasswordData,
   WorkspacesResetMemberPasswordErrors,
   WorkspacesResetMemberPasswordResponses,
   WorkspacesRevokeEmailInviteData,
   WorkspacesRevokeEmailInviteErrors,
   WorkspacesRevokeEmailInviteResponses,
-  WorkspacesRollbackWorkspaceContentEntryRevisionData,
-  WorkspacesRollbackWorkspaceContentEntryRevisionErrors,
-  WorkspacesRollbackWorkspaceContentEntryRevisionResponses,
-  WorkspacesRollbackWorkspaceContentPageRevisionData,
-  WorkspacesRollbackWorkspaceContentPageRevisionErrors,
-  WorkspacesRollbackWorkspaceContentPageRevisionResponses,
-  WorkspacesSaveWorkspaceContentEntryDraftData,
-  WorkspacesSaveWorkspaceContentEntryDraftErrors,
-  WorkspacesSaveWorkspaceContentEntryDraftResponses,
   WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalData,
   WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalErrors,
   WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponses,
-  WorkspacesSaveWorkspaceContentPageDraftData,
-  WorkspacesSaveWorkspaceContentPageDraftErrors,
-  WorkspacesSaveWorkspaceContentPageDraftResponses,
   WorkspacesScheduleWorkspaceContentItemVersionCanonicalData,
   WorkspacesScheduleWorkspaceContentItemVersionCanonicalErrors,
   WorkspacesScheduleWorkspaceContentItemVersionCanonicalResponses,
@@ -987,24 +744,6 @@ import type {
   WorkspacesSetRolePermissionsData,
   WorkspacesSetRolePermissionsErrors,
   WorkspacesSetRolePermissionsResponses,
-  WorkspacesSetWorkspaceContentActiveThemeData,
-  WorkspacesSetWorkspaceContentActiveThemeErrors,
-  WorkspacesSetWorkspaceContentActiveThemeResponses,
-  WorkspacesSetWorkspaceContentEntryStyleData,
-  WorkspacesSetWorkspaceContentEntryStyleErrors,
-  WorkspacesSetWorkspaceContentEntryStyleResponses,
-  WorkspacesSetWorkspaceContentGlobalStyleData,
-  WorkspacesSetWorkspaceContentGlobalStyleErrors,
-  WorkspacesSetWorkspaceContentGlobalStyleResponses,
-  WorkspacesSetWorkspaceContentTypeStyleData,
-  WorkspacesSetWorkspaceContentTypeStyleErrors,
-  WorkspacesSetWorkspaceContentTypeStyleResponses,
-  WorkspacesUnpublishWorkspaceContentEntryData,
-  WorkspacesUnpublishWorkspaceContentEntryErrors,
-  WorkspacesUnpublishWorkspaceContentEntryResponses,
-  WorkspacesUnpublishWorkspaceContentPageData,
-  WorkspacesUnpublishWorkspaceContentPageErrors,
-  WorkspacesUnpublishWorkspaceContentPageResponses,
   WorkspacesUpdateAssetFolderData,
   WorkspacesUpdateAssetFolderErrors,
   WorkspacesUpdateAssetFolderResponses,
@@ -1014,36 +753,9 @@ import type {
   WorkspacesUpdateRoleData,
   WorkspacesUpdateRoleErrors,
   WorkspacesUpdateRoleResponses,
-  WorkspacesUpdateWorkspaceContentBlockData,
-  WorkspacesUpdateWorkspaceContentBlockErrors,
-  WorkspacesUpdateWorkspaceContentBlockResponses,
-  WorkspacesUpdateWorkspaceContentEntryData,
-  WorkspacesUpdateWorkspaceContentEntryErrors,
-  WorkspacesUpdateWorkspaceContentEntryResponses,
-  WorkspacesUpdateWorkspaceContentMenuData,
-  WorkspacesUpdateWorkspaceContentMenuErrors,
-  WorkspacesUpdateWorkspaceContentMenuItemData,
-  WorkspacesUpdateWorkspaceContentMenuItemErrors,
-  WorkspacesUpdateWorkspaceContentMenuItemResponses,
-  WorkspacesUpdateWorkspaceContentMenuResponses,
   WorkspacesUpdateWorkspaceContentModelData,
   WorkspacesUpdateWorkspaceContentModelErrors,
   WorkspacesUpdateWorkspaceContentModelResponses,
-  WorkspacesUpdateWorkspaceContentPageData,
-  WorkspacesUpdateWorkspaceContentPageErrors,
-  WorkspacesUpdateWorkspaceContentPageResponses,
-  WorkspacesUpdateWorkspaceContentRouteBindingData,
-  WorkspacesUpdateWorkspaceContentRouteBindingErrors,
-  WorkspacesUpdateWorkspaceContentRouteBindingResponses,
-  WorkspacesUpdateWorkspaceContentRouteData,
-  WorkspacesUpdateWorkspaceContentRouteErrors,
-  WorkspacesUpdateWorkspaceContentRouteResponses,
-  WorkspacesUpdateWorkspaceContentTypeData,
-  WorkspacesUpdateWorkspaceContentTypeErrors,
-  WorkspacesUpdateWorkspaceContentTypeResponses,
-  WorkspacesUpdateWorkspaceContentViewData,
-  WorkspacesUpdateWorkspaceContentViewErrors,
-  WorkspacesUpdateWorkspaceContentViewResponses,
   WorkspacesUpdateWorkspaceData,
   WorkspacesUpdateWorkspaceErrors,
   WorkspacesUpdateWorkspaceResponses,
@@ -1053,18 +765,12 @@ import type {
   WorkspacesUpsertAssetUsageData,
   WorkspacesUpsertAssetUsageErrors,
   WorkspacesUpsertAssetUsageResponses,
-  WorkspacesUpsertWorkspaceContentGlobalSlotData,
-  WorkspacesUpsertWorkspaceContentGlobalSlotErrors,
-  WorkspacesUpsertWorkspaceContentGlobalSlotResponses,
   WorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalData,
   WorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalErrors,
   WorkspacesUpsertWorkspaceContentHierarchyNodeCanonicalResponses,
   WorkspacesUpsertWorkspaceContentRouteBindingCanonicalData,
   WorkspacesUpsertWorkspaceContentRouteBindingCanonicalErrors,
   WorkspacesUpsertWorkspaceContentRouteBindingCanonicalResponses,
-  WorkspacesUpsertWorkspaceContentTreeNodeData,
-  WorkspacesUpsertWorkspaceContentTreeNodeErrors,
-  WorkspacesUpsertWorkspaceContentTreeNodeResponses,
 } from "./types.gen";
 
 export type Options<
@@ -3082,30 +2788,6 @@ export const sitesPublicGetSiteContext = <ThrowOnError extends boolean = false>(
   >({ url: "/api/v1/sites/{site_id}/context", ...options });
 
 /**
- * List published entries (public)
- */
-export const deliveryListDeliveryEntries = <ThrowOnError extends boolean = false>(
-  options: Options<DeliveryListDeliveryEntriesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    DeliveryListDeliveryEntriesResponses,
-    DeliveryListDeliveryEntriesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/delivery/entries", ...options });
-
-/**
- * Get a published entry by slug (public)
- */
-export const deliveryGetDeliveryEntry = <ThrowOnError extends boolean = false>(
-  options: Options<DeliveryGetDeliveryEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    DeliveryGetDeliveryEntryResponses,
-    DeliveryGetDeliveryEntryErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/delivery/entries/{slug}", ...options });
-
-/**
  * Get a menu by key (public)
  */
 export const deliveryGetDeliveryMenu = <ThrowOnError extends boolean = false>(
@@ -3128,385 +2810,6 @@ export const deliveryGetDeliveryStyle = <ThrowOnError extends boolean = false>(
     DeliveryGetDeliveryStyleErrors,
     ThrowOnError
   >({ url: "/api/v1/sites/{site_id}/delivery/style", ...options });
-
-/**
- * List entries (preview token required)
- */
-export const sitesListEntries = <ThrowOnError extends boolean = false>(
-  options: Options<SitesListEntriesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<SitesListEntriesResponses, SitesListEntriesErrors, ThrowOnError>({
-    url: "/api/v1/sites/{site_id}/entries",
-    ...options,
-  });
-
-/**
- * Create an entry (preview token required)
- */
-export const sitesCreateEntry = <ThrowOnError extends boolean = false>(
-  options: Options<SitesCreateEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<SitesCreateEntryResponses, SitesCreateEntryErrors, ThrowOnError>({
-    url: "/api/v1/sites/{site_id}/entries",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Save a draft entry revision (v1)
- */
-export const sitesSaveSiteEntryDraft = <ThrowOnError extends boolean = false>(
-  options: Options<SitesSaveSiteEntryDraftData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesSaveSiteEntryDraftResponses,
-    SitesSaveSiteEntryDraftErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/entries/draft",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Publish an entry (draft -> public)
- */
-export const sitesPublishSiteEntry = <ThrowOnError extends boolean = false>(
-  options: Options<SitesPublishSiteEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesPublishSiteEntryResponses,
-    SitesPublishSiteEntryErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/entries/publish",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Unpublish an entry (published -> draft-only)
- */
-export const sitesUnpublishSiteEntry = <ThrowOnError extends boolean = false>(
-  options: Options<SitesUnpublishSiteEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesUnpublishSiteEntryResponses,
-    SitesUnpublishSiteEntryErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/entries/unpublish",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete an entry (must unpublish first; preview token required)
- */
-export const sitesDeleteEntry = <ThrowOnError extends boolean = false>(
-  options: Options<SitesDeleteEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    SitesDeleteEntryResponses,
-    SitesDeleteEntryErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/entries/{entry_id}", ...options });
-
-/**
- * Update an entry (preview token required)
- */
-export const sitesUpdateEntry = <ThrowOnError extends boolean = false>(
-  options: Options<SitesUpdateEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<SitesUpdateEntryResponses, SitesUpdateEntryErrors, ThrowOnError>(
-    {
-      url: "/api/v1/sites/{site_id}/entries/{entry_id}",
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    },
-  );
-
-/**
- * Get a draft entry revision snapshot (preview token required)
- */
-export const sitesGetDraftEntryRevision = <ThrowOnError extends boolean = false>(
-  options: Options<SitesGetDraftEntryRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SitesGetDraftEntryRevisionResponses,
-    SitesGetDraftEntryRevisionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/entries/{entry_id}/revisions/draft", ...options });
-
-/**
- * Get a published entry revision snapshot
- */
-export const sitesGetPublishedEntryRevision = <ThrowOnError extends boolean = false>(
-  options: Options<SitesGetPublishedEntryRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SitesGetPublishedEntryRevisionResponses,
-    SitesGetPublishedEntryRevisionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/entries/{entry_id}/revisions/published", ...options });
-
-/**
- * Rollback an entry revision pointer (draft or published; preview token required)
- */
-export const sitesRollbackEntryRevision = <ThrowOnError extends boolean = false>(
-  options: Options<SitesRollbackEntryRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesRollbackEntryRevisionResponses,
-    SitesRollbackEntryRevisionErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/entries/{entry_id}/revisions/rollback",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List entry types (preview token required)
- */
-export const sitesListEntryTypes = <ThrowOnError extends boolean = false>(
-  options: Options<SitesListEntryTypesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SitesListEntryTypesResponses,
-    SitesListEntryTypesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/entry-types", ...options });
-
-/**
- * Create an entry type (preview token required)
- */
-export const sitesCreateEntryType = <ThrowOnError extends boolean = false>(
-  options: Options<SitesCreateEntryTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesCreateEntryTypeResponses,
-    SitesCreateEntryTypeErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/entry-types",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete an entry type (preview token required)
- */
-export const sitesDeleteEntryType = <ThrowOnError extends boolean = false>(
-  options: Options<SitesDeleteEntryTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    SitesDeleteEntryTypeResponses,
-    SitesDeleteEntryTypeErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/entry-types/{entry_type_id}", ...options });
-
-/**
- * Update an entry type (preview token required)
- */
-export const sitesUpdateEntryType = <ThrowOnError extends boolean = false>(
-  options: Options<SitesUpdateEntryTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    SitesUpdateEntryTypeResponses,
-    SitesUpdateEntryTypeErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/entry-types/{entry_type_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List site pages as a tree (preview token required)
- */
-export const sitesListSitePagesTree = <ThrowOnError extends boolean = false>(
-  options: Options<SitesListSitePagesTreeData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SitesListSitePagesTreeResponses,
-    SitesListSitePagesTreeErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/pages", ...options });
-
-/**
- * Create a site page (preview token required)
- */
-export const sitesCreateSitePage = <ThrowOnError extends boolean = false>(
-  options: Options<SitesCreateSitePageData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesCreateSitePageResponses,
-    SitesCreateSitePageErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/pages",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a site page (preview token required)
- */
-export const sitesDeleteSitePage = <ThrowOnError extends boolean = false>(
-  options: Options<SitesDeleteSitePageData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    SitesDeleteSitePageResponses,
-    SitesDeleteSitePageErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/pages/{page_id}", ...options });
-
-/**
- * Update a site page (preview token required)
- */
-export const sitesUpdateSitePage = <ThrowOnError extends boolean = false>(
-  options: Options<SitesUpdateSitePageData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    SitesUpdateSitePageResponses,
-    SitesUpdateSitePageErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/pages/{page_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Move/reorder a site page within the tree (preview token required)
- */
-export const sitesMoveSitePage = <ThrowOnError extends boolean = false>(
-  options: Options<SitesMoveSitePageData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesMoveSitePageResponses,
-    SitesMoveSitePageErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/pages/{page_id}/move",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get a draft page revision snapshot (preview token required)
- */
-export const sitesGetDraftPageRevision = <ThrowOnError extends boolean = false>(
-  options: Options<SitesGetDraftPageRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SitesGetDraftPageRevisionResponses,
-    SitesGetDraftPageRevisionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/pages/{page_id}/revisions/draft", ...options });
-
-/**
- * Save a draft page revision (preview token required)
- */
-export const sitesSavePageRevisionDraft = <ThrowOnError extends boolean = false>(
-  options: Options<SitesSavePageRevisionDraftData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesSavePageRevisionDraftResponses,
-    SitesSavePageRevisionDraftErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/pages/{page_id}/revisions/draft",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Publish a page revision (draft -> public; preview token required)
- */
-export const sitesPublishPageRevision = <ThrowOnError extends boolean = false>(
-  options: Options<SitesPublishPageRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesPublishPageRevisionResponses,
-    SitesPublishPageRevisionErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/pages/{page_id}/revisions/publish",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get a published page revision snapshot
- */
-export const sitesGetPublishedPageRevision = <ThrowOnError extends boolean = false>(
-  options: Options<SitesGetPublishedPageRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SitesGetPublishedPageRevisionResponses,
-    SitesGetPublishedPageRevisionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/pages/{page_id}/revisions/published", ...options });
-
-/**
- * Rollback a page revision pointer (draft or published; preview token required)
- */
-export const sitesRollbackPageRevision = <ThrowOnError extends boolean = false>(
-  options: Options<SitesRollbackPageRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesRollbackPageRevisionResponses,
-    SitesRollbackPageRevisionErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/pages/{page_id}/revisions/rollback",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
 
 /**
  * List site patterns (paginated)
@@ -3611,106 +2914,6 @@ export const sitesCreatePreviewToken = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: "/api/v1/sites/{site_id}/preview-tokens",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List route templates (preview token required)
- */
-export const sitesListSiteRouteTemplates = <ThrowOnError extends boolean = false>(
-  options: Options<SitesListSiteRouteTemplatesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SitesListSiteRouteTemplatesResponses,
-    SitesListSiteRouteTemplatesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/route-templates", ...options });
-
-/**
- * Create a route template (preview token required)
- */
-export const sitesCreateSiteRouteTemplate = <ThrowOnError extends boolean = false>(
-  options: Options<SitesCreateSiteRouteTemplateData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesCreateSiteRouteTemplateResponses,
-    SitesCreateSiteRouteTemplateErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/route-templates",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a route template (preview token required)
- */
-export const sitesDeleteSiteRouteTemplate = <ThrowOnError extends boolean = false>(
-  options: Options<SitesDeleteSiteRouteTemplateData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    SitesDeleteSiteRouteTemplateResponses,
-    SitesDeleteSiteRouteTemplateErrors,
-    ThrowOnError
-  >({ url: "/api/v1/sites/{site_id}/route-templates/{template_id}", ...options });
-
-/**
- * Update a route template (preview token required)
- */
-export const sitesUpdateSiteRouteTemplate = <ThrowOnError extends boolean = false>(
-  options: Options<SitesUpdateSiteRouteTemplateData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    SitesUpdateSiteRouteTemplateResponses,
-    SitesUpdateSiteRouteTemplateErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/route-templates/{template_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Save a draft page blueprint for a route (stub)
- */
-export const sitesSaveSiteRouteDraft = <ThrowOnError extends boolean = false>(
-  options: Options<SitesSaveSiteRouteDraftData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesSaveSiteRouteDraftResponses,
-    SitesSaveSiteRouteDraftErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/routes/draft",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Publish a route (draft -> public)
- */
-export const sitesPublishSiteRoute = <ThrowOnError extends boolean = false>(
-  options: Options<SitesPublishSiteRouteData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SitesPublishSiteRouteResponses,
-    SitesPublishSiteRouteErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/sites/{site_id}/routes/publish",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -4329,6 +3532,26 @@ export const workspacesUpdateAssetFolder = <ThrowOnError extends boolean = false
   });
 
 /**
+ * Delete asset folder with content migration
+ */
+export const workspacesDeleteAssetFolderWithMove = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesDeleteAssetFolderWithMoveData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    WorkspacesDeleteAssetFolderWithMoveResponses,
+    WorkspacesDeleteAssetFolderWithMoveErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/asset-folders/{folder_id}/delete",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
  * List asset tags
  */
 export const workspacesListAssetTags = <ThrowOnError extends boolean = false>(
@@ -4606,6 +3829,22 @@ export const workspacesListAssetUsages = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/workspaces/{workspace_id}/assets/{asset_id}/usages",
+    ...options,
+  });
+
+/**
+ * List rebuilt content items (workspace RBAC protected)
+ */
+export const workspacesListWorkspaceContentItemsCanonical = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesListWorkspaceContentItemsCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    WorkspacesListWorkspaceContentItemsCanonicalResponses,
+    WorkspacesListWorkspaceContentItemsCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items",
     ...options,
   });
 
@@ -5004,1232 +4243,6 @@ export const workspacesLeaveWorkspace = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/workspaces/{workspace_id}/leave",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get effective content style payload (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentEffectiveStyle = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentEffectiveStyleData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentEffectiveStyleResponses,
-    WorkspacesGetWorkspaceContentEffectiveStyleErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/appearance/styles/effective",
-    ...options,
-  });
-
-/**
- * Set content entry style payload (workspace RBAC protected)
- */
-export const workspacesSetWorkspaceContentEntryStyle = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesSetWorkspaceContentEntryStyleData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    WorkspacesSetWorkspaceContentEntryStyleResponses,
-    WorkspacesSetWorkspaceContentEntryStyleErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/appearance/styles/entries/{entry_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get global content style payload (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentGlobalStyle = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentGlobalStyleData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentGlobalStyleResponses,
-    WorkspacesGetWorkspaceContentGlobalStyleErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/appearance/styles/global",
-    ...options,
-  });
-
-/**
- * Set global content style payload (workspace RBAC protected)
- */
-export const workspacesSetWorkspaceContentGlobalStyle = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesSetWorkspaceContentGlobalStyleData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    WorkspacesSetWorkspaceContentGlobalStyleResponses,
-    WorkspacesSetWorkspaceContentGlobalStyleErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/appearance/styles/global",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Set content type style payload (workspace RBAC protected)
- */
-export const workspacesSetWorkspaceContentTypeStyle = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesSetWorkspaceContentTypeStyleData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    WorkspacesSetWorkspaceContentTypeStyleResponses,
-    WorkspacesSetWorkspaceContentTypeStyleErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/appearance/styles/types/{type_code}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get active content theme binding (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentActiveTheme = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentActiveThemeData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentActiveThemeResponses,
-    WorkspacesGetWorkspaceContentActiveThemeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/appearance/themes/active",
-    ...options,
-  });
-
-/**
- * Set active content theme binding (workspace RBAC protected)
- */
-export const workspacesSetWorkspaceContentActiveTheme = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesSetWorkspaceContentActiveThemeData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    WorkspacesSetWorkspaceContentActiveThemeResponses,
-    WorkspacesSetWorkspaceContentActiveThemeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/appearance/themes/active",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content blocks (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentBlocks = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentBlocksData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentBlocksResponses,
-    WorkspacesListWorkspaceContentBlocksErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/blocks",
-    ...options,
-  });
-
-/**
- * Create a content block (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentBlock = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentBlockData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentBlockResponses,
-    WorkspacesCreateWorkspaceContentBlockErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/blocks",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content block (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentBlock = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentBlockData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentBlockResponses,
-    WorkspacesDeleteWorkspaceContentBlockErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/blocks/{block_id}",
-    ...options,
-  });
-
-/**
- * Update a content block (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentBlock = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentBlockData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentBlockResponses,
-    WorkspacesUpdateWorkspaceContentBlockErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/blocks/{block_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content block usages (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentBlockUsages = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentBlockUsagesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentBlockUsagesResponses,
-    WorkspacesListWorkspaceContentBlockUsagesErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/blocks/{block_id}/usages",
-    ...options,
-  });
-
-/**
- * List content entries (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentEntries = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentEntriesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentEntriesResponses,
-    WorkspacesListWorkspaceContentEntriesErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries",
-    ...options,
-  });
-
-/**
- * Create a content entry (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentEntry = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentEntryResponses,
-    WorkspacesCreateWorkspaceContentEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content entry (must unpublish first; workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentEntry = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentEntryResponses,
-    WorkspacesDeleteWorkspaceContentEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}",
-    ...options,
-  });
-
-/**
- * Get a content entry (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentEntry = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentEntryResponses,
-    WorkspacesGetWorkspaceContentEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}",
-    ...options,
-  });
-
-/**
- * Update a content entry (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentEntry = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentEntryResponses,
-    WorkspacesUpdateWorkspaceContentEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Save a draft entry revision (workspace RBAC protected)
- */
-export const workspacesSaveWorkspaceContentEntryDraft = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesSaveWorkspaceContentEntryDraftData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesSaveWorkspaceContentEntryDraftResponses,
-    WorkspacesSaveWorkspaceContentEntryDraftErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}/draft",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Publish a content entry (workspace RBAC protected)
- */
-export const workspacesPublishWorkspaceContentEntry = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesPublishWorkspaceContentEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesPublishWorkspaceContentEntryResponses,
-    WorkspacesPublishWorkspaceContentEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}/publish",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Rollback content entry revision pointer (workspace RBAC protected)
- */
-export const workspacesRollbackWorkspaceContentEntryRevision = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<WorkspacesRollbackWorkspaceContentEntryRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesRollbackWorkspaceContentEntryRevisionResponses,
-    WorkspacesRollbackWorkspaceContentEntryRevisionErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}/revisions/rollback",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get content entry revision snapshot (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentEntryRevision = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentEntryRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentEntryRevisionResponses,
-    WorkspacesGetWorkspaceContentEntryRevisionErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}/revisions/{state}",
-    ...options,
-  });
-
-/**
- * Unpublish a content entry (workspace RBAC protected)
- */
-export const workspacesUnpublishWorkspaceContentEntry = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUnpublishWorkspaceContentEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesUnpublishWorkspaceContentEntryResponses,
-    WorkspacesUnpublishWorkspaceContentEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/entries/{entry_id}/unpublish",
-    ...options,
-  });
-
-/**
- * List content items (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentItems = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentItemsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentItemsResponses,
-    WorkspacesListWorkspaceContentItemsErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/items",
-    ...options,
-  });
-
-/**
- * Get content item detail (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentItem = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentItemData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentItemResponses,
-    WorkspacesGetWorkspaceContentItemErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/items/{item_id}",
-    ...options,
-  });
-
-/**
- * Get content item version snapshot (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentItemVersion = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentItemVersionData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentItemVersionResponses,
-    WorkspacesGetWorkspaceContentItemVersionErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/items/{item_id}/versions/{state}",
-    ...options,
-  });
-
-/**
- * List content models (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentModels = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentModelsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentModelsResponses,
-    WorkspacesListWorkspaceContentModelsErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/models",
-    ...options,
-  });
-
-/**
- * Create a content page (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentPage = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentPageData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentPageResponses,
-    WorkspacesCreateWorkspaceContentPageErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Repair legacy page route/tree records (workspace RBAC protected)
- */
-export const workspacesRepairWorkspaceContentPagesRouteTree = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<WorkspacesRepairWorkspaceContentPagesRouteTreeData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesRepairWorkspaceContentPagesRouteTreeResponses,
-    WorkspacesRepairWorkspaceContentPagesRouteTreeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/repair-route-tree",
-    ...options,
-  });
-
-/**
- * List content pages as a tree (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentPagesTree = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentPagesTreeData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentPagesTreeResponses,
-    WorkspacesListWorkspaceContentPagesTreeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/tree",
-    ...options,
-  });
-
-/**
- * Delete a content page (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentPage = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentPageData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentPageResponses,
-    WorkspacesDeleteWorkspaceContentPageErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}",
-    ...options,
-  });
-
-/**
- * Get a content page (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentPage = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentPageData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentPageResponses,
-    WorkspacesGetWorkspaceContentPageErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}",
-    ...options,
-  });
-
-/**
- * Update a content page (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentPage = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentPageData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentPageResponses,
-    WorkspacesUpdateWorkspaceContentPageErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Move a content page (workspace RBAC protected)
- */
-export const workspacesMoveWorkspaceContentPage = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesMoveWorkspaceContentPageData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesMoveWorkspaceContentPageResponses,
-    WorkspacesMoveWorkspaceContentPageErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}/move",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Save a content page draft revision (workspace RBAC protected)
- */
-export const workspacesSaveWorkspaceContentPageDraft = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesSaveWorkspaceContentPageDraftData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesSaveWorkspaceContentPageDraftResponses,
-    WorkspacesSaveWorkspaceContentPageDraftErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}/revisions/draft",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Publish a content page revision (workspace RBAC protected)
- */
-export const workspacesPublishWorkspaceContentPage = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesPublishWorkspaceContentPageData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesPublishWorkspaceContentPageResponses,
-    WorkspacesPublishWorkspaceContentPageErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}/revisions/publish",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Rollback content page revision pointer (workspace RBAC protected)
- */
-export const workspacesRollbackWorkspaceContentPageRevision = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<WorkspacesRollbackWorkspaceContentPageRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesRollbackWorkspaceContentPageRevisionResponses,
-    WorkspacesRollbackWorkspaceContentPageRevisionErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}/revisions/rollback",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Unpublish a content page (workspace RBAC protected)
- */
-export const workspacesUnpublishWorkspaceContentPage = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUnpublishWorkspaceContentPageData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesUnpublishWorkspaceContentPageResponses,
-    WorkspacesUnpublishWorkspaceContentPageErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}/revisions/unpublish",
-    ...options,
-  });
-
-/**
- * Get content page revision snapshot (workspace RBAC protected)
- */
-export const workspacesGetWorkspaceContentPageRevision = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesGetWorkspaceContentPageRevisionData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesGetWorkspaceContentPageRevisionResponses,
-    WorkspacesGetWorkspaceContentPageRevisionErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/pages/{page_id}/revisions/{state}",
-    ...options,
-  });
-
-/**
- * List content route bindings (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentRouteBindings = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentRouteBindingsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentRouteBindingsResponses,
-    WorkspacesListWorkspaceContentRouteBindingsErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/routes",
-    ...options,
-  });
-
-/**
- * Create a content route binding (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentRouteBinding = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentRouteBindingData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentRouteBindingResponses,
-    WorkspacesCreateWorkspaceContentRouteBindingErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/routes",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content route binding (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentRouteBinding = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentRouteBindingData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentRouteBindingResponses,
-    WorkspacesDeleteWorkspaceContentRouteBindingErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/routes/{route_id}",
-    ...options,
-  });
-
-/**
- * Update a content route binding (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentRouteBinding = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentRouteBindingData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentRouteBindingResponses,
-    WorkspacesUpdateWorkspaceContentRouteBindingErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/routes/{route_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content global slots (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentGlobalSlots = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentGlobalSlotsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentGlobalSlotsResponses,
-    WorkspacesListWorkspaceContentGlobalSlotsErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/global-slots",
-    ...options,
-  });
-
-/**
- * Upsert a content global slot (workspace RBAC protected)
- */
-export const workspacesUpsertWorkspaceContentGlobalSlot = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpsertWorkspaceContentGlobalSlotData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    WorkspacesUpsertWorkspaceContentGlobalSlotResponses,
-    WorkspacesUpsertWorkspaceContentGlobalSlotErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/global-slots/{slot_key}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content menus (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentMenus = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentMenusData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentMenusResponses,
-    WorkspacesListWorkspaceContentMenusErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus",
-    ...options,
-  });
-
-/**
- * Create a content menu (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentMenu = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentMenuData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentMenuResponses,
-    WorkspacesCreateWorkspaceContentMenuErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content menu (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentMenu = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentMenuData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentMenuResponses,
-    WorkspacesDeleteWorkspaceContentMenuErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus/{menu_id}",
-    ...options,
-  });
-
-/**
- * Update a content menu (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentMenu = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentMenuData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentMenuResponses,
-    WorkspacesUpdateWorkspaceContentMenuErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus/{menu_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Create a content menu item (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentMenuItem = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentMenuItemData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentMenuItemResponses,
-    WorkspacesCreateWorkspaceContentMenuItemErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus/{menu_id}/items",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Reorder content menu items (workspace RBAC protected)
- */
-export const workspacesReorderWorkspaceContentMenuItems = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesReorderWorkspaceContentMenuItemsData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesReorderWorkspaceContentMenuItemsResponses,
-    WorkspacesReorderWorkspaceContentMenuItemsErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus/{menu_id}/items/reorder",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content menu item (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentMenuItem = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentMenuItemData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentMenuItemResponses,
-    WorkspacesDeleteWorkspaceContentMenuItemErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus/{menu_id}/items/{item_id}",
-    ...options,
-  });
-
-/**
- * Update a content menu item (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentMenuItem = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentMenuItemData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentMenuItemResponses,
-    WorkspacesUpdateWorkspaceContentMenuItemErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/menus/{menu_id}/items/{item_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content routes (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentRoutes = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentRoutesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentRoutesResponses,
-    WorkspacesListWorkspaceContentRoutesErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/routes",
-    ...options,
-  });
-
-/**
- * Create a content route (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentRoute = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentRouteData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentRouteResponses,
-    WorkspacesCreateWorkspaceContentRouteErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/routes",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content route (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentRoute = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentRouteData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentRouteResponses,
-    WorkspacesDeleteWorkspaceContentRouteErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/routes/{route_id}",
-    ...options,
-  });
-
-/**
- * Update a content route (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentRoute = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentRouteData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentRouteResponses,
-    WorkspacesUpdateWorkspaceContentRouteErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/structure/routes/{route_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content tree nodes (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentTreeNodes = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentTreeNodesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentTreeNodesResponses,
-    WorkspacesListWorkspaceContentTreeNodesErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/tree-nodes",
-    ...options,
-  });
-
-/**
- * Delete a content tree node (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentTreeNode = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentTreeNodeData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentTreeNodeResponses,
-    WorkspacesDeleteWorkspaceContentTreeNodeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/tree-nodes/{entry_id}",
-    ...options,
-  });
-
-/**
- * Upsert a content tree node (workspace RBAC protected)
- */
-export const workspacesUpsertWorkspaceContentTreeNode = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpsertWorkspaceContentTreeNodeData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    WorkspacesUpsertWorkspaceContentTreeNodeResponses,
-    WorkspacesUpsertWorkspaceContentTreeNodeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/tree-nodes/{entry_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content types (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentTypes = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentTypesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentTypesResponses,
-    WorkspacesListWorkspaceContentTypesErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/types",
-    ...options,
-  });
-
-/**
- * Create a content type (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentType = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentTypeResponses,
-    WorkspacesCreateWorkspaceContentTypeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/types",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content type (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentType = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentTypeResponses,
-    WorkspacesDeleteWorkspaceContentTypeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/types/{type_id}",
-    ...options,
-  });
-
-/**
- * Update a content type (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentType = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentTypeResponses,
-    WorkspacesUpdateWorkspaceContentTypeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/types/{type_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * List content views (workspace RBAC protected)
- */
-export const workspacesListWorkspaceContentViews = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesListWorkspaceContentViewsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    WorkspacesListWorkspaceContentViewsResponses,
-    WorkspacesListWorkspaceContentViewsErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/views",
-    ...options,
-  });
-
-/**
- * Create a content view (workspace RBAC protected)
- */
-export const workspacesCreateWorkspaceContentView = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesCreateWorkspaceContentViewData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesCreateWorkspaceContentViewResponses,
-    WorkspacesCreateWorkspaceContentViewErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/views",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a content view (workspace RBAC protected)
- */
-export const workspacesDeleteWorkspaceContentView = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesDeleteWorkspaceContentViewData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    WorkspacesDeleteWorkspaceContentViewResponses,
-    WorkspacesDeleteWorkspaceContentViewErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/views/{view_id}",
-    ...options,
-  });
-
-/**
- * Update a content view (workspace RBAC protected)
- */
-export const workspacesUpdateWorkspaceContentView = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesUpdateWorkspaceContentViewData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    WorkspacesUpdateWorkspaceContentViewResponses,
-    WorkspacesUpdateWorkspaceContentViewErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/views/{view_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Preview content view execution (workspace RBAC protected)
- */
-export const workspacesPreviewWorkspaceContentView = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesPreviewWorkspaceContentViewData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesPreviewWorkspaceContentViewResponses,
-    WorkspacesPreviewWorkspaceContentViewErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/legacy-content/views/{view_id}/preview",
     ...options,
     headers: {
       "Content-Type": "application/json",

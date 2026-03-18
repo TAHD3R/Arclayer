@@ -7,6 +7,7 @@ from apps.api.src.common.services.base import BaseService
 from apps.api.src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
 from apps.api.src.modules.sites.design.schema import PageBlueprint
 from apps.api.src.modules.sites.namespaces.service import get_max_content_ref_depth
+from apps.api.src.modules.sites.publishing.content_snapshot import build_canonical_content_snapshot
 from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.schema import ContentRefIncludeErrorV1, ContentRefIncludeV1, ResolveWarningV1
 
@@ -74,12 +75,12 @@ class PublishingIncludesService(BaseService):
         except PublicIdDecodeError:
             return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Invalid public id")
 
-        entry = await self._repo.get_content_entry_by_id(site_id=site_id, entry_id=entry_id)
-        if entry is None:
+        item = await self._repo.get_content_entry_by_id(site_id=site_id, entry_id=entry_id)
+        if item is None:
             return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Entry not found")
 
         if state == "published":
-            revision_number = entry.published_revision
+            revision_number = item.published_version
             if revision_number is None:
                 return (
                     None,
@@ -88,23 +89,25 @@ class PublishingIncludesService(BaseService):
                     ContentRefIncludeErrorV1(code="NOT_FOUND", message="Published revision not found"),
                 )
         else:
-            revision_number = int(entry.draft_revision or 0)
+            revision_number = int(item.draft_version or 0)
             if revision_number < 1:
                 return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Draft revision not found")
 
-        rev = await self._repo.get_content_revision_by_number(entry_id=entry.id, revision=int(revision_number))
-        if rev is None:
+        version = await self._repo.get_content_revision_by_number(entry_id=item.id, revision=int(revision_number))
+        if version is None:
             return None, None, None, ContentRefIncludeErrorV1(code="NOT_FOUND", message="Revision not found")
 
-        snapshot = rev.snapshot if isinstance(rev.snapshot, dict) else {}
-        field_values = snapshot.get("field_values")
-        data = field_values if isinstance(field_values, dict) else None
-        meta_raw = snapshot.get("meta")
-        meta = meta_raw if isinstance(meta_raw, dict) else None
-
-        raw_doc = snapshot.get("page_blueprint")
-        if raw_doc is None:
-            raw_doc = snapshot.get("design_document")
+        presentations = await self._repo.list_content_presentations(version_id=version.id)
+        seo_profile = await self._repo.get_content_seo_profile(version_id=version.id)
+        snapshot = build_canonical_content_snapshot(
+            item=item,
+            version=version,
+            presentations=presentations,
+            seo_profile=seo_profile,
+        )
+        data = snapshot.fields or None
+        meta = snapshot.meta
+        raw_doc = snapshot.raw_page_blueprint
         if raw_doc is None:
             return None, data, meta, None
 

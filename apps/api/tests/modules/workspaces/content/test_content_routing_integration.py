@@ -11,7 +11,6 @@ def _routable_model_payload() -> dict:
     return {
         "key": "page",
         "name": "Page",
-        "kind": "custom",
         "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
         "relations": [],
         "capabilities": ["versioned", "publishable", "routable", "treeable"],

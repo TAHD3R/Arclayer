@@ -17,7 +17,7 @@ from apps.api.src.modules.sites.repository import SitesRepository
 from apps.api.src.modules.sites.runtime.config.service import SiteRuntimeConfigMixin
 from apps.api.src.modules.sites.runtime.context.service import SiteRuntimeContextMixin
 from apps.api.src.modules.sites.settings.service import SiteSettingsMixin
-from apps.api.src.modules.sites.stores.service import PresenceStore, PreviewTokenStore, RouteTemplateVersionStore
+from apps.api.src.modules.sites.stores.service import PresenceStore, PreviewTokenStore
 
 MIN_PREVIEW_TOKEN_TTL_SECONDS = 60
 MAX_PREVIEW_TOKEN_TTL_SECONDS = 60 * 60
@@ -49,18 +49,15 @@ class SiteService(
         self._repo = repo or SitesRepository()
         self._preview_tokens = PreviewTokenStore(valkey) if valkey is not None else None
         self._presence = PresenceStore(valkey) if valkey is not None else None
-        self._route_templates_version = RouteTemplateVersionStore(valkey) if valkey is not None else None
 
         self._content = SiteContentService(
             settings,
             repo=self._repo,
-            route_templates_version=self._route_templates_version,
         )
         self._publishing = SitePublishingService(
             settings,
             repo=self._repo,
             presence=self._presence,
-            route_templates_version=self._route_templates_version,
         )
 
     async def assert_preview_access_async(

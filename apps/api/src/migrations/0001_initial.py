@@ -8,7 +8,6 @@ from apps.api.src.models.assets.upload import UploadStatus
 from apps.api.src.models.extensions.app import AppStatus
 from apps.api.src.models.organization.org_membership import OrgRole
 from apps.api.src.models.organization.user import UserStatus
-from apps.api.src.models.sites.site_page import SitePageVisibility
 from apps.api.src.models.system.notification import NotificationCategory
 from apps.api.src.models.system.rbac import PermissionScope
 from apps.api.src.models.workspaces.workspace import WorkspaceMembershipStatus
@@ -23,6 +22,11 @@ from tortoise.indexes import Index
 class AdminMenuItemType(StrEnum):
     GROUP = "group"
     ITEM = "item"
+
+
+class SitePageVisibility(StrEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"
 
 
 class Migration(migrations.Migration):

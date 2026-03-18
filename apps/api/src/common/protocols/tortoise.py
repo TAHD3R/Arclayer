@@ -47,25 +47,8 @@ class AssetUsageHasAssetId(Protocol):
     asset_id: UUID | str
 
 
-class RouteTemplateIds(Protocol):
-    entry_type_id: UUID | str
-    template_page_revision_id: UUID | str | None
-
-
-class EntryRecordMutableFields(Protocol):
-    published_rev: int | None
-
-
 class ContentEntryMutableFields(Protocol):
     published_revision: int | None
-    updated_by_user_id: UUID | None
-
-
-class SitePageMutableFields(Protocol):
-    title: str | None
-    description: str | None
-    draft_rev: int
-    published_rev: int | None
     updated_by_user_id: UUID | None
 
 

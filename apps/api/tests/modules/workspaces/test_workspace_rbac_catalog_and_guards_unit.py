@@ -14,7 +14,9 @@ from apps.api.src.modules.sites.domains.router import router as domains_router
 from apps.api.src.modules.system.admin.extensions.router import router as admin_extensions_router
 from apps.api.src.modules.system.admin.notifications.router import router as notifications_router
 from apps.api.src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
-from apps.api.src.modules.workspaces.content.router import router as legacy_content_router
+from apps.api.src.modules.workspaces.content.items.router import canonical_items_router
+from apps.api.src.modules.workspaces.content.models.router import canonical_models_router
+from apps.api.src.modules.workspaces.content.routing.router import canonical_routing_router
 from apps.api.src.modules.workspaces.site.router import router as site_router
 from apps.api.src.modules.workspaces.themes.router import router as themes_router
 
@@ -111,59 +113,44 @@ def test_workspace_catalog_i18n_keys_exist_in_locale_files() -> None:
 
 
 def test_content_router_uses_granular_permissions() -> None:
-    list_types = _route_permissions(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/types",
+    list_models = _route_permissions(
+        canonical_models_router,
+        path="/workspaces/{workspace_id}/content/models",
         method="GET",
     )
-    create_type = _route_permissions(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/types",
+    create_model = _route_permissions(
+        canonical_models_router,
+        path="/workspaces/{workspace_id}/content/models",
         method="POST",
     )
-    publish_entry = _route_permissions(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/entries/{entry_id}/publish",
+    publish_item = _route_permissions(
+        canonical_items_router,
+        path="/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}/publish",
         method="POST",
     )
-    create_page = _route_permissions(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/pages",
-        method="POST",
-    )
-    publish_page = _route_permissions(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/pages/{page_id}/revisions/publish",
-        method="POST",
-    )
-    set_global_style = _route_permissions(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/appearance/styles/global",
+    upsert_binding = _route_permissions(
+        canonical_routing_router,
+        path="/workspaces/{workspace_id}/content/routing/bindings/{item_id}",
         method="PUT",
     )
-    list_types_calls = _route_dependency_call_names(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/types",
+    list_models_calls = _route_dependency_call_names(
+        canonical_models_router,
+        path="/workspaces/{workspace_id}/content/models",
         method="GET",
     )
-    get_entry_calls = _route_dependency_call_names(
-        legacy_content_router,
-        path="/workspaces/{workspace_id}/legacy-content/entries/{entry_id}",
+    list_items_calls = _route_dependency_call_names(
+        canonical_items_router,
+        path="/workspaces/{workspace_id}/content/items",
         method="GET",
     )
 
-    assert list_types == {"system:content:read"}
-    assert create_type == {"system:content:read", "system:content:manage"}
-    assert publish_entry == {"system:content:read", "system:content:publish"}
-    assert create_page == {"system:content:read", "system:content:manage"}
-    assert publish_page == {"system:content:read", "system:content:publish"}
-    assert set_global_style == {"system:content:read", "system:content:manage"}
-    assert (
-        "admin:access" not in list_types | create_type | publish_entry | create_page | publish_page | set_global_style
-    )
-    # Runtime guard remains explicit for legacy stack during freeze period.
-    assert "require_workspace_manage_access" in list_types_calls
-    assert "require_workspace_manage_access" in get_entry_calls
+    assert list_models == {"system:content:read"}
+    assert create_model == {"system:content:read", "system:content:manage"}
+    assert publish_item == {"system:content:read", "system:content:publish"}
+    assert upsert_binding == {"system:content:read", "system:content:manage"}
+    assert "admin:access" not in list_models | create_model | publish_item | upsert_binding
+    assert "require_workspace_manage_access" in list_models_calls
+    assert "require_workspace_manage_access" in list_items_calls
 
 
 def test_site_and_theme_routers_use_granular_permissions() -> None:

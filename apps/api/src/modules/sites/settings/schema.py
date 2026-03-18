@@ -5,7 +5,6 @@ from typing import Any
 from pydantic import ConfigDict, Field
 
 from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
 
 
 class SiteSettingGetOut(BaseSchema):
@@ -73,23 +72,3 @@ class SiteGlobalSectionDeleteOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     id: str = Field(..., min_length=1, max_length=128, description="Deleted global section id.")
-
-
-class SiteVisualSitemapNodeOut(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    id: str = Field(..., min_length=1, max_length=128, description="Visual sitemap node id.")
-    title: str = Field(..., description="Visual sitemap node title.")
-    path: str = Field(..., description="Resolved unique pathname.")
-    page_id: PublicUUID | None = Field(default=None, description="Linked page id.")
-    children: list[SiteVisualSitemapNodeOut] = Field(default_factory=list, description="Child nodes.")
-
-
-class SiteVisualSitemapOut(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    nodes: list[SiteVisualSitemapNodeOut] = Field(default_factory=list, description="Sitemap tree nodes.")
-    updated_at_ms: int = Field(..., ge=0, description="Tree update timestamp in milliseconds (UTC).")
-
-
-SiteVisualSitemapNodeOut.model_rebuild()
