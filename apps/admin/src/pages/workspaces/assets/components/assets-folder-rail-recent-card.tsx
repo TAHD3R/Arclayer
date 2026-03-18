@@ -24,8 +24,8 @@ const recentCardInactiveClassName =
 const recentCardActiveClassName = "border-border bg-card dark:border-white/18 dark:bg-[#161616]";
 const recentTextShadowClassName =
   "[text-shadow:0_1px_2px_rgba(15,23,42,0.14)] dark:[text-shadow:0_1px_2px_rgba(255,255,255,0.14)]";
-const recentMetaValueClassName = "text-callout text-label-primary/72 dark:text-white/74";
-const recentMetaDescriptionClassName = "text-callout text-label-primary/62 dark:text-white/66";
+const recentMetaValueClassName = "text-caption text-label-primary/72 dark:text-white/74";
+const recentMetaDescriptionClassName = "text-caption text-label-primary/62 dark:text-white/66";
 
 function getRecentCardAccent(asset: AssetMasonryItem) {
   const mimeType = (asset.mimeType || "").toLowerCase();

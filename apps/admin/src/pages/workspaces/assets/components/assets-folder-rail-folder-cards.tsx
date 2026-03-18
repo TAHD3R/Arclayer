@@ -234,7 +234,7 @@ export function FolderCard(props: {
                   text={props.folder.description}
                   emptyText={props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
                   disabled={props.tooltipDisabled}
-                  className="mt-1.5 min-h-0 text-caption leading-[1.35] text-label-secondary xl:mt-2 xl:leading-[1.45]"
+                  className="mt-1.5 min-h-0 text-caption! leading-[1.35] text-label-secondary xl:mt-2 xl:leading-[1.45]"
                 />
                 <FolderMetaLine label={metaLabel} />
               </div>
