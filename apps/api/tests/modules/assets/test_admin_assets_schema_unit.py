@@ -77,16 +77,20 @@ def test_admin_asset_list_query_accepts_datetime_and_tags() -> None:
     assert q.include_children is True
 
 
-def test_admin_asset_update_request_accepts_description_and_tag_ids() -> None:
+def test_admin_asset_update_request_accepts_editable_metadata_fields() -> None:
     from apps.api.src.common.utils.public_ids import encode_uuid
     from apps.api.src.modules.assets.admin.assets.schema import AdminAssetUpdateRequest
 
     tid = uuid4()
     r = AdminAssetUpdateRequest.model_validate({
         "description": "  hello  ",
+        "originalFilename": "hero image.png",
+        "altName": "hero-banner",
         "tagIds": [encode_uuid(tid)],
     })
     assert r.description == "hello"
+    assert r.original_filename == "hero image.png"
+    assert r.alt_name == "hero-banner"
     assert r.tag_ids == [tid]
 
 

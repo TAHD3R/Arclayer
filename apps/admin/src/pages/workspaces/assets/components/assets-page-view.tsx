@@ -3,7 +3,6 @@ import { Plus } from "@arclayer/ui/icons/lucide-animated";
 
 import { ColumnsPage } from "@/components/common/columns-page";
 import { Button } from "@arclayer/ui/button";
-import { Spinner } from "@arclayer/ui/spinner";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 
 import { clearSelection } from "@/lib/assets/asset-selection";
@@ -64,7 +63,6 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setOrdering,
     foldersQuery,
     tagsQuery,
-    assetsQuery,
     assetsListQueryKey,
     recentAssets,
     removeRecentAsset,
@@ -76,13 +74,24 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     typeTabValue,
     moreTabLabel,
     moreMenuItems,
-    sentinelRef,
+    editAssetOpen,
+    setEditAssetOpen,
+    editAssetTarget,
+    assetDeleteOpen,
+    setAssetDeleteOpen,
+    assetDeleteTarget,
+    assetDeleteMutation,
+    assetEditAccessOpen,
+    setAssetEditAccessOpen,
+    assetEditAccessTarget,
+    singleAssetAccessMutation,
     bulkMoveMutation,
     bulkDeleteMutation,
     bulkUpdateMutation,
     createFolderMutation,
     updateFolderMutation,
     deleteFolderMutation,
+    openEditAssetDialog,
     openEditAccessDialog,
     createParentLabel,
     openBulkDeleteDialog,
@@ -341,21 +350,34 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             onOpenMove={() => setMoveModalOpen(true)}
             onOpenEditAccess={() => openEditAccessDialog()}
             onOpenBulkDelete={() => openBulkDeleteDialog()}
+            editAssetOpen={editAssetOpen}
+            setEditAssetOpen={setEditAssetOpen}
+            editAssetTarget={editAssetTarget}
+            onOpenEditAsset={openEditAssetDialog}
+            assetDeleteOpen={assetDeleteOpen}
+            setAssetDeleteOpen={setAssetDeleteOpen}
+            assetDeleteTarget={assetDeleteTarget}
+            assetDeletePending={assetDeleteMutation.isPending}
+            onConfirmAssetDelete={async () => {
+              if (!assetDeleteTarget) return;
+              await assetDeleteMutation.mutateAsync(assetDeleteTarget.id);
+            }}
+            assetEditAccessOpen={assetEditAccessOpen}
+            setAssetEditAccessOpen={setAssetEditAccessOpen}
+            assetEditAccessTarget={assetEditAccessTarget}
+            singleAssetAccessPending={singleAssetAccessMutation.isPending}
+            onConfirmSingleAssetAccess={async (value) => {
+              if (!assetEditAccessTarget) return;
+              await singleAssetAccessMutation.mutateAsync({
+                assetId: assetEditAccessTarget.id,
+                ...value,
+              });
+            }}
           />
 
           <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-hidden">
             <AssetsViewMasonrySection controller={controller} />
           </div>
-
-          {assetsQuery.hasNextPage ? (
-            <div ref={sentinelRef} className="flex justify-center py-8">
-              {assetsQuery.isFetchingNextPage ? (
-                <Spinner className="size-4 text-label-secondary" />
-              ) : (
-                <div className="h-4 w-4" />
-              )}
-            </div>
-          ) : null}
         </div>
       </ColumnsPage>
     </AssetsViewDndSurface>

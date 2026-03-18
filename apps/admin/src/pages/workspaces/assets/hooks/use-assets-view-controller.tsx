@@ -23,7 +23,9 @@ import {
   bulkMoveAssets,
   bulkUpdateAssets,
   createAssetFolder,
+  deleteAsset,
   deleteAssetFolderWithMove,
+  patchAsset,
   updateAssetFolder,
 } from "@/api/assets";
 import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api";
@@ -104,6 +106,12 @@ export function useAssetsViewController() {
     purpose?: string;
     indexable?: boolean;
   }>({});
+  const [editAssetOpen, setEditAssetOpen] = useState(false);
+  const [editAssetTarget, setEditAssetTarget] = useState<AssetMasonryItem | null>(null);
+  const [assetDeleteOpen, setAssetDeleteOpen] = useState(false);
+  const [assetDeleteTarget, setAssetDeleteTarget] = useState<AssetMasonryItem | null>(null);
+  const [assetEditAccessOpen, setAssetEditAccessOpen] = useState(false);
+  const [assetEditAccessTarget, setAssetEditAccessTarget] = useState<AssetMasonryItem | null>(null);
   const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const [draggingAssetIds, setDraggingAssetIds] = useState<string[]>([]);
   const [draggingAssetLeadId, setDraggingAssetLeadId] = useState<string | null>(null);
@@ -190,7 +198,6 @@ export function useAssetsViewController() {
     ],
     [t],
   );
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const bulkMoveMutation = useMutation({
     mutationFn: (payload: Parameters<typeof bulkMoveAssets>[1]) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
@@ -278,6 +285,49 @@ export function useAssetsViewController() {
       if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
       if (scopeKey)
         void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
+    },
+    onError: (err) => {
+      notifyError(err);
+    },
+  });
+  const assetDeleteMutation = useMutation({
+    mutationFn: async (assetId: string) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      return deleteAsset(String(workspaceId), assetId);
+    },
+    onSuccess: (_out, assetId) => {
+      notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
+      if (scopeKey) {
+        void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
+        void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      }
+      setAssetDeleteOpen(false);
+      setAssetDeleteTarget(null);
+      setActive((prev) => (prev && prev.id === assetId ? null : prev));
+    },
+    onError: (err) => {
+      notifyError(err);
+    },
+  });
+  const singleAssetAccessMutation = useMutation({
+    mutationFn: async (payload: {
+      assetId: string;
+      visibility?: string;
+      purpose?: string;
+      indexable?: boolean;
+    }) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      const { assetId, ...rest } = payload;
+      return patchAsset(String(workspaceId), assetId, rest);
+    },
+    onSuccess: () => {
+      notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
+      if (scopeKey) {
+        void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
+        void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      }
+      setAssetEditAccessOpen(false);
+      setAssetEditAccessTarget(null);
     },
     onError: (err) => {
       notifyError(err);
@@ -398,29 +448,6 @@ export function useAssetsViewController() {
   }, [createFolderParentId, currentFolderId, folderById, t]);
   const createFolderSeedAssetCount = createFolderSeedAssetIds.length;
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    if (assetsQuery.isError) return;
-    if (assetsQuery.hasNextPage !== true) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry?.isIntersecting) return;
-        if (assetsQuery.isError) return;
-        if (assetsQuery.isFetchingNextPage) return;
-        assetsQuery.fetchNextPage().catch(() => {});
-      },
-      { root: null, rootMargin: "800px", threshold: 0 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [
-    assetsQuery.hasNextPage,
-    assetsQuery.isError,
-    assetsQuery.isFetchingNextPage,
-    assetsQuery.fetchNextPage,
-  ]);
-  useEffect(() => {
     const isTypingTarget = (target: EventTarget | null) => {
       const el = target as HTMLElement | null;
       if (!el) return false;
@@ -451,6 +478,18 @@ export function useAssetsViewController() {
   const openBulkDeleteDialog = () => {
     if (selectedIds.size <= 0) return;
     setBulkDeleteOpen(true);
+  };
+  const openEditAssetDialog = (asset: AssetMasonryItem) => {
+    setEditAssetTarget(asset);
+    setEditAssetOpen(true);
+  };
+  const openAssetDeleteDialog = (asset: AssetMasonryItem) => {
+    setAssetDeleteTarget(asset);
+    setAssetDeleteOpen(true);
+  };
+  const openAssetEditAccessDialog = (asset: AssetMasonryItem) => {
+    setAssetEditAccessTarget(asset);
+    setAssetEditAccessOpen(true);
   };
   const openDeleteFolderDialog = (folder: AdminAssetFolder) => {
     setDeleteFolderTarget(folder);
@@ -643,7 +682,17 @@ export function useAssetsViewController() {
     typeTabValue,
     moreTabLabel,
     moreMenuItems,
-    sentinelRef,
+    editAssetOpen,
+    setEditAssetOpen,
+    editAssetTarget,
+    assetDeleteOpen,
+    setAssetDeleteOpen,
+    assetDeleteTarget,
+    assetDeleteMutation,
+    assetEditAccessOpen,
+    setAssetEditAccessOpen,
+    assetEditAccessTarget,
+    singleAssetAccessMutation,
     bulkMoveMutation,
     bulkDeleteMutation,
     bulkUpdateMutation,
@@ -651,6 +700,9 @@ export function useAssetsViewController() {
     updateFolderMutation,
     reorderFoldersMutation,
     deleteFolderMutation,
+    openEditAssetDialog,
+    openAssetDeleteDialog,
+    openAssetEditAccessDialog,
     openEditAccessDialog,
     createParentLabel,
     openBulkDeleteDialog,

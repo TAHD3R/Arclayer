@@ -23,15 +23,15 @@ import {
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 
-import { copyToClipboard } from "@/lib/clipboard";
-import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
-import { downloadWithAuth } from "./asset-masonry-tile";
 import {
-  useAssetPreviewDialogController,
+  buildAssetMoreMenuItems,
+  handleAssetMoreAction,
+  type AssetMoreActionKey,
   type AssetMoreMenuItem,
-} from "./asset-preview-dialog-controller";
+} from "./asset-more-actions";
+import { useAssetPreviewDialogController } from "./asset-preview-dialog-controller";
 import { AssetPreviewHeaderMeta } from "./asset-preview-header-meta";
 import { AssetPreviewSidebar } from "./asset-preview-sidebar";
 import { AssetPreviewStage } from "./asset-preview-stage";
@@ -43,9 +43,8 @@ type AssetPreviewDialogProps = {
   items: AssetMasonryItem[];
   onSelectAsset: (asset: AssetMasonryItem) => void;
   currentFolderPathLabel: string;
+  onOpenEditAsset: (asset: AssetMasonryItem) => void;
 };
-
-type AssetMoreActionKey = Extract<AssetMoreMenuItem, { type: "item" }>["key"];
 
 function PreviewToolbar(props: {
   previousAsset: AssetMasonryItem | null;
@@ -137,6 +136,15 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
     currentIndex >= 0 && currentIndex < props.items.length - 1
       ? props.items[currentIndex + 1]
       : null;
+  const moreMenuItems = useMemo(
+    () =>
+      buildAssetMoreMenuItems({
+        t: controller.t,
+        asset: active,
+        publicUrl: controller.publicAbsoluteUrl,
+      }),
+    [active, controller.publicAbsoluteUrl, controller.t],
+  );
 
   useEffect(() => {
     if (!active) return;
@@ -152,31 +160,15 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
 
   const handleMoreAction = (key: AssetMoreActionKey) => {
     if (!active) return;
-    if (key === "edit_access") return controller.setEditAccessOpen(true);
-    if (key === "delete") return controller.setDeleteOpen(true);
-    if (key === "open_new_tab" && controller.publicAbsoluteUrl) {
-      window.open(controller.publicAbsoluteUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-    if (key === "copy_link") {
-      if (!controller.publicAbsoluteUrl) {
-        notifyErrorText(controller.t("assets:ASSET_SHARE_REQUIRES_PUBLIC"));
-        return;
-      }
-      copyToClipboard(controller.publicAbsoluteUrl)
-        .then(() => notifySuccessText(controller.t("assets:ASSET_LINK_COPIED")))
-        .catch(() => notifyErrorText(controller.t("assets:ASSET_COPY_LINK_FAILED")));
-      return;
-    }
-    if (key !== "download") return;
-    if (active.downloadUrl) {
-      window.open(active.downloadUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-    if (!active.contentUrl) return;
-    downloadWithAuth({ url: active.contentUrl, filename: active.name })
-      .then(() => notifySuccessText(controller.t("assets:ASSET_DOWNLOAD_STARTED")))
-      .catch(() => notifyErrorText(controller.t("assets:ASSET_DOWNLOAD_FAILED")));
+    void handleAssetMoreAction({
+      key,
+      asset: active,
+      publicUrl: controller.publicAbsoluteUrl,
+      t: controller.t,
+      onOpenEditAsset: () => props.onOpenEditAsset(active),
+      onOpenEditAccess: () => controller.setEditAccessOpen(true),
+      onOpenDelete: () => controller.setDeleteOpen(true),
+    });
   };
 
   return (
@@ -199,7 +191,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
               onSelectAsset={props.onSelectAsset}
               onAction={handleMoreAction}
               onClose={props.onClose}
-              menuItems={controller.moreMenuItems}
+              menuItems={moreMenuItems}
               t={controller.t}
             />
           ) : null

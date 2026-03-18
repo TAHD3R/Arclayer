@@ -1,11 +1,20 @@
 import { memo, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
-import { UserAvatar } from "@/components/common/entity-avatar";
 import { cn } from "@arclayer/lib/utils";
 import { type AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Checkbox } from "@arclayer/ui/checkbox";
+import { Button } from "@arclayer/ui/button";
+import { ButtonGroup } from "@arclayer/ui/button-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
+import { EllipsisVertical, Pencil, Trash2 } from "lucide-react";
 import {
   ExcelDocumentIcon,
   GdocDocumentIcon,
@@ -19,10 +28,10 @@ import {
   WordDocumentIcon,
   ZipDocumentIcon,
 } from "@arclayer/ui/icons/document-icons";
-import { useAuthStore } from "@/stores/use-auth-store";
 import { formatDateTimeWithPattern } from "@/lib/time/date-time";
 import { formatRelativeTime } from "@/lib/time/relative-time";
 import { LazyAssetImage } from "./lazy-asset-image";
+import type { AssetMoreActionKey, AssetMoreMenuItem } from "./asset-more-actions";
 
 export function findTagIdByName(tags: AdminAssetTag[], name: string): string | null {
   const needle = name.trim().toLowerCase();
@@ -159,6 +168,10 @@ export const AssetMasonryTile = memo(
     onSelect: (e: React.MouseEvent<HTMLDivElement>) => void;
     onOpen: (asset: AssetMasonryItem) => void;
     onAspectRatio?: (id: string, aspectRatio: number) => void;
+    moreMenuItems?: AssetMoreMenuItem[];
+    onMoreAction?: (key: AssetMoreActionKey, asset: AssetMasonryItem) => void;
+    onEdit?: (asset: AssetMasonryItem) => void;
+    onDelete?: (asset: AssetMasonryItem) => void;
     dragHandle?: {
       setNodeRef: (node: HTMLElement | null) => void;
       setActivatorNodeRef?: (node: HTMLElement | null) => void;
@@ -170,10 +183,10 @@ export const AssetMasonryTile = memo(
     const { t } = useTranslation();
     const aspectRatio = getSafeAspectRatio(props.asset.aspectRatio);
     const selected = Boolean(props.selected);
-    const overlayVisible = selected;
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+    const overlayVisible = selected || moreMenuOpen;
     const hasPreview = Boolean(props.asset.previewUrl);
     const [previewFailed, setPreviewFailed] = useState(false);
-    const uploaderLabel = props.asset.uploaderName?.trim() || t("assets:ASSET_UPLOADER_UNKNOWN");
     const titleId = useId();
 
     useEffect(() => {
@@ -208,6 +221,9 @@ export const AssetMasonryTile = memo(
         props.onOpen(props.asset);
       }
     };
+    const stopTileActionEvent = (event: Event | React.SyntheticEvent) => {
+      event.stopPropagation();
+    };
 
     return (
       <div
@@ -236,26 +252,80 @@ export const AssetMasonryTile = memo(
         }}
       >
         <div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
-          {/* Top-left: uploader */}
-          <div className="absolute left-3 top-3 z-10 pointer-events-none">
-            <div
-              className={cn(
-                "inline-flex items-center gap-2 rounded-full px-2 py-1",
-                "bg-black/45 text-white backdrop-blur-sm",
-              )}
-            >
-              <UserAvatar
-                name={uploaderLabel}
-                assetRef={props.asset.uploaderAvatarUrl}
-                size={20}
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.18)",
-                  color: "white",
-                  flexShrink: 0,
+          <div
+            className={cn(
+              "absolute left-3 top-3 z-10 transition-opacity duration-150",
+              overlayVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            )}
+            data-tile-actions-visible={overlayVisible ? "true" : "false"}
+          >
+            <ButtonGroup className="rounded-lg border border-white/15 bg-black/55 shadow-sm backdrop-blur-sm">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                aria-label={t("assets:ASSET_ACTION_EDIT")}
+                onPointerDown={stopTileActionEvent}
+                onClick={(event) => {
+                  stopTileActionEvent(event);
+                  props.onEdit?.(props.asset);
                 }}
-              />
-              <span className="max-w-36 truncate text-caption font-medium">{uploaderLabel}</span>
-            </div>
+              >
+                <Pencil className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                aria-label={t("assets:ASSET_ACTION_DELETE")}
+                onPointerDown={stopTileActionEvent}
+                onClick={(event) => {
+                  stopTileActionEvent(event);
+                  props.onDelete?.(props.asset);
+                }}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+              {props.moreMenuItems?.length ? (
+                <DropdownMenu onOpenChange={setMoreMenuOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                      aria-label={t("common:MORE")}
+                      onPointerDown={stopTileActionEvent}
+                      onClick={(event) => {
+                        setMoreMenuOpen(true);
+                        stopTileActionEvent(event);
+                      }}
+                    >
+                      <EllipsisVertical className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {props.moreMenuItems.map((item, index) =>
+                      item.type === "separator" ? (
+                        <DropdownMenuSeparator key={`sep:${index}`} />
+                      ) : (
+                        <DropdownMenuIconItem
+                          key={item.key}
+                          icon={item.icon}
+                          disabled={item.disabled}
+                          variant={item.variant === "destructive" ? "destructive" : "default"}
+                          onSelect={() => props.onMoreAction?.(item.key, props.asset)}
+                        >
+                          {item.label}
+                        </DropdownMenuIconItem>
+                      ),
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+            </ButtonGroup>
           </div>
 
           {hasPreview ? (
@@ -354,28 +424,4 @@ export function buildUploaderAndTimeText(params: {
   const when = params.createdAtText?.trim();
   if (!when) return who;
   return `${who} · ${when}`;
-}
-
-export async function downloadWithAuth(params: { url: string; filename: string }) {
-  const token = useAuthStore.getState().accessToken;
-  const headers = new Headers();
-  if (token) headers.set("authorization", token.startsWith("Bearer ") ? token : `Bearer ${token}`);
-
-  const res = await fetch(params.url, { headers });
-  if (!res.ok) throw new Error("download failed");
-  const blob = await res.blob();
-
-  const objectUrl = URL.createObjectURL(blob);
-  try {
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = params.filename;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } finally {
-    // 给浏览器一点时间开始读取 objectUrl，避免过早 revoke。
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-  }
 }

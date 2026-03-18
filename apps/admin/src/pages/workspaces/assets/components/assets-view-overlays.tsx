@@ -8,9 +8,11 @@ import { SelectedCountTag } from "@/components/ui/tags";
 import { AssetPreviewDialog } from "./asset-preview-dialog";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";
 import { CreateAssetFolderDialog } from "./create-asset-folder-dialog";
+import { DeleteAssetDialog } from "./delete-asset-dialog";
 import { DeleteAssetFolderDialog } from "./delete-asset-folder-dialog";
 import { MoveAssetsToFolderModal } from "./move-assets-to-folder-modal";
 import { MoveFolderModal } from "./move-folder-modal";
+import { UpdateAssetDialog } from "./update-asset-dialog";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
 import {
   UpdateAssetFolderDialog,
@@ -75,6 +77,24 @@ interface AssetsViewOverlaysProps {
   onOpenMove: () => void;
   onOpenEditAccess: () => void;
   onOpenBulkDelete: () => void;
+  editAssetOpen: boolean;
+  setEditAssetOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  editAssetTarget: AssetMasonryItem | null;
+  onOpenEditAsset: (asset: AssetMasonryItem) => void;
+  assetDeleteOpen: boolean;
+  setAssetDeleteOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  assetDeleteTarget: AssetMasonryItem | null;
+  assetDeletePending: boolean;
+  onConfirmAssetDelete: () => Promise<void>;
+  assetEditAccessOpen: boolean;
+  setAssetEditAccessOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  assetEditAccessTarget: AssetMasonryItem | null;
+  singleAssetAccessPending: boolean;
+  onConfirmSingleAssetAccess: (value: {
+    visibility?: string;
+    purpose?: string;
+    indexable?: boolean;
+  }) => Promise<void>;
 }
 
 export function AssetsSelectionToolbar(
@@ -156,6 +176,7 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         items={props.items}
         currentFolderPathLabel={props.currentFolderPathLabel}
         onSelectAsset={(asset) => props.setActive(asset)}
+        onOpenEditAsset={props.onOpenEditAsset}
         onClose={() => props.setActive(null)}
       />
       <MoveAssetsToFolderModal
@@ -166,6 +187,14 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         assetCount={props.selectedCount}
         confirmLoading={props.bulkMovePending}
         onMove={props.onMoveAssets}
+      />
+      <UpdateAssetDialog
+        open={props.editAssetOpen}
+        onOpenChange={(open) => {
+          props.setEditAssetOpen(open);
+        }}
+        asset={props.editAssetTarget}
+        folders={props.folders}
       />
       <UpdateAssetFolderDialog
         open={props.editFolderOpen}
@@ -194,6 +223,16 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         confirmLoading={props.bulkUpdatePending}
         onConfirm={props.onConfirmEditAccess}
       />
+      <UpdateAssetsAccessDialog
+        open={props.assetEditAccessOpen}
+        onOpenChange={props.setAssetEditAccessOpen}
+        mode="single"
+        currentVisibility={props.assetEditAccessTarget?.visibility}
+        currentPurpose={props.assetEditAccessTarget?.purpose}
+        currentIndexable={props.assetEditAccessTarget?.indexable}
+        confirmLoading={props.singleAssetAccessPending}
+        onConfirm={props.onConfirmSingleAssetAccess}
+      />
       <CreateAssetFolderDialog
         open={props.createFolderOpen}
         onOpenChange={props.setCreateFolderOpen}
@@ -216,6 +255,19 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         assetCount={props.selectedCount}
         confirmLoading={props.bulkDeletePending}
         onConfirm={props.onConfirmBulkDelete}
+      />
+      <DeleteAssetDialog
+        open={props.assetDeleteOpen}
+        onOpenChange={props.setAssetDeleteOpen}
+        confirmLoading={props.assetDeletePending}
+        title={props.t("assets:ASSET_DELETE_CONFIRM_TITLE")}
+        description={props.t("assets:ASSET_DELETE_CONFIRM_DESC")}
+        cancelLabel={props.t("assets:ASSET_DELETE_CANCEL")}
+        confirmLabel={props.t("assets:ASSET_DELETE_CONFIRM")}
+        confirmLoadingLabel={props.t("assets:ASSET_DELETE_DELETING")}
+        onConfirm={() => {
+          void props.onConfirmAssetDelete();
+        }}
       />
       {props.scope ? (
         <AssetUploadDialog

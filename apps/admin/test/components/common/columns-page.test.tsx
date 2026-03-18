@@ -29,6 +29,19 @@ vi.mock("@arclayer/ui/tooltip", () => ({
 describe("ColumnsPage", () => {
   beforeEach(() => {
     useFavoritesStore.setState({ paths: [] });
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(min-width: 1024px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
   });
 
   it("renders responsive left and right side slots with bounded width containers", () => {
@@ -99,6 +112,7 @@ describe("ColumnsPage", () => {
     expect(leftSlot).not.toHaveClass("sticky");
     expect(rightSlot).toHaveClass("flex", "min-h-0", "w-full", "min-w-0", "self-start");
     expect(rightSlot).not.toHaveClass("sticky");
+    expect(screen.getAllByText("Table content")).toHaveLength(1);
   });
 
   it("enables sticky rail only when requested", () => {
@@ -152,5 +166,35 @@ describe("ColumnsPage", () => {
 
     expect(screen.queryByText("Auxiliary summary")).not.toBeInTheDocument();
     expect(document.querySelector('[data-slot="columns-page-shell"]')).toBeNull();
+  });
+
+  it("renders the main region once on mobile when the desktop shell is inactive", () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    render(
+      <ColumnsPage
+        title="Assets"
+        sideSlots={{
+          left: { content: <div>Folders</div> },
+        }}
+      >
+        <div>Main content</div>
+      </ColumnsPage>,
+    );
+
+    expect(document.querySelector('[data-slot="columns-page-shell"]')).toBeNull();
+    expect(screen.getAllByText("Main content")).toHaveLength(1);
   });
 });

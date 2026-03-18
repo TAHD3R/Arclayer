@@ -12,7 +12,7 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { FileTypeIcon } from "@arclayer/ui/icons/file-type-icon";
 
-import { downloadWithAuth } from "./asset-masonry-tile";
+import { downloadWithAuth } from "./asset-download";
 
 export type RecentLayoutMode = "single" | "multi";
 

@@ -1,0 +1,210 @@
+import { CircleHelp } from "@arclayer/ui/icons/lucide-animated";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Save } from "lucide-react";
+
+import { getAssetDetail, moveAsset, patchAsset } from "@/api/assets";
+import { assetScopeKey } from "@/lib/assets/asset-scope";
+import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import type { AdminAssetFolder, PatchAdminAssetPayload } from "@/types/api";
+import type { AssetMasonryItem } from "@/types/assets-masonry";
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+
+const ROOT_FOLDER_VALUE = "__root__";
+
+function normalizeFolderValue(value: string) {
+  return value === ROOT_FOLDER_VALUE ? null : value;
+}
+
+export type UpdateAssetDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  asset: AssetMasonryItem | null;
+  folders: AdminAssetFolder[];
+};
+
+export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const scopeKey = useMemo(
+    () => (workspaceId ? assetScopeKey({ type: "workspace", id: String(workspaceId) }) : null),
+    [workspaceId],
+  );
+  const [filename, setFilename] = useState("");
+  const [folderValue, setFolderValue] = useState(ROOT_FOLDER_VALUE);
+  const [altName, setAltName] = useState("");
+
+  const detailQuery = useQuery({
+    queryKey: ["assets", "detail", scopeKey, props.asset?.id],
+    enabled: props.open && Boolean(props.asset?.id) && Boolean(workspaceId),
+    queryFn: async () => {
+      if (!workspaceId || !props.asset?.id) throw new Error("ASSET_NOT_SELECTED");
+      return getAssetDetail(String(workspaceId), props.asset.id);
+    },
+    staleTime: 20 * 1000,
+  });
+
+  useEffect(() => {
+    if (!props.open) return;
+    const detail = detailQuery.data;
+    setFilename(detail?.originalFilename || props.asset?.name || "");
+    setFolderValue(detail?.folderId ? String(detail.folderId) : ROOT_FOLDER_VALUE);
+    setAltName(detail?.altName || "");
+  }, [detailQuery.data, props.asset?.name, props.open]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!workspaceId || !props.asset?.id || !detailQuery.data)
+        throw new Error("ASSET_NOT_SELECTED");
+
+      const nextFilename = filename.trim();
+      const nextFolderId = normalizeFolderValue(folderValue);
+      const nextAltName = altName.trim() || null;
+      const payload: PatchAdminAssetPayload = {};
+
+      if (nextFilename !== (detailQuery.data.originalFilename || props.asset.name)) {
+        payload.originalFilename = nextFilename;
+      }
+      if (nextAltName !== (detailQuery.data.altName || null)) {
+        payload.altName = nextAltName;
+      }
+
+      if (Object.keys(payload).length > 0) {
+        await patchAsset(String(workspaceId), props.asset.id, payload);
+      }
+
+      if (String(detailQuery.data.folderId || "") !== String(nextFolderId || "")) {
+        await moveAsset(String(workspaceId), props.asset.id, { folderId: nextFolderId });
+      }
+    },
+    onSuccess: async () => {
+      if (scopeKey) {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ["assets", "detail", scopeKey, props.asset?.id],
+          }),
+          queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] }),
+          queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] }),
+        ]);
+      }
+      notifySuccessText(t("assets:ASSET_EDIT_SUCCESS"));
+      props.onOpenChange(false);
+    },
+    onError: () => {
+      notifyErrorText(t("assets:ASSET_EDIT_FAILED"));
+    },
+  });
+
+  const disabled = detailQuery.isLoading || saveMutation.isPending;
+  const canSubmit = useMemo(() => {
+    if (disabled) return false;
+    if (!props.asset || !detailQuery.data) return false;
+    return filename.trim().length > 0;
+  }, [detailQuery.data, disabled, filename, props.asset]);
+
+  return (
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={t("assets:ASSET_EDIT_TITLE")}
+      description={
+        props.asset
+          ? t("assets:ASSET_EDIT_DESC", { name: props.asset.name })
+          : t("assets:ASSET_EDIT_DESC_FALLBACK")
+      }
+      footer={
+        <>
+          <Button variant="ghost" disabled={disabled} onClick={() => props.onOpenChange(false)}>
+            {t("common:CANCEL")}
+          </Button>
+          <Button
+            loading={saveMutation.isPending}
+            disabled={!canSubmit}
+            onClick={() => saveMutation.mutate()}
+          >
+            <Save className="size-4" aria-hidden="true" />
+            {t("common:CONFIRM")}
+          </Button>
+        </>
+      }
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-1.5">
+          <label className="text-callout font-semibold text-label-primary">
+            {t("assets:ASSET_EDIT_FILENAME")}
+          </label>
+          <div className="text-footnote text-label-secondary">
+            {t("assets:ASSET_EDIT_FILENAME_HELP")}
+          </div>
+          <Input
+            autoFocus
+            value={filename}
+            onChange={(event) => setFilename(event.target.value)}
+            placeholder={t("assets:ASSET_EDIT_FILENAME_PLACEHOLDER")}
+            disabled={disabled}
+          />
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="text-callout font-semibold text-label-primary">
+            {t("assets:ASSET_EDIT_FOLDER")}
+          </label>
+          <div className="text-footnote text-label-secondary">
+            {t("assets:ASSET_EDIT_FOLDER_HELP")}
+          </div>
+          <Select value={folderValue} onValueChange={setFolderValue} disabled={disabled}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t("assets:ASSET_EDIT_FOLDER_PLACEHOLDER")} />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              <SelectItem value={ROOT_FOLDER_VALUE}>
+                {t("assets:ASSET_FOLDER_MOVE_TARGET_ROOT")}
+              </SelectItem>
+              {props.folders.map((folder) => (
+                <SelectItem key={folder.id} value={String(folder.id)}>
+                  {folder.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <label className="text-callout font-semibold text-label-primary">
+              {t("assets:ASSET_EDIT_ALT_NAME")}
+            </label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary hover:text-foreground"
+                  aria-label={t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}
+                >
+                  <CircleHelp className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}</TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="text-footnote text-label-secondary">
+            {t("assets:ASSET_EDIT_ALT_NAME_HELP")}
+          </div>
+          <Input
+            value={altName}
+            onChange={(event) => setAltName(event.target.value)}
+            placeholder={t("assets:ASSET_EDIT_ALT_NAME_PLACEHOLDER")}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+    </SettingDialog>
+  );
+}

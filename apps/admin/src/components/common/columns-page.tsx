@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
 
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
@@ -17,6 +17,15 @@ export type ColumnsPageProps = BasePageProps & {
   overlay?: ReactNode;
 };
 
+const COLUMNS_PAGE_DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
+
+function getColumnsPageDesktopMatch() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia(COLUMNS_PAGE_DESKTOP_MEDIA_QUERY).matches;
+}
+
 export function ColumnsPage({
   title,
   description,
@@ -33,6 +42,7 @@ export function ColumnsPage({
   const leftSideSlot = hideHeader ? undefined : sideSlots?.left;
   const rightSideSlot = hideHeader ? undefined : sideSlots?.right;
   const hasSideSlots = Boolean(leftSideSlot || rightSideSlot);
+  const [isDesktop, setIsDesktop] = useState(getColumnsPageDesktopMatch);
   const [mobileOpenSide, setMobileOpenSide] = useState<"left" | "right" | null>(null);
   const paneToggles = useMemo<ColumnsPagePaneToggle[]>(() => {
     const out: ColumnsPagePaneToggle[] = [];
@@ -40,6 +50,20 @@ export function ColumnsPage({
     if (rightSideSlot) out.push({ side: "right", slot: rightSideSlot });
     return out;
   }, [leftSideSlot, rightSideSlot]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const mediaQueryList = window.matchMedia(COLUMNS_PAGE_DESKTOP_MEDIA_QUERY);
+    const syncMatch = (event?: MediaQueryListEvent) => {
+      const next = event?.matches ?? mediaQueryList.matches;
+      setIsDesktop((prev) => (prev === next ? prev : next));
+    };
+
+    syncMatch();
+    mediaQueryList.addEventListener("change", syncMatch);
+    return () => mediaQueryList.removeEventListener("change", syncMatch);
+  }, []);
 
   const mainRegion = (
     <PageMainRegion
@@ -63,16 +87,18 @@ export function ColumnsPage({
     <AdminRouteContainer className={clsx("min-h-full min-w-0", className)} overlay={overlay}>
       {hasSideSlots ? (
         <>
-          <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>
-
-          <div
-            className="hidden min-h-0 min-w-0 w-full flex-1 lg:flex"
-            data-slot="columns-page-shell"
-          >
-            {leftSideSlot ? <ColumnsPageDesktopPane side="left" slot={leftSideSlot} /> : null}
-            {mainRegion}
-            {rightSideSlot ? <ColumnsPageDesktopPane side="right" slot={rightSideSlot} /> : null}
-          </div>
+          {isDesktop ? (
+            <div
+              className="hidden min-h-0 min-w-0 w-full flex-1 lg:flex"
+              data-slot="columns-page-shell"
+            >
+              {leftSideSlot ? <ColumnsPageDesktopPane side="left" slot={leftSideSlot} /> : null}
+              {mainRegion}
+              {rightSideSlot ? <ColumnsPageDesktopPane side="right" slot={rightSideSlot} /> : null}
+            </div>
+          ) : (
+            <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>
+          )}
 
           {paneToggles.map((toggle) => (
             <ColumnsPageMobilePaneSheet

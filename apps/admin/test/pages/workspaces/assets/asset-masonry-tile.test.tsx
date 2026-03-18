@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { buildAssetMoreMenuItems } from "@/pages/workspaces/assets/components/asset-more-actions";
 import { AssetMasonryTile } from "@/pages/workspaces/assets/components/asset-masonry-tile";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
@@ -9,10 +10,6 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
-}));
-
-vi.mock("@/components/common/entity-avatar", () => ({
-  UserAvatar: ({ name }: { name: string }) => <div data-testid="avatar">{name}</div>,
 }));
 
 const asset: AssetMasonryItem = {
@@ -105,5 +102,66 @@ describe("AssetMasonryTile", () => {
 
     expect(onToggleSelected).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("keeps edit actions local to the action button", () => {
+    const onSelect = vi.fn();
+    const onEdit = vi.fn();
+
+    render(<AssetMasonryTile asset={asset} onSelect={onSelect} onOpen={vi.fn()} onEdit={onEdit} />);
+
+    fireEvent.pointerDown(screen.getByLabelText("assets:ASSET_ACTION_EDIT"));
+    fireEvent.click(screen.getByLabelText("assets:ASSET_ACTION_EDIT"));
+
+    expect(onEdit).toHaveBeenCalledWith(asset);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("includes edit asset in the more actions menu", () => {
+    const menuItems = buildAssetMoreMenuItems({
+      t: (key: string) => key,
+      asset,
+      publicUrl: "https://cdn.example.com/hero.png",
+    });
+
+    expect(menuItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "item",
+          key: "edit_asset",
+          label: "assets:ASSET_ACTION_EDIT",
+        }),
+      ]),
+    );
+  });
+
+  it("keeps the hover actions visible while the more menu is opening", () => {
+    const onMoreAction = vi.fn();
+    const menuItems = buildAssetMoreMenuItems({
+      t: (key: string) => key,
+      asset,
+      publicUrl: "https://cdn.example.com/hero.png",
+    });
+
+    const { container } = render(
+      <AssetMasonryTile
+        asset={asset}
+        onSelect={vi.fn()}
+        onOpen={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        moreMenuItems={menuItems}
+        onMoreAction={onMoreAction}
+      />,
+    );
+
+    const actions = container.querySelector('[data-tile-actions-visible="false"]');
+    expect(actions).not.toBeNull();
+
+    fireEvent.pointerDown(screen.getByLabelText("common:MORE"));
+    fireEvent.click(screen.getByLabelText("common:MORE"));
+
+    expect(container.querySelector('[data-tile-actions-visible="true"]')).not.toBeNull();
+    expect(onMoreAction).not.toHaveBeenCalled();
   });
 });

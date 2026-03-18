@@ -192,26 +192,26 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
             label={controller.t("assets:ASSET_META_MIME")}
             value={getMimeLabel(active.mimeType, controller.t)}
           />
-        </AssetInspectorList>
-      </AssetInspectorPanel>
-
-      <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_ORGANIZATION")}>
-        <div className="flex flex-wrap gap-2">
-          <AssetIndexableTag
-            indexable={active.indexable}
-            label={getIndexableLabel(active.indexable, controller.t)}
+          <AssetInspectorRow
+            label={controller.t("assets:ASSET_DIALOG_ORGANIZATION")}
+            value={
+              <div className="flex flex-wrap gap-2">
+                <AssetIndexableTag
+                  indexable={active.indexable}
+                  label={getIndexableLabel(active.indexable, controller.t)}
+                />
+              </div>
+            }
           />
-        </div>
-        <div className="space-y-2">
-          <div className="text-caption text-label-secondary">
-            {controller.t("assets:ASSET_TAG_FIELD_TITLE")}
-          </div>
-          <AssetTagEditor controller={controller} />
-        </div>
+        </AssetInspectorList>
       </AssetInspectorPanel>
 
       <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_NOTES")}>
         <AssetDescriptionEditor controller={controller} />
+      </AssetInspectorPanel>
+
+      <AssetInspectorPanel title={controller.t("assets:ASSET_TAG_FIELD_TITLE")}>
+        <AssetTagEditor controller={controller} />
       </AssetInspectorPanel>
 
       <AssetInspectorPanel title={controller.t("assets:ASSET_DIALOG_SHARE")}>

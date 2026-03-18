@@ -164,6 +164,8 @@ class AdminAssetBulkUpdateOut(BaseSchema):
 
 class AdminAssetUpdateRequest(BaseSchema):
     description: str | None = Field(default=None, max_length=4000, description="User-facing description.")
+    original_filename: str | None = Field(default=None, max_length=255, description="Display file name.")
+    alt_name: str | None = Field(default=None, max_length=255, description="Optional semantic alt name.")
     tag_ids: list[PublicUUID] | None = Field(default=None, description="Tag ids to set (replace existing).")
     visibility: AssetVisibility | None = Field(default=None, description="Asset visibility.")
     purpose: AssetPurpose | None = Field(default=None, description="Asset purpose.")
@@ -181,6 +183,7 @@ class AdminAssetTagOut(BaseOut):
 
 class AdminAssetDetailOut(AdminAssetSummaryOut):
     description: str | None = Field(default=None, description="User-facing description (from asset.meta).")
+    alt_name: str | None = Field(default=None, description="Optional semantic alt name (from asset.meta).")
     tags: list[AdminAssetTagOut] = Field(default_factory=list, description="Attached tags.")
 
 

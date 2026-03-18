@@ -1,5 +1,4 @@
-import { Download, ExternalLink, Settings2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type InfiniteData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -11,7 +10,6 @@ import {
   patchAsset,
 } from "@/api/assets";
 import type { AdminAssetTag, AdminAssetSummary, PageData } from "@/types/api";
-import TrashIcon from "@arclayer/ui/icons/trash-icon";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
@@ -27,17 +25,6 @@ import {
   findTagIdByName,
   getSafeAspectRatio,
 } from "./asset-masonry-tile";
-
-export type AssetMoreMenuItem =
-  | {
-      type: "item";
-      key: "download" | "copy_link" | "open_new_tab" | "edit_access" | "delete";
-      label: string;
-      icon: ReactNode;
-      disabled?: boolean;
-      variant?: "default" | "destructive";
-    }
-  | { type: "separator" };
 
 export function useAssetPreviewDialogController(props: {
   active: AssetMasonryItem | null;
@@ -140,47 +127,6 @@ export function useAssetPreviewDialogController(props: {
       isImage,
     });
   }, [active?.name, isImage, publicAbsoluteUrl]);
-
-  const moreMenuItems = useMemo<AssetMoreMenuItem[]>(() => {
-    return [
-      {
-        type: "item",
-        key: "download",
-        label: t("assets:ASSET_ACTION_DOWNLOAD"),
-        icon: <Download size={16} />,
-        disabled: !active?.downloadUrl && !active?.contentUrl,
-      },
-      { type: "separator" },
-      {
-        type: "item",
-        key: "copy_link",
-        label: t("assets:ASSET_ACTION_COPY_LINK"),
-        icon: <ExternalLink size={16} />,
-      },
-      {
-        type: "item",
-        key: "open_new_tab",
-        label: t("assets:ASSET_ACTION_OPEN_IN_NEW_TAB"),
-        icon: <ExternalLink size={16} />,
-        disabled: !publicAbsoluteUrl,
-      },
-      { type: "separator" },
-      {
-        type: "item",
-        key: "edit_access",
-        label: t("assets:ASSET_ACTION_EDIT_ACCESS"),
-        icon: <Settings2 size={16} />,
-      },
-      { type: "separator" },
-      {
-        type: "item",
-        key: "delete",
-        label: t("assets:ASSET_ACTION_DELETE"),
-        icon: <TrashIcon size={16} isHovered />,
-        variant: "destructive",
-      },
-    ];
-  }, [active?.contentUrl, active?.downloadUrl, publicAbsoluteUrl, t]);
 
   const previewCandidates = useMemo(() => {
     if (!isImage) return [];
@@ -493,7 +439,6 @@ export function useAssetPreviewDialogController(props: {
     dateTime,
     publicAbsoluteUrl,
     linkSnippets,
-    moreMenuItems,
     previewCandidates,
     dirtyRef,
     descriptionDraft,

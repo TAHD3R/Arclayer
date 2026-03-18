@@ -41,11 +41,14 @@ export type AdminAssetTag = {
 
 export type AdminAssetDetail = AdminAssetSummary & {
   description?: string | null;
+  altName?: string | null;
   tags: AdminAssetTag[];
 };
 
 export type PatchAdminAssetPayload = {
   description?: string | null;
+  originalFilename?: string | null;
+  altName?: string | null;
   tagIds?: string[];
   visibility?: string;
   purpose?: string;

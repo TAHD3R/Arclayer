@@ -40,6 +40,7 @@ from apps.api.src.modules.assets.admin.assets.schema import (
     AdminAssetTagOut,
     AdminAssetUpdateRequest,
 )
+from apps.api.src.modules.assets.admin.uploads.policy.service import normalize_original_filename
 from apps.api.src.modules.assets.scope import AssetScope
 from apps.api.src.settings.runtime import get_effective_settings
 
@@ -359,6 +360,8 @@ class AdminAssetsService(BaseService):
         meta = asset.meta if isinstance(asset.meta, dict) else {}
         desc = meta.get("description") if isinstance(meta, dict) else None
         detail.description = desc if isinstance(desc, str) else None
+        alt_name = meta.get("alt_name") if isinstance(meta, dict) else None
+        detail.alt_name = alt_name if isinstance(alt_name, str) else None
 
         tags = []
         for link in getattr(asset, "tag_links", []) or []:
@@ -376,19 +379,38 @@ class AdminAssetsService(BaseService):
         payload: AdminAssetUpdateRequest,
     ) -> dict[str, object]:
         fields = getattr(payload, "model_fields_set", set())
-        if "description" not in fields:
-            return {}
-
         raw = (payload.description or "").strip()
         desc = raw or None
         meta = asset.meta if isinstance(getattr(asset, "meta", None), dict) else {}
         if not isinstance(meta, dict):
             meta = {}
-        if desc is None:
-            meta.pop("description", None)
-        else:
-            meta["description"] = desc
-        return {"meta": meta or None}
+        updates: dict[str, object] = {}
+
+        if "description" in fields:
+            if desc is None:
+                meta.pop("description", None)
+            else:
+                meta["description"] = desc
+            updates["meta"] = meta or None
+
+        if "alt_name" in fields:
+            raw_alt_name = (payload.alt_name or "").strip()
+            alt_name = raw_alt_name or None
+            if alt_name is None:
+                meta.pop("alt_name", None)
+            else:
+                meta["alt_name"] = alt_name
+            updates["meta"] = meta or None
+
+        if "original_filename" in fields:
+            if payload.original_filename is None:
+                raise BadRequest(
+                    message=_ts("UPLOAD_FILENAME_INVALID", "文件名不合法"),
+                    error="UPLOAD_FILENAME_INVALID",
+                )
+            updates["original_filename"] = normalize_original_filename(payload.original_filename)
+
+        return updates
 
     async def _apply_tag_patch(self, *, scope: AssetScope, asset_id: UUID, payload: AdminAssetUpdateRequest) -> None:
         fields = getattr(payload, "model_fields_set", set())

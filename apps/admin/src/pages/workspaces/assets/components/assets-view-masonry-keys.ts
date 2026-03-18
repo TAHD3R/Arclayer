@@ -2,8 +2,12 @@ export function getAssetsMasonryItemKey(item: { key: string } | undefined, index
   return item?.key ?? `missing:${index}`;
 }
 
-export function getAssetsMasonryDatasetKey(baseKey: string, orderedAssetIds: string[]): string {
-  return `${baseKey}:${orderedAssetIds.join("|")}`;
+export function getAssetsMasonryDatasetKey(
+  baseKey: string,
+  orderedAssetIds: string[],
+  renderItemCount: number,
+): string {
+  return `${baseKey}:${orderedAssetIds.join("|")}:render:${renderItemCount}`;
 }
 
 export function getAssetsMasonryMaxColumnCount(width: number): number {
