@@ -53,4 +53,22 @@ describe("AssetsFolderRailRecentSection", () => {
     expect(clearRecentAction).toHaveClass("data-[highlighted]:text-destructive");
     expect(clearRecentAction).not.toHaveClass("data-[highlighted]:bg-destructive/10");
   });
+
+  it("renders the empty recent-files guard without illustration media", () => {
+    const view = render(
+      <AssetsFolderRailRecentSection
+        t={(key) => key}
+        scope={null}
+        foldersLoading={false}
+        activeAssetId={null}
+        recentAssets={[]}
+        onOpenAsset={() => undefined}
+        onRemoveRecentAsset={() => undefined}
+        onClearRecentAssets={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText("assets:ASSET_RECENT_EMPTY")).toBeInTheDocument();
+    expect(view.container.querySelector('[data-slot="empty-icon"]')).toBeNull();
+  });
 });

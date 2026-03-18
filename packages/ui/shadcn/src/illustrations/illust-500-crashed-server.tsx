@@ -4,7 +4,7 @@ import type { IllustrationProps } from "./types";
 import { useIllustrationAnimation } from "./use-illustration-animation";
 
 export function Illust500CrashedServer(props: IllustrationProps) {
-  const { animate } = useIllustrationAnimation();
+  const { animate } = useIllustrationAnimation({ userReducedMotion: props.reducedMotion });
 
   // 基础的巨石/服务器基座结构
   const BaseMonolith = () => (

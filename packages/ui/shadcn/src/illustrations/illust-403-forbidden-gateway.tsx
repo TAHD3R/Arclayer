@@ -4,7 +4,7 @@ import type { IllustrationProps } from "./types";
 import { useIllustrationAnimation } from "./use-illustration-animation";
 
 export function Illust403ForbiddenGateway(props: IllustrationProps) {
-  const { animate } = useIllustrationAnimation();
+  const { animate } = useIllustrationAnimation({ userReducedMotion: props.reducedMotion });
 
   return (
     <IllustrationWrapper {...props}>

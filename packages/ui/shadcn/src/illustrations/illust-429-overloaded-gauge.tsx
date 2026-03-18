@@ -4,7 +4,7 @@ import type { IllustrationProps } from "./types";
 import { useIllustrationAnimation } from "./use-illustration-animation";
 
 export function Illust429OverloadedGauge(props: IllustrationProps) {
-  const { animate } = useIllustrationAnimation();
+  const { animate } = useIllustrationAnimation({ userReducedMotion: props.reducedMotion });
 
   // 构建高密度的同心圆阵列 (产生 Moiré 视觉干涉)
   // 通过极其缓慢的缩放，表现出巨大的压迫感和窒息感，而非速度感。

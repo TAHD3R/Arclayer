@@ -4,7 +4,7 @@ import type { IllustrationProps } from "./types";
 import { useIllustrationAnimation } from "./use-illustration-animation";
 
 export function Illust404BrokenLink(props: IllustrationProps) {
-  const { animate } = useIllustrationAnimation();
+  const { animate } = useIllustrationAnimation({ userReducedMotion: props.reducedMotion });
 
   return (
     <IllustrationWrapper {...props}>

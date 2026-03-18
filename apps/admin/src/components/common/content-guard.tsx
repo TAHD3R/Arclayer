@@ -142,7 +142,7 @@ export function ContentGuard(props: ContentGuardProps) {
         <EmptyHeader>
           {mediaVariant === "illustration" ? (
             <EmptyMedia className="mb-0">
-              <Illustration className={illustrationClassName} />
+              <Illustration className={illustrationClassName} reducedMotion={reducedMotion} />
             </EmptyMedia>
           ) : null}
           <EmptyTitle className={titleClassName}>{title}</EmptyTitle>
@@ -176,7 +176,10 @@ export function ContentGuard(props: ContentGuardProps) {
           <EmptyHeader>
             {mediaVariant === "illustration" ? (
               <EmptyMedia className="mb-0">
-                <IllustEmptyContainer className={illustrationClassName} />
+                <IllustEmptyContainer
+                  className={illustrationClassName}
+                  reducedMotion={reducedMotion}
+                />
               </EmptyMedia>
             ) : null}
             <EmptyTitle className={titleClassName}>

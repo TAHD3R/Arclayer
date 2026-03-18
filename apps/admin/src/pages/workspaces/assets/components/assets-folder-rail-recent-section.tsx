@@ -136,6 +136,7 @@ function RecentSectionBody(props: RecentSectionBodyProps) {
         loading={false}
         empty
         variant="compact"
+        mediaVariant="none"
         className="rounded-lg border border-dashed border-border/60 bg-muted/15 px-4 py-8 dark:border-white/8 dark:bg-[#101010]"
         emptyTitle={props.t("assets:ASSET_RECENT_EMPTY")}
         emptyDescription={props.t("assets:ASSET_RECENT_EMPTY_DESC")}

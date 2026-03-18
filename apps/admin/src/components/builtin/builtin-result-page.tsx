@@ -3,6 +3,7 @@ import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { Button } from "@arclayer/ui/button";
 import {
   Illust401LockedTerminal,
@@ -67,6 +68,7 @@ export function BuiltinResultPage({
     if (extra) return extra;
     return <DefaultAction status={status} />;
   }, [extra, status]);
+  const reducedMotion = usePrefersReducedMotion();
 
   const Illustration = pickBuiltinIllustration(status);
 
@@ -75,7 +77,7 @@ export function BuiltinResultPage({
       <Empty className="border-dashed">
         <EmptyHeader>
           <EmptyMedia className="mb-0">
-            <Illustration className="max-w-105" />
+            <Illustration className="max-w-105" reducedMotion={reducedMotion} />
           </EmptyMedia>
           <EmptyTitle>{title}</EmptyTitle>
           {subTitle ? (
