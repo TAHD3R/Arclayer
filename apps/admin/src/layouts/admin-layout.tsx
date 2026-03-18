@@ -26,7 +26,7 @@ import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 
-const SIDEBAR_EXPANDED_WIDTH_PX = 270;
+const SIDEBAR_EXPANDED_WIDTH_PX = 240;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const TOPBAR_HEIGHT_REM = "3.5rem";
 
