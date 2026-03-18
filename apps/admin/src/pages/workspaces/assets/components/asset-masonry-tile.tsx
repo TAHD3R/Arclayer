@@ -6,7 +6,7 @@ import { type AdminAssetTag } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Button } from "@arclayer/ui/button";
-import { ButtonGroup } from "@arclayer/ui/button-group";
+import { ButtonGroup, ButtonGroupSeparator } from "@arclayer/ui/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -252,82 +252,6 @@ export const AssetMasonryTile = memo(
         }}
       >
         <div className="relative w-full overflow-hidden" style={{ aspectRatio }}>
-          <div
-            className={cn(
-              "absolute left-3 top-3 z-10 transition-opacity duration-150",
-              overlayVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            )}
-            data-tile-actions-visible={overlayVisible ? "true" : "false"}
-          >
-            <ButtonGroup className="rounded-lg border border-white/15 bg-black/55 shadow-sm backdrop-blur-sm">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
-                aria-label={t("assets:ASSET_ACTION_EDIT")}
-                onPointerDown={stopTileActionEvent}
-                onClick={(event) => {
-                  stopTileActionEvent(event);
-                  props.onEdit?.(props.asset);
-                }}
-              >
-                <Pencil className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
-                aria-label={t("assets:ASSET_ACTION_DELETE")}
-                onPointerDown={stopTileActionEvent}
-                onClick={(event) => {
-                  stopTileActionEvent(event);
-                  props.onDelete?.(props.asset);
-                }}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-              {props.moreMenuItems?.length ? (
-                <DropdownMenu onOpenChange={setMoreMenuOpen}>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
-                      aria-label={t("common:MORE")}
-                      onPointerDown={stopTileActionEvent}
-                      onClick={(event) => {
-                        setMoreMenuOpen(true);
-                        stopTileActionEvent(event);
-                      }}
-                    >
-                      <EllipsisVertical className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {props.moreMenuItems.map((item, index) =>
-                      item.type === "separator" ? (
-                        <DropdownMenuSeparator key={`sep:${index}`} />
-                      ) : (
-                        <DropdownMenuIconItem
-                          key={item.key}
-                          icon={item.icon}
-                          disabled={item.disabled}
-                          variant={item.variant === "destructive" ? "destructive" : "default"}
-                          onSelect={() => props.onMoreAction?.(item.key, props.asset)}
-                        >
-                          {item.label}
-                        </DropdownMenuIconItem>
-                      ),
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null}
-            </ButtonGroup>
-          </div>
-
           {hasPreview ? (
             <LazyAssetImage
               src={props.asset.previewUrl as string}
@@ -371,23 +295,95 @@ export const AssetMasonryTile = memo(
             {/* Unified overlay */}
             <div className={cn("absolute inset-0", previewFailed ? "bg-black/0" : "bg-black/35")} />
 
-            {/* Checkbox: show on hover OR selected, so users can multi-select without modifier keys */}
             <div
               className={cn(
-                "absolute right-3 top-3 pointer-events-auto transition-opacity duration-150",
-                selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                "absolute right-3 top-3 z-10",
+                "pointer-events-auto transition-opacity duration-150",
+                overlayVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100",
               )}
+              data-tile-actions-visible={overlayVisible ? "true" : "false"}
             >
-              <div className="flex items-center">
-                <Checkbox
-                  aria-labelledby={titleId}
-                  checked={selected}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => event.stopPropagation()}
-                  onDoubleClick={(event) => event.stopPropagation()}
-                  onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
-                />
-              </div>
+              <ButtonGroup className="rounded-lg border border-white/15 bg-black/55 shadow-sm backdrop-blur-sm">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                  aria-label={t("assets:ASSET_ACTION_EDIT")}
+                  onPointerDown={stopTileActionEvent}
+                  onClick={(event) => {
+                    stopTileActionEvent(event);
+                    props.onEdit?.(props.asset);
+                  }}
+                >
+                  <Pencil className="size-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                  aria-label={t("assets:ASSET_ACTION_DELETE")}
+                  onPointerDown={stopTileActionEvent}
+                  onClick={(event) => {
+                    stopTileActionEvent(event);
+                    props.onDelete?.(props.asset);
+                  }}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+                {props.moreMenuItems?.length ? (
+                  <DropdownMenu onOpenChange={setMoreMenuOpen}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
+                        aria-label={t("common:MORE")}
+                        onPointerDown={stopTileActionEvent}
+                        onClick={(event) => {
+                          setMoreMenuOpen(true);
+                          stopTileActionEvent(event);
+                        }}
+                      >
+                        <EllipsisVertical className="size-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {props.moreMenuItems.map((item, index) =>
+                        item.type === "separator" ? (
+                          <DropdownMenuSeparator key={`sep:${index}`} />
+                        ) : (
+                          <DropdownMenuIconItem
+                            key={item.key}
+                            icon={item.icon}
+                            disabled={item.disabled}
+                            variant={item.variant === "destructive" ? "destructive" : "default"}
+                            onSelect={() => props.onMoreAction?.(item.key, props.asset)}
+                          >
+                            {item.label}
+                          </DropdownMenuIconItem>
+                        ),
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+                <ButtonGroupSeparator className="bg-white/12" />
+                <div className="flex size-6 items-center justify-center rounded-r-md text-white transition-colors hover:bg-white/12">
+                  <Checkbox
+                    aria-labelledby={titleId}
+                    checked={selected}
+                    size="sm"
+                    variant="accent"
+                    className="border-white/35 bg-transparent text-white shadow-none data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                    onCheckedChange={() => props.onToggleSelected?.(props.asset.id)}
+                  />
+                </div>
+              </ButtonGroup>
             </div>
 
             {/* Filename/description at the bottom */}

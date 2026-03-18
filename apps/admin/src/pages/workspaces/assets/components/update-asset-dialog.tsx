@@ -182,10 +182,11 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
               {t("assets:ASSET_EDIT_ALT_NAME")}
             </label>
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger asChild focusTrigger={false}>
                 <button
                   type="button"
-                  className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary hover:text-foreground"
+                  disabled={disabled}
+                  className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                   aria-label={t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}
                 >
                   <CircleHelp className="size-4" />

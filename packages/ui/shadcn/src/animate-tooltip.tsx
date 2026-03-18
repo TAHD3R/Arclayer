@@ -453,6 +453,7 @@ function TooltipTrigger({
   onFocus,
   onBlur,
   onPointerDown,
+  "data-focus-trigger": dataFocusTrigger,
   asChild = false,
   ...props
 }: TooltipTriggerProps) {
@@ -472,6 +473,7 @@ function TooltipTrigger({
   React.useImperativeHandle(ref, () => triggerRef.current as HTMLDivElement);
 
   const suppressNextFocusRef = React.useRef(false);
+  const allowFocusTrigger = dataFocusTrigger !== "false";
 
   React.useEffect(() => {
     if (currentTooltip?.id !== id || !triggerRef.current) return;
@@ -568,10 +570,11 @@ function TooltipTrigger({
   const handleFocus = React.useCallback(
     (e: React.FocusEvent<HTMLDivElement>) => {
       onFocus?.(e);
+      if (!allowFocusTrigger) return;
       if (suppressNextFocusRef.current) return;
       handleOpen();
     },
-    [handleOpen, onFocus],
+    [allowFocusTrigger, handleOpen, onFocus],
   );
 
   const handleBlur = React.useCallback(

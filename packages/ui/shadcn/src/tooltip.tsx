@@ -26,10 +26,14 @@ function Tooltip({ sideOffset = 10, ...props }: TooltipProps) {
   return <TooltipPrimitive sideOffset={sideOffset} {...props} />;
 }
 
-type TooltipTriggerProps = TooltipTriggerPrimitiveProps;
+type TooltipTriggerProps = TooltipTriggerPrimitiveProps & {
+  focusTrigger?: boolean;
+};
 
-function TooltipTrigger({ ...props }: TooltipTriggerProps) {
-  return <TooltipTriggerPrimitive {...props} />;
+function TooltipTrigger({ focusTrigger = true, ...props }: TooltipTriggerProps) {
+  return (
+    <TooltipTriggerPrimitive data-focus-trigger={focusTrigger ? "true" : "false"} {...props} />
+  );
 }
 
 type TooltipContentProps = Omit<TooltipContentPrimitiveProps, "asChild"> & {

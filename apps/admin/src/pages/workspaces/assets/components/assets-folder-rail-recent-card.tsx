@@ -53,7 +53,7 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
             backgroundSize: "cover",
             backgroundPosition: "left top",
             transformOrigin: "left top",
-            opacity: props.compact ? 0.4 : 0.56,
+            opacity: props.compact ? 0.1 : 0.1,
             WebkitMaskImage:
               "linear-gradient(135deg, rgba(0,0,0,1) 0%, rgba(0,0,0,.98) 24%, rgba(0,0,0,.78) 52%, rgba(0,0,0,.35) 78%, rgba(0,0,0,0) 100%)",
             maskImage:
@@ -61,9 +61,9 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
             filter: "saturate(1.04) contrast(1.06)",
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.22),transparent_26%)] opacity-80 dark:bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.10),transparent_26%)]" />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/4 via-white/8 to-white/18 dark:from-black/[0.04] dark:via-black/[0.10] dark:to-black/[0.32]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0.08)_22%,rgba(241,245,249,0.18)_44%,rgba(221,230,239,0.36)_68%,rgba(204,214,224,0.58)_100%)] dark:bg-[linear-gradient(90deg,rgba(8,8,8,0.10)_0%,rgba(8,8,8,0.14)_22%,rgba(8,8,8,0.24)_44%,rgba(8,8,8,0.44)_68%,rgba(8,8,8,0.70)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.12),transparent_22%)] opacity-45 dark:bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.04),transparent_22%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/2 via-white/4 to-white/8 dark:from-black/[0.02] dark:via-black/[0.06] dark:to-black/[0.18]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.02)_0%,rgba(255,255,255,0.05)_22%,rgba(241,245,249,0.08)_44%,rgba(221,230,239,0.16)_68%,rgba(204,214,224,0.24)_100%)] dark:bg-[linear-gradient(90deg,rgba(8,8,8,0.06)_0%,rgba(8,8,8,0.10)_22%,rgba(8,8,8,0.16)_44%,rgba(8,8,8,0.30)_68%,rgba(8,8,8,0.50)_100%)]" />
       </>
     );
   }
@@ -74,7 +74,7 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(255,255,255,0.16),transparent_24%)] dark:bg-[radial-gradient(circle_at_16%_18%,rgba(255,255,255,0.07),transparent_24%)]" />
       <div
         className={cn(
-          "absolute left-6 top-5 opacity-[0.08]",
+          "absolute left-6 top-5 opacity-[0.03]",
           props.compact ? "scale-[1.9]" : "scale-[2.2]",
         )}
       >

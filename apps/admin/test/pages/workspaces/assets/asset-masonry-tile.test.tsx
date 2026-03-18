@@ -104,6 +104,39 @@ describe("AssetMasonryTile", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it("toggles selection on repeated checkbox clicks without affecting tile double click open", () => {
+    const onOpen = vi.fn();
+
+    function Harness() {
+      const [selected, setSelected] = useState(false);
+
+      return (
+        <AssetMasonryTile
+          asset={asset}
+          selected={selected}
+          onSelect={vi.fn()}
+          onOpen={onOpen}
+          onToggleSelected={() => setSelected((prev) => !prev)}
+        />
+      );
+    }
+
+    const { container } = render(<Harness />);
+    const checkbox = screen.getByRole("checkbox");
+    const tile = container.querySelector('[data-asset-tile="true"]');
+
+    fireEvent.pointerDown(checkbox);
+    fireEvent.click(checkbox);
+    expect(checkbox).toHaveAttribute("data-state", "checked");
+
+    fireEvent.pointerDown(checkbox);
+    fireEvent.click(checkbox);
+    expect(checkbox).toHaveAttribute("data-state", "unchecked");
+
+    fireEvent.click(tile as HTMLElement, { detail: 2 });
+    expect(onOpen).toHaveBeenCalledWith(asset);
+  });
+
   it("keeps edit actions local to the action button", () => {
     const onSelect = vi.fn();
     const onEdit = vi.fn();
