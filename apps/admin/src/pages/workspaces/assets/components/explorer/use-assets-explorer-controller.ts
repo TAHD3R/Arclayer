@@ -50,6 +50,8 @@ type UseAssetsExplorerControllerOptions = {
   initialPageSize?: number;
 };
 
+const DEFAULT_PAGED_PAGE_SIZE = 10;
+
 export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOptions) {
   const scope = opts.scope;
   const scopeId = scope?.id ? String(scope.id) : null;
@@ -182,8 +184,15 @@ export function useAssetsExplorerController(opts: UseAssetsExplorerControllerOpt
     meta: { silent: true },
   });
 
+  const defaultPagedPageSize = opts.initialPageSize ?? DEFAULT_PAGED_PAGE_SIZE;
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(opts.initialPageSize ?? 24);
+  const [pageSize, setPageSize] = useState(opts.pagination === "paged" ? defaultPagedPageSize : 24);
+
+  useEffect(() => {
+    if (opts.pagination !== "paged") return;
+    setPage(1);
+    setPageSize((prev) => (prev === defaultPagedPageSize ? prev : defaultPagedPageSize));
+  }, [defaultPagedPageSize, opts.pagination]);
 
   useEffect(() => {
     // Filters changed => reset pagination in paged mode.

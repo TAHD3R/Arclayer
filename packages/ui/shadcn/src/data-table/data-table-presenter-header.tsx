@@ -43,6 +43,20 @@ function isActionsColumn(meta: unknown, columnId: string): boolean {
   return kind === "actions" || columnId === "actions";
 }
 
+function resolveLockedColumnInnerPaddingClass(meta: unknown, columnId: string): string {
+  if (isSelectColumn(meta, columnId) || isActionsColumn(meta, columnId)) {
+    return "px-0";
+  }
+  return "px-1";
+}
+
+function resolveLockedColumnContentPaddingClass(meta: unknown, columnId: string): string {
+  if (isSelectColumn(meta, columnId) || isActionsColumn(meta, columnId)) {
+    return "w-full px-0";
+  }
+  return "px-2";
+}
+
 function isLockedLeafColumn(meta: unknown, columnId: string): boolean {
   return (
     isDataTableColumnLocked(columnId) ||
@@ -188,6 +202,9 @@ function StaticHeaderCell<TData>(
     props.headerCellClassName,
   );
 
+  const columnMeta = props.header.column.columnDef.meta;
+  const columnId = props.header.column.id;
+
   return (
     <TableHead
       data-column-id={state.id}
@@ -196,11 +213,17 @@ function StaticHeaderCell<TData>(
       style={state.pinStyle.style}
     >
       <div className={cn("flex h-full w-full items-center", state.justifyClass)}>
-        <div className="flex h-full w-full max-w-full items-center px-1 select-none opacity-80">
+        <div
+          className={cn(
+            "flex h-full w-full max-w-full items-center select-none opacity-80",
+            resolveLockedColumnInnerPaddingClass(columnMeta, columnId),
+          )}
+        >
           <div
             className={cn(
-              "inline-flex min-h-8 max-w-full items-center px-2 py-1.5",
+              "inline-flex min-h-8 max-w-full items-center py-1.5",
               state.justifyClass,
+              resolveLockedColumnContentPaddingClass(columnMeta, columnId),
               resolveHeaderContentClass(props.wrapHeaders),
             )}
             style={{ textTransform: "uppercase" }}

@@ -12,7 +12,14 @@ import { downloadWithAuth } from "./asset-download";
 export type AssetMoreMenuItem =
   | {
       type: "item";
-      key: "edit_asset" | "download" | "copy_link" | "open_new_tab" | "edit_access" | "delete";
+      key:
+        | "view_details"
+        | "edit_asset"
+        | "download"
+        | "copy_link"
+        | "open_new_tab"
+        | "edit_access"
+        | "delete";
       label: string;
       icon: ReactNode;
       disabled?: boolean;
@@ -82,11 +89,26 @@ export async function handleAssetMoreAction(params: {
   asset: AssetMasonryItem;
   publicUrl: string | null;
   t: (key: string, options?: Record<string, unknown>) => string;
+  onOpenDetails: () => void;
   onOpenEditAsset: () => void;
   onOpenEditAccess: () => void;
   onOpenDelete: () => void;
 }) {
-  const { asset, key, onOpenDelete, onOpenEditAccess, onOpenEditAsset, publicUrl, t } = params;
+  const {
+    asset,
+    key,
+    onOpenDelete,
+    onOpenDetails,
+    onOpenEditAccess,
+    onOpenEditAsset,
+    publicUrl,
+    t,
+  } = params;
+
+  if (key === "view_details") {
+    onOpenDetails();
+    return;
+  }
 
   if (key === "edit_asset") {
     onOpenEditAsset();

@@ -165,6 +165,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
       asset: active,
       publicUrl: controller.publicAbsoluteUrl,
       t: controller.t,
+      onOpenDetails: () => props.onSelectAsset(active),
       onOpenEditAsset: () => props.onOpenEditAsset(active),
       onOpenEditAccess: () => controller.setEditAccessOpen(true),
       onOpenDelete: () => controller.setDeleteOpen(true),

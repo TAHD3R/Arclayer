@@ -40,9 +40,28 @@ export function collectLeafColumnIds<TData>(
 }
 
 export function resolveDefaultColumnVisibility<TData>(
-  _columns: readonly ColumnDef<TData, unknown>[],
+  columns: readonly ColumnDef<TData, unknown>[],
 ): VisibilityState {
-  return {};
+  const visibility: VisibilityState = {};
+
+  const visit = (defs: readonly ColumnDef<TData, unknown>[]) => {
+    for (const col of defs) {
+      if ("columns" in col && Array.isArray(col.columns) && col.columns.length) {
+        visit(col.columns as readonly ColumnDef<TData, unknown>[]);
+        continue;
+      }
+
+      const id = resolveColumnId(col);
+      if (!id) continue;
+      const meta = col.meta as { defaultHidden?: boolean } | undefined;
+      if (meta?.defaultHidden === true) {
+        visibility[id] = false;
+      }
+    }
+  };
+
+  visit(columns);
+  return visibility;
 }
 
 export function normalizeSearchDefault(input: string): string {

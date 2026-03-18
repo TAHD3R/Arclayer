@@ -94,7 +94,7 @@ def test_admin_asset_update_request_accepts_editable_metadata_fields() -> None:
     assert r.tag_ids == [tid]
 
 
-def test_admin_asset_summary_out_accepts_uploader_avatar_url() -> None:
+def test_admin_asset_summary_out_accepts_uploader_identity_fields() -> None:
     from apps.api.src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
 
     out = AdminAssetSummaryOut(
@@ -103,6 +103,7 @@ def test_admin_asset_summary_out_accepts_uploader_avatar_url() -> None:
         owner_user_id=uuid4(),
         uploader_name="Ada",
         uploader_avatar_url="/assets/uploader.png",
+        uploader_email="ada@example.com",
         purpose="avatar",
         visibility="public",
         indexable=False,
@@ -118,3 +119,4 @@ def test_admin_asset_summary_out_accepts_uploader_avatar_url() -> None:
     )
 
     assert out.uploader_avatar_url == "/assets/uploader.png"
+    assert out.uploader_email == "ada@example.com"

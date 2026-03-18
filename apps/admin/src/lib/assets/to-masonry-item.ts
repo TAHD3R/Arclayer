@@ -1,7 +1,15 @@
 import { getAppConfig } from "@/constants/app-config";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
-import type { AdminAssetSummary } from "@/types/api";
+import type { AdminAssetDetail, AdminAssetSummary } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
+
+type AssetSummaryLike = AdminAssetSummary | AdminAssetDetail;
+
+function resolveAltName(asset: AssetSummaryLike): string | undefined {
+  if (!("altName" in asset)) return undefined;
+  const altName = asset.altName;
+  return typeof altName === "string" && altName.trim() ? altName : undefined;
+}
 
 function formatBytes(bytes: number | undefined | null): string | undefined {
   if (!bytes || bytes < 0) return undefined;
@@ -20,7 +28,7 @@ function formatBytes(bytes: number | undefined | null): string | undefined {
  * Map backend asset summary into the Masonry card view model used by both AssetsView and pickers.
  */
 export function toMasonryItem(
-  asset: AdminAssetSummary,
+  asset: AssetSummaryLike,
   opts?: { aspectRatioOverride?: number },
 ): AssetMasonryItem {
   const name =
@@ -77,6 +85,8 @@ export function toMasonryItem(
     contentUrl,
     uploaderName: asset.uploaderName || undefined,
     uploaderAvatarUrl: asset.uploaderAvatarUrl || undefined,
+    uploaderEmail: asset.uploaderEmail || undefined,
+    altName: resolveAltName(asset),
     aspectRatio: opts?.aspectRatioOverride,
   };
 }

@@ -6,6 +6,7 @@ import { Save } from "lucide-react";
 
 import { getAssetDetail, moveAsset, patchAsset } from "@/api/assets";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
+import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminAssetFolder, PatchAdminAssetPayload } from "@/types/api";
@@ -90,7 +91,7 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
           queryClient.invalidateQueries({
             queryKey: ["assets", "detail", scopeKey, props.asset?.id],
           }),
-          queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] }),
+          invalidateAssetListQueries(queryClient, scopeKey),
           queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] }),
         ]);
       }

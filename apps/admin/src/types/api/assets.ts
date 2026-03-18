@@ -6,6 +6,7 @@ export type AdminAssetSummary = {
   ownerUserId?: string | null;
   uploaderName?: string | null;
   uploaderAvatarUrl?: string | null;
+  uploaderEmail?: string | null;
   title?: string | null;
   slug?: string | null;
   originalFilename?: string | null;

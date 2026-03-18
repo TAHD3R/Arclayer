@@ -171,6 +171,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
         asset,
         publicUrl: asset.publicUrl || null,
         t,
+        onOpenDetails: () => setActive(asset),
         onOpenEditAsset: () => openEditAssetDialog(asset),
         onOpenEditAccess: () => openAssetEditAccessDialog(asset),
         onOpenDelete: () => openAssetDeleteDialog(asset),

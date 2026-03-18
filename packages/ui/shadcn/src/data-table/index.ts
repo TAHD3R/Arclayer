@@ -12,3 +12,4 @@ export * from "./data-table-customize-card";
 export * from "./data-table-tools.types";
 export * from "./utils";
 export * from "./storage";
+export * from "./use-data-table-utils";

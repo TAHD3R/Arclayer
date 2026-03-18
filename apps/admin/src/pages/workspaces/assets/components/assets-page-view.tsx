@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus } from "@arclayer/ui/icons/lucide-animated";
 
 import { ColumnsPage } from "@/components/common/columns-page";
+import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { Button } from "@arclayer/ui/button";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 
@@ -11,10 +12,13 @@ import { AssetsFolderRail } from "./assets-folder-rail";
 import { AssetsViewDndSurface } from "./assets-view-dnd-surface";
 import { AssetsViewHeader } from "./assets-view-header";
 import { AssetsViewMasonrySection } from "./assets-view-masonry-section";
+import type { AssetsViewMode } from "./assets-view-mode-toggle";
 import { AssetsSelectionToolbar, AssetsViewOverlays } from "./assets-view-overlays";
+import { AssetsViewTableSection, useAssetsViewTableController } from "./assets-view-table-section";
 
 export function AssetsPageView(props: { initialSearchQuery?: string; initialAssetId?: string }) {
-  const controller = useAssetsViewController();
+  const [viewMode, setViewMode] = useState<AssetsViewMode>("card");
+  const controller = useAssetsViewController(viewMode);
   const {
     t,
     queryClient,
@@ -63,17 +67,9 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setOrdering,
     foldersQuery,
     tagsQuery,
-    assetsListQueryKey,
     recentAssets,
     removeRecentAsset,
     clearRecentAssets,
-    moreOpen,
-    setMoreOpen,
-    moreHovered,
-    setMoreHovered,
-    typeTabValue,
-    moreTabLabel,
-    moreMenuItems,
     editAssetOpen,
     setEditAssetOpen,
     editAssetTarget,
@@ -97,6 +93,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     openBulkDeleteDialog,
     openDeleteFolderDialog,
   } = controller;
+  const tableView = useAssetsViewTableController(controller);
   const hydratedSearchRef = useRef<string | null>(null);
   const hydratedAssetIdRef = useRef<string | null>(null);
 
@@ -130,52 +127,9 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setCreateFolderSeedAssetIds([]);
   };
 
-  return (
-    <AssetsViewDndSurface controller={controller}>
-      <ColumnsPage
-        title={t("nav:NAV_ASSETS")}
-        overlay={
-          <AssetsSelectionToolbar
-            t={t}
-            selectedCount={selectedIds.size}
-            bulkMovePending={bulkMoveMutation.isPending}
-            bulkUpdatePending={bulkUpdateMutation.isPending}
-            bulkDeletePending={bulkDeleteMutation.isPending}
-            onClearSelection={() => {
-              setSelection((prev) => clearSelection(prev));
-            }}
-            onOpenMove={() => setMoveModalOpen(true)}
-            onOpenEditAccess={() => openEditAccessDialog()}
-            onOpenBulkDelete={() => openBulkDeleteDialog()}
-          />
-        }
-        action={
-          <Button onClick={() => setUploadOpen(true)}>
-            <Plus size={16} />
-            {t("assets:ASSET_ACTION_UPLOAD")}
-          </Button>
-        }
-        extra={
-          <AssetsViewHeader
-            t={t}
-            typeTabValue={typeTabValue}
-            setFilters={setFilters}
-            setMoreOpen={setMoreOpen}
-            moreOpen={moreOpen}
-            moreMenuItems={moreMenuItems}
-            moreTabLabel={moreTabLabel}
-            moreHovered={moreHovered}
-            setMoreHovered={setMoreHovered}
-            searchInput={searchInput}
-            setSearchInput={setSearchInput}
-            filters={filters}
-            ordering={ordering}
-            setOrdering={setOrdering}
-            tags={(tagsQuery.data?.items ?? []) as AdminAssetTag[]}
-            tagsLoading={tagsQuery.isLoading}
-          />
-        }
-        sideSlots={{
+  const sideSlots =
+    viewMode === "card"
+      ? {
           left: {
             title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
             mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
@@ -226,7 +180,63 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
               />
             ),
           },
-        }}
+        }
+      : {};
+
+  return (
+    <AssetsViewDndSurface controller={controller}>
+      <ColumnsPage
+        title={t("nav:NAV_ASSETS")}
+        overlay={
+          <AssetsSelectionToolbar
+            t={t}
+            selectedCount={selectedIds.size}
+            bulkMovePending={bulkMoveMutation.isPending}
+            bulkUpdatePending={bulkUpdateMutation.isPending}
+            bulkDeletePending={bulkDeleteMutation.isPending}
+            onClearSelection={() => {
+              setSelection((prev) => clearSelection(prev));
+            }}
+            onOpenMove={() => setMoveModalOpen(true)}
+            onOpenEditAccess={() => openEditAccessDialog()}
+            onOpenBulkDelete={() => openBulkDeleteDialog()}
+          />
+        }
+        action={
+          <Button onClick={() => setUploadOpen(true)}>
+            <Plus size={16} />
+            {t("assets:ASSET_ACTION_UPLOAD")}
+          </Button>
+        }
+        extra={
+          <AssetsViewHeader
+            t={t}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            setFilters={setFilters}
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            filters={filters}
+            ordering={ordering}
+            setOrdering={setOrdering}
+            tags={(tagsQuery.data?.items ?? []) as AdminAssetTag[]}
+            tagsLoading={tagsQuery.isLoading}
+            table={viewMode === "table" ? tableView.table : undefined}
+            rowHeight={tableView.rowHeight}
+            onRowHeightChange={tableView.setRowHeight}
+            wrapHeaders={tableView.wrapHeaders}
+            onWrapHeadersChange={tableView.setWrapHeaders}
+            onRefresh={() =>
+              void (viewMode === "table"
+                ? controller.pagedAssetsQuery.refetch()
+                : controller.assetsQuery.refetch())
+            }
+            refreshing={tableView.refreshing}
+            onResetColumnVisibility={tableView.resetColumnVisibility}
+            labels={tableView.toolsLabels}
+          />
+        }
+        sideSlots={sideSlots}
       >
         <div className="relative flex min-h-0 min-w-0 w-full flex-1 flex-col">
           <AssetsViewOverlays
@@ -339,9 +349,8 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
               if (scopeKey) {
                 void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
                 void queryClient.invalidateQueries({ queryKey: ["assets", "tags", scopeKey] });
-                void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
               }
-              void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
+              void invalidateAssetListQueries(queryClient, scopeKey);
               setUploadOpen(false);
             }}
             onClearSelection={() => {
@@ -376,7 +385,18 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
           />
 
           <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-hidden">
-            <AssetsViewMasonrySection controller={controller} />
+            {viewMode === "card" ? (
+              <AssetsViewMasonrySection controller={controller} />
+            ) : (
+              <AssetsViewTableSection
+                controller={controller}
+                table={tableView.table}
+                rowHeight={tableView.rowHeight}
+                wrapHeaders={tableView.wrapHeaders}
+                refreshing={tableView.refreshing}
+                onRowClick={tableView.onRowClick}
+              />
+            )}
           </div>
         </div>
       </ColumnsPage>

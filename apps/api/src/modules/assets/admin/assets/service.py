@@ -276,24 +276,35 @@ class AdminAssetsService(BaseService):
             # Best-effort uploader name (avoid N+1; load all users for current page in one query).
             user_ids = {x.owner_user_id for x in items if x.owner_user_id is not None}
             if user_ids:
-                users = await User.filter(id__in=list(user_ids)).values("id", "username", "display_name", "avatar_url")
+                users = await User.filter(id__in=list(user_ids)).values(
+                    "id",
+                    "username",
+                    "display_name",
+                    "avatar_url",
+                    "email",
+                )
                 id_to_name: dict[UUID, str] = {}
                 id_to_avatar_url: dict[UUID, str] = {}
+                id_to_email: dict[UUID, str] = {}
                 for u in users:
                     uid = u.get("id")
                     if uid is None:
                         continue
                     name = (u.get("display_name") or u.get("username") or "") if isinstance(u, dict) else ""
                     avatar_url = u.get("avatar_url") if isinstance(u, dict) else None
+                    email = u.get("email") if isinstance(u, dict) else None
                     if isinstance(name, str) and name.strip():
                         id_to_name[uid] = name.strip()
                     if isinstance(avatar_url, str) and avatar_url.strip():
                         id_to_avatar_url[uid] = avatar_url.strip()
+                    if isinstance(email, str) and email.strip():
+                        id_to_email[uid] = email.strip()
                 for out in items:
                     if out.owner_user_id is None:
                         continue
                     out.uploader_name = id_to_name.get(out.owner_user_id)
                     out.uploader_avatar_url = id_to_avatar_url.get(out.owner_user_id)
+                    out.uploader_email = id_to_email.get(out.owner_user_id)
 
         next_page: int | None = None
         prev_page: int | None = None
@@ -357,6 +368,7 @@ class AdminAssetsService(BaseService):
             if user is not None:
                 detail.uploader_name = user.display_name or user.username or None
                 detail.uploader_avatar_url = user.avatar_url
+                detail.uploader_email = user.email
         meta = asset.meta if isinstance(asset.meta, dict) else {}
         desc = meta.get("description") if isinstance(meta, dict) else None
         detail.description = desc if isinstance(desc, str) else None

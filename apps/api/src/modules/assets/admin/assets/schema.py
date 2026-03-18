@@ -42,6 +42,7 @@ class AdminAssetSummaryOut(BaseOut):
     owner_user_id: PublicUUID | None = Field(default=None, description="Uploader (owner) user id.")
     uploader_name: str | None = Field(default=None, description="Uploader display name (best-effort).")
     uploader_avatar_url: str | None = Field(default=None, description="Uploader avatar URL (best-effort).")
+    uploader_email: str | None = Field(default=None, description="Uploader email (best-effort).")
     purpose: str = Field(..., description="Asset purpose.")
     visibility: str = Field(..., description="Asset visibility.")
     indexable: bool = Field(..., description="Whether the asset is indexable.")

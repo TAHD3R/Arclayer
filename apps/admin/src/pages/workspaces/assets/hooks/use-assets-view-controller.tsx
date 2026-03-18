@@ -31,10 +31,12 @@ import {
 import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, type AssetSelectionState } from "@/lib/assets/asset-selection";
+import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
 import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
+import type { AssetsViewMode } from "../components/assets-view-mode-toggle";
 import {
   DND_ROOT_ID,
   parseAssetItemDndId,
@@ -70,7 +72,7 @@ function triggerDropPulse(
   }, 300);
 }
 
-export function useAssetsViewController() {
+export function useAssetsViewController(viewMode: AssetsViewMode = "card") {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
@@ -122,7 +124,8 @@ export function useAssetsViewController() {
   } | null>(null);
   const explorer = useAssetsExplorerController({
     scope,
-    pagination: "infinite",
+    pagination: viewMode === "table" ? "paged" : "infinite",
+    initialPageSize: 10,
     purpose: "library",
     // 默认只看 public：瀑布流需要 thumb/public url 才能稳定预览；
     // 其他可见性可通过筛选器切换，但可能只显示“无预览”占位。
@@ -155,6 +158,12 @@ export function useAssetsViewController() {
     masonryEntries,
     folderById,
     folderPath,
+    pagedAssetsQuery,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    total,
   } = explorer;
   const { recentAssets, removeRecentAsset, clearRecentAssets } = useAssetsRecentItems({
     workspaceId,
@@ -205,7 +214,7 @@ export function useAssetsViewController() {
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_MOVE_SUCCESS", { count: out.movedCount }));
-      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      void invalidateAssetListQueries(queryClient, scopeKey);
     },
     onError: (err) => {
       notifyError(err);
@@ -218,7 +227,7 @@ export function useAssetsViewController() {
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_DELETE_SUCCESS", { count: out.deletedCount }));
-      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      void invalidateAssetListQueries(queryClient, scopeKey);
     },
     onError: (err) => {
       notifyError(err);
@@ -282,7 +291,7 @@ export function useAssetsViewController() {
           setSelection((prev) => clearSelection(prev));
         }
       }
-      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      void invalidateAssetListQueries(queryClient, scopeKey);
       if (scopeKey)
         void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
     },
@@ -299,8 +308,8 @@ export function useAssetsViewController() {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
       if (scopeKey) {
         void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
-        void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
       }
+      void invalidateAssetListQueries(queryClient, scopeKey);
       setAssetDeleteOpen(false);
       setAssetDeleteTarget(null);
       setActive((prev) => (prev && prev.id === assetId ? null : prev));
@@ -324,8 +333,8 @@ export function useAssetsViewController() {
       notifySuccessText(t("assets:ASSET_EDIT_ACCESS_SUCCESS"));
       if (scopeKey) {
         void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
-        void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
       }
+      void invalidateAssetListQueries(queryClient, scopeKey);
       setAssetEditAccessOpen(false);
       setAssetEditAccessTarget(null);
     },
@@ -398,7 +407,7 @@ export function useAssetsViewController() {
     onSuccess: () => {
       if (scopeKey)
         void queryClient.invalidateQueries({ queryKey: ["assets", "folders", scopeKey] });
-      if (scopeKey) void queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      void invalidateAssetListQueries(queryClient, scopeKey);
     },
     onError: (err) => {
       notifyError(err);
@@ -667,6 +676,7 @@ export function useAssetsViewController() {
     tagsQuery,
     assetsListQueryKey,
     assetsQuery,
+    pagedAssetsQuery,
     items,
     recentAssets,
     removeRecentAsset,
@@ -675,6 +685,11 @@ export function useAssetsViewController() {
     masonryEntries,
     folderById,
     folderPath,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    total,
     moreOpen,
     setMoreOpen,
     moreHovered,

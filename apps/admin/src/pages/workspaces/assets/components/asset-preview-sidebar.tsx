@@ -3,7 +3,7 @@ import { Link2, Plus } from "lucide-react";
 import { Input } from "@arclayer/ui/input";
 
 import { UserAvatar } from "@/components/common/entity-avatar";
-import { AssetAddTagActionTag, AssetIndexableTag, AssetUserTagChip } from "@/components/ui/tags";
+import { AssetAddTagActionTag, AssetUserTagChip } from "@/components/ui/tags";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
@@ -193,15 +193,12 @@ export function AssetPreviewSidebar(props: AssetPreviewSidebarProps) {
             value={getMimeLabel(active.mimeType, controller.t)}
           />
           <AssetInspectorRow
-            label={controller.t("assets:ASSET_DIALOG_ORGANIZATION")}
-            value={
-              <div className="flex flex-wrap gap-2">
-                <AssetIndexableTag
-                  indexable={active.indexable}
-                  label={getIndexableLabel(active.indexable, controller.t)}
-                />
-              </div>
-            }
+            label={controller.t("assets:ASSET_META_INDEXABLE")}
+            value={getIndexableLabel(active.indexable, controller.t)}
+          />
+          <AssetInspectorRow
+            label={controller.t("assets:ASSET_EDIT_ALT_NAME")}
+            value={active.altName?.trim() || "-"}
           />
         </AssetInspectorList>
       </AssetInspectorPanel>

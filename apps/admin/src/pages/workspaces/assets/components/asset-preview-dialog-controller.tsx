@@ -11,6 +11,7 @@ import {
 } from "@/api/assets";
 import type { AdminAssetTag, AdminAssetSummary, PageData } from "@/types/api";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
+import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
@@ -232,7 +233,7 @@ export function useAssetPreviewDialogController(props: {
       dirtyRef.current = { description: false, tags: false };
       if (scopeKey) queryClient.setQueryData(["assets", "detail", scopeKey, active?.id], updated);
       // Lists might not include description/tags today, but keep caches consistent.
-      if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      void invalidateAssetListQueries(queryClient, scopeKey);
       window.setTimeout(() => setSaveState("idle"), 1200);
     },
     onError: () => {
@@ -278,7 +279,7 @@ export function useAssetPreviewDialogController(props: {
           return Object.assign({}, data, { pages });
         },
       );
-      if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      void invalidateAssetListQueries(queryClient, scopeKey);
     },
     onError: () => {
       notifyErrorText(t("assets:ASSET_EDIT_ACCESS_FAILED"));
@@ -293,7 +294,7 @@ export function useAssetPreviewDialogController(props: {
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
-      if (scopeKey) queryClient.invalidateQueries({ queryKey: ["assets", "list", scopeKey] });
+      void invalidateAssetListQueries(queryClient, scopeKey);
       props.onClose();
     },
     onError: () => {
