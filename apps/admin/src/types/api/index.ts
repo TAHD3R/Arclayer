@@ -126,6 +126,7 @@ export type {
   AdminContentItem,
   AdminContentItemStatus,
   AdminContentItemVisibility,
+  CreateAdminContentItemPayload,
   AdminContentModel,
   AdminContentModelCapability,
   AdminContentModelCategory,

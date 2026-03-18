@@ -13,6 +13,8 @@ const RECENT_WINDOW_DAYS = 7;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const CONTENT_DEFAULT_PAGE_SIZE = 10;
 
+export const CONTENT_LIBRARY_DEFAULT_SCOPE: ContentLibraryScopeId = "quick:all";
+
 function isRecentTimestamp(value: string, now: number): boolean {
   const updatedAt = Date.parse(value);
   if (Number.isNaN(updatedAt)) return false;
@@ -48,14 +50,11 @@ function compareStatus(
 }
 
 function normalizeScopeFilter(scopeId: ContentLibraryScopeId) {
-  if (scopeId === "quick:all" || scopeId === "tree:all") return { kind: "all" as const };
+  if (scopeId === "quick:all") return { kind: "all" as const };
   if (scopeId === "quick:recent") return { kind: "recent" as const };
-  if (scopeId === "quick:scheduled") return { kind: "scheduled" as const };
-  if (scopeId.startsWith("tree:status:")) {
-    return {
-      kind: "status" as const,
-      status: scopeId.replace("tree:status:", "") as ContentLibraryDerivedStatus,
-    };
+  if (scopeId === "quick:draft") return { kind: "status" as const, status: "draft" as const };
+  if (scopeId === "quick:published") {
+    return { kind: "status" as const, status: "published" as const };
   }
   return { kind: "type" as const, modelKey: scopeId.replace("tree:type:", "") };
 }
@@ -68,7 +67,6 @@ function matchesScope(
   const scope = normalizeScopeFilter(scopeId);
   if (scope.kind === "all") return true;
   if (scope.kind === "recent") return isRecentTimestamp(row.updatedAt, now);
-  if (scope.kind === "scheduled") return false;
   if (scope.kind === "status") return row.derivedStatus === scope.status;
   return row.modelKey === scope.modelKey;
 }
@@ -212,15 +210,16 @@ export function buildContentLibraryPageData(
   };
 }
 
-export function isScheduledScope(scopeId: ContentLibraryScopeId): boolean {
-  return scopeId === "quick:scheduled";
+export function contentLibraryTableId(workspaceId: string | null): string {
+  return `workspace-content-library:${workspaceId || "unknown"}`;
 }
 
-export function isStatusScopeActive(
-  scopeId: ContentLibraryScopeId,
-  status: ContentLibraryDerivedStatus,
-): boolean {
-  return scopeId === `tree:status:${status}`;
+export function buildContentItemsQueryKey(workspaceId: string | null) {
+  return ["content", "items", "all", workspaceId] as const;
+}
+
+export function buildContentModelsQueryKey(workspaceId: string | null) {
+  return ["content", "models", "all", workspaceId] as const;
 }
 
 export function isTypeScopeActive(scopeId: ContentLibraryScopeId, modelKey: string): boolean {

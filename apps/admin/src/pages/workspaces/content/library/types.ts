@@ -5,9 +5,8 @@ export type ContentLibraryDerivedStatus = "published" | "changed" | "draft" | "a
 export type ContentLibraryScopeId =
   | "quick:all"
   | "quick:recent"
-  | "quick:scheduled"
-  | "tree:all"
-  | `tree:status:${ContentLibraryDerivedStatus}`
+  | "quick:draft"
+  | "quick:published"
   | `tree:type:${string}`;
 
 export type ContentLibraryToolbarFilters = {

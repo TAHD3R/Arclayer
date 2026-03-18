@@ -4,6 +4,7 @@ import type {
   AdminContentItem,
   AdminContentModel,
   AdminContentVersion,
+  CreateAdminContentItemPayload,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
   PageData,
@@ -58,6 +59,13 @@ export async function listAllContentItems(workspaceId: string): Promise<AdminCon
   return collectAllPages((page) =>
     listContentItems(workspaceId, { page, size: CONTENT_LIST_PAGE_SIZE }),
   );
+}
+
+export async function createContentItem(
+  workspaceId: string,
+  payload: CreateAdminContentItemPayload,
+): Promise<AdminContentItem> {
+  return api.post<AdminContentItem>(workspacePath(workspaceId, "/content/items"), payload);
 }
 
 export async function archiveContentItemVersion(

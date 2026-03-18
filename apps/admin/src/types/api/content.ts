@@ -45,6 +45,15 @@ export type AdminContentItem = {
   updatedAt: string;
 };
 
+export type CreateAdminContentItemPayload = {
+  modelKey: string;
+  slug: string;
+  title?: string | null;
+  locale?: string;
+  status?: AdminContentItemStatus;
+  visibility?: AdminContentItemVisibility;
+};
+
 export type AdminContentVersion = {
   itemId: string;
   versionNumber: number;

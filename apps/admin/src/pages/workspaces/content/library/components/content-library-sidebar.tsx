@@ -1,15 +1,11 @@
 import { useState, type ReactNode } from "react";
 import {
-  Archive,
-  CalendarClock,
   ChevronRight,
   CheckCircle2,
-  FilePenLine,
   FileStack,
   Folder,
   History,
   Layers3,
-  ListTree,
   PenSquare,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -29,7 +25,7 @@ import type {
   ContentLibrarySidebarCounts,
   ContentLibrarySidebarModel,
 } from "../types";
-import { isStatusScopeActive, isTypeScopeActive } from "../utils";
+import { isTypeScopeActive } from "../utils";
 
 function TreeLeafButton(props: {
   active: boolean;
@@ -132,10 +128,7 @@ export function ContentLibrarySidebar(props: {
       key: "quick:all",
       icon: <Layers3 className="size-4" />,
       label: (
-        <MiniNavLabel
-          label={t("content:CONTENT_LIBRARY_MENU_ALL_CONTENTS")}
-          count={props.counts.all}
-        />
+        <MiniNavLabel label={t("content:CONTENT_LIBRARY_MENU_ALL")} count={props.counts.all} />
       ),
     },
     {
@@ -149,12 +142,28 @@ export function ContentLibrarySidebar(props: {
       ),
     },
     {
-      key: "quick:scheduled",
-      icon: <CalendarClock className="size-4" />,
-      label: <MiniNavLabel label={t("content:CONTENT_LIBRARY_MENU_SCHEDULED")} />,
+      key: "quick:draft",
+      icon: <PenSquare className="size-4" />,
+      label: (
+        <MiniNavLabel
+          label={t("content:CONTENT_LIBRARY_MENU_DRAFT")}
+          count={props.counts.statuses.draft}
+        />
+      ),
+    },
+    {
+      key: "quick:published",
+      icon: <CheckCircle2 className="size-4" />,
+      label: (
+        <MiniNavLabel
+          label={t("content:CONTENT_LIBRARY_MENU_PUBLISHED")}
+          count={props.counts.statuses.published}
+        />
+      ),
     },
   ] satisfies readonly MiniCategoryNavItem[];
   const quickSelectedKey = props.activeScope.startsWith("quick:") ? props.activeScope : "";
+  const showTypeBranch = props.contentTypesLoading || props.models.length > 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background/90">
@@ -169,86 +178,32 @@ export function ContentLibrarySidebar(props: {
 
         <SidebarSectionLabel label={t("content:CONTENT_LIBRARY_SECTION_VIEWS")} />
         <SidebarMenu className="gap-1.5">
-          <SidebarMenuItem>
-            <TreeLeafButton
-              active={props.activeScope === "tree:all"}
-              icon={<ListTree className="size-4" />}
-              label={t("content:CONTENT_LIBRARY_MENU_VIEWS_ALL")}
-              count={props.counts.all}
-              onClick={() => props.onScopeChange("tree:all")}
-            />
-          </SidebarMenuItem>
-
-          <TreeBranch
-            icon={<Folder className="size-4" />}
-            label={t("content:CONTENT_LIBRARY_SECTION_STATUS")}
-          >
-            <SidebarMenuSubItem>
-              <TreeLeafButton
-                active={isStatusScopeActive(props.activeScope, "published")}
-                icon={<CheckCircle2 className="size-4" />}
-                label={t("content:CONTENT_LIBRARY_STATUS_PUBLISHED")}
-                count={props.counts.statuses.published}
-                onClick={() => props.onScopeChange("tree:status:published")}
-              />
-            </SidebarMenuSubItem>
-            <SidebarMenuSubItem>
-              <TreeLeafButton
-                active={isStatusScopeActive(props.activeScope, "changed")}
-                icon={<FilePenLine className="size-4" />}
-                label={t("content:CONTENT_LIBRARY_STATUS_CHANGED")}
-                count={props.counts.statuses.changed}
-                onClick={() => props.onScopeChange("tree:status:changed")}
-              />
-            </SidebarMenuSubItem>
-            <SidebarMenuSubItem>
-              <TreeLeafButton
-                active={isStatusScopeActive(props.activeScope, "draft")}
-                icon={<PenSquare className="size-4" />}
-                label={t("content:CONTENT_LIBRARY_STATUS_DRAFT")}
-                count={props.counts.statuses.draft}
-                onClick={() => props.onScopeChange("tree:status:draft")}
-              />
-            </SidebarMenuSubItem>
-            <SidebarMenuSubItem>
-              <TreeLeafButton
-                active={isStatusScopeActive(props.activeScope, "archived")}
-                icon={<Archive className="size-4" />}
-                label={t("content:CONTENT_LIBRARY_STATUS_ARCHIVED")}
-                count={props.counts.statuses.archived}
-                onClick={() => props.onScopeChange("tree:status:archived")}
-              />
-            </SidebarMenuSubItem>
-          </TreeBranch>
-
-          <TreeBranch
-            icon={<Folder className="size-4" />}
-            label={t("content:CONTENT_LIBRARY_SECTION_CONTENT_TYPE")}
-          >
-            {props.contentTypesLoading ? (
-              <SidebarMenuSubItem>
-                <div className="px-3 py-2 text-sm text-label-secondary">{t("common:LOADING")}</div>
-              </SidebarMenuSubItem>
-            ) : props.models.length > 0 ? (
-              props.models.map((model) => (
-                <SidebarMenuSubItem key={model.id}>
-                  <TreeLeafButton
-                    active={isTypeScopeActive(props.activeScope, model.key)}
-                    icon={<FileStack className="size-4" />}
-                    label={model.name}
-                    count={props.counts.models[model.key] ?? 0}
-                    onClick={() => props.onScopeChange(`tree:type:${model.key}`)}
-                  />
+          {showTypeBranch ? (
+            <TreeBranch
+              icon={<Folder className="size-4" />}
+              label={t("content:CONTENT_LIBRARY_SECTION_BY_TYPE")}
+            >
+              {props.contentTypesLoading ? (
+                <SidebarMenuSubItem>
+                  <div className="px-3 py-2 text-sm text-label-secondary">
+                    {t("common:LOADING")}
+                  </div>
                 </SidebarMenuSubItem>
-              ))
-            ) : (
-              <SidebarMenuSubItem>
-                <div className="px-3 py-2 text-sm text-label-secondary">
-                  {t("content:CONTENT_LIBRARY_CONTENT_TYPES_EMPTY")}
-                </div>
-              </SidebarMenuSubItem>
-            )}
-          </TreeBranch>
+              ) : (
+                props.models.map((model) => (
+                  <SidebarMenuSubItem key={model.id}>
+                    <TreeLeafButton
+                      active={isTypeScopeActive(props.activeScope, model.key)}
+                      icon={<FileStack className="size-4" />}
+                      label={model.name}
+                      count={props.counts.models[model.key] ?? 0}
+                      onClick={() => props.onScopeChange(`tree:type:${model.key}`)}
+                    />
+                  </SidebarMenuSubItem>
+                ))
+              )}
+            </TreeBranch>
+          ) : null}
         </SidebarMenu>
       </div>
     </div>

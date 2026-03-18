@@ -2,13 +2,11 @@ import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-
 import {
   useDataTable,
   useDataTableRowHeightPreference,
   useDataTableWrapHeadersPreference,
 } from "@arclayer/ui/data-table";
-
 import {
   archiveContentItemVersion,
   listAllContentItems,
@@ -21,6 +19,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminContentModel } from "@/types/api";
+import { ContentLibraryEmptyStateAction } from "./components/content-library-empty-state-action";
 import { ContentLibraryRowActions } from "./components/content-library-row-actions";
 import { ContentLibrarySidebar } from "./components/content-library-sidebar";
 import { ContentLibraryStatusTag } from "./components/content-library-status-tag";
@@ -31,60 +30,45 @@ import type {
   ContentLibraryToolbarFilters,
 } from "./types";
 import {
+  buildContentItemsQueryKey,
   buildContentLibraryPageData,
   buildContentLibraryRows,
+  buildContentModelsQueryKey,
   buildContentSidebarCounts,
-  isScheduledScope,
+  CONTENT_LIBRARY_DEFAULT_SCOPE,
+  contentLibraryTableId,
 } from "./utils";
-
-const DEFAULT_SCOPE: ContentLibraryScopeId = "quick:all";
-
-function contentLibraryTableId(workspaceId: string | null): string {
-  return `workspace-content-library:${workspaceId || "unknown"}`;
-}
-
-function buildItemsQueryKey(workspaceId: string | null) {
-  return ["content", "items", "all", workspaceId] as const;
-}
-
-function buildModelsQueryKey(workspaceId: string | null) {
-  return ["content", "models", "all", workspaceId] as const;
-}
-
 export function ContentLibraryPage() {
   const { t } = useTranslation(["content", "common", "nav", "team"]);
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const queryClient = useQueryClient();
   const dateTime = useWorkspaceDateTimeFormatter();
-
-  const [activeScope, setActiveScope] = React.useState<ContentLibraryScopeId>(DEFAULT_SCOPE);
+  const [activeScope, setActiveScope] = React.useState<ContentLibraryScopeId>(
+    CONTENT_LIBRARY_DEFAULT_SCOPE,
+  );
   const [toolbarFilters, setToolbarFilters] = React.useState<ContentLibraryToolbarFilters>({});
-
   const dataTableId = React.useMemo(
     () => contentLibraryTableId(workspaceId ? String(workspaceId) : null),
     [workspaceId],
   );
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId: dataTableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId: dataTableId });
-
   const modelsQuery = useQuery({
-    queryKey: buildModelsQueryKey(workspaceId ? String(workspaceId) : null),
+    queryKey: buildContentModelsQueryKey(workspaceId ? String(workspaceId) : null),
     enabled: Boolean(workspaceId),
     queryFn: async () => listAllContentModels(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
-
   const itemsQuery = useQuery({
-    queryKey: buildItemsQueryKey(workspaceId ? String(workspaceId) : null),
+    queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
     enabled: Boolean(workspaceId),
     queryFn: async () => listAllContentItems(String(workspaceId)),
     staleTime: 30 * 1000,
     retry: false,
     meta: { silent: true },
   });
-
   const models = React.useMemo<AdminContentModel[]>(
     () => [...(modelsQuery.data ?? [])].sort((left, right) => left.name.localeCompare(right.name)),
     [modelsQuery.data],
@@ -94,20 +78,17 @@ export function ContentLibraryPage() {
     [itemsQuery.data, models],
   );
   const sidebarCounts = React.useMemo(() => buildContentSidebarCounts(rows), [rows]);
-
   React.useEffect(() => {
     if (!activeScope.startsWith("tree:type:")) return;
     const modelKey = activeScope.replace("tree:type:", "");
     if (models.some((model) => model.key === modelKey)) return;
-    setActiveScope(DEFAULT_SCOPE);
+    setActiveScope(CONTENT_LIBRARY_DEFAULT_SCOPE);
   }, [activeScope, models]);
-
   React.useEffect(() => {
     if (!toolbarFilters.modelKey) return;
     if (models.some((model) => model.key === toolbarFilters.modelKey)) return;
     setToolbarFilters((prev) => ({ ...prev, modelKey: undefined }));
   }, [models, toolbarFilters.modelKey]);
-
   const archiveMutation = useMutation({
     mutationFn: async (row: ContentLibraryTableRow) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
@@ -117,12 +98,11 @@ export function ContentLibraryPage() {
     onSuccess: async () => {
       notifySuccessText(t("content:CONTENT_LIBRARY_ARCHIVE_SUCCESS"));
       await queryClient.invalidateQueries({
-        queryKey: buildItemsQueryKey(workspaceId ? String(workspaceId) : null),
+        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
     },
     onError: (error) => notifyError(error),
   });
-
   const columns = React.useMemo<ColumnDef<ContentLibraryTableRow, unknown>[]>(
     () => [
       {
@@ -133,20 +113,7 @@ export function ContentLibraryPage() {
           <div className="min-w-0">
             <div className="truncate font-medium text-foreground">{row.original.name}</div>
             <div className="truncate text-caption text-label-secondary">
-              {row.original.slug} · {row.original.locale}
-            </div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: "modelName",
-        meta: { title: t("content:CONTENT_LIBRARY_TABLE_COL_TYPE"), sortKey: "modelName" },
-        header: t("content:CONTENT_LIBRARY_TABLE_COL_TYPE"),
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium text-foreground">{row.original.modelName}</div>
-            <div className="truncate text-caption text-label-secondary">
-              {row.original.modelKey}
+              {row.original.modelName} · {row.original.slug} · {row.original.locale}
             </div>
           </div>
         ),
@@ -198,7 +165,6 @@ export function ContentLibraryPage() {
     ],
     [archiveMutation, dateTime, t],
   );
-
   const dataReady = Boolean(workspaceId) && !modelsQuery.isLoading && !itemsQuery.isLoading;
   const dataError = modelsQuery.error ?? itemsQuery.error;
   const fingerprint = React.useMemo(
@@ -213,7 +179,6 @@ export function ContentLibraryPage() {
       ].join("|"),
     [activeScope, itemsQuery.dataUpdatedAt, modelsQuery.dataUpdatedAt, rows.length, toolbarFilters],
   );
-
   const tableHook = useDataTable<ContentLibraryTableRow, { fingerprint: string }>({
     tableId: dataTableId,
     columns,
@@ -226,13 +191,7 @@ export function ContentLibraryPage() {
       meta: { silent: true },
     },
   });
-
-  const emptyTitle = isScheduledScope(activeScope)
-    ? t("content:CONTENT_LIBRARY_EMPTY_SCHEDULED_TITLE")
-    : t("content:CONTENT_LIBRARY_EMPTY_TITLE");
-  const emptyDescription = isScheduledScope(activeScope)
-    ? t("content:CONTENT_LIBRARY_EMPTY_SCHEDULED_DESC")
-    : t("content:CONTENT_LIBRARY_EMPTY_DESC");
+  const isInitialEmptyState = !modelsQuery.isLoading && !itemsQuery.isLoading && rows.length === 0;
   const toolsLabels = React.useMemo(() => buildDataTableToolsLabels(t), [t]);
   const refreshing =
     tableHook.isFetching ||
@@ -267,7 +226,7 @@ export function ContentLibraryPage() {
         />
       }
       sideSlots={{
-        right: {
+        left: {
           title: t("content:CONTENT_LIBRARY_PANEL_TITLE"),
           mobileLabel: t("content:CONTENT_LIBRARY_PANEL_TITLE"),
           minWidth: "17rem",
@@ -288,8 +247,31 @@ export function ContentLibraryPage() {
       <AdminDataTableSection
         table={tableHook.table}
         emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}
-        emptyTitle={emptyTitle}
-        emptyDescription={emptyDescription}
+        emptyTitle={
+          isInitialEmptyState
+            ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_TITLE")
+            : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_TITLE")
+        }
+        emptyDescription={
+          isInitialEmptyState
+            ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
+            : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
+        }
+        emptyExtra={
+          <ContentLibraryEmptyStateAction
+            visible={isInitialEmptyState}
+            workspaceId={workspaceId ? String(workspaceId) : null}
+            models={models.map((model) => ({ key: model.key, name: model.name }))}
+            onCreated={() => {
+              setActiveScope(CONTENT_LIBRARY_DEFAULT_SCOPE);
+              setToolbarFilters({});
+              tableHook.setSearchInput("");
+              void queryClient.invalidateQueries({
+                queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+              });
+            }}
+          />
+        }
         loading={modelsQuery.isLoading || itemsQuery.isLoading}
         error={dataError}
         onRetry={() => {

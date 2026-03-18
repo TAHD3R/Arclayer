@@ -15,8 +15,9 @@ type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 export type AdminDataTableSectionProps<TData> = {
   table: ReactTable<TData>;
   emptyText: string;
-  emptyTitle: string;
-  emptyDescription: string;
+  emptyTitle: ReactNode;
+  emptyDescription: ReactNode;
+  emptyExtra?: ReactNode;
   loading: boolean;
   error: unknown;
   onRetry: () => void;
@@ -44,6 +45,7 @@ export function AdminDataTableSection<TData>({
   emptyText,
   emptyTitle,
   emptyDescription,
+  emptyExtra,
   loading,
   error,
   onRetry,
@@ -71,6 +73,7 @@ export function AdminDataTableSection<TData>({
         loadingVariant="table"
         emptyTitle={emptyTitle}
         emptyDescription={emptyDescription}
+        emptyExtra={emptyExtra}
         className="flex-1 min-h-0"
       >
         <DataTablePresenter
