@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any
 
 from pydantic import ConfigDict, Field
@@ -24,11 +23,6 @@ class PublishArtifactsOut(BaseSchema):
 
     graph_nodes: int = Field(default=0, ge=0, description="Number of generated graph nodes.")
     impact: PublishImpactOut = Field(..., description="Publish impact summary.")
-
-
-class PublishExportTarget(StrEnum):
-    NEXTJS = "nextjs"
-    SVELTEKIT = "sveltekit"
 
 
 class PublishExportRoutePointerOut(BaseSchema):
@@ -60,25 +54,4 @@ class PublishExportContractOut(BaseSchema):
     artifacts: list[PublishExportArtifactOut] = Field(
         default_factory=list,
         description="Framework-neutral artifact payload contract.",
-    )
-
-
-class PublishExportBundleFileOut(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    path: str = Field(..., min_length=1, description="Relative file path inside exported target bundle.")
-    content: str = Field(..., description="Generated file content.")
-
-
-class PublishExportBundleOut(BaseSchema):
-    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
-
-    target: PublishExportTarget = Field(..., description="Export target framework.")
-    publish_contract: PublishExportContractOut = Field(
-        ..., description="Contract shared with hosted delivery adapters."
-    )
-    files: list[PublishExportBundleFileOut] = Field(default_factory=list, description="Generated bundle files.")
-    requires_hosted_runtime: bool = Field(
-        default=False,
-        description="Whether the exported project depends on hosted runtime code.",
     )

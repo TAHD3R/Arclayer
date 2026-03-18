@@ -708,9 +708,6 @@ import type {
   WorkspacesPostWorkspacePublishArtifactsData,
   WorkspacesPostWorkspacePublishArtifactsErrors,
   WorkspacesPostWorkspacePublishArtifactsResponses,
-  WorkspacesPostWorkspacePublishExportBundleData,
-  WorkspacesPostWorkspacePublishExportBundleErrors,
-  WorkspacesPostWorkspacePublishExportBundleResponses,
   WorkspacesPresignUploadPartData,
   WorkspacesPresignUploadPartErrors,
   WorkspacesPresignUploadPartResponses,
@@ -4404,22 +4401,6 @@ export const workspacesPostWorkspacePublishArtifacts = <ThrowOnError extends boo
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/workspaces/{workspace_id}/publish/artifacts",
-    ...options,
-  });
-
-/**
- * Build export bundle from publish contract
- */
-export const workspacesPostWorkspacePublishExportBundle = <ThrowOnError extends boolean = false>(
-  options: Options<WorkspacesPostWorkspacePublishExportBundleData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    WorkspacesPostWorkspacePublishExportBundleResponses,
-    WorkspacesPostWorkspacePublishExportBundleErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/workspaces/{workspace_id}/publish/exports/{target}",
     ...options,
   });
 

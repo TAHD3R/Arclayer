@@ -10,13 +10,10 @@ from apps.api.src.modules.workspaces.authz.http.service import require_workspace
 from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.modules.workspaces.publish.export_service import WorkspacePublishExportService
 from apps.api.src.modules.workspaces.publish.preview_service import WorkspacePublishPreviewService
 from apps.api.src.modules.workspaces.publish.schema import (
     PublishArtifactsOut,
-    PublishExportBundleOut,
     PublishExportContractOut,
-    PublishExportTarget,
     PublishImpactOut,
 )
 from apps.api.src.modules.workspaces.publish.service import WorkspacePublishService
@@ -34,12 +31,6 @@ def get_workspace_publish_service() -> WorkspacePublishService:
 
 def get_workspace_publish_preview_service() -> WorkspacePublishPreviewService:
     return WorkspacePublishPreviewService()
-
-
-def get_workspace_publish_export_service(
-    preview_service: Annotated[WorkspacePublishPreviewService, Depends(get_workspace_publish_preview_service)],
-) -> WorkspacePublishExportService:
-    return WorkspacePublishExportService(preview_service=preview_service)
 
 
 @router.get(
@@ -85,25 +76,4 @@ async def get_workspace_publish_preview_contract(
     service: Annotated[WorkspacePublishPreviewService, Depends(get_workspace_publish_preview_service)],
 ) -> ResponseModel[PublishExportContractOut]:
     data = await service.build_preview_contract(workspace_id=ctx.workspace_id, site_id=site_id)
-    return Response.success(data=data)
-
-
-@router.post(
-    "/exports/{target}",
-    response_model=ResponseModel[PublishExportBundleOut],
-    response_model_exclude_none=True,
-    summary="Build export bundle from publish contract",
-    dependencies=[require_workspace_permission("system:content:publish")],
-)
-async def post_workspace_publish_export_bundle(
-    target: PublishExportTarget,
-    site_id: Annotated[UUID, Depends(_resolve_site_id)],
-    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
-    service: Annotated[WorkspacePublishExportService, Depends(get_workspace_publish_export_service)],
-) -> ResponseModel[PublishExportBundleOut]:
-    data = await service.build_export_bundle(
-        workspace_id=ctx.workspace_id,
-        site_id=site_id,
-        target=target,
-    )
     return Response.success(data=data)

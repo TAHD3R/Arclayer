@@ -8823,50 +8823,6 @@ export type PublishExportArtifactOut = {
 };
 
 /**
- * PublishExportBundleFileOut
- */
-export type PublishExportBundleFileOut = {
-  /**
-   * Content
-   *
-   * Generated file content.
-   */
-  content: string;
-  /**
-   * Path
-   *
-   * Relative file path inside exported target bundle.
-   */
-  path: string;
-};
-
-/**
- * PublishExportBundleOut
- */
-export type PublishExportBundleOut = {
-  /**
-   * Files
-   *
-   * Generated bundle files.
-   */
-  files?: Array<PublishExportBundleFileOut>;
-  /**
-   * Contract shared with hosted delivery adapters.
-   */
-  publishContract: PublishExportContractOut;
-  /**
-   * Requireshostedruntime
-   *
-   * Whether the exported project depends on hosted runtime code.
-   */
-  requiresHostedRuntime?: boolean;
-  /**
-   * Export target framework.
-   */
-  target: PublishExportTarget;
-};
-
-/**
  * PublishExportContractOut
  */
 export type PublishExportContractOut = {
@@ -8913,11 +8869,6 @@ export type PublishExportRoutePointerOut = {
    */
   tenantId: string;
 };
-
-/**
- * PublishExportTarget
- */
-export type PublishExportTarget = "nextjs" | "sveltekit";
 
 /**
  * PublishImpactOut
@@ -11497,31 +11448,6 @@ export type ResponseModelProvisionRepairOut = {
  */
 export type ResponseModelPublishArtifactsOut = {
   data?: PublishArtifactsOut | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
- * ResponseModel[PublishExportBundleOut]
- */
-export type ResponseModelPublishExportBundleOut = {
-  data?: PublishExportBundleOut | null;
   /**
    * Error
    */
@@ -24866,41 +24792,6 @@ export type WorkspacesPostWorkspacePublishArtifactsResponses = {
 
 export type WorkspacesPostWorkspacePublishArtifactsResponse =
   WorkspacesPostWorkspacePublishArtifactsResponses[keyof WorkspacesPostWorkspacePublishArtifactsResponses];
-
-export type WorkspacesPostWorkspacePublishExportBundleData = {
-  body?: never;
-  path: {
-    target: PublishExportTarget;
-    /**
-     * Workspace Id
-     *
-     * Workspace ID.
-     */
-    workspace_id: string;
-  };
-  query?: never;
-  url: "/api/v1/workspaces/{workspace_id}/publish/exports/{target}";
-};
-
-export type WorkspacesPostWorkspacePublishExportBundleErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type WorkspacesPostWorkspacePublishExportBundleError =
-  WorkspacesPostWorkspacePublishExportBundleErrors[keyof WorkspacesPostWorkspacePublishExportBundleErrors];
-
-export type WorkspacesPostWorkspacePublishExportBundleResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelPublishExportBundleOut;
-};
-
-export type WorkspacesPostWorkspacePublishExportBundleResponse =
-  WorkspacesPostWorkspacePublishExportBundleResponses[keyof WorkspacesPostWorkspacePublishExportBundleResponses];
 
 export type WorkspacesGetWorkspacePublishImpactData = {
   body?: never;
