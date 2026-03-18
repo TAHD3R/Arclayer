@@ -28,30 +28,41 @@ export type AdminContentModel = {
 
 export type AdminContentItemStatus = "draft" | "published" | "archived";
 export type AdminContentItemVisibility = "public" | "private";
+export type AdminContentBootstrapPresetState = "selected" | "customized" | "none";
+export type AdminContentCapabilityPackId =
+  | AdminContentModelCapability
+  | "layout_bound"
+  | "reusable"
+  | "taxonomy_enabled";
 
 export type AdminContentItem = {
   id: string;
   workspaceId: string;
   siteId: string;
-  modelId: string;
-  modelKey: string;
+  modelId?: string | null;
+  modelKey?: string | null;
   slug: string;
   title?: string | null;
   status: AdminContentItemStatus;
   visibility: AdminContentItemVisibility;
   locale: string;
+  bootstrapPresetKey?: string | null;
+  bootstrapPresetState: AdminContentBootstrapPresetState;
+  capabilityPackIds: AdminContentCapabilityPackId[];
   draftVersion: number;
   publishedVersion?: number | null;
   updatedAt: string;
 };
 
 export type CreateAdminContentItemPayload = {
-  modelKey: string;
-  slug: string;
-  title?: string | null;
+  title: string;
   locale?: string;
-  status?: AdminContentItemStatus;
-  visibility?: AdminContentItemVisibility;
+};
+
+export type ApplyAdminContentBootstrapShapePayload = {
+  presetKey?: string | null;
+  presetState: AdminContentBootstrapPresetState;
+  capabilityPackIds: AdminContentCapabilityPackId[];
 };
 
 export type AdminContentVersion = {

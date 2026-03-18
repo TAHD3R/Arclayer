@@ -7,6 +7,7 @@ from typing import Any
 from tortoise.fields.data import CharEnumFieldInstance
 
 from apps.api.src.models.content._enums import (
+    ContentBootstrapPresetState,
     ContentItemStatus,
     ContentItemVisibility,
     ContentModelFieldType,
@@ -30,6 +31,7 @@ from apps.api.src.modules.workspaces.content.contracts import schema as contract
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_0011 = REPO_ROOT / "apps/api/src/migrations/0011_content_kernel_initial.py"
 MIGRATION_0013 = REPO_ROOT / "apps/api/src/migrations/0013_content_platform_rebuild.py"
+MIGRATION_0015 = REPO_ROOT / "apps/api/src/migrations/0015_content_bootstrap_shape.py"
 SEO_PROFILE_MODEL = REPO_ROOT / "apps/api/src/models/content/seo_profile.py"
 COMPONENT_BINDING_MODEL = REPO_ROOT / "apps/api/src/models/content/component_binding.py"
 PUBLISH_ARTIFACT_MODEL = REPO_ROOT / "apps/api/src/models/content/publish_artifact.py"
@@ -120,6 +122,17 @@ def test_content_model_relation_persists_target_model_key_and_optional_target_mo
 
 def test_content_item_record_unique_key_is_model_locale_slug() -> None:
     assert getattr(ContentItemRecord.Meta, "unique_together", None) == (("model_definition_id", "locale", "slug"),)
+
+
+def test_content_item_record_supports_model_less_bootstrap_shape() -> None:
+    model_definition_field = _field(ContentItemRecord, "model_definition")
+    preset_state_field = _field(ContentItemRecord, "bootstrap_preset_state")
+    capability_pack_ids_field = _field(ContentItemRecord, "capability_pack_ids")
+
+    assert model_definition_field.null is True
+    assert preset_state_field.enum_type is ContentBootstrapPresetState
+    assert capability_pack_ids_field.null is False
+    assert "bootstrap_preset_key" in _field_names(ContentItemRecord)
 
 
 def test_kernel_model_fields_use_char_enum_fields() -> None:
@@ -215,3 +228,15 @@ def test_migration_0013_adds_rebuild_kernel_records() -> None:
     assert 'name="SEOProfileRecord"' in migration
     assert 'name="ComponentBindingRecord"' in migration
     assert 'name="PublishArtifactRecord"' in migration
+
+
+def test_migration_0015_adds_content_bootstrap_shape_storage() -> None:
+    assert MIGRATION_0015.exists()
+
+    migration = MIGRATION_0015.read_text(encoding="utf-8")
+    assert 'name="model_definition"' in migration
+    assert "null=True" in migration
+    assert 'name="bootstrap_preset_key"' in migration
+    assert 'name="bootstrap_preset_state"' in migration
+    assert 'name="capability_pack_ids"' in migration
+    assert "content_model_definitions AS models" in migration

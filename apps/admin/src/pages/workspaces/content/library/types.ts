@@ -16,7 +16,7 @@ export type ContentLibraryToolbarFilters = {
 
 export type ContentLibraryTableRow = AdminContentItem & {
   name: string;
-  modelName: string;
+  modelName?: string | null;
   modelDescription?: string | null;
   modelCapabilities: AdminContentModelCapability[];
   derivedStatus: ContentLibraryDerivedStatus;

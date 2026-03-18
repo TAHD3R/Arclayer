@@ -6,7 +6,11 @@ from uuid import UUID
 from tortoise import fields
 
 from apps.api.src.common.models.base import BaseModel
-from apps.api.src.models.content._enums import ContentItemStatus, ContentItemVisibility
+from apps.api.src.models.content._enums import (
+    ContentBootstrapPresetState,
+    ContentItemStatus,
+    ContentItemVisibility,
+)
 
 
 class ContentItemRecord(BaseModel):
@@ -26,6 +30,7 @@ class ContentItemRecord(BaseModel):
         "models.ContentModelDefinitionRecord",
         related_name="items",
         on_delete=fields.CASCADE,
+        null=True,
     )
 
     slug = fields.CharField(max_length=256, db_index=True)
@@ -43,6 +48,14 @@ class ContentItemRecord(BaseModel):
         db_index=True,
     )
     locale = fields.CharField(max_length=16, default="zh-CN", db_index=True)
+    bootstrap_preset_key = fields.CharField(max_length=64, null=True, db_index=True)
+    bootstrap_preset_state = fields.CharEnumField(
+        ContentBootstrapPresetState,
+        max_length=16,
+        default=ContentBootstrapPresetState.NONE,
+        db_index=True,
+    )
+    capability_pack_ids = fields.JSONField(default=list)
 
     draft_version = fields.IntField(default=0)
     published_version = fields.IntField(null=True)
@@ -53,7 +66,7 @@ class ContentItemRecord(BaseModel):
     if TYPE_CHECKING:
         workspace_id: UUID
         site_id: UUID
-        model_definition_id: UUID
+        model_definition_id: UUID | None
 
     class Meta(BaseModel.Meta):
         table = "content_items"

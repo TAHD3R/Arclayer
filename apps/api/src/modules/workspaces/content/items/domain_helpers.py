@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
+from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.core.exceptions import Conflict
 from apps.api.src.models.content._enums import ContentItemStatus, ContentItemVisibility, ContentVersionState
 from apps.api.src.models.content.content_item import ContentItemRecord
@@ -22,6 +23,9 @@ from apps.api.src.modules.workspaces.content.items.input_schema import (
 PresentationPayload = list[tuple[ContentPresentationKind, dict[str, Any] | None]]
 SEO_PRESENTATION_KIND: ContentPresentationKind = "seo"
 SLOT_MAPPING_PRESENTATION_KIND: ContentPresentationKind = "slot_mapping"
+DEFAULT_FORMLESS_SLUG = "draft"
+MAX_SLUG_LENGTH = 256
+SLUG_SUFFIX_LENGTH = 8
 
 VERSION_TRANSITIONS: dict[ContentVersionState, tuple[ContentVersionState, ...]] = {
     ContentVersionState.PUBLISHED: (ContentVersionState.DRAFT, ContentVersionState.SCHEDULED),
@@ -51,18 +55,61 @@ def normalize_visibility(visibility: ContentItemVisibility) -> str:
     return str(visibility)
 
 
-def to_item_out(item: ContentItemRecord, model: ContentModelDefinitionRecord) -> ContentItemOut:
+def build_formless_draft_slug(title: str) -> str:
+    base = slugify(title) or DEFAULT_FORMLESS_SLUG
+    suffix = uuid4().hex[:SLUG_SUFFIX_LENGTH]
+    trimmed = base[: max(1, MAX_SLUG_LENGTH - len(suffix) - 1)]
+    return f"{trimmed}-{suffix}"
+
+
+def normalize_capability_pack_ids(values: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        normalized = value.strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        out.append(normalized)
+    return out
+
+
+def normalize_bootstrap_shape(
+    *,
+    preset_key: str | None,
+    preset_state: str,
+    capability_pack_ids: list[str],
+) -> tuple[str | None, str, list[str]]:
+    normalized_preset = preset_key.strip() if isinstance(preset_key, str) else None
+    normalized_preset = normalized_preset or None
+    normalized_packs = normalize_capability_pack_ids(capability_pack_ids)
+    if preset_state != "none" and normalized_preset is None:
+        raise Conflict("Preset state requires a preset selection", error="CONTENT_BOOTSTRAP_PRESET_INVALID")
+    if preset_state == "none":
+        normalized_preset = None
+    return normalized_preset, preset_state, normalized_packs
+
+
+def item_has_capability(item: ContentItemRecord, capability: str) -> bool:
+    raw = item.capability_pack_ids if isinstance(item.capability_pack_ids, list) else []
+    return capability in {str(value).strip() for value in raw if isinstance(value, str)}
+
+
+def to_item_out(item: ContentItemRecord, model: ContentModelDefinitionRecord | None) -> ContentItemOut:
     return ContentItemOut(
         id=item.id,
         workspace_id=item.workspace_id,
         site_id=item.site_id,
-        model_id=model.id,
-        model_key=model.key,
+        model_id=model.id if model is not None else None,
+        model_key=model.key if model is not None else None,
         slug=item.slug,
         title=item.title,
         status=str(item.status),
         visibility=str(item.visibility),
         locale=item.locale,
+        bootstrap_preset_key=item.bootstrap_preset_key,
+        bootstrap_preset_state=str(item.bootstrap_preset_state),
+        capability_pack_ids=normalize_capability_pack_ids(item.capability_pack_ids or []),
         draft_version=item.draft_version,
         published_version=item.published_version,
         updated_at=item.updated_at,

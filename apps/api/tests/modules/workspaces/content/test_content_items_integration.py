@@ -71,30 +71,23 @@ async def _workspace_client(prepared_db, integration_valkey_settings):
         app.dependency_overrides.clear()
 
 
-def _model_payload() -> dict:
+def _item_payload() -> dict:
     return {
-        "key": "article",
-        "name": "Article",
-        "fields": [
-            {"key": "title", "label": "Title", "scalar": "text", "required": True},
-            {"key": "body", "label": "Body", "scalar": "long_text", "required": False},
-        ],
-        "relations": [],
-        "capabilities": ["versioned", "publishable", "rich_text_editable", "visual_editable"],
-        "routing": {"mode": "none"},
-        "workflow": {"states": ["draft", "published"], "initialState": "draft"},
-        "views": [],
+        "title": "Hello World",
+        "locale": "en-US",
     }
 
 
-def _item_payload(*, status: str = "draft") -> dict:
+def _bootstrap_shape_payload(
+    *,
+    preset_key: str | None = "post",
+    preset_state: str = "selected",
+    capability_pack_ids: list[str] | None = None,
+) -> dict:
     return {
-        "modelKey": "article",
-        "slug": "hello-world",
-        "title": "Hello World",
-        "locale": "en-US",
-        "visibility": "public",
-        "status": status,
+        "presetKey": preset_key,
+        "presetState": preset_state,
+        "capabilityPackIds": capability_pack_ids or ["publishable", "schedulable", "seo_managed", "rich_text_editable"],
     }
 
 
@@ -128,18 +121,17 @@ async def test_content_items_full_workflow_with_first_class_presentations(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
-            json=_model_payload(),
-        )
-        assert model_res.status_code == 201, model_res.text
-
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
@@ -181,12 +173,6 @@ async def test_content_items_list_is_available_from_canonical_read_endpoint(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
-            json=_model_payload(),
-        )
-        assert model_res.status_code == 201, model_res.text
-
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -197,8 +183,44 @@ async def test_content_items_list_is_available_from_canonical_read_endpoint(
         assert list_res.status_code == 200, list_res.text
         payload = list_res.json()["data"]
         assert payload["total"] == 1
-        assert payload["items"][0]["modelKey"] == "article"
-        assert payload["items"][0]["slug"] == "hello-world"
+        assert payload["items"][0].get("modelKey") is None
+        assert payload["items"][0]["bootstrapPresetState"] == "none"
+        assert payload["items"][0]["capabilityPackIds"] == []
+        assert payload["items"][0]["slug"].startswith("hello-world")
+
+
+@pytest.mark.asyncio
+async def test_content_items_apply_bootstrap_shape_and_track_customized_state(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
+        assert shape_res.json()["data"]["bootstrapPresetKey"] == "post"
+        assert shape_res.json()["data"]["bootstrapPresetState"] == "selected"
+
+        customized_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(
+                preset_key="post",
+                preset_state="customized",
+                capability_pack_ids=["publishable", "seo_managed"],
+            ),
+        )
+        assert customized_res.status_code == 200, customized_res.text
+        assert customized_res.json()["data"]["bootstrapPresetState"] == "customized"
+        assert customized_res.json()["data"]["capabilityPackIds"] == ["publishable", "seo_managed"]
 
 
 @pytest.mark.asyncio
@@ -207,18 +229,18 @@ async def test_content_items_reject_direct_writes_to_published_version(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
-            json=_model_payload(),
-        )
-        assert model_res.status_code == 201, model_res.text
-
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
+
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
@@ -247,18 +269,17 @@ async def test_content_items_archive_transition_is_explicit_and_terminal_for_pub
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
-            json=_model_payload(),
-        )
-        assert model_res.status_code == 201, model_res.text
-
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
@@ -294,27 +315,21 @@ async def test_content_items_archive_transition_is_explicit_and_terminal_for_pub
 
 
 @pytest.mark.asyncio
-async def test_content_items_reject_non_draft_initial_status(
+async def test_content_items_reject_selected_preset_state_without_preset_key(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
-            json=_model_payload(),
-        )
-        assert model_res.status_code == 201, model_res.text
-
-        archived_item_res = await client.post(
+        item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
-            json=_item_payload(status="archived"),
+            json=_item_payload(),
         )
-        assert archived_item_res.status_code == 409, archived_item_res.text
-        assert archived_item_res.json()["error"] == "CONTENT_ITEM_STATUS_INVALID"
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
 
-        published_item_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/items",
-            json=_item_payload(status="published"),
+        invalid_shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(preset_key=None, preset_state="selected"),
         )
-        assert published_item_res.status_code == 409, published_item_res.text
-        assert published_item_res.json()["error"] == "CONTENT_ITEM_STATUS_INVALID"
+        assert invalid_shape_res.status_code == 409, invalid_shape_res.text
+        assert invalid_shape_res.json()["error"] == "CONTENT_BOOTSTRAP_PRESET_INVALID"

@@ -7,27 +7,34 @@ from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
 from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.models.content._enums import ContentItemStatus, ContentVersionState
+from apps.api.src.models.content._enums import (
+    ContentBootstrapPresetState,
+    ContentItemStatus,
+    ContentItemVisibility,
+    ContentVersionState,
+)
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
 from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     VERSION_TRANSITIONS,
     PresentationPayload,
+    build_formless_draft_slug,
     build_patch_item_fields,
     build_patch_version_fields,
     ensure_expected_version,
     extract_component_bindings,
     extract_seo_payload,
     item_fields_for_transition,
+    normalize_bootstrap_shape,
     normalize_initial_status,
     normalize_presentations,
-    normalize_text,
     normalize_visibility,
     status_by_published_version,
     to_item_out,
 )
 from apps.api.src.modules.workspaces.content.items.input_schema import (
+    ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
@@ -109,34 +116,62 @@ class WorkspaceContentCanonicalItemsService:
         actor_user_id: UUID | None,
         payload: ContentItemCreateIn,
     ) -> ContentItemOut:
-        model = await self.repo.get_model_definition_by_key(
-            workspace_id=workspace_id,
-            site_id=site_id,
-            model_key=payload.model_key,
-        )
-        if model is None:
-            raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
-
         try:
             item = await self.repo.create_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                model_definition_id=model.id,
-                slug=normalize_text(payload.slug, field="slug"),
-                title=payload.title,
+                model_definition_id=None,
+                slug=build_formless_draft_slug(payload.title),
+                title=payload.title.strip(),
                 locale=payload.locale,
-                status=normalize_initial_status(payload.status),
-                visibility=normalize_visibility(payload.visibility),
+                status=normalize_initial_status(ContentItemStatus.DRAFT),
+                visibility=normalize_visibility(ContentItemVisibility.PUBLIC),
+                bootstrap_preset_key=None,
+                bootstrap_preset_state=str(ContentBootstrapPresetState.NONE),
+                capability_pack_ids=[],
                 actor_user_id=actor_user_id,
             )
         except IntegrityError as exc:
             raise Conflict(
                 "Content item conflict",
                 error="CONTENT_ITEM_CONFLICT",
-                meta={"modelKey": payload.model_key, "slug": payload.slug, "locale": payload.locale},
+                meta={"title": payload.title, "locale": payload.locale},
             ) from exc
 
-        return to_item_out(item, model)
+        return to_item_out(item, None)
+
+    async def apply_bootstrap_shape(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        actor_user_id: UUID | None,
+        payload: ContentItemBootstrapShapeIn,
+    ) -> ContentItemOut:
+        async with in_transaction() as conn:
+            item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            preset_key, preset_state, capability_pack_ids = normalize_bootstrap_shape(
+                preset_key=payload.preset_key,
+                preset_state=payload.preset_state,
+                capability_pack_ids=payload.capability_pack_ids,
+            )
+            item = await self.repo.update_item_fields(
+                item,
+                fields={
+                    "bootstrap_preset_key": preset_key,
+                    "bootstrap_preset_state": preset_state,
+                    "capability_pack_ids": capability_pack_ids,
+                    "updated_by_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
+            return to_item_out(item, item.model_definition)
 
     async def save_draft_version(
         self,

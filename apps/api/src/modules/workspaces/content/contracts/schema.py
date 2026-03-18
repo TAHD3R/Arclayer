@@ -26,6 +26,7 @@ ContentModelCapability = Literal[
 ContentDefaultEditor = Literal["form", "visual", "rich_text", "table"]
 ContentItemStatus = Literal["draft", "published", "archived"]
 ContentItemVisibility = Literal["public", "private"]
+ContentBootstrapPresetState = Literal["selected", "customized", "none"]
 ContentVersionState = Literal["draft", "published", "scheduled", "archived"]
 ContentPresentationKind = Literal[
     "form_data",
@@ -94,13 +95,27 @@ class ContentItemOut(BaseSchema):
     id: PublicUUID = Field(..., description="Content item id.")
     workspace_id: PublicUUID = Field(..., description="Workspace id.")
     site_id: PublicUUID = Field(..., description="Site id.")
-    model_id: PublicUUID = Field(..., description="Content model id.")
-    model_key: str = Field(..., min_length=1, max_length=64, description="Content model key.")
+    model_id: PublicUUID | None = Field(default=None, description="Optional content model id.")
+    model_key: str | None = Field(default=None, min_length=1, max_length=64, description="Optional content model key.")
     slug: str = Field(..., min_length=1, max_length=256, description="Stable item slug.")
     title: str | None = Field(default=None, description="Optional item title.")
     status: ContentItemStatus = Field(..., description="Lifecycle status.")
     visibility: ContentItemVisibility = Field(..., description="Visibility status.")
     locale: str = Field(..., min_length=2, max_length=16, description="Locale code.")
+    bootstrap_preset_key: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=64,
+        description="Optional starting preset identifier.",
+    )
+    bootstrap_preset_state: ContentBootstrapPresetState = Field(
+        default="none",
+        description="Whether the current capability set still matches a selected preset.",
+    )
+    capability_pack_ids: list[str] = Field(
+        default_factory=list,
+        description="Activated capability pack identifiers that define the item's current shape.",
+    )
     draft_version: int = Field(default=0, ge=0, description="Current draft version pointer.")
     published_version: int | None = Field(default=None, ge=1, description="Current published version pointer.")
     updated_at: datetime = Field(..., description="Last update timestamp.")

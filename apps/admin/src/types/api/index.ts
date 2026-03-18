@@ -66,6 +66,11 @@ export type {
   WorkspaceDangerAction,
   WorkspaceDangerCapabilities,
 } from "./workspaces";
+export type {
+  AdminSitePreviewToken,
+  AdminWorkspaceSite,
+  CreateAdminSitePreviewTokenPayload,
+} from "./workspace-site";
 
 // Settings
 export type {
@@ -123,9 +128,12 @@ export type { AdminAssetUsage, UpsertAdminAssetUsagePayload } from "./asset-usag
 
 // Content
 export type {
+  AdminContentBootstrapPresetState,
+  AdminContentCapabilityPackId,
   AdminContentItem,
   AdminContentItemStatus,
   AdminContentItemVisibility,
+  ApplyAdminContentBootstrapShapePayload,
   CreateAdminContentItemPayload,
   AdminContentModel,
   AdminContentModelCapability,

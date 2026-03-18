@@ -76,11 +76,16 @@ def test_content_item_out_is_identity_shell_without_page_specific_fields() -> No
         "status",
         "visibility",
         "locale",
+        "bootstrap_preset_key",
+        "bootstrap_preset_state",
+        "capability_pack_ids",
         "draft_version",
         "published_version",
         "updated_at",
     }
     assert {"path", "parent_entry_id", "page_blueprint"}.isdisjoint(ContentItemOut.model_fields)
+    assert ContentItemOut.model_fields["model_id"].is_required() is False
+    assert ContentItemOut.model_fields["model_key"].is_required() is False
 
 
 def test_content_version_out_supports_multiple_presentations() -> None:

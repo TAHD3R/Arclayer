@@ -38,6 +38,12 @@ class ContentItemVisibility(StrEnum):
     PRIVATE = "private"
 
 
+class ContentBootstrapPresetState(StrEnum):
+    SELECTED = "selected"
+    CUSTOMIZED = "customized"
+    NONE = "none"
+
+
 class ContentVersionState(StrEnum):
     DRAFT = "draft"
     PUBLISHED = "published"

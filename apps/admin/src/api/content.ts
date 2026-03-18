@@ -4,6 +4,7 @@ import type {
   AdminContentItem,
   AdminContentModel,
   AdminContentVersion,
+  ApplyAdminContentBootstrapShapePayload,
   CreateAdminContentItemPayload,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
@@ -66,6 +67,17 @@ export async function createContentItem(
   payload: CreateAdminContentItemPayload,
 ): Promise<AdminContentItem> {
   return api.post<AdminContentItem>(workspacePath(workspaceId, "/content/items"), payload);
+}
+
+export async function applyContentBootstrapShape(
+  workspaceId: string,
+  itemId: string,
+  payload: ApplyAdminContentBootstrapShapePayload,
+): Promise<AdminContentItem> {
+  return api.patch<AdminContentItem>(
+    workspacePath(workspaceId, `/content/items/${itemId}/bootstrap-shape`),
+    payload,
+  );
 }
 
 export async function archiveContentItemVersion(

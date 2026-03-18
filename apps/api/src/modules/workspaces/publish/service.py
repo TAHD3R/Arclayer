@@ -15,14 +15,10 @@ from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
 from apps.api.src.models.content.published_graph import PublishedGraphRecord
 from apps.api.src.models.content.route_binding import RouteBindingRecord
 from apps.api.src.models.content.seo_profile import SEOProfileRecord
+from apps.api.src.modules.workspaces.content.items.domain_helpers import item_has_capability
 from apps.api.src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishImpactOut
 
 _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST = frozenset({"seo", "slot_mapping"})
-
-
-def _has_model_capability(item: ContentItemRecord, capability: str) -> bool:
-    capabilities = getattr(item.model_definition, "capabilities", None)
-    return isinstance(capabilities, list) and capability in capabilities
 
 
 def _empty_impact() -> PublishImpactOut:
@@ -44,7 +40,7 @@ async def _load_publishable_items(*, workspace_id: UUID, site_id: UUID) -> list[
         .prefetch_related("model_definition")
         .all()
     )
-    return [row for row in rows if _has_model_capability(row, "publishable")]
+    return [row for row in rows if item_has_capability(row, "publishable")]
 
 
 async def _load_active_route_map(*, site_id: UUID) -> dict[tuple[UUID, str], RouteBindingRecord]:
@@ -176,8 +172,8 @@ class WorkspacePublishService:
                     artifact_kind=PublishArtifactKind.RENDER_HINTS,
                     locale=route.locale,
                     payload={
-                        "modelKey": item.model_definition.key,
-                        "capabilities": item.model_definition.capabilities or [],
+                        "modelKey": item.bootstrap_preset_key,
+                        "capabilities": item.capability_pack_ids or [],
                     },
                 )
             )

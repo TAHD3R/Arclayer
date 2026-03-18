@@ -16,6 +16,7 @@ from apps.api.src.modules.workspaces.content.items.canonical_service import (
     WorkspaceContentCanonicalItemsService,
 )
 from apps.api.src.modules.workspaces.content.items.input_schema import (
+    ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
@@ -89,6 +90,37 @@ async def create_workspace_content_item_canonical(
     data = await service.create_item(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
+        actor_user_id=actor_user_id,
+        payload=payload,
+    )
+    return Response.success(data=data)
+
+
+@canonical_items_router.patch(
+    "/items/{item_id}/bootstrap-shape",
+    response_model=ResponseModel[ContentItemOut],
+    response_model_exclude_none=True,
+    summary="Apply bootstrap shape to a content item (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
+)
+async def apply_workspace_content_item_bootstrap_shape(
+    item_id: PublicUUID,
+    payload: Annotated[
+        ContentItemBootstrapShapeIn,
+        Body(description="Bootstrap shape payload."),
+    ],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemsService,
+        Depends(get_workspace_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemOut]:
+    data = await service.apply_bootstrap_shape(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
         actor_user_id=actor_user_id,
         payload=payload,
     )

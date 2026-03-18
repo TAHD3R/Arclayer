@@ -5,19 +5,25 @@ from typing import Any
 from pydantic import ConfigDict, Field
 
 from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.models.content._enums import ContentItemStatus, ContentItemVisibility
-from apps.api.src.modules.workspaces.content.contracts.schema import ContentPresentationKind
+from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentBootstrapPresetState,
+    ContentPresentationKind,
+)
 
 
 class ContentItemCreateIn(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    model_key: str = Field(..., min_length=1, max_length=64)
-    slug: str = Field(..., min_length=1, max_length=256)
-    title: str | None = Field(default=None, max_length=256)
+    title: str = Field(..., min_length=1, max_length=256)
     locale: str = Field(default="zh-CN", min_length=2, max_length=16)
-    status: ContentItemStatus = Field(default="draft")
-    visibility: ContentItemVisibility = Field(default="public")
+
+
+class ContentItemBootstrapShapeIn(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    preset_key: str | None = Field(default=None, min_length=1, max_length=64)
+    preset_state: ContentBootstrapPresetState = Field(default="none")
+    capability_pack_ids: list[str] = Field(default_factory=list, max_length=32)
 
 
 class ContentPresentationIn(BaseSchema):

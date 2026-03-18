@@ -6,32 +6,18 @@ from apps.api.src.common.utils.public_ids import decode_public_id
 from apps.api.src.models.content.component_binding import ComponentBindingRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.seo_profile import SEOProfileRecord
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
+    _bootstrap_shape_payload,
+    _workspace_client,
+)
 
 pytestmark = pytest.mark.integration
 
 
-def _model_payload() -> dict:
-    return {
-        "key": "landing_page",
-        "name": "Landing Page",
-        "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
-        "relations": [],
-        "capabilities": ["versioned", "publishable", "visual_editable", "has_slots", "seo_managed"],
-        "routing": {"mode": "single", "slugField": "title"},
-        "workflow": {"states": ["draft", "published"], "initialState": "draft"},
-        "views": [],
-    }
-
-
 def _item_payload() -> dict:
     return {
-        "modelKey": "landing_page",
-        "slug": "summer-launch",
         "title": "Summer Launch",
         "locale": "en-US",
-        "visibility": "public",
-        "status": "draft",
     }
 
 
@@ -73,18 +59,20 @@ async def test_draft_save_persists_first_class_seo_profiles_and_component_bindin
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
-            json=_model_payload(),
-        )
-        assert model_res.status_code == 201, model_res.text
-
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(
+                preset_key="page",
+                capability_pack_ids=["publishable", "visual_editable", "has_slots", "seo_managed"],
+            ),
+        )
+        assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
@@ -113,18 +101,20 @@ async def test_content_version_auxiliary_endpoints_expose_presentations_seo_and_
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        model_res = await client.post(
-            f"/api/v1/workspaces/{workspace_id}/content/models",
-            json=_model_payload(),
-        )
-        assert model_res.status_code == 201, model_res.text
-
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
         )
         assert item_res.status_code == 201, item_res.text
         item_id = item_res.json()["data"]["id"]
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(
+                preset_key="page",
+                capability_pack_ids=["publishable", "visual_editable", "has_slots", "seo_managed"],
+            ),
+        )
+        assert shape_res.status_code == 200, shape_res.text
 
         draft_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",

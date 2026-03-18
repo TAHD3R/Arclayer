@@ -10,6 +10,7 @@ from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.hierarchy_node import HierarchyNodeRecord
 from apps.api.src.models.content.route_binding import RouteBindingRecord
 from apps.api.src.modules.sites.shared.service import normalize_path
+from apps.api.src.modules.workspaces.content.items.domain_helpers import item_has_capability
 from apps.api.src.modules.workspaces.content.routing.schema import (
     HierarchyNodeOut,
     HierarchyNodeUpsertIn,
@@ -25,11 +26,6 @@ def _normalize_route_path(path: str) -> str:
     if "//" in pathname:
         raise Conflict("Invalid path", error="CONTENT_ROUTE_PATH_INVALID")
     return pathname
-
-
-def _has_model_capability(item: ContentItemRecord, capability: str) -> bool:
-    capabilities = getattr(item.model_definition, "capabilities", None)
-    return isinstance(capabilities, list) and capability in capabilities
 
 
 def _to_route_binding_out(record: RouteBindingRecord) -> RouteBindingOut:
@@ -99,8 +95,8 @@ class WorkspaceContentRoutingService:
         payload: RouteBindingUpsertIn,
     ) -> RouteBindingOut:
         item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id)
-        if not _has_model_capability(item, "routable"):
-            raise Conflict("Model is not routable", error="CONTENT_MODEL_NOT_ROUTABLE")
+        if not item_has_capability(item, "routable"):
+            raise Conflict("Content item is not routable", error="CONTENT_ITEM_NOT_ROUTABLE")
 
         locale = payload.locale.strip() or "zh-CN"
         path = _normalize_route_path(payload.path)
@@ -147,8 +143,8 @@ class WorkspaceContentRoutingService:
         payload: HierarchyNodeUpsertIn,
     ) -> HierarchyNodeOut:
         item = await _get_item_with_model(workspace_id=workspace_id, site_id=site_id, item_id=item_id)
-        if not _has_model_capability(item, "treeable"):
-            raise Conflict("Model is not treeable", error="CONTENT_MODEL_NOT_TREEABLE")
+        if not item_has_capability(item, "treeable"):
+            raise Conflict("Content item is not treeable", error="CONTENT_ITEM_NOT_TREEABLE")
 
         parent_item_id = payload.parent_item_id
         if parent_item_id is not None:

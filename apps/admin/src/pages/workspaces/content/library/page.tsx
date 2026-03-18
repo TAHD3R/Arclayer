@@ -1,6 +1,6 @@
 import * as React from "react";
-import { type ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   useDataTable,
@@ -19,10 +19,10 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminContentModel } from "@/types/api";
-import { ContentLibraryEmptyStateAction } from "./components/content-library-empty-state-action";
-import { ContentLibraryRowActions } from "./components/content-library-row-actions";
+import { workspaceContentBootstrapPath } from "@/lib/routing/workspace-content-routing";
+import { useContentLibraryTableColumns } from "./content-library-table-columns";
+import { ContentLibraryNewContentButton } from "./components/content-library-new-content-button";
 import { ContentLibrarySidebar } from "./components/content-library-sidebar";
-import { ContentLibraryStatusTag } from "./components/content-library-status-tag";
 import { ContentLibraryToolbar } from "./components/content-library-toolbar";
 import type {
   ContentLibraryScopeId,
@@ -38,8 +38,18 @@ import {
   CONTENT_LIBRARY_DEFAULT_SCOPE,
   contentLibraryTableId,
 } from "./utils";
+
+function ContentLibraryPrimaryAction(props: {
+  workspaceId: string | null;
+  onNavigate: () => void;
+}) {
+  if (!props.workspaceId) return null;
+  return <ContentLibraryNewContentButton onClick={props.onNavigate} />;
+}
+
 export function ContentLibraryPage() {
   const { t } = useTranslation(["content", "common", "nav", "team"]);
+  const navigate = useNavigate();
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const queryClient = useQueryClient();
   const dateTime = useWorkspaceDateTimeFormatter();
@@ -103,68 +113,11 @@ export function ContentLibraryPage() {
     },
     onError: (error) => notifyError(error),
   });
-  const columns = React.useMemo<ColumnDef<ContentLibraryTableRow, unknown>[]>(
-    () => [
-      {
-        accessorKey: "name",
-        meta: { title: t("content:CONTENT_LIBRARY_TABLE_COL_NAME"), sortKey: "name" },
-        header: t("content:CONTENT_LIBRARY_TABLE_COL_NAME"),
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium text-foreground">{row.original.name}</div>
-            <div className="truncate text-caption text-label-secondary">
-              {row.original.modelName} · {row.original.slug} · {row.original.locale}
-            </div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: "updatedAt",
-        meta: { title: t("content:CONTENT_LIBRARY_TABLE_COL_UPDATED"), sortKey: "updatedAt" },
-        header: t("content:CONTENT_LIBRARY_TABLE_COL_UPDATED"),
-        cell: ({ row }) => {
-          const formatted = dateTime.formatDateTimeOrNull(row.original.updatedAt);
-          return (
-            <span className={formatted ? "" : "text-label-secondary"}>
-              {formatted || row.original.updatedAt}
-            </span>
-          );
-        },
-      },
-      {
-        id: "updatedBy",
-        meta: { title: t("content:CONTENT_LIBRARY_TABLE_COL_UPDATED_BY") },
-        header: t("content:CONTENT_LIBRARY_TABLE_COL_UPDATED_BY"),
-        cell: () => (
-          <span className="text-label-secondary">
-            {t("content:CONTENT_LIBRARY_TABLE_UPDATED_BY_UNAVAILABLE")}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "derivedStatus",
-        meta: { title: t("content:CONTENT_LIBRARY_TABLE_COL_STATUS"), sortKey: "derivedStatus" },
-        header: t("content:CONTENT_LIBRARY_TABLE_COL_STATUS"),
-        cell: ({ row }) => <ContentLibraryStatusTag status={row.original.derivedStatus} />,
-      },
-      {
-        id: "actions",
-        meta: { title: t("content:CONTENT_LIBRARY_TABLE_COL_ACTIONS"), kind: "actions" },
-        header: "",
-        enableSorting: false,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <ContentLibraryRowActions
-              row={row.original}
-              archivePending={archiveMutation.isPending}
-              onArchive={(nextRow) => archiveMutation.mutate(nextRow)}
-            />
-          </div>
-        ),
-      },
-    ],
-    [archiveMutation, dateTime, t],
-  );
+  const columns = useContentLibraryTableColumns({
+    formatDateTimeOrNull: dateTime.formatDateTimeOrNull,
+    archivePending: archiveMutation.isPending,
+    onArchive: archiveMutation.mutate,
+  });
   const dataReady = Boolean(workspaceId) && !modelsQuery.isLoading && !itemsQuery.isLoading;
   const dataError = modelsQuery.error ?? itemsQuery.error;
   const fingerprint = React.useMemo(
@@ -223,6 +176,14 @@ export function ContentLibraryPage() {
           onResetColumnVisibility={tableHook.resetColumnVisibility}
           toolsLabels={toolsLabels}
           modelOptions={models.map((model) => ({ value: model.key, label: model.name }))}
+          primaryAction={
+            <ContentLibraryPrimaryAction
+              workspaceId={workspaceId ? String(workspaceId) : null}
+              onNavigate={() =>
+                void navigate({ to: workspaceContentBootstrapPath(String(workspaceId)) })
+              }
+            />
+          }
         />
       }
       sideSlots={{
@@ -258,19 +219,14 @@ export function ContentLibraryPage() {
             : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
         }
         emptyExtra={
-          <ContentLibraryEmptyStateAction
-            visible={isInitialEmptyState}
-            workspaceId={workspaceId ? String(workspaceId) : null}
-            models={models.map((model) => ({ key: model.key, name: model.name }))}
-            onCreated={() => {
-              setActiveScope(CONTENT_LIBRARY_DEFAULT_SCOPE);
-              setToolbarFilters({});
-              tableHook.setSearchInput("");
-              void queryClient.invalidateQueries({
-                queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
-              });
-            }}
-          />
+          workspaceId ? (
+            <ContentLibraryNewContentButton
+              visible={isInitialEmptyState}
+              onClick={() =>
+                void navigate({ to: workspaceContentBootstrapPath(String(workspaceId)) })
+              }
+            />
+          ) : null
         }
         loading={modelsQuery.isLoading || itemsQuery.isLoading}
         error={dataError}

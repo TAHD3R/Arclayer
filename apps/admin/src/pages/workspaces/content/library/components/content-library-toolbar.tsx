@@ -57,6 +57,7 @@ export function ContentLibraryToolbar<TData>(props: {
   onResetColumnVisibility?: () => void;
   toolsLabels: DataTableToolsLabels;
   modelOptions: Array<{ value: string; label: string }>;
+  primaryAction?: React.ReactNode;
 }) {
   const { t } = useTranslation(["common", "content"]);
 
@@ -132,18 +133,21 @@ export function ContentLibraryToolbar<TData>(props: {
         </>
       }
       trailing={
-        <DataTableToolbarTools
-          table={props.table}
-          rowHeight={props.rowHeight}
-          onRowHeightChange={props.onRowHeightChange}
-          wrapHeaders={props.wrapHeaders}
-          onWrapHeadersChange={props.onWrapHeadersChange}
-          onRefresh={props.onRefresh}
-          refreshing={props.refreshing}
-          onResetColumnVisibility={props.onResetColumnVisibility}
-          labels={props.toolsLabels}
-          components={{ IconButton: DataTableToolbarAntdIconButton }}
-        />
+        <>
+          {props.primaryAction}
+          <DataTableToolbarTools
+            table={props.table}
+            rowHeight={props.rowHeight}
+            onRowHeightChange={props.onRowHeightChange}
+            wrapHeaders={props.wrapHeaders}
+            onWrapHeadersChange={props.onWrapHeadersChange}
+            onRefresh={props.onRefresh}
+            refreshing={props.refreshing}
+            onResetColumnVisibility={props.onResetColumnVisibility}
+            labels={props.toolsLabels}
+            components={{ IconButton: DataTableToolbarAntdIconButton }}
+          />
+        </>
       }
       leadingClassName="items-start"
       trailingClassName="justify-end"

@@ -84,7 +84,7 @@ function matchesSearch(row: ContentLibraryTableRow, query: string): boolean {
   if (!query) return true;
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  return [row.name, row.modelName, row.slug, row.locale]
+  return [row.name, row.modelName || "", row.bootstrapPresetKey || "", row.slug, row.locale]
     .filter(Boolean)
     .some((value) => value.toLowerCase().includes(q));
 }
@@ -107,7 +107,8 @@ function sortRows(rows: ContentLibraryTableRow[], ordering?: string): ContentLib
       let comparison = 0;
 
       if (key === "name") comparison = compareText(left.name, right.name);
-      else if (key === "modelName") comparison = compareText(left.modelName, right.modelName);
+      else if (key === "modelName")
+        comparison = compareText(left.modelName || "", right.modelName || "");
       else if (key === "updatedAt")
         comparison = compareMaybeTimestamp(left.updatedAt, right.updatedAt);
       else if (key === "derivedStatus") {
@@ -134,11 +135,12 @@ export function buildContentLibraryRows(
 ): ContentLibraryTableRow[] {
   const modelByKey = new Map(models.map((model) => [model.key, model]));
   return items.map((item) => {
-    const model = modelByKey.get(item.modelKey);
+    const modelKey = item.modelKey || "";
+    const model = modelKey ? modelByKey.get(modelKey) : undefined;
     return {
       ...item,
       name: item.title?.trim() || item.slug,
-      modelName: model?.name || item.modelKey,
+      modelName: model?.name ?? null,
       modelDescription: model?.description ?? null,
       modelCapabilities: model?.capabilities ?? [],
       derivedStatus: deriveContentStatus(item),
@@ -167,7 +169,9 @@ export function buildContentSidebarCounts(
   for (const row of rows) {
     if (isRecentTimestamp(row.updatedAt, now)) counts.recent += 1;
     counts.statuses[row.derivedStatus] += 1;
-    counts.models[row.modelKey] = (counts.models[row.modelKey] ?? 0) + 1;
+    if (row.modelKey) {
+      counts.models[row.modelKey] = (counts.models[row.modelKey] ?? 0) + 1;
+    }
   }
 
   return counts;

@@ -5,32 +5,18 @@ import pytest
 from apps.api.src.common.utils.public_ids import decode_public_id
 from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
 from apps.api.src.models.content.published_graph import PublishedGraphRecord
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
+    _bootstrap_shape_payload,
+    _workspace_client,
+)
 
 pytestmark = pytest.mark.integration
 
 
-def _model_payload() -> dict:
-    return {
-        "key": "page",
-        "name": "Page",
-        "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
-        "relations": [],
-        "capabilities": ["versioned", "publishable", "routable", "treeable"],
-        "routing": {"mode": "single", "slugField": "title"},
-        "workflow": {"states": ["draft", "published"], "initialState": "draft"},
-        "views": [],
-    }
-
-
 def _item_payload(slug: str, title: str) -> dict:
     return {
-        "modelKey": "page",
-        "slug": slug,
         "title": title,
         "locale": "en-US",
-        "visibility": "public",
-        "status": "draft",
     }
 
 
@@ -81,15 +67,20 @@ def _draft_payload(title: str) -> dict:
 
 
 async def _setup_publishable_items(client, workspace_id: str) -> tuple[str, str]:
-    model_res = await client.post(f"/api/v1/workspaces/{workspace_id}/content/models", json=_model_payload())
-    assert model_res.status_code == 201, model_res.text
-
     root_item_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items",
         json=_item_payload("home", "Home"),
     )
     assert root_item_res.status_code == 201, root_item_res.text
     root_item_id = root_item_res.json()["data"]["id"]
+    root_shape_res = await client.patch(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{root_item_id}/bootstrap-shape",
+        json=_bootstrap_shape_payload(
+            preset_key="page",
+            capability_pack_ids=["publishable", "routable", "treeable"],
+        ),
+    )
+    assert root_shape_res.status_code == 200, root_shape_res.text
 
     child_item_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items",
@@ -97,6 +88,14 @@ async def _setup_publishable_items(client, workspace_id: str) -> tuple[str, str]
     )
     assert child_item_res.status_code == 201, child_item_res.text
     child_item_id = child_item_res.json()["data"]["id"]
+    child_shape_res = await client.patch(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{child_item_id}/bootstrap-shape",
+        json=_bootstrap_shape_payload(
+            preset_key="page",
+            capability_pack_ids=["publishable", "routable", "treeable"],
+        ),
+    )
+    assert child_shape_res.status_code == 200, child_shape_res.text
     return root_item_id, child_item_id
 
 

@@ -50,6 +50,7 @@ import { Route as WWorkspaceIdExtensionsExtensionSlugIndexRouteImport } from './
 import { Route as WWorkspaceIdContentSiteBuilderIndexRouteImport } from './routes/w/$workspaceId/content/site-builder/index'
 import { Route as WWorkspaceIdContentModelsIndexRouteImport } from './routes/w/$workspaceId/content/models/index'
 import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/$workspaceId/content/library/index'
+import { Route as WWorkspaceIdContentBootstrapIndexRouteImport } from './routes/w/$workspaceId/content/bootstrap/index'
 import { Route as WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/danger/index'
 import { Route as WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/basics/index'
 import { Route as WWorkspaceIdSettingsSiteLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/site/localization/index'
@@ -332,6 +333,16 @@ const WWorkspaceIdContentLibraryIndexRoute =
       (d) => d.Route,
     ),
   )
+const WWorkspaceIdContentBootstrapIndexRoute =
+  WWorkspaceIdContentBootstrapIndexRouteImport.update({
+    id: '/content/bootstrap/',
+    path: '/content/bootstrap/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/content/bootstrap/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const WWorkspaceIdSettingsWorkspaceDangerIndexRoute =
   WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport.update({
     id: '/settings/workspace/danger/',
@@ -435,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/content/bootstrap/': typeof WWorkspaceIdContentBootstrapIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
@@ -481,6 +493,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/extensions': typeof WWorkspaceIdExtensionsIndexRoute
   '/w/$workspaceId/notifications': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/content/bootstrap': typeof WWorkspaceIdContentBootstrapIndexRoute
   '/w/$workspaceId/content/library': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/site-builder': typeof WWorkspaceIdContentSiteBuilderIndexRoute
@@ -532,6 +545,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
   '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
+  '/w/$workspaceId/content/bootstrap/': typeof WWorkspaceIdContentBootstrapIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
   '/w/$workspaceId/content/models/': typeof WWorkspaceIdContentModelsIndexRoute
   '/w/$workspaceId/content/site-builder/': typeof WWorkspaceIdContentSiteBuilderIndexRoute
@@ -584,6 +598,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/extensions/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
+    | '/w/$workspaceId/content/bootstrap/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/models/'
     | '/w/$workspaceId/content/site-builder/'
@@ -630,6 +645,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/extensions'
     | '/w/$workspaceId/notifications'
     | '/w/$workspaceId/team'
+    | '/w/$workspaceId/content/bootstrap'
     | '/w/$workspaceId/content/library'
     | '/w/$workspaceId/content/models'
     | '/w/$workspaceId/content/site-builder'
@@ -680,6 +696,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/extensions/'
     | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
+    | '/w/$workspaceId/content/bootstrap/'
     | '/w/$workspaceId/content/library/'
     | '/w/$workspaceId/content/models/'
     | '/w/$workspaceId/content/site-builder/'
@@ -1003,6 +1020,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdContentLibraryIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/content/bootstrap/': {
+      id: '/w/$workspaceId/content/bootstrap/'
+      path: '/content/bootstrap'
+      fullPath: '/w/$workspaceId/content/bootstrap/'
+      preLoaderRoute: typeof WWorkspaceIdContentBootstrapIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/settings/workspace/danger/': {
       id: '/w/$workspaceId/settings/workspace/danger/'
       path: '/settings/workspace/danger'
@@ -1114,6 +1138,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdExtensionsIndexRoute: typeof WWorkspaceIdExtensionsIndexRoute
   WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute
   WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute
+  WWorkspaceIdContentBootstrapIndexRoute: typeof WWorkspaceIdContentBootstrapIndexRoute
   WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute
   WWorkspaceIdContentModelsIndexRoute: typeof WWorkspaceIdContentModelsIndexRoute
   WWorkspaceIdContentSiteBuilderIndexRoute: typeof WWorkspaceIdContentSiteBuilderIndexRoute
@@ -1139,6 +1164,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdExtensionsIndexRoute: WWorkspaceIdExtensionsIndexRoute,
   WWorkspaceIdNotificationsIndexRoute: WWorkspaceIdNotificationsIndexRoute,
   WWorkspaceIdTeamIndexRoute: WWorkspaceIdTeamIndexRoute,
+  WWorkspaceIdContentBootstrapIndexRoute:
+    WWorkspaceIdContentBootstrapIndexRoute,
   WWorkspaceIdContentLibraryIndexRoute: WWorkspaceIdContentLibraryIndexRoute,
   WWorkspaceIdContentModelsIndexRoute: WWorkspaceIdContentModelsIndexRoute,
   WWorkspaceIdContentSiteBuilderIndexRoute:
