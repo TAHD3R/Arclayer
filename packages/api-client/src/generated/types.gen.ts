@@ -277,6 +277,12 @@ export type AdminAssetDeleteOut = {
  */
 export type AdminAssetDetailOut = {
   /**
+   * Altname
+   *
+   * Optional semantic alt name (from asset.meta).
+   */
+  altName?: string | null;
+  /**
    * Checksumsha256
    *
    * SHA-256 checksum (hex).
@@ -394,6 +400,12 @@ export type AdminAssetDetailOut = {
    * Uploader avatar URL (best-effort).
    */
   uploaderAvatarUrl?: string | null;
+  /**
+   * Uploaderemail
+   *
+   * Uploader email (best-effort).
+   */
+  uploaderEmail?: string | null;
   /**
    * Uploadername
    *
@@ -663,6 +675,12 @@ export type AdminAssetSummaryOut = {
    */
   uploaderAvatarUrl?: string | null;
   /**
+   * Uploaderemail
+   *
+   * Uploader email (best-effort).
+   */
+  uploaderEmail?: string | null;
+  /**
    * Uploadername
    *
    * Uploader display name (best-effort).
@@ -723,6 +741,12 @@ export type AdminAssetTagOut = {
  */
 export type AdminAssetUpdateRequest = {
   /**
+   * Altname
+   *
+   * Optional semantic alt name.
+   */
+  altName?: string | null;
+  /**
    * Description
    *
    * User-facing description.
@@ -734,6 +758,12 @@ export type AdminAssetUpdateRequest = {
    * Whether the asset is indexable (public only).
    */
   indexable?: boolean | null;
+  /**
+   * Originalfilename
+   *
+   * Display file name.
+   */
+  originalFilename?: string | null;
   /**
    * Asset purpose.
    */
@@ -1486,6 +1516,24 @@ export type ContentComponentBindingOut = {
 };
 
 /**
+ * ContentItemBootstrapShapeIn
+ */
+export type ContentItemBootstrapShapeIn = {
+  /**
+   * Capabilitypackids
+   */
+  capabilityPackIds?: Array<string>;
+  /**
+   * Presetkey
+   */
+  presetKey?: string | null;
+  /**
+   * Presetstate
+   */
+  presetState?: "selected" | "customized" | "none";
+};
+
+/**
  * ContentItemCreateIn
  */
 export type ContentItemCreateIn = {
@@ -1494,25 +1542,33 @@ export type ContentItemCreateIn = {
    */
   locale?: string;
   /**
-   * Modelkey
-   */
-  modelKey: string;
-  /**
-   * Slug
-   */
-  slug: string;
-  status?: ContentItemStatus;
-  /**
    * Title
    */
-  title?: string | null;
-  visibility?: ContentItemVisibility;
+  title: string;
 };
 
 /**
  * ContentItemOut
  */
 export type ContentItemOut = {
+  /**
+   * Bootstrappresetkey
+   *
+   * Optional starting preset identifier.
+   */
+  bootstrapPresetKey?: string | null;
+  /**
+   * Bootstrappresetstate
+   *
+   * Whether the current capability set still matches a selected preset.
+   */
+  bootstrapPresetState?: "selected" | "customized" | "none";
+  /**
+   * Capabilitypackids
+   *
+   * Activated capability pack identifiers that define the item's current shape.
+   */
+  capabilityPackIds?: Array<string>;
   /**
    * Draftversion
    *
@@ -1534,15 +1590,15 @@ export type ContentItemOut = {
   /**
    * Modelid
    *
-   * Content model id.
+   * Optional content model id.
    */
-  modelId: string;
+  modelId?: string | null;
   /**
    * Modelkey
    *
-   * Content model key.
+   * Optional content model key.
    */
-  modelKey: string;
+  modelKey?: string | null;
   /**
    * Publishedversion
    *
@@ -1592,16 +1648,6 @@ export type ContentItemOut = {
    */
   workspaceId: string;
 };
-
-/**
- * ContentItemStatus
- */
-export type ContentItemStatus = "draft" | "published" | "archived";
-
-/**
- * ContentItemVisibility
- */
-export type ContentItemVisibility = "public" | "private";
 
 /**
  * ContentModelDefinitionContract
@@ -2502,7 +2548,7 @@ export type DeliveryMenuOut = {
   /**
    * Items
    *
-   * Menu items tree.
+   * Menu items.
    */
   items?: Array<{
     [key: string]: unknown;
@@ -2522,7 +2568,7 @@ export type DeliveryStyleOut = {
   /**
    * Effective
    *
-   * Effective merged style.
+   * Effective site style payload.
    */
   effective?: {
     [key: string]: unknown;
@@ -16837,6 +16883,12 @@ export type WorkspaceUpdateRequest = {
  */
 export type AdminAssetDetailOutWritable = {
   /**
+   * Altname
+   *
+   * Optional semantic alt name (from asset.meta).
+   */
+  altName?: string | null;
+  /**
    * Checksumsha256
    *
    * SHA-256 checksum (hex).
@@ -16938,6 +16990,12 @@ export type AdminAssetDetailOutWritable = {
    * Uploader avatar URL (best-effort).
    */
   uploaderAvatarUrl?: string | null;
+  /**
+   * Uploaderemail
+   *
+   * Uploader email (best-effort).
+   */
+  uploaderEmail?: string | null;
   /**
    * Uploadername
    *
@@ -17052,6 +17110,12 @@ export type AdminAssetSummaryOutWritable = {
    * Uploader avatar URL (best-effort).
    */
   uploaderAvatarUrl?: string | null;
+  /**
+   * Uploaderemail
+   *
+   * Uploader email (best-effort).
+   */
+  uploaderEmail?: string | null;
   /**
    * Uploadername
    *
@@ -23617,6 +23681,47 @@ export type WorkspacesCreateWorkspaceContentItemCanonicalResponses = {
 
 export type WorkspacesCreateWorkspaceContentItemCanonicalResponse =
   WorkspacesCreateWorkspaceContentItemCanonicalResponses[keyof WorkspacesCreateWorkspaceContentItemCanonicalResponses];
+
+export type WorkspacesApplyWorkspaceContentItemBootstrapShapeData = {
+  /**
+   * Bootstrap shape payload.
+   */
+  body: ContentItemBootstrapShapeIn;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape";
+};
+
+export type WorkspacesApplyWorkspaceContentItemBootstrapShapeErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesApplyWorkspaceContentItemBootstrapShapeError =
+  WorkspacesApplyWorkspaceContentItemBootstrapShapeErrors[keyof WorkspacesApplyWorkspaceContentItemBootstrapShapeErrors];
+
+export type WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentItemOut;
+};
+
+export type WorkspacesApplyWorkspaceContentItemBootstrapShapeResponse =
+  WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses[keyof WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses];
 
 export type WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalData = {
   /**

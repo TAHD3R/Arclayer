@@ -444,6 +444,9 @@ import type {
   WorkspacesAbortUploadData,
   WorkspacesAbortUploadErrors,
   WorkspacesAbortUploadResponses,
+  WorkspacesApplyWorkspaceContentItemBootstrapShapeData,
+  WorkspacesApplyWorkspaceContentItemBootstrapShapeErrors,
+  WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses,
   WorkspacesArchiveMyNotificationData,
   WorkspacesArchiveMyNotificationErrors,
   WorkspacesArchiveMyNotificationResponses,
@@ -3861,6 +3864,28 @@ export const workspacesCreateWorkspaceContentItemCanonical = <ThrowOnError exten
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/workspaces/{workspace_id}/content/items",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Apply bootstrap shape to a content item (workspace RBAC protected)
+ */
+export const workspacesApplyWorkspaceContentItemBootstrapShape = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WorkspacesApplyWorkspaceContentItemBootstrapShapeData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses,
+    WorkspacesApplyWorkspaceContentItemBootstrapShapeErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
     ...options,
     headers: {
       "Content-Type": "application/json",
