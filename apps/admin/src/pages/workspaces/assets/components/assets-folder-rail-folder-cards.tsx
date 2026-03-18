@@ -70,7 +70,7 @@ function FolderCardMenu(props: {
   onDeleteFolder: (folder: AdminAssetFolder) => void;
 }) {
   return (
-    <div className="absolute top-0 right-0 z-10" onClick={(event) => event.stopPropagation()}>
+    <div className="absolute -top-1 -right-1 z-10" onClick={(event) => event.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className={folderActionButtonClassName}>

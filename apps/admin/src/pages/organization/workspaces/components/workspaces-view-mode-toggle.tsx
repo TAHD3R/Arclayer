@@ -1,7 +1,5 @@
-import { LayoutGrid, List } from "@arclayer/ui/icons/lucide-animated";
-
-import { Button } from "@arclayer/ui/button";
-import { ButtonGroup } from "@arclayer/ui/button-group";
+import { LayoutGrid, List } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 import type { OrganizationWorkspacesTranslateFn, OrganizationWorkspacesViewMode } from "../types";
 
 export type WorkspacesViewModeToggleProps = {
@@ -15,25 +13,23 @@ export function WorkspacesViewModeToggle({ t, value, onChange }: WorkspacesViewM
   const tableLabel = t("common:VIEW_MODE_TABLE");
 
   return (
-    <ButtonGroup>
-      <Button
-        variant={value === "card" ? "secondary" : "ghost"}
-        size="icon-sm"
-        onClick={() => onChange("card")}
-        aria-pressed={value === "card"}
-        aria-label={cardLabel}
-      >
+    <ToggleGroup
+      type="single"
+      variant="outline"
+      size="sm"
+      value={value}
+      aria-label={`${cardLabel}, ${tableLabel}`}
+      onValueChange={(next) => {
+        if (next !== "card" && next !== "table") return;
+        onChange(next);
+      }}
+    >
+      <ToggleGroupItem value="card" aria-label={cardLabel} className="min-w-0 px-2.5">
         <LayoutGrid className="size-4" aria-hidden="true" />
-      </Button>
-      <Button
-        variant={value === "table" ? "secondary" : "ghost"}
-        size="icon-sm"
-        onClick={() => onChange("table")}
-        aria-pressed={value === "table"}
-        aria-label={tableLabel}
-      >
+      </ToggleGroupItem>
+      <ToggleGroupItem value="table" aria-label={tableLabel} className="min-w-0 px-2.5">
         <List className="size-4" aria-hidden="true" />
-      </Button>
-    </ButtonGroup>
+      </ToggleGroupItem>
+    </ToggleGroup>
   );
 }
