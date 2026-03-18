@@ -11,30 +11,21 @@ describe("workspace nav regression", () => {
     expect(listWorkspaceNavTargets()).toEqual([
       "/",
       "/assets",
-      "/content/site-builder",
       "/content/library",
-      "/content/models",
-      "/settings/site",
       "/settings/seo",
+      "/settings/site",
       "/team/members",
       "/team/invitations",
       "/team/roles",
-      "/settings/workspace",
       "/extensions",
+      "/settings/workspace",
       "/settings/maintenance/activity",
     ]);
   });
 
-  test("includes reserved routes that must stay wired for upcoming work", () => {
-    expect(listWorkspaceNavTargets()).toEqual(
-      expect.arrayContaining([
-        "/content/site-builder",
-        "/content/library",
-        "/content/models",
-        "/settings/site",
-        "/settings/seo",
-      ]),
-    );
+  test("keeps hidden content routes out of the workspace sidebar", () => {
+    expect(listWorkspaceNavTargets()).not.toContain("/content/site-builder");
+    expect(listWorkspaceNavTargets()).not.toContain("/content/models");
   });
 
   test("keeps workspace nav sections aligned with the approved IA", () => {
@@ -49,13 +40,12 @@ describe("workspace nav regression", () => {
       WORKSPACE_NAV_SECTIONS.find((section) => section.key === "content")?.items.map(
         (item) => item.key,
       ),
-    ).toEqual([
-      "assets",
-      "content.siteBuilder",
-      "content.library",
-      "content.models",
-      "settings.general",
-      "settings.seo",
-    ]);
+    ).toEqual(["assets", "content.library", "settings.seo", "settings.general"]);
+
+    expect(
+      WORKSPACE_NAV_SECTIONS.find((section) => section.key === "workspace")?.items.map(
+        (item) => item.key,
+      ),
+    ).toEqual(["extensions", "settings.workspace"]);
   });
 });
