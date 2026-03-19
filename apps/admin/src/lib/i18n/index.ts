@@ -12,6 +12,12 @@ import {
 
 export type { AppLocale } from "@/lib/i18n/resources";
 export { DEFAULT_LOCALE, SUPPORTED_LOCALES, detectBrowserLocale, normalizeLocale };
+export {
+  buildLocaleDisplaySummary,
+  buildSupportedLocaleOptions,
+  getLocaleMetadata,
+  parseLocaleCodes,
+} from "@/lib/i18n/locale-metadata";
 
 export function getInitialLocale(): AppLocale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;

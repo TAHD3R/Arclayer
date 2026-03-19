@@ -1,6 +1,13 @@
-import type { AdminContentItem, AdminContentModel, AdminContentModelCapability } from "@/types/api";
+import type {
+  AdminContentItem,
+  AdminContentModel,
+  AdminContentModelCapability,
+  AdminContentModelCategory,
+} from "@/types/api";
 
 export type ContentLibraryDerivedStatus = "published" | "changed" | "draft" | "archived";
+export type ContentLibraryRuntime = "text" | "visual" | "data" | "unknown";
+export type ContentLibraryContext = AdminContentModelCategory | "standalone";
 
 export type ContentLibraryScopeId =
   | "quick:all"
@@ -18,9 +25,12 @@ export type ContentLibraryTableRow = AdminContentItem & {
   name: string;
   modelName?: string | null;
   modelDescription?: string | null;
+  modelCategory?: AdminContentModelCategory | null;
   modelCapabilities: AdminContentModelCapability[];
   derivedStatus: ContentLibraryDerivedStatus;
   archiveVersionNumber: number | null;
+  runtime: ContentLibraryRuntime;
+  context: ContentLibraryContext;
 };
 
 export type ContentLibrarySidebarCounts = {

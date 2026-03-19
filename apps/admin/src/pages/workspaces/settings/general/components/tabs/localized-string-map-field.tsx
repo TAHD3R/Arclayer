@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@arclayer/lib/utils";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { buildSupportedLocaleOptions } from "@/lib/i18n";
 
 export function LocalizedStringMapField(props: {
   locales: string[];
@@ -21,7 +22,7 @@ export function LocalizedStringMapField(props: {
   const value = props.value ?? {};
   const onChange = props.onChange ?? (() => {});
 
-  const options = useMemo(() => locales.map((loc) => ({ value: loc, label: loc })), [locales]);
+  const options = useMemo(() => buildSupportedLocaleOptions(locales, t), [locales, t]);
 
   const effectiveLocale = locales.includes(activeLocale)
     ? activeLocale

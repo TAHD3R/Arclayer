@@ -2,7 +2,9 @@ import type { PageData } from "@arclayer/ui/data-table";
 
 import type { AdminContentItem, AdminContentModel } from "@/types/api";
 import type {
+  ContentLibraryContext,
   ContentLibraryDerivedStatus,
+  ContentLibraryRuntime,
   ContentLibraryScopeId,
   ContentLibrarySidebarCounts,
   ContentLibraryTableRow,
@@ -47,6 +49,35 @@ function compareStatus(
     archived: 3,
   };
   return compareNumbers(rank[left], rank[right]);
+}
+
+export function deriveContentRuntime(
+  model: Pick<AdminContentModel, "capabilities" | "defaultEditor"> | null | undefined,
+): ContentLibraryRuntime {
+  if (model?.defaultEditor === "visual") return "visual";
+  if (model?.defaultEditor === "rich_text") return "text";
+  if (model?.defaultEditor === "table" || model?.defaultEditor === "form") return "data";
+  if (model?.capabilities.includes("visual_editable")) return "visual";
+  if (model?.capabilities.includes("rich_text_editable")) return "text";
+  if (model?.capabilities.includes("queryable") || model?.capabilities.includes("has_relations")) {
+    return "data";
+  }
+  return "unknown";
+}
+
+export function deriveContentContext(
+  model: Pick<AdminContentModel, "category"> | null | undefined,
+): ContentLibraryContext {
+  return model?.category ?? "standalone";
+}
+
+export function contentHasAddress(
+  row: Pick<ContentLibraryTableRow, "modelCapabilities" | "capabilityPackIds" | "slug">,
+): boolean {
+  return (
+    Boolean(row.slug) &&
+    (row.modelCapabilities.includes("routable") || row.capabilityPackIds.includes("routable"))
+  );
 }
 
 function normalizeScopeFilter(scopeId: ContentLibraryScopeId) {
@@ -142,10 +173,13 @@ export function buildContentLibraryRows(
       name: item.title?.trim() || item.slug,
       modelName: model?.name ?? null,
       modelDescription: model?.description ?? null,
+      modelCategory: model?.category ?? null,
       modelCapabilities: model?.capabilities ?? [],
       derivedStatus: deriveContentStatus(item),
       archiveVersionNumber:
         item.publishedVersion ?? (item.draftVersion > 0 ? item.draftVersion : null),
+      runtime: deriveContentRuntime(model),
+      context: deriveContentContext(model),
     };
   });
 }

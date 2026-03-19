@@ -10,6 +10,10 @@ import {
 
 import { ContentGuard } from "@/components/common/content-guard";
 import { DataPaginationControls } from "@/components/common/data-pagination-controls";
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import {
@@ -166,19 +170,20 @@ function buildAssetsTableColumns(params: {
     {
       id: "actions",
       enableHiding: false,
+      enableSorting: false,
       size: ASSET_TABLE_ACTIONS_COLUMN_WIDTH,
       minSize: ASSET_TABLE_ACTIONS_COLUMN_WIDTH,
       maxSize: ASSET_TABLE_ACTIONS_COLUMN_WIDTH,
-      meta: { title: "", kind: "actions", headerAlign: "center" },
+      meta: buildDataTableActionsColumnMeta("center"),
       header: "",
       cell: ({ row }) => (
-        <div className="flex w-full items-center justify-center">
+        <DataTableActionsCell align="center">
           <AssetActionsCell
             asset={row.original}
             controller={controller}
             onMoreAction={onMoreAction}
           />
-        </div>
+        </DataTableActionsCell>
       ),
     },
   ];

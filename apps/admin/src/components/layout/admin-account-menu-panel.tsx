@@ -14,7 +14,7 @@ import {
 } from "@arclayer/ui/icons/lucide-animated";
 import { AnimatePresence, motion } from "motion/react";
 import { UserAvatar } from "@/components/common/entity-avatar";
-import type { AppLocale } from "@/lib/i18n";
+import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { cn } from "@arclayer/lib/utils";
 import { FloatingPanelButton, useFloatingPanel } from "@arclayer/ui/floating-panel";
 import type { ThemePreference } from "@/types/stores";
@@ -187,20 +187,12 @@ function buildPreferenceOptions(
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void,
 ): PreferenceOption[] {
   if (view === "language") {
-    return [
-      {
-        icon: <Languages />,
-        label: t("ACCOUNT_LANGUAGE_ZH"),
-        selected: locale === "zh-CN",
-        onClick: () => onLocaleChange("zh-CN"),
-      },
-      {
-        icon: <Languages />,
-        label: t("ACCOUNT_LANGUAGE_EN"),
-        selected: locale === "en-US",
-        onClick: () => onLocaleChange("en-US"),
-      },
-    ];
+    return buildSupportedLocaleOptions(SUPPORTED_LOCALES, t).map((option) => ({
+      icon: <Languages />,
+      label: option.label,
+      selected: locale === option.value,
+      onClick: () => onLocaleChange(option.value as AppLocale),
+    }));
   }
 
   return [

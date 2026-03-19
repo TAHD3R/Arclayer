@@ -1,6 +1,10 @@
 import type { ColumnDef, Table as ReactTable } from "@tanstack/react-table";
 import { LogOut } from "@arclayer/ui/icons/lucide-animated";
 
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { SecurityCurrentSessionTag } from "@/components/ui/tags";
 import { DataTablePresenter, type DataTableRowHeight } from "@arclayer/ui/data-table";
 import { Button } from "@arclayer/ui/button";
@@ -90,23 +94,28 @@ function buildActionColumn(props: ColumnFactoryProps): ColumnDef<SessionRow, unk
   const signOutLabel = props.t("account:ME_SECURITY_SESSIONS_KICK");
   return {
     id: "action",
-    header: props.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
-    meta: { title: props.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"), kind: "actions" },
+    header: "",
+    enableHiding: false,
+    enableSorting: false,
+    meta: buildDataTableActionsColumnMeta("right"),
     cell: ({ row }) => (
-      <Button
-        variant="link"
-        aria-label={signOutLabel}
-        title={signOutLabel}
-        disabled={!row.original.revocable}
-        loading={props.isRevoking && props.revokingSessionId === row.original.sessionId}
-        className="inline-flex items-center gap-1 px-0! text-label-secondary hover:text-label-primary"
-        onClick={() => props.onRevoke(row.original.sessionId)}
-      >
-        <LogOut className="h-4 w-4" />
-        {signOutLabel}
-      </Button>
+      <DataTableActionsCell>
+        <Button
+          variant="link"
+          aria-label={signOutLabel}
+          title={signOutLabel}
+          disabled={!row.original.revocable}
+          loading={props.isRevoking && props.revokingSessionId === row.original.sessionId}
+          className="inline-flex items-center gap-1 px-0! text-label-secondary hover:text-label-primary"
+          onClick={() => props.onRevoke(row.original.sessionId)}
+        >
+          <LogOut className="h-4 w-4" />
+          {signOutLabel}
+        </Button>
+      </DataTableActionsCell>
     ),
     size: 150,
+    minSize: 150,
   };
 }
 

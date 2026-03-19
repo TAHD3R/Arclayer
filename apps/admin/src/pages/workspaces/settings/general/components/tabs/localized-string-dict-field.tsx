@@ -6,6 +6,7 @@ import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { buildSupportedLocaleOptions, getLocaleMetadata } from "@/lib/i18n";
 
 type LocaleRow = {
   locale: string;
@@ -66,10 +67,11 @@ export function LocalizedStringDictField(props: {
   const usedLocales = useMemo(() => new Set(rows.map((r) => r.locale)), [rows]);
   const addableLocaleOptions = useMemo(() => {
     const pool = supportedLocales.length ? supportedLocales : Object.keys(value || {});
-    return pool
-      .filter((loc) => loc && !usedLocales.has(loc))
-      .map((loc) => ({ value: loc, label: loc }));
-  }, [supportedLocales, usedLocales, value]);
+    return buildSupportedLocaleOptions(
+      pool.filter((loc) => loc && !usedLocales.has(loc)),
+      t,
+    );
+  }, [supportedLocales, t, usedLocales, value]);
   const [pendingLocale, setPendingLocale] = useState<string | undefined>(undefined);
 
   const setValueForLocale = (locale: string, text: string) => {
@@ -125,10 +127,18 @@ export function LocalizedStringDictField(props: {
           const locale = row.locale;
           const isDefault = locale === defaultLocale;
           const currentValue = value?.[locale] ?? "";
+          const localeMetadata = getLocaleMetadata(locale, t);
           return (
             <div key={locale} className="rounded-md border border-border p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="font-mono text-footnote">{locale}</span>
+                <div className="min-w-0">
+                  <div className="truncate text-footnote font-medium text-foreground">
+                    {localeMetadata.label}
+                  </div>
+                  <div className="truncate font-mono text-caption text-label-secondary">
+                    {locale}
+                  </div>
+                </div>
                 <div className="flex items-center gap-3">
                   <label className="flex items-center gap-2 text-footnote text-label-secondary">
                     <Checkbox

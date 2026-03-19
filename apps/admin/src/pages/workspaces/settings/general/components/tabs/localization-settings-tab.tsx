@@ -12,6 +12,7 @@ import {
   TimezoneLocalizationControl,
 } from "@/components/settings/date-time-localization-controls";
 import { StringTagsField } from "@/components/ui/string-tags-field";
+import { getLocaleMetadata } from "@/lib/i18n";
 import {
   resolveLocalizationDateFormatSummary,
   resolveLocalizationTimeZoneSummary,
@@ -63,12 +64,17 @@ export function LocalizationSettingsTab({
   const localeOptions = supportedLocales
     .map((loc) => normalizeLocaleTag(loc))
     .filter((value): value is string => Boolean(value))
-    .map((value) => ({ value, label: value }));
+    .map((value) => ({
+      value,
+      label: getLocaleMetadata(value, t).label,
+    }));
   const timezoneOptions = buildTimezoneOptions(timezone);
   const dateFormatOptions = buildDateFormatOptions();
 
-  const localeLabel =
-    localeOptions.find((item) => item.value === defaultLocale)?.label ?? defaultLocale;
+  const localeLabel = defaultLocale ? getLocaleMetadata(defaultLocale, t).label : defaultLocale;
+  const fallbackLocaleLabel = fallbackLocale
+    ? getLocaleMetadata(fallbackLocale, t).label
+    : fallbackLocale;
   const timezoneLabel = resolveLocalizationTimeZoneSummary({
     autoLabel: t("settings:SETTINGS_TIMEZONE_AUTO_SHORT"),
     browserTimeZone,
@@ -336,7 +342,7 @@ export function LocalizationSettingsTab({
             title={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_LABEL")}
             description={t("settings:SITE_LOCALIZATION_FALLBACK_LOCALE_DESC")}
             showSummary
-            summary={fallbackLocale}
+            summary={fallbackLocaleLabel}
             placeholder={t("settings:SETTINGS_NOT_SET")}
             keepRendered
             contentLayout="inline"

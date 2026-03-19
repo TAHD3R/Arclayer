@@ -2,6 +2,10 @@ import { useCallback, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Link2Off, RotateCcw } from "lucide-react";
 
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { Button } from "@arclayer/ui/button";
 import type { OrganizationInvitation, OrganizationInviteLink } from "@/types/api";
 import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";
@@ -154,14 +158,12 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       {
         id: "actions",
         enableHiding: false,
+        enableSorting: false,
         size: 220,
-        meta: {
-          title: t("team:TEAM_TABLE_COL_ACTIONS"),
-          kind: "actions",
-        },
+        meta: buildDataTableActionsColumnMeta("right"),
         header: "",
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1">
+          <DataTableActionsCell className="gap-1">
             <Button variant="ghost" size="sm" onClick={() => onOpenRenewInvitation(row.original)}>
               <RotateCcw className="size-4" />
               {t("team:TEAM_ACTION_RENEW")}
@@ -174,7 +176,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
             >
               {t("team:TEAM_ACTION_DELETE")}
             </Button>
-          </div>
+          </DataTableActionsCell>
         ),
       },
     ],
@@ -388,14 +390,12 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
       {
         id: "actions",
         enableHiding: false,
+        enableSorting: false,
         size: 220,
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_ACTIONS"),
-          kind: "actions",
-        },
+        meta: buildDataTableActionsColumnMeta("right"),
         header: "",
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1">
+          <DataTableActionsCell className="gap-1">
             <Button variant="ghost" size="sm" onClick={() => onOpenRenewLink(row.original)}>
               <RotateCcw className="size-4" />
               {t("team:TEAM_ACTION_RENEW")}
@@ -409,7 +409,7 @@ export function useOrganizationInvitationColumns(options: UseOrganizationInvitat
               <Link2Off className="size-4" />
               {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
             </Button>
-          </div>
+          </DataTableActionsCell>
         ),
       },
     ],

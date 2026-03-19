@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Switch } from "@arclayer/ui/switch";
-import { type AppLocale } from "@/lib/i18n";
+import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { buildTimezoneOptions } from "@/lib/settings/general/localization-options";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
@@ -89,8 +89,7 @@ export function MePreferencesLocalizationSection() {
   const languageOptions = useMemo(
     () => [
       { value: "workspace", label: t("ME_PREF_LOCALE_MODE_WORKSPACE") },
-      { value: "zh-CN", label: t("ACCOUNT_LANGUAGE_ZH") },
-      { value: "en-US", label: t("ACCOUNT_LANGUAGE_EN") },
+      ...buildSupportedLocaleOptions(SUPPORTED_LOCALES, t),
     ],
     [t],
   );

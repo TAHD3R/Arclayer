@@ -1,4 +1,4 @@
-import type { AppLocale } from "@/lib/i18n";
+import { getLocaleMetadata } from "@/lib/i18n";
 
 function walkPath(obj: unknown, path: readonly string[]): unknown {
   let current: unknown = obj;
@@ -65,8 +65,8 @@ export function pickStringArray(obj: unknown, path: readonly string[]): string[]
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
-export function formatLocaleLabel(locale: AppLocale, t: (key: string) => string): string {
-  return locale === "zh-CN" ? t("account:ACCOUNT_LANGUAGE_ZH") : t("account:ACCOUNT_LANGUAGE_EN");
+export function formatLocaleLabel(locale: string, t: (key: string) => string): string {
+  return getLocaleMetadata(locale, t).label;
 }
 
 export function buildS3Summary(params: {

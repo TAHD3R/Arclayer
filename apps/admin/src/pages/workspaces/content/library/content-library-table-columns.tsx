@@ -2,25 +2,32 @@ import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
+import { BaseTag, ContentRuntimeTag, LocaleTagList } from "@/components/ui/tags";
 import { ContentLibraryStatusTag } from "./components/content-library-status-tag";
 import { ContentLibraryRowActions } from "./components/content-library-row-actions";
 import type { ContentLibraryTableRow } from "./types";
+import { contentHasAddress } from "./utils";
 
 function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
-  const { t } = useTranslation("content");
+  const showAddress = contentHasAddress(props.row);
 
   return (
     <div className="min-w-0">
       <div className="truncate font-medium text-foreground">{props.row.name}</div>
-      <div className="truncate text-caption text-label-secondary">
-        {[
-          props.row.modelName || t("CONTENT_LIBRARY_ROW_UNTYPED"),
-          props.row.slug,
-          props.row.locale,
-        ].join(" · ")}
+      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+        <ContentRuntimeTag runtime={props.row.runtime} />
+        {showAddress ? <BaseTag color="blue">/{props.row.slug}</BaseTag> : null}
       </div>
     </div>
   );
+}
+
+function ContentLibraryLocaleCell(props: { locale: string }) {
+  return <LocaleTagList localeCodes={props.locale} />;
 }
 
 export function useContentLibraryTableColumns(params: {
@@ -37,6 +44,25 @@ export function useContentLibraryTableColumns(params: {
         meta: { title: t("CONTENT_LIBRARY_TABLE_COL_NAME"), sortKey: "name" },
         header: t("CONTENT_LIBRARY_TABLE_COL_NAME"),
         cell: ({ row }) => <ContentLibraryNameCell row={row.original} />,
+        size: 280,
+        minSize: 220,
+      },
+      {
+        accessorKey: "derivedStatus",
+        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_STATUS"), sortKey: "derivedStatus" },
+        header: t("CONTENT_LIBRARY_TABLE_COL_STATUS"),
+        cell: ({ row }) => <ContentLibraryStatusTag status={row.original.derivedStatus} />,
+        size: 140,
+        minSize: 140,
+        maxSize: 140,
+      },
+      {
+        accessorKey: "locale",
+        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_LOCALE") },
+        header: t("CONTENT_LIBRARY_TABLE_COL_LOCALE"),
+        cell: ({ row }) => <ContentLibraryLocaleCell locale={row.original.locale} />,
+        size: 196,
+        minSize: 172,
       },
       {
         accessorKey: "updatedAt",
@@ -50,37 +76,27 @@ export function useContentLibraryTableColumns(params: {
             </span>
           );
         },
-      },
-      {
-        id: "updatedBy",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_UPDATED_BY") },
-        header: t("CONTENT_LIBRARY_TABLE_COL_UPDATED_BY"),
-        cell: () => (
-          <span className="text-label-secondary">
-            {t("CONTENT_LIBRARY_TABLE_UPDATED_BY_UNAVAILABLE")}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "derivedStatus",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_STATUS"), sortKey: "derivedStatus" },
-        header: t("CONTENT_LIBRARY_TABLE_COL_STATUS"),
-        cell: ({ row }) => <ContentLibraryStatusTag status={row.original.derivedStatus} />,
+        size: 180,
+        minSize: 160,
       },
       {
         id: "actions",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_ACTIONS"), kind: "actions" },
+        meta: buildDataTableActionsColumnMeta("center"),
         header: "",
+        enableHiding: false,
         enableSorting: false,
         cell: ({ row }) => (
-          <div className="flex justify-end">
+          <DataTableActionsCell align="center">
             <ContentLibraryRowActions
               row={row.original}
               archivePending={params.archivePending}
               onArchive={params.onArchive}
             />
-          </div>
+          </DataTableActionsCell>
         ),
+        size: 56,
+        minSize: 56,
+        maxSize: 56,
       },
     ],
     [params.archivePending, params.formatDateTimeOrNull, params.onArchive, t],

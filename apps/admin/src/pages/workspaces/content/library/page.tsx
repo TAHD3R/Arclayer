@@ -188,9 +188,9 @@ export function ContentLibraryPage() {
         left: {
           title: t("content:CONTENT_LIBRARY_PANEL_TITLE"),
           mobileLabel: t("content:CONTENT_LIBRARY_PANEL_TITLE"),
-          minWidth: "17rem",
-          maxWidth: "24rem",
-          defaultWidth: "19rem",
+          minWidth: 240,
+          maxWidth: 240,
+          defaultWidth: 240,
           content: (
             <ContentLibrarySidebar
               activeScope={activeScope}

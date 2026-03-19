@@ -14,6 +14,10 @@ import {
   renewTeamInvitation,
   renewTeamInviteLink,
 } from "@/api/team";
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
@@ -267,17 +271,15 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       {
         id: "actions",
         enableHiding: false,
+        enableSorting: false,
         size: 220,
-        meta: {
-          title: t("team:TEAM_TABLE_COL_ACTIONS"),
-          kind: "actions",
-        },
+        meta: buildDataTableActionsColumnMeta("right"),
         header: "",
         cell: ({ row }) => {
           const inv = row.original;
           const canRenew = inv.status === "pending";
           return (
-            <div className="flex items-center justify-end gap-2">
+            <DataTableActionsCell className="gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -300,7 +302,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                 <Link2Off className="size-4" />
                 {t("team:TEAM_ACTION_DELETE")}
               </Button>
-            </div>
+            </DataTableActionsCell>
           );
         },
       },
@@ -522,18 +524,16 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
       {
         id: "actions",
         enableHiding: false,
+        enableSorting: false,
         size: 220,
-        meta: {
-          title: t("team:TEAM_INVITE_LINKS_COL_ACTIONS"),
-          kind: "actions",
-        },
+        meta: buildDataTableActionsColumnMeta("right"),
         header: "",
         cell: ({ row }) => {
           const link = row.original;
           const disabled = Boolean(link.disabledAt);
           const canManage = !disabled;
           return (
-            <div className="flex items-center justify-end gap-2">
+            <DataTableActionsCell className="gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -555,7 +555,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
                 <Link2Off className="size-4" />
                 {t("team:TEAM_INVITE_LINKS_ACTION_DISABLE")}
               </Button>
-            </div>
+            </DataTableActionsCell>
           );
         },
       },

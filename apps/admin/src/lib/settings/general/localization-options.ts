@@ -1,7 +1,5 @@
 import { DATE_FORMAT_ITEMS, DEFAULT_DATE_FORMAT } from "@/constants/datetime";
-import { SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
-
-import { formatLocaleLabel } from "./utils";
+import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 
 export type LocalizationOption<T extends string = string> = {
   value: T;
@@ -11,10 +9,7 @@ export type LocalizationOption<T extends string = string> = {
 export function buildLocaleOptions(
   t: (key: string) => string,
 ): Array<LocalizationOption<AppLocale>> {
-  return SUPPORTED_LOCALES.map((locale) => ({
-    value: locale,
-    label: formatLocaleLabel(locale, t),
-  }));
+  return buildSupportedLocaleOptions(SUPPORTED_LOCALES, t) as Array<LocalizationOption<AppLocale>>;
 }
 
 export function buildTimezoneOptions(currentTimezone?: string): Array<LocalizationOption> {
