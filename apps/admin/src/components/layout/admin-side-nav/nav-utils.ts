@@ -2,14 +2,16 @@ import { cn } from "@arclayer/lib/utils";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
-export const NAV_ITEM_HEIGHT_CLASSNAME = "h-8";
+export const NAV_ITEM_HEIGHT_CLASSNAME = "h-7";
+export const NAV_ITEM_RADIUS_CLASSNAME = "rounded-md";
 export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
-  "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-1.5! group-data-[collapsible=icon]:mx-auto!";
-export const NAV_ITEM_ROOT_INSET_CLASSNAME = "pl-4";
-export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1";
-export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1";
-export const NAV_SECTION_LABEL_SHELL_CLASSNAME = "relative h-8 overflow-hidden";
+  "group-data-[collapsible=icon]:size-7! group-data-[collapsible=icon]:p-1! group-data-[collapsible=icon]:mx-auto!";
+export const NAV_ITEM_BUTTON_PADDING_CLASSNAME = "!pl-2.5 !pr-2 !py-1";
+export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1 group-data-[collapsible=icon]:gap-2";
+export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-1.5";
+export const NAV_SECTION_LABEL_SHELL_CLASSNAME = "relative overflow-hidden";
 export const NAV_SECTION_LABEL_CLASSNAME = cn(
+  "ml-2.5 my-2 h-7 !px-0",
   "min-h-0 text-caption",
   "transition-opacity duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
   "group-data-[collapsible=icon]:opacity-0",
@@ -22,7 +24,7 @@ export const NAV_SECTION_DIVIDER_CLASSNAME = cn(
   "group-data-[collapsible=icon]:opacity-100",
 );
 export const NAV_SECTION_TRIGGER_CLASSNAME =
-  "flex w-full items-center gap-1.5 pl-4 pr-2 text-left text-label-secondary";
+  "flex w-full items-center gap-1.5 !pl-0 !pr-2 text-left text-label-secondary";
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-4 gap-0.5 border-border/60";
 export const NAV_DIVIDER_CLASSNAME = "mx-4 my-0.5";
 

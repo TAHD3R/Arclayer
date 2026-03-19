@@ -12,10 +12,11 @@ import type { AdminNavItem } from "@/types/admin-nav";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import { WithBlockedTooltip } from "./blocked-tooltip";
 import {
+  NAV_ITEM_BUTTON_PADDING_CLASSNAME,
   isExactMatch,
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
-  NAV_ITEM_ROOT_INSET_CLASSNAME,
+  NAV_ITEM_RADIUS_CLASSNAME,
 } from "./nav-utils";
 import {
   DISABLED_ITEM_CLASSNAME,
@@ -57,10 +58,12 @@ function NodeLeafSub({
           className={cn(
             "relative z-10",
             NAV_ITEM_HEIGHT_CLASSNAME,
-            "rounded-lg",
+            NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+            NAV_ITEM_RADIUS_CLASSNAME,
             INTERACTIVE_TRANSITION_CLASSNAME,
             NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
             NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+            "text-callout",
             item.disabled ? DISABLED_ITEM_CLASSNAME : null,
           )}
         >
@@ -115,12 +118,12 @@ function NodeLeafRoot({
           className={cn(
             "relative z-10",
             NAV_ITEM_HEIGHT_CLASSNAME,
-            "rounded-lg",
+            NAV_ITEM_RADIUS_CLASSNAME,
             INTERACTIVE_TRANSITION_CLASSNAME,
             NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
             NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
             NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-            NAV_ITEM_ROOT_INSET_CLASSNAME,
+            NAV_ITEM_BUTTON_PADDING_CLASSNAME,
             "group-data-[collapsible=icon]:gap-0",
             item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
           )}

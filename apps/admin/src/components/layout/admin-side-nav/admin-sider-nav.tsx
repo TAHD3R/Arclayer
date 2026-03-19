@@ -214,10 +214,11 @@ function ItemsSection(props: {
             <SidebarGroupLabel asChild className={NAV_SECTION_LABEL_CLASSNAME}>
               <ButtonPrimitive type="button" tapScale={1} className={NAV_SECTION_TRIGGER_CLASSNAME}>
                 <span className="min-w-0 flex-1 truncate">{props.title}</span>
-                <span className={cn("shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+                <span className={cn("mr-0.5 shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
                   <ChevronRightIcon
                     size={16}
                     expanded={effectiveOpen}
+                    isHovered={false}
                     className="shrink-0 text-label-secondary"
                     aria-hidden="true"
                   />

@@ -30,9 +30,10 @@ import {
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
 } from "./nav-node-styles";
 import {
+  NAV_ITEM_BUTTON_PADDING_CLASSNAME,
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
-  NAV_ITEM_ROOT_INSET_CLASSNAME,
+  NAV_ITEM_RADIUS_CLASSNAME,
   NAV_SUBTREE_CLASSNAME,
 } from "./nav-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -40,14 +41,14 @@ import { iconSlot } from "./nav-icon-slot";
 import type { ResolvedChildItem } from "./node-collapsed-group";
 
 const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
-  "pt-1 overflow-hidden",
+  "pt-1.5 overflow-hidden",
   "motion-reduce:animate-none",
   "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
 );
 
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
-  "relative z-10 h-8 rounded-lg text-footnote text-label-secondary",
+  "relative z-10 h-7 rounded-md text-callout text-label-secondary",
   "transition-[color,background-color] duration-200 ease-out",
   "hover:bg-accent/40 hover:text-label-primary",
   "focus:bg-accent/40 focus:text-label-primary",
@@ -129,12 +130,12 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
     const className = cn(
       "relative z-10",
       NAV_ITEM_HEIGHT_CLASSNAME,
-      "rounded-lg",
+      NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+      NAV_ITEM_RADIUS_CLASSNAME,
       INTERACTIVE_TRANSITION_CLASSNAME,
       NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
       NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
       NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-      NAV_ITEM_ROOT_INSET_CLASSNAME,
       "group-data-[collapsible=icon]:gap-0",
       item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
     );
@@ -270,10 +271,12 @@ export function NodeExpandedGroupSub({
   const buttonClassName = cn(
     "relative z-10",
     NAV_ITEM_HEIGHT_CLASSNAME,
-    "rounded-lg",
+    NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+    NAV_ITEM_RADIUS_CLASSNAME,
     INTERACTIVE_TRANSITION_CLASSNAME,
     NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
     NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+    "text-callout",
     item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
   );
 

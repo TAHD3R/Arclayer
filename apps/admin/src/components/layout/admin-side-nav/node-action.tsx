@@ -17,9 +17,10 @@ import {
   NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
 } from "./nav-node-styles";
 import {
+  NAV_ITEM_BUTTON_PADDING_CLASSNAME,
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
-  NAV_ITEM_ROOT_INSET_CLASSNAME,
+  NAV_ITEM_RADIUS_CLASSNAME,
 } from "./nav-utils";
 import { iconSlot } from "./nav-icon-slot";
 
@@ -46,10 +47,12 @@ function NodeActionSub({
         className={cn(
           "relative z-10 cursor-pointer",
           NAV_ITEM_HEIGHT_CLASSNAME,
-          "rounded-lg",
+          NAV_ITEM_BUTTON_PADDING_CLASSNAME,
+          NAV_ITEM_RADIUS_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+          "text-callout",
           isActive && "font-semibold text-foreground!",
         )}
       >
@@ -95,13 +98,13 @@ function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeAct
         className={cn(
           "relative z-10 cursor-pointer",
           NAV_ITEM_HEIGHT_CLASSNAME,
-          "rounded-lg",
+          NAV_ITEM_RADIUS_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
           NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
           isActive && "font-semibold text-foreground!",
-          NAV_ITEM_ROOT_INSET_CLASSNAME,
+          NAV_ITEM_BUTTON_PADDING_CLASSNAME,
           "group-data-[collapsible=icon]:gap-0",
           item.disabled ? DISABLED_ITEM_CLASSNAME : null,
         )}

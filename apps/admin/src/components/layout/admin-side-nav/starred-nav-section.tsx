@@ -26,17 +26,18 @@ import {
 } from "./nav-node-styles";
 import { NodeCollapsedGroup, type ResolvedChildItem } from "./node-collapsed-group";
 import {
+  NAV_ITEM_BUTTON_PADDING_CLASSNAME,
   isExactMatch,
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
-  NAV_ITEM_ROOT_INSET_CLASSNAME,
+  NAV_ITEM_RADIUS_CLASSNAME,
   NAV_ROOT_MENU_GAP_CLASSNAME,
   NAV_SUBTREE_CLASSNAME,
 } from "./nav-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 
 const STARRED_COLLAPSIBLE_CONTENT_CLASSNAME = cn(
-  "pt-1 overflow-hidden",
+  "pt-1.5 overflow-hidden",
   "motion-reduce:animate-none",
   "data-[state=open]:animate-[arclayer-collapsible-down_180ms_ease-out]",
   "data-[state=closed]:animate-[arclayer-collapsible-up_160ms_ease-in]",
@@ -65,13 +66,14 @@ function StarredTriggerButton(props: {
         isActive={props.hasActiveItem}
         tooltip={props.label}
         className={cn(
-          "relative z-10 rounded-lg group-data-[collapsible=icon]:gap-0",
+          "relative z-10 group-data-[collapsible=icon]:gap-0",
+          NAV_ITEM_RADIUS_CLASSNAME,
           NAV_ITEM_HEIGHT_CLASSNAME,
+          NAV_ITEM_BUTTON_PADDING_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
           NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-          NAV_ITEM_ROOT_INSET_CLASSNAME,
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

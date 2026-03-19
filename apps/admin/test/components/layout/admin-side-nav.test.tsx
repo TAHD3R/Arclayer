@@ -394,6 +394,27 @@ describe("AdminSiderNav collapsed groups", () => {
     });
   });
 
+  it("keeps the expanded section chevron stable while hovering the section label", async () => {
+    const user = userEvent.setup();
+
+    renderStructuredNav({
+      homeItem,
+      sections,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    const sectionButton = screen.getByRole("button", { name: "Content" });
+    const chevronBeforeHover = sectionButton.querySelector("svg");
+
+    expect(chevronBeforeHover).not.toBeNull();
+
+    await user.hover(sectionButton);
+
+    await waitFor(() => {
+      expect(sectionButton.querySelector("svg")).toBe(chevronBeforeHover);
+    });
+  });
+
   it("shows starred only when favorites exist in structured mode", () => {
     useFavoritesStore.setState({ paths: ["/w/ws-1/assets"] });
 

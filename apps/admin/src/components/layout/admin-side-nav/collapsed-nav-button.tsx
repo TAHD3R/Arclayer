@@ -6,7 +6,11 @@ import {
   type ButtonProps as ButtonPrimitiveProps,
 } from "@arclayer/ui/button-primitive";
 
-import { NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME, NAV_ITEM_HEIGHT_CLASSNAME } from "./nav-utils";
+import {
+  NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
+  NAV_ITEM_HEIGHT_CLASSNAME,
+  NAV_ITEM_RADIUS_CLASSNAME,
+} from "./nav-utils";
 import {
   DISABLED_ITEM_CLASSNAME,
   INTERACTIVE_TRANSITION_CLASSNAME,
@@ -38,7 +42,7 @@ export const CollapsedNavButton = React.forwardRef<HTMLButtonElement, CollapsedN
           "relative z-10 w-full",
           "flex items-center justify-center",
           NAV_ITEM_HEIGHT_CLASSNAME,
-          "rounded-lg",
+          NAV_ITEM_RADIUS_CLASSNAME,
           NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
           INTERACTIVE_TRANSITION_CLASSNAME,
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
