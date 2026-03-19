@@ -109,6 +109,10 @@ export const CONTENT_BOOTSTRAP_PRESETS: ContentBootstrapPresetDefinition[] = [
     descriptionKey: "CONTENT_BOOTSTRAP_PRESET_TAXONOMY_ITEM_DESC",
     useCaseKey: "CONTENT_BOOTSTRAP_PRESET_TAXONOMY_ITEM_USE_CASE",
   },
+];
+
+export const CONTENT_BOOTSTRAP_OPTIONAL_PRESETS: ContentBootstrapPresetDefinition[] = [
+  ...CONTENT_BOOTSTRAP_PRESETS,
   {
     key: "blank",
     icon: FileText,

@@ -36,10 +36,11 @@ describe("ContentBootstrapPage", () => {
 
     expect(screen.getByText("CONTENT_BOOTSTRAP_CREATE_TITLE")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_START_FROM_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_START_WITH_OPTIONAL_LABEL")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_PRESET_PAGE_NAME")).toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_BOOTSTRAP_PRESET_BLANK_NAME")).not.toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE")).toBeInTheDocument();
-    expect(screen.queryByText("CONTENT_BOOTSTRAP_STEP_TWO_TITLE")).not.toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_CONTINUE_WITHOUT_TEMPLATE")).toBeInTheDocument();
     expect(
       screen.queryByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE_TO_EDITOR"),
     ).not.toBeInTheDocument();
@@ -67,5 +68,6 @@ describe("ContentBootstrapPage", () => {
       screen.getByRole("radio", { name: /CONTENT_BOOTSTRAP_PRESET_POST_NAME/i }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_CONTINUE_WITH_TEMPLATE")).toBeInTheDocument();
   });
 });

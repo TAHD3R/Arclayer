@@ -114,4 +114,43 @@ describe("useContentBootstrapController", () => {
     });
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/content/library" });
   });
+
+  test("continue can create a blank draft without a selected template", async () => {
+    createContentItemMock.mockResolvedValue({
+      id: "item-2",
+      workspaceId: "ws-1",
+      siteId: "site-1",
+      slug: "blank-draft",
+      title: "Blank draft",
+      status: "draft",
+      visibility: "private",
+      locale: "en-US",
+      bootstrapPresetState: "none",
+      capabilityPackIds: [],
+      draftVersion: 1,
+      updatedAt: "2026-03-19T00:00:00Z",
+    });
+
+    const { result } = renderHook(() => useContentBootstrapController("ws-1"), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => {
+      result.current.setTitle("Blank draft");
+    });
+
+    act(() => {
+      result.current.continueWithStarter();
+    });
+
+    await waitFor(() => {
+      expect(createContentItemMock).toHaveBeenCalledWith("ws-1", {
+        title: "Blank draft",
+        locale: "en-US",
+      });
+    });
+
+    expect(applyContentBootstrapShapeMock).not.toHaveBeenCalled();
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/content/library" });
+  });
 });

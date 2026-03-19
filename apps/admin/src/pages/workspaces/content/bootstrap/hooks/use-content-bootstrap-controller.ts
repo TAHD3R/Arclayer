@@ -64,17 +64,18 @@ function useContinueWithStarterMutation(params: {
     mutationFn: async () => {
       const nextTitle = params.title.trim();
       if (!nextTitle) throw new Error("CONTENT_BOOTSTRAP_TITLE_REQUIRED");
-      if (!params.presetKey) throw new Error("CONTENT_BOOTSTRAP_PRESET_REQUIRED");
 
       const draftItem = await createContentItem(params.workspaceId, {
         title: nextTitle,
         locale: params.locale,
       });
-      await applyContentBootstrapShape(
-        params.workspaceId,
-        draftItem.id,
-        buildStarterPresetPayload(params.presetKey),
-      );
+      if (params.presetKey) {
+        await applyContentBootstrapShape(
+          params.workspaceId,
+          draftItem.id,
+          buildStarterPresetPayload(params.presetKey),
+        );
+      }
       await params.invalidateItems();
     },
     onSuccess: () => {
@@ -87,7 +88,7 @@ function useContinueWithStarterMutation(params: {
 function useStarterPresetSelection() {
   const [selectedPresetKey, setSelectedPresetKey] =
     React.useState<ContentBootstrapPresetKey | null>(null);
-  const selectPreset = React.useCallback((presetKey: ContentBootstrapPresetKey) => {
+  const selectPreset = React.useCallback((presetKey: ContentBootstrapPresetKey | null) => {
     setSelectedPresetKey(presetKey);
   }, []);
   return { selectedPresetKey, selectPreset };
@@ -118,7 +119,7 @@ export function useContentBootstrapController(workspaceId: string) {
     selectedPresetKey,
     busy: continueMutation.isPending,
     continuePending: continueMutation.isPending,
-    canContinue: title.trim().length > 0 && Boolean(selectedPresetKey),
+    canContinue: title.trim().length > 0,
     setTitle,
     continueWithStarter: () => continueMutation.mutate(),
     navigateToLibrary,

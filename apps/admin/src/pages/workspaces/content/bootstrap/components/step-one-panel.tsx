@@ -1,5 +1,4 @@
 import type { ComponentType } from "react";
-import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
@@ -17,10 +16,18 @@ type StepOnePanelProps = {
   canContinue: boolean;
   continuePending: boolean;
   onTitleChange: (value: string) => void;
-  onPresetSelect: (value: ContentBootstrapPresetKey) => void;
+  onPresetSelect: (value: ContentBootstrapPresetKey | null) => void;
   onContinue: () => void;
-  onSkip: () => void;
 };
+
+function ContinueSummary(props: { selectedPresetKey: ContentBootstrapPresetKey | null }) {
+  const { t } = useTranslation("content");
+  const summaryKey = props.selectedPresetKey
+    ? "CONTENT_BOOTSTRAP_CONTINUE_WITH_TEMPLATE"
+    : "CONTENT_BOOTSTRAP_CONTINUE_WITHOUT_TEMPLATE";
+
+  return <div className="text-footnote text-label-secondary">{t(summaryKey)}</div>;
+}
 
 function SectionHeader(props: { htmlFor?: string; title: string; description: string }) {
   const title = props.htmlFor ? (
@@ -55,30 +62,28 @@ function StarterPresetOption(props: {
       aria-label={props.name}
       aria-pressed={selected}
       className={cn(
-        "col-span-1! flex! h-auto! min-h-44! flex-col! rounded-lg! border! bg-card! p-4! text-left! shadow-sm!",
+        "col-span-1! flex! h-auto! min-h-28! flex-col! rounded-lg! border! bg-card! p-4! text-left! shadow-sm!",
         "transition-colors! duration-200!",
         "hover:border-border/80! hover:bg-accent/50! hover:shadow-md!",
-        selected && "border-primary/60! bg-primary/[0.04]! shadow-md!",
+        selected && "border-border/80! bg-accent/60! shadow-md!",
       )}
     >
-      <div className="mb-4 flex w-full items-start justify-between gap-4">
-        <div
+      <div className="flex w-full items-start gap-4">
+        <Icon
           className={cn(
-            "inline-flex size-10 items-center justify-center rounded-lg border border-border/70 bg-muted/50 text-label-secondary",
-            selected && "border-primary/20 bg-primary/[0.08] text-primary",
+            "mt-0.5 size-5 shrink-0 text-label-secondary",
+            selected && "text-foreground",
           )}
+        />
+        <div
+          className="flex min-w-0 flex-1 flex-col wrap-break-word"
+          style={{ overflowWrap: "anywhere" }}
         >
-          <Icon className="size-5" />
-        </div>
-        {selected ? (
-          <div className="inline-flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Check className="size-4" aria-hidden="true" />
+          <div className="text-headline font-semibold text-foreground">{props.name}</div>
+          <div className="mt-1 break-words whitespace-normal text-footnote leading-6 text-label-secondary">
+            {props.description}
           </div>
-        ) : null}
-      </div>
-      <div className="flex flex-1 flex-col wrap-break-word" style={{ overflowWrap: "anywhere" }}>
-        <div className="text-headline font-semibold text-foreground">{props.name}</div>
-        <div className="mt-1 text-footnote leading-6 text-label-secondary">{props.description}</div>
+        </div>
       </div>
     </ToggleGroupItem>
   );
@@ -113,15 +118,14 @@ function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "on
   return (
     <div className="grid gap-4">
       <SectionHeader
-        title={t("CONTENT_BOOTSTRAP_START_FROM_LABEL")}
+        title={t("CONTENT_BOOTSTRAP_START_WITH_OPTIONAL_LABEL")}
         description={t("CONTENT_BOOTSTRAP_START_FROM_DESC")}
       />
       <ToggleGroup
         type="single"
         value={props.selectedPresetKey ?? undefined}
         onValueChange={(value) => {
-          if (!value) return;
-          props.onPresetSelect(value as ContentBootstrapPresetKey);
+          props.onPresetSelect(value ? (value as ContentBootstrapPresetKey) : null);
         }}
         className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent shadow-none md:grid-cols-2"
       >
@@ -143,16 +147,14 @@ function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "on
 function FormActions(
   props: Pick<
     StepOnePanelProps,
-    "busy" | "canContinue" | "continuePending" | "onContinue" | "onSkip"
+    "busy" | "canContinue" | "continuePending" | "onContinue" | "selectedPresetKey"
   >,
 ) {
   const { t } = useTranslation("content");
 
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-border/70 pt-6">
-      <Button type="button" variant="ghost" disabled={props.busy} onClick={props.onSkip}>
-        {t("CONTENT_BOOTSTRAP_ACTION_SKIP")}
-      </Button>
+    <div className="flex items-center justify-between gap-4">
+      <ContinueSummary selectedPresetKey={props.selectedPresetKey} />
       <Button
         type="button"
         loading={props.continuePending}
@@ -167,7 +169,7 @@ function FormActions(
 
 export function ContentBootstrapStepOnePanel(props: StepOnePanelProps) {
   return (
-    <div className="flex w-full flex-1 flex-col gap-10 pb-8">
+    <div className="flex w-full flex-1 flex-col gap-4 pb-8">
       <TitleField busy={props.busy} title={props.title} onTitleChange={props.onTitleChange} />
       <StartFromField
         selectedPresetKey={props.selectedPresetKey}
@@ -178,7 +180,7 @@ export function ContentBootstrapStepOnePanel(props: StepOnePanelProps) {
         canContinue={props.canContinue}
         continuePending={props.continuePending}
         onContinue={props.onContinue}
-        onSkip={props.onSkip}
+        selectedPresetKey={props.selectedPresetKey}
       />
     </div>
   );

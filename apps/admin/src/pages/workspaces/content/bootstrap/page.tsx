@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@arclayer/ui/button";
+
 import { DefaultPage } from "@/components/common/default-page";
 
 import { ContentBootstrapStepOnePanel } from "./components/step-one-panel";
@@ -14,6 +16,16 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
       title={t("CONTENT_BOOTSTRAP_CREATE_TITLE")}
       description={t("CONTENT_BOOTSTRAP_CREATE_DESC")}
       showFavoriteToggle={false}
+      action={
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={controller.busy}
+          onClick={controller.navigateToLibrary}
+        >
+          {t("CONTENT_BOOTSTRAP_ACTION_SKIP")}
+        </Button>
+      }
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
       contentContainerClassName="mx-auto w-full max-w-4xl"
@@ -27,7 +39,6 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
         onTitleChange={controller.setTitle}
         onPresetSelect={controller.selectPreset}
         onContinue={controller.continueWithStarter}
-        onSkip={controller.navigateToLibrary}
       />
     </DefaultPage>
   );
