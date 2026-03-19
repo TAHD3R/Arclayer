@@ -176,6 +176,7 @@ def test_build_guest_workspace_list_uses_workspace_org_id() -> None:
         organization_id=organization_id,
         slug="ws",
         name="Workspace",
+        icon_url=None,
         created_by_user_id=uuid4(),
     )
 

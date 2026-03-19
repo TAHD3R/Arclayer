@@ -8,6 +8,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from tortoise import Tortoise
 from tortoise.exceptions import ConfigurationError, OperationalError
 
+from apps.api.src.config import get_settings
 from apps.api.src.core.i18n import get_request_locale, reset_current_locale, set_current_locale
 from apps.api.src.settings.locale_runtime import read_core_default_locale
 
@@ -50,6 +51,8 @@ async def _get_core_default_locale(request: Request) -> str | None:
     """
 
     try:
+        if not get_settings().database.enabled:
+            return None
         # Best-effort: if ORM isn't initialized (e.g. unit tests with DB disabled),
         # never attempt a DB read in the request middleware pipeline.
         if not Tortoise._inited:

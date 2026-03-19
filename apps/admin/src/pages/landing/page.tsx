@@ -39,7 +39,7 @@ export function LandingPage() {
       void navigate({ to: `/w/${defaultWorkspaceId}/`, replace: true });
       return;
     }
-    void navigate({ to: "/account/workspaces", replace: true });
+    void navigate({ to: "/account/workspaces", search: { create: undefined }, replace: true });
   }, [defaultWorkspaceId, navigate, workspacesQuery.isError, workspacesQuery.isLoading]);
 
   return (

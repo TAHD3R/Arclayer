@@ -444,7 +444,9 @@ function TooltipContent({ asChild = false, ...props }: TooltipContentProps) {
   return null;
 }
 
-type TooltipTriggerProps = WithAsChild<HTMLMotionProps<"div">>;
+type TooltipTriggerProps = WithAsChild<HTMLMotionProps<"div">> & {
+  "data-focus-trigger"?: "true" | "false";
+};
 
 function TooltipTrigger({
   ref,
