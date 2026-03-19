@@ -31,6 +31,7 @@ from apps.api.src.modules.workspaces.content.contracts import schema as contract
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_0011 = REPO_ROOT / "apps/api/src/migrations/0011_content_kernel_initial.py"
 MIGRATION_0013 = REPO_ROOT / "apps/api/src/migrations/0013_content_platform_rebuild.py"
+MIGRATION_0014 = REPO_ROOT / "apps/api/src/migrations/0014_drop_legacy_content_models.py"
 MIGRATION_0015 = REPO_ROOT / "apps/api/src/migrations/0015_content_bootstrap_shape.py"
 SEO_PROFILE_MODEL = REPO_ROOT / "apps/api/src/models/content/seo_profile.py"
 COMPONENT_BINDING_MODEL = REPO_ROOT / "apps/api/src/models/content/component_binding.py"
@@ -219,6 +220,32 @@ def test_migration_0011_matches_kernel_constraints() -> None:
     hierarchy_node_section = migration.split('name="HierarchyNodeRecord"', maxsplit=1)[1]
     hierarchy_node_section = hierarchy_node_section.split('name="PublishedGraphRecord"', maxsplit=1)[0]
     assert '"unique_together"' not in hierarchy_node_section
+
+
+def test_migration_0014_removes_direct_relations_before_deleting_legacy_models() -> None:
+    migration = MIGRATION_0014.read_text(encoding="utf-8")
+
+    assert 'RemoveField(model_name="RouteTemplateRecord", name="site")' in migration
+    assert 'RemoveField(model_name="RouteTemplateRecord", name="entry_type")' in migration
+    assert 'RemoveField(model_name="RouteTemplateRecord", name="template_page_revision")' in migration
+    assert migration.index('RemoveField(model_name="RouteTemplateRecord", name="site")') < migration.index(
+        'DeleteModel(name="RouteTemplateRecord")'
+    )
+
+    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="workspace")' in migration
+    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="site")' in migration
+    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="entry")' in migration
+    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="parent_entry")' in migration
+    assert migration.index('RemoveField(model_name="ContentTreeNodeRecord", name="workspace")') < migration.index(
+        'DeleteModel(name="ContentTreeNodeRecord")'
+    )
+
+    assert 'RemoveField(model_name="ContentEntryRecord", name="workspace")' in migration
+    assert 'RemoveField(model_name="ContentEntryRecord", name="site")' in migration
+    assert 'RemoveField(model_name="ContentEntryRecord", name="type")' in migration
+    assert migration.index('RemoveField(model_name="ContentEntryRecord", name="workspace")') < migration.index(
+        'DeleteModel(name="ContentEntryRecord")'
+    )
 
 
 def test_migration_0013_adds_rebuild_kernel_records() -> None:
