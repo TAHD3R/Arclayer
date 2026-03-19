@@ -15,8 +15,11 @@ describe("content-library-table-columns", () => {
     const { result } = renderHook(() =>
       useContentLibraryTableColumns({
         formatDateTimeOrNull: () => "2026-03-19 08:00",
-        archivePending: false,
+        actionPending: false,
+        onDuplicate: () => {},
+        onDelete: () => {},
         onArchive: () => {},
+        onUnarchive: () => {},
       }),
     );
 
@@ -38,8 +41,11 @@ describe("content-library-table-columns", () => {
     const { result } = renderHook(() =>
       useContentLibraryTableColumns({
         formatDateTimeOrNull: () => "2026-03-19 08:00",
-        archivePending: false,
+        actionPending: false,
+        onDuplicate: () => {},
+        onDelete: () => {},
         onArchive: () => {},
+        onUnarchive: () => {},
       }),
     );
 
@@ -65,7 +71,6 @@ describe("content-library-table-columns", () => {
           modelDescription: null,
           modelCapabilities: [],
           derivedStatus: "draft",
-          archiveVersionNumber: 1,
           runtime: "unknown",
           context: "standalone",
         },

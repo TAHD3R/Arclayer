@@ -89,3 +89,32 @@ export async function archiveContentItemVersion(
     workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}/archive`),
   );
 }
+
+export async function archiveContentItem(
+  workspaceId: string,
+  itemId: string,
+): Promise<AdminContentItem> {
+  return api.post<AdminContentItem>(workspacePath(workspaceId, `/content/items/${itemId}/archive`));
+}
+
+export async function unarchiveContentItem(
+  workspaceId: string,
+  itemId: string,
+): Promise<AdminContentItem> {
+  return api.post<AdminContentItem>(
+    workspacePath(workspaceId, `/content/items/${itemId}/unarchive`),
+  );
+}
+
+export async function duplicateContentItem(
+  workspaceId: string,
+  itemId: string,
+): Promise<AdminContentItem> {
+  return api.post<AdminContentItem>(
+    workspacePath(workspaceId, `/content/items/${itemId}/duplicate`),
+  );
+}
+
+export async function deleteContentItem(workspaceId: string, itemId: string): Promise<void> {
+  await api.delete<void>(workspacePath(workspaceId, `/content/items/${itemId}`));
+}

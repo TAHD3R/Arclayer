@@ -96,6 +96,107 @@ async def create_workspace_content_item_canonical(
     return Response.success(data=data)
 
 
+@canonical_items_router.post(
+    "/items/{item_id}/duplicate",
+    response_model=ResponseModel[ContentItemOut],
+    response_model_exclude_none=True,
+    summary="Duplicate rebuilt content item (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
+)
+async def duplicate_workspace_content_item_canonical(
+    item_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemsService,
+        Depends(get_workspace_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemOut]:
+    data = await service.duplicate_item(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+    )
+    return Response.success(data=data)
+
+
+@canonical_items_router.delete(
+    "/items/{item_id}",
+    response_model=ResponseModel[None],
+    summary="Delete rebuilt content item (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
+)
+async def delete_workspace_content_item_canonical(
+    item_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemsService,
+        Depends(get_workspace_content_canonical_items_service),
+    ],
+) -> ResponseModel[None]:
+    await service.delete_item(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+    )
+    return Response.success()
+
+
+@canonical_items_router.post(
+    "/items/{item_id}/archive",
+    response_model=ResponseModel[ContentItemOut],
+    response_model_exclude_none=True,
+    summary="Archive current rebuilt content item state (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
+)
+async def archive_workspace_content_item_canonical(
+    item_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemsService,
+        Depends(get_workspace_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemOut]:
+    data = await service.archive_item(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+    )
+    return Response.success(data=data)
+
+
+@canonical_items_router.post(
+    "/items/{item_id}/unarchive",
+    response_model=ResponseModel[ContentItemOut],
+    response_model_exclude_none=True,
+    summary="Restore archived rebuilt content item back to draft (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:publish")],
+)
+async def unarchive_workspace_content_item_canonical(
+    item_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemsService,
+        Depends(get_workspace_content_canonical_items_service),
+    ],
+) -> ResponseModel[ContentItemOut]:
+    data = await service.unarchive_item(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+        actor_user_id=actor_user_id,
+    )
+    return Response.success(data=data)
+
+
 @canonical_items_router.patch(
     "/items/{item_id}/bootstrap-shape",
     response_model=ResponseModel[ContentItemOut],

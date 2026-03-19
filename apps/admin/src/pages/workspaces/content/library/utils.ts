@@ -87,6 +87,9 @@ function normalizeScopeFilter(scopeId: ContentLibraryScopeId) {
   if (scopeId === "quick:published") {
     return { kind: "status" as const, status: "published" as const };
   }
+  if (scopeId === "quick:archived") {
+    return { kind: "status" as const, status: "archived" as const };
+  }
   return { kind: "type" as const, modelKey: scopeId.replace("tree:type:", "") };
 }
 
@@ -176,8 +179,6 @@ export function buildContentLibraryRows(
       modelCategory: model?.category ?? null,
       modelCapabilities: model?.capabilities ?? [],
       derivedStatus: deriveContentStatus(item),
-      archiveVersionNumber:
-        item.publishedVersion ?? (item.draftVersion > 0 ? item.draftVersion : null),
       runtime: deriveContentRuntime(model),
       context: deriveContentContext(model),
     };

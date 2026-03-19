@@ -10,6 +10,7 @@ from apps.api.src.common.utils.public_ids import decode_public_id, encode_uuid
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import verify_db_ready
 from apps.api.src.core.registry import create_app
+from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
 from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
@@ -75,6 +76,19 @@ def _item_payload() -> dict:
     return {
         "title": "Hello World",
         "locale": "en-US",
+    }
+
+
+def _model_payload() -> dict:
+    return {
+        "key": "article",
+        "name": "Article",
+        "fields": [],
+        "relations": [],
+        "capabilities": [],
+        "routing": {"mode": "none"},
+        "workflow": {"states": []},
+        "views": [],
     }
 
 
@@ -187,6 +201,70 @@ async def test_content_items_list_is_available_from_canonical_read_endpoint(
         assert payload["items"][0]["bootstrapPresetState"] == "none"
         assert payload["items"][0]["capabilityPackIds"] == []
         assert payload["items"][0]["slug"].startswith("hello-world")
+
+
+@pytest.mark.asyncio
+async def test_content_items_archive_without_versions_marks_item_archived(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        archive_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive",
+            json={},
+        )
+        assert archive_res.status_code == 200, archive_res.text
+        assert archive_res.json()["data"]["status"] == "archived"
+        assert archive_res.json()["data"]["draftVersion"] == 0
+        assert archive_res.json()["data"].get("publishedVersion") is None
+
+        item_uuid = decode_public_id(item_id)
+        item = await ContentItemRecord.get(id=item_uuid)
+        assert str(item.status) == "archived"
+        assert item.draft_version == 0
+        assert item.published_version is None
+
+
+@pytest.mark.asyncio
+async def test_content_items_unarchive_without_versions_restores_draft_status(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        archive_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive",
+            json={},
+        )
+        assert archive_res.status_code == 200, archive_res.text
+
+        unarchive_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/unarchive",
+            json={},
+        )
+        assert unarchive_res.status_code == 200, unarchive_res.text
+        assert unarchive_res.json()["data"]["status"] == "draft"
+        assert unarchive_res.json()["data"]["draftVersion"] == 0
+        assert unarchive_res.json()["data"].get("publishedVersion") is None
+
+        item_uuid = decode_public_id(item_id)
+        item = await ContentItemRecord.get(id=item_uuid)
+        assert str(item.status) == "draft"
+        assert item.draft_version == 0
+        assert item.published_version is None
 
 
 @pytest.mark.asyncio
@@ -333,3 +411,84 @@ async def test_content_items_reject_selected_preset_state_without_preset_key(
         )
         assert invalid_shape_res.status_code == 409, invalid_shape_res.text
         assert invalid_shape_res.json()["error"] == "CONTENT_BOOTSTRAP_PRESET_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_content_items_duplicate_creates_new_draft_copy_with_presentations(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
+
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=_draft_payload(),
+        )
+        assert draft_res.status_code == 201, draft_res.text
+
+        duplicate_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/duplicate",
+            json={},
+        )
+        assert duplicate_res.status_code == 200, duplicate_res.text
+
+        duplicated = duplicate_res.json()["data"]
+        assert duplicated["id"] != item_id
+        assert duplicated["status"] == "draft"
+        assert "publishedVersion" not in duplicated
+        assert duplicated["draftVersion"] == 1
+        assert duplicated["bootstrapPresetState"] == "selected"
+        assert duplicated["capabilityPackIds"] == [
+            "publishable",
+            "schedulable",
+            "seo_managed",
+            "rich_text_editable",
+        ]
+
+        duplicate_uuid = decode_public_id(duplicated["id"])
+        duplicate_version = await ContentVersionRecord.get(item_id=duplicate_uuid, version=1)
+        docs = await PresentationDocumentRecord.filter(version_id=duplicate_version.id).order_by("kind")
+        assert [doc.kind for doc in docs] == ["form_data", "rich_text_document", "visual_blueprint"]
+        assert duplicate_version.fields_snapshot == {
+            "title": "Hello World",
+            "body": "Draft body",
+        }
+
+
+@pytest.mark.asyncio
+async def test_content_items_delete_removes_item_and_versions(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=_draft_payload(),
+        )
+        assert draft_res.status_code == 201, draft_res.text
+
+        item_uuid = decode_public_id(item_id)
+        delete_res = await client.delete(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}")
+        assert delete_res.status_code == 200, delete_res.text
+
+        assert await ContentItemRecord.filter(id=item_uuid).exists() is False
+        assert await ContentVersionRecord.filter(item_id=item_uuid).exists() is False

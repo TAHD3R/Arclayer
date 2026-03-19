@@ -19,6 +19,7 @@ from apps.api.src.modules.workspaces.content.contracts.schema import ContentItem
 from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     VERSION_TRANSITIONS,
     PresentationPayload,
+    build_duplicate_item_title,
     build_formless_draft_slug,
     build_patch_item_fields,
     build_patch_version_fields,
@@ -27,6 +28,7 @@ from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     extract_seo_payload,
     item_fields_for_transition,
     normalize_bootstrap_shape,
+    normalize_capability_pack_ids,
     normalize_initial_status,
     normalize_presentations,
     normalize_visibility,
@@ -173,6 +175,141 @@ class WorkspaceContentCanonicalItemsService:
             )
             return to_item_out(item, item.model_definition)
 
+    async def duplicate_item(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        actor_user_id: UUID | None,
+    ) -> ContentItemOut:
+        async with in_transaction() as conn:
+            source_item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            duplicate_title = build_duplicate_item_title(source_item.title or source_item.slug)
+            duplicated_item = await self.repo.create_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                model_definition_id=source_item.model_definition_id,
+                slug=build_formless_draft_slug(duplicate_title),
+                title=duplicate_title,
+                locale=source_item.locale,
+                status=normalize_initial_status(ContentItemStatus.DRAFT),
+                visibility=normalize_visibility(ContentItemVisibility(source_item.visibility)),
+                bootstrap_preset_key=source_item.bootstrap_preset_key,
+                bootstrap_preset_state=str(source_item.bootstrap_preset_state),
+                capability_pack_ids=normalize_capability_pack_ids(source_item.capability_pack_ids or []),
+                actor_user_id=actor_user_id,
+            )
+
+            if int(source_item.draft_version or 0) > 0:
+                source_version = await self._get_locked_version(
+                    item_id=source_item.id,
+                    version_number=int(source_item.draft_version),
+                    conn=conn,
+                )
+                duplicated_version = await self.repo.create_version(
+                    item_id=duplicated_item.id,
+                    version=1,
+                    state=str(ContentVersionState.DRAFT),
+                    fields_snapshot=source_version.fields_snapshot or {},
+                    change_summary=None,
+                    actor_user_id=actor_user_id,
+                    last_transition_by_user_id=actor_user_id,
+                    conn=conn,
+                )
+                version_out = await self.reads.build_version_out(version=source_version, conn=conn)
+                presentations: PresentationPayload = [
+                    (presentation.kind, presentation.payload) for presentation in version_out.presentations
+                ]
+                await self._replace_presentations(
+                    version_id=duplicated_version.id,
+                    presentations=presentations,
+                    conn=conn,
+                )
+                duplicated_item = await self.repo.update_item_fields(
+                    duplicated_item,
+                    fields={"draft_version": 1, "updated_by_user_id": actor_user_id},
+                    conn=conn,
+                )
+
+            return to_item_out(duplicated_item, source_item.model_definition)
+
+    async def delete_item(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+    ) -> None:
+        async with in_transaction() as conn:
+            item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            await self.repo.delete_item(item_id=item.id, conn=conn)
+
+    async def archive_item(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        actor_user_id: UUID | None,
+    ) -> ContentItemOut:
+        async with in_transaction() as conn:
+            item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            current_version = int(item.draft_version or 0)
+            if current_version > 0:
+                version = await self._get_locked_version(
+                    item_id=item.id,
+                    version_number=current_version,
+                    conn=conn,
+                )
+                if version.state not in VERSION_TRANSITIONS[ContentVersionState.ARCHIVED]:
+                    raise Conflict("Invalid version transition", error="CONTENT_VERSION_TRANSITION_INVALID")
+
+                version = await self.repo.update_version_fields(
+                    version,
+                    fields={
+                        "state": str(ContentVersionState.ARCHIVED),
+                        "last_transition_by_user_id": actor_user_id,
+                    },
+                    conn=conn,
+                )
+                item = await self.repo.update_item_fields(
+                    item,
+                    fields=item_fields_for_transition(
+                        item=item,
+                        version=version,
+                        target_state=ContentVersionState.ARCHIVED,
+                        actor_user_id=actor_user_id,
+                    ),
+                    conn=conn,
+                )
+                return to_item_out(item, item.model_definition)
+
+            item = await self.repo.update_item_fields(
+                item,
+                fields={
+                    "status": str(ContentItemStatus.ARCHIVED),
+                    "updated_by_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
+            return to_item_out(item, item.model_definition)
+
     async def save_draft_version(
         self,
         *,
@@ -260,6 +397,53 @@ class WorkspaceContentCanonicalItemsService:
                 conn=conn,
             )
             return await self.reads.build_version_out(version=version, conn=conn)
+
+    async def unarchive_item(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        actor_user_id: UUID | None,
+    ) -> ContentItemOut:
+        async with in_transaction() as conn:
+            item = await self._get_locked_item(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                item_id=item_id,
+                conn=conn,
+            )
+            if item.status != ContentItemStatus.ARCHIVED:
+                raise Conflict("Content item is not archived", error="CONTENT_ITEM_NOT_ARCHIVED")
+
+            current_version = int(item.draft_version or 0)
+            if current_version > 0:
+                version = await self._get_locked_version(
+                    item_id=item.id,
+                    version_number=current_version,
+                    conn=conn,
+                )
+                if version.state != ContentVersionState.ARCHIVED:
+                    raise Conflict("Content version is not archived", error="CONTENT_ITEM_VERSION_NOT_ARCHIVED")
+
+                await self.repo.update_version_fields(
+                    version,
+                    fields={
+                        "state": str(ContentVersionState.DRAFT),
+                        "last_transition_by_user_id": actor_user_id,
+                    },
+                    conn=conn,
+                )
+
+            item = await self.repo.update_item_fields(
+                item,
+                fields={
+                    "status": str(ContentItemStatus.DRAFT),
+                    "updated_by_user_id": actor_user_id,
+                },
+                conn=conn,
+            )
+            return to_item_out(item, item.model_definition)
 
     async def patch_version(
         self,

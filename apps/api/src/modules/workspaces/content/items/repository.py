@@ -148,6 +148,14 @@ class WorkspaceContentItemsRepository(BaseRepository):
     ) -> ContentItemRecord:
         return await self.update_fields(item, fields=fields, conn=conn)  # type: ignore[return-value]
 
+    async def delete_item(
+        self,
+        *,
+        item_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> int:
+        return await self.delete_by_id(ContentItemRecord, item_id, conn=conn)
+
     async def update_version_fields(
         self,
         version: ContentVersionRecord,

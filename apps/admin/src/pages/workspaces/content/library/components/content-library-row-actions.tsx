@@ -1,4 +1,4 @@
-import { Archive, Copy, MoreHorizontal, PenLine, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Copy, MoreHorizontal, PenLine, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
@@ -14,12 +14,25 @@ import type { ContentLibraryTableRow } from "../types";
 
 export function ContentLibraryRowActions(props: {
   row: ContentLibraryTableRow;
+  onDuplicate: (row: ContentLibraryTableRow) => void;
+  onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
-  archivePending?: boolean;
+  onUnarchive: (row: ContentLibraryTableRow) => void;
+  pending?: boolean;
 }) {
   const { t } = useTranslation("content");
-  const canArchive =
-    Boolean(props.row.archiveVersionNumber) && props.row.derivedStatus !== "archived";
+  const archiveAction =
+    props.row.derivedStatus === "archived"
+      ? {
+          icon: <ArchiveRestore className="size-4" />,
+          label: t("CONTENT_LIBRARY_ACTION_UNARCHIVE"),
+          onSelect: () => props.onUnarchive(props.row),
+        }
+      : {
+          icon: <Archive className="size-4" />,
+          label: t("CONTENT_LIBRARY_ACTION_ARCHIVE"),
+          onSelect: () => props.onArchive(props.row),
+        };
 
   return (
     <DropdownMenu>
@@ -28,7 +41,7 @@ export function ContentLibraryRowActions(props: {
           variant="ghost"
           size="icon-sm"
           aria-label={t("CONTENT_LIBRARY_ROW_ACTIONS")}
-          disabled={props.archivePending}
+          disabled={props.pending}
         >
           <MoreHorizontal className="size-4" />
         </Button>
@@ -37,19 +50,27 @@ export function ContentLibraryRowActions(props: {
         <DropdownMenuIconItem icon={<PenLine className="size-4" />} disabled>
           {t("CONTENT_LIBRARY_ACTION_EDIT")}
         </DropdownMenuIconItem>
-        <DropdownMenuIconItem icon={<Copy className="size-4" />} disabled>
+        <DropdownMenuIconItem
+          icon={<Copy className="size-4" />}
+          disabled={props.pending}
+          onSelect={() => props.onDuplicate(props.row)}
+        >
           {t("CONTENT_LIBRARY_ACTION_DUPLICATE")}
         </DropdownMenuIconItem>
-        <DropdownMenuIconItem icon={<Trash2 className="size-4" />} disabled>
+        <DropdownMenuIconItem
+          icon={<Trash2 className="size-4" />}
+          disabled={props.pending}
+          onSelect={() => props.onDelete(props.row)}
+        >
           {t("CONTENT_LIBRARY_ACTION_DELETE")}
         </DropdownMenuIconItem>
         <DropdownMenuSeparator />
         <DropdownMenuIconItem
-          icon={<Archive className="size-4" />}
-          disabled={!canArchive || props.archivePending}
-          onSelect={() => props.onArchive(props.row)}
+          icon={archiveAction.icon}
+          disabled={props.pending}
+          onSelect={archiveAction.onSelect}
         >
-          {t("CONTENT_LIBRARY_ACTION_ARCHIVE")}
+          {archiveAction.label}
         </DropdownMenuIconItem>
       </DropdownMenuContent>
     </DropdownMenu>

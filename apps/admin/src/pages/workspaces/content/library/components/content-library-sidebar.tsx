@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
+  Archive,
   ChevronRight,
   CheckCircle2,
   FileStack,
@@ -158,6 +159,16 @@ export function ContentLibrarySidebar(props: {
         <MiniNavLabel
           label={t("content:CONTENT_LIBRARY_MENU_PUBLISHED")}
           count={props.counts.statuses.published}
+        />
+      ),
+    },
+    {
+      key: "quick:archived",
+      icon: <Archive className="size-4" />,
+      label: (
+        <MiniNavLabel
+          label={t("content:CONTENT_LIBRARY_MENU_ARCHIVED")}
+          count={props.counts.statuses.archived}
         />
       ),
     },

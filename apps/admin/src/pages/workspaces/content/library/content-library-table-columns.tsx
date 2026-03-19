@@ -32,8 +32,11 @@ function ContentLibraryLocaleCell(props: { locale: string }) {
 
 export function useContentLibraryTableColumns(params: {
   formatDateTimeOrNull: (value: string | null | undefined) => string | null;
-  archivePending: boolean;
+  actionPending: boolean;
+  onDuplicate: (row: ContentLibraryTableRow) => void;
+  onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
+  onUnarchive: (row: ContentLibraryTableRow) => void;
 }) {
   const { t } = useTranslation("content");
 
@@ -89,8 +92,11 @@ export function useContentLibraryTableColumns(params: {
           <DataTableActionsCell align="center">
             <ContentLibraryRowActions
               row={row.original}
-              archivePending={params.archivePending}
+              pending={params.actionPending}
+              onDuplicate={params.onDuplicate}
+              onDelete={params.onDelete}
               onArchive={params.onArchive}
+              onUnarchive={params.onUnarchive}
             />
           </DataTableActionsCell>
         ),
@@ -99,6 +105,14 @@ export function useContentLibraryTableColumns(params: {
         maxSize: 56,
       },
     ],
-    [params.archivePending, params.formatDateTimeOrNull, params.onArchive, t],
+    [
+      params.actionPending,
+      params.formatDateTimeOrNull,
+      params.onArchive,
+      params.onDelete,
+      params.onDuplicate,
+      params.onUnarchive,
+      t,
+    ],
   );
 }

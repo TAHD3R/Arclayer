@@ -53,8 +53,13 @@ function resolveColumnBaseStyle<TData>(
     column.columnDef.maxSize != null ||
     size !== DEFAULT_COLUMN_SIZE_PX;
 
-  // Pinned columns use minWidth only — let content determine actual width
-  // so buttons/icons in actions columns are never clipped.
+  if (pinned && hasExplicitSizing) {
+    return {
+      width: size,
+      minWidth: size,
+      maxWidth: size,
+    };
+  }
   if (pinned) return { minWidth: size };
   if (!hasExplicitSizing) return { minWidth: size };
 

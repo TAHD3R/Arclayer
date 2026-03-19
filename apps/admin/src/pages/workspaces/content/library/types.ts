@@ -14,6 +14,7 @@ export type ContentLibraryScopeId =
   | "quick:recent"
   | "quick:draft"
   | "quick:published"
+  | "quick:archived"
   | `tree:type:${string}`;
 
 export type ContentLibraryToolbarFilters = {
@@ -28,7 +29,6 @@ export type ContentLibraryTableRow = AdminContentItem & {
   modelCategory?: AdminContentModelCategory | null;
   modelCapabilities: AdminContentModelCapability[];
   derivedStatus: ContentLibraryDerivedStatus;
-  archiveVersionNumber: number | null;
   runtime: ContentLibraryRuntime;
   context: ContentLibraryContext;
 };

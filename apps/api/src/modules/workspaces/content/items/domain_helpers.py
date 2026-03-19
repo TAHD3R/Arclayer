@@ -24,6 +24,7 @@ PresentationPayload = list[tuple[ContentPresentationKind, dict[str, Any] | None]
 SEO_PRESENTATION_KIND: ContentPresentationKind = "seo"
 SLOT_MAPPING_PRESENTATION_KIND: ContentPresentationKind = "slot_mapping"
 DEFAULT_FORMLESS_SLUG = "draft"
+DEFAULT_DUPLICATE_TITLE = "Copy"
 MAX_SLUG_LENGTH = 256
 SLUG_SUFFIX_LENGTH = 8
 
@@ -60,6 +61,14 @@ def build_formless_draft_slug(title: str) -> str:
     suffix = uuid4().hex[:SLUG_SUFFIX_LENGTH]
     trimmed = base[: max(1, MAX_SLUG_LENGTH - len(suffix) - 1)]
     return f"{trimmed}-{suffix}"
+
+
+def build_duplicate_item_title(value: str | None) -> str:
+    base = (value or "").strip() or DEFAULT_DUPLICATE_TITLE
+    suffix = " Copy"
+    if len(base) + len(suffix) <= MAX_SLUG_LENGTH:
+        return f"{base}{suffix}"
+    return f"{base[: max(1, MAX_SLUG_LENGTH - len(suffix))].rstrip()}{suffix}"
 
 
 def normalize_capability_pack_ids(values: list[str]) -> list[str]:

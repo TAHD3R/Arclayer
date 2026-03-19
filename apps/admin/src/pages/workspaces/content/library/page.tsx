@@ -8,9 +8,12 @@ import {
   useDataTableWrapHeadersPreference,
 } from "@arclayer/ui/data-table";
 import {
-  archiveContentItemVersion,
+  archiveContentItem,
+  deleteContentItem,
+  duplicateContentItem,
   listAllContentItems,
   listAllContentModels,
+  unarchiveContentItem,
 } from "@/api/content";
 import { AdminDataTableSection } from "@/components/common/admin-data-table-section";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
@@ -21,6 +24,7 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { AdminContentModel } from "@/types/api";
 import { workspaceContentCreatePath } from "@/lib/routing/workspace-content-routing";
 import { useContentLibraryTableColumns } from "./content-library-table-columns";
+import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryNewContentButton } from "./components/content-library-new-content-button";
 import { ContentLibrarySidebar } from "./components/content-library-sidebar";
 import { ContentLibraryToolbar } from "./components/content-library-toolbar";
@@ -47,6 +51,11 @@ function ContentLibraryPrimaryAction(props: {
   return <ContentLibraryNewContentButton onClick={props.onNavigate} />;
 }
 
+type ArchiveDialogState = {
+  row: ContentLibraryTableRow;
+  mode: "archive" | "unarchive";
+};
+
 export function ContentLibraryPage() {
   const { t } = useTranslation(["content", "common", "nav", "team"]);
   const navigate = useNavigate();
@@ -57,6 +66,9 @@ export function ContentLibraryPage() {
     CONTENT_LIBRARY_DEFAULT_SCOPE,
   );
   const [toolbarFilters, setToolbarFilters] = React.useState<ContentLibraryToolbarFilters>({});
+  const [duplicateRow, setDuplicateRow] = React.useState<ContentLibraryTableRow | null>(null);
+  const [deleteRow, setDeleteRow] = React.useState<ContentLibraryTableRow | null>(null);
+  const [archiveDialog, setArchiveDialog] = React.useState<ArchiveDialogState | null>(null);
   const dataTableId = React.useMemo(
     () => contentLibraryTableId(workspaceId ? String(workspaceId) : null),
     [workspaceId],
@@ -100,13 +112,48 @@ export function ContentLibraryPage() {
     setToolbarFilters((prev) => ({ ...prev, modelKey: undefined }));
   }, [models, toolbarFilters.modelKey]);
   const archiveMutation = useMutation({
+    mutationFn: async (dialog: ArchiveDialogState) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      if (dialog.mode === "unarchive") {
+        return unarchiveContentItem(String(workspaceId), dialog.row.id);
+      }
+      return archiveContentItem(String(workspaceId), dialog.row.id);
+    },
+    onSuccess: async (_, dialog) => {
+      notifySuccessText(
+        dialog.mode === "unarchive"
+          ? t("content:CONTENT_LIBRARY_UNARCHIVE_SUCCESS")
+          : t("content:CONTENT_LIBRARY_ARCHIVE_SUCCESS"),
+      );
+      setArchiveDialog(null);
+      await queryClient.invalidateQueries({
+        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const duplicateMutation = useMutation({
     mutationFn: async (row: ContentLibraryTableRow) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      if (!row.archiveVersionNumber) throw new Error("CONTENT_ITEM_ARCHIVE_VERSION_MISSING");
-      return archiveContentItemVersion(String(workspaceId), row.id, row.archiveVersionNumber);
+      return duplicateContentItem(String(workspaceId), row.id);
     },
     onSuccess: async () => {
-      notifySuccessText(t("content:CONTENT_LIBRARY_ARCHIVE_SUCCESS"));
+      notifySuccessText(t("content:CONTENT_LIBRARY_DUPLICATE_SUCCESS"));
+      setDuplicateRow(null);
+      await queryClient.invalidateQueries({
+        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: async (row: ContentLibraryTableRow) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      await deleteContentItem(String(workspaceId), row.id);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_DELETE_SUCCESS"));
+      setDeleteRow(null);
       await queryClient.invalidateQueries({
         queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
@@ -115,8 +162,12 @@ export function ContentLibraryPage() {
   });
   const columns = useContentLibraryTableColumns({
     formatDateTimeOrNull: dateTime.formatDateTimeOrNull,
-    archivePending: archiveMutation.isPending,
-    onArchive: archiveMutation.mutate,
+    actionPending:
+      archiveMutation.isPending || duplicateMutation.isPending || deleteMutation.isPending,
+    onDuplicate: setDuplicateRow,
+    onDelete: setDeleteRow,
+    onArchive: (row) => setArchiveDialog({ row, mode: "archive" }),
+    onUnarchive: (row) => setArchiveDialog({ row, mode: "unarchive" }),
   });
   const dataReady = Boolean(workspaceId) && !modelsQuery.isLoading && !itemsQuery.isLoading;
   const dataError = modelsQuery.error ?? itemsQuery.error;
@@ -203,36 +254,74 @@ export function ContentLibraryPage() {
         },
       }}
     >
-      <AdminDataTableSection
-        table={tableHook.table}
-        emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}
-        emptyTitle={
-          isInitialEmptyState
-            ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_TITLE")
-            : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_TITLE")
-        }
-        emptyDescription={
-          isInitialEmptyState
-            ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
-            : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
-        }
-        loading={modelsQuery.isLoading || itemsQuery.isLoading}
-        error={dataError}
-        onRetry={() => {
-          void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
-        }}
-        pageData={tableHook.pageData}
-        onPaginationChange={(nextPage, nextSize) => {
-          if (nextSize !== tableHook.table.getState().pagination.pageSize) {
-            tableHook.table.setPageSize(nextSize);
+      <>
+        <AdminDataTableSection
+          table={tableHook.table}
+          emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}
+          emptyTitle={
+            isInitialEmptyState
+              ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_TITLE")
+              : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_TITLE")
           }
-          tableHook.table.setPageIndex(Math.max(0, nextPage - 1));
-        }}
-        t={t}
-        rowHeight={rowHeight}
-        wrapHeaders={wrapHeaders}
-        refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
-      />
+          emptyDescription={
+            isInitialEmptyState
+              ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
+              : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
+          }
+          loading={modelsQuery.isLoading || itemsQuery.isLoading}
+          error={dataError}
+          onRetry={() => {
+            void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
+          }}
+          pageData={tableHook.pageData}
+          onPaginationChange={(nextPage, nextSize) => {
+            if (nextSize !== tableHook.table.getState().pagination.pageSize) {
+              tableHook.table.setPageSize(nextSize);
+            }
+            tableHook.table.setPageIndex(Math.max(0, nextPage - 1));
+          }}
+          t={t}
+          rowHeight={rowHeight}
+          wrapHeaders={wrapHeaders}
+          refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
+        />
+        <ContentLibraryActionDialogs
+          duplicateDialog={{
+            row: duplicateRow,
+            pending: duplicateMutation.isPending,
+            onOpenChange: (open) => {
+              if (!open && !duplicateMutation.isPending) setDuplicateRow(null);
+            },
+            onConfirm: () => {
+              if (!duplicateRow) return;
+              duplicateMutation.mutate(duplicateRow);
+            },
+          }}
+          deleteDialog={{
+            row: deleteRow,
+            pending: deleteMutation.isPending,
+            onOpenChange: (open) => {
+              if (!open && !deleteMutation.isPending) setDeleteRow(null);
+            },
+            onConfirm: () => {
+              if (!deleteRow) return;
+              deleteMutation.mutate(deleteRow);
+            },
+          }}
+          archiveDialog={{
+            row: archiveDialog?.row ?? null,
+            mode: archiveDialog?.mode ?? "archive",
+            pending: archiveMutation.isPending,
+            onOpenChange: (open) => {
+              if (!open && !archiveMutation.isPending) setArchiveDialog(null);
+            },
+            onConfirm: () => {
+              if (!archiveDialog) return;
+              archiveMutation.mutate(archiveDialog);
+            },
+          }}
+        />
+      </>
     </ColumnsPage>
   );
 }

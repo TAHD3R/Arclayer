@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  buildContentLibraryPageData,
   buildContentLibraryRows,
   buildContentSidebarCounts,
   contentHasAddress,
@@ -33,7 +34,6 @@ describe("content-library-utils", () => {
     expect(rows[0]).toMatchObject({
       modelName: null,
       derivedStatus: "draft",
-      archiveVersionNumber: 1,
     });
   });
 
@@ -57,7 +57,6 @@ describe("content-library-utils", () => {
         modelDescription: null,
         modelCapabilities: [],
         derivedStatus: "draft",
-        archiveVersionNumber: 1,
         runtime: "unknown",
         context: "standalone",
       },
@@ -81,15 +80,36 @@ describe("content-library-utils", () => {
         modelDescription: null,
         modelCapabilities: ["routable", "publishable"],
         derivedStatus: "published",
-        archiveVersionNumber: 2,
+        runtime: "visual",
+        context: "site_builder",
+      },
+      {
+        id: "item-3",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        slug: "retired-page",
+        title: "Retired page",
+        status: "archived",
+        visibility: "private",
+        locale: "en-US",
+        bootstrapPresetState: "selected",
+        capabilityPackIds: ["publishable"],
+        draftVersion: 1,
+        updatedAt: new Date().toISOString(),
+        name: "Retired page",
+        modelName: null,
+        modelDescription: null,
+        modelCapabilities: ["publishable"],
+        derivedStatus: "archived",
         runtime: "visual",
         context: "site_builder",
       },
     ]);
 
-    expect(counts.all).toBe(2);
+    expect(counts.all).toBe(3);
     expect(counts.statuses.draft).toBe(1);
     expect(counts.statuses.published).toBe(1);
+    expect(counts.statuses.archived).toBe(1);
     expect(counts.models).toEqual({ landing_page: 1 });
   });
 
@@ -150,5 +170,60 @@ describe("content-library-utils", () => {
         capabilityPackIds: [],
       }),
     ).toBe(false);
+  });
+
+  test("filters archived rows through the archived quick scope", () => {
+    const pageData = buildContentLibraryPageData(
+      [
+        {
+          id: "item-1",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          slug: "draft-page",
+          title: "Draft page",
+          status: "draft",
+          visibility: "private",
+          locale: "en-US",
+          bootstrapPresetState: "none",
+          capabilityPackIds: [],
+          draftVersion: 1,
+          updatedAt: "2026-03-19T00:00:00Z",
+          name: "Draft page",
+          modelName: null,
+          modelDescription: null,
+          modelCapabilities: [],
+          derivedStatus: "draft",
+          runtime: "unknown",
+          context: "standalone",
+        },
+        {
+          id: "item-2",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          slug: "archived-page",
+          title: "Archived page",
+          status: "archived",
+          visibility: "private",
+          locale: "en-US",
+          bootstrapPresetState: "selected",
+          capabilityPackIds: [],
+          draftVersion: 1,
+          updatedAt: "2026-03-20T00:00:00Z",
+          name: "Archived page",
+          modelName: null,
+          modelDescription: null,
+          modelCapabilities: [],
+          derivedStatus: "archived",
+          runtime: "unknown",
+          context: "standalone",
+        },
+      ],
+      { page: 1, size: 10 },
+      "quick:archived",
+      {},
+    );
+
+    expect(pageData.items).toHaveLength(1);
+    expect(pageData.items[0]?.id).toBe("item-2");
   });
 });
