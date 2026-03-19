@@ -17,7 +17,7 @@ function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
 
   return (
     <div className="min-w-0">
-      <div className="truncate font-medium text-foreground">{props.row.name}</div>
+      <div className="truncate text-headline text-label-primary">{props.row.name}</div>
       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
         <ContentRuntimeTag runtime={props.row.runtime} />
         {showAddress ? <BaseTag color="blue">/{props.row.slug}</BaseTag> : null}

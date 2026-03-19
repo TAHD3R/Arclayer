@@ -58,7 +58,7 @@ export function MemberIdentityCell(props: MemberIdentityCellProps) {
       onClick={props.onOpenDetails}
       className={props.className}
       triggerClassName="gap-3"
-      primaryClassName="truncate font-medium text-foreground"
+      primaryClassName="truncate text-headline text-label-primary"
       secondaryClassName="truncate text-caption text-label-secondary"
     />
   );

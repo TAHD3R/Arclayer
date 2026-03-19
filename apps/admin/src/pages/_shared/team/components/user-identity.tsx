@@ -80,7 +80,7 @@ function renderTriggerContent(props: {
         className="shrink-0"
       />
       <div className={cn("min-w-0", props.infoClassName)}>
-        <div className={cn("truncate font-medium text-foreground", props.primaryClassName)}>
+        <div className={cn("truncate text-headline text-label-primary", props.primaryClassName)}>
           {props.primary}
         </div>
         {hasRenderableContent(props.secondary) ? (

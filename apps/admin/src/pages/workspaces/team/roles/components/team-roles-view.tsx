@@ -314,7 +314,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                             <div />
                             <div className="min-w-0">
-                              <div className="truncate font-medium text-foreground">
+                              <div className="truncate text-headline text-label-primary">
                                 {role.name}
                               </div>
                             </div>

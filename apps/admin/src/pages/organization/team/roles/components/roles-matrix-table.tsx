@@ -44,7 +44,7 @@ export function RolesMatrixTable(props: RolesMatrixTableProps) {
                 <TableHead key={role.code} className="min-w-[160px] text-center ">
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <div />
-                    <div className="truncate font-medium text-foreground">{role.name}</div>
+                    <div className="truncate text-headline text-label-primary">{role.name}</div>
                     <div className="flex justify-end">
                       {role.isSystem ? null : (
                         <DropdownMenu>
