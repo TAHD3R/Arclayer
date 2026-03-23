@@ -4,6 +4,7 @@ import { AccountLayout } from "@/layouts/account-layout";
 import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { DevLayout } from "@/layouts/dev-layout";
+import { GlobalLayout } from "@/layouts/global-layout";
 import { InviteLayout } from "@/layouts/invite-layout";
 import { SetupLayout } from "@/layouts/setup-layout";
 import {
@@ -11,11 +12,12 @@ import {
   isAccountPath,
   isAuthScenePath,
   isDevToolsPath,
+  isGlobalPath,
   isRepairPath,
   isSetupPath,
 } from "@/lib/routing/route-identity";
 
-export type SceneKey = "dev" | "setup" | "auth" | "invite" | "account" | "admin";
+export type SceneKey = "dev" | "setup" | "auth" | "invite" | "account" | "global" | "admin";
 
 interface SceneEntry {
   key: SceneKey;
@@ -34,6 +36,7 @@ const SCENE_ENTRIES: SceneEntry[] = [
   { key: "auth", layout: AuthLayout, match: isAuthScenePath },
   { key: "invite", layout: InviteLayout, match: isAcceptInvitePath },
   { key: "account", layout: AccountLayout, match: isAccountPath },
+  { key: "global", layout: GlobalLayout, match: isGlobalPath },
   { key: "admin", layout: AdminLayout, match: () => true },
 ];
 

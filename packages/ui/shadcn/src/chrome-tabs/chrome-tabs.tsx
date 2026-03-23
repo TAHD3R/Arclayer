@@ -48,7 +48,7 @@ export const ChromeTabsContent = React.forwardRef<
   React.ElementRef<typeof TabsContent>,
   React.ComponentPropsWithoutRef<typeof TabsContent>
 >(({ className, ...props }, ref) => (
-  <TabsContent ref={ref} className={cn("mt-0 pt-6", className)} {...props} />
+  <TabsContent ref={ref} className={cn("mt-0 pt-4", className)} {...props} />
 ));
 ChromeTabsContent.displayName = "ChromeTabsContent";
 

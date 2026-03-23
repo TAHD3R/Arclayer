@@ -66,11 +66,11 @@ export function AdminTopbar(props: {
             <AdminFullLogo ariaLabel="Arclayer" width={100} className="flex h-8 items-center" />
           </div>
 
-          <div className="min-w-0 max-w-[14rem] xl:max-w-[18rem] 2xl:max-w-[20rem]">
+          <div className="min-w-0 max-w-[14rem] xl:max-w-[18rem] 2xl:max-w-[20rem] flex">
             <AdminWorkspaceSwitcher
               variant="header"
               showSidebarToggle={false}
-              className="min-w-0"
+              className="min-w-0 justify-center items-center"
             />
           </div>
         </div>

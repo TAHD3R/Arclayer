@@ -13,6 +13,7 @@ import { Route as SysRouteImport } from './routes/sys'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
 import { Route as SysIndexRouteImport } from './routes/sys/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
@@ -79,6 +80,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
+const WorkspacesIndexRoute = WorkspacesIndexRouteImport.update({
+  id: '/workspaces/',
+  path: '/workspaces/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SysIndexRoute = SysIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -428,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
+  '/workspaces/': typeof WorkspacesIndexRoute
   '/account/appearance/': typeof AccountAppearanceIndexRoute
   '/account/billing/': typeof AccountBillingIndexRoute
   '/account/danger/': typeof AccountDangerIndexRoute
@@ -475,6 +482,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordIndexRoute
   '/setup': typeof SetupIndexRoute
   '/sys': typeof SysIndexRoute
+  '/workspaces': typeof WorkspacesIndexRoute
   '/account/appearance': typeof AccountAppearanceIndexRoute
   '/account/billing': typeof AccountBillingIndexRoute
   '/account/danger': typeof AccountDangerIndexRoute
@@ -527,6 +535,7 @@ export interface FileRoutesById {
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
+  '/workspaces/': typeof WorkspacesIndexRoute
   '/account/appearance/': typeof AccountAppearanceIndexRoute
   '/account/billing/': typeof AccountBillingIndexRoute
   '/account/danger/': typeof AccountDangerIndexRoute
@@ -580,6 +589,7 @@ export interface FileRouteTypes {
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
+    | '/workspaces/'
     | '/account/appearance/'
     | '/account/billing/'
     | '/account/danger/'
@@ -627,6 +637,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/sys'
+    | '/workspaces'
     | '/account/appearance'
     | '/account/billing'
     | '/account/danger'
@@ -678,6 +689,7 @@ export interface FileRouteTypes {
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
+    | '/workspaces/'
     | '/account/appearance/'
     | '/account/billing/'
     | '/account/danger/'
@@ -727,6 +739,7 @@ export interface RootRouteChildren {
   RepairIndexRoute: typeof RepairIndexRoute
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
+  WorkspacesIndexRoute: typeof WorkspacesIndexRoute
   DevtoolsIllustrationsIndexRoute: typeof DevtoolsIllustrationsIndexRoute
   RepairMasterKeyIndexRoute: typeof RepairMasterKeyIndexRoute
 }
@@ -759,6 +772,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspaces/': {
+      id: '/workspaces/'
+      path: '/workspaces'
+      fullPath: '/workspaces/'
+      preLoaderRoute: typeof WorkspacesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sys/': {
@@ -1209,6 +1229,7 @@ const rootRouteChildren: RootRouteChildren = {
   RepairIndexRoute: RepairIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
+  WorkspacesIndexRoute: WorkspacesIndexRoute,
   DevtoolsIllustrationsIndexRoute: DevtoolsIllustrationsIndexRoute,
   RepairMasterKeyIndexRoute: RepairMasterKeyIndexRoute,
 }

@@ -48,7 +48,7 @@ const COLLAPSIBLE_CONTENT_CLASSNAME = cn(
 );
 
 const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
-  "relative z-10 h-7 rounded-md text-callout text-label-secondary",
+  "relative z-10 h-9 rounded-md text-callout text-label-secondary",
   "transition-[color,background-color] duration-200 ease-out",
   "hover:bg-accent/40 hover:text-label-primary",
   "focus:bg-accent/40 focus:text-label-primary",

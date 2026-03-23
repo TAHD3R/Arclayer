@@ -188,7 +188,7 @@ export function useAcceptInvite(rawToken: string | null) {
   }) => {
     if (!payload.workspaceId) {
       notifySuccessText(t("invite:INVITE_JOIN_SUCCESS"));
-      await navigate({ to: "/account/workspaces", search: { create: undefined }, replace: true });
+      await navigate({ to: "/workspaces", search: { create: undefined }, replace: true });
       return;
     }
     setCurrentWorkspaceId(payload.workspaceId);

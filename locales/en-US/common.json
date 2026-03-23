@@ -64,6 +64,8 @@
   "FAVORITE_REMOVE_TOOLTIP": "Remove this page from Starred",
   "GO_HOME": "Go Home",
   "GO_LOGIN": "Go to Login",
+  "GLOBAL_HOME_DESC": "Start from the global Arclayer view, then jump into the workspace you want to operate.",
+  "GLOBAL_HOME_OPEN_WORKSPACES": "Open workspaces",
   "LANDING_WORKSPACE_EMPTY_DESC": "You haven't joined any workspaces yet. Ask an administrator to invite you, or join via an invitation link.",
   "LANDING_WORKSPACE_EMPTY_TITLE": "No accessible workspaces",
   "LOADING": "Loading…",

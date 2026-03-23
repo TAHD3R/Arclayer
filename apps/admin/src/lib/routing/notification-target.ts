@@ -1,7 +1,7 @@
 import type { NotificationItem } from "@/types/api";
 
 function resolveLegacyOrganizationTarget(targetTo: string, workspaceId: string): string {
-  if (/^\/o\/[^/]+\/workspaces\/?$/.test(targetTo)) return "/account/workspaces";
+  if (/^\/o\/[^/]+\/workspaces\/?$/.test(targetTo)) return "/workspaces";
   if (/^\/o\/[^/]+\/billing\/?$/.test(targetTo)) return "/account/billing";
   if (/^\/o\/[^/]+\/usage\/?$/.test(targetTo)) return "/account/usage";
   if (/^\/o\/[^/]+\/settings\/danger\/?$/.test(targetTo)) return "/account/danger";
@@ -14,7 +14,7 @@ function resolveLegacyOrganizationTarget(targetTo: string, workspaceId: string):
   if (/^\/o\/[^/]+\/(?:activity|settings\/activity)\/?$/.test(targetTo)) {
     return `/w/${workspaceId}/settings/maintenance/activity`;
   }
-  return "/account/workspaces";
+  return "/workspaces";
 }
 
 export function resolveNotificationTarget(item: NotificationItem): string | null {

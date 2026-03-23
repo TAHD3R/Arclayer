@@ -35,13 +35,16 @@ export function useOrganizationWorkspacesMutations(
   const queryClient = useQueryClient();
 
   const tableScope = organizationId ? `org:${organizationId}` : "org:me";
+  const cardScope = organizationId ?? "me";
   const activeTableKey = ["dataTable", `organization-workspaces-active:${tableScope}`] as const;
   const archivedTableKey = ["dataTable", `organization-workspaces-archived:${tableScope}`] as const;
+  const cardsKey = ["organization-workspaces-cards", cardScope] as const;
 
   const invalidateWorkspaceTables = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: activeTableKey }),
       queryClient.invalidateQueries({ queryKey: archivedTableKey }),
+      queryClient.invalidateQueries({ queryKey: cardsKey }),
       queryClient.invalidateQueries({ queryKey: ["organization", "workspaces", "switcher"] }),
     ]);
   };

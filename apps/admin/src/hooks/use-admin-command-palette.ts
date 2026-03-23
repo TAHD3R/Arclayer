@@ -104,7 +104,7 @@ function buildActionEntries(params: {
       shortcut: ["G", "W"],
       action: {
         type: "navigate",
-        to: "/account/workspaces",
+        to: "/workspaces",
       },
     });
   }

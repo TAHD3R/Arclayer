@@ -1,6 +1,6 @@
 import { getBootstrapState, repairBootstrapState } from "@/api/bootstrap";
 import { listMyWorkspaces } from "@/api/workspaces";
-import { pickDefaultWorkspaceId, workspaceHomePath } from "@/lib/routing/workspace-routing";
+import { pickDefaultWorkspaceId } from "@/lib/routing/workspace-routing";
 
 export interface PostAuthRouteDecision {
   path: string;
@@ -9,10 +9,10 @@ export interface PostAuthRouteDecision {
 }
 
 /**
- * Post-auth routing policy (workspace-first):
- * - Prefer the remembered workspace when it still exists.
- * - Auto-enter the only workspace when there is exactly one.
- * - Otherwise send the user to account workspaces management.
+ * Post-auth routing policy (global-first):
+ * - Repair bootstrap state when required.
+ * - Preserve the remembered workspace in local state when it still exists.
+ * - Always land on the global home entry after auth.
  */
 export async function resolvePostAuthRoute(params: {
   lastWorkspaceId: string | null;
@@ -36,7 +36,7 @@ export async function resolvePostAuthRoute(params: {
 
   if (workspaceId) {
     return {
-      path: workspaceHomePath(workspaceId),
+      path: "/",
       workspaceId,
       repaired,
     };
@@ -44,14 +44,14 @@ export async function resolvePostAuthRoute(params: {
 
   if (state?.ready || (workspaces.items ?? []).length > 0) {
     return {
-      path: "/account/workspaces",
+      path: "/",
       workspaceId: null,
       repaired,
     };
   }
 
   return {
-    path: "/account/workspaces",
+    path: "/",
     workspaceId: null,
     repaired,
   };

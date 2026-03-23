@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
 import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
@@ -54,6 +54,15 @@ interface OrganizationWorkspacesDialogsProps {
 
 export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialogsProps) {
   const { t, createDialog, archiveDialog, deleteDialog } = props;
+  const [createNameTouched, setCreateNameTouched] = useState(false);
+  const createNameMissing = !createDialog.values.name.trim();
+  const showCreateNameError = createNameTouched && createNameMissing;
+
+  useEffect(() => {
+    if (createDialog.open) {
+      setCreateNameTouched(false);
+    }
+  }, [createDialog.open]);
 
   return (
     <>
@@ -102,13 +111,15 @@ export function OrganizationWorkspacesDialogs(props: OrganizationWorkspacesDialo
             </span>
             <Input
               value={createDialog.values.name}
-              onChange={(event) =>
-                createDialog.setValues((prev) => ({ ...prev, name: event.target.value }))
-              }
+              onChange={(event) => {
+                setCreateNameTouched(true);
+                createDialog.setValues((prev) => ({ ...prev, name: event.target.value }));
+              }}
+              onBlur={() => setCreateNameTouched(true)}
               placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
-              aria-invalid={!createDialog.values.name.trim()}
+              aria-invalid={showCreateNameError}
             />
-            {!createDialog.values.name.trim() ? (
+            {showCreateNameError ? (
               <span className="text-caption text-destructive">
                 {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
               </span>

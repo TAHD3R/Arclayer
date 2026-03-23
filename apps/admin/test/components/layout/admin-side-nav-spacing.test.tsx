@@ -90,8 +90,8 @@ describe("AdminSiderNav spacing", () => {
     const menu = container.querySelector('[data-slot="sidebar-menu"]');
 
     expect(menu).not.toBeNull();
-    expect(menu).toHaveClass("gap-1");
-    expect(menu).toHaveClass("group-data-[collapsible=icon]:gap-2");
+    expect(menu).toHaveClass("gap-1.5");
+    expect(menu).toHaveClass("group-data-[collapsible=icon]:gap-2.5");
   });
 
   it("uses the updated nav item padding, height, and active styling", () => {
@@ -107,24 +107,24 @@ describe("AdminSiderNav spacing", () => {
     const teamButton = screen.getByRole("button", { name: "Team" });
 
     expect(dashboardButton).toHaveClass(
-      "h-7",
+      "h-9",
       "rounded-md",
-      "!pl-2.5",
-      "!pr-2",
-      "!py-1",
+      "!pl-3",
+      "!pr-2.5",
+      "!py-1.5",
       "text-callout",
     );
     expect(dashboardButton.className).not.toContain("data-[active=true]:bg-accent/50");
 
     expect(teamButton).toHaveClass(
-      "h-7",
+      "h-9",
       "rounded-md",
-      "!pl-2.5",
-      "!pr-2",
-      "!py-1",
+      "!pl-3",
+      "!pr-2.5",
+      "!py-1.5",
       "text-callout",
     );
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:size-7!");
+    expect(teamButton.className).toContain("group-data-[collapsible=icon]:size-9!");
     expect(teamButton.className).toContain("data-[active=true]:bg-transparent");
   });
 
@@ -150,8 +150,8 @@ describe("AdminSiderNav spacing", () => {
     const sectionShell = sectionButton.closest('[data-sidebar="group-label"]');
     const sectionChevronWrapper = sectionButton.querySelector("span:last-child");
 
-    expect(sectionShell).toHaveClass("ml-2.5", "my-2", "!px-0");
-    expect(sectionButton).toHaveClass("!pl-0", "!pr-2");
+    expect(sectionShell).toHaveClass("ml-3", "my-2.5", "!px-0");
+    expect(sectionButton).toHaveClass("!pl-0", "!pr-2.5");
     expect(sectionChevronWrapper).toHaveClass("mr-0.5");
   });
 });

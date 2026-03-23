@@ -24,6 +24,10 @@ export function isAccountPath(pathname: string): boolean {
   );
 }
 
+export function isGlobalPath(pathname: string): boolean {
+  return pathname === "/" || pathname === "/workspaces" || pathname === "/workspaces/";
+}
+
 export function isSetupPath(pathname: string): boolean {
   return pathname === "/setup" || pathname.startsWith("/setup/");
 }

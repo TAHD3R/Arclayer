@@ -1,13 +1,4 @@
-import {
-  Bell,
-  CircleAlert,
-  CreditCard,
-  Monitor,
-  Shield,
-  UserRound,
-  Users,
-  Waves,
-} from "lucide-react";
+import { Bell, CircleAlert, CreditCard, Monitor, Shield, UserRound, Waves } from "lucide-react";
 
 import type { AdminNavSection } from "@/types/admin-nav";
 
@@ -52,13 +43,6 @@ export const ACCOUNT_NAV_SECTIONS: AdminNavSection[] = [
     title: "Account",
     titleKey: "account:ACCOUNT_SECTION_ACCOUNT",
     items: [
-      {
-        key: "account.workspaces",
-        label: "Workspaces",
-        labelKey: "account:ACCOUNT_NAV_WORKSPACES",
-        to: "/account/workspaces",
-        icon: Users,
-      },
       {
         key: "account.billing",
         label: "Billing",

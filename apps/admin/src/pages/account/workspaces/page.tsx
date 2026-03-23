@@ -29,8 +29,8 @@ import type {
   WorkspaceMenuItem,
 } from "@/pages/organization/workspaces/types";
 
-export function AccountWorkspacesPage() {
-  const { create } = useSearch({ from: "/account/workspaces/" });
+export function WorkspacesPage() {
+  const { create } = useSearch({ from: "/workspaces/" });
   const autoOpenCreate = create === "1";
 
   const { t } = useTranslation(["account", "common"]);

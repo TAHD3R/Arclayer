@@ -64,6 +64,8 @@
   "FAVORITE_REMOVE_TOOLTIP": "从星标中移除此页面",
   "GO_HOME": "返回首页",
   "GO_LOGIN": "去登录",
+  "GLOBAL_HOME_DESC": "先从 Arclayer 的全局视角进入，再跳转到你要操作的工作空间。",
+  "GLOBAL_HOME_OPEN_WORKSPACES": "打开工作空间",
   "LANDING_WORKSPACE_EMPTY_DESC": "你还没有加入任何工作空间。请联系管理员邀请你加入，或使用邀请链接加入。",
   "LANDING_WORKSPACE_EMPTY_TITLE": "暂无可访问的工作空间",
   "LOADING": "加载中…",

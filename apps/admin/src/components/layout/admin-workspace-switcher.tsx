@@ -34,7 +34,7 @@ import { Button } from "@arclayer/ui/button";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
-const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-11";
+const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-8";
 const INTERACTION_EASING = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const INTERACTION_TRANSITION_CLASSNAME = cn(
   "transition-[background-color,color,transform,opacity]",
@@ -442,7 +442,7 @@ function ViewAllWorkspacesButton() {
       text={t("common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES")}
       onClick={() => {
         closeFloatingPanel();
-        void navigate({ to: "/account/workspaces" as never });
+        void navigate({ to: "/workspaces" as never });
       }}
     />
   );
@@ -537,7 +537,7 @@ function PanelContentInner() {
           text={t("common:WORKSPACE_SWITCHER_ADD_WORKSPACE")}
           onClick={() => {
             closeFloatingPanel();
-            void navigate({ to: "/account/workspaces?create=1" as never });
+            void navigate({ to: "/workspaces?create=1" as never });
           }}
         />
       </div>
