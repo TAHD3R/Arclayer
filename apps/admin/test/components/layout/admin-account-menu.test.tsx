@@ -3,8 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import * as authApi from "@/api/auth";
+import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { setThemePreferenceWithTransition } from "@/components/ui/theme-transition";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";

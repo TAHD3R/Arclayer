@@ -1,5 +1,4 @@
 import { cloneElement, isValidElement, useEffect, useState, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,8 +10,10 @@ import {
   Moon,
   Sun,
   UserCog,
-} from "@arclayer/ui/icons/lucide-animated";
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
+
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { cn } from "@arclayer/lib/utils";
@@ -53,31 +54,24 @@ const VIEW_TRANSITIONS = {
   exit: (direction: number) => ({ opacity: 0, x: direction > 0 ? -20 : 20 }),
 };
 
-function withHoverState(node: ReactNode, isHovered: boolean) {
-  if (!isValidElement<{ isHovered?: boolean; className?: string }>(node)) return node;
+function normalizeIcon(node: ReactNode) {
+  if (!isValidElement<{ className?: string }>(node)) return node;
   return cloneElement(node, {
-    isHovered,
     className: cn("size-4 shrink-0", node.props.className),
+    "aria-hidden": true,
   });
 }
 
-function MenuItemContent(props: {
-  icon?: ReactNode;
-  label: string;
-  right?: ReactNode;
-  isHovered: boolean;
-}) {
+function MenuItemContent(props: { icon?: ReactNode; label: string; right?: ReactNode }) {
   return (
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
-        {props.icon ? (
-          <span className="shrink-0">{withHoverState(props.icon, props.isHovered)}</span>
-        ) : null}
+        {props.icon ? <span className="shrink-0">{normalizeIcon(props.icon)}</span> : null}
         <span className="min-w-0 truncate text-callout">{props.label}</span>
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
-          {withHoverState(props.right, props.isHovered)}
+          {normalizeIcon(props.right)}
         </span>
       ) : null}
     </>
@@ -94,21 +88,9 @@ function MenuAction(props: {
   right?: ReactNode;
   onClick: () => Promise<void> | void;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <FloatingPanelButton
-      className={MENU_ITEM_CLASSNAME}
-      onClick={props.onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <MenuItemContent
-        icon={props.icon}
-        label={props.label}
-        right={props.right}
-        isHovered={isHovered}
-      />
+    <FloatingPanelButton className={MENU_ITEM_CLASSNAME} onClick={props.onClick}>
+      <MenuItemContent icon={props.icon} label={props.label} right={props.right} />
     </FloatingPanelButton>
   );
 }
@@ -152,13 +134,13 @@ function RootMenu(props: {
         <MenuAction
           icon={<Languages />}
           label={t("ACCOUNT_MENU_LANGUAGE_PREFERENCES")}
-          right={<ArrowRight className="size-4" aria-hidden="true" />}
+          right={<ArrowRight />}
           onClick={props.onOpenLanguage}
         />
         <MenuAction
           icon={<Monitor />}
           label={t("ACCOUNT_MENU_APPEARANCE")}
-          right={<ArrowRight className="size-4" aria-hidden="true" />}
+          right={<ArrowRight />}
           onClick={props.onOpenAppearance}
         />
       </div>
@@ -228,14 +210,17 @@ function PreferenceSubmenu(props: {
 }) {
   const { t } = useTranslation(["account", "common"]);
   const translate = (key: string) => t(key) as string;
+  const translateLocaleLabel = (key: string) =>
+    translate(key.startsWith("account:") ? key.slice("account:".length) : key);
   const options = buildPreferenceOptions(
     props.view,
-    translate,
+    translateLocaleLabel,
     props.locale,
     props.themePreference,
     props.onLocaleChange,
     props.onThemePreferenceChange,
   );
+
   return (
     <>
       <div className="py-1">
@@ -248,7 +233,7 @@ function PreferenceSubmenu(props: {
             key={option.label}
             icon={option.icon}
             label={option.label}
-            right={option.selected ? <Check className="size-4 text-primary" /> : null}
+            right={option.selected ? <Check className="text-primary" /> : null}
             onClick={() => props.onSelectAndClose(option.onClick)}
           />
         ))}
@@ -261,28 +246,34 @@ export function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
   const [view, setView] = useState<AccountMenuView>("root");
   const [direction, setDirection] = useState(1);
+
   useEffect(() => {
     if (!isOpen) {
       setView("root");
       setDirection(1);
     }
   }, [isOpen]);
+
   const onClickAndClose = async (fn: () => Promise<void> | void) => {
     await fn();
     closeFloatingPanel();
   };
+
   const showAppearance = () => {
     setDirection(1);
     setView("appearance");
   };
+
   const showLanguage = () => {
     setDirection(1);
     setView("language");
   };
+
   const showRoot = () => {
     setDirection(-1);
     setView("root");
   };
+
   return (
     <div className={PANEL_WIDTH_CLASSNAME}>
       <ProfileSummary

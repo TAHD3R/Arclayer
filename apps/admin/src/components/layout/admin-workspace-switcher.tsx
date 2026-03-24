@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
@@ -11,7 +11,7 @@ import {
   Plus,
   Settings2,
   Users,
-} from "@arclayer/ui/icons/lucide-animated";
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces, getWorkspaceDetail } from "@/api/workspaces";
@@ -36,6 +36,12 @@ import { useSidebar } from "@arclayer/ui/sidebar";
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
 const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-8";
 const INTERACTION_EASING = "ease-[cubic-bezier(0.22,1,0.36,1)]";
+const WORKSPACE_PICKER_VISIBLE_ROWS = 5;
+const WORKSPACE_PICKER_ITEM_MIN_HEIGHT_REM = 4.5;
+const WORKSPACE_PICKER_SECTION_VERTICAL_PADDING_REM = 0.5;
+const WORKSPACE_PICKER_MAX_HEIGHT_STYLE = {
+  maxHeight: `min(calc(${WORKSPACE_PICKER_VISIBLE_ROWS} * ${WORKSPACE_PICKER_ITEM_MIN_HEIGHT_REM}rem + ${WORKSPACE_PICKER_SECTION_VERTICAL_PADDING_REM}rem), calc(100vh - 15rem))`,
+} as const;
 const INTERACTION_TRANSITION_CLASSNAME = cn(
   "transition-[background-color,color,transform,opacity]",
   "duration-200",
@@ -56,26 +62,16 @@ function ClampedText(props: { text: string; className?: string }) {
   );
 }
 
-function withHoverState(node: ReactNode, isHovered: boolean) {
-  if (!isValidElement<{ isHovered?: boolean }>(node)) return node;
-  return cloneElement(node, { isHovered });
-}
-
 function PanelMenuItemContent(props: {
   icon?: ReactNode;
   text: string;
   right?: ReactNode;
   textClassName?: string;
-  isHovered: boolean;
 }) {
   return (
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
-        {props.icon ? (
-          <span className="shrink-0 [&>svg]:size-4">
-            {withHoverState(props.icon, props.isHovered)}
-          </span>
-        ) : null}
+        {props.icon ? <span className="shrink-0 [&>svg]:size-4">{props.icon}</span> : null}
         <ClampedText
           text={props.text}
           className={cn("min-w-0 flex-1 text-callout leading-snug", props.textClassName)}
@@ -83,7 +79,7 @@ function PanelMenuItemContent(props: {
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
-          {withHoverState(props.right, props.isHovered)}
+          {props.right}
         </span>
       ) : null}
     </>
@@ -197,8 +193,6 @@ const collapsedCollapseButtonClassName = cn(
 );
 
 function CollapseButton(props: { ariaLabel: string; onClick: () => void; className?: string }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <Button
       type="button"
@@ -206,21 +200,17 @@ function CollapseButton(props: { ariaLabel: string; onClick: () => void; classNa
       size="icon"
       className={cn(collapseButtonClassName, props.className)}
       aria-label={props.ariaLabel}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       onClick={(event) => {
         event.stopPropagation();
         props.onClick();
       }}
     >
-      <PanelLeftIcon className="mx-auto size-4" isHovered={isHovered} aria-hidden="true" />
+      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
     </Button>
   );
 }
 
 function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <Button
       type="button"
@@ -228,11 +218,9 @@ function CollapsedCollapseButton(props: { ariaLabel: string; onClick: () => void
       size="icon"
       className={collapsedCollapseButtonClassName}
       aria-label={props.ariaLabel}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       onClick={props.onClick}
     >
-      <PanelLeftIcon className="mx-auto size-4" isHovered={isHovered} aria-hidden="true" />
+      <PanelLeftIcon className="mx-auto size-4" aria-hidden="true" />
     </Button>
   );
 }
@@ -325,11 +313,7 @@ function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
   );
 }
 
-function WorkspacePickerItemContent(props: {
-  workspace: MyWorkspace;
-  selected: boolean;
-  isHovered: boolean;
-}) {
+function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: boolean }) {
   const title = props.workspace.name || props.workspace.slug || props.workspace.workspaceId;
 
   return (
@@ -344,14 +328,14 @@ function WorkspacePickerItemContent(props: {
         <div className="min-w-0 flex-1 text-left">
           <ClampedText
             text={title}
-            className="line-clamp-2 text-callout font-semibold leading-snug text-foreground"
+            className="truncate text-callout font-semibold leading-snug text-foreground"
           />
           <WorkspaceMemberMeta workspace={props.workspace} />
         </div>
       </div>
       {props.selected ? (
         <span className="shrink-0 pt-0.5 opacity-90">
-          <Check className="h-4 w-4 text-primary" isHovered={props.isHovered} aria-hidden="true" />
+          <Check className="h-4 w-4 text-primary" aria-hidden="true" />
         </span>
       ) : null}
     </>
@@ -371,10 +355,8 @@ function WorkspacePickerSection(props: {
         {t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
       </div>
       <div
-        className={cn(
-          PANEL_SECTION_CLASSNAME,
-          "max-h-[min(19rem,calc(100vh-15rem))] overflow-y-auto overscroll-contain",
-        )}
+        style={WORKSPACE_PICKER_MAX_HEIGHT_STYLE}
+        className={cn(PANEL_SECTION_CLASSNAME, "overflow-y-auto overscroll-contain")}
       >
         {props.workspaces.length === 0 ? (
           <div className="px-2 py-1.5 text-callout text-label-secondary">
@@ -388,17 +370,11 @@ function WorkspacePickerSection(props: {
               key={workspace.workspaceId}
               onClick={() => props.onSelect(workspace.workspaceId)}
               className={cn(
-                "items-start px-3 py-2.5",
+                "min-h-[4.5rem] items-start px-3 py-2.5",
                 selected && "bg-background/95 text-foreground",
               )}
             >
-              {({ isHovered }) => (
-                <WorkspacePickerItemContent
-                  workspace={workspace}
-                  selected={selected}
-                  isHovered={isHovered}
-                />
-              )}
+              <WorkspacePickerItemContent workspace={workspace} selected={selected} />
             </PanelMenuButton>
           );
         })}
@@ -419,14 +395,11 @@ function WorkspaceActionButton(props: {
       disabled={props.disabled}
       className="rounded-none px-3 py-2.5"
     >
-      {({ isHovered }) => (
-        <PanelMenuItemContent
-          icon={props.icon}
-          text={props.text}
-          textClassName="leading-snug text-label-primary"
-          isHovered={isHovered}
-        />
-      )}
+      <PanelMenuItemContent
+        icon={props.icon}
+        text={props.text}
+        textClassName="leading-snug text-label-primary"
+      />
     </PanelMenuButton>
   );
 }
@@ -552,7 +525,6 @@ function HeaderWorkspaceTrigger(props: {
   disabled: boolean;
 }) {
   const { isOpen } = useFloatingPanel();
-  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <FloatingPanelTrigger
@@ -561,8 +533,6 @@ function HeaderWorkspaceTrigger(props: {
       disableLayoutId
       className={cn(headerTriggerButtonClassName, props.disabled && "opacity-60")}
       disabled={props.disabled}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <WorkspaceAvatar
         name={props.workspaceTriggerText}
@@ -578,7 +548,13 @@ function HeaderWorkspaceTrigger(props: {
         />
       </div>
 
-      <ChevronDown className="size-4 shrink-0 opacity-70" expanded={isOpen} isHovered={isHovered} />
+      <ChevronDown
+        className={cn(
+          "size-4 shrink-0 opacity-70 transition-transform duration-200",
+          isOpen && "rotate-180",
+        )}
+        aria-hidden="true"
+      />
     </FloatingPanelTrigger>
   );
 }
@@ -590,7 +566,6 @@ function SidebarWorkspaceTrigger(props: {
   disabled: boolean;
 }) {
   const { isOpen } = useFloatingPanel();
-  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <FloatingPanelTrigger
@@ -603,8 +578,6 @@ function SidebarWorkspaceTrigger(props: {
         props.disabled && "opacity-60",
       )}
       disabled={props.disabled}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <WorkspaceAvatar
         name={props.workspaceTriggerText}
@@ -627,9 +600,12 @@ function SidebarWorkspaceTrigger(props: {
       </div>
 
       <ChevronDown
-        className={cn("size-4 shrink-0 opacity-70", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}
-        expanded={isOpen}
-        isHovered={isHovered}
+        className={cn(
+          "size-4 shrink-0 opacity-70 transition-transform duration-200",
+          NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+          isOpen && "rotate-180",
+        )}
+        aria-hidden="true"
       />
     </FloatingPanelTrigger>
   );

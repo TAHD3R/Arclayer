@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
@@ -18,7 +19,6 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { ThemePreference } from "@/types/stores";
 import { cn } from "@arclayer/lib/utils";
-import { ChevronDown } from "@arclayer/ui/icons/lucide-animated";
 import {
   FloatingPanelContent,
   FloatingPanelRoot,
@@ -145,7 +145,6 @@ function SidebarAccountMenuTrigger(props: {
 }) {
   const { t } = useTranslation("account");
   const { isOpen } = useFloatingPanel();
-  const [isHovered, setIsHovered] = useState(false);
   const title = props.isCollapsed ? props.displayName : t("ACCOUNT_TITLE");
   const nameClassName = cn(
     "text-sidebar-foreground",
@@ -154,13 +153,7 @@ function SidebarAccountMenuTrigger(props: {
   );
 
   return (
-    <FloatingPanelTrigger
-      title={title}
-      disableLayoutId
-      className={SIDEBAR_TRIGGER_CLASSNAME}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <FloatingPanelTrigger title={title} disableLayoutId className={SIDEBAR_TRIGGER_CLASSNAME}>
       <UserAvatar
         name={props.displayName}
         assetRef={props.avatarUrl}
@@ -179,12 +172,12 @@ function SidebarAccountMenuTrigger(props: {
 
       <ChevronDown
         className={cn(
-          "ml-auto size-4 shrink-0 opacity-70",
+          "ml-auto size-4 shrink-0 opacity-70 transition-transform duration-200",
           "group-data-[collapsible=icon]:ml-0",
           NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+          isOpen && "rotate-180",
         )}
-        expanded={isOpen}
-        isHovered={isHovered}
+        aria-hidden="true"
       />
     </FloatingPanelTrigger>
   );
