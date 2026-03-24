@@ -8,24 +8,11 @@ export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
   "group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:mx-auto!";
 export const NAV_ITEM_BUTTON_PADDING_CLASSNAME = "!pl-3 !pr-2.5 !py-1.5";
 export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1.5 group-data-[collapsible=icon]:gap-2.5";
-export const NAV_SECTION_CONTENT_PADDING_CLASSNAME = "pt-2";
-export const NAV_SECTION_LABEL_SHELL_CLASSNAME = "relative overflow-hidden";
-export const NAV_SECTION_LABEL_CLASSNAME = cn(
-  "ml-3 my-2.5 h-8 !px-0",
-  "min-h-0 text-caption",
-  "transition-opacity duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-  "group-data-[collapsible=icon]:opacity-0",
-  "group-data-[collapsible=icon]:pointer-events-none",
+export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-0 gap-1 pl-7 border-l-0";
+export const NAV_SUBTREE_GUIDE_CLASSNAME = cn(
+  "relative",
+  "before:pointer-events-none before:absolute before:bottom-2 before:left-4 before:top-1.5 before:w-px before:bg-border/60",
 );
-export const NAV_SECTION_DIVIDER_CLASSNAME = cn(
-  "pointer-events-none absolute -inset-x-2 top-1/2 h-px -translate-y-1/2 bg-border/70",
-  "transition-opacity duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-  "opacity-0",
-  "group-data-[collapsible=icon]:opacity-100",
-);
-export const NAV_SECTION_TRIGGER_CLASSNAME =
-  "flex w-full items-center gap-1.5 !pl-0 !pr-2.5 text-left text-label-secondary";
-export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-4 gap-1 border-border/60";
 export const NAV_DIVIDER_CLASSNAME = "mx-4 my-1";
 
 function normalizePath(input: string): string {

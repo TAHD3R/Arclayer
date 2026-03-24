@@ -3,20 +3,20 @@ import { describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 
 import { resolveFavoriteNavItems } from "@/components/layout/admin-side-nav/favorite-nav-items";
-import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 
-const homeItem: AdminNavItem = {
-  key: "dashboard",
-  label: "Dashboard",
-  icon: Home,
-  to: "/w/ws-1/",
-};
-
-const sections: AdminNavSection[] = [
+const items: AdminNavItem[] = [
   {
-    key: "general",
-    title: "General",
-    items: [
+    key: "dashboard",
+    label: "Dashboard",
+    icon: Home,
+    to: "/w/ws-1/",
+  },
+  {
+    key: "activity-group",
+    label: "General",
+    icon: Activity,
+    children: [
       {
         key: "activity",
         label: "Activity",
@@ -26,9 +26,10 @@ const sections: AdminNavSection[] = [
     ],
   },
   {
-    key: "collaboration",
-    title: "Collaboration",
-    items: [
+    key: "team-group",
+    label: "Collaboration",
+    icon: Users,
+    children: [
       {
         key: "team",
         label: "Team",
@@ -50,8 +51,7 @@ describe("resolveFavoriteNavItems", () => {
   it("prioritizes current workspace favorites before other workspace favorites", () => {
     const favorites = resolveFavoriteNavItems({
       favoritePaths: ["/w/ws-2/team/invitations", "/w/ws-1/activity", "/w/ws-3/unknown"],
-      homeItem,
-      sections,
+      items,
       workspaceBase: "/w/ws-1",
       t: ((key: string) => key) as TFunction,
     });

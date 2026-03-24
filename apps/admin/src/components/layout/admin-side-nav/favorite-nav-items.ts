@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { normalizePath } from "./nav-utils";
 
 export type FavoriteNavItem = {
@@ -21,27 +21,13 @@ type FavoriteTemplateIndex = {
   workspaceBySuffix: Map<string, FavoriteTemplate>;
 };
 
-function flattenNavItems(params: {
-  homeItem?: AdminNavItem | null;
-  items?: readonly AdminNavItem[];
-  sections?: readonly AdminNavSection[];
-}): AdminNavItem[] {
-  if (params.homeItem || params.sections?.length) {
-    return [
-      params.homeItem,
-      ...(params.sections?.flatMap((section) => section.items) ?? []),
-    ].filter((item): item is AdminNavItem => Boolean(item));
-  }
-
-  return [...(params.items ?? [])];
-}
-
 function buildWorkspaceSuffix(path: string, workspaceBase: string): string | null {
   const normalizedPath = normalizePath(path);
   const normalizedBase = normalizePath(workspaceBase);
   if (normalizedPath === normalizedBase) return "/";
-  if (normalizedPath.startsWith(`${normalizedBase}/`))
+  if (normalizedPath.startsWith(`${normalizedBase}/`)) {
     return normalizedPath.slice(normalizedBase.length);
+  }
   return null;
 }
 
@@ -92,15 +78,12 @@ function isWithinWorkspace(path: string, workspaceBase: string | null): boolean 
 
 export function resolveFavoriteNavItems(params: {
   favoritePaths: readonly string[];
-  homeItem?: AdminNavItem | null;
-  items?: readonly AdminNavItem[];
-  sections?: readonly AdminNavSection[];
+  items: readonly AdminNavItem[];
   t: TFunction;
   workspaceBase?: string | null;
 }): FavoriteNavItem[] {
-  const navItems = flattenNavItems(params);
   const workspaceBase = params.workspaceBase ? normalizePath(params.workspaceBase) : null;
-  const templates = buildTemplateIndex(navItems, params.t, workspaceBase);
+  const templates = buildTemplateIndex(params.items, params.t, workspaceBase);
 
   return params.favoritePaths
     .map((path, order) => {

@@ -5,7 +5,7 @@ import { Activity, Home, LayoutGrid, Settings, UserPlus, Users } from "lucide-re
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { Sidebar, SidebarMenuButton, SidebarProvider } from "@arclayer/ui/sidebar";
 
@@ -52,20 +52,15 @@ async function waitMs(ms: number) {
   });
 }
 
-function renderStructuredNav(args: {
-  homeItem: AdminNavItem;
-  sections: readonly AdminNavSection[];
+function renderTreeNav(args: {
+  items: readonly AdminNavItem[];
   favoriteWorkspaceBase: string;
   open?: boolean;
 }) {
   return render(
     <SidebarProvider open={args.open ?? true} onOpenChange={() => undefined} className="h-screen">
       <Sidebar collapsible="icon" animateOnHover={false}>
-        <AdminSiderNav
-          homeItem={args.homeItem}
-          sections={args.sections}
-          favoriteWorkspaceBase={args.favoriteWorkspaceBase}
-        />
+        <AdminSiderNav items={args.items} favoriteWorkspaceBase={args.favoriteWorkspaceBase} />
       </Sidebar>
     </SidebarProvider>,
   );
@@ -130,18 +125,18 @@ const items: AdminNavItem[] = [
   },
 ];
 
-const homeItem: AdminNavItem = {
-  key: "dashboard",
-  label: "Dashboard",
-  icon: Home,
-  to: "/w/ws-1/",
-};
-
-const sections: AdminNavSection[] = [
+const treeItems: AdminNavItem[] = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: Home,
+    to: "/w/ws-1/",
+  },
   {
     key: "content",
-    title: "Content",
-    items: [
+    label: "Content",
+    icon: LayoutGrid,
+    children: [
       {
         key: "assets",
         label: "Assets",
@@ -152,8 +147,9 @@ const sections: AdminNavSection[] = [
   },
   {
     key: "team",
-    title: "Team",
-    items: [
+    label: "Team",
+    icon: Users,
+    children: [
       {
         key: "team.members",
         label: "Members",
@@ -354,114 +350,115 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/team/invitations" });
   });
 
-  it("renders dashboard above titled sections and shows starred empty state in structured mode", () => {
-    renderStructuredNav({
-      homeItem,
-      sections,
+  it("renders a unified tree without section label rows", () => {
+    renderTreeNav({
+      items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
     expect(screen.getByRole("button", { name: "Dashboard" })).toBeVisible();
-    expect(screen.queryByText("en-US:NAV_STARRED")).not.toBeInTheDocument();
-    expect(screen.getByText("Content")).toBeVisible();
-    expect(screen.getByText("Team")).toBeVisible();
-
-    const contentGroup = screen
-      .getByRole("button", { name: "Content" })
-      .closest('[data-sidebar="group"]');
-    const contentGroupBody = contentGroup?.querySelector('[data-sidebar="group-content"]');
-    expect(contentGroupBody).toHaveClass("pt-1.5");
+    expect(screen.getByRole("button", { name: "Content" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Team" })).toBeVisible();
+    expect(document.querySelector('[data-sidebar="group-label"]')).toBeNull();
   });
 
-  it("toggles section items when clicking a section label", async () => {
-    const user = userEvent.setup();
-    renderStructuredNav({
-      homeItem,
-      sections,
+  it("opens only the active top-level group by default", async () => {
+    renderTreeNav({
+      items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: "Content" }));
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Invitations" })).toBeVisible();
+  });
+
+  it("toggles top-level groups as an accordion", async () => {
+    const user = userEvent.setup();
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
     });
 
     await user.click(screen.getByRole("button", { name: "Content" }));
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
     });
+    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    });
   });
 
-  it("keeps the expanded section chevron stable while hovering the section label", async () => {
+  it("keeps the expanded group chevron stable while hovering the trigger", async () => {
     const user = userEvent.setup();
 
-    renderStructuredNav({
-      homeItem,
-      sections,
+    renderTreeNav({
+      items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    const sectionButton = screen.getByRole("button", { name: "Content" });
-    const chevronBeforeHover = sectionButton.querySelector("svg");
+    const groupButton = screen.getByRole("button", { name: "Team" });
+    const chevronBeforeHover = groupButton.querySelector("svg");
 
     expect(chevronBeforeHover).not.toBeNull();
 
-    await user.hover(sectionButton);
+    await user.hover(groupButton);
 
     await waitFor(() => {
-      expect(sectionButton.querySelector("svg")).toBe(chevronBeforeHover);
+      expect(groupButton.querySelector("svg")).toBe(chevronBeforeHover);
     });
   });
 
-  it("shows starred only when favorites exist in structured mode", () => {
+  it("shows starred as a top-level group only when favorites exist", () => {
     useFavoritesStore.setState({ paths: ["/w/ws-1/assets"] });
 
-    renderStructuredNav({
-      homeItem,
-      sections,
+    renderTreeNav({
+      items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:NAV_STARRED" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toBeVisible();
   });
 
-  it("keeps collapsed sections accessible in icon mode and restores section state on expand", async () => {
+  it("keeps collapsed groups accessible in icon mode and restores accordion state on expand", async () => {
     const user = userEvent.setup();
-    const view = renderStructuredNav({
-      homeItem,
-      sections,
+    const view = renderTreeNav({
+      items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
       open: true,
     });
 
     await user.click(screen.getByRole("button", { name: "Content" }));
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
     });
 
     view.rerender(
       <SidebarProvider open={false} onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav homeItem={homeItem} sections={sections} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );
 
     await waitForCollapsedRender();
-    expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Content" })).toBeVisible();
 
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav homeItem={homeItem} sections={sections} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
     });
   });
 });

@@ -1,9 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Home, Users } from "lucide-react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { Sidebar, SidebarProvider } from "@arclayer/ui/sidebar";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -37,11 +38,18 @@ const items: AdminNavItem[] = [
   },
 ];
 
-const structuredSections: AdminNavSection[] = [
+const treeItems: AdminNavItem[] = [
+  {
+    key: "home",
+    label: "Home",
+    icon: Home,
+    to: "/w/ws-1/",
+  },
   {
     key: "content",
-    title: "Content",
-    items,
+    label: "Content",
+    icon: Users,
+    children: items,
   },
 ];
 
@@ -128,30 +136,44 @@ describe("AdminSiderNav spacing", () => {
     expect(teamButton.className).toContain("data-[active=true]:bg-transparent");
   });
 
-  it("uses the updated section label spacing", () => {
+  it("uses the top-level group trigger spacing without section labels", () => {
     render(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav
-            homeItem={{
-              key: "home",
-              label: "Home",
-              icon: Home,
-              to: "/w/ws-1/",
-            }}
-            sections={structuredSections}
-            favoriteWorkspaceBase="/w/ws-1"
-          />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
         </Sidebar>
       </SidebarProvider>,
     );
 
-    const sectionButton = screen.getByRole("button", { name: "Content" });
-    const sectionShell = sectionButton.closest('[data-sidebar="group-label"]');
-    const sectionChevronWrapper = sectionButton.querySelector("span:last-child");
+    const groupButton = screen.getByRole("button", { name: "Content" });
+    const groupChevronWrapper = groupButton.querySelector("span:last-child");
 
-    expect(sectionShell).toHaveClass("ml-3", "my-2.5", "!px-0");
-    expect(sectionButton).toHaveClass("!pl-0", "!pr-2.5");
-    expect(sectionChevronWrapper).toHaveClass("mr-0.5");
+    expect(document.querySelector('[data-sidebar="group-label"]')).toBeNull();
+    expect(groupButton).toHaveClass("!pl-3", "!pr-2.5", "h-9", "rounded-md");
+    expect(groupChevronWrapper).toHaveClass("ml-auto");
+  });
+
+  it("keeps expanded children aligned with their parent and removes hover background styling", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+
+    const contentItem = screen
+      .getByRole("button", { name: "Content" })
+      .closest('[data-sidebar="menu-item"]');
+    const subtree = contentItem?.querySelector('[data-slot="sidebar-menu-sub"]');
+    const submenuButton = within(subtree as HTMLElement).getByRole("button", { name: "Dashboard" });
+
+    expect(subtree).toHaveClass("ml-0", "pl-7", "border-l-0");
+    expect(subtree?.parentElement).toHaveClass("before:left-4");
+    expect(submenuButton).toHaveClass("[&:not([data-highlight])]:hover:bg-transparent");
   });
 });

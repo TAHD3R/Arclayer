@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { WORKSPACE_NAV_HOME_ITEM, WORKSPACE_NAV_SECTIONS } from "@/constants/menu/workspaces";
-import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { useToggle } from "@arclayer/hooks/use-toggle";
 import { normalizePath } from "@/lib/admin-nav-utils";
@@ -29,6 +29,29 @@ import { AdminTopbar } from "@/components/layout/admin-topbar";
 const SIDEBAR_EXPANDED_WIDTH_PX = 240;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
 const TOPBAR_HEIGHT_REM = "3.5rem";
+
+function mapWorkspaceNavItems(
+  items: readonly AdminNavItem[],
+  workspaceBase: string,
+): AdminNavItem[] {
+  const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
+
+  return items.map((item) => {
+    const to = item.to
+      ? item.to === "/"
+        ? `${base}/`
+        : `${base}${item.to.startsWith("/") ? item.to : `/${item.to}`}`
+      : undefined;
+
+    return {
+      ...item,
+      ...(to ? { to } : {}),
+      ...(item.children?.length
+        ? { children: mapWorkspaceNavItems(item.children, workspaceBase) }
+        : {}),
+    };
+  });
+}
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
@@ -66,75 +89,20 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return normalizePath(pathname).startsWith(normalizePath(workspaceBase));
   }, [pathname, workspaceBase]);
 
-  const workspaceNav = useMemo((): {
-    homeItem: AdminNavItem | null;
-    sections: AdminNavSection[];
-    items: AdminNavItem[];
-  } => {
-    if (!workspaceBase) {
-      return { homeItem: null, sections: [], items: [] };
-    }
-
-    const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
-
-    const mapItems = (items: AdminNavItem[]): AdminNavItem[] =>
-      items.map((it) => {
-        const to = it.to
-          ? it.to === "/"
-            ? `${base}/`
-            : `${base}${it.to.startsWith("/") ? it.to : `/${it.to}`}`
-          : undefined;
-        return {
-          ...it,
-          ...(to ? { to } : {}),
-          ...(it.children?.length ? { children: mapItems(it.children) } : {}),
-        };
-      });
-
-    const [homeItem] = mapItems([WORKSPACE_NAV_HOME_ITEM]);
-    const sections = WORKSPACE_NAV_SECTIONS.map((section) =>
-      Object.assign({}, section, { items: mapItems(section.items) }),
-    );
-
-    return {
-      homeItem,
-      sections,
-      items: [homeItem, ...sections.flatMap((section) => section.items)],
-    };
-  }, [workspaceBase]);
-
-  const navItems = useMemo(() => workspaceNav.items, [workspaceNav.items]);
-  const scopedNavItems = useMemo(() => {
-    if (!systemRuntime.runtime) return [];
-    return filterNavByScope(navItems, systemRuntime.runtime.deploymentMode);
-  }, [navItems, systemRuntime.runtime]);
-
-  const mainItems = useMemo(
-    () => scopedNavItems.filter((it) => it.position !== "footer"),
-    [scopedNavItems],
+  const workspaceNav = useMemo(
+    () => (workspaceBase ? mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, workspaceBase) : []),
+    [workspaceBase],
   );
 
-  const mainHomeItem = useMemo(() => {
-    if (!systemRuntime.runtime || !workspaceNav.homeItem) return null;
-    return (
-      filterNavByScope([workspaceNav.homeItem], systemRuntime.runtime.deploymentMode).find(
-        (item) => item.position !== "footer",
-      ) ?? null
-    );
-  }, [systemRuntime.runtime, workspaceNav.homeItem]);
+  const scopedNavItems = useMemo(() => {
+    if (!systemRuntime.runtime) return [];
+    return filterNavByScope(workspaceNav, systemRuntime.runtime.deploymentMode);
+  }, [systemRuntime.runtime, workspaceNav]);
 
-  const mainSections = useMemo(() => {
-    const runtime = systemRuntime.runtime;
-    if (!runtime) return [];
-    return workspaceNav.sections
-      .map((section) => ({
-        ...section,
-        items: filterNavByScope(section.items, runtime.deploymentMode).filter(
-          (item) => item.position !== "footer",
-        ),
-      }))
-      .filter((section) => section.items.length > 0);
-  }, [systemRuntime.runtime, workspaceNav.sections]);
+  const mainItems = useMemo(
+    () => scopedNavItems.filter((item) => item.position !== "footer"),
+    [scopedNavItems],
+  );
 
   const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
 
@@ -240,9 +208,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
           <AdminSidebarShell
             showNavSkeleton={showNavSkeleton}
             showOrgNavErrorOverlay={false}
-            mainItems={mainItems}
-            mainHomeItem={isWorkspaceScopeRoute ? mainHomeItem : null}
-            mainSections={isWorkspaceScopeRoute ? mainSections : []}
+            mainItems={isWorkspaceScopeRoute ? mainItems : []}
             favoriteWorkspaceBase={isWorkspaceScopeRoute ? workspaceBase : null}
             footerItems={footerItems}
             resolvePermissionName={resolvePermissionName}

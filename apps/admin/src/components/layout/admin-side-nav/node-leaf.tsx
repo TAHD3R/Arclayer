@@ -62,7 +62,8 @@ function NodeLeafSub({
             NAV_ITEM_RADIUS_CLASSNAME,
             INTERACTIVE_TRANSITION_CLASSNAME,
             NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-            NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+            "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent",
+            "[&:not([data-highlight])]:hover:bg-transparent",
             "text-callout",
             item.disabled ? DISABLED_ITEM_CLASSNAME : null,
           )}

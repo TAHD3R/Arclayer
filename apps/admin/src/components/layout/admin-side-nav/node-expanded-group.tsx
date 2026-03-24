@@ -35,6 +35,7 @@ import {
   NAV_ITEM_HEIGHT_CLASSNAME,
   NAV_ITEM_RADIUS_CLASSNAME,
   NAV_SUBTREE_CLASSNAME,
+  NAV_SUBTREE_GUIDE_CLASSNAME,
 } from "./nav-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { iconSlot } from "./nav-icon-slot";
@@ -59,7 +60,9 @@ const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
 function GroupChildren({ children }: { children: ReactNode }) {
   return (
     <CollapsibleContent className={COLLAPSIBLE_CONTENT_CLASSNAME}>
-      <SidebarMenuSub className={NAV_SUBTREE_CLASSNAME}>{children}</SidebarMenuSub>
+      <div className={NAV_SUBTREE_GUIDE_CLASSNAME}>
+        <SidebarMenuSub className={NAV_SUBTREE_CLASSNAME}>{children}</SidebarMenuSub>
+      </div>
     </CollapsibleContent>
   );
 }
@@ -275,7 +278,8 @@ export function NodeExpandedGroupSub({
     NAV_ITEM_RADIUS_CLASSNAME,
     INTERACTIVE_TRANSITION_CLASSNAME,
     NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
-    NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
+    "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent",
+    "[&:not([data-highlight])]:hover:bg-transparent",
     "text-callout",
     item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
   );

@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import {
   AdminSidebarFooterMenuSkeleton,
@@ -15,8 +15,6 @@ export type AdminSidebarShellProps = {
   showNavSkeleton: boolean;
   showOrgNavErrorOverlay: boolean;
   mainItems: readonly AdminNavItem[];
-  mainHomeItem?: AdminNavItem | null;
-  mainSections?: readonly AdminNavSection[];
   favoriteWorkspaceBase?: string | null;
   footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
@@ -118,8 +116,6 @@ function AdminSidebarContentArea(props: {
   showMenuSkeleton: boolean;
   showFailureSkeleton: boolean;
   mainItems: readonly AdminNavItem[];
-  mainHomeItem?: AdminNavItem | null;
-  mainSections?: readonly AdminNavSection[];
   favoriteWorkspaceBase?: string | null;
   footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
@@ -135,8 +131,6 @@ function AdminSidebarContentArea(props: {
   ) : (
     <AdminSiderNav
       items={props.mainItems}
-      homeItem={props.mainHomeItem}
-      sections={props.mainSections}
       favoriteWorkspaceBase={props.favoriteWorkspaceBase}
       resolvePermissionName={props.resolvePermissionName}
     />
@@ -180,8 +174,6 @@ export function AdminSidebarShell({
   showNavSkeleton,
   showOrgNavErrorOverlay,
   mainItems,
-  mainHomeItem,
-  mainSections,
   favoriteWorkspaceBase,
   footerItems,
   resolvePermissionName,
@@ -200,8 +192,6 @@ export function AdminSidebarShell({
         showMenuSkeleton={showMenuSkeleton}
         showFailureSkeleton={showFailureSkeleton}
         mainItems={mainItems}
-        mainHomeItem={mainHomeItem}
-        mainSections={mainSections}
         favoriteWorkspaceBase={favoriteWorkspaceBase}
         footerItems={footerItems}
         resolvePermissionName={resolvePermissionName}

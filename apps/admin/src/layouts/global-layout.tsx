@@ -63,7 +63,6 @@ function GlobalLayoutFrame(props: {
           showNavSkeleton={false}
           showOrgNavErrorOverlay={false}
           mainItems={GLOBAL_NAV_ITEMS}
-          mainHomeItem={null}
           favoriteWorkspaceBase={null}
           footerItems={props.footerItems}
           className="top-[var(--admin-topbar-height)] inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"

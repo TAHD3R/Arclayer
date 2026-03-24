@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { getUnreadNotificationPreview } from "@/api/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
-import { ACCOUNT_NAV_SECTIONS } from "@/constants/menu/account";
+import { ACCOUNT_NAV_ITEMS } from "@/constants/menu/account";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
@@ -84,9 +84,7 @@ export function AccountLayout() {
           <AdminSidebarShell
             showNavSkeleton={false}
             showOrgNavErrorOverlay={false}
-            mainItems={ACCOUNT_NAV_SECTIONS.flatMap((section) => section.items)}
-            mainHomeItem={null}
-            mainSections={ACCOUNT_NAV_SECTIONS}
+            mainItems={ACCOUNT_NAV_ITEMS}
             favoriteWorkspaceBase={null}
             footerItems={footerItems}
             className="top-[var(--admin-topbar-height)] inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"

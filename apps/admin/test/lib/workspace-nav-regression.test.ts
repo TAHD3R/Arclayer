@@ -1,9 +1,17 @@
 import { describe, expect, test } from "vitest";
 
-import { ADMIN_NAV_ITEMS, WORKSPACE_NAV_SECTIONS } from "@/constants/menu/workspaces";
+import { ADMIN_NAV_ITEMS } from "@/constants/menu/workspaces";
 
 function listWorkspaceNavTargets(): string[] {
-  return ADMIN_NAV_ITEMS.flatMap((item) => (item.to ? [item.to] : []));
+  const out: string[] = [];
+  const walk = (items: typeof ADMIN_NAV_ITEMS) => {
+    for (const item of items) {
+      if (item.to) out.push(item.to);
+      if (item.children?.length) walk(item.children);
+    }
+  };
+  walk(ADMIN_NAV_ITEMS);
+  return out;
 }
 
 describe("workspace nav regression", () => {
@@ -18,8 +26,8 @@ describe("workspace nav regression", () => {
       "/team/invitations",
       "/team/roles",
       "/extensions",
-      "/settings/workspace",
       "/settings/maintenance/activity",
+      "/settings/workspace",
     ]);
   });
 
@@ -28,24 +36,20 @@ describe("workspace nav regression", () => {
     expect(listWorkspaceNavTargets()).not.toContain("/content/models");
   });
 
-  test("keeps workspace nav sections aligned with the approved IA", () => {
-    expect(WORKSPACE_NAV_SECTIONS.map((section) => section.key)).toEqual([
+  test("keeps workspace nav tree aligned with the approved IA", () => {
+    expect(ADMIN_NAV_ITEMS.map((item) => item.key)).toEqual([
+      "dashboard",
       "content",
       "team",
       "workspace",
-      "maintenance",
     ]);
 
     expect(
-      WORKSPACE_NAV_SECTIONS.find((section) => section.key === "content")?.items.map(
-        (item) => item.key,
-      ),
+      ADMIN_NAV_ITEMS.find((item) => item.key === "content")?.children?.map((item) => item.key),
     ).toEqual(["assets", "content.library", "settings.seo", "settings.general"]);
 
     expect(
-      WORKSPACE_NAV_SECTIONS.find((section) => section.key === "workspace")?.items.map(
-        (item) => item.key,
-      ),
-    ).toEqual(["extensions", "settings.workspace"]);
+      ADMIN_NAV_ITEMS.find((item) => item.key === "workspace")?.children?.map((item) => item.key),
+    ).toEqual(["extensions", "activity", "settings.workspace"]);
   });
 });

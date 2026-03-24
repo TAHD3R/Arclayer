@@ -1,13 +1,14 @@
 import { Bell, CircleAlert, CreditCard, Monitor, Shield, UserRound, Waves } from "lucide-react";
 
-import type { AdminNavSection } from "@/types/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 
-export const ACCOUNT_NAV_SECTIONS: AdminNavSection[] = [
+export const ACCOUNT_NAV_ITEMS: AdminNavItem[] = [
   {
-    key: "personal",
-    title: "Personal",
-    titleKey: "account:ACCOUNT_SECTION_PERSONAL",
-    items: [
+    key: "account.personal",
+    label: "Personal",
+    labelKey: "account:ACCOUNT_SECTION_PERSONAL",
+    icon: UserRound,
+    children: [
       {
         key: "account.profile",
         label: "Profile",
@@ -39,10 +40,11 @@ export const ACCOUNT_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    key: "account",
-    title: "Account",
-    titleKey: "account:ACCOUNT_SECTION_ACCOUNT",
-    items: [
+    key: "account.account",
+    label: "Account",
+    labelKey: "account:ACCOUNT_SECTION_ACCOUNT",
+    icon: CreditCard,
+    children: [
       {
         key: "account.billing",
         label: "Billing",

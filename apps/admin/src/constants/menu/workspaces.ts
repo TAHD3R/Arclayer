@@ -12,27 +12,23 @@ import {
   Users,
 } from "lucide-react";
 
-import type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
+import type { AdminNavItem } from "@/types/admin-nav";
 export type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 
-function flattenWorkspaceNavSections(sections: readonly AdminNavSection[]): AdminNavItem[] {
-  return sections.flatMap((section) => section.items);
-}
-
-export const WORKSPACE_NAV_HOME_ITEM: AdminNavItem = {
-  key: "dashboard",
-  label: "Dashboard",
-  labelKey: "nav:NAV_DASHBOARD",
-  to: "/",
-  icon: LayoutDashboard,
-};
-
-export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
+export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    labelKey: "nav:NAV_DASHBOARD",
+    to: "/",
+    icon: LayoutDashboard,
+  },
   {
     key: "content",
-    title: "Content",
-    titleKey: "nav:NAV_SECTION_CONTENT",
-    items: [
+    label: "Content",
+    labelKey: "nav:NAV_SECTION_CONTENT",
+    icon: LibraryBig,
+    children: [
       {
         key: "assets",
         label: "Assets",
@@ -65,9 +61,10 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
   },
   {
     key: "team",
-    title: "Team",
-    titleKey: "nav:NAV_SECTION_TEAM",
-    items: [
+    label: "Team",
+    labelKey: "nav:NAV_SECTION_TEAM",
+    icon: Users,
+    children: [
       {
         key: "settings.team.memberList",
         label: "Members",
@@ -93,15 +90,23 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
   },
   {
     key: "workspace",
-    title: "Workspace",
-    titleKey: "nav:NAV_SECTION_WORKSPACE",
-    items: [
+    label: "Workspace",
+    labelKey: "nav:NAV_SECTION_WORKSPACE",
+    icon: Settings2,
+    children: [
       {
         key: "extensions",
         label: "Extensions",
         labelKey: "nav:NAV_EXTENSIONS",
         to: "/extensions",
         icon: Puzzle,
+      },
+      {
+        key: "activity",
+        label: "Activity",
+        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
+        to: "/settings/maintenance/activity",
+        icon: History,
       },
       {
         key: "settings.workspace",
@@ -112,23 +117,6 @@ export const WORKSPACE_NAV_SECTIONS: AdminNavSection[] = [
       },
     ],
   },
-  {
-    key: "maintenance",
-    title: "Maintenance",
-    titleKey: "nav:NAV_SECTION_MAINTENANCE",
-    items: [
-      {
-        key: "activity",
-        label: "Activity",
-        labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-        to: "/settings/maintenance/activity",
-        icon: History,
-      },
-    ],
-  },
-];
-
-export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  WORKSPACE_NAV_HOME_ITEM,
-  ...flattenWorkspaceNavSections(WORKSPACE_NAV_SECTIONS),
 ] as const;
+
+export const ADMIN_NAV_ITEMS: AdminNavItem[] = WORKSPACE_NAV_ITEMS;

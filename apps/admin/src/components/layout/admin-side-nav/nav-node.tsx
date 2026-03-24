@@ -42,7 +42,7 @@ function resolveCollapsedChildren(
     label: resolveLabel(t, child),
     to: child.to,
     disabled: Boolean(child.disabled),
-    isActive: activeKeys.has(child.key),
+    isActive: activeKeys.has(child.key) || Boolean(child.isActive),
     Icon: child.icon,
   }));
 }
@@ -190,7 +190,7 @@ function NavNodeImpl(
   const hasChildren = Boolean(item.children?.length);
   const isOpen = hasChildren && !item.disabled && props.openByParent[props.parentKey] === item.key;
   const blockedTooltip = useBlockedTooltipText(item, props.resolvePermissionName);
-  const isTrailActive = props.activeKeys.has(item.key);
+  const isTrailActive = props.activeKeys.has(item.key) || Boolean(item.isActive);
 
   if (!hasChildren && !item.to) {
     return renderActionNode({
@@ -209,7 +209,7 @@ function NavNodeImpl(
       isCollapsed: props.isCollapsed,
       label,
       pathname: props.pathname,
-      isSelected: props.activeKeys.has(item.key),
+      isSelected: props.activeKeys.has(item.key) || Boolean(item.isActive),
       blockedTooltip,
       openChainForKey: props.openChainForKey,
       hoverDropdown: props.hoverDropdown,
