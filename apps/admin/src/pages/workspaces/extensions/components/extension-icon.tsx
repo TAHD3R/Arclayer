@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Package } from "lucide-react";
 
-import { getAppConfig } from "@/constants/app-config";
+import { getAppConfig } from "@/lib/config/app-config";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { cn } from "@arclayer/lib/utils";
 

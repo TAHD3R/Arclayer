@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { Filters, createFilter, type FilterFieldConfig } from "@/components/reui/filters";
+import { Filters, createFilter, type FilterFieldConfig } from "@arclayer/ui/filters";
 
 type FilterValue = string;
 

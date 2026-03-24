@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE, FULL_DATE_TIME_FORMAT } from "@/constants/datetime";
+import {
+  DEFAULT_DATE_FORMAT,
+  DEFAULT_TIMEZONE,
+  FULL_DATE_TIME_FORMAT,
+} from "@/lib/time/datetime-config";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
 import {
   buildDateFormatOptions,

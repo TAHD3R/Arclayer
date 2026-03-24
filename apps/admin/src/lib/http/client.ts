@@ -4,7 +4,7 @@ import {
   type UnauthorizedHandler,
 } from "@arclayer/runtime/http";
 
-import { getAppConfig } from "@/constants/app-config";
+import { getAppConfig } from "@/lib/config/app-config";
 import { getLocaleHeaders, getRequestCredentials } from "@/lib/http/request-context";
 import { useAuthStore } from "@/stores/use-auth-store";
 

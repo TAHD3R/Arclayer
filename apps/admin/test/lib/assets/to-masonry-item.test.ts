@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-vi.mock("@/constants/app-config", () => ({
+vi.mock("@/lib/config/app-config", () => ({
   getAppConfig: () => ({ apiBaseUrl: "http://api.test" }),
 }));
 

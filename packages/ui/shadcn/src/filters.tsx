@@ -14,8 +14,8 @@ import {
 import { cva } from "class-variance-authority";
 
 import { cn } from "@arclayer/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import { Button } from "./button";
+import { ButtonGroup, ButtonGroupText } from "./button-group";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -27,18 +27,18 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+} from "./dropdown-menu";
+import { Input } from "./input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
   InputGroupText,
-} from "@/components/ui/input-group";
-import { Kbd } from "@/components/ui/kbd";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+} from "./input-group";
+import { Kbd } from "./kbd";
+import { ScrollArea } from "./scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
 import { AlertCircleIcon, XIcon, CheckIcon, PlusIcon } from "lucide-react";
 
 // i18n Configuration Interface
@@ -364,9 +364,13 @@ function FilterInput<T = unknown>({
   );
 }
 
-interface FilterRemoveButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+type FilterRemoveButtonProps = {
+  className?: string;
+  disabled?: boolean;
   icon?: React.ReactNode;
-}
+  onClick?: () => void;
+  type?: "button" | "submit" | "reset";
+};
 
 function FilterRemoveButton({ icon = <XIcon />, ...props }: FilterRemoveButtonProps) {
   const context = useFilterContext();

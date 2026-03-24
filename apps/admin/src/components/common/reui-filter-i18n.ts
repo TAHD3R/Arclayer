@@ -1,4 +1,4 @@
-import { DEFAULT_I18N, type FilterI18nConfig } from "@/components/reui/filters";
+import { DEFAULT_I18N, type FilterI18nConfig } from "@arclayer/ui/filters";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 

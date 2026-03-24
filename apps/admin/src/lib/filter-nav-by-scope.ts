@@ -1,4 +1,4 @@
-import type { AdminNavItem } from "@/constants/menu/workspaces";
+import type { AdminNavItem } from "@/types/admin-nav";
 import type { DeploymentMode, DeploymentScope } from "@/types/api/system";
 
 function isItemEnabled(item: AdminNavItem, mode: DeploymentMode): boolean {

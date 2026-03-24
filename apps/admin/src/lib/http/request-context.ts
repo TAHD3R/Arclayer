@@ -1,6 +1,6 @@
 import { buildLocaleHeaders, resolveRequestCredentials } from "@arclayer/lib/http/request-context";
 
-import { getAppConfig } from "@/constants/app-config";
+import { getAppConfig } from "@/lib/config/app-config";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 export function getRequestCredentials(): RequestCredentials {

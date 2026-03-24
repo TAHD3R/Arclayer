@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/constants/app-config", () => ({
+vi.mock("@/lib/config/app-config", () => ({
   getAppConfig: () => ({ title: "Arclayer", apiBaseUrl: "", apiPrefix: "" }),
 }));
 
@@ -12,7 +12,7 @@ import {
   isPrefixMatch,
   normalizePath,
 } from "@/lib/admin-nav-utils";
-import type { AdminNavItem } from "@/constants/menu/workspaces";
+import type { AdminNavItem } from "@/types/admin-nav";
 
 // ---------------------------------------------------------------------------
 // normalizePath

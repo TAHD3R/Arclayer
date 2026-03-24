@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 
-import { FULL_DATE_TIME_FORMAT } from "@/constants/datetime";
+import { FULL_DATE_TIME_FORMAT } from "@/lib/time/datetime-config";
 import { resolveDateFnsLocale } from "@/lib/time/date-fns-locale";
 
 export type DateFormatPattern =

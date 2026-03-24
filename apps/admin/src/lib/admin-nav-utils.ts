@@ -1,5 +1,5 @@
 import type { AdminNavItem } from "@/types/admin-nav";
-import { getAppConfig } from "@/constants/app-config";
+import { getAppConfig } from "@/lib/config/app-config";
 
 export function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);

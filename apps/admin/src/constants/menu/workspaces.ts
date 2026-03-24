@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
-export type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 
 export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   {

@@ -1,6 +1,6 @@
 import { useDocumentTitle as useDocumentTitleBase } from "@arclayer/hooks/use-document-title";
 
-import { getAppConfig } from "@/constants/app-config";
+import { getAppConfig } from "@/lib/config/app-config";
 
 /**
  * Admin wrapper for `@arclayer/hooks/use-document-title`.

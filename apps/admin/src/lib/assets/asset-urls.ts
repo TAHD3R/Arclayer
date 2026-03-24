@@ -1,4 +1,4 @@
-import { getAppConfig } from "@/constants/app-config";
+import { getAppConfig } from "@/lib/config/app-config";
 
 function normalizeBaseUrl(baseUrl: string): string {
   const s = (baseUrl || "").trim();

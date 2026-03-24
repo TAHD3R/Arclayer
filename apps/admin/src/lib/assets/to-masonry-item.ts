@@ -1,4 +1,4 @@
-import { getAppConfig } from "@/constants/app-config";
+import { getAppConfig } from "@/lib/config/app-config";
 import { resolvePublicAssetUrlPath } from "@/lib/assets/asset-urls";
 import type { AdminAssetDetail, AdminAssetSummary } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";

@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, MotionConfig, motion, type Transition } from "motion/react";
@@ -15,8 +14,6 @@ import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { SetupFieldShell, SetupPasswordControl } from "@/components/setup/setup-form-controls";
 import type { SetupAccessMode, SetupWizardStep } from "@/types/stores";
 import { MAX_STEP, SETUP_PROGRESS_STAGE_ORDER } from "./constants";
-
-const ColorBendsLazy = lazy(() => import("@arclayer/ui/color-bends"));
 
 type SetupStageMeta = {
   title: string;
@@ -199,26 +196,10 @@ export function SetupPageShell(props: SetupPageShellProps) {
         <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-3">
           <aside className="relative hidden overflow-hidden border-r border-border/70 lg:block">
             <div className="pointer-events-none absolute inset-0">
-              <Suspense
-                fallback={
-                  <div className="absolute inset-0 animate-pulse bg-background opacity-50" />
-                }
-              >
-                <ColorBendsLazy
-                  className="h-full w-full"
-                  colors={[props.primaryBendColor]}
-                  rotation={0}
-                  speed={0.2}
-                  scale={1}
-                  frequency={1}
-                  warpStrength={1}
-                  mouseInfluence={1}
-                  parallax={0.5}
-                  noise={0.1}
-                  transparent
-                />
-              </Suspense>
-              <div className="absolute inset-0 bg-background/72" />
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: props.primaryBendColor }}
+              />
             </div>
 
             <div className="relative z-10 flex h-full min-h-55 items-end p-6 sm:p-8">

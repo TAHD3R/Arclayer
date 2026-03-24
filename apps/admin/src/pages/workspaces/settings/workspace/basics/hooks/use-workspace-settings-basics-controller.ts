@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { listWorkspaceRoles } from "@/api/rbac";
 import { getCoreSettings } from "@/api/settings";
 import { getWorkspaceDetail } from "@/api/workspaces";
-import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/constants/datetime";
+import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/lib/time/datetime-config";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 import { DEFAULT_LOCALE, normalizeLocale } from "@/lib/i18n";
 import {

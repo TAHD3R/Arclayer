@@ -17,13 +17,8 @@ import type { AdminAssetTag } from "@/types/api";
 import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import { Button } from "@arclayer/ui/button";
+import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
-import {
-  Filters,
-  createFilter,
-  type Filter,
-  type FilterFieldConfig,
-} from "@/components/reui/filters";
 
 export type AssetsFilters = {
   mimePrefix?: string;

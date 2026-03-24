@@ -1,4 +1,4 @@
-import { DATE_FORMAT_ITEMS, DEFAULT_DATE_FORMAT } from "@/constants/datetime";
+import { DATE_FORMAT_ITEMS, DEFAULT_DATE_FORMAT } from "@/lib/time/datetime-config";
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 
 export type LocalizationOption<T extends string = string> = {

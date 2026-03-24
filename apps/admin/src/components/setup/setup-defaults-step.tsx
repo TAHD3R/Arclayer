@@ -4,7 +4,7 @@ import type { UseFormReturn } from "react-hook-form";
 
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { Accordion } from "@arclayer/ui/accordion";
-import { DEFAULT_TIMEZONE } from "@/constants/datetime";
+import { DEFAULT_TIMEZONE } from "@/lib/time/datetime-config";
 import {
   DateTimeFormatLocalizationControl,
   TimezoneLocalizationControl,
