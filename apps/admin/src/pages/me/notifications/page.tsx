@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
 import { ContentGuard } from "@/components/common/content-guard";
 import { notifyError } from "@/lib/notifications";
-import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
+import { MeSettingsSectionStack } from "@/pages/me/components/me-settings-section-stack";
 import type { NotificationPreferenceChannel, NotificationPreferenceTopic } from "@/types/api";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { Spinner } from "@arclayer/ui/spinner";
@@ -134,83 +134,70 @@ export function MeNotificationSettingsPage(props: MeNotificationSettingsPageProp
   );
 
   return (
-    <MeSettingsCategoryLayout
-      showNav={mode === "page"}
-      categories={[
-        {
-          key: "notifications",
-          label: t("account:ME_TAB_NOTIFICATIONS"),
-          content: (
-            <ContentGuard
-              loading={preferencesQuery.isLoading && !preferencesQuery.data}
-              error={preferencesQuery.error}
-              onRetry={() => void preferencesQuery.refetch()}
-              empty={!preferencesQuery.isLoading && !preferencesQuery.error && topics.length <= 0}
-              emptyTitle={t("common:EMPTY_TITLE")}
-              emptyDescription={t("common:EMPTY_DESC")}
-            >
-              <div className="flex flex-col gap-6 pt-1">
-                {sections.map((section) => (
-                  <section key={section.key} className="flex flex-col">
-                    <header className="pb-4 pt-1">
-                      <div className="text-title3 font-bold text-label-primary">
-                        {section.title}
-                      </div>
-                      <div className="mt-1 text-label-secondary">{section.description}</div>
-                    </header>
-                    <div className="h-px bg-border" />
+    <MeSettingsSectionStack mode={mode}>
+      <ContentGuard
+        loading={preferencesQuery.isLoading && !preferencesQuery.data}
+        error={preferencesQuery.error}
+        onRetry={() => void preferencesQuery.refetch()}
+        empty={!preferencesQuery.isLoading && !preferencesQuery.error && topics.length <= 0}
+        emptyTitle={t("common:EMPTY_TITLE")}
+        emptyDescription={t("common:EMPTY_DESC")}
+      >
+        <div className="flex flex-col gap-6 pt-1">
+          {sections.map((section) => (
+            <section key={section.key} className="flex flex-col">
+              <header className="pb-4 pt-1">
+                <div className="text-title3 font-bold text-label-primary">{section.title}</div>
+                <div className="mt-1 text-label-secondary">{section.description}</div>
+              </header>
+              <div className="h-px bg-border" />
 
-                    <div className="pt-4">
-                      <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
-                        <div className="divide-y divide-border/60">
-                          {topics.map((topic) => {
-                            const channel = topic.channels[section.key];
-                            const copy = resolveTopicCopy(topic, t);
-                            const rowKey = `${topic.key}:${section.key}`;
-                            const disabled = !channel.mutable || patchMutation.isPending;
-                            const loading = updatingKey === rowKey;
+              <div className="pt-4">
+                <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+                  <div className="divide-y divide-border/60">
+                    {topics.map((topic) => {
+                      const channel = topic.channels[section.key];
+                      const copy = resolveTopicCopy(topic, t);
+                      const rowKey = `${topic.key}:${section.key}`;
+                      const disabled = !channel.mutable || patchMutation.isPending;
+                      const loading = updatingKey === rowKey;
 
-                            return (
-                              <SettingActionItem
-                                key={rowKey}
-                                as="div"
-                                showSummary={false}
-                                showChevron={false}
-                                title={copy.title}
-                                titleClassName="text-callout"
-                                description={copy.description}
-                                right={
-                                  <div className="flex items-center gap-2">
-                                    {loading ? (
-                                      <Spinner className="size-4 text-label-secondary" />
-                                    ) : null}
-                                    <Switch
-                                      checked={channel.enabled}
-                                      disabled={disabled}
-                                      onCheckedChange={(checked) => {
-                                        if (!channel.mutable) return;
-                                        void patchMutation.mutate({
-                                          topicKey: topic.key,
-                                          channel: section.key,
-                                          enabled: checked,
-                                        });
-                                      }}
-                                    />
-                                  </div>
-                                }
+                      return (
+                        <SettingActionItem
+                          key={rowKey}
+                          as="div"
+                          showSummary={false}
+                          showChevron={false}
+                          title={copy.title}
+                          titleClassName="text-callout"
+                          description={copy.description}
+                          right={
+                            <div className="flex items-center gap-2">
+                              {loading ? <Spinner className="size-4 text-label-secondary" /> : null}
+                              <Switch
+                                checked={channel.enabled}
+                                disabled={disabled}
+                                onCheckedChange={(checked) => {
+                                  if (!channel.mutable) return;
+                                  void patchMutation.mutate({
+                                    topicKey: topic.key,
+                                    channel: section.key,
+                                    enabled: checked,
+                                  });
+                                }}
                               />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                ))}
+                            </div>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </ContentGuard>
-          ),
-        },
-      ]}
-    />
+            </section>
+          ))}
+        </div>
+      </ContentGuard>
+    </MeSettingsSectionStack>
   );
 }

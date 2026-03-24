@@ -1,7 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { validateInboxSourceSearch } from "@/lib/routing/inbox-source";
 
 export const Route = createFileRoute("/me/")({
-  beforeLoad: () => {
-    throw redirect({ to: "/me/inbox", replace: true });
+  validateSearch: validateInboxSourceSearch,
+  beforeLoad: ({ search }) => {
+    throw redirect({ to: "/me/inbox", search, replace: true });
   },
 });

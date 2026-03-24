@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -14,6 +14,7 @@ import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profil
 import type { AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
+import { buildInboxSourceSearch } from "@/lib/routing/inbox-source";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -66,6 +67,7 @@ type AdminAccountMenuModel = {
 
 function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const accessToken = useAuthStore((s) => s.accessToken);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -111,7 +113,8 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     themePreference,
     locale,
     onLogout,
-    onAccountSettings: () => void navigate({ to: "/account/profile" }),
+    onAccountSettings: () =>
+      void navigate({ to: "/account/profile", search: buildInboxSourceSearch(pathname) }),
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });
     },

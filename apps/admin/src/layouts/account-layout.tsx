@@ -1,116 +1,115 @@
-import { Outlet } from "@tanstack/react-router";
-import { type CSSProperties, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getUnreadNotificationPreview } from "@/api/notifications";
-import { ContentGuard } from "@/components/common/content-guard";
 import { ACCOUNT_NAV_ITEMS } from "@/constants/menu/account";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
-import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
-import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
-import { RouteProgress } from "@/components/layout/route-progress";
-import { RouteTransition } from "@/components/layout/route-transition";
+import { GLOBAL_NAV_ITEMS } from "@/constants/menu/global";
+import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
 import { AccountTopbar } from "@/components/layout/account-topbar";
-import { useToggle } from "@arclayer/hooks/use-toggle";
-import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
-import { useAuthStore } from "@/stores/use-auth-store";
-import { usePreferencesStore } from "@/stores/use-preference-store";
-
-const SIDEBAR_EXPANDED_WIDTH_PX = 240;
-const SIDEBAR_COLLAPSED_WIDTH_PX = 56;
-const TOPBAR_HEIGHT_REM = "3.5rem";
+import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
+import {
+  attachSearchToNavItems,
+  buildCommonFooterItems,
+  extractWorkspaceBaseFromPath,
+  mapWorkspaceNavItems,
+} from "@/layouts/admin-scene-utils";
+import { validateInboxSourceSearch } from "@/lib/routing/inbox-source";
+import { useSystemRuntime } from "@/hooks/use-system-runtime";
+import { filterNavByScope } from "@/lib/filter-nav-by-scope";
+import type { CommandScope } from "@/lib/command/command-types";
 
 export function AccountLayout() {
-  const { t } = useTranslation(["notifications"]);
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const sessionVersion = useAuthStore((s) => s.sessionVersion);
-  const notificationPanelPinned = usePreferencesStore((s) => s.notificationPanelPinned);
-  const showNotificationsBadge = usePreferencesStore((s) => s.showNotificationsBadge);
-  const setNotificationPanelPinned = usePreferencesStore((s) => s.setNotificationPanelPinned);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [notificationPanelOpen, , setNotificationPanelOpen] = useToggle(false);
-
-  const notificationPreviewQuery = useQuery({
-    queryKey: ["notifications", "preview", "account-shell", sessionVersion],
-    enabled: Boolean(accessToken),
-    queryFn: () => getUnreadNotificationPreview({ limit: 1 }),
-    staleTime: 30 * 1000,
-    meta: { silent: true },
+  const { t } = useTranslation(["common"]);
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const rawSearch = useRouterState({
+    select: (state) => (state.location.search as Record<string, unknown>) ?? {},
   });
-
-  const footerItems = useMemo(
-    () =>
-      COMMON_FOOTER_NAV_ITEMS.flatMap((item) => {
-        if (item.key === "notifications") return [];
-        if (item.key === "help-center") {
-          return [
-            Object.assign({}, item, {
-              onAction: () => {
-                window.location.assign("#");
-              },
-            }),
-          ];
-        }
-        return [item];
-      }),
-    [],
+  const systemRuntime = useSystemRuntime();
+  const sourceSearch = useMemo(() => validateInboxSourceSearch(rawSearch), [rawSearch]);
+  const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
+  const isMeRoute = pathname === "/me" || pathname.startsWith("/me/");
+  const isInboxRoute = pathname === "/me/inbox" || pathname.startsWith("/me/inbox/");
+  const workspaceSourceBase = useMemo(
+    () => (sourceSearch.sourcePath ? extractWorkspaceBaseFromPath(sourceSearch.sourcePath) : null),
+    [sourceSearch.sourcePath],
   );
 
+  const workspaceSourceItems = useMemo(() => {
+    if (!workspaceSourceBase || !systemRuntime.runtime) return [];
+    const workspaceNav = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, workspaceSourceBase);
+    return filterNavByScope(workspaceNav, systemRuntime.runtime.deploymentMode).filter(
+      (item) => item.position !== "footer",
+    );
+  }, [systemRuntime.runtime, workspaceSourceBase]);
+
+  const accountItems = useMemo(
+    () => attachSearchToNavItems(ACCOUNT_NAV_ITEMS, sourceSearch),
+    [sourceSearch],
+  );
+
+  const mainItems = useMemo(() => {
+    if (!isMeRoute) return accountItems;
+    if (sourceSearch.sourceKind === "workspace") return workspaceSourceItems;
+    if (sourceSearch.sourceKind === "global") return GLOBAL_NAV_ITEMS;
+    if (sourceSearch.sourceKind === "account") return accountItems;
+    return [];
+  }, [accountItems, isMeRoute, sourceSearch.sourceKind, workspaceSourceItems]);
+
+  const backTarget = sourceSearch.sourcePath ?? "/workspaces";
+  const commandScope = useMemo<CommandScope>(() => {
+    if (!isInboxRoute) {
+      return {
+        kind: "none",
+        pathname,
+        workspaceId: null,
+        organizationId: null,
+      };
+    }
+    if (sourceSearch.sourceKind === "workspace" && workspaceSourceBase) {
+      return {
+        kind: "workspace",
+        pathname: sourceSearch.sourcePath ?? pathname,
+        workspaceId: workspaceSourceBase.replace("/w/", ""),
+        organizationId: null,
+      };
+    }
+    return {
+      kind: "none",
+      pathname: sourceSearch.sourcePath ?? pathname,
+      workspaceId: null,
+      organizationId: null,
+    };
+  }, [
+    isInboxRoute,
+    pathname,
+    sourceSearch.sourceKind,
+    sourceSearch.sourcePath,
+    workspaceSourceBase,
+  ]);
+
   return (
-    <SidebarProvider
-      defaultOpen
-      open={sidebarOpen}
-      onOpenChange={setSidebarOpen}
-      className="h-screen overflow-hidden"
-      style={
-        {
-          "--sidebar-width": `${SIDEBAR_EXPANDED_WIDTH_PX}px`,
-          "--sidebar-width-icon": `${SIDEBAR_COLLAPSED_WIDTH_PX}px`,
-          "--admin-topbar-height": TOPBAR_HEIGHT_REM,
-        } as CSSProperties
-      }
-    >
-      <RouteProgress />
-      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
+    <AdminSceneLayout
+      notificationQueryScope="account-shell"
+      renderTopbar={(topbar) => (
         <AccountTopbar
-          notificationOpen={notificationPanelOpen}
-          showNotificationsBadge={showNotificationsBadge}
-          unreadCount={notificationPreviewQuery.data?.unreadCount ?? 0}
-          onNotificationToggle={() => setNotificationPanelOpen(!notificationPanelOpen)}
+          mode={isMeRoute ? "me" : "account"}
+          navItems={mainItems}
+          commandScope={commandScope}
+          showCommandTrigger={isInboxRoute}
+          backLabel={t("common:BACK")}
+          onBack={() => void navigate({ to: backTarget as never })}
+          {...topbar}
         />
-
-        <div className="flex min-h-0 flex-1">
-          <AdminSidebarShell
-            showNavSkeleton={false}
-            showOrgNavErrorOverlay={false}
-            mainItems={ACCOUNT_NAV_ITEMS}
-            favoriteWorkspaceBase={null}
-            footerItems={footerItems}
-            className="top-[var(--admin-topbar-height)] inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"
-          />
-
-          <div className="relative flex min-w-0 flex-1">
-            <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
-              <div className="flex-1 min-h-0 overflow-auto">
-                <ContentGuard loading={false} loadingVariant="form">
-                  <RouteTransition className="w-full">
-                    <Outlet />
-                  </RouteTransition>
-                </ContentGuard>
-              </div>
-            </SidebarInset>
-
-            <AdminNotificationsShell
-              open={notificationPanelOpen}
-              pinned={notificationPanelPinned}
-              closeAriaLabel={t("notifications:NOTIFICATIONS_PANEL_CLOSE")}
-              onPinnedChange={setNotificationPanelPinned}
-              onClose={() => setNotificationPanelOpen(false)}
-            />
-          </div>
-        </div>
-      </div>
-    </SidebarProvider>
+      )}
+      mainItems={mainItems}
+      favoriteWorkspaceBase={isMeRoute ? workspaceSourceBase : null}
+      footerItems={footerItems}
+      sidebarCollapsible="none"
+      sidebarPathnameOverride={isMeRoute ? sourceSearch.sourcePath : undefined}
+    >
+      <Outlet />
+    </AdminSceneLayout>
   );
 }

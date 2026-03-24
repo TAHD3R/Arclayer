@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import * as authApi from "@/api/auth";
 import { normalizeUserProfile } from "@/lib/auth/user-profile";
 import { MeSettingPanel } from "@/pages/me/components/me-setting-panel";
-import { MeSettingsCategoryLayout } from "@/pages/me/components/me-settings-category-layout";
+import { MeSettingsSectionStack } from "@/pages/me/components/me-settings-section-stack";
 import { MeProfileBasicsSection } from "@/pages/me/profile/components/profile-basics-section";
 import { MeProfileDangerSection } from "@/pages/me/profile/components/profile-danger-section";
 import { MeProfileLinkedAccountsSection } from "@/pages/me/profile/components/profile-linked-accounts-section";
@@ -37,50 +37,25 @@ function MeProfileViewContent(props: Required<MeProfileViewProps>) {
   const redirect = useMemo(() => `${pathname}${searchStr}`, [pathname, searchStr]);
 
   return (
-    <MeSettingsCategoryLayout
-      showNav={props.mode === "page"}
-      categories={[
-        {
-          key: "profile",
-          label: t("ME_PROFILE_PANEL_TITLE"),
-          content: (
-            <MeSettingPanel title={t("ME_PROFILE_PANEL_TITLE")} showDivider variant={panelVariant}>
-              <MeProfileBasicsSection profile={profile} redirect={redirect} />
-            </MeSettingPanel>
-          ),
-        },
-        {
-          key: "linked-accounts",
-          label: t("ME_LINKED_ACCOUNTS_PANEL_TITLE"),
-          content: (
-            <MeSettingPanel
-              title={t("ME_LINKED_ACCOUNTS_PANEL_TITLE")}
-              showDivider
-              variant={panelVariant}
-            >
-              <MeProfileLinkedAccountsSection redirect={redirect} />
-            </MeSettingPanel>
-          ),
-        },
-        ...(props.includeDanger
-          ? [
-              {
-                key: "danger",
-                label: t("ME_DANGER_PANEL_TITLE"),
-                content: (
-                  <MeSettingPanel
-                    title={t("ME_DANGER_PANEL_TITLE")}
-                    showDivider
-                    variant={panelVariant}
-                  >
-                    <MeProfileDangerSection email={profile.email} redirect={redirect} />
-                  </MeSettingPanel>
-                ),
-              },
-            ]
-          : []),
-      ]}
-    />
+    <MeSettingsSectionStack mode={props.mode}>
+      <MeSettingPanel title={t("ME_PROFILE_PANEL_TITLE")} showDivider variant={panelVariant}>
+        <MeProfileBasicsSection profile={profile} redirect={redirect} />
+      </MeSettingPanel>
+
+      <MeSettingPanel
+        title={t("ME_LINKED_ACCOUNTS_PANEL_TITLE")}
+        showDivider
+        variant={panelVariant}
+      >
+        <MeProfileLinkedAccountsSection redirect={redirect} />
+      </MeSettingPanel>
+
+      {props.includeDanger ? (
+        <MeSettingPanel title={t("ME_DANGER_PANEL_TITLE")} showDivider variant={panelVariant}>
+          <MeProfileDangerSection email={profile.email} redirect={redirect} />
+        </MeSettingPanel>
+      ) : null}
+    </MeSettingsSectionStack>
   );
 }
 

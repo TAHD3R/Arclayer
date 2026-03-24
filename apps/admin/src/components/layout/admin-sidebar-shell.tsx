@@ -18,6 +18,8 @@ export type AdminSidebarShellProps = {
   favoriteWorkspaceBase?: string | null;
   footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
+  pathnameOverride?: string;
+  collapsible?: "icon" | "none";
   className?: string;
 };
 
@@ -119,6 +121,7 @@ function AdminSidebarContentArea(props: {
   favoriteWorkspaceBase?: string | null;
   footerItems: readonly AdminNavItem[];
   resolvePermissionName?: (code: string) => string | null;
+  pathnameOverride?: string;
 }) {
   const bottomBlur = useSidebarBottomBlurState({
     showMenuSkeleton: props.showMenuSkeleton,
@@ -133,6 +136,7 @@ function AdminSidebarContentArea(props: {
       items={props.mainItems}
       favoriteWorkspaceBase={props.favoriteWorkspaceBase}
       resolvePermissionName={props.resolvePermissionName}
+      pathnameOverride={props.pathnameOverride}
     />
   );
 
@@ -177,6 +181,8 @@ export function AdminSidebarShell({
   favoriteWorkspaceBase,
   footerItems,
   resolvePermissionName,
+  pathnameOverride,
+  collapsible = "icon",
   className,
 }: AdminSidebarShellProps) {
   const showFailureSkeleton = showOrgNavErrorOverlay;
@@ -184,7 +190,7 @@ export function AdminSidebarShell({
 
   return (
     <Sidebar
-      collapsible="icon"
+      collapsible={collapsible}
       animateOnHover={false}
       className={cn("relative isolate z-40", className)}
     >
@@ -195,6 +201,7 @@ export function AdminSidebarShell({
         favoriteWorkspaceBase={favoriteWorkspaceBase}
         footerItems={footerItems}
         resolvePermissionName={resolvePermissionName}
+        pathnameOverride={pathnameOverride}
       />
     </Sidebar>
   );

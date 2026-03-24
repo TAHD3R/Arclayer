@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ import { Spinner } from "@arclayer/ui/spinner";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
+import { buildInboxSourceSearch } from "@/lib/routing/inbox-source";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
@@ -71,6 +72,7 @@ export function AdminNotificationsPanel({
 }: AdminNotificationsPanelProps) {
   const { t, i18n } = useTranslation("notifications");
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const queryClient = useQueryClient();
   const nowMs = useNowTick(60_000);
   const [tab, setTab] = useState<NotificationPanelTab>("unread");
@@ -130,6 +132,7 @@ export function AdminNotificationsPanel({
     () => new Set((workspacesQuery.data?.items ?? []).map((item) => String(item.workspaceId))),
     [workspacesQuery.data?.items],
   );
+  const inboxSourceSearch = useMemo(() => buildInboxSourceSearch(pathname), [pathname]);
 
   const apiStatus = tabToApiStatus(tab);
 
@@ -442,7 +445,7 @@ export function AdminNotificationsPanel({
           )}
           onClick={() => {
             onClose();
-            void navigate({ to: "/me/inbox" });
+            void navigate({ to: "/me/inbox", search: inboxSourceSearch });
           }}
         >
           {t("NOTIFICATIONS_OPEN_CENTER")}

@@ -56,11 +56,16 @@ function renderTreeNav(args: {
   items: readonly AdminNavItem[];
   favoriteWorkspaceBase: string;
   open?: boolean;
+  pathnameOverride?: string;
 }) {
   return render(
     <SidebarProvider open={args.open ?? true} onOpenChange={() => undefined} className="h-screen">
       <Sidebar collapsible="icon" animateOnHover={false}>
-        <AdminSiderNav items={args.items} favoriteWorkspaceBase={args.favoriteWorkspaceBase} />
+        <AdminSiderNav
+          items={args.items}
+          favoriteWorkspaceBase={args.favoriteWorkspaceBase}
+          pathnameOverride={args.pathnameOverride}
+        />
       </Sidebar>
     </SidebarProvider>,
   );
@@ -646,6 +651,19 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "false",
     );
+  });
+
+  it("can keep a source menu branch active while current route renders /me/inbox", () => {
+    mockPathname = "/me/inbox";
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+      pathnameOverride: "/w/ws-1/team/members",
+    });
+
+    expect(screen.getByRole("button", { name: "Team" })).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("button", { name: "Members" })).toHaveAttribute("data-active", "true");
   });
 
   it("keeps collapsed groups accessible in icon mode and restores accordion state on expand", async () => {

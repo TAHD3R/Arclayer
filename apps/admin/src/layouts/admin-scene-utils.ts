@@ -1,0 +1,66 @@
+import type { AdminNavItem } from "@/types/admin-nav";
+
+export function buildCommonFooterItems(items: readonly AdminNavItem[]): AdminNavItem[] {
+  return items.flatMap((item) => {
+    if (item.key === "notifications") return [];
+    if (item.key === "help-center") {
+      return [
+        Object.assign({}, item, {
+          onAction: () => {
+            window.location.assign("#");
+          },
+        }),
+      ];
+    }
+    return [item];
+  });
+}
+
+export function mapWorkspaceNavItems(
+  items: readonly AdminNavItem[],
+  workspaceBase: string,
+): AdminNavItem[] {
+  const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
+
+  return items.map((item) => {
+    const to = item.to
+      ? item.to === "/"
+        ? `${base}/`
+        : `${base}${item.to.startsWith("/") ? item.to : `/${item.to}`}`
+      : undefined;
+
+    return {
+      ...item,
+      ...(to ? { to } : {}),
+      ...(item.children?.length
+        ? { children: mapWorkspaceNavItems(item.children, workspaceBase) }
+        : {}),
+    };
+  });
+}
+
+export function extractWorkspaceBaseFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/w\/([^/]+)/);
+  if (!match?.[1]) return null;
+  return `/w/${match[1]}`;
+}
+
+export function attachSearchToNavItems(
+  items: readonly AdminNavItem[],
+  search: Record<string, unknown> | undefined,
+): AdminNavItem[] {
+  if (!search || Object.keys(search).length === 0) {
+    return items.map((item) => ({
+      ...item,
+      ...(item.children?.length
+        ? { children: attachSearchToNavItems(item.children, undefined) }
+        : {}),
+    }));
+  }
+
+  return items.map((item) => ({
+    ...item,
+    ...(item.to ? { search } : {}),
+    ...(item.children?.length ? { children: attachSearchToNavItems(item.children, search) } : {}),
+  }));
+}

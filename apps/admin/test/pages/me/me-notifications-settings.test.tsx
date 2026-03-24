@@ -74,6 +74,20 @@ function renderPage() {
   );
 }
 
+function renderSettingsPage(mode: "page" | "dialog") {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MeNotificationSettingsPage mode={mode} />
+    </QueryClientProvider>,
+  );
+}
+
 describe("MeNotificationSettingsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -131,5 +145,12 @@ describe("MeNotificationSettingsPage", () => {
 
     expect((await screen.findAllByText("Workspace roles updated")).length).toBeGreaterThan(0);
     expect(screen.queryByText("workspace.member.roles.updated")).not.toBeInTheDocument();
+  });
+
+  it("page mode no longer renders mini category navigation", async () => {
+    renderSettingsPage("page");
+
+    expect(await screen.findByText("In-app notifications")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 });

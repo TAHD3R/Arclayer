@@ -96,6 +96,14 @@ describe("Profile password entry migration", () => {
     expect(screen.getByTestId("security-2fa")).toBeInTheDocument();
   });
 
+  it("security page mode no longer renders mini category navigation", () => {
+    renderWithQuery(<MeSecurityView mode="page" />);
+
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.getByTestId("security-2fa")).toBeInTheDocument();
+    expect(screen.getByTestId("security-sessions")).toBeInTheDocument();
+  });
+
   it("profile password card shows change-password action for password accounts", async () => {
     renderWithQuery(<MeProfilePasswordSection redirect="/me/profile" />);
     expect(

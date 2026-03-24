@@ -40,7 +40,16 @@ vi.mock("@/components/layout/admin-logo", () => ({
 
 vi.mock("@/components/layout/admin-workspace-switcher", () => ({
   AdminWorkspaceSwitcher: () => <div data-testid="workspace-switcher" />,
+  headerTriggerButtonClassName: "group/panel-trigger hover:bg-accent/60",
 }));
+
+vi.mock("@tanstack/react-router", async () => {
+  const actual = await vi.importActual<object>("@tanstack/react-router");
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+  };
+});
 
 function renderWithSidebar(node: React.ReactElement) {
   return render(
@@ -95,6 +104,7 @@ describe("topbar sidebar toggle icon", () => {
   it("AccountTopbar 继续使用共享 animated Menu icon", () => {
     renderWithSidebar(
       <AccountTopbar
+        mode="account"
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -105,9 +115,10 @@ describe("topbar sidebar toggle icon", () => {
     expectAnimatedHamburgerIcon();
   });
 
-  it("AccountTopbar 使用工作区返回入口替代账号设置标题与描述", () => {
+  it("AccountTopbar 在桌面场景不再用隐藏 toggle 占位，而是直接按导航内容线对齐 logo", () => {
     renderWithSidebar(
       <AccountTopbar
+        mode="account"
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -115,8 +126,66 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    expect(screen.getByTestId("workspace-switcher")).toBeInTheDocument();
+    const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
+    expect(toggleButton.className).toContain("md:hidden");
+    expect(toggleButton.className).not.toContain("md:invisible");
+
+    const logo = screen.getByTestId("full-logo");
+    const leading = logo.parentElement?.parentElement;
+    expect(leading).toHaveClass("md:pl-3");
+  });
+
+  it("AccountTopbar 使用工作区返回入口替代账号设置标题与描述", () => {
+    renderWithSidebar(
+      <AccountTopbar
+        mode="account"
+        backLabel="Back to source"
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    const backButton = screen.getByRole("button", { name: "Back to source" });
+    expect(backButton).toBeInTheDocument();
+    expect(backButton.className).toContain("group/panel-trigger");
+    expect(backButton.className).toContain("hover:bg-accent/60");
+    expect(screen.queryByTestId("workspace-switcher")).toBeNull();
     expect(screen.queryByText("account:ACCOUNT_SETTINGS_TITLE")).toBeNull();
     expect(screen.queryByText("account:ACCOUNT_SETTINGS_DESC")).toBeNull();
+  });
+
+  it("AccountTopbar 在 me scene 只显示 logo，不显示返回入口或搜索触发器", () => {
+    renderWithSidebar(
+      <AccountTopbar
+        mode="me"
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("full-logo")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Back to source" })).toBeNull();
+    expect(screen.queryByTestId("workspace-switcher")).toBeNull();
+    expect(screen.queryByTestId("command-trigger")).toBeNull();
+  });
+
+  it("AccountTopbar 可在 me inbox 场景显示中间 command trigger", () => {
+    renderWithSidebar(
+      <AccountTopbar
+        mode="me"
+        navItems={[]}
+        showCommandTrigger
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("command-trigger")).toBeInTheDocument();
   });
 });

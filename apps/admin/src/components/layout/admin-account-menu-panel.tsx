@@ -1,4 +1,11 @@
-import { cloneElement, isValidElement, useEffect, useState, type ReactNode } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -55,9 +62,11 @@ const VIEW_TRANSITIONS = {
 };
 
 function normalizeIcon(node: ReactNode) {
-  if (!isValidElement<{ className?: string }>(node)) return node;
-  return cloneElement(node, {
-    className: cn("size-4 shrink-0", node.props.className),
+  if (!isValidElement(node)) return node;
+
+  const element = node as ReactElement<{ className?: string; "aria-hidden"?: boolean }>;
+  return cloneElement(element, {
+    className: cn("size-4 shrink-0", element.props.className),
     "aria-hidden": true,
   });
 }

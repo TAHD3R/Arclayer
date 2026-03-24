@@ -219,4 +219,20 @@ describe("AdminAccountMenu", () => {
     expect(useAuthStore.getState().refreshToken).toBeNull();
     expect(navigateMock).toHaveBeenCalledWith({ to: "/login", replace: true });
   });
+
+  it("从 workspace shell 打开账号设置时会携带来源上下文", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/account/profile",
+      search: {
+        sourceKind: "workspace",
+        sourcePath: "/w/ws-1",
+      },
+    });
+  });
 });

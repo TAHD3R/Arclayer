@@ -51,7 +51,9 @@ function NodeLeafSub({
   onSelect,
   allowSamePathNavigate,
   onNavigate,
-}: Omit<NodeLeafProps, "depth" | "hoverDropdown"> & { onNavigate: (to: string) => void }) {
+}: Omit<NodeLeafProps, "depth" | "hoverDropdown"> & {
+  onNavigate: (to: string, search?: Record<string, unknown>) => void;
+}) {
   return (
     <SidebarMenuSubItem className="group/nav-item">
       <WithBlockedTooltip tooltip={blockedTooltip}>
@@ -81,7 +83,7 @@ function NodeLeafSub({
               openChainForKey(item.key);
               if (!item.to || item.disabled) return;
               if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
-              onNavigate(item.to);
+              onNavigate(item.to, item.search);
             }}
             className="flex w-full items-center justify-start text-left"
           >
@@ -97,6 +99,7 @@ function NodeLeafRoot({
   item,
   depth,
   label,
+  pathname,
   isSelected,
   blockedTooltip,
   openChainForKey,
@@ -104,7 +107,7 @@ function NodeLeafRoot({
   allowSamePathNavigate,
   hoverDropdown,
   onNavigate,
-}: NodeLeafProps & { onNavigate: (to: string) => void }) {
+}: NodeLeafProps & { onNavigate: (to: string, search?: Record<string, unknown>) => void }) {
   const Icon = item.icon;
 
   return (
@@ -141,7 +144,7 @@ function NodeLeafRoot({
             openChainForKey(item.key);
             if (!item.to || item.disabled) return;
             if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
-            onNavigate(item.to);
+            onNavigate(item.to, item.search);
           }}
         >
           {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
@@ -156,7 +159,8 @@ function NodeLeafRoot({
 
 export function NodeLeaf(props: NodeLeafProps) {
   const navigate = useNavigate();
-  const onNavigate = (to: string) => void navigate({ to: to as never });
+  const onNavigate = (to: string, search?: Record<string, unknown>) =>
+    void navigate(search ? { to: to as never, search: search as never } : { to: to as never });
   if (props.depth > 0) {
     return (
       <NodeLeafSub

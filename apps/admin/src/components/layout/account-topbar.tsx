@@ -1,22 +1,23 @@
-import { Bell, Menu } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
-import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
-import { AdminFullLogo } from "@/components/layout/admin-logo";
-import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
-import { cn } from "@arclayer/lib/utils";
-import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
-import { useSidebar } from "@arclayer/ui/sidebar";
+import { AdminTopbar } from "@/components/layout/admin-topbar";
+import type { CommandScope } from "@/lib/command/command-types";
+import type { AdminNavItem } from "@/types/admin-nav";
 
-const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
-  "relative inline-flex size-11 items-center justify-center rounded-xl border border-transparent",
-  "bg-transparent text-label-secondary transition-[background-color,color,border-color] duration-200",
-  "hover:bg-background/60 hover:text-foreground",
-  "data-[state=open]:border-border/60 data-[state=open]:bg-background/70 data-[state=open]:text-foreground",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-);
+const ACCOUNT_COMMAND_SCOPE = {
+  kind: "none",
+  pathname: "/account",
+  workspaceId: null,
+  organizationId: null,
+} as const;
 
 export function AccountTopbar(props: {
+  mode?: "account" | "me";
+  navItems?: readonly AdminNavItem[];
+  commandScope?: CommandScope;
+  showCommandTrigger?: boolean;
+  backLabel?: string;
+  onBack?: () => void;
   notificationOpen: boolean;
   showNotificationsBadge: boolean;
   unreadCount: number;
@@ -24,61 +25,22 @@ export function AccountTopbar(props: {
   className?: string;
 }) {
   const { t } = useTranslation(["notifications", "common"]);
-  const { toggleSidebar } = useSidebar();
+  const mode = props.mode ?? "account";
 
   return (
-    <header
-      className={cn(
-        "relative z-30 border-b border-sidebar-border inset-y-auto",
-        "bg-header supports-backdrop-filter:bg-header/95 backdrop-blur-xl",
-        props.className,
-      )}
-    >
-      <div className="flex h-(--admin-topbar-height) items-center justify-between gap-4 px-4">
-        <div className="min-w-0 flex items-center gap-3">
-          <ButtonPrimitive
-            type="button"
-            tapScale={1}
-            aria-label={t("common:SIDEBAR_TOGGLE")}
-            onClick={toggleSidebar}
-            className={cn(TOPBAR_ICON_BUTTON_CLASSNAME, "md:hidden")}
-          >
-            <Menu className="size-5" aria-hidden="true" />
-          </ButtonPrimitive>
-
-          <div className="min-w-0 flex h-8 items-center">
-            <AdminFullLogo ariaLabel="Arclayer" width={100} className="flex h-8 items-center" />
-          </div>
-
-          <div className="min-w-0 max-w-[18rem]">
-            <AdminWorkspaceSwitcher
-              variant="header"
-              showSidebarToggle={false}
-              className="min-w-0"
-            />
-          </div>
-        </div>
-
-        <div className="min-w-0 flex items-center justify-end gap-2">
-          <ButtonPrimitive
-            type="button"
-            tapScale={1}
-            aria-label={t("notifications:NOTIFICATIONS_OPEN_CENTER")}
-            data-state={props.notificationOpen ? "open" : "closed"}
-            onClick={props.onNotificationToggle}
-            className={TOPBAR_ICON_BUTTON_CLASSNAME}
-          >
-            <Bell className="size-4" aria-hidden="true" />
-            {props.showNotificationsBadge && props.unreadCount > 0 ? (
-              <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold leading-none text-primary-foreground">
-                {props.unreadCount > 99 ? "99+" : props.unreadCount}
-              </span>
-            ) : null}
-          </ButtonPrimitive>
-
-          <AdminAccountMenu variant="header" />
-        </div>
-      </div>
-    </header>
+    <AdminTopbar
+      navItems={props.navItems ?? []}
+      commandScope={props.commandScope ?? ACCOUNT_COMMAND_SCOPE}
+      notificationOpen={props.notificationOpen}
+      showNotificationsBadge={props.showNotificationsBadge}
+      unreadCount={props.unreadCount}
+      onNotificationToggle={props.onNotificationToggle}
+      showCommandTrigger={props.showCommandTrigger ?? false}
+      leadingMode={mode === "account" ? "back" : "logo"}
+      sidebarToggleMode="mobile-only"
+      backLabel={props.backLabel ?? t("common:BACK")}
+      onBack={props.onBack ?? (() => undefined)}
+      className={props.className}
+    />
   );
 }

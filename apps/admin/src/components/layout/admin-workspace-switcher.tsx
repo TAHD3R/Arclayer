@@ -153,7 +153,7 @@ const sidebarTriggerButtonClassName = cn(
   "group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center",
 );
 
-const headerTriggerButtonClassName = cn(
+export const headerTriggerButtonClassName = cn(
   HEADER_TRIGGER_HEIGHT_CLASSNAME,
   "group/panel-trigger",
   "inline-flex max-w-full min-w-0 items-center gap-2 rounded-lg border border-transparent",

@@ -176,4 +176,30 @@ describe("AdminSiderNav spacing", () => {
     expect(subtree?.parentElement).toHaveClass("before:left-4");
     expect(submenuButton).toHaveClass("[&:not([data-highlight])]:hover:bg-transparent");
   });
+
+  it("keeps fixed sidebars on the correct border edge when collapsible is none", () => {
+    const { container, rerender } = render(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar side="left" collapsible="none" animateOnHover={false}>
+          <div>left</div>
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    const leftSidebar = container.querySelector('[data-slot="sidebar"]');
+    expect(leftSidebar).toHaveClass("border-r", "border-sidebar-border");
+    expect(leftSidebar?.className).not.toContain("border-l");
+
+    rerender(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar side="right" collapsible="none" animateOnHover={false}>
+          <div>right</div>
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    const rightSidebar = container.querySelector('[data-slot="sidebar"]');
+    expect(rightSidebar).toHaveClass("border-l", "border-sidebar-border");
+    expect(rightSidebar?.className).not.toContain("border-r");
+  });
 });

@@ -30,6 +30,7 @@ type AdminSiderNavProps = {
   items?: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
   resolvePermissionName?: (code: string) => string | null;
+  pathnameOverride?: string;
   className?: string;
 };
 
@@ -178,19 +179,23 @@ function useDisplayItems(
 function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   const { state: sidebarState, isMobile } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { baseItems, favoriteItems, starredItem, displayItems } = useDisplayItems(props, pathname);
+  const activePathname = props.pathnameOverride ?? pathname;
+  const { baseItems, favoriteItems, starredItem, displayItems } = useDisplayItems(
+    props,
+    activePathname,
+  );
   const baseActiveTrail = useMemo(
-    () => findActiveTrail(baseItems, pathname),
-    [baseItems, pathname],
+    () => findActiveTrail(baseItems, activePathname),
+    [activePathname, baseItems],
   );
   const baseActiveKeys = useMemo(() => new Set(baseActiveTrail), [baseActiveTrail]);
   const starredActive = useMemo(
-    () => favoriteItems.some((item) => isExactMatch(item.path, pathname)),
-    [favoriteItems, pathname],
+    () => favoriteItems.some((item) => isExactMatch(item.path, activePathname)),
+    [activePathname, favoriteItems],
   );
   const starredActiveTrail = useMemo(
-    () => (starredItem && starredActive ? findActiveTrail([starredItem], pathname) : []),
-    [pathname, starredActive, starredItem],
+    () => (starredItem && starredActive ? findActiveTrail([starredItem], activePathname) : []),
+    [activePathname, starredActive, starredItem],
   );
   const starredActiveKeys = useMemo(() => new Set(starredActiveTrail), [starredActiveTrail]);
   const [sourcePreference, setSourcePreference] = useState<{

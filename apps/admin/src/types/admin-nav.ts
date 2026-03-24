@@ -2,11 +2,14 @@ import type { ReactNode } from "react";
 import type { DeploymentScope } from "@/types/api/system";
 import type { LucideIcon } from "lucide-react";
 
+type NavSearch = Record<string, unknown>;
+
 export type AdminNavItem = {
   key: string;
   label: string;
   labelKey?: string;
   to?: string;
+  search?: NavSearch;
   icon: LucideIcon;
   /** Control visibility by deployment mode; default: "both". */
   scope?: DeploymentScope;
