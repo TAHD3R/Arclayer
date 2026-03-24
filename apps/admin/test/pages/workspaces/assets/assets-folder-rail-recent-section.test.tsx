@@ -69,6 +69,7 @@ describe("AssetsFolderRailRecentSection", () => {
     );
 
     expect(screen.getByText("assets:ASSET_RECENT_EMPTY")).toBeInTheDocument();
-    expect(view.container.querySelector('[data-slot="empty-icon"]')).toBeNull();
+    expect(view.container.querySelector('[data-slot="empty-icon"]')).toBeInTheDocument();
+    expect(view.container.querySelector('[data-slot="content-guard"]')).toBeNull();
   });
 });

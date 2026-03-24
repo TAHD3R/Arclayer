@@ -14,13 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@arclayer/ui/empty";
 
 import {
   buildFolderById,
   buildFolderPath,
   flattenFoldersDepthFirst,
 } from "./assets-folder-rail-utils";
+import { AssetsFolderRailEmptyCard } from "./assets-folder-rail-empty-card";
 import { FolderAddCard, FolderCard, FolderCardSkeleton } from "./assets-folder-rail-folder-cards";
 import { toFolderDndId } from "./assets-view-dnd";
 
@@ -91,7 +91,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
       {props.foldersLoading ? (
         <div className={cn("grid gap-3", gridClassName)}>
           {Array.from({ length: 3 }).map((_, index) => (
-            <FolderCardSkeleton key={index} />
+            <FolderCardSkeleton key={index} layoutMode={layoutMode} />
           ))}
         </div>
       ) : null}
@@ -110,25 +110,13 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
       ) : null}
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length === 0 ? (
-        <div className={cn("grid gap-3", gridClassName)}>
-          <Empty className="rounded-lg border border-dashed border-border/60 bg-muted/15 px-4 py-8">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <FolderClosed className="size-5" />
-              </EmptyMedia>
-              <EmptyTitle className="text-title3">
-                {props.t("assets:ASSET_FOLDER_PANEL_EMPTY")}
-              </EmptyTitle>
-              <EmptyDescription>{props.t("assets:ASSET_FOLDER_PANEL_EMPTY_DESC")}</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-          <FolderAddCard
-            t={props.t}
-            currentFolder={currentFolder}
-            onCreateFolder={props.onCreateFolder}
-            isDraggingAssets={props.isDraggingAssets}
-          />
-        </div>
+        <AssetsFolderRailEmptyCard
+          title={props.t("assets:ASSET_FOLDER_PANEL_EMPTY")}
+          description={props.t("assets:ASSET_FOLDER_PANEL_EMPTY_DESC")}
+          icon={<FolderClosed className="size-5" />}
+          actionLabel={props.t("assets:ASSET_ACTION_CREATE_FOLDER")}
+          onAction={() => props.onCreateFolder(null)}
+        />
       ) : null}
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length > 0 ? (
@@ -161,6 +149,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
                     : null
                 }
                 tooltipDisabled={props.tooltipDisabled}
+                layoutMode={layoutMode}
               />
             );
           })}
@@ -169,6 +158,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
             currentFolder={currentFolder}
             onCreateFolder={props.onCreateFolder}
             isDraggingAssets={props.isDraggingAssets}
+            layoutMode={layoutMode}
           />
         </div>
       ) : null}

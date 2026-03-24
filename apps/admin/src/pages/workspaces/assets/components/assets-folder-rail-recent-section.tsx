@@ -1,7 +1,6 @@
-import { EllipsisVertical, Trash2 } from "lucide-react";
+import { EllipsisVertical, History, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-import { ContentGuard } from "@/components/common/content-guard";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import { cn } from "@arclayer/lib/utils";
@@ -17,6 +16,7 @@ import {
 } from "@arclayer/ui/dropdown-menu";
 import { Skeleton } from "@arclayer/ui/skeleton";
 
+import { AssetsFolderRailEmptyCard } from "./assets-folder-rail-empty-card";
 import { RecentAssetCard, type RecentLayoutMode } from "./assets-folder-rail-recent-card";
 import type { ResolvedRecentAsset } from "@/lib/assets/assets-recent";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
@@ -132,14 +132,10 @@ function RecentSectionBody(props: RecentSectionBodyProps) {
 
   if (props.recentAssets.length === 0) {
     return (
-      <ContentGuard
-        loading={false}
-        empty
-        variant="compact"
-        mediaVariant="none"
-        className="rounded-lg border border-dashed border-border/60 bg-muted/15 px-4 py-8 dark:border-white/8 dark:bg-[#101010]"
-        emptyTitle={props.t("assets:ASSET_RECENT_EMPTY")}
-        emptyDescription={props.t("assets:ASSET_RECENT_EMPTY_DESC")}
+      <AssetsFolderRailEmptyCard
+        title={props.t("assets:ASSET_RECENT_EMPTY")}
+        description={props.t("assets:ASSET_RECENT_EMPTY_DESC")}
+        icon={<History className="size-5" />}
       />
     );
   }
