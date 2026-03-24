@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent } from "@arclayer/ui/card";
 

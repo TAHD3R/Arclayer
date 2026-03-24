@@ -8,7 +8,7 @@ import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@arclayer
 
 import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import GitHubDarkIcon from "@arclayer/ui/icons/github-dark-icon";
 import GitHubLightIcon from "@arclayer/ui/icons/github-light-icon";
 import GoogleIcon from "@arclayer/ui/icons/google-icon";

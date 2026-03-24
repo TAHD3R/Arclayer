@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus } from "@arclayer/ui/icons/lucide-animated";
 
-import { ColumnsPage } from "@/components/common/columns-page";
+import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { Button } from "@arclayer/ui/button";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";

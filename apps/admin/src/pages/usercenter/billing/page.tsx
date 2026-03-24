@@ -1,7 +1,7 @@
 import { CreditCard, FileText, Receipt } from "@arclayer/ui/icons/lucide-animated";
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { UserCenterStateCard } from "@/pages/usercenter/shared/account-settings-state-card";
 
 export function UserCenterBillingPage() {

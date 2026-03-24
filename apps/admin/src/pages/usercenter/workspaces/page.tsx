@@ -5,7 +5,7 @@ import { Archive, LogIn, Plus, Trash2, Undo2 } from "@arclayer/ui/icons/lucide-a
 import { useTranslation } from "react-i18next";
 
 import { type OrganizationWorkspace } from "@/types/api";
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { notifyError } from "@/lib/notifications";
 import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/usercenter-settings-section-stack";
 import type { NotificationPreferenceChannel, NotificationPreferenceTopic } from "@/types/api";

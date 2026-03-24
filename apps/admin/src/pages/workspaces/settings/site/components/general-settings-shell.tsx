@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 
 import { getCoreSettings, patchCoreSettings } from "@/api/settings";
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import {
   ChromeTabs,
   ChromeTabsContent,
@@ -14,7 +14,7 @@ import {
 } from "@arclayer/ui/chrome-tabs";
 import { Form } from "@arclayer/ui/form";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { buildGeneralSettingsInitialValues } from "@/lib/settings/general/adapters";

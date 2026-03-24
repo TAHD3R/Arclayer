@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from "re
 import clsx from "clsx";
 
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { Skeleton } from "@arclayer/ui/skeleton";
 
 type RouteTransitionProps = PropsWithChildren<{

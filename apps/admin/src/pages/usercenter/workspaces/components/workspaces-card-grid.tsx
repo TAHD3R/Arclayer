@@ -4,7 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
 import type { OrganizationWorkspace } from "@/types/api";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Spinner } from "@arclayer/ui/spinner";
 
 import type { UserCenterWorkspacesTranslateFn, WorkspaceMenuItem } from "../types";

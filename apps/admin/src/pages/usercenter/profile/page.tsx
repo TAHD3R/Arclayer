@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { UserProfileView } from "@/pages/usercenter/profile/components/user-profile-view";
 
 export function UserCenterProfilePage() {

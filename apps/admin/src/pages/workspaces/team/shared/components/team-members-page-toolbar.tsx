@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
-import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import type { Role } from "@/types/api";
 import type {
   MembershipStatus,

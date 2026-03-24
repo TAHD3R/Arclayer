@@ -2,7 +2,7 @@ import { type Table } from "@tanstack/react-table";
 
 import type { DataTableRowHeight, PageData } from "@arclayer/ui/data-table";
 
-import { AdminDataTableSection } from "@/components/common/admin-data-table-section";
+import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 

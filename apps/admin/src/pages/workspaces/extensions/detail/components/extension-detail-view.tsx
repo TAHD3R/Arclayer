@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
-import { ContentGuard } from "@/components/common/content-guard";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Button } from "@arclayer/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@arclayer/ui/card";
 import { Switch } from "@arclayer/ui/switch";

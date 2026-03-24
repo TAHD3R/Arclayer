@@ -4,8 +4,8 @@ import { BarChart3, LayoutGrid, ShieldCheck } from "@arclayer/ui/icons/lucide-an
 import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces } from "@/api/workspaces";
-import { ContentGuard } from "@/components/common/content-guard";
-import { DefaultPage } from "@/components/common/default-page";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { UserCenterStateCard } from "@/pages/usercenter/shared/account-settings-state-card";
 
 export function UserCenterUsagePage() {

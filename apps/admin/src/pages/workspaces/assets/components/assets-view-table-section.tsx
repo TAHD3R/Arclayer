@@ -8,7 +8,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 import {
   buildDataTableActionsColumnMeta,

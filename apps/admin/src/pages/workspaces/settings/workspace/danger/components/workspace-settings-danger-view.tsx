@@ -10,8 +10,8 @@ import {
   leaveWorkspace,
   listMyWorkspaces,
 } from "@/api/workspaces";
-import { ContentGuard } from "@/components/common/content-guard";
-import { DefaultPage } from "@/components/common/default-page";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

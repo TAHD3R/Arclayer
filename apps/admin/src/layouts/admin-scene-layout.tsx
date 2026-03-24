@@ -2,7 +2,7 @@ import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getUnreadNotificationPreview } from "@/api/notifications";
-import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
+import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { AdminNotificationsShell } from "@/components/layout/admin-notifications-shell";
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
 import { RouteProgress } from "@/components/layout/route-progress";

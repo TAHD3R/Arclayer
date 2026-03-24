@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { DataPaginationControls } from "@/components/common/data-pagination-controls";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 
 import { ExtensionCard } from "./extension-card";
 import { ExtensionsFilterSidebar } from "./extensions-filter-sidebar";

@@ -7,7 +7,7 @@ import {
   type DataTableRowHeight,
 } from "@arclayer/ui/data-table";
 
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DataPaginationControls } from "@/components/common/data-pagination-controls";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;

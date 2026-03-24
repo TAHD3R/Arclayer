@@ -19,7 +19,7 @@ import {
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
 import type { TeamInvitation, TeamInviteLink } from "@/types/api";
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import {
   useDataTable,

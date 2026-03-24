@@ -13,7 +13,7 @@ import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arc
 
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
-import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import type { ContentLibraryDerivedStatus, ContentLibraryToolbarFilters } from "../types";
 

@@ -4,7 +4,7 @@ import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/rea
 import { AuthLinkButton } from "@/components/ui/auth-controls";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { getErrorMessage } from "@/lib/notifications";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Button } from "@arclayer/ui/button";
 import { Card } from "@arclayer/ui/card";
 import { InviteTokenInputDialog } from "./invite-token-input-dialog";

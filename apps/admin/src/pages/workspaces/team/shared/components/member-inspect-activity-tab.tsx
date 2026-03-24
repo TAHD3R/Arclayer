@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { ActivityEvent } from "@/types/api";
 import { ActivityTimeline } from "@/pages/workspaces/shared/activity/components/activity-timeline";
 import { PageSkeleton } from "@arclayer/ui/page-skeleton";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 
 type WorkspaceMemberActivityTabProps = {
   items: ActivityEvent[];

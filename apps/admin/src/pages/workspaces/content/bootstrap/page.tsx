@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 
 import { ContentBootstrapStepOnePanel } from "./components/step-one-panel";
 import { useContentBootstrapController } from "./hooks/use-content-bootstrap-controller";

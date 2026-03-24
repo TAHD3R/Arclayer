@@ -4,7 +4,7 @@ import type { Table as ReactTable } from "@tanstack/react-table";
 import type { AdminAssetTag } from "@/types/api";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
-import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import {
   DataTableToolbarTools,
   type DataTableRowHeight,

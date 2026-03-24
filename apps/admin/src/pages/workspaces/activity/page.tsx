@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next";
 
 import * as activityApi from "@/api/activity";
 import { listTeamUserOptions } from "@/api/team";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
-import { DefaultPage } from "@/components/common/default-page";
-import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 import { Button } from "@arclayer/ui/button";
 import { Spinner } from "@arclayer/ui/spinner";
 import { ActivityDetailDialog } from "@/pages/workspaces/shared/activity/components/activity-detail-dialog";

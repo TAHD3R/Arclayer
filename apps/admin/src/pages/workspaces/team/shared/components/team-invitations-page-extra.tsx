@@ -9,7 +9,7 @@ import {
 
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
-import { PageExtraToolbar } from "@/components/common/page-extra-toolbar";
+import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
 
 type TeamInvitationsPageExtraProps<TTab extends string> = {
   tabs: Array<{ value: TTab; label: string }>;

@@ -15,9 +15,9 @@ import {
   listAllContentModels,
   unarchiveContentItem,
 } from "@/api/content";
-import { AdminDataTableSection } from "@/components/common/admin-data-table-section";
+import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { ColumnsPage } from "@/components/common/columns-page";
+import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";

@@ -1,5 +1,5 @@
-import { ContentGuard } from "@/components/common/content-guard";
-import { DefaultPage } from "@/components/common/default-page";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,

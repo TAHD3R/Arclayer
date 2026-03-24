@@ -2,7 +2,7 @@ import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
 
 import type { OrganizationWorkspace } from "@/types/api";
-import { AdminDataTableSection } from "@/components/common/admin-data-table-section";
+import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import type { DataTableRowHeight } from "@arclayer/ui/data-table";
 
 import type {

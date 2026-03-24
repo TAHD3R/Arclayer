@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ColumnsPage } from "@/components/common/columns-page";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ColumnsPage } from "@/layouts/page-shell/columns-page";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import type { PropsWithChildren, ReactElement } from "react";
 

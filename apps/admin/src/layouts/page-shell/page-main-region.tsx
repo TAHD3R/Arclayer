@@ -7,7 +7,7 @@ import { Button } from "@arclayer/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
 
-import { ContentGuard, type ContentGuardProps } from "@/components/common/content-guard";
+import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { ApiError } from "@/lib/http";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 

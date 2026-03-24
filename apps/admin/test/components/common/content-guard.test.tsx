@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { ApiError } from "@/lib/http";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import type { IllustrationProps } from "@arclayer/ui/illustrations";

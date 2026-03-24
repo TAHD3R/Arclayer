@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { listWorkspaceActivity } from "@/api/activity";
 import { getWorkspaceRbacMatrix, listWorkspaceRoles } from "@/api/rbac";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { ActivityDetailDialog } from "@/pages/workspaces/shared/activity/components/activity-detail-dialog";
 import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constants";

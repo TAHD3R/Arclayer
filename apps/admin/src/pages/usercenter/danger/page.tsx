@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { normalizeUserProfile } from "@/lib/auth/user-profile";
 import { UserCenterStateCard } from "@/pages/usercenter/shared/account-settings-state-card";
 import { UserDangerSection } from "@/pages/usercenter/profile/components/profile-danger-section";

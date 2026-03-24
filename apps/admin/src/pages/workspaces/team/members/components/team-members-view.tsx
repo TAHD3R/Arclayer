@@ -16,9 +16,9 @@ import {
 } from "@/api/team";
 import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
 import type { TeamMember, UserStatus } from "@/types/api";
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { AdminDataTableSection } from "@/components/common/admin-data-table-section";
+import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import {
   useDataTableRowHeightPreference,
   useDataTableWrapHeadersPreference,

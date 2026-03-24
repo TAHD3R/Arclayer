@@ -10,7 +10,7 @@ import { archiveNotification, listNotifications, markNotificationRead } from "@/
 import type { NotificationItem } from "@/types/api";
 import { listMyWorkspaces } from "@/api/workspaces";
 import { NotificationCard } from "@/components/common/notification-card";
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import {
   ChromeTabs,

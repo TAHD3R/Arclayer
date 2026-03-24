@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/user-notification-settings-view";
 
 export function UserCenterNotificationsPage() {

@@ -3,7 +3,7 @@ import { useInfiniteLoader, useMasonry, usePositioner, useResizeObserver } from 
 
 import { Button } from "@arclayer/ui/button";
 
-import { ContentGuard } from "@/components/common/content-guard";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import {
   clearSelection,
   rangeSelect,

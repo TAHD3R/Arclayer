@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { DefaultPage } from "@/components/common/default-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { Card, CardContent } from "@arclayer/ui/card";
 
 export function PlaceholderPage(props: { titleKey: string; descriptionKey?: string }) {

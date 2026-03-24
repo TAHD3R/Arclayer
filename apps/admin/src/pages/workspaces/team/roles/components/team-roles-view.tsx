@@ -17,8 +17,8 @@ import {
   getWorkspaceRbacMatrix,
   setWorkspacePermissionRoles,
 } from "@/api/rbac";
-import { DefaultPage } from "@/components/common/default-page";
-import { ContentGuard } from "@/components/common/content-guard";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 import { Button } from "@arclayer/ui/button";
