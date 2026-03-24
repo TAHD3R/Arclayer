@@ -1,4 +1,4 @@
-import { Activity, Home, UserPlus, Users } from "lucide-react";
+import { Activity, Globe, Home, Settings, UserPlus, Users } from "lucide-react";
 import { describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 
@@ -45,6 +45,32 @@ const items: AdminNavItem[] = [
       },
     ],
   },
+  {
+    key: "content-group",
+    label: "Content",
+    icon: Activity,
+    children: [
+      {
+        key: "settings.general",
+        label: "Site Settings",
+        icon: Globe,
+        to: "/w/ws-1/settings/site",
+      },
+    ],
+  },
+  {
+    key: "workspace-group",
+    label: "Workspace",
+    icon: Settings,
+    children: [
+      {
+        key: "settings.workspace",
+        label: "Workspace Settings",
+        icon: Settings,
+        to: "/w/ws-1/settings/workspace",
+      },
+    ],
+  },
 ];
 
 describe("resolveFavoriteNavItems", () => {
@@ -66,6 +92,28 @@ describe("resolveFavoriteNavItems", () => {
         path: "/w/ws-2/team/invitations",
         label: "Invitations",
         isCurrentWorkspace: false,
+      }),
+    ]);
+  });
+
+  it("resolves favorited settings child routes back to their nearest nav entry", () => {
+    const favorites = resolveFavoriteNavItems({
+      favoritePaths: ["/w/ws-1/settings/site/basics", "/w/ws-1/settings/workspace/basics"],
+      items,
+      workspaceBase: "/w/ws-1",
+      t: ((key: string) => key) as TFunction,
+    });
+
+    expect(favorites).toEqual([
+      expect.objectContaining({
+        path: "/w/ws-1/settings/site/basics",
+        label: "Site Settings",
+        isCurrentWorkspace: true,
+      }),
+      expect.objectContaining({
+        path: "/w/ws-1/settings/workspace/basics",
+        label: "Workspace Settings",
+        isCurrentWorkspace: true,
       }),
     ]);
   });

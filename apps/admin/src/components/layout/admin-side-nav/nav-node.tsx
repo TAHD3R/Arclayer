@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import type { OpenByParent } from "./nav-utils";
-import { findPreferredGroupTarget } from "./nav-utils";
+import { findPreferredGroupTarget, isExactMatch } from "./nav-utils";
 import { useBlockedTooltipText } from "./blocked-tooltip";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
 import type { ResolvedChildItem } from "./node-collapsed-group";
@@ -17,9 +17,14 @@ type NodeProps = {
   depth: number;
   parentKey: string;
   pathname: string;
+  activeSource: "base" | "starred";
   activeKeys: ReadonlySet<string>;
+  baseActiveKeys: ReadonlySet<string>;
+  starredActiveKeys: ReadonlySet<string>;
+  suppressedKeys: ReadonlySet<string>;
   openByParent: OpenByParent;
   openChainForKey: (key: string) => void;
+  selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   resolvePermissionName?: (code: string) => string | null;
   isCollapsed: boolean;
   hoverDropdown: CollapsedDropdownController | null;
@@ -36,13 +41,15 @@ function resolveCollapsedChildren(
   t: TFn,
   item: AdminNavItem,
   activeKeys: ReadonlySet<string>,
+  suppressedKeys: ReadonlySet<string>,
 ): ResolvedChildItem[] {
   return (item.children ?? []).map((child) => ({
     key: child.key,
     label: resolveLabel(t, child),
     to: child.to,
     disabled: Boolean(child.disabled),
-    isActive: activeKeys.has(child.key) || Boolean(child.isActive),
+    isActive:
+      !suppressedKeys.has(child.key) && (activeKeys.has(child.key) || Boolean(child.isActive)),
     Icon: child.icon,
   }));
 }
@@ -57,9 +64,14 @@ function renderChildNodes(props: NodeProps): ReactNode {
       depth={props.depth + 1}
       parentKey={props.item.key}
       pathname={props.pathname}
+      activeSource={props.activeSource}
       activeKeys={props.activeKeys}
+      baseActiveKeys={props.baseActiveKeys}
+      starredActiveKeys={props.starredActiveKeys}
+      suppressedKeys={props.suppressedKeys}
       openByParent={props.openByParent}
       openChainForKey={props.openChainForKey}
+      selectActiveSource={props.selectActiveSource}
       resolvePermissionName={props.resolvePermissionName}
       isCollapsed={props.isCollapsed}
       hoverDropdown={props.hoverDropdown}
@@ -144,6 +156,8 @@ function renderLeafNode(args: {
   isSelected: boolean;
   blockedTooltip: string | null;
   openChainForKey: (key: string) => void;
+  selectActiveSource: (targetPath?: string) => void;
+  allowSamePathNavigate: boolean;
   hoverDropdown: CollapsedDropdownController | null;
 }) {
   return (
@@ -156,6 +170,8 @@ function renderLeafNode(args: {
       isSelected={args.isSelected}
       blockedTooltip={args.blockedTooltip}
       openChainForKey={args.openChainForKey}
+      onSelect={args.selectActiveSource}
+      allowSamePathNavigate={args.allowSamePathNavigate}
       hoverDropdown={args.hoverDropdown}
     />
   );
@@ -167,14 +183,22 @@ function createExpandedGroupToggle(args: {
   openChainForKey: (key: string) => void;
   navigate: (opts: NavigateOptions) => Promise<unknown>;
   activeKeys: ReadonlySet<string>;
+  selectActiveSource: (targetPath?: string) => void;
+  pathname: string;
+  allowSamePathNavigate: boolean;
 }) {
   const navTarget = findPreferredGroupTarget(args.item, args.activeKeys);
 
   return () => {
     if (args.item.disabled) return;
+    args.selectActiveSource(navTarget ?? undefined);
     const wasOpen = args.isOpen;
     args.openChainForKey(args.item.key);
-    if (!wasOpen && navTarget) {
+    if (
+      !wasOpen &&
+      navTarget &&
+      (args.allowSamePathNavigate || !isExactMatch(navTarget, args.pathname))
+    ) {
       void args.navigate({ to: navTarget as never });
     }
   };
@@ -187,10 +211,17 @@ function NavNodeImpl(
 ) {
   const item = props.item;
   const label = resolveLabel(t, item);
+  const branchSource = item.key === "starred" || props.parentKey === "starred" ? "starred" : "base";
+  const allowSamePathNavigate = branchSource === props.activeSource;
+  const branchActiveKeys =
+    branchSource === "starred" ? props.starredActiveKeys : props.baseActiveKeys;
   const hasChildren = Boolean(item.children?.length);
   const isOpen = hasChildren && !item.disabled && props.openByParent[props.parentKey] === item.key;
   const blockedTooltip = useBlockedTooltipText(item, props.resolvePermissionName);
-  const isTrailActive = props.activeKeys.has(item.key) || Boolean(item.isActive);
+  const isSuppressed = props.suppressedKeys.has(item.key);
+  const isTrailActive = !isSuppressed && (props.activeKeys.has(item.key) || Boolean(item.isActive));
+  const selectBranchSource = (targetPath?: string) =>
+    props.selectActiveSource(branchSource, targetPath);
 
   if (!hasChildren && !item.to) {
     return renderActionNode({
@@ -209,9 +240,11 @@ function NavNodeImpl(
       isCollapsed: props.isCollapsed,
       label,
       pathname: props.pathname,
-      isSelected: props.activeKeys.has(item.key) || Boolean(item.isActive),
+      isSelected: !isSuppressed && (props.activeKeys.has(item.key) || Boolean(item.isActive)),
       blockedTooltip,
       openChainForKey: props.openChainForKey,
+      selectActiveSource: selectBranchSource,
+      allowSamePathNavigate,
       hoverDropdown: props.hoverDropdown,
     });
   }
@@ -225,16 +258,23 @@ function NavNodeImpl(
     label,
     blockedTooltip,
     hoverDropdown: props.hoverDropdown,
-    collapsedChildren: resolveCollapsedChildren(t, item, props.activeKeys),
-    collapsedNavigateTarget: findPreferredGroupTarget(item, props.activeKeys),
-    onNavigate: (to) => void navigate({ to: to as never }),
+    collapsedChildren: resolveCollapsedChildren(t, item, props.activeKeys, props.suppressedKeys),
+    collapsedNavigateTarget: findPreferredGroupTarget(item, branchActiveKeys),
+    onNavigate: (to) => {
+      selectBranchSource(to);
+      if (!allowSamePathNavigate && isExactMatch(to, props.pathname)) return;
+      void navigate({ to: to as never });
+    },
     childNodes: renderChildNodes(props),
     onToggle: createExpandedGroupToggle({
       item,
       isOpen,
       openChainForKey: props.openChainForKey,
       navigate,
-      activeKeys: props.activeKeys,
+      activeKeys: branchActiveKeys,
+      selectActiveSource: selectBranchSource,
+      pathname: props.pathname,
+      allowSamePathNavigate,
     }),
   });
 }

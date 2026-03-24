@@ -13,7 +13,14 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@arclayer/ui/sidebar";
-import { buildNavIndex, findActiveTrail, isExactMatch, type OpenByParent } from "./nav-utils";
+import {
+  buildNavIndex,
+  findActiveTrail,
+  isExactMatch,
+  isPrefixMatch,
+  normalizePath,
+  type OpenByParent,
+} from "./nav-utils";
 import { resolveFavoriteNavItems } from "./favorite-nav-items";
 import { NavNode } from "./nav-node";
 import { useCollapsedDropdownController } from "./collapsed-dropdown";
@@ -29,11 +36,18 @@ type AdminSiderNavProps = {
 type AdminSiderNavState = {
   pathname: string;
   items: readonly AdminNavItem[];
+  activeSource: ActiveSource;
   activeKeys: ReadonlySet<string>;
+  baseActiveKeys: ReadonlySet<string>;
+  starredActiveKeys: ReadonlySet<string>;
+  suppressedKeys: ReadonlySet<string>;
   openByParent: OpenByParent;
   openChainForKey: (key: string) => void;
+  selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   collapsedMode: boolean;
 };
+
+type ActiveSource = "base" | "starred";
 
 function deriveOpenByParent(activeTrail: readonly string[], items: readonly AdminNavItem[]) {
   const navIndex = buildNavIndex(items);
@@ -155,6 +169,8 @@ function useDisplayItems(
 
   return {
     baseItems,
+    favoriteItems,
+    starredItem,
     displayItems,
   };
 }
@@ -162,18 +178,59 @@ function useDisplayItems(
 function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   const { state: sidebarState, isMobile } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { baseItems, displayItems } = useDisplayItems(props, pathname);
-  const activeTrail = useMemo(() => findActiveTrail(baseItems, pathname), [baseItems, pathname]);
+  const { baseItems, favoriteItems, starredItem, displayItems } = useDisplayItems(props, pathname);
+  const baseActiveTrail = useMemo(
+    () => findActiveTrail(baseItems, pathname),
+    [baseItems, pathname],
+  );
+  const baseActiveKeys = useMemo(() => new Set(baseActiveTrail), [baseActiveTrail]);
+  const starredActive = useMemo(
+    () => favoriteItems.some((item) => isExactMatch(item.path, pathname)),
+    [favoriteItems, pathname],
+  );
+  const starredActiveTrail = useMemo(
+    () => (starredItem && starredActive ? findActiveTrail([starredItem], pathname) : []),
+    [pathname, starredActive, starredItem],
+  );
+  const starredActiveKeys = useMemo(() => new Set(starredActiveTrail), [starredActiveTrail]);
+  const [sourcePreference, setSourcePreference] = useState<{
+    targetPath: string;
+    source: ActiveSource;
+  } | null>(null);
+  const activeSource: ActiveSource =
+    sourcePreference && isPrefixMatch(sourcePreference.targetPath, pathname)
+      ? sourcePreference.source
+      : starredActive
+        ? "starred"
+        : "base";
+  const activeTrail = activeSource === "starred" ? starredActiveTrail : baseActiveTrail;
   const activeKeys = useMemo(() => new Set(activeTrail), [activeTrail]);
+  const suppressedKeys = useMemo(
+    () =>
+      new Set(
+        !starredActive ? [] : activeSource === "starred" ? baseActiveTrail : starredActiveTrail,
+      ),
+    [activeSource, baseActiveTrail, starredActive, starredActiveTrail],
+  );
   const { openByParent, openChainForKey } = useOpenChain(activeTrail, displayItems);
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
+  const selectActiveSource = useCallback(
+    (source: ActiveSource, targetPath?: string) =>
+      setSourcePreference({ targetPath: normalizePath(targetPath ?? pathname), source }),
+    [pathname],
+  );
 
   return {
     pathname,
     items: displayItems,
+    activeSource,
     activeKeys,
+    baseActiveKeys,
+    starredActiveKeys,
+    suppressedKeys,
     openByParent,
     openChainForKey,
+    selectActiveSource,
     collapsedMode: isCollapsed,
   };
 }
@@ -181,9 +238,14 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
 function NavItemsTree(props: {
   items: readonly AdminNavItem[];
   pathname: string;
+  activeSource: ActiveSource;
   activeKeys: ReadonlySet<string>;
+  baseActiveKeys: ReadonlySet<string>;
+  starredActiveKeys: ReadonlySet<string>;
+  suppressedKeys: ReadonlySet<string>;
   openByParent: OpenByParent;
   openChainForKey: (key: string) => void;
+  selectActiveSource: (source: ActiveSource, targetPath?: string) => void;
   resolvePermissionName?: (code: string) => string | null;
   isCollapsed: boolean;
 }) {
@@ -206,9 +268,14 @@ function NavItemsTree(props: {
                 depth={0}
                 parentKey="__root__"
                 pathname={props.pathname}
+                activeSource={props.activeSource}
                 activeKeys={props.activeKeys}
+                baseActiveKeys={props.baseActiveKeys}
+                starredActiveKeys={props.starredActiveKeys}
+                suppressedKeys={props.suppressedKeys}
                 openByParent={props.openByParent}
                 openChainForKey={props.openChainForKey}
+                selectActiveSource={props.selectActiveSource}
                 resolvePermissionName={props.resolvePermissionName}
                 isCollapsed={props.isCollapsed}
                 hoverDropdown={props.isCollapsed ? hoverDropdown : null}
@@ -230,9 +297,14 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
       <NavItemsTree
         items={state.items}
         pathname={state.pathname}
+        activeSource={state.activeSource}
         activeKeys={state.activeKeys}
+        baseActiveKeys={state.baseActiveKeys}
+        starredActiveKeys={state.starredActiveKeys}
+        suppressedKeys={state.suppressedKeys}
         openByParent={state.openByParent}
         openChainForKey={state.openChainForKey}
+        selectActiveSource={state.selectActiveSource}
         resolvePermissionName={props.resolvePermissionName}
         isCollapsed={state.collapsedMode}
       />

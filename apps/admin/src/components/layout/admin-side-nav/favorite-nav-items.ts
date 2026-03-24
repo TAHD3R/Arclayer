@@ -21,6 +21,21 @@ type FavoriteTemplateIndex = {
   workspaceBySuffix: Map<string, FavoriteTemplate>;
 };
 
+function findNearestAncestorTemplate(
+  key: string | null,
+  index: Map<string, FavoriteTemplate>,
+): FavoriteTemplate | undefined {
+  let current = key;
+  while (current) {
+    const found = index.get(current);
+    if (found) return found;
+    const nextSlash = current.lastIndexOf("/");
+    if (nextSlash <= 0) return undefined;
+    current = current.slice(0, nextSlash);
+  }
+  return undefined;
+}
+
 function buildWorkspaceSuffix(path: string, workspaceBase: string): string | null {
   const normalizedPath = normalizePath(path);
   const normalizedBase = normalizePath(workspaceBase);
@@ -88,10 +103,13 @@ export function resolveFavoriteNavItems(params: {
   return params.favoritePaths
     .map((path, order) => {
       const normalizedPath = normalizePath(path);
-      const exactTemplate = templates.exactByPath.get(normalizedPath);
+      const exactTemplate =
+        templates.exactByPath.get(normalizedPath) ??
+        findNearestAncestorTemplate(normalizedPath, templates.exactByPath);
       const workspaceSuffix = parseWorkspaceSuffix(normalizedPath);
       const workspaceTemplate = workspaceSuffix
-        ? templates.workspaceBySuffix.get(workspaceSuffix)
+        ? (templates.workspaceBySuffix.get(workspaceSuffix) ??
+          findNearestAncestorTemplate(workspaceSuffix, templates.workspaceBySuffix))
         : undefined;
       const template = exactTemplate ?? workspaceTemplate;
 

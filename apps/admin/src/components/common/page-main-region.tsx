@@ -35,20 +35,23 @@ function FavoriteToggle() {
   const toggle = useFavoritesStore((s) => s.toggle);
   const isFavorited = paths.includes(pathname);
   const [hovered, setHovered] = useState(false);
+  const actionLabel = isFavorited ? t("common:FAVORITE_REMOVE") : t("common:FAVORITE_ADD");
 
   return (
     <Tooltip side="bottom">
       <TooltipTrigger asChild>
         <Button
-          size="sm"
+          size="icon-sm"
           variant="ghost"
+          aria-label={actionLabel}
           onClick={() => toggle(pathname)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           className={clsx(
-            "inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 leading-none transition-colors",
+            "shrink-0 leading-none transition-colors",
             "text-label-secondary hover:text-foreground",
-            isFavorited && "text-primary hover:text-primary",
+            isFavorited &&
+              "text-amber-500 hover:text-amber-500 dark:text-amber-300 dark:hover:text-amber-300",
           )}
         >
           <Star
@@ -59,7 +62,6 @@ function FavoriteToggle() {
               hovered || isFavorited ? "fill-current" : "fill-transparent",
             )}
           />
-          <span>{isFavorited ? t("common:FAVORITE_REMOVE") : t("common:FAVORITE_ADD")}</span>
         </Button>
       </TooltipTrigger>
       <TooltipContent>

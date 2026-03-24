@@ -143,6 +143,12 @@ const treeItems: AdminNavItem[] = [
         icon: Activity,
         to: "/w/ws-1/assets",
       },
+      {
+        key: "content.seo-analyze",
+        label: "SEO Analyze",
+        icon: Activity,
+        to: "/w/ws-1/content/seo-analyze",
+      },
     ],
   },
   {
@@ -161,6 +167,63 @@ const treeItems: AdminNavItem[] = [
         label: "Invitations",
         icon: UserPlus,
         to: "/w/ws-1/team/invitations",
+      },
+    ],
+  },
+];
+
+const samePathPreferenceItems: AdminNavItem[] = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: Home,
+    to: "/w/ws-1/",
+  },
+  {
+    key: "content",
+    label: "Content",
+    icon: LayoutGrid,
+    children: [
+      {
+        key: "content.seo-analyze",
+        label: "SEO Analyze",
+        icon: Activity,
+        to: "/w/ws-1/content/seo-analyze",
+      },
+    ],
+  },
+];
+
+const redirectedPreferenceItems: AdminNavItem[] = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: Home,
+    to: "/w/ws-1/",
+  },
+  {
+    key: "content",
+    label: "Content",
+    icon: LayoutGrid,
+    children: [
+      {
+        key: "settings.general",
+        label: "Site Settings",
+        icon: Settings,
+        to: "/w/ws-1/settings/site",
+      },
+    ],
+  },
+  {
+    key: "workspace",
+    label: "Workspace",
+    icon: LayoutGrid,
+    children: [
+      {
+        key: "settings.workspace",
+        label: "Workspace Settings",
+        icon: Settings,
+        to: "/w/ws-1/settings/workspace",
       },
     ],
   },
@@ -200,6 +263,7 @@ describe("AdminSiderNav collapsed groups", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLanguage = "en-US";
+    mockPathname = "/w/ws-1/team/invitations";
     useFavoritesStore.setState({ paths: [] });
   });
 
@@ -423,6 +487,165 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toBeVisible();
+  });
+
+  it("suppresses duplicate base-nav highlighting when the active page comes from Starred", () => {
+    mockPathname = "/w/ws-1/content/seo-analyze";
+    useFavoritesStore.setState({ paths: ["/w/ws-1/content/seo-analyze"] });
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "false");
+    expect(screen.getByRole("button", { name: "SEO Analyze" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.queryAllByRole("button", { name: "SEO Analyze" })).toHaveLength(1);
+  });
+
+  it("lets users switch the active trail back to the base nav for the same favorited page", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/w/ws-1/content/seo-analyze";
+    useFavoritesStore.setState({ paths: ["/w/ws-1/content/seo-analyze"] });
+
+    renderTreeNav({
+      items: samePathPreferenceItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "false");
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+
+    expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+      "data-active",
+      "false",
+    );
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the content branch active after navigating from overview to a favorited page via base nav", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/w/ws-1/";
+    useFavoritesStore.setState({ paths: ["/w/ws-1/content/seo-analyze"] });
+
+    const view = renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "SEO Analyze" })).toBeVisible();
+    });
+
+    await user.click(screen.getByRole("button", { name: "SEO Analyze" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/content/seo-analyze" });
+
+    mockPathname = "/w/ws-1/content/seo-analyze";
+    view.rerender(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+      "data-active",
+      "false",
+    );
+  });
+
+  it("keeps the content branch active after Site Settings redirects to its favorited child route", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/w/ws-1/";
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/settings/site/basics", "/w/ws-1/settings/workspace/basics"],
+    });
+
+    const view = renderTreeNav({
+      items: redirectedPreferenceItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Content" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Site Settings" })).toBeVisible();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Site Settings" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/settings/site" });
+
+    mockPathname = "/w/ws-1/settings/site/basics";
+    view.rerender(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={redirectedPreferenceItems} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+      "data-active",
+      "false",
+    );
+  });
+
+  it("keeps the workspace branch active after Workspace Settings redirects to its favorited child route", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/w/ws-1/";
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/settings/site/basics", "/w/ws-1/settings/workspace/basics"],
+    });
+
+    const view = renderTreeNav({
+      items: redirectedPreferenceItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    await user.click(screen.getByRole("button", { name: "Workspace" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Workspace Settings" })).toBeVisible();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Workspace Settings" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/settings/workspace" });
+
+    mockPathname = "/w/ws-1/settings/workspace/basics";
+    view.rerender(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={redirectedPreferenceItems} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Workspace" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+      "data-active",
+      "false",
+    );
   });
 
   it("keeps collapsed groups accessible in icon mode and restores accordion state on expand", async () => {

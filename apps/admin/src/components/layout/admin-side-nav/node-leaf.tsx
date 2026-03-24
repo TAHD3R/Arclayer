@@ -36,6 +36,8 @@ type NodeLeafProps = {
   isSelected: boolean;
   blockedTooltip: string | null;
   openChainForKey: (key: string) => void;
+  onSelect: (targetPath?: string) => void;
+  allowSamePathNavigate: boolean;
   hoverDropdown: CollapsedDropdownController | null;
 };
 
@@ -46,6 +48,8 @@ function NodeLeafSub({
   isSelected,
   blockedTooltip,
   openChainForKey,
+  onSelect,
+  allowSamePathNavigate,
   onNavigate,
 }: Omit<NodeLeafProps, "depth" | "hoverDropdown"> & { onNavigate: (to: string) => void }) {
   return (
@@ -73,8 +77,10 @@ function NodeLeafSub({
             tapScale={1}
             aria-current={item.to && isExactMatch(item.to, pathname) ? "page" : undefined}
             onClick={() => {
+              onSelect(item.to);
               openChainForKey(item.key);
               if (!item.to || item.disabled) return;
+              if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
               onNavigate(item.to);
             }}
             className="flex w-full items-center justify-start text-left"
@@ -94,6 +100,8 @@ function NodeLeafRoot({
   isSelected,
   blockedTooltip,
   openChainForKey,
+  onSelect,
+  allowSamePathNavigate,
   hoverDropdown,
   onNavigate,
 }: NodeLeafProps & { onNavigate: (to: string) => void }) {
@@ -129,8 +137,10 @@ function NodeLeafRoot({
             item.disabled ? DISABLED_ITEM_CLASSNAME : "hover:cursor-pointer",
           )}
           onClick={() => {
+            onSelect(item.to);
             openChainForKey(item.key);
             if (!item.to || item.disabled) return;
+            if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
             onNavigate(item.to);
           }}
         >
@@ -157,6 +167,8 @@ export function NodeLeaf(props: NodeLeafProps) {
         isSelected={props.isSelected}
         blockedTooltip={props.blockedTooltip}
         openChainForKey={props.openChainForKey}
+        onSelect={props.onSelect}
+        allowSamePathNavigate={props.allowSamePathNavigate}
         onNavigate={onNavigate}
       />
     );
