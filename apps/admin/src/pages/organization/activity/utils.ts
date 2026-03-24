@@ -30,10 +30,5 @@ export function normalizeActivityFilters(
 }
 
 export function createDefaultActivityFilters(): ActivityFilters {
-  const to = new Date();
-  const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  return {
-    occurredFrom: from.toISOString(),
-    occurredTo: to.toISOString(),
-  };
+  return {};
 }

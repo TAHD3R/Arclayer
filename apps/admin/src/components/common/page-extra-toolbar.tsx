@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import clsx from "clsx";
+import { cn } from "@arclayer/lib/utils";
 
 export type PageExtraToolbarProps = {
   leading?: ReactNode;
@@ -18,11 +18,11 @@ export function PageExtraToolbar({
   trailingClassName,
 }: PageExtraToolbarProps) {
   return (
-    <div className={clsx("flex flex-wrap items-start justify-between gap-3", className)}>
-      <div className={clsx("flex min-w-0 flex-1 flex-wrap items-center gap-2", leadingClassName)}>
+    <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>
+      <div className={cn("flex min-w-0 flex-1 flex-wrap items-center gap-2", leadingClassName)}>
         {leading}
       </div>
-      <div className={clsx("flex shrink-0 items-center gap-2", trailingClassName)}>{trailing}</div>
+      <div className={cn("flex shrink-0 items-center gap-2", trailingClassName)}>{trailing}</div>
     </div>
   );
 }

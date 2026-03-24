@@ -46,7 +46,7 @@ export function TeamInvitationsPageExtra<TTab extends string>({
 }: TeamInvitationsPageExtraProps<TTab>) {
   return (
     <PageExtraToolbar
-      className="lg:flex-nowrap"
+      className="items-center lg:flex-nowrap"
       leading={
         <ChromeTabsList className="w-auto">
           {tabs.map((tab) => (

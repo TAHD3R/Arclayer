@@ -34,6 +34,7 @@ interface OrganizationWorkspacesToolbarProps {
 export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolbarProps) {
   return (
     <PageExtraToolbar
+      className="items-center"
       leading={
         <ChromeTabsList className="w-auto">
           <ChromeTabsTrigger value="active">
@@ -75,7 +76,7 @@ export function OrganizationWorkspacesToolbar(props: OrganizationWorkspacesToolb
           />
         </>
       }
-      leadingClassName="items-start"
+      leadingClassName="items-center"
       trailingClassName="justify-end"
     />
   );

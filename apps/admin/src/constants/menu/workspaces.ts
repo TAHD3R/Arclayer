@@ -6,7 +6,6 @@ import {
   LibraryBig,
   MailPlus,
   Puzzle,
-  Search,
   Settings2,
   Shield,
   Users,
@@ -43,13 +42,13 @@ export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         to: "/content/library",
         icon: LibraryBig,
       },
-      {
-        key: "settings.seo",
-        label: "SEO Analyze",
-        labelKey: "nav:NAV_SETTINGS_SEO",
-        to: "/settings/seo",
-        icon: Search,
-      },
+      // {
+      //   key: "settings.seo",
+      //   label: "SEO Analyze",
+      //   labelKey: "nav:NAV_SETTINGS_SEO",
+      //   to: "/settings/seo",
+      //   icon: Search,
+      // },
       {
         key: "settings.general",
         label: "Site Settings",

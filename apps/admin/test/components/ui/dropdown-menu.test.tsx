@@ -1,16 +1,18 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuIconItem,
 } from "@arclayer/ui/dropdown-menu";
 
-function renderMenu(props?: { disableHighlight?: boolean }) {
+function renderMenu() {
   return render(
     <DropdownMenu open>
-      <DropdownMenuContent disableHighlight={props?.disableHighlight}>
+      <DropdownMenuContent>
         <DropdownMenuIconItem variant="destructive">Delete</DropdownMenuIconItem>
       </DropdownMenuContent>
     </DropdownMenu>,
@@ -18,20 +20,43 @@ function renderMenu(props?: { disableHighlight?: boolean }) {
 }
 
 describe("DropdownMenu", () => {
-  it("keeps destructive items on text-only highlight when parent motion highlight is enabled", () => {
-    renderMenu();
+  it("keeps checkbox item selection behavior after removing motion highlight", async () => {
+    const user = userEvent.setup();
+    const onCheckedChange = vi.fn();
 
-    const item = screen.getByRole("menuitem", { name: "Delete" });
+    render(
+      <DropdownMenu open>
+        <DropdownMenuContent>
+          <DropdownMenuCheckboxItem checked={false} onCheckedChange={onCheckedChange}>
+            Image
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
 
-    expect(item).toHaveClass("data-[highlighted]:text-destructive");
-    expect(item).not.toHaveClass("data-[highlighted]:bg-accent");
+    await user.click(screen.getByRole("menuitemcheckbox", { name: "Image" }));
+
+    expect(onCheckedChange).toHaveBeenCalledWith(true);
+    expect(document.querySelector('[data-slot="motion-highlight"]')).not.toBeInTheDocument();
   });
 
-  it("falls back to item-level destructive background when content highlight is disabled", () => {
-    renderMenu({ disableHighlight: true });
+  it("uses select-like surface and item spacing", () => {
+    renderMenu();
 
+    const content = document.querySelector('[data-slot="dropdown-menu-content"]');
     const item = screen.getByRole("menuitem", { name: "Delete" });
 
+    expect(content).toHaveClass("rounded-md", "p-1");
+    expect(content).not.toHaveClass("rounded-xl", "p-2");
+    expect(content).not.toHaveClass(
+      "data-[state=open]:animate-in",
+      "data-[state=closed]:animate-out",
+      "data-[state=open]:zoom-in-95",
+      "data-[state=closed]:zoom-out-95",
+    );
+    expect(item).toHaveClass("px-2", "py-1.5", "text-footnote");
+    expect(item).not.toHaveClass("text-callout");
+    expect(document.querySelector('[data-slot="motion-highlight"]')).not.toBeInTheDocument();
     expect(item).toHaveClass("data-[highlighted]:bg-destructive/10");
     expect(item).toHaveClass("data-[highlighted]:text-destructive");
   });

@@ -20,7 +20,7 @@ const FIELDS: FilterFieldConfig<FilterValue>[] = [
 ];
 
 describe("Filters", () => {
-  it("uses shared dropdown highlight for add-filter menus and still applies submenu selections", async () => {
+  it("uses shared dropdown without motion highlight and still applies submenu selections", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -35,9 +35,13 @@ describe("Filters", () => {
 
     await user.click(screen.getByRole("button", { name: "Filter" }));
     await user.click(screen.getByText("Type"));
-    await user.click(await screen.findByText("Image"));
+    const submenuListbox = (await screen.findAllByRole("listbox")).at(-1);
 
-    expect(document.querySelector('[data-slot="motion-highlight"]')).toBeInTheDocument();
+    expect(submenuListbox).toBeTruthy();
+    submenuListbox?.focus();
+    await user.keyboard("{Enter}");
+
+    expect(document.querySelector('[data-slot="motion-highlight"]')).not.toBeInTheDocument();
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith([
       expect.objectContaining({
@@ -48,7 +52,7 @@ describe("Filters", () => {
     ]);
   });
 
-  it("pre-highlights the selected option when reopening a value selector", async () => {
+  it("still marks the selected option when reopening a value selector", async () => {
     const user = userEvent.setup();
 
     render(
@@ -67,6 +71,6 @@ describe("Filters", () => {
       .find(Boolean);
 
     expect(selectedOption).toHaveAttribute("data-highlighted", "true");
-    expect(document.querySelector('[data-slot="motion-highlight"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="motion-highlight"]')).not.toBeInTheDocument();
   });
 });
