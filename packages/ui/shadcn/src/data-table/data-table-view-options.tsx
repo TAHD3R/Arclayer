@@ -43,10 +43,10 @@ function OptionCard(props: {
       type="button"
       disabled={props.disabled}
       className={cn(
-        "flex min-h-10 w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-footnote font-medium transition-colors",
+        "flex min-h-11 w-full items-center justify-between rounded-2xl border border-transparent px-3 py-2.5 text-left text-callout font-medium transition-colors",
         props.active
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border hover:bg-accent/20 text-foreground",
+          ? "border-border/60 bg-accent/18 text-foreground"
+          : "text-foreground hover:bg-accent/12",
         props.disabled && "pointer-events-none opacity-50",
       )}
       onClick={props.onClick}
@@ -116,13 +116,14 @@ export function DataTableViewOptions(props: {
         </span>
       </DropdownCardTrigger>
 
-      <DropdownCardContent align="end" sideOffset={8} className="w-[340px] max-w-[92vw]">
-        <DropdownCardHeader className="flex items-start justify-between gap-3">
+      <DropdownCardContent
+        align="end"
+        sideOffset={8}
+        className="w-[360px] max-w-[92vw] rounded-[22px] border-border/70 bg-popover/96 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.9)] backdrop-blur-xl"
+      >
+        <DropdownCardHeader className="flex items-center justify-between gap-3 border-border/60 px-5 py-4">
           <div className="min-w-0">
-            <div className="text-headline">{props.labels.viewOptionsTitle}</div>
-            <div className="text-callout text-label-secondary">
-              {props.labels.viewOptionsDescription}
-            </div>
+            <div className="text-title3 font-semibold">{props.labels.viewOptionsTitle}</div>
           </div>
 
           <DataTableToolTooltip label={props.labels.reset}>
@@ -132,12 +133,12 @@ export function DataTableViewOptions(props: {
           </DataTableToolTooltip>
         </DropdownCardHeader>
 
-        <DropdownCardBody className="space-y-5 py-4">
-          <section className="space-y-2.5">
-            <div className="text-footnote font-semibold text-label-primary">
+        <DropdownCardBody className="space-y-3 px-3 pb-3 pt-2">
+          <section className="rounded-[20px] border border-border/55 bg-background/35 p-2">
+            <div className="px-2 pb-2 text-caption font-semibold uppercase tracking-[0.16em] text-label-secondary">
               {props.labels.rowHeightTitle}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               {ROW_HEIGHT_OPTIONS.map((option) => (
                 <OptionCard
                   key={option}
@@ -149,8 +150,8 @@ export function DataTableViewOptions(props: {
             </div>
           </section>
 
-          <section className="space-y-2.5">
-            <div className="text-footnote font-semibold text-label-primary">
+          <section className="rounded-[20px] border border-border/55 bg-background/35 p-2">
+            <div className="px-2 pb-2 text-caption font-semibold uppercase tracking-[0.16em] text-label-secondary">
               {props.labels.headerOptions}
             </div>
             <OptionCard
@@ -163,7 +164,7 @@ export function DataTableViewOptions(props: {
                     "ml-3 flex size-4 shrink-0 items-center justify-center rounded-sm border",
                     props.wrapHeaders
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border",
+                      : "border-border/60",
                   )}
                 >
                   {props.wrapHeaders ? <Check className="size-3" /> : null}
@@ -172,11 +173,11 @@ export function DataTableViewOptions(props: {
             />
           </section>
 
-          <section className="space-y-2.5">
-            <div className="text-footnote font-semibold text-label-primary">
+          <section className="rounded-[20px] border border-border/55 bg-background/35 p-2">
+            <div className="px-2 pb-2 text-caption font-semibold uppercase tracking-[0.16em] text-label-secondary">
               {props.labels.tableSettings}
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               <OptionCard
                 active={false}
                 label={props.labels.resetColumnSize}

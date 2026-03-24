@@ -172,4 +172,29 @@ describe("useDataTableCore", () => {
     await user.click(screen.getByRole("button", { name: "sort-desc" }));
     expect(screen.getByTestId("client-order")).toHaveTextContent("Bravo,Alpha");
   });
+
+  it("does not auto-pin an actions column when meta.pin is false", () => {
+    function AutoPinOptOutHarness() {
+      const core = useDataTableCore({
+        columns: [
+          { accessorKey: "name", header: "Name" },
+          {
+            id: "actions",
+            header: "Actions",
+            meta: { kind: "actions" as const, pin: false as const },
+            cell: () => null,
+          },
+        ],
+        data: [{ name: "Alpha" }],
+        pageCount: 1,
+      });
+
+      return (
+        <span data-testid="pin-state">{JSON.stringify(core.table.getState().columnPinning)}</span>
+      );
+    }
+
+    render(<AutoPinOptOutHarness />);
+    expect(screen.getByTestId("pin-state")).toHaveTextContent("{}");
+  });
 });

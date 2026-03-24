@@ -99,7 +99,7 @@
   "TEAM_ACTION_DISABLE": "Disable account",
   "TEAM_ACTION_DISABLE_SELF_DISABLED": "Can't disable yourself",
   "TEAM_ACTION_EDIT_ROLES": "Edit roles",
-  "TEAM_ACTION_RENEW": "Renew invitation",
+  "TEAM_ACTION_RENEW": "Renew",
   "TEAM_ACTION_DELETE": "Delete",
   "TEAM_ACTION_SUCCESS": "Success",
   "TEAM_MEMBER_CONTEXT_DESC": "Review current workspace roles, access, and recent activity.",

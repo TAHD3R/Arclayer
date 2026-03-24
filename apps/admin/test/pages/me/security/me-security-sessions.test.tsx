@@ -141,9 +141,6 @@ describe("UserSessionsSection", () => {
     ).toBeInTheDocument();
     const refreshButton = screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_REFRESH") });
     expect(
-      screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_VIEW_OPTIONS") }),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }),
     ).toBeInTheDocument();
 
@@ -164,17 +161,16 @@ describe("UserSessionsSection", () => {
 
     await screen.findByText("Chrome on Windows");
     await user.click(screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }));
-    const columnsSearch = await screen.findByPlaceholderText(
-      i18n.t("common:DATA_TABLE_COLUMNS_SEARCH_PLACEHOLDER"),
-    );
-    const columnsDialog = columnsSearch.closest('[role="dialog"]');
+    const columnsDialog = await screen.findByRole("dialog");
     expect(columnsDialog).not.toBeNull();
-
-    await user.click(
-      within(columnsDialog as HTMLElement).getByRole("switch", {
+    const ipVisibilityButton = within(columnsDialog as HTMLElement)
+      .getAllByRole("button", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
-      }),
-    );
+      })
+      .find((element) => element.hasAttribute("aria-pressed"));
+    expect(ipVisibilityButton).toBeTruthy();
+
+    await user.click(ipVisibilityButton as HTMLElement);
 
     expect(
       await screen.findByRole("columnheader", {
@@ -183,11 +179,7 @@ describe("UserSessionsSection", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("10.0.0.8")).toBeInTheDocument();
 
-    await user.click(
-      within(columnsDialog as HTMLElement).getByRole("switch", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
-      }),
-    );
+    await user.click(ipVisibilityButton as HTMLElement);
 
     await waitFor(() => {
       expect(

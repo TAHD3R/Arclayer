@@ -81,14 +81,27 @@ export function useDataTableCore<TData>(
 
   // Auto-detect actions/select columns and derive initial pinning state.
   const autoPinning = React.useMemo<ColumnPinningState>(() => {
+    const left: string[] = [];
     const right: string[] = [];
     for (const col of options.columns) {
       const id = col.id ?? (col as { accessorKey?: string }).accessorKey;
       if (!id) continue;
-      const meta = col.meta as { kind?: string } | undefined;
+      const meta = col.meta as { kind?: string; pin?: "left" | "right" | false } | undefined;
+      if (meta?.pin === false) continue;
+      if (meta?.pin === "left") {
+        left.push(id);
+        continue;
+      }
+      if (meta?.pin === "right") {
+        right.push(id);
+        continue;
+      }
       if (meta?.kind === "actions" || id === "actions") right.push(id);
     }
-    return right.length > 0 ? { right } : {};
+    return {
+      ...(left.length > 0 ? { left } : {}),
+      ...(right.length > 0 ? { right } : {}),
+    };
   }, [options.columns]);
 
   const hasAutoPinning = (autoPinning.left?.length ?? 0) + (autoPinning.right?.length ?? 0) > 0;

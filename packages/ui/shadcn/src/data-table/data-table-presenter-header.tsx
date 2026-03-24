@@ -119,8 +119,6 @@ function resolveHeaderCellState<TData>(
 function SortableHeaderCell<TData>(
   props: SharedHeaderCellProps<TData> & {
     dragging: { activeId: string | null; overId: string | null };
-    hoveredColumnId: string | null;
-    onHeaderHoverChange: (next: string | null) => void;
     labels: Pick<DataTableToolsLabels, "sortAscending" | "sortDescending" | "hideColumn">;
   },
 ) {
@@ -130,7 +128,6 @@ function SortableHeaderCell<TData>(
   const sortable = useSortable({ id, disabled: dragDisabled });
   const over = props.dragging.overId === id || sortable.isOver;
   const active = props.dragging.activeId === id;
-  const hovered = props.hoveredColumnId === id;
   const state = resolveHeaderCellState(
     props.header,
     props.rowHeight,
@@ -158,12 +155,9 @@ function SortableHeaderCell<TData>(
         state.className,
         over ? "bg-muted/60 ring-1 ring-ring/40 shadow-sm" : "",
         active ? "opacity-35" : "",
-        hovered ? "bg-accent/25" : "",
         sortable.isDragging ? "opacity-30" : "",
       )}
       style={cellStyle}
-      onMouseEnter={() => leaf && props.onHeaderHoverChange(id)}
-      onMouseLeave={() => leaf && props.onHeaderHoverChange(null)}
     >
       <div className={cn("flex h-full w-full items-center", state.justifyClass)}>
         <div
@@ -242,8 +236,6 @@ export function DataTablePresenterHeader<TData>(props: {
   wrapHeaders: boolean;
   headerCellClassName?: (header: Header<TData, unknown>) => string | undefined;
   dragging: { activeId: string | null; overId: string | null };
-  hoveredColumnId: string | null;
-  onHeaderHoverChange: (next: string | null) => void;
   labels?: Pick<DataTableToolsLabels, "sortAscending" | "sortDescending" | "hideColumn">;
 }) {
   const menuLabels = props.labels ?? {
@@ -282,8 +274,6 @@ export function DataTablePresenterHeader<TData>(props: {
                 wrapHeaders={props.wrapHeaders}
                 headerCellClassName={props.headerCellClassName}
                 dragging={props.dragging}
-                hoveredColumnId={props.hoveredColumnId}
-                onHeaderHoverChange={props.onHeaderHoverChange}
                 labels={menuLabels}
               />
             );

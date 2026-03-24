@@ -3,7 +3,11 @@
 import * as React from "react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 
-export type DataTableColumnMeta = { kind?: string; title?: unknown };
+export type DataTableColumnMeta = {
+  kind?: string;
+  title?: unknown;
+  pin?: "left" | "right" | false;
+};
 
 export const DATA_TABLE_LOCKED_START_IDS = new Set<string>(["select"]);
 export const DATA_TABLE_LOCKED_END_IDS = new Set<string>(["actions"]);

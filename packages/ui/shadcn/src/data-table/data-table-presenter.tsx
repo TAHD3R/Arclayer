@@ -109,7 +109,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
 
   const [activeHeaderId, setActiveHeaderId] = useState<string | null>(null);
   const [overHeaderId, setOverHeaderId] = useState<string | null>(null);
-  const [hoveredColumnId, setHoveredColumnId] = useState<string | null>(null);
   const [activeOverlayWidth, setActiveOverlayWidth] = useState<number | null>(null);
 
   const activeHeaderIdRef = useRef<string | null>(null);
@@ -207,10 +206,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     )
     .map((column) => column.id);
 
-  const onHeaderHoverChange = useCallback((next: string | null) => {
-    setHoveredColumnId(next);
-  }, []);
-
   return (
     <div className={cn("min-h-0 flex flex-col", className)}>
       {toolbar?.fullWidth ? <div className="pb-3">{toolbar.fullWidth}</div> : null}
@@ -279,8 +274,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                   wrapHeaders={wrapHeaders}
                   headerCellClassName={headerCellClassName}
                   dragging={{ activeId: activeHeaderId, overId: overHeaderId }}
-                  hoveredColumnId={hoveredColumnId}
-                  onHeaderHoverChange={onHeaderHoverChange}
                   labels={columnMenuLabels}
                 />
               </SortableContext>
@@ -291,7 +284,6 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
                 rowHeight={resolvedRowHeight}
                 activeColumnId={activeHeaderId}
                 overColumnId={overHeaderId}
-                hoveredColumnId={hoveredColumnId}
                 rowClassName={rowClassName}
                 onRowClick={onRowClick}
                 cellClassName={cellClassName}

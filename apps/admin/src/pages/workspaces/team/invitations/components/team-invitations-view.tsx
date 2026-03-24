@@ -269,7 +269,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         id: "actions",
         enableHiding: false,
         enableSorting: false,
-        size: 220,
+        size: 280,
+        minSize: 280,
         meta: buildDataTableActionsColumnMeta("right"),
         header: "",
         cell: ({ row }) => {
@@ -519,7 +520,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         id: "actions",
         enableHiding: false,
         enableSorting: false,
-        size: 220,
+        size: 280,
+        minSize: 280,
         meta: buildDataTableActionsColumnMeta("right"),
         header: "",
         cell: ({ row }) => {

@@ -10,17 +10,15 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { RotateCcw, Search, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
-import { Input } from "@arclayer/ui/input";
 import { ScrollArea } from "@arclayer/ui/scroll-area";
 import {
   DropdownCardBody,
   DropdownCardContent,
-  DropdownCardHeader,
   DropdownCardRoot,
   DropdownCardTrigger,
 } from "@arclayer/ui/dropdown-card";
@@ -75,7 +73,6 @@ export function DataTableColumnsPanel<TData>(props: {
   onResetColumnVisibility?: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [search, setSearch] = React.useState("");
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const IconButton = resolveIconButton(props.components);
   const normalizedOrder = useNormalizedDataTableColumnOrder(props.table);
@@ -92,25 +89,9 @@ export function DataTableColumnsPanel<TData>(props: {
     [orderedColumns],
   );
 
-  const filteredColumns = React.useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    if (!needle) return columns;
-    return columns.filter((column) => {
-      const title = String(column.columnDef.meta?.title ?? column.id).toLowerCase();
-      return title.includes(needle);
-    });
-  }, [columns, search]);
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } }),
   );
-
-  const handleReset = React.useCallback(() => {
-    if (props.onResetColumnVisibility) props.onResetColumnVisibility();
-    else props.table.resetColumnVisibility();
-    props.table.resetColumnOrder(true);
-    props.table.resetColumnPinning(true);
-  }, [props]);
 
   const handleDragStart = React.useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id));
@@ -144,33 +125,17 @@ export function DataTableColumnsPanel<TData>(props: {
         </span>
       </DropdownCardTrigger>
 
-      <DropdownCardContent align="end" sideOffset={8} className="w-[380px] max-w-[92vw]">
-        <DropdownCardHeader className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-headline">{props.labels.columnsTitle}</div>
-            <div className="text-callout text-label-secondary">
-              {props.labels.columnsDescription}
+      <DropdownCardContent
+        align="end"
+        sideOffset={8}
+        className="w-[240px] max-w-[80vw] rounded-md border p-1 shadow-md"
+      >
+        <DropdownCardBody className="px-0 py-0 ">
+          <div className="w-full border-b">
+            <div className="px-2 py-1.5 text-headline text-label-secondary">
+              {props.labels.columnsTitle}
             </div>
           </div>
-
-          <DataTableToolTooltip label={props.labels.reset}>
-            <DataTableDefaultIconButton label={props.labels.reset} onClick={handleReset}>
-              <RotateCcw className={ICON_CLASS} />
-            </DataTableDefaultIconButton>
-          </DataTableToolTooltip>
-        </DropdownCardHeader>
-
-        <DropdownCardBody className="space-y-3 py-4">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-secondary" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={props.labels.columnsSearchPlaceholder}
-              className="pl-9"
-            />
-          </div>
-
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -179,13 +144,13 @@ export function DataTableColumnsPanel<TData>(props: {
             onDragCancel={() => setActiveId(null)}
           >
             <SortableContext
-              items={filteredColumns.map((column) => column.id)}
+              items={columns.map((column) => column.id)}
               strategy={verticalListSortingStrategy}
             >
               <ScrollArea className="max-h-[320px]">
-                {filteredColumns.length ? (
-                  <div className="grid w-full grid-cols-1 gap-2 pr-1">
-                    {filteredColumns.map((column) => (
+                {columns.length ? (
+                  <div className="grid w-full grid-cols-1 gap-0.5">
+                    {columns.map((column) => (
                       <DataTableColumnSettingsRow
                         key={column.id}
                         table={props.table}
@@ -194,7 +159,7 @@ export function DataTableColumnsPanel<TData>(props: {
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed px-3 py-4 text-center text-footnote text-label-secondary">
+                  <div className="px-2 py-3 text-center text-callout text-label-secondary">
                     {props.labels.columnsEmpty}
                   </div>
                 )}

@@ -1,12 +1,12 @@
 "use client";
 
-import { GripVertical } from "lucide-react";
+import { Eye, EyeOff, GripVertical } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import { useSortable } from "@dnd-kit/sortable";
 import * as React from "react";
 
 import { cn } from "@arclayer/lib/utils";
-import { Switch } from "@arclayer/ui/switch";
+import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
   isDataTableColumnLocked,
   resolveDataTableColumnLabel,
@@ -14,18 +14,52 @@ import {
 } from "./data-table-column-settings-utils";
 
 const ICON_CLASS = "size-4";
+const VISIBILITY_ICON_CLASS = "size-4";
 
-function StaticSwitch(props: { checked: boolean }) {
+function VisibilityToggle(props: {
+  visible: boolean;
+  label: string;
+  disabled?: boolean;
+  overlay?: boolean;
+  onToggle?: () => void;
+}) {
+  const icon = props.visible ? (
+    <Eye className={VISIBILITY_ICON_CLASS} />
+  ) : (
+    <EyeOff className={VISIBILITY_ICON_CLASS} />
+  );
+
+  if (props.overlay) {
+    return (
+      <div
+        aria-hidden
+        className={cn(
+          "flex size-7 items-center justify-center rounded-md border border-border/50 bg-background/70",
+          props.visible ? "text-foreground" : "text-label-secondary",
+        )}
+      >
+        {icon}
+      </div>
+    );
+  }
+
   return (
-    <div
-      aria-hidden
+    <ButtonPrimitive
+      type="button"
+      aria-label={props.label}
+      aria-pressed={props.visible}
+      disabled={props.disabled}
       className={cn(
-        "relative flex h-5 w-8 px-px shrink-0 items-center justify-start rounded-full border border-transparent shadow-xs opacity-70",
-        props.checked ? "bg-primary justify-end" : "bg-input dark:bg-input/80 justify-start",
+        "flex size-7 shrink-0 items-center justify-center rounded-md border transition-colors",
+        props.visible
+          ? "border-border/60 bg-accent/20 text-foreground"
+          : "border-transparent text-label-secondary hover:border-border/50 hover:bg-accent/12 hover:text-foreground",
+        props.disabled ? "pointer-events-none opacity-35" : "",
       )}
+      onClick={props.onToggle}
     >
-      <div className="bg-background block size-4 rounded-full ring-0" />
-    </div>
+      {icon}
+    </ButtonPrimitive>
   );
 }
 
@@ -79,11 +113,13 @@ function DataTableColumnSettingsRowView<TData>(props: DataTableColumnSettingsRow
     <div
       ref={props.dnd?.setNodeRef}
       className={cn(
-        "flex items-center gap-3 rounded-xl border px-3 py-2 select-none",
+        "group/column-settings-row flex items-center gap-2.5 rounded-sm border border-transparent px-2 py-1.5 select-none",
         "transition-[background-color,box-shadow,opacity,transform] duration-150",
         locked ? "opacity-80 cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
-        overlay ? "opacity-80 ring-2 ring-ring/50" : "",
-        over ? "bg-muted/60 ring-1 ring-ring/40 shadow-sm" : "hover:bg-accent/25",
+        overlay ? "border-border/60 bg-popover/95 opacity-92 shadow-2xl" : "",
+        over
+          ? "border-border/70 bg-accent/18 shadow-[0_14px_32px_-22px_rgba(0,0,0,0.65)]"
+          : "hover:bg-accent/12",
         dragging ? "invisible" : "",
         overlay ? "pointer-events-none" : "",
       )}
@@ -95,26 +131,23 @@ function DataTableColumnSettingsRowView<TData>(props: DataTableColumnSettingsRow
       {...props.dnd?.listeners}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex size-7 items-center justify-center rounded-md text-label-secondary group-hover:text-foreground">
+        <div className="flex size-4 items-center justify-center text-label-secondary transition-colors group-hover/column-settings-row:text-foreground/80">
           <GripVertical className={ICON_CLASS} />
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-callout">{label}</div>
+          <div className="truncate text-footnote font-medium">{label}</div>
         </div>
       </div>
 
       <div className="cursor-default" onPointerDown={stopDndPointerDown}>
-        {overlay ? (
-          <StaticSwitch checked={visible} />
-        ) : (
-          <Switch
-            aria-label={label}
-            checked={visible}
-            disabled={!canHide}
-            onCheckedChange={(next) => props.column.toggleVisibility(Boolean(next))}
-          />
-        )}
+        <VisibilityToggle
+          label={label}
+          visible={visible}
+          disabled={!canHide}
+          overlay={overlay}
+          onToggle={() => props.column.toggleVisibility(!visible)}
+        />
       </div>
     </div>
   );

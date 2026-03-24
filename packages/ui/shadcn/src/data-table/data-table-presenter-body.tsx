@@ -11,7 +11,6 @@ import type { DataTableRowHeight } from "./types";
 type ColumnMeta = { kind?: string };
 
 const ACTIVE_COLUMN_FADE_CLASS = "opacity-35";
-const HOVERED_COLUMN_BG_CLASS = "bg-accent/25";
 const COLUMN_OVER_BG_CLASS = "bg-muted/60";
 
 function resolveCellPaddingClass(rowHeight: DataTableRowHeight): string {
@@ -26,13 +25,17 @@ function isSelectColumn(meta: unknown, columnId: string): boolean {
   return kind === "select" || columnId === "select";
 }
 
+function isActionsColumn(meta: unknown, columnId: string): boolean {
+  const kind = (meta as ColumnMeta | undefined)?.kind;
+  return kind === "actions" || columnId === "actions";
+}
+
 export function DataTablePresenterBody<TData>(props: {
   table: ReactTable<TData>;
   emptyText: string;
   rowHeight: DataTableRowHeight;
   activeColumnId: string | null;
   overColumnId: string | null;
-  hoveredColumnId: string | null;
   rowClassName?: (row: Row<TData>, rowIndex: number) => string | undefined;
   onRowClick?: (
     row: Row<TData>,
@@ -63,11 +66,9 @@ export function DataTablePresenterBody<TData>(props: {
             {row.getVisibleCells().map((cell) => {
               const pinStyle = resolveCellPinStyle(cell);
               const selectColumn = isSelectColumn(cell.column.columnDef.meta, cell.column.id);
+              const actionsColumn = isActionsColumn(cell.column.columnDef.meta, cell.column.id);
               const isActiveColumn = Boolean(
                 props.activeColumnId && cell.column.id === props.activeColumnId,
-              );
-              const isHoveredColumn = Boolean(
-                props.hoveredColumnId && cell.column.id === props.hoveredColumnId,
               );
               const isOverColumn = Boolean(
                 props.overColumnId && cell.column.id === props.overColumnId,
@@ -78,18 +79,18 @@ export function DataTablePresenterBody<TData>(props: {
                   key={cell.id}
                   data-column-id={cell.column.id}
                   className={cn(
-                    "overflow-hidden transition-colors duration-150",
+                    "transition-colors duration-150",
                     pinStyle.className,
+                    actionsColumn ? "" : "overflow-hidden",
                     resolveCellPaddingClass(props.rowHeight),
                     selectColumn ? "px-0" : "",
                     isActiveColumn ? ACTIVE_COLUMN_FADE_CLASS : "",
-                    isHoveredColumn ? HOVERED_COLUMN_BG_CLASS : "",
                     isOverColumn ? COLUMN_OVER_BG_CLASS : "",
                     props.cellClassName?.(cell),
                   )}
                   style={pinStyle.style}
                 >
-                  <div className="min-w-0 w-full overflow-hidden">
+                  <div className={cn("min-w-0 w-full", actionsColumn ? "" : "overflow-hidden")}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </div>
                 </TableCell>

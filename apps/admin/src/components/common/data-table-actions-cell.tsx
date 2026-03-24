@@ -7,11 +7,13 @@ export type DataTableActionsAlign = "center" | "right";
 
 export function buildDataTableActionsColumnMeta(
   align: DataTableActionsAlign = "right",
+  pin: "left" | "right" | false = "right",
 ): ColumnMeta<RowData, unknown> {
   return {
     title: "",
     kind: "actions",
     headerAlign: align,
+    pin,
   };
 }
 
@@ -20,10 +22,16 @@ export function DataTableActionsCell(props: {
   className?: string;
   children: ReactNode;
 }) {
-  const justifyClass = props.align === "center" ? "justify-center" : "justify-end";
+  const alignmentClass = props.align === "center" ? "mx-auto" : "ml-auto";
 
   return (
-    <div className={cn("flex w-full items-center", justifyClass, props.className)}>
+    <div
+      className={cn(
+        "flex min-w-max max-w-full items-center gap-2 whitespace-nowrap",
+        alignmentClass,
+        props.className,
+      )}
+    >
       {props.children}
     </div>
   );

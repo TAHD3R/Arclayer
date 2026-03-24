@@ -13,6 +13,7 @@ declare module "@tanstack/react-table" {
     sortKey?: string;
     headerAlign?: "left" | "center" | "right";
     kind?: "default" | "select" | "actions";
+    pin?: "left" | "right" | false;
     defaultHidden?: boolean;
   }
 }
