@@ -14,7 +14,7 @@ import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profil
 import type { AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
-import { buildInboxSourceSearch } from "@/lib/routing/inbox-source";
+import { buildNotificationsSourceSearch } from "@/lib/routing/notifications-source";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -114,7 +114,10 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     locale,
     onLogout,
     onAccountSettings: () =>
-      void navigate({ to: "/account/profile", search: buildInboxSourceSearch(pathname) }),
+      void navigate({
+        to: "/usercenter/profile",
+        search: buildNotificationsSourceSearch(pathname),
+      }),
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });
     },

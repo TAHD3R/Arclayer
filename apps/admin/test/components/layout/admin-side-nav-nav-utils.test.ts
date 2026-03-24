@@ -35,14 +35,12 @@ describe("findPreferredGroupTarget", () => {
         icon: Folder,
       },
       {
-        ...makeItem("settings.activity", "/w/ws-1/settings/maintenance/activity"),
+        ...makeItem("settings.activity", "/w/ws-1/activity"),
         icon: Settings,
       },
     ]);
 
-    expect(findPreferredGroupTarget(item, new Set(["settings"]))).toBe(
-      "/w/ws-1/settings/maintenance/activity",
-    );
+    expect(findPreferredGroupTarget(item, new Set(["settings"]))).toBe("/w/ws-1/activity");
   });
 
   it("returns null when the group has no routable descendants", () => {

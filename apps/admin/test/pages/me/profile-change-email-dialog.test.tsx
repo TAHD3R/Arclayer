@@ -6,7 +6,7 @@ import type { ReactElement } from "react";
 
 import { confirmMyEmailChange, getMySecurityCapabilities, requestMyEmailChange } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
-import { MeProfileChangeEmailDialog } from "@/pages/me/profile/components/profile-change-email-dialog";
+import { UserChangeEmailDialog } from "@/pages/usercenter/profile/components/profile-change-email-dialog";
 
 const navigateMock = vi.fn();
 
@@ -82,14 +82,14 @@ beforeEach(() => {
   });
 });
 
-describe("MeProfileChangeEmailDialog", () => {
+describe("UserChangeEmailDialog", () => {
   function renderDialog() {
     return renderWithQuery(
-      <MeProfileChangeEmailDialog
+      <UserChangeEmailDialog
         open
         onOpenChange={vi.fn()}
         nextEmail="old@example.com"
-        redirect="/me/profile"
+        redirect="/usercenter/profile"
       />,
     );
   }
@@ -168,7 +168,7 @@ describe("MeProfileChangeEmailDialog", () => {
     await user.click(reloginButton);
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/login",
-      search: { redirect: "/me/profile" },
+      search: { redirect: "/usercenter/profile" },
       replace: true,
     });
   });

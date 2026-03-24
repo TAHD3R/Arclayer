@@ -7,7 +7,7 @@ import { issueSSOLinkState, listSSOProviders } from "@/api/auth-sso";
 import { listMyOAuthIdentities, unlinkMyOAuthIdentity } from "@/api/oauth-social";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/http";
-import { MeProfileLinkedAccountsSection } from "@/pages/me/profile/components/profile-linked-accounts-section";
+import { UserLinkedAccountsSection } from "@/pages/usercenter/profile/components/profile-linked-accounts-section";
 
 vi.mock("@/api/auth-sso", () => ({
   issueSSOLinkState: vi.fn(),
@@ -50,7 +50,7 @@ function renderWithQuery(node: ReactElement) {
 }
 
 function renderSection() {
-  return renderWithQuery(<MeProfileLinkedAccountsSection redirect="/me/profile" />);
+  return renderWithQuery(<UserLinkedAccountsSection redirect="/usercenter/profile" />);
 }
 
 beforeAll(async () => {
@@ -63,7 +63,7 @@ beforeEach(() => {
   unlinkMyOAuthIdentityMock.mockResolvedValue(null);
 });
 
-describe("MeProfileLinkedAccountsSection", () => {
+describe("UserLinkedAccountsSection", () => {
   async function waitUntilLoaded() {
     await waitFor(() => {
       expect(document.querySelector(".animate-pulse")).toBeNull();

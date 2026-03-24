@@ -16,8 +16,8 @@ import {
   workspaceUIEmbedsQueryKey,
 } from "@/lib/extensions/query-keys";
 
-import type { ExtensionDetailPageProps } from "@/pages/_shared/extensions/components/extension-detail-page";
-import type { InstalledExtensionItem } from "@/pages/_shared/extensions/types";
+import type { ExtensionDetailPageProps } from "@/pages/workspaces/extensions/detail/components/extension-detail-view";
+import type { InstalledExtensionItem } from "@/pages/workspaces/extensions/types";
 
 type UseWorkspaceExtensionDetailParams = {
   workspaceId: string;
@@ -148,7 +148,7 @@ export function useWorkspaceExtensionDetail({
     loadError,
     onRetryLoad: loadError ? () => void capabilitiesQuery.refetch() : undefined,
     onBack: () => void navigate({ to: `/w/${workspaceId}/extensions` }),
-    onToggleEnabled: async (enabled) => toggleMutation.mutateAsync(enabled),
+    onToggleEnabled: async (enabled: boolean) => toggleMutation.mutateAsync(enabled),
     togglePending: toggleMutation.isPending,
     canManage,
     uiEmbeds: embedsQuery.data?.items ?? [],

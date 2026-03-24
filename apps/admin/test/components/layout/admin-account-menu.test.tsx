@@ -228,7 +228,7 @@ describe("AdminAccountMenu", () => {
     await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
 
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/account/profile",
+      to: "/usercenter/profile",
       search: {
         sourceKind: "workspace",
         sourcePath: "/w/ws-1",

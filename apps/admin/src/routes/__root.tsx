@@ -4,7 +4,6 @@ import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { useSceneRevealTransition } from "@arclayer/hooks/use-scene-reveal-transition";
 import {
   isAuthScenePath,
-  isDevToolsPath,
   isLoginPath,
   isPublicPath,
   isRepairPath,
@@ -55,10 +54,6 @@ function RootLayout() {
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
-    if (import.meta.env.DEV && isDevToolsPath(location.pathname)) {
-      return;
-    }
-
     const setup = useSetupWizardStore.getState();
     const devAllowSetup = isDevSetupOverrideEnabled(location.searchStr);
 

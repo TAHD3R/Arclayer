@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { InvitationUserLabel } from "@/pages/_shared/team/components/invitation-user-label";
+import { InvitationUserLabel } from "@/pages/workspaces/team/shared/components/invitation-user-label";
 
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {

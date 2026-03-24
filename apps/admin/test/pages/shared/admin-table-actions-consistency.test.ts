@@ -4,8 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ACTION_COLUMN_FILES = [
-  "src/pages/me/security/components/security-sessions-table-view.tsx",
-  "src/pages/organization/team/invitations/components/invitations-columns.tsx",
+  "src/pages/usercenter/security/components/security-sessions-table-view.tsx",
   "src/pages/workspaces/assets/components/assets-view-table-section.tsx",
   "src/pages/workspaces/content/library/content-library-table-columns.tsx",
   "src/pages/workspaces/team/invitations/components/team-invitations-view.tsx",

@@ -6,7 +6,7 @@ import type { ReactElement } from "react";
 
 import { listMySessions, revokeMySession, revokeOtherSessions } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
-import { MeSecuritySessionsSection } from "@/pages/me/security/components/security-sessions-section";
+import { UserSessionsSection } from "@/pages/usercenter/security/components/security-sessions-section";
 
 vi.mock("@/api/auth", () => ({
   listMySessions: vi.fn(),
@@ -88,14 +88,15 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
-describe("MeSecuritySessionsSection", () => {
+describe("UserSessionsSection", () => {
   it("renders default columns, formatted time, current tag, and refresh toolbar", async () => {
     const user = userEvent.setup();
     mockSessions();
 
-    renderWithQuery(<MeSecuritySessionsSection />);
+    renderWithQuery(<UserSessionsSection />);
 
     expect(await screen.findByText("Safari on macOS")).toBeInTheDocument();
     expect(
@@ -114,26 +115,20 @@ describe("MeSecuritySessionsSection", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
-      }),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole("columnheader", {
+      screen.queryByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", {
+      screen.queryByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_AUTH_METHOD"),
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", {
+      screen.queryByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
 
     expect(screen.getByText("formatted:2026-03-07T00:10:00Z")).toBeInTheDocument();
     expect(screen.queryByText("2026-03-07T00:10:00Z")).not.toBeInTheDocument();
@@ -165,7 +160,7 @@ describe("MeSecuritySessionsSection", () => {
     revokeMySessionMock.mockResolvedValue(null);
     revokeOtherSessionsMock.mockResolvedValue({ revokedCount: 1 });
 
-    renderWithQuery(<MeSecuritySessionsSection />);
+    renderWithQuery(<UserSessionsSection />);
 
     await screen.findByText("Chrome on Windows");
     await user.click(screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }));
@@ -182,10 +177,11 @@ describe("MeSecuritySessionsSection", () => {
     );
 
     expect(
-      screen.queryByRole("columnheader", {
+      await screen.findByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
       }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
+    expect(screen.getByText("10.0.0.8")).toBeInTheDocument();
 
     await user.click(
       within(columnsDialog as HTMLElement).getByRole("switch", {
@@ -193,12 +189,13 @@ describe("MeSecuritySessionsSection", () => {
       }),
     );
 
-    expect(
-      await screen.findByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("10.0.0.8")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("columnheader", {
+          name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
+        }),
+      ).not.toBeInTheDocument();
+    });
 
     const row = screen.getByText("Chrome on Windows").closest("tr");
     expect(row).not.toBeNull();
@@ -242,7 +239,7 @@ describe("MeSecuritySessionsSection", () => {
       total: 1,
     });
 
-    renderWithQuery(<MeSecuritySessionsSection />);
+    renderWithQuery(<UserSessionsSection />);
 
     const ipFallbackCells = await screen.findAllByText("127.0.0.1");
     expect(ipFallbackCells.length).toBeGreaterThan(0);
@@ -251,7 +248,7 @@ describe("MeSecuritySessionsSection", () => {
   it("removes the session revocation behavior alert", async () => {
     mockSessions();
 
-    renderWithQuery(<MeSecuritySessionsSection />);
+    renderWithQuery(<UserSessionsSection />);
 
     await screen.findByText("Safari on macOS");
     expect(

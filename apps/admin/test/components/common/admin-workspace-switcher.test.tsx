@@ -244,7 +244,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
     });
 
-    expect(trigger.className).toContain("!h-11");
+    expect(trigger.className).toContain("!h-8");
     expect(trigger.className).toContain("inline-flex");
     expect(trigger.className).toContain("border-transparent");
 
@@ -381,13 +381,13 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       within(getLatestDialog()).getByRole("button", { name: /View all workspaces/ }),
     );
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/account/workspaces" });
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces" });
     });
 
     await user.click(trigger);
     await user.click(within(getLatestDialog()).getByRole("button", { name: /Add workspace/ }));
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/account/workspaces?create=1" });
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces?create=1" });
     });
   });
 

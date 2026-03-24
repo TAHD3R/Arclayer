@@ -33,7 +33,7 @@ vi.mock("@tanstack/react-router", () => ({
     select,
   }: {
     select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/account/profile" } }),
+  }) => select({ location: { pathname: "/usercenter/profile" } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -197,10 +197,10 @@ describe("AdminNotificationsPanel toggle", () => {
       expect(screen.queryByText("NOTIFICATIONS_PAGE_TITLE")).not.toBeInTheDocument();
     });
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/me/inbox",
+      to: "/notifications",
       search: {
         sourceKind: "account",
-        sourcePath: "/account/profile",
+        sourcePath: "/usercenter/profile",
       },
     });
   });

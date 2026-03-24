@@ -6,10 +6,10 @@ import { listWorkspaceActivity } from "@/api/activity";
 import { getWorkspaceRbacMatrix, listWorkspaceRoles } from "@/api/rbac";
 import { ContentGuard } from "@/components/common/content-guard";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
-import { ActivityDetailDialog } from "@/pages/organization/activity/components/activity-detail-dialog";
-import { resolveCatalogEntry } from "@/pages/organization/activity/constants";
-import { OrganizationMemberInspectActivityTab } from "@/pages/organization/team/shared/components/organization-member-inspect-activity-tab";
-import { MemberContextDialog } from "@/pages/_shared/team/components/member-context-dialog";
+import { ActivityDetailDialog } from "@/pages/workspaces/shared/activity/components/activity-detail-dialog";
+import { resolveCatalogEntry } from "@/pages/workspaces/shared/activity/constants";
+import { WorkspaceMemberActivityTab } from "@/pages/workspaces/team/shared/components/member-inspect-activity-tab";
+import { MemberContextDialog } from "@/pages/workspaces/team/shared/components/member-context-dialog";
 import { TeamMembershipStatusTag, TeamRoleTag, TeamUserStatusTag } from "@/components/ui/tags";
 import type { ActivityEvent, TeamMember } from "@/types/api";
 import {
@@ -314,7 +314,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
             key: "activity",
             label: t("activity:ACTIVITY_TITLE"),
             content: (
-              <OrganizationMemberInspectActivityTab
+              <WorkspaceMemberActivityTab
                 items={activityQuery.data ?? []}
                 loading={activityQuery.isLoading}
                 error={activityQuery.error}

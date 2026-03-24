@@ -1,6 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 
-import { ExtensionDetailPage } from "@/pages/_shared/extensions/components/extension-detail-page";
+import { ExtensionDetailPage } from "@/pages/workspaces/extensions/detail/components/extension-detail-view";
 
 import { useWorkspaceExtensionDetail } from "./hooks/use-workspace-extension-detail";
 

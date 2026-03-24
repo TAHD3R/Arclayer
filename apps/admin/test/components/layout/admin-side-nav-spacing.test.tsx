@@ -26,7 +26,7 @@ vi.mock("react-i18next", () => ({
 const items: AdminNavItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     icon: Home,
     to: "/w/ws-1/",
   },
@@ -111,7 +111,7 @@ describe("AdminSiderNav spacing", () => {
       </SidebarProvider>,
     );
 
-    const dashboardButton = screen.getByRole("button", { name: "Dashboard" });
+    const dashboardButton = screen.getByRole("button", { name: "Overview" });
     const teamButton = screen.getByRole("button", { name: "Team" });
 
     expect(dashboardButton).toHaveClass(
@@ -170,7 +170,7 @@ describe("AdminSiderNav spacing", () => {
       .getByRole("button", { name: "Content" })
       .closest('[data-sidebar="menu-item"]');
     const subtree = contentItem?.querySelector('[data-slot="sidebar-menu-sub"]');
-    const submenuButton = within(subtree as HTMLElement).getByRole("button", { name: "Dashboard" });
+    const submenuButton = within(subtree as HTMLElement).getByRole("button", { name: "Overview" });
 
     expect(subtree).toHaveClass("ml-0", "pl-7", "border-l-0");
     expect(subtree?.parentElement).toHaveClass("before:left-4");

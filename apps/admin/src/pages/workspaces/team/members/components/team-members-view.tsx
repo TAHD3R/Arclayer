@@ -14,7 +14,7 @@ import {
   listTeamMembers,
   setTeamMemberRoles,
 } from "@/api/team";
-import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
+import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
 import type { TeamMember, UserStatus } from "@/types/api";
 import { DefaultPage } from "@/components/common/default-page";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";

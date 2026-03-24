@@ -1,7 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { DashboardPage } from "@/pages/workspaces/dashboard/page";
+import { WorkspaceOverviewPage } from "@/pages/workspaces/overview/page";
 
 export const Route = createLazyFileRoute("/w/$workspaceId/")({
-  component: DashboardPage,
+  component: WorkspaceOverviewPage,
 });

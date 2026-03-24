@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
-import { MeNotificationSettingsPage } from "@/pages/me/notifications/page";
+import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/user-notification-settings-view";
 
 vi.mock("@/api/notifications", () => ({
   getMyNotificationPreferences: vi.fn(),
@@ -69,7 +69,7 @@ function renderPage() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MeNotificationSettingsPage mode="dialog" />
+      <UserNotificationSettingsView mode="dialog" />
     </QueryClientProvider>,
   );
 }
@@ -83,12 +83,12 @@ function renderSettingsPage(mode: "page" | "dialog") {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MeNotificationSettingsPage mode={mode} />
+      <UserNotificationSettingsView mode={mode} />
     </QueryClientProvider>,
   );
 }
 
-describe("MeNotificationSettingsPage", () => {
+describe("UserNotificationSettingsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getMyNotificationPreferencesMock.mockResolvedValue({ topics: [makeTopic(true)] });

@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useOrganizationWorkspacesMutations } from "@/pages/organization/workspaces/hooks/use-organization-workspaces-mutations";
+import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations";
 import { createOrganizationWorkspace } from "@/api/organization-workspaces";
 
 vi.mock("@/api/organization-workspaces", () => ({
@@ -24,7 +24,7 @@ function createWrapper(queryClient: QueryClient) {
   };
 }
 
-describe("useOrganizationWorkspacesMutations", () => {
+describe("useUserCenterWorkspacesMutations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createOrganizationWorkspace).mockResolvedValue({
@@ -45,7 +45,7 @@ describe("useOrganizationWorkspacesMutations", () => {
 
     const { result } = renderHook(
       () =>
-        useOrganizationWorkspacesMutations({
+        useUserCenterWorkspacesMutations({
           organizationId: undefined,
           t: ((key: string) => key) as never,
           onCreateSuccess: vi.fn(),

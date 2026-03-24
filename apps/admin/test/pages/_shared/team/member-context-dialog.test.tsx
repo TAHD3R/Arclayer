@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
-import { MemberContextDialog } from "@/pages/_shared/team/components/member-context-dialog";
+import { MemberContextDialog } from "@/pages/workspaces/team/shared/components/member-context-dialog";
 
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {

@@ -9,7 +9,7 @@ import {
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import type { NotificationCategory, NotificationItem } from "@/types/api";
 import {
   Item,
@@ -52,7 +52,7 @@ export function NotificationCard({
   compact = false,
 }: NotificationCardProps) {
   const { t } = useTranslation("notifications");
-  const dateTime = useOrganizationDateTimeFormatter();
+  const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
   const Icon = pickCategoryIcon(item.category);
   const timeText = useMemo(
     () => dateTime.formatDateTime(item.createdAt),

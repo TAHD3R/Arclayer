@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { MemberIdentityCell } from "@/pages/_shared/team/components/member-identity-cell";
+import { MemberIdentityCell } from "@/pages/workspaces/team/shared/components/member-identity-cell";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

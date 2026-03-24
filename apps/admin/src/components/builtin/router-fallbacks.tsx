@@ -1,6 +1,4 @@
 import type { ErrorComponentProps, NotFoundRouteProps } from "@tanstack/react-router";
-import { useRouter, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
 
 import { ApiError } from "@/lib/http";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -17,19 +15,6 @@ export function RouterDefaultNotFound(_props: NotFoundRouteProps) {
   // the current history entry is typically the first one (index=0). In that case we
   // prefer a fullscreen error so the broken URL doesn't render under AdminLayout shell.
   const variant = accessToken && historyIndex !== 0 ? "admin" : "fullscreen";
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    if (!pathname.startsWith("/__dev/")) return;
-    // TanStack Router file routes treat `__*` as a pathless "route group";
-    // keep a small redirect here so older links still work in dev.
-    void router.navigate({
-      to: (pathname.replace(/^\/__dev/, "/devtools") || "/devtools") as never,
-      replace: true,
-    });
-  }, [pathname, router]);
 
   return <NotFoundView variant={variant} />;
 }

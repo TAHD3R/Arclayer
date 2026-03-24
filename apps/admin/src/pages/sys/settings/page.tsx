@@ -35,10 +35,10 @@ import { ApiError } from "@/lib/http";
 import { notifyError } from "@/lib/notifications";
 import { cn } from "@arclayer/lib/utils";
 import { systemRuntimeQueryKey } from "@/lib/extensions/query-keys";
-import { useOrganizationDateTimeFormatter } from "@/hooks/use-organization-date-time-formatter";
+import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { useSysAuthStore } from "@/stores/use-sys-auth-store";
 import type { SysConfigDetail, SysConfigNamespaceSummary, SysConfigTestCheck } from "@/types/api";
-import { ExtensionSettingsForm } from "@/pages/_shared/extensions/components/extension-settings-form";
+import { ExtensionSettingsForm } from "@/pages/sys/settings/components/extension-settings-form";
 
 function isStepUpRequired(error: unknown): boolean {
   return error instanceof ApiError && error.error === "SYS_STEP_UP_REQUIRED";
@@ -50,7 +50,7 @@ function isSuperAdminRequired(error: unknown): boolean {
 
 export function SysSettingsPage() {
   const { t } = useTranslation(["sys", "settings", "common"]);
-  const dateTime = useOrganizationDateTimeFormatter();
+  const dateTime = useAdminDateTimeFormatter({ workspaceId: null });
   const navigate = useNavigate();
   const { namespace } = useParams({ from: "/sys/settings/$namespace/" });
   const queryClient = useQueryClient();

@@ -18,7 +18,7 @@ describe("resolveSetupGateRedirect", () => {
     const to = resolveSetupGateRedirect({
       deploymentMode: "self_host",
       initialized: false,
-      pathname: "/settings/general",
+      pathname: "/settings/site",
       devAllowSetup: false,
     });
 

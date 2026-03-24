@@ -29,18 +29,18 @@ import {
 import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import { TeamInvitationsPageExtra } from "@/pages/_shared/team/components/team-invitations-page-extra";
+import { TeamInvitationsPageExtra } from "@/pages/workspaces/team/shared/components/team-invitations-page-extra";
 import { InviteMembersDialog } from "@/pages/workspaces/team/shared/components/invite-members-dialog";
-import { InviteLinkParticipantsPopover } from "@/pages/_shared/team/components/invite-link-participants-popover";
+import { InviteLinkParticipantsPopover } from "@/pages/workspaces/team/shared/components/invite-link-participants-popover";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import type { RenewExpiresInSeconds, TabKey } from "../types";
-import { TeamInvitationsTableSection } from "@/pages/_shared/team/components/team-invitations-table-section";
+import { TeamInvitationsTableSection } from "@/pages/workspaces/team/shared/components/team-invitations-table-section";
 import { TeamInvitationsDialogs } from "./invitations-dialogs";
 import { InvitationRoleTag, InvitationStatusTag } from "@/components/ui/tags";
-import { InvitationUserLabel } from "@/pages/_shared/team/components/invitation-user-label";
-import { buildInvitationUserDetails } from "@/pages/_shared/team/components/invitation-user-details";
+import { InvitationUserLabel } from "@/pages/workspaces/team/shared/components/invitation-user-label";
+import { buildInvitationUserDetails } from "@/pages/workspaces/team/shared/components/invitation-user-details";
 
 export function TeamInvitationsView(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "nav", "common"]);

@@ -52,7 +52,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_PROFILE"), t("account:ME_TITLE")],
       icon: UserRound,
       shortcut: ["G", "P"],
-      action: { type: "navigate", to: "/account/profile" },
+      action: { type: "navigate", to: "/usercenter/profile" },
     },
     {
       id: "action:preferences",
@@ -63,7 +63,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_PREFERENCES"), t("account:ME_TITLE")],
       icon: SlidersHorizontal,
       shortcut: ["G", ","],
-      action: { type: "navigate", to: "/account/appearance" },
+      action: { type: "navigate", to: "/usercenter/appearance" },
     },
     {
       id: "action:security",
@@ -74,7 +74,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_SECURITY"), t("account:ME_TITLE")],
       icon: Shield,
       shortcut: ["G", "S"],
-      action: { type: "navigate", to: "/account/security" },
+      action: { type: "navigate", to: "/usercenter/security" },
     },
     {
       id: "action:notifications",

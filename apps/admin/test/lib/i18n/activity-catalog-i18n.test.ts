@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import zhActivity from "@locales/zh-CN/activity.json";
 import enActivity from "@locales/en-US/activity.json";
-import { ACTIVITY_EVENT_CATALOG } from "@/pages/organization/activity/constants";
+import { ACTIVITY_EVENT_CATALOG } from "@/pages/workspaces/shared/activity/constants";
 
 const REQUIRED_ACTIVITY_EVENTS = [
   "auth.login.succeeded",

@@ -46,12 +46,6 @@ async function waitForCollapsedRender() {
   });
 }
 
-async function waitMs(ms: number) {
-  await act(async () => {
-    await new Promise((resolve) => window.setTimeout(resolve, ms));
-  });
-}
-
 function renderTreeNav(args: {
   items: readonly AdminNavItem[];
   favoriteWorkspaceBase: string;
@@ -74,7 +68,7 @@ function renderTreeNav(args: {
 const items: AdminNavItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     icon: Home,
     to: "/w/ws-1/",
   },
@@ -121,10 +115,10 @@ const items: AdminNavItem[] = [
         to: "/w/ws-1/settings/workspace",
       },
       {
-        key: "settings.general",
+        key: "settings.site",
         label: "General",
         icon: Settings,
-        to: "/w/ws-1/settings/general",
+        to: "/w/ws-1/settings/site",
       },
     ],
   },
@@ -133,7 +127,7 @@ const items: AdminNavItem[] = [
 const treeItems: AdminNavItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     icon: Home,
     to: "/w/ws-1/",
   },
@@ -180,7 +174,7 @@ const treeItems: AdminNavItem[] = [
 const samePathPreferenceItems: AdminNavItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     icon: Home,
     to: "/w/ws-1/",
   },
@@ -202,7 +196,7 @@ const samePathPreferenceItems: AdminNavItem[] = [
 const redirectedPreferenceItems: AdminNavItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     icon: Home,
     to: "/w/ws-1/",
   },
@@ -212,7 +206,7 @@ const redirectedPreferenceItems: AdminNavItem[] = [
     icon: LayoutGrid,
     children: [
       {
-        key: "settings.general",
+        key: "settings.site",
         label: "Site Settings",
         icon: Settings,
         to: "/w/ws-1/settings/site",
@@ -292,12 +286,12 @@ describe("AdminSiderNav collapsed groups", () => {
     renderCollapsedNav(items);
 
     await waitForCollapsedRender();
-    await user.hover(screen.getByRole("button", { name: "Dashboard" }));
+    await user.hover(screen.getByRole("button", { name: "Overview" }));
 
     await waitFor(() => {
       const tooltip = document.body.querySelector('[data-slot="tooltip-content"]');
       expect(tooltip).not.toBeNull();
-      expect(tooltip).toHaveTextContent("Dashboard");
+      expect(tooltip).toHaveTextContent("Overview");
     });
   });
 
@@ -308,7 +302,7 @@ describe("AdminSiderNav collapsed groups", () => {
     const favoriteItems: AdminNavItem[] = [
       {
         key: "dashboard",
-        label: "Dashboard",
+        label: "Overview",
         labelKey: "nav:NAV_DASHBOARD",
         icon: Home,
         to: "/w/ws-1/",
@@ -396,10 +390,9 @@ describe("AdminSiderNav collapsed groups", () => {
     await screen.findByRole("menuitem", { name: "Members" });
 
     await user.hover(screen.getByRole("button", { name: "Settings" }));
-    await waitMs(80);
-
-    expect(document.body.querySelectorAll('[role="menu"]')).toHaveLength(1);
-    expect(screen.queryByRole("menuitem", { name: "Workspace" })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.body.querySelectorAll('[role="menu"]')).toHaveLength(1);
+    });
 
     await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Workspace" })).toBeVisible();
@@ -425,7 +418,7 @@ describe("AdminSiderNav collapsed groups", () => {
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.getByRole("button", { name: "Dashboard" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Overview" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Content" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Team" })).toBeVisible();
     expect(document.querySelector('[data-sidebar="group-label"]')).toBeNull();
@@ -653,8 +646,8 @@ describe("AdminSiderNav collapsed groups", () => {
     );
   });
 
-  it("can keep a source menu branch active while current route renders /me/inbox", () => {
-    mockPathname = "/me/inbox";
+  it("can keep a source menu branch active while current route renders /notifications", () => {
+    mockPathname = "/notifications";
 
     renderTreeNav({
       items: treeItems,

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { ActivityUserPill } from "@/pages/organization/activity/components/activity-user-pill";
+import { ActivityUserPill } from "@/pages/workspaces/shared/activity/components/activity-user-pill";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

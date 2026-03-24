@@ -5,7 +5,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
-import { MeProfileDangerSection } from "@/pages/me/profile/components/profile-danger-section";
+import { UserDangerSection } from "@/pages/usercenter/profile/components/profile-danger-section";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
@@ -79,7 +79,7 @@ describe("account deletion danger flow", () => {
       hasLinkedOauthIdentities: true,
     });
 
-    renderWithQuery(<MeProfileDangerSection email="demo@example.com" redirect="/me/profile" />);
+    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
 
     const action = await screen.findByRole("button", {
       name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION"),
@@ -103,7 +103,7 @@ describe("account deletion danger flow", () => {
     });
     deleteMyAccountMock.mockResolvedValue(null);
 
-    renderWithQuery(<MeProfileDangerSection email="demo@example.com" redirect="/me/profile" />);
+    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION") }),
@@ -145,7 +145,7 @@ describe("account deletion danger flow", () => {
       hasLinkedOauthIdentities: true,
     });
 
-    renderWithQuery(<MeProfileDangerSection email="demo@example.com" redirect="/me/profile" />);
+    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION") }),
@@ -166,7 +166,7 @@ describe("account deletion danger flow", () => {
     );
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/login",
-      search: { redirect: "/me/profile" },
+      search: { redirect: "/usercenter/profile" },
       replace: true,
     });
   });
@@ -184,7 +184,7 @@ describe("account deletion danger flow", () => {
     });
     deleteMyAccountMock.mockResolvedValue(null);
 
-    renderWithQuery(<MeProfileDangerSection email="demo@example.com" redirect="/me/profile" />);
+    renderWithQuery(<UserDangerSection email="demo@example.com" redirect="/usercenter/profile" />);
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION") }),

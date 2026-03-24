@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { WorkspacesPage } from "@/pages/account/workspaces/page";
+import { WorkspacesPage } from "@/pages/usercenter/workspaces/page";
 
 export const Route = createFileRoute("/workspaces/")({
   validateSearch: (search: Record<string, unknown>) => ({

@@ -17,7 +17,7 @@ export type { AdminNavItem, AdminNavSection } from "@/types/admin-nav";
 export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     labelKey: "nav:NAV_DASHBOARD",
     to: "/",
     icon: LayoutDashboard,
@@ -50,7 +50,7 @@ export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
       //   icon: Search,
       // },
       {
-        key: "settings.general",
+        key: "settings.site",
         label: "Site Settings",
         labelKey: "nav:NAV_SETTINGS_SITE",
         to: "/settings/site",
@@ -104,7 +104,7 @@ export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
         key: "activity",
         label: "Activity",
         labelKey: "nav:NAV_SETTINGS_MAINTENANCE_ACTIVITY",
-        to: "/settings/maintenance/activity",
+        to: "/activity",
         icon: History,
       },
       {

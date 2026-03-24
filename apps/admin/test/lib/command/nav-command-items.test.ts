@@ -11,7 +11,7 @@ describe("nav-command-items", () => {
     const navItems: AdminNavItem[] = [
       {
         key: "dashboard",
-        label: "Dashboard",
+        label: "Overview",
         labelKey: "nav:NAV_DASHBOARD",
         to: "/",
         icon: History,

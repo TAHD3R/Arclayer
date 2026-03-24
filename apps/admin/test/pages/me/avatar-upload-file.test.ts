@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import { uploadAvatarFile } from "@/pages/me/profile/lib/avatar-upload";
+import { uploadAvatarFile } from "@/pages/usercenter/profile/lib/avatar-upload";
 import {
   abortAvatarUpload,
   commitAvatarUploadPart,

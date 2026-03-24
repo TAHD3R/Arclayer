@@ -9,37 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsercenterRouteImport } from './routes/usercenter'
 import { Route as SysRouteImport } from './routes/sys'
-import { Route as MeRouteImport } from './routes/me'
-import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
+import { Route as UsercenterIndexRouteImport } from './routes/usercenter/index'
 import { Route as SysIndexRouteImport } from './routes/sys/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
 import { Route as RepairIndexRouteImport } from './routes/repair/index'
-import { Route as MeIndexRouteImport } from './routes/me/index'
+import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as InvitationsIndexRouteImport } from './routes/invitations/index'
-import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as WWorkspaceIdRouteImport } from './routes/w/$workspaceId'
 import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/index'
+import { Route as UsercenterUsageIndexRouteImport } from './routes/usercenter/usage/index'
+import { Route as UsercenterSecurityIndexRouteImport } from './routes/usercenter/security/index'
+import { Route as UsercenterProfileIndexRouteImport } from './routes/usercenter/profile/index'
+import { Route as UsercenterNotificationsIndexRouteImport } from './routes/usercenter/notifications/index'
+import { Route as UsercenterDangerIndexRouteImport } from './routes/usercenter/danger/index'
+import { Route as UsercenterBillingIndexRouteImport } from './routes/usercenter/billing/index'
+import { Route as UsercenterAppearanceIndexRouteImport } from './routes/usercenter/appearance/index'
 import { Route as SysSettingsIndexRouteImport } from './routes/sys/settings/index'
 import { Route as RepairMasterKeyIndexRouteImport } from './routes/repair/master-key/index'
-import { Route as MeInboxIndexRouteImport } from './routes/me/inbox/index'
-import { Route as DevtoolsIllustrationsIndexRouteImport } from './routes/devtools/illustrations/index'
-import { Route as AccountWorkspacesIndexRouteImport } from './routes/account/workspaces/index'
-import { Route as AccountUsageIndexRouteImport } from './routes/account/usage/index'
-import { Route as AccountSecurityIndexRouteImport } from './routes/account/security/index'
-import { Route as AccountProfileIndexRouteImport } from './routes/account/profile/index'
-import { Route as AccountNotificationsIndexRouteImport } from './routes/account/notifications/index'
-import { Route as AccountDangerIndexRouteImport } from './routes/account/danger/index'
-import { Route as AccountBillingIndexRouteImport } from './routes/account/billing/index'
-import { Route as AccountAppearanceIndexRouteImport } from './routes/account/appearance/index'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
-import { Route as WWorkspaceIdNotificationsIndexRouteImport } from './routes/w/$workspaceId/notifications/index'
 import { Route as WWorkspaceIdExtensionsIndexRouteImport } from './routes/w/$workspaceId/extensions/index'
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
+import { Route as WWorkspaceIdActivityIndexRouteImport } from './routes/w/$workspaceId/activity/index'
 import { Route as SysSettingsNamespaceIndexRouteImport } from './routes/sys/settings/$namespace/index'
 import { Route as WWorkspaceIdTeamRolesIndexRouteImport } from './routes/w/$workspaceId/team/roles/index'
 import { Route as WWorkspaceIdTeamMembersIndexRouteImport } from './routes/w/$workspaceId/team/members/index'
@@ -56,23 +52,15 @@ import { Route as WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport } from './
 import { Route as WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/basics/index'
 import { Route as WWorkspaceIdSettingsSiteLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/site/localization/index'
 import { Route as WWorkspaceIdSettingsSiteBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/site/basics/index'
-import { Route as WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/status/index'
-import { Route as WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/snapshots/index'
-import { Route as WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport } from './routes/w/$workspaceId/settings/maintenance/activity/index'
 
+const UsercenterRoute = UsercenterRouteImport.update({
+  id: '/usercenter',
+  path: '/usercenter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SysRoute = SysRouteImport.update({
   id: '/sys',
   path: '/sys',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MeRoute = MeRouteImport.update({
-  id: '/me',
-  path: '/me',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: '/account',
-  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -84,6 +72,11 @@ const WorkspacesIndexRoute = WorkspacesIndexRouteImport.update({
   id: '/workspaces/',
   path: '/workspaces/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const UsercenterIndexRoute = UsercenterIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => UsercenterRoute,
 } as any)
 const SysIndexRoute = SysIndexRouteImport.update({
   id: '/',
@@ -107,11 +100,13 @@ const RepairIndexRoute = RepairIndexRouteImport.update({
   path: '/repair/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MeIndexRoute = MeIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => MeRoute,
-} as any)
+const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
+  id: '/notifications/',
+  path: '/notifications/',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import('./routes/notifications/index.lazy').then((d) => d.Route),
+)
 const LoginIndexRoute = LoginIndexRouteImport.update({
   id: '/login/',
   path: '/login/',
@@ -124,11 +119,6 @@ const InvitationsIndexRoute = InvitationsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/invitations/index.lazy').then((d) => d.Route),
 )
-const AccountIndexRoute = AccountIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AccountRoute,
-} as any)
 const WWorkspaceIdRoute = WWorkspaceIdRouteImport.update({
   id: '/w/$workspaceId',
   path: '/w/$workspaceId',
@@ -141,6 +131,43 @@ const WWorkspaceIdIndexRoute = WWorkspaceIdIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/w/$workspaceId/index.lazy').then((d) => d.Route),
 )
+const UsercenterUsageIndexRoute = UsercenterUsageIndexRouteImport.update({
+  id: '/usage/',
+  path: '/usage/',
+  getParentRoute: () => UsercenterRoute,
+} as any)
+const UsercenterSecurityIndexRoute = UsercenterSecurityIndexRouteImport.update({
+  id: '/security/',
+  path: '/security/',
+  getParentRoute: () => UsercenterRoute,
+} as any)
+const UsercenterProfileIndexRoute = UsercenterProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => UsercenterRoute,
+} as any)
+const UsercenterNotificationsIndexRoute =
+  UsercenterNotificationsIndexRouteImport.update({
+    id: '/notifications/',
+    path: '/notifications/',
+    getParentRoute: () => UsercenterRoute,
+  } as any)
+const UsercenterDangerIndexRoute = UsercenterDangerIndexRouteImport.update({
+  id: '/danger/',
+  path: '/danger/',
+  getParentRoute: () => UsercenterRoute,
+} as any)
+const UsercenterBillingIndexRoute = UsercenterBillingIndexRouteImport.update({
+  id: '/billing/',
+  path: '/billing/',
+  getParentRoute: () => UsercenterRoute,
+} as any)
+const UsercenterAppearanceIndexRoute =
+  UsercenterAppearanceIndexRouteImport.update({
+    id: '/appearance/',
+    path: '/appearance/',
+    getParentRoute: () => UsercenterRoute,
+  } as any)
 const SysSettingsIndexRoute = SysSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -153,62 +180,6 @@ const RepairMasterKeyIndexRoute = RepairMasterKeyIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/repair/master-key/index.lazy').then((d) => d.Route),
 )
-const MeInboxIndexRoute = MeInboxIndexRouteImport.update({
-  id: '/inbox/',
-  path: '/inbox/',
-  getParentRoute: () => MeRoute,
-} as any).lazy(() =>
-  import('./routes/me/inbox/index.lazy').then((d) => d.Route),
-)
-const DevtoolsIllustrationsIndexRoute =
-  DevtoolsIllustrationsIndexRouteImport.update({
-    id: '/devtools/illustrations/',
-    path: '/devtools/illustrations/',
-    getParentRoute: () => rootRouteImport,
-  } as any).lazy(() =>
-    import('./routes/devtools/illustrations/index.lazy').then((d) => d.Route),
-  )
-const AccountWorkspacesIndexRoute = AccountWorkspacesIndexRouteImport.update({
-  id: '/workspaces/',
-  path: '/workspaces/',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountUsageIndexRoute = AccountUsageIndexRouteImport.update({
-  id: '/usage/',
-  path: '/usage/',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountSecurityIndexRoute = AccountSecurityIndexRouteImport.update({
-  id: '/security/',
-  path: '/security/',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountProfileIndexRoute = AccountProfileIndexRouteImport.update({
-  id: '/profile/',
-  path: '/profile/',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountNotificationsIndexRoute =
-  AccountNotificationsIndexRouteImport.update({
-    id: '/notifications/',
-    path: '/notifications/',
-    getParentRoute: () => AccountRoute,
-  } as any)
-const AccountDangerIndexRoute = AccountDangerIndexRouteImport.update({
-  id: '/danger/',
-  path: '/danger/',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountBillingIndexRoute = AccountBillingIndexRouteImport.update({
-  id: '/billing/',
-  path: '/billing/',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountAppearanceIndexRoute = AccountAppearanceIndexRouteImport.update({
-  id: '/appearance/',
-  path: '/appearance/',
-  getParentRoute: () => AccountRoute,
-} as any)
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -216,12 +187,6 @@ const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/w/$workspaceId/team/index.lazy').then((d) => d.Route),
 )
-const WWorkspaceIdNotificationsIndexRoute =
-  WWorkspaceIdNotificationsIndexRouteImport.update({
-    id: '/notifications/',
-    path: '/notifications/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any)
 const WWorkspaceIdExtensionsIndexRoute =
   WWorkspaceIdExtensionsIndexRouteImport.update({
     id: '/extensions/',
@@ -239,6 +204,14 @@ const WWorkspaceIdAssetsIndexRoute = WWorkspaceIdAssetsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/w/$workspaceId/assets/index.lazy').then((d) => d.Route),
 )
+const WWorkspaceIdActivityIndexRoute =
+  WWorkspaceIdActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/activity/index.lazy').then((d) => d.Route),
+  )
 const SysSettingsNamespaceIndexRoute =
   SysSettingsNamespaceIndexRouteImport.update({
     id: '/settings/$namespace/',
@@ -389,69 +362,35 @@ const WWorkspaceIdSettingsSiteBasicsIndexRoute =
       (d) => d.Route,
     ),
   )
-const WWorkspaceIdSettingsMaintenanceStatusIndexRoute =
-  WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport.update({
-    id: '/settings/maintenance/status/',
-    path: '/settings/maintenance/status/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/maintenance/status/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute =
-  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport.update({
-    id: '/settings/maintenance/snapshots/',
-    path: '/settings/maintenance/snapshots/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/maintenance/snapshots/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const WWorkspaceIdSettingsMaintenanceActivityIndexRoute =
-  WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport.update({
-    id: '/settings/maintenance/activity/',
-    path: '/settings/maintenance/activity/',
-    getParentRoute: () => WWorkspaceIdRoute,
-  } as any).lazy(() =>
-    import('./routes/w/$workspaceId/settings/maintenance/activity/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/account': typeof AccountRouteWithChildren
-  '/me': typeof MeRouteWithChildren
   '/sys': typeof SysRouteWithChildren
+  '/usercenter': typeof UsercenterRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
-  '/account/': typeof AccountIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
-  '/me/': typeof MeIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/repair/': typeof RepairIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
+  '/usercenter/': typeof UsercenterIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
-  '/account/appearance/': typeof AccountAppearanceIndexRoute
-  '/account/billing/': typeof AccountBillingIndexRoute
-  '/account/danger/': typeof AccountDangerIndexRoute
-  '/account/notifications/': typeof AccountNotificationsIndexRoute
-  '/account/profile/': typeof AccountProfileIndexRoute
-  '/account/security/': typeof AccountSecurityIndexRoute
-  '/account/usage/': typeof AccountUsageIndexRoute
-  '/account/workspaces/': typeof AccountWorkspacesIndexRoute
-  '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
-  '/me/inbox/': typeof MeInboxIndexRoute
   '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
+  '/usercenter/appearance/': typeof UsercenterAppearanceIndexRoute
+  '/usercenter/billing/': typeof UsercenterBillingIndexRoute
+  '/usercenter/danger/': typeof UsercenterDangerIndexRoute
+  '/usercenter/notifications/': typeof UsercenterNotificationsIndexRoute
+  '/usercenter/profile/': typeof UsercenterProfileIndexRoute
+  '/usercenter/security/': typeof UsercenterSecurityIndexRoute
+  '/usercenter/usage/': typeof UsercenterUsageIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/sys/settings/$namespace/': typeof SysSettingsNamespaceIndexRoute
+  '/w/$workspaceId/activity/': typeof WWorkspaceIdActivityIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
-  '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
   '/w/$workspaceId/content/create/': typeof WWorkspaceIdContentCreateIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
@@ -464,9 +403,6 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
-  '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
-  '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
-  '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -474,32 +410,29 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/account': typeof AccountIndexRoute
   '/invitations': typeof InvitationsIndexRoute
   '/login': typeof LoginIndexRoute
-  '/me': typeof MeIndexRoute
+  '/notifications': typeof NotificationsIndexRoute
   '/repair': typeof RepairIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
   '/setup': typeof SetupIndexRoute
   '/sys': typeof SysIndexRoute
+  '/usercenter': typeof UsercenterIndexRoute
   '/workspaces': typeof WorkspacesIndexRoute
-  '/account/appearance': typeof AccountAppearanceIndexRoute
-  '/account/billing': typeof AccountBillingIndexRoute
-  '/account/danger': typeof AccountDangerIndexRoute
-  '/account/notifications': typeof AccountNotificationsIndexRoute
-  '/account/profile': typeof AccountProfileIndexRoute
-  '/account/security': typeof AccountSecurityIndexRoute
-  '/account/usage': typeof AccountUsageIndexRoute
-  '/account/workspaces': typeof AccountWorkspacesIndexRoute
-  '/devtools/illustrations': typeof DevtoolsIllustrationsIndexRoute
-  '/me/inbox': typeof MeInboxIndexRoute
   '/repair/master-key': typeof RepairMasterKeyIndexRoute
   '/sys/settings': typeof SysSettingsIndexRoute
+  '/usercenter/appearance': typeof UsercenterAppearanceIndexRoute
+  '/usercenter/billing': typeof UsercenterBillingIndexRoute
+  '/usercenter/danger': typeof UsercenterDangerIndexRoute
+  '/usercenter/notifications': typeof UsercenterNotificationsIndexRoute
+  '/usercenter/profile': typeof UsercenterProfileIndexRoute
+  '/usercenter/security': typeof UsercenterSecurityIndexRoute
+  '/usercenter/usage': typeof UsercenterUsageIndexRoute
   '/w/$workspaceId': typeof WWorkspaceIdIndexRoute
   '/sys/settings/$namespace': typeof SysSettingsNamespaceIndexRoute
+  '/w/$workspaceId/activity': typeof WWorkspaceIdActivityIndexRoute
   '/w/$workspaceId/assets': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions': typeof WWorkspaceIdExtensionsIndexRoute
-  '/w/$workspaceId/notifications': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team': typeof WWorkspaceIdTeamIndexRoute
   '/w/$workspaceId/content/create': typeof WWorkspaceIdContentCreateIndexRoute
   '/w/$workspaceId/content/library': typeof WWorkspaceIdContentLibraryIndexRoute
@@ -512,9 +445,6 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesIndexRoute
-  '/w/$workspaceId/settings/maintenance/activity': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
-  '/w/$workspaceId/settings/maintenance/snapshots': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
-  '/w/$workspaceId/settings/maintenance/status': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   '/w/$workspaceId/settings/site/basics': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -523,36 +453,32 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/account': typeof AccountRouteWithChildren
-  '/me': typeof MeRouteWithChildren
   '/sys': typeof SysRouteWithChildren
+  '/usercenter': typeof UsercenterRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
-  '/account/': typeof AccountIndexRoute
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
-  '/me/': typeof MeIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/repair/': typeof RepairIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/sys/': typeof SysIndexRoute
+  '/usercenter/': typeof UsercenterIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
-  '/account/appearance/': typeof AccountAppearanceIndexRoute
-  '/account/billing/': typeof AccountBillingIndexRoute
-  '/account/danger/': typeof AccountDangerIndexRoute
-  '/account/notifications/': typeof AccountNotificationsIndexRoute
-  '/account/profile/': typeof AccountProfileIndexRoute
-  '/account/security/': typeof AccountSecurityIndexRoute
-  '/account/usage/': typeof AccountUsageIndexRoute
-  '/account/workspaces/': typeof AccountWorkspacesIndexRoute
-  '/devtools/illustrations/': typeof DevtoolsIllustrationsIndexRoute
-  '/me/inbox/': typeof MeInboxIndexRoute
   '/repair/master-key/': typeof RepairMasterKeyIndexRoute
   '/sys/settings/': typeof SysSettingsIndexRoute
+  '/usercenter/appearance/': typeof UsercenterAppearanceIndexRoute
+  '/usercenter/billing/': typeof UsercenterBillingIndexRoute
+  '/usercenter/danger/': typeof UsercenterDangerIndexRoute
+  '/usercenter/notifications/': typeof UsercenterNotificationsIndexRoute
+  '/usercenter/profile/': typeof UsercenterProfileIndexRoute
+  '/usercenter/security/': typeof UsercenterSecurityIndexRoute
+  '/usercenter/usage/': typeof UsercenterUsageIndexRoute
   '/w/$workspaceId/': typeof WWorkspaceIdIndexRoute
   '/sys/settings/$namespace/': typeof SysSettingsNamespaceIndexRoute
+  '/w/$workspaceId/activity/': typeof WWorkspaceIdActivityIndexRoute
   '/w/$workspaceId/assets/': typeof WWorkspaceIdAssetsIndexRoute
   '/w/$workspaceId/extensions/': typeof WWorkspaceIdExtensionsIndexRoute
-  '/w/$workspaceId/notifications/': typeof WWorkspaceIdNotificationsIndexRoute
   '/w/$workspaceId/team/': typeof WWorkspaceIdTeamIndexRoute
   '/w/$workspaceId/content/create/': typeof WWorkspaceIdContentCreateIndexRoute
   '/w/$workspaceId/content/library/': typeof WWorkspaceIdContentLibraryIndexRoute
@@ -565,9 +491,6 @@ export interface FileRoutesById {
   '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
-  '/w/$workspaceId/settings/maintenance/activity/': typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
-  '/w/$workspaceId/settings/maintenance/snapshots/': typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
-  '/w/$workspaceId/settings/maintenance/status/': typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -577,36 +500,32 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/account'
-    | '/me'
     | '/sys'
+    | '/usercenter'
     | '/w/$workspaceId'
-    | '/account/'
     | '/invitations/'
     | '/login/'
-    | '/me/'
+    | '/notifications/'
     | '/repair/'
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
+    | '/usercenter/'
     | '/workspaces/'
-    | '/account/appearance/'
-    | '/account/billing/'
-    | '/account/danger/'
-    | '/account/notifications/'
-    | '/account/profile/'
-    | '/account/security/'
-    | '/account/usage/'
-    | '/account/workspaces/'
-    | '/devtools/illustrations/'
-    | '/me/inbox/'
     | '/repair/master-key/'
     | '/sys/settings/'
+    | '/usercenter/appearance/'
+    | '/usercenter/billing/'
+    | '/usercenter/danger/'
+    | '/usercenter/notifications/'
+    | '/usercenter/profile/'
+    | '/usercenter/security/'
+    | '/usercenter/usage/'
     | '/w/$workspaceId/'
     | '/sys/settings/$namespace/'
+    | '/w/$workspaceId/activity/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/extensions/'
-    | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
     | '/w/$workspaceId/content/create/'
     | '/w/$workspaceId/content/library/'
@@ -619,9 +538,6 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/team/invitations/'
     | '/w/$workspaceId/team/members/'
     | '/w/$workspaceId/team/roles/'
-    | '/w/$workspaceId/settings/maintenance/activity/'
-    | '/w/$workspaceId/settings/maintenance/snapshots/'
-    | '/w/$workspaceId/settings/maintenance/status/'
     | '/w/$workspaceId/settings/site/basics/'
     | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
@@ -629,32 +545,29 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/account'
     | '/invitations'
     | '/login'
-    | '/me'
+    | '/notifications'
     | '/repair'
     | '/reset-password'
     | '/setup'
     | '/sys'
+    | '/usercenter'
     | '/workspaces'
-    | '/account/appearance'
-    | '/account/billing'
-    | '/account/danger'
-    | '/account/notifications'
-    | '/account/profile'
-    | '/account/security'
-    | '/account/usage'
-    | '/account/workspaces'
-    | '/devtools/illustrations'
-    | '/me/inbox'
     | '/repair/master-key'
     | '/sys/settings'
+    | '/usercenter/appearance'
+    | '/usercenter/billing'
+    | '/usercenter/danger'
+    | '/usercenter/notifications'
+    | '/usercenter/profile'
+    | '/usercenter/security'
+    | '/usercenter/usage'
     | '/w/$workspaceId'
     | '/sys/settings/$namespace'
+    | '/w/$workspaceId/activity'
     | '/w/$workspaceId/assets'
     | '/w/$workspaceId/extensions'
-    | '/w/$workspaceId/notifications'
     | '/w/$workspaceId/team'
     | '/w/$workspaceId/content/create'
     | '/w/$workspaceId/content/library'
@@ -667,9 +580,6 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
     | '/w/$workspaceId/team/roles'
-    | '/w/$workspaceId/settings/maintenance/activity'
-    | '/w/$workspaceId/settings/maintenance/snapshots'
-    | '/w/$workspaceId/settings/maintenance/status'
     | '/w/$workspaceId/settings/site/basics'
     | '/w/$workspaceId/settings/site/localization'
     | '/w/$workspaceId/settings/workspace/basics'
@@ -677,36 +587,32 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/account'
-    | '/me'
     | '/sys'
+    | '/usercenter'
     | '/w/$workspaceId'
-    | '/account/'
     | '/invitations/'
     | '/login/'
-    | '/me/'
+    | '/notifications/'
     | '/repair/'
     | '/reset-password/'
     | '/setup/'
     | '/sys/'
+    | '/usercenter/'
     | '/workspaces/'
-    | '/account/appearance/'
-    | '/account/billing/'
-    | '/account/danger/'
-    | '/account/notifications/'
-    | '/account/profile/'
-    | '/account/security/'
-    | '/account/usage/'
-    | '/account/workspaces/'
-    | '/devtools/illustrations/'
-    | '/me/inbox/'
     | '/repair/master-key/'
     | '/sys/settings/'
+    | '/usercenter/appearance/'
+    | '/usercenter/billing/'
+    | '/usercenter/danger/'
+    | '/usercenter/notifications/'
+    | '/usercenter/profile/'
+    | '/usercenter/security/'
+    | '/usercenter/usage/'
     | '/w/$workspaceId/'
     | '/sys/settings/$namespace/'
+    | '/w/$workspaceId/activity/'
     | '/w/$workspaceId/assets/'
     | '/w/$workspaceId/extensions/'
-    | '/w/$workspaceId/notifications/'
     | '/w/$workspaceId/team/'
     | '/w/$workspaceId/content/create/'
     | '/w/$workspaceId/content/library/'
@@ -719,9 +625,6 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/team/invitations/'
     | '/w/$workspaceId/team/members/'
     | '/w/$workspaceId/team/roles/'
-    | '/w/$workspaceId/settings/maintenance/activity/'
-    | '/w/$workspaceId/settings/maintenance/snapshots/'
-    | '/w/$workspaceId/settings/maintenance/status/'
     | '/w/$workspaceId/settings/site/basics/'
     | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
@@ -730,41 +633,33 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AccountRoute: typeof AccountRouteWithChildren
-  MeRoute: typeof MeRouteWithChildren
   SysRoute: typeof SysRouteWithChildren
+  UsercenterRoute: typeof UsercenterRouteWithChildren
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   InvitationsIndexRoute: typeof InvitationsIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
+  NotificationsIndexRoute: typeof NotificationsIndexRoute
   RepairIndexRoute: typeof RepairIndexRoute
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   WorkspacesIndexRoute: typeof WorkspacesIndexRoute
-  DevtoolsIllustrationsIndexRoute: typeof DevtoolsIllustrationsIndexRoute
   RepairMasterKeyIndexRoute: typeof RepairMasterKeyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/usercenter': {
+      id: '/usercenter'
+      path: '/usercenter'
+      fullPath: '/usercenter'
+      preLoaderRoute: typeof UsercenterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sys': {
       id: '/sys'
       path: '/sys'
       fullPath: '/sys'
       preLoaderRoute: typeof SysRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/me': {
-      id: '/me'
-      path: '/me'
-      fullPath: '/me'
-      preLoaderRoute: typeof MeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account': {
-      id: '/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -780,6 +675,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/workspaces/'
       preLoaderRoute: typeof WorkspacesIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/usercenter/': {
+      id: '/usercenter/'
+      path: '/'
+      fullPath: '/usercenter/'
+      preLoaderRoute: typeof UsercenterIndexRouteImport
+      parentRoute: typeof UsercenterRoute
     }
     '/sys/': {
       id: '/sys/'
@@ -809,12 +711,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepairIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/me/': {
-      id: '/me/'
-      path: '/'
-      fullPath: '/me/'
-      preLoaderRoute: typeof MeIndexRouteImport
-      parentRoute: typeof MeRoute
+    '/notifications/': {
+      id: '/notifications/'
+      path: '/notifications'
+      fullPath: '/notifications/'
+      preLoaderRoute: typeof NotificationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/login/': {
       id: '/login/'
@@ -830,13 +732,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvitationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/account/': {
-      id: '/account/'
-      path: '/'
-      fullPath: '/account/'
-      preLoaderRoute: typeof AccountIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
     '/w/$workspaceId': {
       id: '/w/$workspaceId'
       path: '/w/$workspaceId'
@@ -850,6 +745,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspaceId/'
       preLoaderRoute: typeof WWorkspaceIdIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/usercenter/usage/': {
+      id: '/usercenter/usage/'
+      path: '/usage'
+      fullPath: '/usercenter/usage/'
+      preLoaderRoute: typeof UsercenterUsageIndexRouteImport
+      parentRoute: typeof UsercenterRoute
+    }
+    '/usercenter/security/': {
+      id: '/usercenter/security/'
+      path: '/security'
+      fullPath: '/usercenter/security/'
+      preLoaderRoute: typeof UsercenterSecurityIndexRouteImport
+      parentRoute: typeof UsercenterRoute
+    }
+    '/usercenter/profile/': {
+      id: '/usercenter/profile/'
+      path: '/profile'
+      fullPath: '/usercenter/profile/'
+      preLoaderRoute: typeof UsercenterProfileIndexRouteImport
+      parentRoute: typeof UsercenterRoute
+    }
+    '/usercenter/notifications/': {
+      id: '/usercenter/notifications/'
+      path: '/notifications'
+      fullPath: '/usercenter/notifications/'
+      preLoaderRoute: typeof UsercenterNotificationsIndexRouteImport
+      parentRoute: typeof UsercenterRoute
+    }
+    '/usercenter/danger/': {
+      id: '/usercenter/danger/'
+      path: '/danger'
+      fullPath: '/usercenter/danger/'
+      preLoaderRoute: typeof UsercenterDangerIndexRouteImport
+      parentRoute: typeof UsercenterRoute
+    }
+    '/usercenter/billing/': {
+      id: '/usercenter/billing/'
+      path: '/billing'
+      fullPath: '/usercenter/billing/'
+      preLoaderRoute: typeof UsercenterBillingIndexRouteImport
+      parentRoute: typeof UsercenterRoute
+    }
+    '/usercenter/appearance/': {
+      id: '/usercenter/appearance/'
+      path: '/appearance'
+      fullPath: '/usercenter/appearance/'
+      preLoaderRoute: typeof UsercenterAppearanceIndexRouteImport
+      parentRoute: typeof UsercenterRoute
     }
     '/sys/settings/': {
       id: '/sys/settings/'
@@ -865,88 +809,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepairMasterKeyIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/me/inbox/': {
-      id: '/me/inbox/'
-      path: '/inbox'
-      fullPath: '/me/inbox/'
-      preLoaderRoute: typeof MeInboxIndexRouteImport
-      parentRoute: typeof MeRoute
-    }
-    '/devtools/illustrations/': {
-      id: '/devtools/illustrations/'
-      path: '/devtools/illustrations'
-      fullPath: '/devtools/illustrations/'
-      preLoaderRoute: typeof DevtoolsIllustrationsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account/workspaces/': {
-      id: '/account/workspaces/'
-      path: '/workspaces'
-      fullPath: '/account/workspaces/'
-      preLoaderRoute: typeof AccountWorkspacesIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
-    '/account/usage/': {
-      id: '/account/usage/'
-      path: '/usage'
-      fullPath: '/account/usage/'
-      preLoaderRoute: typeof AccountUsageIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
-    '/account/security/': {
-      id: '/account/security/'
-      path: '/security'
-      fullPath: '/account/security/'
-      preLoaderRoute: typeof AccountSecurityIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
-    '/account/profile/': {
-      id: '/account/profile/'
-      path: '/profile'
-      fullPath: '/account/profile/'
-      preLoaderRoute: typeof AccountProfileIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
-    '/account/notifications/': {
-      id: '/account/notifications/'
-      path: '/notifications'
-      fullPath: '/account/notifications/'
-      preLoaderRoute: typeof AccountNotificationsIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
-    '/account/danger/': {
-      id: '/account/danger/'
-      path: '/danger'
-      fullPath: '/account/danger/'
-      preLoaderRoute: typeof AccountDangerIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
-    '/account/billing/': {
-      id: '/account/billing/'
-      path: '/billing'
-      fullPath: '/account/billing/'
-      preLoaderRoute: typeof AccountBillingIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
-    '/account/appearance/': {
-      id: '/account/appearance/'
-      path: '/appearance'
-      fullPath: '/account/appearance/'
-      preLoaderRoute: typeof AccountAppearanceIndexRouteImport
-      parentRoute: typeof AccountRoute
-    }
     '/w/$workspaceId/team/': {
       id: '/w/$workspaceId/team/'
       path: '/team'
       fullPath: '/w/$workspaceId/team/'
       preLoaderRoute: typeof WWorkspaceIdTeamIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/notifications/': {
-      id: '/w/$workspaceId/notifications/'
-      path: '/notifications'
-      fullPath: '/w/$workspaceId/notifications/'
-      preLoaderRoute: typeof WWorkspaceIdNotificationsIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
     '/w/$workspaceId/extensions/': {
@@ -961,6 +828,13 @@ declare module '@tanstack/react-router' {
       path: '/assets'
       fullPath: '/w/$workspaceId/assets/'
       preLoaderRoute: typeof WWorkspaceIdAssetsIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
+    '/w/$workspaceId/activity/': {
+      id: '/w/$workspaceId/activity/'
+      path: '/activity'
+      fullPath: '/w/$workspaceId/activity/'
+      preLoaderRoute: typeof WWorkspaceIdActivityIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
     '/sys/settings/$namespace/': {
@@ -1075,68 +949,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdSettingsSiteBasicsIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
-    '/w/$workspaceId/settings/maintenance/status/': {
-      id: '/w/$workspaceId/settings/maintenance/status/'
-      path: '/settings/maintenance/status'
-      fullPath: '/w/$workspaceId/settings/maintenance/status/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/settings/maintenance/snapshots/': {
-      id: '/w/$workspaceId/settings/maintenance/snapshots/'
-      path: '/settings/maintenance/snapshots'
-      fullPath: '/w/$workspaceId/settings/maintenance/snapshots/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
-    '/w/$workspaceId/settings/maintenance/activity/': {
-      id: '/w/$workspaceId/settings/maintenance/activity/'
-      path: '/settings/maintenance/activity'
-      fullPath: '/w/$workspaceId/settings/maintenance/activity/'
-      preLoaderRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRouteImport
-      parentRoute: typeof WWorkspaceIdRoute
-    }
   }
 }
-
-interface AccountRouteChildren {
-  AccountIndexRoute: typeof AccountIndexRoute
-  AccountAppearanceIndexRoute: typeof AccountAppearanceIndexRoute
-  AccountBillingIndexRoute: typeof AccountBillingIndexRoute
-  AccountDangerIndexRoute: typeof AccountDangerIndexRoute
-  AccountNotificationsIndexRoute: typeof AccountNotificationsIndexRoute
-  AccountProfileIndexRoute: typeof AccountProfileIndexRoute
-  AccountSecurityIndexRoute: typeof AccountSecurityIndexRoute
-  AccountUsageIndexRoute: typeof AccountUsageIndexRoute
-  AccountWorkspacesIndexRoute: typeof AccountWorkspacesIndexRoute
-}
-
-const AccountRouteChildren: AccountRouteChildren = {
-  AccountIndexRoute: AccountIndexRoute,
-  AccountAppearanceIndexRoute: AccountAppearanceIndexRoute,
-  AccountBillingIndexRoute: AccountBillingIndexRoute,
-  AccountDangerIndexRoute: AccountDangerIndexRoute,
-  AccountNotificationsIndexRoute: AccountNotificationsIndexRoute,
-  AccountProfileIndexRoute: AccountProfileIndexRoute,
-  AccountSecurityIndexRoute: AccountSecurityIndexRoute,
-  AccountUsageIndexRoute: AccountUsageIndexRoute,
-  AccountWorkspacesIndexRoute: AccountWorkspacesIndexRoute,
-}
-
-const AccountRouteWithChildren =
-  AccountRoute._addFileChildren(AccountRouteChildren)
-
-interface MeRouteChildren {
-  MeIndexRoute: typeof MeIndexRoute
-  MeInboxIndexRoute: typeof MeInboxIndexRoute
-}
-
-const MeRouteChildren: MeRouteChildren = {
-  MeIndexRoute: MeIndexRoute,
-  MeInboxIndexRoute: MeInboxIndexRoute,
-}
-
-const MeRouteWithChildren = MeRoute._addFileChildren(MeRouteChildren)
 
 interface SysRouteChildren {
   SysIndexRoute: typeof SysIndexRoute
@@ -1152,11 +966,37 @@ const SysRouteChildren: SysRouteChildren = {
 
 const SysRouteWithChildren = SysRoute._addFileChildren(SysRouteChildren)
 
+interface UsercenterRouteChildren {
+  UsercenterIndexRoute: typeof UsercenterIndexRoute
+  UsercenterAppearanceIndexRoute: typeof UsercenterAppearanceIndexRoute
+  UsercenterBillingIndexRoute: typeof UsercenterBillingIndexRoute
+  UsercenterDangerIndexRoute: typeof UsercenterDangerIndexRoute
+  UsercenterNotificationsIndexRoute: typeof UsercenterNotificationsIndexRoute
+  UsercenterProfileIndexRoute: typeof UsercenterProfileIndexRoute
+  UsercenterSecurityIndexRoute: typeof UsercenterSecurityIndexRoute
+  UsercenterUsageIndexRoute: typeof UsercenterUsageIndexRoute
+}
+
+const UsercenterRouteChildren: UsercenterRouteChildren = {
+  UsercenterIndexRoute: UsercenterIndexRoute,
+  UsercenterAppearanceIndexRoute: UsercenterAppearanceIndexRoute,
+  UsercenterBillingIndexRoute: UsercenterBillingIndexRoute,
+  UsercenterDangerIndexRoute: UsercenterDangerIndexRoute,
+  UsercenterNotificationsIndexRoute: UsercenterNotificationsIndexRoute,
+  UsercenterProfileIndexRoute: UsercenterProfileIndexRoute,
+  UsercenterSecurityIndexRoute: UsercenterSecurityIndexRoute,
+  UsercenterUsageIndexRoute: UsercenterUsageIndexRoute,
+}
+
+const UsercenterRouteWithChildren = UsercenterRoute._addFileChildren(
+  UsercenterRouteChildren,
+)
+
 interface WWorkspaceIdRouteChildren {
   WWorkspaceIdIndexRoute: typeof WWorkspaceIdIndexRoute
+  WWorkspaceIdActivityIndexRoute: typeof WWorkspaceIdActivityIndexRoute
   WWorkspaceIdAssetsIndexRoute: typeof WWorkspaceIdAssetsIndexRoute
   WWorkspaceIdExtensionsIndexRoute: typeof WWorkspaceIdExtensionsIndexRoute
-  WWorkspaceIdNotificationsIndexRoute: typeof WWorkspaceIdNotificationsIndexRoute
   WWorkspaceIdTeamIndexRoute: typeof WWorkspaceIdTeamIndexRoute
   WWorkspaceIdContentCreateIndexRoute: typeof WWorkspaceIdContentCreateIndexRoute
   WWorkspaceIdContentLibraryIndexRoute: typeof WWorkspaceIdContentLibraryIndexRoute
@@ -1169,9 +1009,6 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdTeamInvitationsIndexRoute: typeof WWorkspaceIdTeamInvitationsIndexRoute
   WWorkspaceIdTeamMembersIndexRoute: typeof WWorkspaceIdTeamMembersIndexRoute
   WWorkspaceIdTeamRolesIndexRoute: typeof WWorkspaceIdTeamRolesIndexRoute
-  WWorkspaceIdSettingsMaintenanceActivityIndexRoute: typeof WWorkspaceIdSettingsMaintenanceActivityIndexRoute
-  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute: typeof WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute
-  WWorkspaceIdSettingsMaintenanceStatusIndexRoute: typeof WWorkspaceIdSettingsMaintenanceStatusIndexRoute
   WWorkspaceIdSettingsSiteBasicsIndexRoute: typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   WWorkspaceIdSettingsSiteLocalizationIndexRoute: typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute: typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -1180,9 +1017,9 @@ interface WWorkspaceIdRouteChildren {
 
 const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdIndexRoute: WWorkspaceIdIndexRoute,
+  WWorkspaceIdActivityIndexRoute: WWorkspaceIdActivityIndexRoute,
   WWorkspaceIdAssetsIndexRoute: WWorkspaceIdAssetsIndexRoute,
   WWorkspaceIdExtensionsIndexRoute: WWorkspaceIdExtensionsIndexRoute,
-  WWorkspaceIdNotificationsIndexRoute: WWorkspaceIdNotificationsIndexRoute,
   WWorkspaceIdTeamIndexRoute: WWorkspaceIdTeamIndexRoute,
   WWorkspaceIdContentCreateIndexRoute: WWorkspaceIdContentCreateIndexRoute,
   WWorkspaceIdContentLibraryIndexRoute: WWorkspaceIdContentLibraryIndexRoute,
@@ -1198,12 +1035,6 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdTeamInvitationsIndexRoute: WWorkspaceIdTeamInvitationsIndexRoute,
   WWorkspaceIdTeamMembersIndexRoute: WWorkspaceIdTeamMembersIndexRoute,
   WWorkspaceIdTeamRolesIndexRoute: WWorkspaceIdTeamRolesIndexRoute,
-  WWorkspaceIdSettingsMaintenanceActivityIndexRoute:
-    WWorkspaceIdSettingsMaintenanceActivityIndexRoute,
-  WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute:
-    WWorkspaceIdSettingsMaintenanceSnapshotsIndexRoute,
-  WWorkspaceIdSettingsMaintenanceStatusIndexRoute:
-    WWorkspaceIdSettingsMaintenanceStatusIndexRoute,
   WWorkspaceIdSettingsSiteBasicsIndexRoute:
     WWorkspaceIdSettingsSiteBasicsIndexRoute,
   WWorkspaceIdSettingsSiteLocalizationIndexRoute:
@@ -1220,17 +1051,16 @@ const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AccountRoute: AccountRouteWithChildren,
-  MeRoute: MeRouteWithChildren,
   SysRoute: SysRouteWithChildren,
+  UsercenterRoute: UsercenterRouteWithChildren,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   InvitationsIndexRoute: InvitationsIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
+  NotificationsIndexRoute: NotificationsIndexRoute,
   RepairIndexRoute: RepairIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   WorkspacesIndexRoute: WorkspacesIndexRoute,
-  DevtoolsIllustrationsIndexRoute: DevtoolsIllustrationsIndexRoute,
   RepairMasterKeyIndexRoute: RepairMasterKeyIndexRoute,
 }
 export const routeTree = rootRouteImport

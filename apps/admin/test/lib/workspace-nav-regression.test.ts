@@ -20,13 +20,12 @@ describe("workspace nav regression", () => {
       "/",
       "/assets",
       "/content/library",
-      "/settings/seo",
       "/settings/site",
       "/team/members",
       "/team/invitations",
       "/team/roles",
       "/extensions",
-      "/settings/maintenance/activity",
+      "/activity",
       "/settings/workspace",
     ]);
   });
@@ -46,7 +45,7 @@ describe("workspace nav regression", () => {
 
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "content")?.children?.map((item) => item.key),
-    ).toEqual(["assets", "content.library", "settings.seo", "settings.general"]);
+    ).toEqual(["assets", "content.library", "settings.site"]);
 
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "workspace")?.children?.map((item) => item.key),

@@ -1,1 +1,1 @@
-export { TeamInvitationsTableSection } from "@/pages/_shared/team/components/team-invitations-table-section";
+export { TeamInvitationsTableSection } from "@/pages/workspaces/team/shared/components/team-invitations-table-section";

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { buildInboxSourceSearch, validateInboxSourceSearch } from "@/lib/routing/inbox-source";
+import {
+  buildNotificationsSourceSearch,
+  validateNotificationsSourceSearch,
+} from "@/lib/routing/notifications-source";
 
 describe("inbox source search", () => {
   it("accepts allowed scene/path combinations and normalizes trailing slash", () => {
     expect(
-      validateInboxSourceSearch({
+      validateNotificationsSourceSearch({
         sourceKind: "workspace",
         sourcePath: "/w/ws-1/assets/",
       }),
@@ -15,17 +18,17 @@ describe("inbox source search", () => {
     });
 
     expect(
-      validateInboxSourceSearch({
+      validateNotificationsSourceSearch({
         sourceKind: "account",
-        sourcePath: "/account/profile/",
+        sourcePath: "/usercenter/profile/",
       }),
     ).toEqual({
       sourceKind: "account",
-      sourcePath: "/account/profile",
+      sourcePath: "/usercenter/profile",
     });
 
     expect(
-      validateInboxSourceSearch({
+      validateNotificationsSourceSearch({
         sourceKind: "global",
         sourcePath: "/workspaces/",
       }),
@@ -37,40 +40,40 @@ describe("inbox source search", () => {
 
   it("rejects external urls and mismatched prefixes", () => {
     expect(
-      validateInboxSourceSearch({
+      validateNotificationsSourceSearch({
         sourceKind: "workspace",
         sourcePath: "https://evil.example/steal",
       }),
     ).toEqual({});
 
     expect(
-      validateInboxSourceSearch({
+      validateNotificationsSourceSearch({
         sourceKind: "account",
         sourcePath: "//evil.example/steal",
       }),
     ).toEqual({});
 
     expect(
-      validateInboxSourceSearch({
+      validateNotificationsSourceSearch({
         sourceKind: "global",
-        sourcePath: "/account/profile",
+        sourcePath: "/usercenter/profile",
       }),
     ).toEqual({});
   });
 
   it("derives source context from supported paths only", () => {
-    expect(buildInboxSourceSearch("/w/ws-1/assets/")).toEqual({
+    expect(buildNotificationsSourceSearch("/w/ws-1/assets/")).toEqual({
       sourceKind: "workspace",
       sourcePath: "/w/ws-1/assets",
     });
-    expect(buildInboxSourceSearch("/account/profile/")).toEqual({
+    expect(buildNotificationsSourceSearch("/usercenter/profile/")).toEqual({
       sourceKind: "account",
-      sourcePath: "/account/profile",
+      sourcePath: "/usercenter/profile",
     });
-    expect(buildInboxSourceSearch("/workspaces/")).toEqual({
+    expect(buildNotificationsSourceSearch("/workspaces/")).toEqual({
       sourceKind: "global",
       sourcePath: "/workspaces",
     });
-    expect(buildInboxSourceSearch("/login")).toEqual({});
+    expect(buildNotificationsSourceSearch("/login")).toEqual({});
   });
 });

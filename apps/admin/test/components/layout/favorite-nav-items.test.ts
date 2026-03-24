@@ -8,7 +8,7 @@ import type { AdminNavItem } from "@/types/admin-nav";
 const items: AdminNavItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Overview",
     icon: Home,
     to: "/w/ws-1/",
   },
@@ -51,7 +51,7 @@ const items: AdminNavItem[] = [
     icon: Activity,
     children: [
       {
-        key: "settings.general",
+        key: "settings.site",
         label: "Site Settings",
         icon: Globe,
         to: "/w/ws-1/settings/site",

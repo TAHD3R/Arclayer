@@ -23,7 +23,7 @@ export function matchesCommandEntry(entry: CommandEntry, query: string): boolean
 
 export function buildNotificationsPath(workspaceId: string | null): string {
   if (workspaceId) return `/w/${encodeURIComponent(workspaceId)}/notifications/`;
-  return "/me/inbox/";
+  return "/notifications/";
 }
 
 export function formatAssetCommandTitle(asset: AdminAssetSummary): string {

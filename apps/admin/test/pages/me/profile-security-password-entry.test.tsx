@@ -6,8 +6,8 @@ import type { ReactElement } from "react";
 
 import { changePassword, getMySecurityCapabilities, setMyPassword } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
-import { MeProfilePasswordSection } from "@/pages/me/profile/components/profile-password-section";
-import { MeSecurityView } from "@/pages/me/security/components/me-security-view";
+import { UserPasswordSection } from "@/pages/usercenter/profile/components/profile-password-section";
+import { UserSecurityView } from "@/pages/usercenter/security/components/user-security-view";
 
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<object>("@tanstack/react-router");
@@ -33,12 +33,12 @@ vi.mock("@/lib/notifications", () => ({
   notifySuccessText: vi.fn(),
 }));
 
-vi.mock("@/pages/me/security/components/security-two-factor-section", () => ({
-  MeSecurityTwoFactorSection: () => <div data-testid="security-2fa" />,
+vi.mock("@/pages/usercenter/security/components/security-two-factor-section", () => ({
+  UserTwoFactorSection: () => <div data-testid="security-2fa" />,
 }));
 
-vi.mock("@/pages/me/security/components/security-sessions-section", () => ({
-  MeSecuritySessionsSection: () => <div data-testid="security-sessions" />,
+vi.mock("@/pages/usercenter/security/components/security-sessions-section", () => ({
+  UserSessionsSection: () => <div data-testid="security-sessions" />,
 }));
 
 vi.mock("@arclayer/ui/tooltip", () => ({
@@ -89,7 +89,7 @@ beforeEach(() => {
 
 describe("Profile password entry migration", () => {
   it("security tab should no longer render change-password card", () => {
-    renderWithQuery(<MeSecurityView mode="dialog" />);
+    renderWithQuery(<UserSecurityView mode="dialog" />);
     expect(
       screen.queryByText(i18n.t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")),
     ).not.toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("Profile password entry migration", () => {
   });
 
   it("security page mode no longer renders mini category navigation", () => {
-    renderWithQuery(<MeSecurityView mode="page" />);
+    renderWithQuery(<UserSecurityView mode="page" />);
 
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.getByTestId("security-2fa")).toBeInTheDocument();
@@ -105,7 +105,7 @@ describe("Profile password entry migration", () => {
   });
 
   it("profile password card shows change-password action for password accounts", async () => {
-    renderWithQuery(<MeProfilePasswordSection redirect="/me/profile" />);
+    renderWithQuery(<UserPasswordSection redirect="/usercenter/profile" />);
     expect(
       await screen.findByText(i18n.t("account:ME_PROFILE_PASSWORD_DESC_CHANGE")),
     ).toBeInTheDocument();
@@ -128,7 +128,7 @@ describe("Profile password entry migration", () => {
       emailChangeRequiredReauthMethods: ["2fa"],
     });
 
-    renderWithQuery(<MeProfilePasswordSection redirect="/me/profile" />);
+    renderWithQuery(<UserPasswordSection redirect="/usercenter/profile" />);
     expect(
       await screen.findByText(i18n.t("account:ME_PROFILE_PASSWORD_DESC_SET_2FA")),
     ).toBeInTheDocument();

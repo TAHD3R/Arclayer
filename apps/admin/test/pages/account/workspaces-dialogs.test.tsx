@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { OrganizationWorkspacesDialogs } from "@/pages/organization/workspaces/components/organization-workspaces-dialogs";
+import { UserCenterWorkspacesDialogs } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
 
 function renderDialogs() {
   return render(
-    <OrganizationWorkspacesDialogs
+    <UserCenterWorkspacesDialogs
       t={(key: string) => key}
       createDialog={{
         open: true,
@@ -35,7 +35,7 @@ function renderDialogs() {
   );
 }
 
-describe("OrganizationWorkspacesDialogs", () => {
+describe("UserCenterWorkspacesDialogs", () => {
   it("does not show the required name error until the field has been interacted with", async () => {
     const user = userEvent.setup();
     renderDialogs();

@@ -23,7 +23,7 @@ import { Spinner } from "@arclayer/ui/spinner";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
-import { buildInboxSourceSearch } from "@/lib/routing/inbox-source";
+import { buildNotificationsSourceSearch } from "@/lib/routing/notifications-source";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
@@ -132,7 +132,7 @@ export function AdminNotificationsPanel({
     () => new Set((workspacesQuery.data?.items ?? []).map((item) => String(item.workspaceId))),
     [workspacesQuery.data?.items],
   );
-  const inboxSourceSearch = useMemo(() => buildInboxSourceSearch(pathname), [pathname]);
+  const inboxSourceSearch = useMemo(() => buildNotificationsSourceSearch(pathname), [pathname]);
 
   const apiStatus = tabToApiStatus(tab);
 
@@ -445,7 +445,7 @@ export function AdminNotificationsPanel({
           )}
           onClick={() => {
             onClose();
-            void navigate({ to: "/me/inbox", search: inboxSourceSearch });
+            void navigate({ to: "/notifications", search: inboxSourceSearch });
           }}
         >
           {t("NOTIFICATIONS_OPEN_CENTER")}

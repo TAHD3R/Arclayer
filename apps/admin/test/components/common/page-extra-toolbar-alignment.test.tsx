@@ -3,8 +3,9 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ChromeTabs, ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 
-import { OrganizationWorkspacesToolbar } from "@/pages/organization/workspaces/components/organization-workspaces-toolbar";
-import { TeamInvitationsPageExtra } from "@/pages/_shared/team/components/team-invitations-page-extra";
+import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
+import { UserCenterWorkspacesToolbar } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-toolbar";
+import { TeamInvitationsPageExtra } from "@/pages/workspaces/team/shared/components/team-invitations-page-extra";
 
 vi.mock("@arclayer/ui/data-table", () => ({
   DataTableToolbarTools: () => <div data-testid="data-table-tools">tools</div>,
@@ -64,10 +65,13 @@ function getToolbarFromTablist() {
   return toolbar as HTMLDivElement;
 }
 
+const buildLabels = (overrides: Record<string, string> = {}) =>
+  buildDataTableToolsLabels((key) => overrides[key] ?? key);
+
 describe("PageExtraToolbar alignment", () => {
   it("keeps organization workspaces tabs vertically centered with trailing actions", () => {
     renderWithChromeTabs(
-      <OrganizationWorkspacesToolbar
+      <UserCenterWorkspacesToolbar
         t={(key) =>
           (
             ({
@@ -95,22 +99,7 @@ describe("PageExtraToolbar alignment", () => {
         onWrapHeadersChange={() => undefined}
         onRefresh={() => undefined}
         refreshing={false}
-        labels={{
-          columns: "Columns",
-          density: "Density",
-          compact: "Compact",
-          medium: "Medium",
-          comfortable: "Comfortable",
-          wrapHeaders: "Wrap headers",
-          reset: "Reset",
-          refresh: "Refresh",
-          resetColumns: "Reset columns",
-          resetColumnSizes: "Reset column sizes",
-          resetColumnOrder: "Reset column order",
-          clearSelection: "Clear selection",
-          viewOptions: "View options",
-          showHideColumns: "Show/hide columns",
-        }}
+        labels={buildLabels()}
       />,
     );
 
@@ -138,22 +127,7 @@ describe("PageExtraToolbar alignment", () => {
         onWrapHeadersChange={() => undefined}
         onRefresh={() => undefined}
         refreshing={false}
-        labels={{
-          columns: "列配置",
-          density: "密度",
-          compact: "紧凑",
-          medium: "标准",
-          comfortable: "宽松",
-          wrapHeaders: "标题换行",
-          reset: "重置",
-          refresh: "刷新",
-          resetColumns: "重置列",
-          resetColumnSizes: "重置列宽",
-          resetColumnOrder: "重置列顺序",
-          clearSelection: "清空选择",
-          viewOptions: "显示选项",
-          showHideColumns: "显示/隐藏列",
-        }}
+        labels={buildLabels()}
       />,
     );
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
@@ -13,7 +13,7 @@ import {
   regenerateTwoFactorBackupCodes,
 } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
-import { MeSecurityTwoFactorSection } from "@/pages/me/security/components/security-two-factor-section";
+import { UserTwoFactorSection } from "@/pages/usercenter/security/components/security-two-factor-section";
 
 vi.mock("@/api/auth", () => ({
   getTwoFactorStatus: vi.fn(),
@@ -97,7 +97,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("MeSecurityTwoFactorSection", () => {
+describe("UserTwoFactorSection", () => {
   it("shows not configured tag and starts setup flow", async () => {
     const user = userEvent.setup();
     getTwoFactorStatusMock.mockResolvedValue({ enabled: false, backupCodesRemaining: 0 });
@@ -114,7 +114,7 @@ describe("MeSecurityTwoFactorSection", () => {
       otpauthUri: "otpauth://totp/Arclayer?secret=SECRET-123",
     });
 
-    renderWithQuery(<MeSecurityTwoFactorSection />);
+    renderWithQuery(<UserTwoFactorSection />);
 
     expect(
       await screen.findByText(i18n.t("account:ME_SECURITY_2FA_AUTH_APP_NOT_CONFIGURED")),
@@ -160,7 +160,7 @@ describe("MeSecurityTwoFactorSection", () => {
     });
     confirmTwoFactorSetupMock.mockResolvedValue({ backupCodes: ["ABCD-1234"] });
 
-    renderWithQuery(<MeSecurityTwoFactorSection />);
+    renderWithQuery(<UserTwoFactorSection />);
 
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_SECURITY_2FA_ENABLE") }),
@@ -209,7 +209,7 @@ describe("MeSecurityTwoFactorSection", () => {
     regenerateTwoFactorBackupCodesMock.mockResolvedValue({ backupCodes: ["WXYZ-9999"] });
     disableTwoFactorMock.mockResolvedValue(null);
 
-    renderWithQuery(<MeSecurityTwoFactorSection />);
+    renderWithQuery(<UserTwoFactorSection />);
 
     expect(
       await screen.findByText(i18n.t("account:ME_SECURITY_2FA_AUTH_APP_CONFIGURED")),
@@ -238,14 +238,14 @@ describe("MeSecurityTwoFactorSection", () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: i18n.t("account:ME_SECURITY_2FA_DISABLE") }),
-      ).toBeEnabled();
+    const disableButton = await screen.findByRole("button", {
+      name: i18n.t("account:ME_SECURITY_2FA_DISABLE"),
+      hidden: true,
     });
-    await user.click(
-      screen.getByRole("button", { name: i18n.t("account:ME_SECURITY_2FA_DISABLE") }),
-    );
+    await waitFor(() => {
+      expect(disableButton).toBeEnabled();
+    });
+    fireEvent.click(disableButton);
     dialog = await screen.findByRole("dialog");
     dialogScope = within(dialog);
     await user.type(dialogScope.getByLabelText(i18n.t("auth:TWO_FACTOR_CODE_LABEL")), "654321");

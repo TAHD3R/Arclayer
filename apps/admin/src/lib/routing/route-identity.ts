@@ -15,13 +15,8 @@ export function isAcceptInvitePath(pathname: string): boolean {
   return pathname === "/invitations" || pathname === "/invitations/";
 }
 
-export function isAccountPath(pathname: string): boolean {
-  return (
-    pathname === "/account" ||
-    pathname.startsWith("/account/") ||
-    pathname === "/me" ||
-    pathname.startsWith("/me/")
-  );
+export function isUserCenterPath(pathname: string): boolean {
+  return pathname === "/usercenter" || pathname.startsWith("/usercenter/");
 }
 
 export function isGlobalPath(pathname: string): boolean {
@@ -34,10 +29,6 @@ export function isSetupPath(pathname: string): boolean {
 
 export function isRepairPath(pathname: string): boolean {
   return pathname === "/repair" || pathname.startsWith("/repair/");
-}
-
-export function isDevToolsPath(pathname: string): boolean {
-  return /^\/devtools(?:\/|$)/.test(pathname);
 }
 
 /** Auth scene paths — login & reset-password (used for layout switching). */

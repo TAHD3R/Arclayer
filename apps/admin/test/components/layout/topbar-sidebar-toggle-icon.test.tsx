@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { AccountTopbar } from "@/components/layout/account-topbar";
+import { UserCenterTopbar } from "@/components/layout/usercenter-topbar";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
@@ -101,10 +101,9 @@ describe("topbar sidebar toggle icon", () => {
     expectAnimatedHamburgerIcon();
   });
 
-  it("AccountTopbar 继续使用共享 animated Menu icon", () => {
+  it("UserCenterTopbar 继续使用共享 animated Menu icon", () => {
     renderWithSidebar(
-      <AccountTopbar
-        mode="account"
+      <UserCenterTopbar
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -115,10 +114,9 @@ describe("topbar sidebar toggle icon", () => {
     expectAnimatedHamburgerIcon();
   });
 
-  it("AccountTopbar 在桌面场景不再用隐藏 toggle 占位，而是直接按导航内容线对齐 logo", () => {
+  it("UserCenterTopbar 在桌面场景不再用隐藏 toggle 占位，而是直接按导航内容线对齐 logo", () => {
     renderWithSidebar(
-      <AccountTopbar
-        mode="account"
+      <UserCenterTopbar
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -135,10 +133,9 @@ describe("topbar sidebar toggle icon", () => {
     expect(leading).toHaveClass("md:pl-3");
   });
 
-  it("AccountTopbar 使用工作区返回入口替代账号设置标题与描述", () => {
+  it("UserCenterTopbar 使用工作区返回入口替代账号设置标题与描述", () => {
     renderWithSidebar(
-      <AccountTopbar
-        mode="account"
+      <UserCenterTopbar
         backLabel="Back to source"
         notificationOpen={false}
         showNotificationsBadge={false}
@@ -156,10 +153,9 @@ describe("topbar sidebar toggle icon", () => {
     expect(screen.queryByText("account:ACCOUNT_SETTINGS_DESC")).toBeNull();
   });
 
-  it("AccountTopbar 在 me scene 只显示 logo，不显示返回入口或搜索触发器", () => {
+  it("UserCenterTopbar 默认不显示 command trigger", () => {
     renderWithSidebar(
-      <AccountTopbar
-        mode="me"
+      <UserCenterTopbar
         notificationOpen={false}
         showNotificationsBadge={false}
         unreadCount={0}
@@ -168,15 +164,12 @@ describe("topbar sidebar toggle icon", () => {
     );
 
     expect(screen.getByTestId("full-logo")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Back to source" })).toBeNull();
-    expect(screen.queryByTestId("workspace-switcher")).toBeNull();
     expect(screen.queryByTestId("command-trigger")).toBeNull();
   });
 
-  it("AccountTopbar 可在 me inbox 场景显示中间 command trigger", () => {
+  it("UserCenterTopbar 可在 notifications 场景显示中间 command trigger", async () => {
     renderWithSidebar(
-      <AccountTopbar
-        mode="me"
+      <UserCenterTopbar
         navItems={[]}
         showCommandTrigger
         notificationOpen={false}
@@ -186,6 +179,8 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    expect(screen.getByTestId("command-trigger")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("command-trigger")).toBeInTheDocument();
+    });
   });
 });
