@@ -39,7 +39,7 @@ export function NotificationsView() {
     !canMarkAllRead && !showDevSeed ? null : (
       <div className="flex items-center gap-2">
         {showDevSeed ? (
-          <Button variant="secondary" loading={n.isSeeding} onClick={() => void n.seedDemo()}>
+          <Button variant="outline" loading={n.isSeeding} onClick={() => void n.seedDemo()}>
             {t("NOTIFICATIONS_DEV_SEED")}
           </Button>
         ) : null}

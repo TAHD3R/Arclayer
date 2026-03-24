@@ -20,7 +20,6 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 type FormValues = {
   emails: string[];
   roleCode: string;
-  joinMode: "member" | "guest";
   expiresInSeconds: number | null;
   allowedEmailDomain: string;
 };
@@ -90,7 +89,6 @@ export function InviteMembersDialog(props: {
         }
       }),
       roleCode: z.string().min(1, t("team:TEAM_INVITE_VALIDATION_ROLE_REQUIRED")),
-      joinMode: z.enum(["member", "guest"]),
       expiresInSeconds: z.number().int().min(60).nullable(),
       allowedEmailDomain: z.string().default(""),
     });
@@ -101,7 +99,6 @@ export function InviteMembersDialog(props: {
     defaultValues: {
       emails: [],
       roleCode: "",
-      joinMode: "member",
       expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS,
       allowedEmailDomain: "",
     },
@@ -113,7 +110,6 @@ export function InviteMembersDialog(props: {
       form.reset({
         emails: [],
         roleCode: "",
-        joinMode: "member",
         expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS,
         allowedEmailDomain: "",
       });
@@ -135,7 +131,6 @@ export function InviteMembersDialog(props: {
     mutationFn: async (values: FormValues) => {
       const emails = normalizeEmailList(values.emails);
       const roleCode = values.roleCode;
-      const joinMode = values.joinMode;
       const expiresInSeconds = values.expiresInSeconds;
 
       if (props.mode === "email") {
@@ -145,7 +140,6 @@ export function InviteMembersDialog(props: {
               workspaceId: props.workspaceId,
               email,
               roleCode,
-              joinMode,
               expiresInSeconds,
             }),
           ),
@@ -170,7 +164,6 @@ export function InviteMembersDialog(props: {
       const created = await createTeamInviteLink({
         workspaceId: props.workspaceId,
         roleCode,
-        joinMode,
         expiresInSeconds,
         allowedEmailDomain: values.allowedEmailDomain.trim() || null,
       });
@@ -242,17 +235,8 @@ export function InviteMembersDialog(props: {
     [t],
   );
 
-  const joinModeOptions = React.useMemo(
-    () => [
-      { label: t("team:TEAM_INVITE_JOIN_MODE_MEMBER"), value: "member" as const },
-      { label: t("team:TEAM_INVITE_JOIN_MODE_GUEST"), value: "guest" as const },
-    ],
-    [t],
-  );
-
   const emailTags = form.watch("emails");
   const selectedRoleCode = form.watch("roleCode");
-  const selectedJoinMode = form.watch("joinMode");
   const selectedExpires = form.watch("expiresInSeconds");
   const invalidEmailMessageByValue = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -351,34 +335,6 @@ export function InviteMembersDialog(props: {
               {String(form.formState.errors.roleCode.message)}
             </div>
           ) : null}
-        </div>
-
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="invite-join-mode">
-            {t("team:TEAM_INVITE_FIELD_JOIN_MODE")}
-          </label>
-          <div className="text-label-secondary">{t("team:TEAM_INVITE_JOIN_MODE_HELP")}</div>
-          <Select
-            value={selectedJoinMode}
-            onValueChange={(value) =>
-              form.setValue("joinMode", value as FormValues["joinMode"], {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-            disabled={inviteMutation.isPending}
-          >
-            <SelectTrigger id="invite-join-mode" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start">
-              {joinModeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {props.mode === "link" ? (

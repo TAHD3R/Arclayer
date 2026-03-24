@@ -48,11 +48,11 @@ export function buildInvitationUserDetails(props: {
   lastUsedAt?: string | null;
   lastUsedAtLabel?: string | null;
 }) {
-  const createdText = props.dateTime.formatDate(props.createdAt, {
+  const createdText = props.dateTime.formatDateTime(props.createdAt, {
     emptyValue: props.t("common:NA"),
   });
   const expiresText = props.expiresAt
-    ? props.dateTime.formatDate(props.expiresAt, { emptyValue: props.t("common:NA") })
+    ? props.dateTime.formatDateTime(props.expiresAt, { emptyValue: props.t("common:NA") })
     : props.t("team:TEAM_INVITATIONS_NEVER_EXPIRES");
   const processedText = props.processedAt
     ? props.dateTime.formatDateTime(props.processedAt, { emptyValue: props.t("common:NA") })

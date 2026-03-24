@@ -293,7 +293,6 @@ export function TeamMembersView(props: {
         id: "roles",
         meta: {
           title: t("team:TEAM_TABLE_COL_ROLES"),
-          defaultHidden: true,
         },
         header: () => <span>{t("team:TEAM_TABLE_COL_ROLES")}</span>,
         cell: ({ row }) => {
@@ -363,7 +362,6 @@ export function TeamMembersView(props: {
         meta: {
           title: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
           sortKey: "user__last_login_at",
-          defaultHidden: true,
         },
         header: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
         cell: ({ row }) => {

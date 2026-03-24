@@ -243,12 +243,9 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
-          const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
-          const datetime = formatted || "-";
+          const formatted = dateTime.formatDateTimeOrNull(row.original.createdAt);
           return (
-            <span className={formatted ? "" : "text-label-secondary"}>
-              {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
-            </span>
+            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
           );
         },
       },
@@ -260,7 +257,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         },
         header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
         cell: ({ row }) => {
-          const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
+          const formatted = dateTime.formatDateTimeOrNull(row.original.expiresAt);
           return (
             <span className={formatted ? "" : "text-label-secondary"}>
               {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
@@ -494,12 +491,9 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATED"),
         cell: ({ row }) => {
-          const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
-          const datetime = formatted || "-";
+          const formatted = dateTime.formatDateTimeOrNull(row.original.createdAt);
           return (
-            <span className={formatted ? "" : "text-label-secondary"}>
-              {t("team:TEAM_INVITATIONS_SENT_AT", { datetime })}
-            </span>
+            <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
           );
         },
       },
@@ -513,7 +507,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         },
         header: t("team:TEAM_INVITE_LINKS_COL_EXPIRES"),
         cell: ({ row }) => {
-          const formatted = dateTime.formatDate(row.original.expiresAt, { emptyValue: "" });
+          const formatted = dateTime.formatDateTimeOrNull(row.original.expiresAt);
           return (
             <span className={formatted ? "" : "text-label-secondary"}>
               {formatted || t("team:TEAM_INVITATIONS_NEVER_EXPIRES")}
@@ -649,7 +643,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   });
   const inviteAction = (
     <div className="flex items-center gap-2">
-      <Button variant="secondary" onClick={() => setInviteOpen(true)}>
+      <Button variant="outline" onClick={() => setInviteOpen(true)}>
         {t("team:TEAM_INVITE_CREATE_LINK_ACTION")}
       </Button>
       <Button onClick={() => setInviteEmailOpen(true)}>

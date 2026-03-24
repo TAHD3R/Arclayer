@@ -6,6 +6,11 @@ export type CreateRoleFormValues = {
   description: string;
 };
 
+export type EditRoleFormValues = {
+  name: string;
+  description: string;
+};
+
 export function normalizeNeedle(input: string): string {
   return String(input || "")
     .trim()

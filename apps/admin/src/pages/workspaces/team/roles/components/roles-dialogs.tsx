@@ -1,4 +1,9 @@
-import { Controller, type FieldErrors, type UseFormReturn } from "react-hook-form";
+import {
+  Controller,
+  type FieldErrors,
+  type FieldValues,
+  type UseFormReturn,
+} from "react-hook-form";
 
 import type { Role } from "@/types/api";
 import {
@@ -19,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
 
-import type { CreateRoleFormValues } from "../utils";
+import type { CreateRoleFormValues, EditRoleFormValues } from "../utils";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -37,7 +42,54 @@ interface TeamRolesDialogsProps {
   createErrors: FieldErrors<CreateRoleFormValues>;
   createRolePending: boolean;
   onCreateRoleSubmit: (values: CreateRoleFormValues) => void;
+  editOpen: boolean;
+  setEditOpen: (open: boolean) => void;
+  editForm: UseFormReturn<EditRoleFormValues>;
+  editErrors: FieldErrors<EditRoleFormValues>;
+  editRolePending: boolean;
+  onEditRoleSubmit: (values: EditRoleFormValues) => void;
   roles: Role[];
+}
+
+function RoleDetailsFields<
+  TFormValues extends FieldValues & { name: string; description: string },
+>(props: { t: TranslateFn; form: UseFormReturn<TFormValues>; errors: FieldErrors<TFormValues> }) {
+  const { t, form, errors } = props;
+
+  return (
+    <>
+      <div className="grid gap-1.5">
+        <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_NAME")}</label>
+        <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
+        <Controller
+          name={"name" as never}
+          control={form.control}
+          render={({ field }) => (
+            <Input value={field.value} onChange={(event) => field.onChange(event.target.value)} />
+          )}
+        />
+        {errors.name?.message ? (
+          <p className="text-caption text-destructive">{String(errors.name.message)}</p>
+        ) : null}
+      </div>
+
+      <div className="grid gap-1.5">
+        <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_DESC")}</label>
+        <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
+        <Controller
+          name={"description" as never}
+          control={form.control}
+          render={({ field }) => (
+            <Textarea
+              className="min-h-28"
+              value={field.value}
+              onChange={(event) => field.onChange(event.target.value)}
+            />
+          )}
+        />
+      </div>
+    </>
+  );
 }
 
 export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
@@ -55,6 +107,12 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
     createErrors,
     createRolePending,
     onCreateRoleSubmit,
+    editOpen,
+    setEditOpen,
+    editForm,
+    editErrors,
+    editRolePending,
+    onEditRoleSubmit,
     roles,
   } = props;
 
@@ -166,43 +224,32 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
             ) : null}
           </div>
 
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_ROLES_FIELD_NAME")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
-            <Controller
-              name="name"
-              control={createForm.control}
-              render={({ field }) => (
-                <Input
-                  value={field.value}
-                  onChange={(event) => field.onChange(event.target.value)}
-                />
-              )}
-            />
-            {createErrors.name?.message ? (
-              <p className="text-caption text-destructive">{String(createErrors.name.message)}</p>
-            ) : null}
-          </div>
+          <RoleDetailsFields t={t} form={createForm} errors={createErrors} />
+        </form>
+      </SettingDialog>
 
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
-              {t("team:TEAM_ROLES_FIELD_DESC")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
-            <Controller
-              name="description"
-              control={createForm.control}
-              render={({ field }) => (
-                <Textarea
-                  className="min-h-28"
-                  value={field.value}
-                  onChange={(event) => field.onChange(event.target.value)}
-                />
-              )}
-            />
-          </div>
+      <SettingDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        title={t("team:TEAM_ROLES_EDIT_ROLE_DIALOG_TITLE")}
+        description={t("team:TEAM_ROLES_EDIT_ROLE_DIALOG_DESC")}
+        contentClassName="max-w-[640px]"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditOpen(false)} disabled={editRolePending}>
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              loading={editRolePending}
+              onClick={() => void editForm.handleSubmit(onEditRoleSubmit)()}
+            >
+              {t("common:CONFIRM")}
+            </Button>
+          </>
+        }
+      >
+        <form className="grid gap-4" onSubmit={editForm.handleSubmit(onEditRoleSubmit)}>
+          <RoleDetailsFields t={t} form={editForm} errors={editErrors} />
         </form>
       </SettingDialog>
     </>
