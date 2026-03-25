@@ -1,5 +1,5 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight } from "@arclayer/ui/icons/lucide-animated";
+import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { cn } from "@arclayer/lib/utils";
 import { breadcrumbTriggerClassName } from "@/components/layout/admin-workspace-switcher";
-import RefreshIcon from "@arclayer/ui/icons/refresh-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -178,7 +177,7 @@ export function AdminHeader(props: {
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >
-          <RefreshIcon size={16} isHovered={refreshHovered} className="text-current" />
+          <RefreshCw size={16} className={cn("text-current", refreshHovered && "opacity-80")} />
         </ButtonPrimitive>
       ) : null}
 

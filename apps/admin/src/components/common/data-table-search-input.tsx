@@ -1,4 +1,4 @@
-import { Search, X } from "@arclayer/ui/icons/lucide-animated";
+import { Search, X } from "lucide-react";
 
 import {
   InputGroup,

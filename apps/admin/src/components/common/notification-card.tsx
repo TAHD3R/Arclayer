@@ -1,11 +1,4 @@
-import {
-  Archive,
-  Check,
-  ShieldCheck,
-  Trash2,
-  Users,
-  Wrench,
-} from "@arclayer/ui/icons/lucide-animated";
+import { Archive, Check, ShieldCheck, Trash2, Users, Wrench } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 

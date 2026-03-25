@@ -1,6 +1,5 @@
 import type { CSSProperties, HTMLAttributes, MouseEventHandler, ReactNode } from "react";
-import { X } from "@arclayer/ui/icons/lucide-animated";
-import type { LucideIcon } from "lucide-react";
+import { X, type LucideIcon } from "lucide-react";
 
 import { cn } from "@arclayer/lib/utils";
 

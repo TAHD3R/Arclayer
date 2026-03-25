@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, X } from "@arclayer/ui/icons/lucide-animated";
+import { Check, ChevronDown, X } from "lucide-react";
 import debounce from "lodash/debounce";
 
 import { UserAvatar } from "@/components/common/entity-avatar";

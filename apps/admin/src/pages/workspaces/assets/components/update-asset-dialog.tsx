@@ -1,8 +1,7 @@
-import { CircleHelp } from "@arclayer/ui/icons/lucide-animated";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save } from "lucide-react";
+import { CircleHelp, Save } from "lucide-react";
 
 import { getAssetDetail, moveAsset, patchAsset } from "@/api/assets";
 import { assetScopeKey } from "@/lib/assets/asset-scope";

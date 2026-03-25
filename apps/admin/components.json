@@ -25,7 +25,6 @@
     "@react-bits": "https://reactbits.dev/r/{name}.json",
     "@reui": "https://reui.io/r/{style}/{name}.json",
     "@magicui": "https://magicui.design/r/{name}",
-    "@fonttrio": "https://www.fonttrio.xyz/r/{name}.json",
-    "@lucide-animated": "https://lucide-animated.com/r/{name}.json"
+    "@fonttrio": "https://www.fonttrio.xyz/r/{name}.json"
   }
 }

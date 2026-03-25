@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { ChevronRight } from "@arclayer/ui/icons/lucide-animated";
+import { ChevronRight } from "lucide-react";
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@arclayer/ui/accordion";
 import { cn } from "@arclayer/lib/utils";

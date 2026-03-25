@@ -1,6 +1,6 @@
 "use client";
 
-import { SlidersHorizontal } from "@arclayer/ui/icons/lucide-animated";
+import { SlidersHorizontal } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@arclayer/lib/utils";

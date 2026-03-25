@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, LayoutGrid, ShieldCheck } from "@arclayer/ui/icons/lucide-animated";
+import { BarChart3, LayoutGrid, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { listMyWorkspaces } from "@/api/workspaces";

@@ -1,5 +1,4 @@
 import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
-import ChevronRightIcon from "@arclayer/ui/icons/chevron-right";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import {
@@ -17,6 +16,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@arclayer/ui/sidebar";
+import { ChevronRight } from "lucide-react";
 import * as React from "react";
 import type { MouseEventHandler, ReactNode } from "react";
 
@@ -129,7 +129,6 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
     ref,
   ) {
     const Icon = item.icon;
-    const [isHovered, setIsHovered] = React.useState(false);
     const className = cn(
       "relative z-10",
       NAV_ITEM_HEIGHT_CLASSNAME,
@@ -150,8 +149,6 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
         tooltip={tooltip}
         aria-disabled={item.disabled ? "true" : undefined}
         className={className}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         {...triggerProps}
       >
         {iconSlot(0, Icon, { isActive: isTrailActive, collapseMotion: "shift" })}
@@ -159,11 +156,12 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
           {label}
         </span>
         <span className={cn("ml-auto shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-          <ChevronRightIcon
+          <ChevronRight
             size={16}
-            expanded={isOpen}
-            isHovered={isHovered}
-            className="shrink-0 text-label-secondary"
+            className={cn(
+              "shrink-0 text-label-secondary transition-transform duration-200",
+              isOpen && "rotate-90",
+            )}
             aria-hidden="true"
           />
         </span>

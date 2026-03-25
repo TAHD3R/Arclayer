@@ -1,7 +1,5 @@
-import { Download, ExternalLink, Pencil, Settings2 } from "lucide-react";
+import { Download, ExternalLink, Pencil, Settings2, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
-
-import TrashIcon from "@arclayer/ui/icons/trash-icon";
 
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
@@ -78,7 +76,7 @@ export function buildAssetMoreMenuItems(params: {
       type: "item",
       key: "delete",
       label: t("assets:ASSET_ACTION_DELETE"),
-      icon: <TrashIcon size={16} isHovered />,
+      icon: <Trash2 size={16} />,
       variant: "destructive",
     },
   ];

@@ -3,7 +3,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { Pin, PinOff, X } from "@arclayer/ui/icons/lucide-animated";
+import { Pin, PinOff, X } from "lucide-react";
 import { motion } from "motion/react";
 
 import { archiveNotification, listNotifications, markNotificationRead } from "@/api/notifications";

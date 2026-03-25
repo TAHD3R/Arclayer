@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { Button } from "@arclayer/ui/button";
-import LanguagesIcon from "@arclayer/ui/icons/languages-icon";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,7 +18,6 @@ export function AdminLocaleToggle(props: { className?: string }) {
   const locale = usePreferencesStore((s) => s.locale);
   const setLocale = usePreferencesStore((s) => s.setLocale);
   const { t } = useTranslation();
-  const [hovered, setHovered] = useState(false);
   const localeOptions = buildSupportedLocaleOptions(SUPPORTED_LOCALES, t);
 
   return (
@@ -30,10 +28,8 @@ export function AdminLocaleToggle(props: { className?: string }) {
           variant="ghost"
           size="icon-lg"
           className={props.className}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
         >
-          <LanguagesIcon size={18} isHovered={hovered} className="text-current" />
+          <Languages size={18} className="text-current" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

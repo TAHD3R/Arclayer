@@ -1,5 +1,4 @@
-import { Bell, Menu } from "@arclayer/ui/icons/lucide-animated";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bell, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { AdminNavItem } from "@/types/admin-nav";

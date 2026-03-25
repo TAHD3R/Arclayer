@@ -1,11 +1,10 @@
 import { Children, Fragment, isValidElement, type ReactNode, useState } from "react";
 import clsx from "clsx";
-import { Star } from "@arclayer/ui/icons/lucide-animated";
 import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
-import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import { PanelLeftOpen, PanelRightOpen, Star } from "lucide-react";
 
 import { ContentGuard, type ContentGuardProps } from "@/layouts/page-shell/content-guard";
 import { ApiError } from "@/lib/http";
@@ -54,14 +53,16 @@ function FavoriteToggle() {
               "text-amber-500 hover:text-amber-500 dark:text-amber-300 dark:hover:text-amber-300",
           )}
         >
-          <Star
-            size={16}
-            strokeWidth={2}
-            className={clsx(
-              "transition-colors",
-              hovered || isFavorited ? "fill-current" : "fill-transparent",
-            )}
-          />
+          <span className="inline-flex items-center justify-center">
+            <Star
+              size={16}
+              strokeWidth={2}
+              className={clsx(
+                "transition-colors",
+                hovered || isFavorited ? "fill-current" : "fill-transparent",
+              )}
+            />
+          </span>
         </Button>
       </TooltipTrigger>
       <TooltipContent>

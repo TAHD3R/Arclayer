@@ -1,4 +1,4 @@
-import { Trash2 } from "@arclayer/ui/icons/lucide-animated";
+import { Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@arclayer/lib/utils";

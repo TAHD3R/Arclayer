@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus } from "@arclayer/ui/icons/lucide-animated";
+import { Plus } from "lucide-react";
 
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Search, X } from "@arclayer/ui/icons/lucide-animated";
+import { Search, X } from "lucide-react";
 
 import { MiniCategoryNav } from "@arclayer/ui/mini-category-nav";
 import { Checkbox } from "@arclayer/ui/checkbox";

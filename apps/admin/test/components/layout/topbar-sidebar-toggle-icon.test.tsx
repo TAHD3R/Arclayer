@@ -5,10 +5,14 @@ import { UserCenterTopbar } from "@/components/layout/usercenter-topbar";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
-vi.mock("@arclayer/ui/icons/lucide-animated", () => ({
-  Bell: (props: React.ComponentProps<"svg">) => <svg data-testid="animated-bell" {...props} />,
-  Menu: (props: React.ComponentProps<"span">) => <span data-testid="animated-menu" {...props} />,
-}));
+vi.mock("lucide-react", async () => {
+  const actual = await vi.importActual<typeof import("lucide-react")>("lucide-react");
+  return {
+    ...actual,
+    Bell: (props: React.ComponentProps<"svg">) => <svg data-testid="bell-icon" {...props} />,
+    Menu: (props: React.ComponentProps<"svg">) => <svg data-testid="menu-icon" {...props} />,
+  };
+});
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -59,9 +63,9 @@ function renderWithSidebar(node: React.ReactElement) {
   );
 }
 
-function expectAnimatedHamburgerIcon() {
+function expectStaticHamburgerIcon() {
   const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
-  expect(toggleButton.querySelector("[data-testid='animated-menu']")).not.toBeNull();
+  expect(toggleButton.querySelector("[data-testid='menu-icon']")).not.toBeNull();
 }
 
 beforeAll(() => {
@@ -81,7 +85,7 @@ beforeAll(() => {
 });
 
 describe("topbar sidebar toggle icon", () => {
-  it("AdminTopbar 继续使用共享 animated Menu icon", () => {
+  it("AdminTopbar 使用 lucide-react 的静态 Menu icon", () => {
     renderWithSidebar(
       <AdminTopbar
         navItems={[]}
@@ -98,10 +102,10 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    expectAnimatedHamburgerIcon();
+    expectStaticHamburgerIcon();
   });
 
-  it("UserCenterTopbar 继续使用共享 animated Menu icon", () => {
+  it("UserCenterTopbar 使用 lucide-react 的静态 Menu icon", () => {
     renderWithSidebar(
       <UserCenterTopbar
         notificationOpen={false}
@@ -111,7 +115,7 @@ describe("topbar sidebar toggle icon", () => {
       />,
     );
 
-    expectAnimatedHamburgerIcon();
+    expectStaticHamburgerIcon();
   });
 
   it("UserCenterTopbar 在桌面场景不再用隐藏 toggle 占位，而是直接按导航内容线对齐 logo", () => {

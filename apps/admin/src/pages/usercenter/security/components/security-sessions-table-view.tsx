@@ -1,5 +1,5 @@
 import type { ColumnDef, Table as ReactTable } from "@tanstack/react-table";
-import { LogOut } from "@arclayer/ui/icons/lucide-animated";
+import { LogOut } from "lucide-react";
 
 import {
   buildDataTableActionsColumnMeta,

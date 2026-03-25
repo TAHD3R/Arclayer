@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Bell,
-  SlidersHorizontal,
-  Shield,
-  UserRound,
-  Workflow,
-} from "@arclayer/ui/icons/lucide-animated";
+import { Bell, SlidersHorizontal, Shield, UserRound, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";

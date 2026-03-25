@@ -1,6 +1,5 @@
-import { type ReactNode, useMemo, useState } from "react";
-
-import ChevronRightIcon from "@arclayer/ui/icons/chevron-right";
+import { ChevronRight } from "lucide-react";
+import { type ReactNode, useMemo } from "react";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { cn } from "@arclayer/lib/utils";
 
@@ -48,7 +47,6 @@ function normalizeDescription(desc: Description): ReactNode {
 }
 
 export function SettingActionItem(props: SettingActionItemProps) {
-  const [hovered, setHovered] = useState(false);
   const desc = useMemo(() => normalizeDescription(props.description), [props.description]);
   const titleColumnWidth = props.titleColumnWidth ?? 240;
   const showChevron = props.showChevron ?? true;
@@ -99,7 +97,7 @@ export function SettingActionItem(props: SettingActionItemProps) {
           )}
         >
           {hasRight ? props.right : null}
-          {showChevron ? <ChevronRightIcon size={18} strokeWidth={2} isHovered={hovered} /> : null}
+          {showChevron ? <ChevronRight size={18} strokeWidth={2} /> : null}
         </div>
       ) : null}
     </div>
@@ -108,8 +106,6 @@ export function SettingActionItem(props: SettingActionItemProps) {
   if (as === "div") {
     return (
       <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         className={cn(
           "w-full text-left",
           "transition-colors",
@@ -128,8 +124,6 @@ export function SettingActionItem(props: SettingActionItemProps) {
       type="button"
       disabled={props.disabled}
       onClick={() => props.onTrigger?.()}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       tapScale={1}
       className={cn(
         "w-full text-left",

@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
-import { Star } from "@arclayer/ui/icons/lucide-animated";
+import { Star } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { cn } from "@arclayer/lib/utils";
