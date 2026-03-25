@@ -112,7 +112,10 @@ describe("useContentBootstrapController", () => {
       presetState: "selected",
       capabilityPackIds: ["routable", "publishable", "seo_managed", "layout_bound"],
     });
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/content/library" });
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/w/ws-1/content/library",
+      search: { view: "draft", focusItemId: "item-1" },
+    });
   });
 
   test("continue can create a blank draft without a selected template", async () => {
@@ -151,6 +154,9 @@ describe("useContentBootstrapController", () => {
     });
 
     expect(applyContentBootstrapShapeMock).not.toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/content/library" });
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/w/ws-1/content/library",
+      search: { view: "draft", focusItemId: "item-2" },
+    });
   });
 });

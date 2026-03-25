@@ -3,7 +3,9 @@ import { api } from "@/lib/http";
 import type {
   AdminContentItem,
   AdminContentModel,
+  AdminContentSeoProfile,
   AdminContentVersion,
+  AdminPublishImpact,
   ApplyAdminContentBootstrapShapePayload,
   CreateAdminContentItemPayload,
   ListAdminContentItemsParams,
@@ -88,6 +90,30 @@ export async function archiveContentItemVersion(
   return api.post<AdminContentVersion>(
     workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}/archive`),
   );
+}
+
+export async function getContentItemVersion(
+  workspaceId: string,
+  itemId: string,
+  versionNumber: number,
+): Promise<AdminContentVersion> {
+  return api.get<AdminContentVersion>(
+    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}`),
+  );
+}
+
+export async function getContentSeoProfile(
+  workspaceId: string,
+  itemId: string,
+  versionNumber: number,
+): Promise<AdminContentSeoProfile> {
+  return api.get<AdminContentSeoProfile>(
+    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}/seo`),
+  );
+}
+
+export async function getWorkspacePublishImpact(workspaceId: string): Promise<AdminPublishImpact> {
+  return api.get<AdminPublishImpact>(workspacePath(workspaceId, "/publish/impact"));
 }
 
 export async function archiveContentItem(

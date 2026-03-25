@@ -6,7 +6,9 @@ import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
-import { BaseTag, ContentRuntimeTag, LocaleTagList } from "@/components/ui/tags";
+import { BaseTag } from "@/components/ui/tags";
+import { ContentLibraryEditWithTag } from "./components/content-library-edit-with-tag";
+import { ContentLibraryRoleTag } from "./components/content-library-role-tag";
 import { ContentLibraryStatusTag } from "./components/content-library-status-tag";
 import { ContentLibraryRowActions } from "./components/content-library-row-actions";
 import type { ContentLibraryTableRow } from "./types";
@@ -19,20 +21,30 @@ function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
     <div className="min-w-0">
       <div className="truncate text-headline text-label-primary">{props.row.name}</div>
       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
-        <ContentRuntimeTag runtime={props.row.runtime} />
+        <ContentLibraryRoleTag role={props.row.role} />
+        <ContentLibraryEditWithTag editWith={props.row.editWith} />
         {showAddress ? <BaseTag color="blue">/{props.row.slug}</BaseTag> : null}
       </div>
     </div>
   );
 }
 
-function ContentLibraryLocaleCell(props: { locale: string }) {
-  return <LocaleTagList localeCodes={props.locale} />;
+function ContentLibraryModelCell(props: { row: ContentLibraryTableRow; untypedLabel: string }) {
+  return (
+    <span className="text-body text-label-primary">
+      {props.row.modelName || props.untypedLabel}
+    </span>
+  );
+}
+
+function ContentLibraryGroupCell(props: { row: ContentLibraryTableRow; label: string }) {
+  return <BaseTag color="blue">{props.label}</BaseTag>;
 }
 
 export function useContentLibraryTableColumns(params: {
   formatDateTimeOrNull: (value: string | null | undefined) => string | null;
   actionPending: boolean;
+  onContinue: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
@@ -51,6 +63,35 @@ export function useContentLibraryTableColumns(params: {
         minSize: 220,
       },
       {
+        accessorKey: "modelName",
+        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_MODEL"), sortKey: "modelName", kind: "meta" },
+        header: t("CONTENT_LIBRARY_TABLE_COL_MODEL"),
+        cell: ({ row }) => (
+          <ContentLibraryModelCell
+            row={row.original}
+            untypedLabel={t("CONTENT_LIBRARY_ROW_UNTYPED")}
+          />
+        ),
+        size: 210,
+        minSize: 180,
+      },
+      {
+        accessorKey: "libraryGroup",
+        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP"), kind: "meta" },
+        header: t("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP"),
+        cell: ({ row }) => {
+          const label =
+            row.original.libraryGroup === "site-content"
+              ? t("CONTENT_LIBRARY_GROUP_SITE_CONTENT")
+              : row.original.libraryGroup === "structured-content"
+                ? t("CONTENT_LIBRARY_GROUP_STRUCTURED_CONTENT")
+                : t("CONTENT_LIBRARY_GROUP_GENERAL_CONTENT");
+          return <ContentLibraryGroupCell row={row.original} label={label} />;
+        },
+        size: 188,
+        minSize: 168,
+      },
+      {
         accessorKey: "derivedStatus",
         meta: {
           title: t("CONTENT_LIBRARY_TABLE_COL_STATUS"),
@@ -62,14 +103,6 @@ export function useContentLibraryTableColumns(params: {
         size: 140,
         minSize: 140,
         maxSize: 140,
-      },
-      {
-        accessorKey: "locale",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_LOCALE"), kind: "meta" },
-        header: t("CONTENT_LIBRARY_TABLE_COL_LOCALE"),
-        cell: ({ row }) => <ContentLibraryLocaleCell locale={row.original.locale} />,
-        size: 196,
-        minSize: 172,
       },
       {
         accessorKey: "updatedAt",
@@ -101,6 +134,7 @@ export function useContentLibraryTableColumns(params: {
             <ContentLibraryRowActions
               row={row.original}
               pending={params.actionPending}
+              onContinue={params.onContinue}
               onDuplicate={params.onDuplicate}
               onDelete={params.onDelete}
               onArchive={params.onArchive}
@@ -108,13 +142,14 @@ export function useContentLibraryTableColumns(params: {
             />
           </DataTableActionsCell>
         ),
-        size: 56,
-        minSize: 56,
-        maxSize: 56,
+        size: 180,
+        minSize: 168,
+        maxSize: 220,
       },
     ],
     [
       params.actionPending,
+      params.onContinue,
       params.formatDateTimeOrNull,
       params.onArchive,
       params.onDelete,

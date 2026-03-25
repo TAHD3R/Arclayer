@@ -6,7 +6,10 @@ import { applyContentBootstrapShape, createContentItem } from "@/api/content";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { DEFAULT_LOCALE, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
-import { workspaceContentLibraryPath } from "@/lib/routing/workspace-content-routing";
+import {
+  buildWorkspaceContentLibraryFocusSearch,
+  workspaceContentLibraryPath,
+} from "@/lib/routing/workspace-content-routing";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 import { buildContentItemsQueryKey } from "../../library/utils";
@@ -58,7 +61,7 @@ function useContinueWithStarterMutation(params: {
   locale: AppLocale;
   presetKey: ContentBootstrapPresetKey | null;
   invalidateItems: () => Promise<void>;
-  onSuccess: () => void;
+  onSuccess: (itemId: string) => void;
 }) {
   return useMutation({
     mutationFn: async () => {
@@ -77,9 +80,10 @@ function useContinueWithStarterMutation(params: {
         );
       }
       await params.invalidateItems();
+      return draftItem;
     },
-    onSuccess: () => {
-      params.onSuccess();
+    onSuccess: (draftItem) => {
+      params.onSuccess(draftItem.id);
     },
     onError: (error) => notifyError(error),
   });
@@ -105,13 +109,23 @@ export function useContentBootstrapController(workspaceId: string) {
     void navigate({ to: workspaceContentLibraryPath(workspaceId) });
   }, [navigate, workspaceId]);
 
+  const navigateToFocusedDraft = React.useCallback(
+    (itemId: string) => {
+      void navigate({
+        to: workspaceContentLibraryPath(workspaceId),
+        search: buildWorkspaceContentLibraryFocusSearch(itemId),
+      });
+    },
+    [navigate, workspaceId],
+  );
+
   const continueMutation = useContinueWithStarterMutation({
     workspaceId,
     title,
     locale,
     presetKey: selectedPresetKey,
     invalidateItems,
-    onSuccess: navigateToLibrary,
+    onSuccess: navigateToFocusedDraft,
   });
 
   return {

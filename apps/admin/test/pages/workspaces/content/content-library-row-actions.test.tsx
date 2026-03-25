@@ -38,8 +38,9 @@ function buildRow(overrides: Partial<ContentLibraryTableRow> = {}): ContentLibra
 }
 
 describe("content-library-row-actions", () => {
-  it("enables duplicate delete archive actions and routes them to callbacks", async () => {
+  it("shows a direct continue action and routes duplicate delete archive actions to callbacks", async () => {
     const user = userEvent.setup();
+    const onContinue = vi.fn();
     const onDuplicate = vi.fn();
     const onDelete = vi.fn();
     const onArchive = vi.fn();
@@ -47,12 +48,15 @@ describe("content-library-row-actions", () => {
     render(
       <ContentLibraryRowActions
         row={buildRow()}
+        onContinue={onContinue}
         onDuplicate={onDuplicate}
         onDelete={onDelete}
         onArchive={onArchive}
         onUnarchive={vi.fn()}
       />,
     );
+
+    await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }));
 
     const trigger = screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS");
 
@@ -63,6 +67,7 @@ describe("content-library-row-actions", () => {
     await user.click(trigger);
     await user.click(screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_ARCHIVE" }));
 
+    expect(onContinue).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
     expect(onDuplicate).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
     expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
     expect(onArchive).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
@@ -74,6 +79,7 @@ describe("content-library-row-actions", () => {
     render(
       <ContentLibraryRowActions
         row={buildRow({ draftVersion: 0, publishedVersion: null })}
+        onContinue={vi.fn()}
         onDuplicate={vi.fn()}
         onDelete={vi.fn()}
         onArchive={vi.fn()}
@@ -85,7 +91,7 @@ describe("content-library-row-actions", () => {
 
     expect(
       screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_ARCHIVE" }),
-    ).toHaveAttribute("data-disabled", "false");
+    ).not.toHaveAttribute("data-disabled", "true");
   });
 
   it("switches archived rows to an unarchive action", async () => {
@@ -95,6 +101,7 @@ describe("content-library-row-actions", () => {
     render(
       <ContentLibraryRowActions
         row={buildRow({ status: "archived", derivedStatus: "archived" })}
+        onContinue={vi.fn()}
         onDuplicate={vi.fn()}
         onDelete={vi.fn()}
         onArchive={vi.fn()}

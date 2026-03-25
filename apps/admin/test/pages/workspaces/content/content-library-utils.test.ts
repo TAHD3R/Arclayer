@@ -1,13 +1,131 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  buildContentLibraryPageData,
+  buildContentLibraryEditWithFacetOptions,
   buildContentLibraryRows,
-  buildContentSidebarCounts,
+  buildContentLibraryRoleFacetOptions,
+  contentLibrarySavedViewsStorageKey,
+  buildContentLibrarySystemViews,
+  contentLibraryViewStorageKey,
   contentHasAddress,
+  deleteContentLibrarySavedView,
+  moveContentLibrarySavedView,
+  parseContentLibraryViewState,
+  readPersistedContentLibrarySavedViews,
+  renameContentLibrarySavedView,
+  readPersistedContentLibraryViewState,
+  serializeContentLibraryViewState,
+  togglePinnedContentLibrarySavedView,
+  writePersistedContentLibrarySavedViews,
+  writePersistedContentLibraryViewState,
 } from "@/pages/workspaces/content/library/utils";
 
 describe("content-library-utils", () => {
+  test("exposes the agreed system preset views for the workbench", () => {
+    expect(buildContentLibrarySystemViews()).toMatchObject([
+      { id: "all" },
+      { id: "site-content" },
+      { id: "draft" },
+      { id: "published" },
+      { id: "needs-attention" },
+    ]);
+  });
+
+  test("serializes the active workbench view for URL persistence", () => {
+    const serialized = serializeContentLibraryViewState({ kind: "system", viewId: "site-content" });
+    const savedSerialized = serializeContentLibraryViewState({
+      kind: "saved",
+      viewId: "saved-view-1",
+    });
+
+    expect(serialized).toBe("site-content");
+    expect(savedSerialized).toBe("saved:saved-view-1");
+    expect(parseContentLibraryViewState(serialized)).toMatchObject({
+      kind: "system",
+      viewId: "site-content",
+    });
+    expect(parseContentLibraryViewState(savedSerialized)).toMatchObject({
+      kind: "saved",
+      viewId: "saved-view-1",
+    });
+  });
+
+  test("reads and writes persisted workbench view state", () => {
+    const storageKey = contentLibraryViewStorageKey("ws-1");
+
+    window.localStorage.removeItem(storageKey);
+    expect(readPersistedContentLibraryViewState("ws-1")).toMatchObject({
+      kind: "system",
+      viewId: "all",
+    });
+
+    writePersistedContentLibraryViewState("ws-1", { kind: "saved", viewId: "saved-view-1" });
+
+    expect(window.localStorage.getItem(storageKey)).toBe("saved:saved-view-1");
+    expect(readPersistedContentLibraryViewState("ws-1")).toMatchObject({
+      kind: "saved",
+      viewId: "saved-view-1",
+    });
+  });
+
+  test("reads and writes persisted saved views and supports management operations", () => {
+    const storageKey = contentLibrarySavedViewsStorageKey("ws-1");
+
+    window.localStorage.removeItem(storageKey);
+    expect(readPersistedContentLibrarySavedViews("ws-1")).toEqual([]);
+
+    writePersistedContentLibrarySavedViews("ws-1", [
+      {
+        id: "view-draft",
+        name: "Draft pages",
+        baseViewId: "draft",
+        query: "home",
+        filters: { modelKey: "page", role: "page", editWith: "canvas" },
+        pinned: true,
+      },
+      {
+        id: "view-published",
+        name: "Published articles",
+        baseViewId: "published",
+        query: "launch",
+        filters: { modelKey: "article", role: "article", editWith: "writing" },
+        pinned: false,
+      },
+    ]);
+
+    expect(readPersistedContentLibrarySavedViews("ws-1")).toMatchObject([
+      {
+        id: "view-draft",
+        name: "Draft pages",
+        pinned: true,
+        filters: { role: "page", editWith: "canvas" },
+      },
+      {
+        id: "view-published",
+        name: "Published articles",
+        pinned: false,
+        filters: { role: "article", editWith: "writing" },
+      },
+    ]);
+
+    const renamed = renameContentLibrarySavedView(
+      readPersistedContentLibrarySavedViews("ws-1"),
+      "view-published",
+      "Published stories",
+    );
+    const moved = moveContentLibrarySavedView(renamed, "view-published", "up");
+    const pinned = togglePinnedContentLibrarySavedView(moved, "view-published");
+    const deleted = deleteContentLibrarySavedView(pinned, "view-draft");
+
+    expect(deleted).toMatchObject([
+      {
+        id: "view-published",
+        name: "Published stories",
+        pinned: true,
+      },
+    ]);
+  });
+
   test("keeps model-less content rows valid for the library surface", () => {
     const rows = buildContentLibraryRows(
       [
@@ -34,125 +152,138 @@ describe("content-library-utils", () => {
     expect(rows[0]).toMatchObject({
       modelName: null,
       derivedStatus: "draft",
+      libraryGroup: "general-content",
+      editWith: "structured",
     });
   });
 
-  test("sidebar model counts ignore formless drafts", () => {
-    const counts = buildContentSidebarCounts([
-      {
-        id: "item-1",
-        workspaceId: "ws-1",
-        siteId: "site-1",
-        slug: "formless-draft",
-        title: "Formless draft",
-        status: "draft",
-        visibility: "private",
-        locale: "en-US",
-        bootstrapPresetState: "none",
-        capabilityPackIds: [],
-        draftVersion: 1,
-        updatedAt: new Date().toISOString(),
-        name: "Formless draft",
-        modelName: null,
-        modelDescription: null,
-        modelCapabilities: [],
-        derivedStatus: "draft",
-        runtime: "unknown",
-        context: "standalone",
-      },
-      {
-        id: "item-2",
-        workspaceId: "ws-1",
-        siteId: "site-1",
-        modelKey: "landing_page",
-        slug: "landing-page",
-        title: "Landing page",
-        status: "published",
-        visibility: "public",
-        locale: "en-US",
-        bootstrapPresetState: "selected",
-        capabilityPackIds: ["routable", "publishable"],
-        draftVersion: 2,
-        publishedVersion: 2,
-        updatedAt: new Date().toISOString(),
-        name: "Landing page",
-        modelName: "Landing page",
-        modelDescription: null,
-        modelCapabilities: ["routable", "publishable"],
-        derivedStatus: "published",
-        runtime: "visual",
-        context: "site_builder",
-      },
-      {
-        id: "item-3",
-        workspaceId: "ws-1",
-        siteId: "site-1",
-        slug: "retired-page",
-        title: "Retired page",
-        status: "archived",
-        visibility: "private",
-        locale: "en-US",
-        bootstrapPresetState: "selected",
-        capabilityPackIds: ["publishable"],
-        draftVersion: 1,
-        updatedAt: new Date().toISOString(),
-        name: "Retired page",
-        modelName: null,
-        modelDescription: null,
-        modelCapabilities: ["publishable"],
-        derivedStatus: "archived",
-        runtime: "visual",
-        context: "site_builder",
-      },
-    ]);
-
-    expect(counts.all).toBe(3);
-    expect(counts.statuses.draft).toBe(1);
-    expect(counts.statuses.published).toBe(1);
-    expect(counts.statuses.archived).toBe(1);
-    expect(counts.models).toEqual({ landing_page: 1 });
-  });
-
-  test("derives runtime and context from model metadata", () => {
+  test("derives libraryGroup and editWith from model metadata", () => {
     const rows = buildContentLibraryRows(
       [
         {
-          id: "item-1",
+          id: "item-page",
           workspaceId: "ws-1",
           siteId: "site-1",
-          modelId: "model-1",
-          modelKey: "homepage",
+          modelId: "model-page",
+          modelKey: "page",
           slug: "homepage",
           title: "Homepage",
           status: "published",
           visibility: "public",
           locale: "zh-CN",
+          bootstrapPresetKey: "page",
           bootstrapPresetState: "selected",
           capabilityPackIds: ["publishable", "layout_bound"],
           draftVersion: 2,
           publishedVersion: 2,
           updatedAt: "2026-03-19T00:00:00Z",
         },
+        {
+          id: "item-article",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          modelId: "model-article",
+          modelKey: "article",
+          slug: "launch-note",
+          title: "Launch note",
+          status: "draft",
+          visibility: "private",
+          locale: "en-US",
+          bootstrapPresetKey: "post",
+          bootstrapPresetState: "selected",
+          capabilityPackIds: ["publishable"],
+          draftVersion: 1,
+          updatedAt: "2026-03-20T00:00:00Z",
+        },
+        {
+          id: "item-person",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          modelId: "model-person",
+          modelKey: "person",
+          slug: "jane-doe",
+          title: "Jane Doe",
+          status: "draft",
+          visibility: "private",
+          locale: "en-US",
+          bootstrapPresetState: "none",
+          capabilityPackIds: ["has_relations"],
+          draftVersion: 1,
+          updatedAt: "2026-03-21T00:00:00Z",
+        },
       ],
       [
         {
-          id: "model-1",
+          id: "model-page",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "homepage",
-          name: "Homepage",
+          key: "page",
+          name: "Page",
           category: "site_builder",
-          capabilities: ["visual_editable", "publishable"],
+          capabilities: ["visual_editable", "publishable", "routable"],
           defaultEditor: "visual",
+        },
+        {
+          id: "model-article",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          key: "article",
+          name: "Article",
+          category: "content_library",
+          capabilities: ["rich_text_editable", "publishable"],
+          defaultEditor: "rich_text",
+        },
+        {
+          id: "model-person",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          key: "person",
+          name: "Person",
+          category: "custom",
+          capabilities: ["queryable", "has_relations"],
+          defaultEditor: "form",
         },
       ],
     );
 
-    expect(rows[0]).toMatchObject({
-      runtime: "visual",
-      context: "site_builder",
-      modelCategory: "site_builder",
-    });
+    expect(rows).toMatchObject([
+      {
+        id: "item-page",
+        libraryGroup: "site-content",
+        editWith: "canvas",
+        role: "page",
+      },
+      {
+        id: "item-article",
+        libraryGroup: "general-content",
+        editWith: "writing",
+        role: "article",
+      },
+      {
+        id: "item-person",
+        libraryGroup: "structured-content",
+        editWith: "structured",
+        role: "person",
+      },
+    ]);
+  });
+
+  test("exposes grouped facet options for editing surfaces and roles", () => {
+    expect(buildContentLibraryEditWithFacetOptions()).toMatchObject([
+      { id: "writing", labelKey: "CONTENT_LIBRARY_EDIT_WITH_WRITING" },
+      { id: "canvas", labelKey: "CONTENT_LIBRARY_EDIT_WITH_CANVAS" },
+      { id: "structured", labelKey: "CONTENT_LIBRARY_EDIT_WITH_STRUCTURED" },
+    ]);
+
+    expect(buildContentLibraryRoleFacetOptions()).toMatchObject([
+      { id: "page", labelKey: "CONTENT_LIBRARY_ROLE_PAGE" },
+      { id: "article", labelKey: "CONTENT_LIBRARY_ROLE_ARTICLE" },
+      { id: "reusable-section", labelKey: "CONTENT_LIBRARY_ROLE_REUSABLE_SECTION" },
+      { id: "taxonomy", labelKey: "CONTENT_LIBRARY_ROLE_TAXONOMY" },
+      { id: "person", labelKey: "CONTENT_LIBRARY_ROLE_PERSON" },
+      { id: "settings", labelKey: "CONTENT_LIBRARY_ROLE_SETTINGS" },
+      { id: "data", labelKey: "CONTENT_LIBRARY_ROLE_DATA" },
+    ]);
   });
 
   test("treats routable content as addressable", () => {
@@ -170,60 +301,5 @@ describe("content-library-utils", () => {
         capabilityPackIds: [],
       }),
     ).toBe(false);
-  });
-
-  test("filters archived rows through the archived quick scope", () => {
-    const pageData = buildContentLibraryPageData(
-      [
-        {
-          id: "item-1",
-          workspaceId: "ws-1",
-          siteId: "site-1",
-          slug: "draft-page",
-          title: "Draft page",
-          status: "draft",
-          visibility: "private",
-          locale: "en-US",
-          bootstrapPresetState: "none",
-          capabilityPackIds: [],
-          draftVersion: 1,
-          updatedAt: "2026-03-19T00:00:00Z",
-          name: "Draft page",
-          modelName: null,
-          modelDescription: null,
-          modelCapabilities: [],
-          derivedStatus: "draft",
-          runtime: "unknown",
-          context: "standalone",
-        },
-        {
-          id: "item-2",
-          workspaceId: "ws-1",
-          siteId: "site-1",
-          slug: "archived-page",
-          title: "Archived page",
-          status: "archived",
-          visibility: "private",
-          locale: "en-US",
-          bootstrapPresetState: "selected",
-          capabilityPackIds: [],
-          draftVersion: 1,
-          updatedAt: "2026-03-20T00:00:00Z",
-          name: "Archived page",
-          modelName: null,
-          modelDescription: null,
-          modelCapabilities: [],
-          derivedStatus: "archived",
-          runtime: "unknown",
-          context: "standalone",
-        },
-      ],
-      { page: 1, size: 10 },
-      "quick:archived",
-      {},
-    );
-
-    expect(pageData.items).toHaveLength(1);
-    expect(pageData.items[0]?.id).toBe("item-2");
   });
 });

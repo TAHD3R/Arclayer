@@ -19,6 +19,16 @@ export function workspaceContentCreatePath(workspaceId: string): string {
   return `/w/${encodeURIComponent(workspaceId)}/content/create`;
 }
 
+export function buildWorkspaceContentLibraryFocusSearch(itemId: string): {
+  view: "draft";
+  focusItemId: string;
+} {
+  return {
+    view: "draft",
+    focusItemId: itemId,
+  };
+}
+
 export function buildWorkspaceContentEditorUrl(params: {
   siteId: string;
   itemId: string;

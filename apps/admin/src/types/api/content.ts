@@ -75,6 +75,20 @@ export type AdminContentVersion = {
   changeSummary?: string | null;
 };
 
+export type AdminContentSeoProfile = {
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  canonicalUrl?: string | null;
+  robotsDirective?: string | null;
+  payload?: Record<string, unknown> | null;
+};
+
+export type AdminPublishImpact = {
+  missingRoutes: string[];
+  unresolvedRelations: string[];
+  unpublishedDependencies: string[];
+};
+
 export type ListAdminContentModelsParams = {
   page?: number;
   size?: number;

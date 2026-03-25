@@ -1,6 +1,8 @@
-import { render, renderHook } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, test, vi } from "vitest";
+
+import { useContentLibraryTableColumns } from "@/pages/workspaces/content/library/content-library-table-columns";
+import type { ContentLibraryTableRow } from "@/pages/workspaces/content/library/types";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -8,86 +10,89 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-import { useContentLibraryTableColumns } from "@/pages/workspaces/content/library/content-library-table-columns";
-
-describe("content-library-table-columns", () => {
-  it("uses the compact V1 column set with explicit widths", () => {
-    const { result } = renderHook(() =>
-      useContentLibraryTableColumns({
-        formatDateTimeOrNull: () => "2026-03-19 08:00",
-        actionPending: false,
-        onDuplicate: () => {},
-        onDelete: () => {},
-        onArchive: () => {},
-        onUnarchive: () => {},
-      }),
-    );
-
-    const columns = result.current;
-    const columnIds = columns.map(
-      (column) => column.id ?? ("accessorKey" in column ? column.accessorKey : undefined),
-    );
-
-    expect(columnIds).toEqual(["name", "derivedStatus", "locale", "updatedAt", "actions"]);
-
-    expect(columns[0]).toMatchObject({ size: 280, minSize: 220 });
-    expect(columns[1]).toMatchObject({ size: 140, minSize: 140, maxSize: 140 });
-    expect(columns[2]).toMatchObject({ size: 196, minSize: 172 });
-    expect(columns[3]).toMatchObject({ size: 180, minSize: 160 });
-    expect(columns[4]).toMatchObject({ size: 56, minSize: 56, maxSize: 56 });
+function ColumnsHarness() {
+  const columns = useContentLibraryTableColumns({
+    formatDateTimeOrNull: (value) => value ?? null,
+    actionPending: false,
+    onContinue: vi.fn(),
+    onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
+    onArchive: vi.fn(),
+    onUnarchive: vi.fn(),
   });
 
-  it("centers the actions cell content", () => {
-    const { result } = renderHook(() =>
-      useContentLibraryTableColumns({
-        formatDateTimeOrNull: () => "2026-03-19 08:00",
-        actionPending: false,
-        onDuplicate: () => {},
-        onDelete: () => {},
-        onArchive: () => {},
-        onUnarchive: () => {},
-      }),
-    );
+  return (
+    <div>
+      {columns.map((column) => {
+        const header = column.header;
+        return typeof header === "string" ? <span key={column.id ?? header}>{header}</span> : null;
+      })}
+    </div>
+  );
+}
 
-    const actionsColumn = result.current[4];
-    const cellRenderer = actionsColumn?.cell as ((context: unknown) => ReactNode) | undefined;
-    const cell = cellRenderer?.({
-      row: {
-        original: {
-          id: "content-1",
-          workspaceId: "ws-1",
-          siteId: "site-1",
-          slug: "homepage",
-          title: "Homepage",
-          status: "draft",
-          visibility: "private",
-          locale: "en-US",
-          bootstrapPresetState: "none",
-          capabilityPackIds: [],
-          draftVersion: 1,
-          updatedAt: "2026-03-19T00:00:00Z",
-          name: "Homepage",
-          modelName: null,
-          modelDescription: null,
-          modelCapabilities: [],
-          derivedStatus: "draft",
-          runtime: "unknown",
-          context: "standalone",
-        },
-      },
-    });
+function NameCellHarness() {
+  const columns = useContentLibraryTableColumns({
+    formatDateTimeOrNull: (value) => value ?? null,
+    actionPending: false,
+    onContinue: vi.fn(),
+    onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
+    onArchive: vi.fn(),
+    onUnarchive: vi.fn(),
+  });
+  const nameColumn = columns[0]!;
+  const row = {
+    id: "content-1",
+    workspaceId: "ws-1",
+    siteId: "site-1",
+    modelId: "model-page",
+    modelKey: "page",
+    slug: "homepage",
+    title: "Homepage",
+    name: "Homepage",
+    status: "draft",
+    visibility: "private",
+    locale: "en-US",
+    bootstrapPresetKey: "page",
+    bootstrapPresetState: "selected",
+    capabilityPackIds: ["publishable", "routable"],
+    draftVersion: 1,
+    updatedAt: "2026-03-26T00:00:00Z",
+    modelName: "Page",
+    modelDescription: null,
+    modelCategory: "site_builder",
+    modelCapabilities: ["visual_editable", "publishable", "routable"],
+    derivedStatus: "draft",
+    runtime: "visual",
+    context: "site_builder",
+    libraryGroup: "site-content",
+    editWith: "canvas",
+    role: "page",
+  } satisfies ContentLibraryTableRow;
 
-    const { container } = render(<>{cell}</>);
-    expect(actionsColumn?.meta).toMatchObject({
-      kind: "actions",
-      headerAlign: "center",
-      title: "",
-    });
-    expect(container.firstElementChild).toHaveClass(
-      "flex",
-      "w-full",
-      "items-center",
-      "justify-center",
-    );
+  const cell = nameColumn.cell;
+  if (typeof cell !== "function") return null;
+
+  return <div>{cell({ row: { original: row } } as never)}</div>;
+}
+
+describe("content-library-table-columns", () => {
+  test("uses the agreed default visible workbench columns", () => {
+    render(<ColumnsHarness />);
+
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_NAME")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_MODEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_STATUS")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_TABLE_COL_UPDATED")).toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_LIBRARY_TABLE_COL_LOCALE")).not.toBeInTheDocument();
+  });
+
+  test("shows the derived role and editing surface inside the primary row identity cell", () => {
+    render(<NameCellHarness />);
+
+    expect(screen.getByText("CONTENT_LIBRARY_ROLE_PAGE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDIT_WITH_CANVAS")).toBeInTheDocument();
   });
 });

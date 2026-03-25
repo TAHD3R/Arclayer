@@ -4,11 +4,19 @@ import type { AdminContentItem, AdminContentModel } from "@/types/api";
 import type {
   ContentLibraryContext,
   ContentLibraryDerivedStatus,
+  ContentLibraryEditWith,
+  ContentLibraryFacetOption,
+  ContentLibraryLibraryGroup,
+  ContentLibraryRole,
   ContentLibraryRuntime,
+  ContentLibrarySavedView,
   ContentLibraryScopeId,
   ContentLibrarySidebarCounts,
+  ContentLibrarySystemViewId,
   ContentLibraryTableRow,
   ContentLibraryToolbarFilters,
+  ContentLibraryViewDefinition,
+  ContentLibraryViewState,
 } from "./types";
 
 const RECENT_WINDOW_DAYS = 7;
@@ -16,6 +24,39 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const CONTENT_DEFAULT_PAGE_SIZE = 10;
 
 export const CONTENT_LIBRARY_DEFAULT_SCOPE: ContentLibraryScopeId = "quick:all";
+export const CONTENT_LIBRARY_DEFAULT_VIEW_STATE: ContentLibraryViewState = {
+  kind: "system",
+  viewId: "all",
+};
+const CONTENT_LIBRARY_VIEW_STORAGE_PREFIX = "workspace-content-library:view";
+const CONTENT_LIBRARY_SAVED_VIEWS_STORAGE_PREFIX = "workspace-content-library:saved-views";
+const CONTENT_LIBRARY_ROLES = [
+  "page",
+  "article",
+  "reusable-section",
+  "taxonomy",
+  "person",
+  "settings",
+  "data",
+  "general",
+] as const satisfies readonly ContentLibraryRole[];
+const CONTENT_LIBRARY_ROLE_SET = new Set<ContentLibraryRole>(CONTENT_LIBRARY_ROLES);
+const CONTENT_LIBRARY_EDIT_WITH_VALUES = [
+  "writing",
+  "canvas",
+  "structured",
+] as const satisfies readonly ContentLibraryEditWith[];
+const CONTENT_LIBRARY_EDIT_WITH_SET = new Set<ContentLibraryEditWith>(
+  CONTENT_LIBRARY_EDIT_WITH_VALUES,
+);
+
+const CONTENT_LIBRARY_SYSTEM_VIEWS: ContentLibraryViewDefinition[] = [
+  { id: "all", labelKey: "CONTENT_LIBRARY_VIEW_ALL" },
+  { id: "site-content", labelKey: "CONTENT_LIBRARY_VIEW_SITE_CONTENT" },
+  { id: "draft", labelKey: "CONTENT_LIBRARY_VIEW_DRAFT" },
+  { id: "published", labelKey: "CONTENT_LIBRARY_VIEW_PUBLISHED" },
+  { id: "needs-attention", labelKey: "CONTENT_LIBRARY_VIEW_NEEDS_ATTENTION" },
+];
 
 function isRecentTimestamp(value: string, now: number): boolean {
   const updatedAt = Date.parse(value);
@@ -51,6 +92,59 @@ function compareStatus(
   return compareNumbers(rank[left], rank[right]);
 }
 
+function isSiteContentModel(
+  model: Pick<AdminContentModel, "category" | "capabilities" | "defaultEditor"> | null | undefined,
+): boolean {
+  if (!model) return false;
+  if (model.category === "site_builder") return true;
+  if (model.defaultEditor === "visual") return true;
+  return (
+    model.capabilities.includes("visual_editable") ||
+    model.capabilities.includes("routable") ||
+    model.capabilities.includes("has_slots")
+  );
+}
+
+function isStructuredModel(
+  model: Pick<AdminContentModel, "capabilities" | "defaultEditor"> | null | undefined,
+): boolean {
+  if (!model) return false;
+  if (model.defaultEditor === "form" || model.defaultEditor === "table") return true;
+  return model.capabilities.includes("queryable") || model.capabilities.includes("has_relations");
+}
+
+function normalizeModelIdentityValue(value: string | null | undefined): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function modelIdentityTokens(
+  model: Pick<AdminContentModel, "key" | "name"> | null | undefined,
+): string[] {
+  return [normalizeModelIdentityValue(model?.key), normalizeModelIdentityValue(model?.name)].filter(
+    Boolean,
+  );
+}
+
+function modelMatchesAnyToken(
+  model: Pick<AdminContentModel, "key" | "name"> | null | undefined,
+  candidates: string[],
+): boolean {
+  const tokens = modelIdentityTokens(model);
+  return tokens.some((token) => candidates.some((candidate) => token.includes(candidate)));
+}
+
+function isContentLibraryRole(value: unknown): value is ContentLibraryRole {
+  return typeof value === "string" && CONTENT_LIBRARY_ROLE_SET.has(value as ContentLibraryRole);
+}
+
+function isContentLibraryEditWith(value: unknown): value is ContentLibraryEditWith {
+  return (
+    typeof value === "string" && CONTENT_LIBRARY_EDIT_WITH_SET.has(value as ContentLibraryEditWith)
+  );
+}
+
 export function deriveContentRuntime(
   model: Pick<AdminContentModel, "capabilities" | "defaultEditor"> | null | undefined,
 ): ContentLibraryRuntime {
@@ -69,6 +163,314 @@ export function deriveContentContext(
   model: Pick<AdminContentModel, "category"> | null | undefined,
 ): ContentLibraryContext {
   return model?.category ?? "standalone";
+}
+
+export function deriveContentLibraryGroup(
+  model: Pick<AdminContentModel, "category" | "capabilities" | "defaultEditor"> | null | undefined,
+): ContentLibraryLibraryGroup {
+  if (isSiteContentModel(model)) return "site-content";
+  if (isStructuredModel(model)) return "structured-content";
+  return "general-content";
+}
+
+export function deriveContentEditWith(
+  model: Pick<AdminContentModel, "capabilities" | "defaultEditor"> | null | undefined,
+): ContentLibraryEditWith {
+  if (model?.defaultEditor === "visual" || model?.capabilities.includes("visual_editable")) {
+    return "canvas";
+  }
+  if (model?.defaultEditor === "rich_text" || model?.capabilities.includes("rich_text_editable")) {
+    return "writing";
+  }
+  return "structured";
+}
+
+export function deriveContentRole(
+  item: Pick<AdminContentItem, "bootstrapPresetKey" | "capabilityPackIds">,
+  model:
+    | Pick<AdminContentModel, "key" | "name" | "category" | "capabilities" | "defaultEditor">
+    | null
+    | undefined,
+): ContentLibraryRole {
+  switch (item.bootstrapPresetKey) {
+    case "page":
+      return "page";
+    case "post":
+      return "article";
+    case "reusable-block":
+      return "reusable-section";
+    case "taxonomy-item":
+      return "taxonomy";
+    default:
+      break;
+  }
+
+  if (modelMatchesAnyToken(model, ["section", "block", "component", "reusable"])) {
+    return "reusable-section";
+  }
+  if (modelMatchesAnyToken(model, ["taxonomy", "tag", "category", "topic"])) {
+    return "taxonomy";
+  }
+  if (modelMatchesAnyToken(model, ["person", "people", "author", "profile", "member", "team"])) {
+    return "person";
+  }
+  if (
+    modelMatchesAnyToken(model, ["setting", "settings", "config", "configuration", "preference"])
+  ) {
+    return "settings";
+  }
+  if (modelMatchesAnyToken(model, ["article", "post", "story", "blog", "news"])) {
+    return "article";
+  }
+  if (
+    modelMatchesAnyToken(model, ["page", "landing", "screen"]) ||
+    model?.category === "site_builder" ||
+    item.capabilityPackIds.includes("layout_bound")
+  ) {
+    return "page";
+  }
+  if (isStructuredModel(model)) return "data";
+  if (deriveContentRuntime(model) === "text") return "article";
+  return "general";
+}
+
+export function buildContentLibrarySystemViews(): ContentLibraryViewDefinition[] {
+  return CONTENT_LIBRARY_SYSTEM_VIEWS;
+}
+
+export function buildContentLibraryEditWithFacetOptions(): ContentLibraryFacetOption<ContentLibraryEditWith>[] {
+  return [
+    { id: "writing", labelKey: "CONTENT_LIBRARY_EDIT_WITH_WRITING" },
+    { id: "canvas", labelKey: "CONTENT_LIBRARY_EDIT_WITH_CANVAS" },
+    { id: "structured", labelKey: "CONTENT_LIBRARY_EDIT_WITH_STRUCTURED" },
+  ];
+}
+
+export function buildContentLibraryRoleFacetOptions(): ContentLibraryFacetOption<ContentLibraryRole>[] {
+  return [
+    { id: "page", labelKey: "CONTENT_LIBRARY_ROLE_PAGE" },
+    { id: "article", labelKey: "CONTENT_LIBRARY_ROLE_ARTICLE" },
+    { id: "reusable-section", labelKey: "CONTENT_LIBRARY_ROLE_REUSABLE_SECTION" },
+    { id: "taxonomy", labelKey: "CONTENT_LIBRARY_ROLE_TAXONOMY" },
+    { id: "person", labelKey: "CONTENT_LIBRARY_ROLE_PERSON" },
+    { id: "settings", labelKey: "CONTENT_LIBRARY_ROLE_SETTINGS" },
+    { id: "data", labelKey: "CONTENT_LIBRARY_ROLE_DATA" },
+  ];
+}
+
+export function parseContentLibraryViewState(
+  value: string | null | undefined,
+): ContentLibraryViewState {
+  const normalized = String(value || "").trim();
+  if (normalized.startsWith("saved:")) {
+    const savedId = normalized.slice("saved:".length).trim();
+    if (savedId) return { kind: "saved", viewId: savedId };
+  }
+  if (CONTENT_LIBRARY_SYSTEM_VIEWS.some((view) => view.id === normalized)) {
+    return { kind: "system", viewId: normalized as ContentLibrarySystemViewId };
+  }
+  return CONTENT_LIBRARY_DEFAULT_VIEW_STATE;
+}
+
+export function serializeContentLibraryViewState(value: ContentLibraryViewState): string {
+  if (value.kind === "saved") {
+    return value.viewId.trim()
+      ? `saved:${value.viewId.trim()}`
+      : serializeContentLibraryViewState(CONTENT_LIBRARY_DEFAULT_VIEW_STATE);
+  }
+  return parseContentLibraryViewState(value.viewId).viewId;
+}
+
+export function contentLibraryViewStorageKey(workspaceId: string | null | undefined): string {
+  return `${CONTENT_LIBRARY_VIEW_STORAGE_PREFIX}:${String(workspaceId || "unknown")}`;
+}
+
+export function readPersistedContentLibraryViewState(
+  workspaceId: string | null | undefined,
+): ContentLibraryViewState {
+  if (typeof window === "undefined") return CONTENT_LIBRARY_DEFAULT_VIEW_STATE;
+  const raw = window.localStorage.getItem(contentLibraryViewStorageKey(workspaceId));
+  return parseContentLibraryViewState(raw);
+}
+
+export function writePersistedContentLibraryViewState(
+  workspaceId: string | null | undefined,
+  value: ContentLibraryViewState,
+): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    contentLibraryViewStorageKey(workspaceId),
+    serializeContentLibraryViewState(value),
+  );
+}
+
+export function contentLibrarySavedViewsStorageKey(workspaceId: string | null | undefined): string {
+  return `${CONTENT_LIBRARY_SAVED_VIEWS_STORAGE_PREFIX}:${String(workspaceId || "unknown")}`;
+}
+
+function normalizeSavedViewBaseViewId(value: unknown): ContentLibrarySystemViewId {
+  const parsed = parseContentLibraryViewState(typeof value === "string" ? value : undefined);
+  return parsed.kind === "system" ? parsed.viewId : "all";
+}
+
+function normalizeContentLibrarySavedView(value: unknown): ContentLibrarySavedView | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<ContentLibrarySavedView>;
+  const id = String(candidate.id || "").trim();
+  const name = String(candidate.name || "").trim();
+  if (!id || !name) return null;
+
+  const rawStatus = candidate.filters?.status;
+  const normalizedStatus =
+    rawStatus === "published" ||
+    rawStatus === "changed" ||
+    rawStatus === "draft" ||
+    rawStatus === "archived"
+      ? rawStatus
+      : undefined;
+  const rawModelKey = candidate.filters?.modelKey;
+  const rawRole = candidate.filters?.role;
+  const rawEditWith = candidate.filters?.editWith;
+
+  return {
+    id,
+    name,
+    baseViewId: normalizeSavedViewBaseViewId(candidate.baseViewId),
+    query: String(candidate.query || ""),
+    filters: {
+      status: normalizedStatus,
+      modelKey: typeof rawModelKey === "string" && rawModelKey.trim() ? rawModelKey : undefined,
+      role: isContentLibraryRole(rawRole) ? rawRole : undefined,
+      editWith: isContentLibraryEditWith(rawEditWith) ? rawEditWith : undefined,
+    },
+    pinned: Boolean(candidate.pinned),
+  };
+}
+
+export function readPersistedContentLibrarySavedViews(
+  workspaceId: string | null | undefined,
+): ContentLibrarySavedView[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(contentLibrarySavedViewsStorageKey(workspaceId));
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => normalizeContentLibrarySavedView(item))
+      .filter((item): item is ContentLibrarySavedView => item !== null);
+  } catch {
+    return [];
+  }
+}
+
+export function writePersistedContentLibrarySavedViews(
+  workspaceId: string | null | undefined,
+  views: ContentLibrarySavedView[],
+): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    contentLibrarySavedViewsStorageKey(workspaceId),
+    JSON.stringify(views),
+  );
+}
+
+export function renameContentLibrarySavedView(
+  views: ContentLibrarySavedView[],
+  viewId: string,
+  name: string,
+): ContentLibrarySavedView[] {
+  const nextName = name.trim();
+  if (!nextName) return views;
+  return views.map((view) => (view.id === viewId ? { ...view, name: nextName } : view));
+}
+
+export function togglePinnedContentLibrarySavedView(
+  views: ContentLibrarySavedView[],
+  viewId: string,
+): ContentLibrarySavedView[] {
+  return views.map((view) => (view.id === viewId ? { ...view, pinned: !view.pinned } : view));
+}
+
+export function moveContentLibrarySavedView(
+  views: ContentLibrarySavedView[],
+  viewId: string,
+  direction: "up" | "down",
+): ContentLibrarySavedView[] {
+  const index = views.findIndex((view) => view.id === viewId);
+  if (index < 0) return views;
+  const target = direction === "up" ? index - 1 : index + 1;
+  if (target < 0 || target >= views.length) return views;
+  const next = [...views];
+  const current = next[index];
+  next[index] = next[target]!;
+  next[target] = current!;
+  return next;
+}
+
+export function deleteContentLibrarySavedView(
+  views: ContentLibrarySavedView[],
+  viewId: string,
+): ContentLibrarySavedView[] {
+  return views.filter((view) => view.id !== viewId);
+}
+
+export function buildContentLibrarySavedView(input: {
+  name: string;
+  baseViewId: ContentLibrarySystemViewId;
+  query: string;
+  filters: ContentLibraryToolbarFilters;
+}): ContentLibrarySavedView {
+  const id =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `view-${Date.now()}`;
+  return {
+    id,
+    name: input.name.trim(),
+    baseViewId: input.baseViewId,
+    query: input.query,
+    filters: input.filters,
+    pinned: false,
+  };
+}
+
+export function findContentLibrarySavedView(
+  views: ContentLibrarySavedView[],
+  viewId: string | null | undefined,
+): ContentLibrarySavedView | null {
+  if (!viewId) return null;
+  return views.find((view) => view.id === viewId) ?? null;
+}
+
+export function normalizeContentLibraryViewState(
+  state: ContentLibraryViewState,
+  savedViews: ContentLibrarySavedView[],
+): ContentLibraryViewState {
+  if (state.kind === "saved" && !findContentLibrarySavedView(savedViews, state.viewId)) {
+    return CONTENT_LIBRARY_DEFAULT_VIEW_STATE;
+  }
+  return state;
+}
+
+export function resolveContentLibrarySystemViewId(
+  state: ContentLibraryViewState,
+  savedViews: ContentLibrarySavedView[],
+): ContentLibrarySystemViewId {
+  if (state.kind === "system") return state.viewId;
+  return findContentLibrarySavedView(savedViews, state.viewId)?.baseViewId ?? "all";
+}
+
+export function areContentLibraryToolbarFiltersEqual(
+  left: ContentLibraryToolbarFilters,
+  right: ContentLibraryToolbarFilters,
+): boolean {
+  return (
+    left.status === right.status &&
+    left.modelKey === right.modelKey &&
+    left.role === right.role &&
+    left.editWith === right.editWith
+  );
 }
 
 export function contentHasAddress(
@@ -93,7 +495,7 @@ function normalizeScopeFilter(scopeId: ContentLibraryScopeId) {
   return { kind: "type" as const, modelKey: scopeId.replace("tree:type:", "") };
 }
 
-function matchesScope(
+function matchesLegacyScope(
   row: ContentLibraryTableRow,
   scopeId: ContentLibraryScopeId,
   now: number,
@@ -105,12 +507,31 @@ function matchesScope(
   return row.modelKey === scope.modelKey;
 }
 
+function matchesView(row: ContentLibraryTableRow, viewId: ContentLibrarySystemViewId): boolean {
+  switch (viewId) {
+    case "all":
+      return true;
+    case "site-content":
+      return row.libraryGroup === "site-content";
+    case "draft":
+      return row.derivedStatus === "draft";
+    case "published":
+      return row.derivedStatus === "published";
+    case "needs-attention":
+      return row.derivedStatus === "draft" || row.derivedStatus === "changed";
+    default:
+      return true;
+  }
+}
+
 function matchesToolbarFilters(
   row: ContentLibraryTableRow,
   filters: ContentLibraryToolbarFilters,
 ): boolean {
   if (filters.status && row.derivedStatus !== filters.status) return false;
   if (filters.modelKey && row.modelKey !== filters.modelKey) return false;
+  if (filters.role && row.role !== filters.role) return false;
+  if (filters.editWith && row.editWith !== filters.editWith) return false;
   return true;
 }
 
@@ -181,6 +602,9 @@ export function buildContentLibraryRows(
       derivedStatus: deriveContentStatus(item),
       runtime: deriveContentRuntime(model),
       context: deriveContentContext(model),
+      libraryGroup: deriveContentLibraryGroup(model),
+      editWith: deriveContentEditWith(model),
+      role: deriveContentRole(item, model),
     };
   });
 }
@@ -220,15 +644,14 @@ export function buildContentLibraryPageData(
     q?: string;
     ordering?: string;
   },
-  scopeId: ContentLibraryScopeId,
+  viewId: ContentLibrarySystemViewId,
   filters: ContentLibraryToolbarFilters,
 ): PageData<ContentLibraryTableRow> {
   const page = Math.max(1, params.page ?? 1);
   const size = Math.max(1, params.size ?? CONTENT_DEFAULT_PAGE_SIZE);
-  const now = Date.now();
   const scoped = rows.filter(
     (row) =>
-      matchesScope(row, scopeId, now) &&
+      matchesView(row, viewId) &&
       matchesToolbarFilters(row, filters) &&
       matchesSearch(row, params.q || ""),
   );
@@ -263,4 +686,12 @@ export function buildContentModelsQueryKey(workspaceId: string | null) {
 
 export function isTypeScopeActive(scopeId: ContentLibraryScopeId, modelKey: string): boolean {
   return scopeId === `tree:type:${modelKey}`;
+}
+
+export function matchesContentLibraryLegacyScope(
+  row: ContentLibraryTableRow,
+  scopeId: ContentLibraryScopeId,
+  now = Date.now(),
+): boolean {
+  return matchesLegacyScope(row, scopeId, now);
 }

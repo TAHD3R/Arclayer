@@ -138,7 +138,9 @@ export type {
   AdminContentModel,
   AdminContentModelCapability,
   AdminContentModelCategory,
+  AdminContentSeoProfile,
   AdminContentVersion,
+  AdminPublishImpact,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
 } from "./content";
