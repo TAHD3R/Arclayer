@@ -378,32 +378,26 @@ export function FileUploadPanel(props: FileUploadPanelProps) {
 
       {props.items.length ? (
         <div className="px-5 pt-4 pb-5">
-          <div
-            className={cn(
-              "mt-3 max-h-80 overflow-x-hidden overflow-y-auto rounded-xl border border-border/60 bg-card p-3",
-            )}
-          >
-            <FileUploadList className="pr-1">
-              {props.items.map((it) => (
-                <FileUploadListItemProgressFill
-                  key={it.id}
-                  name={it.file.name}
-                  sizeBytes={it.file.size}
-                  mimeType={it.file.type || null}
-                  progress={it.progress}
-                  status={it.status}
-                  errorText={it.errorText ?? null}
-                  isActionDisabled={props.isItemActionDisabled?.(it.id)}
-                  onDelete={() => props.onDeleteItem(it.id)}
-                  onRetry={
-                    it.status === "error" && props.onRetryItem
-                      ? () => props.onRetryItem?.(it.id)
-                      : undefined
-                  }
-                />
-              ))}
-            </FileUploadList>
-          </div>
+          <FileUploadList className="mt-3 max-h-80 overflow-x-hidden overflow-y-auto pr-1">
+            {props.items.map((it) => (
+              <FileUploadListItemProgressFill
+                key={it.id}
+                name={it.file.name}
+                sizeBytes={it.file.size}
+                mimeType={it.file.type || null}
+                progress={it.progress}
+                status={it.status}
+                errorText={it.errorText ?? null}
+                isActionDisabled={props.isItemActionDisabled?.(it.id)}
+                onDelete={() => props.onDeleteItem(it.id)}
+                onRetry={
+                  it.status === "error" && props.onRetryItem
+                    ? () => props.onRetryItem?.(it.id)
+                    : undefined
+                }
+              />
+            ))}
+          </FileUploadList>
         </div>
       ) : null}
     </div>

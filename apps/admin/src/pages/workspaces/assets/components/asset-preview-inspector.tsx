@@ -14,7 +14,7 @@ export function AssetInspectorPanel(props: {
   return (
     <section className="space-y-4">
       <header className="space-y-1">
-        <div className="text-caption font-semibold text-label-secondary">{props.title}</div>
+        <div className="text-callout font-semibold text-label-primary">{props.title}</div>
         {props.description ? (
           <p className="text-caption leading-5 text-label-secondary">{props.description}</p>
         ) : null}

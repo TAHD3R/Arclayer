@@ -97,6 +97,19 @@ export function clearRecentAssetWorkspaceRecords(
   return records.filter((record) => record.workspaceId !== workspaceId);
 }
 
+export function removeRecentAssetWorkspaceAssetIds(
+  records: RecentAssetRecord[],
+  workspaceId: string,
+  assetIds: string[],
+): RecentAssetRecord[] {
+  const ids = new Set(assetIds.map(String));
+  if (ids.size === 0) return records;
+
+  return records.filter(
+    (record) => record.workspaceId !== workspaceId || !ids.has(String(record.asset.id)),
+  );
+}
+
 export function resolveRecentAssets(params: {
   records: RecentAssetRecord[];
   items: AssetMasonryItem[];

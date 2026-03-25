@@ -20,7 +20,6 @@ import {
   buildFolderPath,
   flattenFoldersDepthFirst,
 } from "./assets-folder-rail-utils";
-import { AssetsFolderRailEmptyCard } from "./assets-folder-rail-empty-card";
 import { FolderAddCard, FolderCard, FolderCardSkeleton } from "./assets-folder-rail-folder-cards";
 import { toFolderDndId } from "./assets-view-dnd";
 
@@ -110,13 +109,15 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
       ) : null}
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length === 0 ? (
-        <AssetsFolderRailEmptyCard
-          title={props.t("assets:ASSET_FOLDER_PANEL_EMPTY")}
-          description={props.t("assets:ASSET_FOLDER_PANEL_EMPTY_DESC")}
-          icon={<FolderClosed className="size-5" />}
-          actionLabel={props.t("assets:ASSET_ACTION_CREATE_FOLDER")}
-          onAction={() => props.onCreateFolder(null)}
-        />
+        <div className={cn("grid gap-3", gridClassName)}>
+          <FolderAddCard
+            t={props.t}
+            currentFolder={null}
+            onCreateFolder={props.onCreateFolder}
+            isDraggingAssets={props.isDraggingAssets}
+            layoutMode={layoutMode}
+          />
+        </div>
       ) : null}
 
       {!props.foldersLoading && !props.foldersError && orderedFolders.length > 0 ? (

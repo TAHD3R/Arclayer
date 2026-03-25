@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AssetsViewController } from "@/pages/workspaces/assets/hooks/use-assets-view-controller";
 import { useAssetsViewTableController } from "@/pages/workspaces/assets/components/assets-view-table-section";
@@ -44,6 +44,10 @@ function createControllerStub(): AssetsViewController {
 }
 
 describe("useAssetsViewTableController", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("stays stable under StrictMode", () => {
     const controller = createControllerStub();
     const queryClient = new QueryClient({
@@ -62,5 +66,32 @@ describe("useAssetsViewTableController", () => {
         ),
       }),
     ).not.toThrow();
+  });
+
+  it("shows filename, mime, size, and uploaded time by default", () => {
+    const controller = createControllerStub();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useAssetsViewTableController(controller), {
+      wrapper: ({ children }) => (
+        <StrictMode>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        </StrictMode>
+      ),
+    });
+
+    expect(result.current.table.getVisibleLeafColumns().map((column) => column.id)).toEqual([
+      "select",
+      "name",
+      "mime",
+      "size",
+      "createdAt",
+      "actions",
+    ]);
   });
 });

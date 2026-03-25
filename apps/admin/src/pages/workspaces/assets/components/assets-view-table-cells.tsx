@@ -51,7 +51,12 @@ export function AssetPreviewCell(props: { asset: AssetMasonryItem; subtitle: str
     <div className="flex min-w-0 items-center gap-3">
       <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/25">
         {props.asset.previewUrl ? (
-          <LazyAssetImage src={props.asset.previewUrl} alt={props.asset.name} fit="cover" />
+          <LazyAssetImage
+            src={props.asset.previewUrl}
+            alt={props.asset.name}
+            fit="cover"
+            errorVariant="icon-only"
+          />
         ) : (
           <span className="px-2 text-caption font-semibold text-label-secondary">
             {extensionLabel.slice(0, 4)}

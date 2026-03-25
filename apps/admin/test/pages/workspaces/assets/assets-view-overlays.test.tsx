@@ -19,7 +19,7 @@ function createQueryClient() {
 }
 
 describe("AssetsViewOverlays", () => {
-  it("在多选时应渲染为页面容器内始终可见的底部 sticky toolbar", () => {
+  it("在选中资源时应渲染为页面容器内始终可见的底部 sticky toolbar", () => {
     const queryClient = createQueryClient();
 
     render(
@@ -27,7 +27,7 @@ describe("AssetsViewOverlays", () => {
         <div className="relative flex min-h-full min-w-0 w-full flex-col">
           <AssetsSelectionToolbar
             t={(key) => key}
-            selectedCount={2}
+            selectedCount={1}
             bulkMovePending={false}
             bulkUpdatePending={false}
             bulkDeletePending={false}

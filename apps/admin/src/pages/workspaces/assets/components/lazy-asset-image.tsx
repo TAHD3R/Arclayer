@@ -85,6 +85,7 @@ export function LazyAssetImage(props: {
   showErrorOverlay?: boolean;
   errorText?: string;
   retryText?: string;
+  errorVariant?: "default" | "icon-only";
 }) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -150,6 +151,7 @@ export function LazyAssetImage(props: {
   const showErrorOverlay = Boolean(props.showErrorOverlay);
   const showLoading = status === "loading";
   const showError = status === "error";
+  const errorVariant = props.errorVariant ?? "default";
 
   return (
     <div
@@ -200,29 +202,35 @@ export function LazyAssetImage(props: {
 
       {showError ? (
         <div className="absolute inset-0 grid place-items-center bg-muted/25">
-          <div className="flex flex-col items-center gap-2 text-label-secondary">
-            <div className="rounded-full bg-background/70 p-3 shadow-sm">
-              <ImageOff className="size-5" />
+          {errorVariant === "icon-only" ? (
+            <div className="flex items-center justify-center text-label-secondary">
+              <ImageOff className="size-4" />
             </div>
-            <div className="text-caption">
-              {props.errorText || t("assets:ASSET_PREVIEW_LOAD_FAILED")}
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-label-secondary">
+              <div className="rounded-full bg-background/70 p-3 shadow-sm">
+                <ImageOff className="size-5" />
+              </div>
+              <div className="text-caption">
+                {props.errorText || t("assets:ASSET_PREVIEW_LOAD_FAILED")}
+              </div>
+              {showErrorOverlay ? (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setStatus("loading");
+                    setReloadKey((value) => value + 1);
+                  }}
+                >
+                  <RotateCw size={16} />
+                  {props.retryText || t("common:RETRY")}
+                </Button>
+              ) : null}
             </div>
-            {showErrorOverlay ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setStatus("loading");
-                  setReloadKey((value) => value + 1);
-                }}
-              >
-                <RotateCw size={16} />
-                {props.retryText || t("common:RETRY")}
-              </Button>
-            ) : null}
-          </div>
+          )}
         </div>
       ) : null}
     </div>

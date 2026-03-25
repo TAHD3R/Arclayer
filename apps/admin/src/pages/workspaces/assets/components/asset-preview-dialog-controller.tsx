@@ -13,6 +13,7 @@ import type { AdminAssetTag, AdminAssetSummary, PageData } from "@/types/api";
 import { notifyErrorText, notifySuccessText } from "@/lib/notifications";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useAssetsRecentStore } from "@/stores/use-assets-recent-store";
 import { toShareableAbsoluteUrl } from "@/lib/assets/asset-urls";
 import { toMasonryItem } from "@/lib/assets/to-masonry-item";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
@@ -34,6 +35,7 @@ export function useAssetPreviewDialogController(props: {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const removeRecentAssets = useAssetsRecentStore((state) => state.removeAssets);
   const scopeKey = useMemo(
     () => (workspaceId ? assetScopeKey({ type: "workspace", id: String(workspaceId) }) : null),
     [workspaceId],
@@ -294,6 +296,9 @@ export function useAssetPreviewDialogController(props: {
     },
     onSuccess: () => {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
+      if (workspaceId && active?.id) {
+        removeRecentAssets(String(workspaceId), [String(active.id)]);
+      }
       void invalidateAssetListQueries(queryClient, scopeKey);
       props.onClose();
     },

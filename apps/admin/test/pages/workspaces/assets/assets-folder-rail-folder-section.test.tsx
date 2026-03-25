@@ -13,7 +13,10 @@ const ROOT_FOLDER: AdminAssetFolder = {
 };
 
 describe("AssetsFolderRailFolderSection", () => {
-  it("shows a single empty-state card plus a create-folder action when there are no folders", () => {
+  it("shows the add-folder card instead of the empty state when there are no folders", async () => {
+    const user = userEvent.setup();
+    const onCreateFolder = vi.fn();
+
     render(
       <AssetsFolderRailFolderSection
         t={(key) => key}
@@ -23,18 +26,21 @@ describe("AssetsFolderRailFolderSection", () => {
         currentFolderId={null}
         onRetryFolders={vi.fn()}
         onSelectFolder={vi.fn()}
-        onCreateFolder={vi.fn()}
+        onCreateFolder={onCreateFolder}
         onEditFolder={vi.fn()}
         onMoveFolder={vi.fn()}
         onDeleteFolder={vi.fn()}
       />,
     );
 
-    expect(screen.getByText("assets:ASSET_FOLDER_PANEL_EMPTY")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "assets:ASSET_ACTION_CREATE_FOLDER" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("assets:ASSET_FOLDER_ADD_CARD_TITLE")).not.toBeInTheDocument();
+    const addCard = screen.getByRole("button", { name: /assets:ASSET_FOLDER_ADD_CARD_TITLE/i });
+
+    expect(addCard).toBeInTheDocument();
+    expect(screen.queryByText("assets:ASSET_FOLDER_PANEL_EMPTY")).not.toBeInTheDocument();
+
+    await user.click(addCard);
+
+    expect(onCreateFolder).toHaveBeenCalledWith(null);
   });
 
   it("renders rectangular folder items in single-column mode", async () => {

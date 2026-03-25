@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
 
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
@@ -18,6 +18,7 @@ import { AssetsViewTableSection, useAssetsViewTableController } from "./assets-v
 
 export function AssetsPageView(props: { initialSearchQuery?: string; initialAssetId?: string }) {
   const [viewMode, setViewMode] = useState<AssetsViewMode>("card");
+  const [cardSidebarOpen, setCardSidebarOpen] = useState(true);
   const controller = useAssetsViewController(viewMode);
   const {
     t,
@@ -127,61 +128,91 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setCreateFolderSeedAssetIds([]);
   };
 
-  const sideSlots =
-    viewMode === "card"
-      ? {
-          left: {
-            title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
-            mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
-            minWidth: "20rem",
-            maxWidth: "34rem",
-            defaultWidth: "clamp(21rem, 24vw, 30rem)",
-            content: (
-              <AssetsFolderRail
-                t={t}
-                scope={scope}
-                folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
-                foldersLoading={foldersQuery.isLoading}
-                foldersError={foldersQuery.isError}
-                onRetryFolders={() => {
-                  void foldersQuery.refetch();
-                }}
-                currentFolderId={currentFolderId}
-                activeAssetId={active?.id ?? null}
-                recentAssets={recentAssets}
-                onSelectFolder={(folderId) => {
-                  setCurrentFolderId(folderId);
-                  setFocusedFolderId(folderId);
-                  setSelection((prev) => clearSelection(prev));
-                  setActive(null);
-                }}
-                onCreateFolder={(parentId) => {
-                  setCreateFolderParentId(parentId);
-                  setCreateFolderSeedAssetIds([]);
-                  setCreateFolderDialogOpen(true);
-                }}
-                onEditFolder={(folder) => {
-                  setEditFolderTarget(folder);
-                  setEditFolderOpen(true);
-                }}
-                onMoveFolder={(folder) => {
-                  setMoveFolderTarget(folder);
-                  setMoveFolderOpen(true);
-                }}
-                onDeleteFolder={openDeleteFolderDialog}
-                dropSuccessPulse={controller.dropSuccessPulse}
-                tooltipDisabled={
-                  Boolean(controller.draggingFolderId) || controller.draggingAssetIds.length > 0
-                }
-                isDraggingAssets={controller.draggingAssetIds.length > 0}
-                onOpenAsset={(asset) => setActive(asset)}
-                onRemoveRecentAsset={removeRecentAsset}
-                onClearRecentAssets={clearRecentAssets}
-              />
-            ),
-          },
-        }
-      : {};
+  const cardLibraryIsEmpty =
+    viewMode === "card" &&
+    !currentFolderId &&
+    !controller.explicitFilterActive &&
+    !controller.assetsQuery.isLoading &&
+    (controller.assetsQuery.data?.pages?.[0]?.total ?? 0) === 0;
+  const canToggleCardSidebar = viewMode === "card" && !cardLibraryIsEmpty;
+  const showCardSidebar = viewMode === "card" && cardSidebarOpen && !cardLibraryIsEmpty;
+
+  const sideSlots = showCardSidebar
+    ? {
+        right: {
+          title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
+          mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
+          minWidth: "20rem",
+          maxWidth: "34rem",
+          defaultWidth: "clamp(21rem, 24vw, 30rem)",
+          content: (
+            <AssetsFolderRail
+              t={t}
+              scope={scope}
+              folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}
+              foldersLoading={foldersQuery.isLoading}
+              foldersError={foldersQuery.isError}
+              onRetryFolders={() => {
+                void foldersQuery.refetch();
+              }}
+              currentFolderId={currentFolderId}
+              activeAssetId={active?.id ?? null}
+              recentAssets={recentAssets}
+              onSelectFolder={(folderId) => {
+                setCurrentFolderId(folderId);
+                setFocusedFolderId(folderId);
+                setSelection((prev) => clearSelection(prev));
+                setActive(null);
+              }}
+              onCreateFolder={(parentId) => {
+                setCreateFolderParentId(parentId);
+                setCreateFolderSeedAssetIds([]);
+                setCreateFolderDialogOpen(true);
+              }}
+              onEditFolder={(folder) => {
+                setEditFolderTarget(folder);
+                setEditFolderOpen(true);
+              }}
+              onMoveFolder={(folder) => {
+                setMoveFolderTarget(folder);
+                setMoveFolderOpen(true);
+              }}
+              onDeleteFolder={openDeleteFolderDialog}
+              dropSuccessPulse={controller.dropSuccessPulse}
+              tooltipDisabled={
+                Boolean(controller.draggingFolderId) || controller.draggingAssetIds.length > 0
+              }
+              isDraggingAssets={controller.draggingAssetIds.length > 0}
+              onOpenAsset={(asset) => setActive(asset)}
+              onRemoveRecentAsset={removeRecentAsset}
+              onClearRecentAssets={clearRecentAssets}
+            />
+          ),
+        },
+      }
+    : {};
+
+  const action = canToggleCardSidebar ? (
+    <div className="inline-flex items-center gap-2">
+      <Button
+        variant="outline"
+        aria-label={t("common:SIDEBAR_TOGGLE")}
+        onClick={() => setCardSidebarOpen((prev) => !prev)}
+      >
+        {cardSidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+        <span className="sr-only">{t("common:SIDEBAR_TOGGLE")}</span>
+      </Button>
+      <Button onClick={() => setUploadOpen(true)}>
+        <Plus size={16} />
+        {t("assets:ASSET_ACTION_UPLOAD")}
+      </Button>
+    </div>
+  ) : (
+    <Button onClick={() => setUploadOpen(true)}>
+      <Plus size={16} />
+      {t("assets:ASSET_ACTION_UPLOAD")}
+    </Button>
+  );
 
   return (
     <AssetsViewDndSurface controller={controller}>
@@ -202,12 +233,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             onOpenBulkDelete={() => openBulkDeleteDialog()}
           />
         }
-        action={
-          <Button onClick={() => setUploadOpen(true)}>
-            <Plus size={16} />
-            {t("assets:ASSET_ACTION_UPLOAD")}
-          </Button>
-        }
+        action={action}
         extra={
           <AssetsViewHeader
             t={t}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { AnimatePresence } from "motion/react";
 import clsx from "clsx";
 
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
@@ -85,21 +86,32 @@ export function ColumnsPage({
 
   return (
     <AdminRouteContainer className={clsx("min-h-full min-w-0", className)} overlay={overlay}>
-      {hasSideSlots ? (
+      {isDesktop && (hasSideSlots || !hideHeader) ? (
         <>
-          {isDesktop ? (
-            <div
-              className="hidden min-h-0 min-w-0 w-full flex-1 lg:flex"
-              data-slot="columns-page-shell"
-            >
+          <div
+            className="hidden min-h-0 min-w-0 w-full flex-1 lg:flex"
+            data-slot="columns-page-shell"
+          >
+            <AnimatePresence initial={false}>
               {leftSideSlot ? <ColumnsPageDesktopPane side="left" slot={leftSideSlot} /> : null}
-              {mainRegion}
+            </AnimatePresence>
+            {mainRegion}
+            <AnimatePresence initial={false}>
               {rightSideSlot ? <ColumnsPageDesktopPane side="right" slot={rightSideSlot} /> : null}
-            </div>
-          ) : (
-            <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>
-          )}
-
+            </AnimatePresence>
+          </div>
+          {paneToggles.map((toggle) => (
+            <ColumnsPageMobilePaneSheet
+              key={toggle.side}
+              toggle={toggle}
+              open={mobileOpenSide === toggle.side}
+              onOpenChange={(open) => setMobileOpenSide(open ? toggle.side : null)}
+            />
+          ))}
+        </>
+      ) : hasSideSlots ? (
+        <>
+          <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>
           {paneToggles.map((toggle) => (
             <ColumnsPageMobilePaneSheet
               key={toggle.side}

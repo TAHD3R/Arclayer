@@ -113,7 +113,7 @@ export function AssetsSelectionToolbar(
 ) {
   return (
     <AnimatePresence>
-      {props.selectedCount > 1 ? (
+      {props.selectedCount > 0 ? (
         <motion.div
           key="assets-selection-toolbar"
           className="pointer-events-none sticky bottom-0 z-30 mt-auto w-full"

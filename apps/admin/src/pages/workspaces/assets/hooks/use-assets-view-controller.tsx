@@ -32,6 +32,7 @@ import type { PageData, AdminAssetFolder, AdminAssetSummary } from "@/types/api"
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { clearSelection, type AssetSelectionState } from "@/lib/assets/asset-selection";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
+import { useAssetsRecentStore } from "@/stores/use-assets-recent-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { useAssetsExplorerController } from "../components/explorer/use-assets-explorer-controller";
 import { assetScopeKey, type AssetScopeRef } from "@/lib/assets/asset-scope";
@@ -76,6 +77,7 @@ export function useAssetsViewController(viewMode: AssetsViewMode = "card") {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const removeRecentAssets = useAssetsRecentStore((state) => state.removeAssets);
   const scope = useMemo<AssetScopeRef | null>(
     () => (workspaceId ? { type: "workspace", id: String(workspaceId) } : null),
     [workspaceId],
@@ -227,6 +229,9 @@ export function useAssetsViewController(viewMode: AssetsViewMode = "card") {
     },
     onSuccess: (out) => {
       notifySuccessText(t("assets:ASSET_BULK_DELETE_SUCCESS", { count: out.deletedCount }));
+      if (workspaceId) {
+        removeRecentAssets(String(workspaceId), out.deletedAssetIds.map(String));
+      }
       void invalidateAssetListQueries(queryClient, scopeKey);
     },
     onError: (err) => {
@@ -306,6 +311,9 @@ export function useAssetsViewController(viewMode: AssetsViewMode = "card") {
     },
     onSuccess: (_out, assetId) => {
       notifySuccessText(t("assets:ASSET_DELETE_SUCCESS"));
+      if (workspaceId) {
+        removeRecentAssets(String(workspaceId), [String(assetId)]);
+      }
       if (scopeKey) {
         void queryClient.invalidateQueries({ queryKey: ["assets", "detail", scopeKey] });
       }

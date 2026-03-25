@@ -87,4 +87,27 @@ describe("LazyAssetImage", () => {
 
     expect(onLoaded).toHaveBeenCalledTimes(1);
   });
+
+  it("renders a compact icon-only error state when requested", async () => {
+    imageComplete = true;
+    imageWidth = 0;
+    imageHeight = 0;
+    const { container } = render(
+      <div className="relative size-12">
+        <LazyAssetImage
+          eager
+          src="/assets/missing.png"
+          alt="Broken asset"
+          errorVariant="icon-only"
+        />
+      </div>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText("assets:ASSET_PREVIEW_LOAD_FAILED")).not.toBeInTheDocument();
+    });
+
+    expect(container.querySelector("svg")).not.toBeNull();
+    expect(container.querySelector(".rounded-full")).toBeNull();
+  });
 });

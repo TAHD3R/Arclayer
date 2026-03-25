@@ -112,7 +112,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "uploadedBy",
       accessorFn: (asset) => asset.uploaderName || "",
-      meta: { title: t("assets:ASSET_META_UPLOADED_BY"), kind: "meta" },
+      meta: { title: t("assets:ASSET_META_UPLOADED_BY"), defaultHidden: true, kind: "meta" },
       header: t("assets:ASSET_META_UPLOADED_BY"),
       cell: ({ row }) => (
         <AssetUploaderCell
@@ -127,7 +127,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "mime",
       accessorFn: (asset) => getMimeLabel(asset.mimeType, t),
-      meta: { title: t("assets:ASSET_META_MIME"), defaultHidden: true, kind: "meta" },
+      meta: { title: t("assets:ASSET_META_MIME"), kind: "meta" },
       header: t("assets:ASSET_META_MIME"),
       cell: ({ row }) => <AssetMimeCell asset={row.original} t={t} />,
       size: 150,
@@ -154,7 +154,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "size",
       accessorFn: (asset) => asset.sizeBytes ?? 0,
-      meta: { title: t("assets:ASSET_META_SIZE"), defaultHidden: true, kind: "meta" },
+      meta: { title: t("assets:ASSET_META_SIZE"), kind: "meta" },
       header: t("assets:ASSET_META_SIZE"),
       cell: ({ row }) => row.original.sizeText || "-",
       size: 120,

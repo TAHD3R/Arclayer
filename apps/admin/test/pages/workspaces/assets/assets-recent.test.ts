@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   clearRecentAssetWorkspaceRecords,
+  removeRecentAssetWorkspaceAssetIds,
   removeRecentAssetRecord,
   resolveRecentAssets,
   touchRecentAssetRecord,
@@ -136,5 +137,36 @@ describe("assets recent helpers", () => {
 
     expect(removeRecentAssetRecord(records, "ws-a:asset-1")).toEqual([records[1]]);
     expect(clearRecentAssetWorkspaceRecords(records, "ws-a")).toEqual([records[1]]);
+  });
+
+  it("removes deleted asset ids from one workspace without touching other records", () => {
+    const records: RecentAssetRecord[] = [
+      {
+        key: "ws-a:asset-1",
+        workspaceId: "ws-a",
+        visitedAt: "2026-03-17T09:00:00.000Z",
+        asset: toRecentAssetSnapshot(baseAsset),
+      },
+      {
+        key: "ws-a:asset-3",
+        workspaceId: "ws-a",
+        visitedAt: "2026-03-17T08:30:00.000Z",
+        asset: {
+          id: "asset-3",
+          name: "keep-me.png",
+        },
+      },
+      {
+        key: "ws-b:asset-1",
+        workspaceId: "ws-b",
+        visitedAt: "2026-03-17T08:00:00.000Z",
+        asset: toRecentAssetSnapshot(baseAsset),
+      },
+    ];
+
+    expect(removeRecentAssetWorkspaceAssetIds(records, "ws-a", ["asset-1", "asset-9"])).toEqual([
+      records[1],
+      records[2],
+    ]);
   });
 });
