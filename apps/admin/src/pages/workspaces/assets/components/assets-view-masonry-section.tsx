@@ -112,13 +112,10 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   orderedAssetIdsRef.current = orderedAssetIds;
 
   const setMasonryGridRef = useCallback((node: HTMLElement | null) => {
+    if (!(node instanceof HTMLElement)) return;
     masonryGridRef.current = node;
+    setMasonryGridNode((prev) => (prev === node ? prev : node));
   }, []);
-
-  useLayoutEffect(() => {
-    const nextNode = masonryGridRef.current;
-    setMasonryGridNode((prev) => (prev === nextNode ? prev : nextNode));
-  });
 
   const handleAssetSelect = useCallback(
     (asset: AssetMasonryItem, event: React.MouseEvent<HTMLDivElement>) => {

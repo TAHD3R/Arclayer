@@ -37,14 +37,17 @@ function resolveSelectPortalContainer(
 }
 
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  const [triggerElement, setTriggerElementState] = React.useState<HTMLElement | null>(null);
-  const setTriggerElement = React.useCallback((element: HTMLElement | null) => {
-    setTriggerElementState((current) => (current === element ? current : element));
-  }, []);
-  const portalContainer = React.useMemo(
-    () => resolveSelectPortalContainer(triggerElement),
-    [triggerElement],
+  const [portalContainer, setPortalContainerState] = React.useState<HTMLElement | undefined>(() =>
+    typeof document === "undefined" ? undefined : document.body,
   );
+  const setTriggerElement = React.useCallback((element: HTMLElement | null) => {
+    if (!(element instanceof HTMLElement)) return;
+
+    const nextPortalContainer = resolveSelectPortalContainer(element);
+    setPortalContainerState((current) =>
+      current === nextPortalContainer ? current : nextPortalContainer,
+    );
+  }, []);
   const portalContextValue = React.useMemo(
     () => ({ portalContainer, setTriggerElement }),
     [portalContainer, setTriggerElement],
@@ -74,17 +77,16 @@ function SelectTrigger({
   size?: "sm" | "default";
 }) {
   const portalContext = React.useContext(SelectPortalContext);
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
   const setTriggerElement = portalContext?.setTriggerElement;
-  const handleRef = React.useCallback(
-    (node: HTMLButtonElement | null) => {
-      setTriggerElement?.(node);
-    },
-    [setTriggerElement],
-  );
+
+  React.useLayoutEffect(() => {
+    setTriggerElement?.(triggerRef.current);
+  });
 
   return (
     <SelectPrimitive.Trigger
-      ref={handleRef}
+      ref={triggerRef}
       data-slot="select-trigger"
       data-size={size}
       className={cn(

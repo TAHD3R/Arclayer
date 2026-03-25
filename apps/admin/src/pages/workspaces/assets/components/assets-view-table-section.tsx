@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import {
+  type ColumnPinningState,
   type ColumnDef,
   type Updater,
   type VisibilityState,
@@ -190,6 +191,29 @@ function buildAssetsTableColumns(params: {
   ];
 }
 
+function areVisibilityStatesEqual(a: VisibilityState, b: VisibilityState) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if ((a[key] ?? true) !== (b[key] ?? true)) return false;
+  }
+  return true;
+}
+
+function areColumnPinningStatesEqual(a: ColumnPinningState, b: ColumnPinningState) {
+  const leftA = a.left ?? [];
+  const leftB = b.left ?? [];
+  const rightA = a.right ?? [];
+  const rightB = b.right ?? [];
+  if (leftA.length !== leftB.length || rightA.length !== rightB.length) return false;
+  for (let index = 0; index < leftA.length; index += 1) {
+    if (leftA[index] !== leftB[index]) return false;
+  }
+  for (let index = 0; index < rightA.length; index += 1) {
+    if (rightA[index] !== rightB[index]) return false;
+  }
+  return true;
+}
+
 export function useAssetsViewTableController(controller: AssetsViewController) {
   const t = controller.t;
   const visibilityStorage = useMemo(
@@ -275,7 +299,8 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
       }),
     [allVisibleSelected, controller, dateTime, handleMoreAction, handleToggleAllVisible, t],
   );
-  const [columnPinning, setColumnPinning] = useState(() => resolveDefaultColumnPinning(columns));
+  const defaultColumnPinning = useMemo(() => resolveDefaultColumnPinning(columns), [columns]);
+  const [columnPinning, setColumnPinning] = useState(() => defaultColumnPinning);
 
   const loadInitialColumnVisibility = useCallback(() => {
     const persisted = readVisibilityState(tableId, visibilityStorage);
@@ -288,9 +313,14 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   );
 
   useEffect(() => {
-    setColumnVisibility(loadInitialColumnVisibility());
-    setColumnPinning(resolveDefaultColumnPinning(columns));
-  }, [columns, loadInitialColumnVisibility, tableId]);
+    const nextVisibility = loadInitialColumnVisibility();
+    setColumnVisibility((prev) =>
+      areVisibilityStatesEqual(prev, nextVisibility) ? prev : nextVisibility,
+    );
+    setColumnPinning((prev) =>
+      areColumnPinningStatesEqual(prev, defaultColumnPinning) ? prev : defaultColumnPinning,
+    );
+  }, [defaultColumnPinning, loadInitialColumnVisibility, tableId]);
 
   const handleColumnVisibilityChange = useCallback(
     (updater: Updater<VisibilityState>) => {
@@ -317,9 +347,9 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   const resetColumnVisibility = useCallback(() => {
     clearVisibilityState(tableId, visibilityStorage);
     setColumnVisibility(resolveDefaultColumnVisibility(columns));
-    setColumnPinning(resolveDefaultColumnPinning(columns));
+    setColumnPinning(defaultColumnPinning);
     setColumnOrder([]);
-  }, [columns, tableId, visibilityStorage]);
+  }, [columns, defaultColumnPinning, tableId, visibilityStorage]);
 
   return {
     table,

@@ -4,9 +4,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { AssetsFilterPopover } from "@/pages/workspaces/assets/components/assets-filter-popover";
+import { AssetsViewHeader } from "@/pages/workspaces/assets/components/assets-view-header";
 import { DeleteAssetFolderDialog } from "@/pages/workspaces/assets/components/delete-asset-folder-dialog";
 import { MoveAssetsToFolderModal } from "@/pages/workspaces/assets/components/move-assets-to-folder-modal";
 import { UpdateAssetsAccessDialog } from "@/pages/workspaces/assets/components/update-assets-access-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
@@ -102,6 +105,44 @@ describe("shared Select", () => {
     ).not.toThrow();
   });
 
+  it("opens a Select inside a popover under StrictMode without triggering an infinite update loop", async () => {
+    const user = userEvent.setup();
+
+    expect(() =>
+      render(
+        <StrictMode>
+          <Popover open>
+            <PopoverTrigger asChild>
+              <button type="button">Filters</button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Select value="newest" onValueChange={() => undefined}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                </SelectContent>
+              </Select>
+            </PopoverContent>
+          </Popover>
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+
+    await user.click(screen.getByRole("combobox"));
+
+    await waitFor(() => {
+      const dropdown = document.querySelector("[data-slot='select-content']");
+      const overlayRoot = document.querySelector("[data-slot='popover-content']");
+
+      expect(dropdown).not.toBeNull();
+      expect(overlayRoot).not.toBeNull();
+      expect(overlayRoot?.contains(dropdown ?? null)).toBe(true);
+    });
+  });
+
   it("stays stable when parent rerenders repeatedly under StrictMode", () => {
     function StressHarness() {
       const [tick, setTick] = React.useState(0);
@@ -130,6 +171,45 @@ describe("shared Select", () => {
       render(
         <StrictMode>
           <StressHarness />
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+  });
+
+  it("renders the assets filter toolbar under StrictMode without hitting a nested update loop", () => {
+    expect(() =>
+      render(
+        <StrictMode>
+          <AssetsFilterPopover
+            value={{}}
+            onChange={() => undefined}
+            ordering="-created_at"
+            onOrderingChange={() => undefined}
+            tags={[]}
+            tagsLoading={false}
+          />
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+  });
+
+  it("renders the assets page header under StrictMode without hitting a nested update loop", () => {
+    expect(() =>
+      render(
+        <StrictMode>
+          <AssetsViewHeader
+            t={(key) => key}
+            viewMode="card"
+            onViewModeChange={() => undefined}
+            setFilters={() => undefined}
+            searchInput=""
+            setSearchInput={() => undefined}
+            filters={{}}
+            ordering="-created_at"
+            setOrdering={() => undefined}
+            tags={[]}
+            tagsLoading={false}
+          />
         </StrictMode>,
       ),
     ).not.toThrow();
