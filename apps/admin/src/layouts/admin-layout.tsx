@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 
 import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
-import { normalizePath } from "@/lib/admin-nav-utils";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -16,7 +15,11 @@ import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
 import { filterNavByScope } from "@/lib/filter-nav-by-scope";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
-import { buildCommonFooterItems, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
+import {
+  buildCommonFooterItems,
+  extractWorkspaceBaseFromPath,
+  mapWorkspaceNavItems,
+} from "@/layouts/admin-scene-utils";
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
@@ -26,13 +29,12 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
-  const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
   const systemRuntime = useSystemRuntime();
 
-  const workspaceBase = useMemo(() => {
-    const id = String(workspaceId ?? "").trim();
-    return id ? `/w/${id}` : null;
-  }, [workspaceId]);
+  const workspaceBase = useMemo(() => extractWorkspaceBaseFromPath(pathname), [pathname]);
+  const workspaceId = useMemo(() => workspaceBase?.replace("/w/", "") ?? null, [workspaceBase]);
+  const effectiveWorkspaceId = workspaceId ?? workspaceIdFromStore;
 
   const resolvePermissionName = useMemo(() => {
     return (code: string) => {
@@ -45,9 +47,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
   }, [i18n.resolvedLanguage, i18n.language, t]);
 
   const isWorkspaceScopeRoute = useMemo(() => {
-    if (!workspaceBase) return false;
-    return normalizePath(pathname).startsWith(normalizePath(workspaceBase));
-  }, [pathname, workspaceBase]);
+    return Boolean(workspaceBase);
+  }, [workspaceBase]);
 
   const workspaceNav = useMemo(
     () => (workspaceBase ? mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, workspaceBase) : []),
@@ -67,9 +68,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
 
   const workspaceDetailQuery = useQuery({
-    queryKey: ["workspace", "detail", workspaceId, sessionVersion],
-    enabled: Boolean(accessToken && workspaceId && isWorkspaceScopeRoute),
-    queryFn: async () => getWorkspaceDetail(String(workspaceId)),
+    queryKey: ["workspace", "detail", effectiveWorkspaceId, sessionVersion],
+    enabled: Boolean(accessToken && effectiveWorkspaceId && isWorkspaceScopeRoute),
+    queryFn: async () => getWorkspaceDetail(String(effectiveWorkspaceId)),
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { silent: true },
@@ -79,18 +80,18 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const workspaceLocalization = useWorkspaceLocalization();
 
   useEffect(() => {
-    if (!accessToken || !workspaceId) return;
+    if (!accessToken || !effectiveWorkspaceId) return;
     const next = workspaceLocalization.localization.locale;
     if (!next) return;
-    cacheWorkspaceLocale(String(workspaceId), next);
+    cacheWorkspaceLocale(String(effectiveWorkspaceId), next);
     if (localePreferenceMode !== "workspace") return;
     setEffectiveLocale(next);
   }, [
     accessToken,
     cacheWorkspaceLocale,
+    effectiveWorkspaceId,
     localePreferenceMode,
     setEffectiveLocale,
-    workspaceId,
     workspaceLocalization.localization.locale,
   ]);
 
@@ -107,10 +108,15 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return {
       kind: "workspace",
       pathname,
-      workspaceId: workspaceId ? String(workspaceId) : null,
+      workspaceId: effectiveWorkspaceId ? String(effectiveWorkspaceId) : null,
       organizationId: workspaceDetailQuery.data?.organizationId ?? null,
     } as const;
-  }, [isWorkspaceScopeRoute, pathname, workspaceDetailQuery.data?.organizationId, workspaceId]);
+  }, [
+    effectiveWorkspaceId,
+    isWorkspaceScopeRoute,
+    pathname,
+    workspaceDetailQuery.data?.organizationId,
+  ]);
 
   return (
     <AdminSceneLayout

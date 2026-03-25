@@ -17,7 +17,7 @@ import {
 } from "@/api/content";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { ColumnsPage } from "@/layouts/page-shell/columns-page";
+import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -26,19 +26,13 @@ import { workspaceContentCreatePath } from "@/lib/routing/workspace-content-rout
 import { useContentLibraryTableColumns } from "./content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryNewContentButton } from "./components/content-library-new-content-button";
-import { ContentLibrarySidebar } from "./components/content-library-sidebar";
 import { ContentLibraryToolbar } from "./components/content-library-toolbar";
-import type {
-  ContentLibraryScopeId,
-  ContentLibraryTableRow,
-  ContentLibraryToolbarFilters,
-} from "./types";
+import type { ContentLibraryTableRow, ContentLibraryToolbarFilters } from "./types";
 import {
   buildContentItemsQueryKey,
   buildContentLibraryPageData,
   buildContentLibraryRows,
   buildContentModelsQueryKey,
-  buildContentSidebarCounts,
   CONTENT_LIBRARY_DEFAULT_SCOPE,
   contentLibraryTableId,
 } from "./utils";
@@ -62,9 +56,7 @@ export function ContentLibraryPage() {
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
   const queryClient = useQueryClient();
   const dateTime = useWorkspaceDateTimeFormatter();
-  const [activeScope, setActiveScope] = React.useState<ContentLibraryScopeId>(
-    CONTENT_LIBRARY_DEFAULT_SCOPE,
-  );
+  const activeScope = CONTENT_LIBRARY_DEFAULT_SCOPE;
   const [toolbarFilters, setToolbarFilters] = React.useState<ContentLibraryToolbarFilters>({});
   const [duplicateRow, setDuplicateRow] = React.useState<ContentLibraryTableRow | null>(null);
   const [deleteRow, setDeleteRow] = React.useState<ContentLibraryTableRow | null>(null);
@@ -99,13 +91,6 @@ export function ContentLibraryPage() {
     () => buildContentLibraryRows(itemsQuery.data ?? [], models),
     [itemsQuery.data, models],
   );
-  const sidebarCounts = React.useMemo(() => buildContentSidebarCounts(rows), [rows]);
-  React.useEffect(() => {
-    if (!activeScope.startsWith("tree:type:")) return;
-    const modelKey = activeScope.replace("tree:type:", "");
-    if (models.some((model) => model.key === modelKey)) return;
-    setActiveScope(CONTENT_LIBRARY_DEFAULT_SCOPE);
-  }, [activeScope, models]);
   React.useEffect(() => {
     if (!toolbarFilters.modelKey) return;
     if (models.some((model) => model.key === toolbarFilters.modelKey)) return;
@@ -204,7 +189,7 @@ export function ContentLibraryPage() {
     archiveMutation.isPending;
 
   return (
-    <ColumnsPage
+    <DefaultPage
       title={t("nav:NAV_CONTENT_LIBRARY")}
       description={t("content:CONTENT_LIBRARY_DESC")}
       className="h-full"
@@ -215,24 +200,6 @@ export function ContentLibraryPage() {
           onNavigate={() => void navigate({ to: workspaceContentCreatePath(String(workspaceId)) })}
         />
       }
-      sideSlots={{
-        left: {
-          title: t("content:CONTENT_LIBRARY_PANEL_TITLE"),
-          mobileLabel: t("content:CONTENT_LIBRARY_PANEL_TITLE"),
-          minWidth: 240,
-          maxWidth: 240,
-          defaultWidth: 240,
-          content: (
-            <ContentLibrarySidebar
-              activeScope={activeScope}
-              counts={sidebarCounts}
-              contentTypesLoading={modelsQuery.isLoading}
-              models={models}
-              onScopeChange={setActiveScope}
-            />
-          ),
-        },
-      }}
     >
       <>
         <AdminDataTableSection
@@ -322,6 +289,6 @@ export function ContentLibraryPage() {
           }}
         />
       </>
-    </ColumnsPage>
+    </DefaultPage>
   );
 }

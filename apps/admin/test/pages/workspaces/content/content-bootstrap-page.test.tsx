@@ -36,11 +36,16 @@ describe("ContentBootstrapPage", () => {
 
     expect(screen.getByText("CONTENT_BOOTSTRAP_CREATE_TITLE")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_START_WITH_OPTIONAL_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_START_WITH_LABEL")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_PRESET_PAGE_NAME")).toBeInTheDocument();
     expect(screen.queryByText("CONTENT_BOOTSTRAP_PRESET_BLANK_NAME")).not.toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_CONTINUE_WITHOUT_TEMPLATE")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_SKIP" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CONTINUE" }),
+    ).toBeDisabled();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_START_FROM_DESC")).toBeInTheDocument();
     expect(
       screen.queryByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE_TO_EDITOR"),
     ).not.toBeInTheDocument();
@@ -67,7 +72,21 @@ describe("ContentBootstrapPage", () => {
     expect(
       screen.getByRole("radio", { name: /CONTENT_BOOTSTRAP_PRESET_POST_NAME/i }),
     ).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_CONTINUE_WITH_TEMPLATE")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_SKIP" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CONTINUE" })).toBeEnabled();
+    expect(
+      screen.getByText(
+        (_, node) =>
+          node?.textContent ===
+          [
+            "CONTENT_BOOTSTRAP_START_FROM_DESC",
+            "CONTENT_BOOTSTRAP_START_CURRENT_TEMPLATE_PREFIX",
+            "CONTENT_BOOTSTRAP_PRESET_POST_NAME",
+          ].join(""),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("CONTENT_BOOTSTRAP_PRESET_POST_NAME")).toHaveLength(2);
   });
 });

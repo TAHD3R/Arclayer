@@ -9,6 +9,7 @@ export type AdminNavItem = {
   label: string;
   labelKey?: string;
   to?: string;
+  activeMatchPaths?: string[];
   search?: NavSearch;
   icon: LucideIcon;
   /** Control visibility by deployment mode; default: "both". */

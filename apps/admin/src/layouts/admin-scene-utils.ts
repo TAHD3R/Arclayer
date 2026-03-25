@@ -21,17 +21,17 @@ export function mapWorkspaceNavItems(
   workspaceBase: string,
 ): AdminNavItem[] {
   const base = workspaceBase.endsWith("/") ? workspaceBase.slice(0, -1) : workspaceBase;
+  const mapWorkspacePath = (value: string) =>
+    value === "/" ? `${base}/` : `${base}${value.startsWith("/") ? value : `/${value}`}`;
 
   return items.map((item) => {
-    const to = item.to
-      ? item.to === "/"
-        ? `${base}/`
-        : `${base}${item.to.startsWith("/") ? item.to : `/${item.to}`}`
-      : undefined;
+    const to = item.to ? mapWorkspacePath(item.to) : undefined;
+    const activeMatchPaths = item.activeMatchPaths?.map(mapWorkspacePath);
 
     return {
       ...item,
       ...(to ? { to } : {}),
+      ...(activeMatchPaths?.length ? { activeMatchPaths } : {}),
       ...(item.children?.length
         ? { children: mapWorkspaceNavItems(item.children, workspaceBase) }
         : {}),

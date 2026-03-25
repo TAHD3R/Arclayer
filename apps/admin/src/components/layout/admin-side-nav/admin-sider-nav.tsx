@@ -203,7 +203,7 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
     source: ActiveSource;
   } | null>(null);
   const activeSource: ActiveSource =
-    sourcePreference && isPrefixMatch(sourcePreference.targetPath, pathname)
+    sourcePreference && isPrefixMatch(sourcePreference.targetPath, activePathname)
       ? sourcePreference.source
       : starredActive
         ? "starred"
@@ -221,12 +221,12 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
   const selectActiveSource = useCallback(
     (source: ActiveSource, targetPath?: string) =>
-      setSourcePreference({ targetPath: normalizePath(targetPath ?? pathname), source }),
-    [pathname],
+      setSourcePreference({ targetPath: normalizePath(targetPath ?? activePathname), source }),
+    [activePathname],
   );
 
   return {
-    pathname,
+    pathname: activePathname,
     items: displayItems,
     activeSource,
     activeKeys,

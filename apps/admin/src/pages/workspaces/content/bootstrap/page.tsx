@@ -17,14 +17,24 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
       description={t("CONTENT_BOOTSTRAP_CREATE_DESC")}
       showFavoriteToggle={false}
       action={
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={controller.busy}
-          onClick={controller.navigateToLibrary}
-        >
-          {t("CONTENT_BOOTSTRAP_ACTION_SKIP")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={controller.busy}
+            onClick={controller.navigateToLibrary}
+          >
+            {t("CONTENT_BOOTSTRAP_ACTION_SKIP")}
+          </Button>
+          <Button
+            type="button"
+            loading={controller.continuePending}
+            disabled={!controller.canContinue || controller.busy}
+            onClick={controller.continueWithStarter}
+          >
+            {t("CONTENT_BOOTSTRAP_ACTION_CONTINUE")}
+          </Button>
+        </div>
       }
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
@@ -34,11 +44,8 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
         busy={controller.busy}
         title={controller.title}
         selectedPresetKey={controller.selectedPresetKey}
-        canContinue={controller.canContinue}
-        continuePending={controller.continuePending}
         onTitleChange={controller.setTitle}
         onPresetSelect={controller.selectPreset}
-        onContinue={controller.continueWithStarter}
       />
     </DefaultPage>
   );

@@ -146,7 +146,6 @@
   "CONTENT_BOOTSTRAP_PACK_SCHEDULABLE_NAME": "Schedulable",
   "CONTENT_BOOTSTRAP_PACK_SCHEDULABLE_DESC": "Support scheduled publishing or timed state changes.",
   "CONTENT_LIBRARY_ROW_UNTYPED": "Untyped content",
-  "CONTENT_BOOTSTRAP_START_WITH_OPTIONAL_LABEL": "Start with (optional)",
-  "CONTENT_BOOTSTRAP_CONTINUE_WITH_TEMPLATE": "Continuing creates a draft with the selected template and returns you to Content Library.",
-  "CONTENT_BOOTSTRAP_CONTINUE_WITHOUT_TEMPLATE": "Continuing creates a blank draft and returns you to Content Library."
+  "CONTENT_BOOTSTRAP_START_WITH_LABEL": "Start with template",
+  "CONTENT_BOOTSTRAP_START_CURRENT_TEMPLATE_PREFIX": "Current template type:"
 }

@@ -163,35 +163,53 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
           </div>
         </AccordionTrigger>
       ) : (
-        // Override default trigger hover underline: only underline the title, not the whole block.
         <AccordionTrigger
+          showArrow={false}
           disabled={busy}
-          className={cn("group hover:no-underline", props.triggerClassName)}
+          className={cn(
+            "group py-0 hover:no-underline",
+            "rounded-none",
+            "transition-colors",
+            "hover:bg-muted",
+            "active:bg-muted/70 active:translate-y-px",
+            "disabled:pointer-events-none disabled:opacity-60",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+            props.triggerClassName,
+          )}
         >
-          <div className="flex flex-col gap-1">
-            <div className="text-title3 font-bold leading-tight">
-              <span className="group-hover:underline underline-offset-4">{props.title}</span>
+          <div className="flex w-full items-start justify-between gap-4 px-4 py-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="text-title3 font-bold leading-tight">{props.title}</div>
+              {hasDescription || shouldRenderSummary ? (
+                <div className="text-label-secondary leading-snug no-underline font-normal">
+                  {hasDescription ? props.description : null}
+                  {shouldRenderSummary ? (
+                    <>
+                      {props.summaryPrefix ? (
+                        <span className={cn(hasDescription ? "ml-2" : undefined, "mr-1")}>
+                          {props.summaryPrefix}
+                        </span>
+                      ) : null}
+                      <span>{props.summary}</span>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-            {hasDescription || shouldRenderSummary ? (
-              <div className="text-label-secondary leading-snug no-underline font-normal">
-                {hasDescription ? props.description : null}
-                {shouldRenderSummary ? (
-                  <>
-                    {props.summaryPrefix ? (
-                      <span className={cn(hasDescription ? "ml-2" : undefined, "mr-1")}>
-                        {props.summaryPrefix}
-                      </span>
-                    ) : null}
-                    <span>{props.summary}</span>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
+            <div className="pt-1 text-label-secondary">
+              <ChevronRight
+                className={cn(
+                  "size-5 transition-transform duration-200",
+                  "group-data-[state=open]:rotate-90",
+                )}
+                aria-hidden="true"
+              />
+            </div>
           </div>
         </AccordionTrigger>
       )}
       <AccordionContent keepRendered={props.keepRendered}>
-        <div className={cn("flex w-full max-w-[40rem] flex-col gap-3 p-2", props.contentClassName)}>
+        <div className={cn("flex w-full max-w-[40rem] flex-col gap-3 p-4", props.contentClassName)}>
           <div
             className={cn(
               contentLayout === "inline" && hasActions

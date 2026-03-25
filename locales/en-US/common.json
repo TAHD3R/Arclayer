@@ -55,7 +55,7 @@
   "DATA_TABLE_RESET_COLUMN_SIZE": "Reset column size",
   "DATA_TABLE_RESET_COLUMN_ORDER": "Reset column order",
   "DATA_TABLE_SELECTED_COUNT": "{{count}} selected",
-  "DATA_TABLE_SHOWING_RESULTS": "showing {{start}} - {{end}} of {{total}} results",
+  "DATA_TABLE_SHOWING_RESULTS": "Showing {{start}} - {{end}} of {{total}} results",
   "EMPTY_DESC": "There is nothing to display yet.",
   "EMPTY_TITLE": "No data",
   "EXTENSIONS": "Extensions",

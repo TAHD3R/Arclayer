@@ -1,8 +1,9 @@
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@arclayer/ui/button";
+import { Accordion } from "@arclayer/ui/accordion";
 import { Input } from "@arclayer/ui/input";
+import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 import { cn } from "@arclayer/lib/utils";
 
@@ -13,38 +14,9 @@ type StepOnePanelProps = {
   busy: boolean;
   title: string;
   selectedPresetKey: ContentBootstrapPresetKey | null;
-  canContinue: boolean;
-  continuePending: boolean;
   onTitleChange: (value: string) => void;
   onPresetSelect: (value: ContentBootstrapPresetKey | null) => void;
-  onContinue: () => void;
 };
-
-function ContinueSummary(props: { selectedPresetKey: ContentBootstrapPresetKey | null }) {
-  const { t } = useTranslation("content");
-  const summaryKey = props.selectedPresetKey
-    ? "CONTENT_BOOTSTRAP_CONTINUE_WITH_TEMPLATE"
-    : "CONTENT_BOOTSTRAP_CONTINUE_WITHOUT_TEMPLATE";
-
-  return <div className="text-footnote text-label-secondary">{t(summaryKey)}</div>;
-}
-
-function SectionHeader(props: { htmlFor?: string; title: string; description: string }) {
-  const title = props.htmlFor ? (
-    <label className="font-semibold text-foreground" htmlFor={props.htmlFor}>
-      {props.title}
-    </label>
-  ) : (
-    <div className="font-semibold text-foreground">{props.title}</div>
-  );
-
-  return (
-    <div className="grid gap-1.5">
-      {title}
-      <div className="text-label-secondary">{props.description}</div>
-    </div>
-  );
-}
 
 function StarterPresetOption(props: {
   presetKey: ContentBootstrapPresetKey | null;
@@ -93,77 +65,75 @@ function TitleField(props: Pick<StepOnePanelProps, "busy" | "title" | "onTitleCh
   const { t } = useTranslation("content");
 
   return (
-    <div className="grid gap-3">
-      <SectionHeader
-        htmlFor="content-create-title"
-        title={t("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")}
+    <Accordion type="single" collapsible defaultValue="content-title" className="px-0">
+      <SettingAccordionItem
+        value="content-title"
+        title={<span className="text-base">{t("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")}</span>}
         description={t("CONTENT_BOOTSTRAP_FIELD_TITLE_DESC")}
-      />
-      <Input
-        id="content-create-title"
-        autoFocus
-        value={props.title}
-        disabled={props.busy}
-        onChange={(event) => props.onTitleChange(event.target.value)}
-        placeholder={t("CONTENT_BOOTSTRAP_FIELD_TITLE_PLACEHOLDER")}
-        className="h-12"
-      />
-    </div>
+        keepRendered
+        contentClassName="max-w-none"
+      >
+        <Input
+          id="content-create-title"
+          aria-label={t("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")}
+          autoFocus
+          value={props.title}
+          disabled={props.busy}
+          onChange={(event) => props.onTitleChange(event.target.value)}
+          placeholder={t("CONTENT_BOOTSTRAP_FIELD_TITLE_PLACEHOLDER")}
+          className="h-12"
+        />
+      </SettingAccordionItem>
+    </Accordion>
   );
 }
 
 function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "onPresetSelect">) {
   const { t } = useTranslation("content");
-
-  return (
-    <div className="grid gap-4">
-      <SectionHeader
-        title={t("CONTENT_BOOTSTRAP_START_WITH_OPTIONAL_LABEL")}
-        description={t("CONTENT_BOOTSTRAP_START_FROM_DESC")}
-      />
-      <ToggleGroup
-        type="single"
-        value={props.selectedPresetKey ?? undefined}
-        onValueChange={(value) => {
-          props.onPresetSelect(value ? (value as ContentBootstrapPresetKey) : null);
-        }}
-        className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent shadow-none md:grid-cols-2"
-      >
-        {CONTENT_BOOTSTRAP_PRESETS.map((preset) => (
-          <StarterPresetOption
-            key={preset.key}
-            presetKey={props.selectedPresetKey}
-            value={preset.key}
-            name={t(preset.nameKey)}
-            description={t(preset.descriptionKey)}
-            icon={preset.icon}
-          />
-        ))}
-      </ToggleGroup>
-    </div>
+  const selectedPreset = props.selectedPresetKey
+    ? CONTENT_BOOTSTRAP_PRESETS.find((preset) => preset.key === props.selectedPresetKey)
+    : null;
+  const selectedPresetName = selectedPreset ? t(selectedPreset.nameKey) : null;
+  const startFromDescription = selectedPresetName ? (
+    <>
+      {t("CONTENT_BOOTSTRAP_START_FROM_DESC")}
+      {t("CONTENT_BOOTSTRAP_START_CURRENT_TEMPLATE_PREFIX")}
+      <span className="text-label-primary font-semibold">{selectedPresetName}</span>
+    </>
+  ) : (
+    t("CONTENT_BOOTSTRAP_START_FROM_DESC")
   );
-}
-
-function FormActions(
-  props: Pick<
-    StepOnePanelProps,
-    "busy" | "canContinue" | "continuePending" | "onContinue" | "selectedPresetKey"
-  >,
-) {
-  const { t } = useTranslation("content");
 
   return (
-    <div className="flex items-center justify-between gap-4">
-      <ContinueSummary selectedPresetKey={props.selectedPresetKey} />
-      <Button
-        type="button"
-        loading={props.continuePending}
-        disabled={!props.canContinue || props.busy}
-        onClick={props.onContinue}
+    <Accordion type="single" collapsible className="px-0">
+      <SettingAccordionItem
+        value="start-from-template"
+        title={<span className="text-base">{t("CONTENT_BOOTSTRAP_START_WITH_LABEL")}</span>}
+        description={startFromDescription}
+        keepRendered
+        contentClassName="max-w-none"
       >
-        {t("CONTENT_BOOTSTRAP_ACTION_CONTINUE")}
-      </Button>
-    </div>
+        <ToggleGroup
+          type="single"
+          value={props.selectedPresetKey ?? undefined}
+          onValueChange={(value) => {
+            props.onPresetSelect(value ? (value as ContentBootstrapPresetKey) : null);
+          }}
+          className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent shadow-none md:grid-cols-2"
+        >
+          {CONTENT_BOOTSTRAP_PRESETS.map((preset) => (
+            <StarterPresetOption
+              key={preset.key}
+              presetKey={props.selectedPresetKey}
+              value={preset.key}
+              name={t(preset.nameKey)}
+              description={t(preset.descriptionKey)}
+              icon={preset.icon}
+            />
+          ))}
+        </ToggleGroup>
+      </SettingAccordionItem>
+    </Accordion>
   );
 }
 
@@ -174,13 +144,6 @@ export function ContentBootstrapStepOnePanel(props: StepOnePanelProps) {
       <StartFromField
         selectedPresetKey={props.selectedPresetKey}
         onPresetSelect={props.onPresetSelect}
-      />
-      <FormActions
-        busy={props.busy}
-        canContinue={props.canContinue}
-        continuePending={props.continuePending}
-        onContinue={props.onContinue}
-        selectedPresetKey={props.selectedPresetKey}
       />
     </div>
   );

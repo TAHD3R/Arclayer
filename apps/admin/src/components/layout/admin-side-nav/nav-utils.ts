@@ -20,6 +20,14 @@ function normalizePath(input: string): string {
   return input;
 }
 
+function getMatchCandidates(item: AdminNavItem): string[] {
+  const candidates = [
+    ...(item.to ? [item.to] : []),
+    ...(item.activeMatchPaths?.length ? item.activeMatchPaths : []),
+  ].map(normalizePath);
+  return Array.from(new Set(candidates));
+}
+
 function isExactMatch(to: string, pathname: string): boolean {
   const t = normalizePath(to);
   const p = normalizePath(pathname);
@@ -76,10 +84,11 @@ function findActiveTrail(items: readonly AdminNavItem[], pathname: string): stri
     for (const node of nodes) {
       const nextParents = [...parents, node.key];
 
-      if (node.to) {
-        const isExact = isExactMatch(node.to, pathname);
-        const isTrail = isPrefixMatch(node.to, pathname);
-        const score = isExact ? 1000 + node.to.length : isTrail ? 100 + node.to.length : 0;
+      const candidates = getMatchCandidates(node);
+      for (const candidate of candidates) {
+        const isExact = isExactMatch(candidate, pathname);
+        const isTrail = isPrefixMatch(candidate, pathname);
+        const score = isExact ? 1000 + candidate.length : isTrail ? 100 + candidate.length : 0;
         if (score > 0 && score > bestScore) {
           bestScore = score;
           bestKeys = nextParents;

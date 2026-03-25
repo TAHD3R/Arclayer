@@ -5,6 +5,8 @@ import { Activity, Home, LayoutGrid, Settings, UserPlus, Users } from "lucide-re
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
+import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
+import { mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { Sidebar, SidebarMenuButton, SidebarProvider } from "@arclayer/ui/sidebar";
@@ -657,6 +659,79 @@ describe("AdminSiderNav collapsed groups", () => {
 
     expect(screen.getByRole("button", { name: "Team" })).toHaveAttribute("data-active", "true");
     expect(screen.getByRole("button", { name: "Members" })).toHaveAttribute("data-active", "true");
+  });
+
+  it("marks Content -> Contents active for the content create route alias", async () => {
+    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/w/ws-1");
+
+    renderTreeNav({
+      items: workspaceItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+      pathnameOverride: "/w/ws-1/content/create",
+    });
+
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_CONTENT" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_DASHBOARD" })).toHaveAttribute(
+      "data-active",
+      "false",
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "en-US:nav:NAV_CONTENT_LIBRARY" })).toBeVisible();
+    });
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_CONTENT_LIBRARY" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+  });
+
+  it("updates the active branch when pathnameOverride changes between workspace source pages", async () => {
+    mockPathname = "/usercenter/profile";
+    const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/w/ws-1");
+
+    const view = renderTreeNav({
+      items: workspaceItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+      pathnameOverride: "/w/ws-1/team/members",
+    });
+
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_TEAM" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(
+      screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_TEAM_MEMBER_LIST" }),
+    ).toHaveAttribute("data-active", "true");
+
+    view.rerender(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav
+            items={workspaceItems}
+            favoriteWorkspaceBase="/w/ws-1"
+            pathnameOverride="/w/ws-1/assets"
+          />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_CONTENT" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_TEAM" })).toHaveAttribute(
+      "data-active",
+      "false",
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "en-US:nav:NAV_ASSETS" })).toBeVisible();
+    });
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_ASSETS" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
   });
 
   it("keeps collapsed groups accessible in icon mode and restores accordion state on expand", async () => {

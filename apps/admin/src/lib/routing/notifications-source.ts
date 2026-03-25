@@ -41,6 +41,16 @@ export function validateNotificationsSourceSearch(
   return { sourceKind, sourcePath };
 }
 
+export function parseNotificationsSourceSearch(searchStr: string): NotificationsSourceSearch {
+  const raw = searchStr.startsWith("?") ? searchStr.slice(1) : searchStr;
+  const params = new URLSearchParams(raw);
+
+  return validateNotificationsSourceSearch({
+    sourceKind: params.get("sourceKind") ?? undefined,
+    sourcePath: params.get("sourcePath") ?? undefined,
+  });
+}
+
 export function buildNotificationsSourceSearch(pathname: string): NotificationsSourceSearch {
   const normalized = normalizePath(pathname);
 
