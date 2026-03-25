@@ -69,7 +69,12 @@ function buildTextColumn(props: {
   return {
     accessorKey: props.key,
     header: props.title,
-    meta: { title: props.title, sortKey: props.sortKey, defaultHidden: props.defaultHidden },
+    meta: {
+      title: props.title,
+      sortKey: props.sortKey,
+      defaultHidden: props.defaultHidden,
+      kind: "meta",
+    },
     cell: ({ row }) => <span className={props.className}>{row.original[props.key]}</span>,
     size: props.key === "location" ? 220 : 160,
   };
@@ -84,7 +89,12 @@ function buildDateColumn(props: {
   return {
     accessorKey: props.key,
     header: props.title,
-    meta: { title: props.title, sortKey: props.key, defaultHidden: props.defaultHidden },
+    meta: {
+      title: props.title,
+      sortKey: props.key,
+      defaultHidden: props.defaultHidden,
+      kind: "time",
+    },
     cell: ({ row }) => renderDateCell(row.original[props.key], props.formatDateTime),
     size: 200,
   };
@@ -124,7 +134,11 @@ export function buildSessionColumns(props: ColumnFactoryProps): ColumnDef<Sessio
     {
       accessorKey: "device",
       header: props.t("account:ME_SECURITY_SESSIONS_COL_DEVICE"),
-      meta: { title: props.t("account:ME_SECURITY_SESSIONS_COL_DEVICE"), sortKey: "device" },
+      meta: {
+        title: props.t("account:ME_SECURITY_SESSIONS_COL_DEVICE"),
+        sortKey: "device",
+        kind: "primary",
+      },
       cell: ({ row }) => renderDeviceCell(row.original, props.t),
       size: 240,
     },
@@ -148,6 +162,7 @@ export function buildSessionColumns(props: ColumnFactoryProps): ColumnDef<Sessio
         title: props.t("account:ME_SECURITY_SESSIONS_COL_AUTH_METHOD"),
         sortKey: "authMethod",
         defaultHidden: true,
+        kind: "status",
       },
       cell: ({ row }) => <span>{formatAuthMethod(row.original.authMethod, props.t)}</span>,
       size: 160,
@@ -174,6 +189,7 @@ type SecuritySessionsTableContentProps = {
   rowHeight: DataTableRowHeight;
   wrapHeaders: boolean;
   emptyText: string;
+  toolbar?: React.ReactNode;
 };
 
 export function SecuritySessionsTableContent(props: SecuritySessionsTableContentProps) {
@@ -184,6 +200,7 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
           table={props.table}
           emptyText={props.emptyText}
           className="min-h-0 min-w-0 w-full"
+          toolbar={props.toolbar ? { fullWidth: props.toolbar } : undefined}
           rowHeight={props.rowHeight}
           wrapHeaders={props.wrapHeaders}
           refreshing={props.isFetching && !props.isLoading}

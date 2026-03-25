@@ -26,6 +26,7 @@
   "TEAM_ROLES_DELETE_DESC": "This will unbind the role from all members and cannot be undone. Target: {{roleName}}",
   "TEAM_ROLES_PERMISSION_PROVIDED_BY": "Provided by {{pluginName}}",
   "TEAM_ROLES_COL_PERMISSION": "Permissions",
+  "TEAM_ROLES_PERMISSION_COUNT": "{{count}} permissions",
   "TEAM_ROLES_EMPTY_SEARCH": "No matching permissions or roles found",
   "TEAM_INVITATIONS_TAB_PENDING": "Pending",
   "TEAM_INVITATIONS_TAB_ACCEPTED": "Accepted",
@@ -198,6 +199,5 @@
   "TEAM_INVITATIONS_COL_ACCEPTED": "Accepted",
   "TEAM_INVITATIONS_COL_PROCESSED": "Processed",
   "TEAM_INVITATIONS_SENT_AT": "Sent at {{datetime}}",
-  "TEAM_INVITE_LINKS_COL_LAST_USED": "Last used",
-  "TEAM_PAGINATION_TOTAL": "{{total}} total ({{start}}-{{end}})"
+  "TEAM_INVITE_LINKS_COL_LAST_USED": "Last used"
 }

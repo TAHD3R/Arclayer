@@ -11,6 +11,7 @@ import { DataTableColumnHeaderMenu } from "./data-table-column-header-menu";
 import { DataTableColumnResizeHandle } from "./data-table-column-resize-handle";
 import {
   resolveHeaderAlignClass,
+  resolveHeaderPaddingClass,
   resolveHeaderJustifyClass,
   resolveHeaderPinStyle,
 } from "./data-table-presenter-utils";
@@ -22,14 +23,14 @@ type ColumnMeta = { kind?: string };
 
 function resolveHeaderHeightClass(rowHeight: DataTableRowHeight, wrapHeaders: boolean): string {
   if (rowHeight === "short") return wrapHeaders ? "min-h-10" : "h-10";
-  if (rowHeight === "tall") return wrapHeaders ? "min-h-14" : "h-14";
+  if (rowHeight === "tall") return wrapHeaders ? "min-h-[3.375rem]" : "h-[3.375rem]";
   if (rowHeight === "extraTall") return wrapHeaders ? "min-h-16" : "h-16";
-  return wrapHeaders ? "min-h-12" : "h-12";
+  return wrapHeaders ? "min-h-[2.875rem]" : "h-[2.875rem]";
 }
 
 function resolveHeaderContentClass(wrapHeaders: boolean): string {
   return wrapHeaders
-    ? "whitespace-normal break-words leading-5 py-2"
+    ? "whitespace-normal break-words leading-[1.15rem] py-2"
     : "truncate whitespace-nowrap";
 }
 
@@ -91,7 +92,6 @@ function resolveHeaderCellState<TData>(
   headerCellClassName?: (header: Header<TData, unknown>) => string | undefined,
 ) {
   const id = header.column.id;
-  const selectColumn = isSelectColumn(header.column.columnDef.meta, id);
   const alignClass = resolveHeaderAlignClass(header);
   const justifyClass = resolveHeaderJustifyClass(alignClass);
   const pinStyle = resolveHeaderPinStyle(header);
@@ -105,11 +105,11 @@ function resolveHeaderCellState<TData>(
       ? null
       : flexRender(header.column.columnDef.header, header.getContext()),
     className: cn(
-      "group/header-cell relative text-label-secondary select-none align-middle",
+      "group/header-cell relative border-b border-border/60 bg-transparent text-callout text-label-secondary/90 select-none align-middle font-medium",
       alignClass,
       pinStyle.className,
       resolveHeaderHeightClass(rowHeight, wrapHeaders),
-      selectColumn ? "px-0" : "",
+      resolveHeaderPaddingClass(header.column.columnDef.meta, id),
       "transition-[background-color,box-shadow,opacity] duration-150",
       headerCellClassName?.(header),
     ),
@@ -162,7 +162,7 @@ function SortableHeaderCell<TData>(
       <div className={cn("flex h-full w-full items-center", state.justifyClass)}>
         <div
           className={cn(
-            "flex h-full w-full max-w-full items-center px-1 select-none",
+            "flex h-full w-full max-w-full items-center select-none",
             dragDisabled ? "opacity-80" : "cursor-grab active:cursor-grabbing",
           )}
           {...dndAttributes}
@@ -247,7 +247,7 @@ export function DataTablePresenterHeader<TData>(props: {
   return (
     <TableHeader>
       {props.table.getHeaderGroups().map((headerGroup) => (
-        <TableRow key={headerGroup.id} className="border-border/40 hover:bg-transparent">
+        <TableRow key={headerGroup.id} className="border-border/50 hover:bg-transparent">
           {headerGroup.headers.map((header) => {
             const meta = header.column.columnDef.meta;
             const columnId = header.column.id;

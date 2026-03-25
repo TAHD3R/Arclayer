@@ -93,6 +93,7 @@ export function ContentLibraryToolbar<TData>(props: {
 
   return (
     <PageExtraToolbar
+      className="items-center"
       leading={
         <>
           <DataTableSearchInput
@@ -144,7 +145,7 @@ export function ContentLibraryToolbar<TData>(props: {
           />
         </>
       }
-      leadingClassName="items-start"
+      leadingClassName="items-center"
       trailingClassName="justify-end"
     />
   );

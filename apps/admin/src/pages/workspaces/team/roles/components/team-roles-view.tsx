@@ -34,6 +34,27 @@ import { includesText, normalizeNeedle, sortByName } from "../utils";
 import type { CreateRoleFormValues, EditRoleFormValues } from "../utils";
 import type { Role } from "@/types/api";
 
+function resolveMatrixColumnWidths(roleCount: number) {
+  const permissionWidth = 42;
+  const roleWidth = roleCount > 0 ? Number(((100 - permissionWidth) / roleCount).toFixed(2)) : 0;
+  return {
+    permission: `${permissionWidth}%`,
+    role: `${roleWidth}%`,
+  };
+}
+
+function resolveRoleHeaderLines(roleName: string) {
+  const normalized = roleName.trim();
+  if (!normalized) return [];
+  if (/\s/.test(normalized)) {
+    return normalized.split(/\s+/).filter(Boolean);
+  }
+  if (/[\u3400-\u9fff]/.test(normalized) && normalized.length <= 6) {
+    return normalized.split("");
+  }
+  return [normalized];
+}
+
 export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {}) {
   const { t } = useTranslation(["team", "common", "settings"]);
   const queryClient = useQueryClient();
@@ -93,6 +114,10 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
     if (hasPermHits && hasRoleHits) return matchedPermissions;
     return [];
   }, [matchedPermissions, matchedRoles.length, needle, permissions]);
+  const matrixColumnWidths = React.useMemo(
+    () => resolveMatrixColumnWidths(filteredRoles.length),
+    [filteredRoles.length],
+  );
 
   const togglePermissionMutation = useMutation({
     mutationFn: async ({
@@ -271,44 +296,66 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         </Button>
       }
       extra={
-        <DataTableSearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
-          clearLabel={t("common:CLEAR")}
-          className="max-w-[360px]"
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <DataTableSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
+            clearLabel={t("common:CLEAR")}
+            className="w-full max-w-[360px]"
+          />
+          <div className="text-headline text-label-primary">
+            {t("team:TEAM_ROLES_PERMISSION_COUNT", { count: filteredPermissions.length })}
+          </div>
+        </div>
       }
     >
       <div className="flex flex-col gap-4">
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <div className="relative isolate overflow-hidden rounded-xl bg-background/90">
+          <div className="relative isolate overflow-x-auto bg-background/90">
             <table className="w-full table-fixed border-collapse caption-bottom text-callout">
-              <TableHeader>
+              <colgroup>
+                <col style={{ width: matrixColumnWidths.permission }} />
+                {filteredRoles.map((role) => (
+                  <col key={role.code} style={{ width: matrixColumnWidths.role }} />
+                ))}
+              </colgroup>
+              <TableHeader className="border-y border-border/50">
                 <TableRow className="border-border/40 hover:bg-transparent">
-                  <TableHead className="sticky top-0 left-0 z-[3] w-[22rem] bg-background/95 align-top backdrop-blur supports-[backdrop-filter]:bg-background/85">
-                    <div className="px-2 pt-2.5 pb-1 text-center">
-                      {t("team:TEAM_ROLES_COL_PERMISSION")}
+                  <TableHead className="sticky top-0 left-0 z-[3] bg-background/95 align-top text-center backdrop-blur supports-[backdrop-filter]:bg-background/85">
+                    <div className="flex min-h-24 items-center justify-center px-2 py-2.5 text-center">
+                      <span className="block text-callout font-semibold text-label-secondary">
+                        {t("team:TEAM_ROLES_COL_PERMISSION")}
+                      </span>
                     </div>
                   </TableHead>
                   {filteredRoles.map((role) => {
+                    const roleHeaderLines = resolveRoleHeaderLines(role.name);
                     return (
                       <TableHead
                         key={role.code}
-                        className="sticky top-0 z-[2] bg-background/95 align-top backdrop-blur supports-[backdrop-filter]:bg-background/85"
+                        className="sticky top-0 z-[2] min-w-[5.5rem] bg-background/95 align-top backdrop-blur supports-[backdrop-filter]:bg-background/85"
                       >
-                        <div className="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)_1.5rem] items-start gap-1.5 px-2 pt-2.5 pb-1">
-                          <span aria-hidden="true" className="size-6" />
+                        <div className="relative min-h-24 px-2 py-2.5">
                           <div
-                            className="min-w-0 whitespace-normal break-words text-center text-footnote font-semibold leading-tight text-label-primary"
+                            className="flex min-h-[4.5rem] items-center justify-center"
                             title={role.name}
                           >
-                            {role.name}
+                            <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 text-center text-footnote font-semibold leading-tight text-label-primary">
+                              {roleHeaderLines.map((line, index) => (
+                                <span
+                                  key={`${role.code}-${index}`}
+                                  className="block whitespace-nowrap"
+                                >
+                                  {line}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                           {!role.isSystem ? (
-                            <div className="flex justify-end">
+                            <div className="absolute top-2.5 right-2 flex justify-end">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -345,9 +392,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
-                          ) : (
-                            <span aria-hidden="true" className="size-6" />
-                          )}
+                          ) : null}
                         </div>
                       </TableHead>
                     );
@@ -360,7 +405,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                     key={perm.code}
                     className="group/row border-border/40 hover:bg-muted/40"
                   >
-                    <TableCell className="sticky left-0 z-[1] w-[22rem] bg-background group-hover/row:bg-muted/40 transition-colors">
+                    <TableCell className="sticky left-0 z-[1] bg-background group-hover/row:bg-muted/40 transition-colors">
                       <div className="min-w-0">
                         <div className="break-words font-semibold text-foreground">{perm.name}</div>
                         {perm.description ? (
@@ -407,10 +452,6 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                 ))}
               </TableBody>
             </table>
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-[5] rounded-[inherit] border border-border/60"
-            />
           </div>
         )}
       </div>

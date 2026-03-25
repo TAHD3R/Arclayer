@@ -1,6 +1,12 @@
 "use client";
 
-import type { ColumnDef, VisibilityState } from "@tanstack/react-table";
+import type { ColumnDef, ColumnPinningState, VisibilityState } from "@tanstack/react-table";
+
+type DataTableColumnMeta = {
+  defaultHidden?: boolean;
+  kind?: string;
+  pin?: "left" | "right" | false;
+};
 
 function resolveColumnId<TData>(column: ColumnDef<TData, unknown>): string | null {
   if (typeof column.id === "string" && column.id.trim()) return column.id.trim();
@@ -12,6 +18,12 @@ function resolveColumnId<TData>(column: ColumnDef<TData, unknown>): string | nul
     return column.accessorKey.trim();
   }
   return null;
+}
+
+function resolveColumnMeta<TData>(
+  column: ColumnDef<TData, unknown>,
+): DataTableColumnMeta | undefined {
+  return column.meta as DataTableColumnMeta | undefined;
 }
 
 export function collectLeafColumnIds<TData>(
@@ -53,7 +65,7 @@ export function resolveDefaultColumnVisibility<TData>(
 
       const id = resolveColumnId(col);
       if (!id) continue;
-      const meta = col.meta as { defaultHidden?: boolean } | undefined;
+      const meta = resolveColumnMeta(col);
       if (meta?.defaultHidden === true) {
         visibility[id] = false;
       }
@@ -62,6 +74,56 @@ export function resolveDefaultColumnVisibility<TData>(
 
   visit(columns);
   return visibility;
+}
+
+export function resolveDefaultColumnPinning<TData>(
+  columns: readonly ColumnDef<TData, unknown>[],
+): ColumnPinningState {
+  const left: string[] = [];
+  const right: string[] = [];
+  const seen = new Set<string>();
+
+  const visit = (defs: readonly ColumnDef<TData, unknown>[]) => {
+    for (const col of defs) {
+      if ("columns" in col && Array.isArray(col.columns) && col.columns.length) {
+        visit(col.columns as readonly ColumnDef<TData, unknown>[]);
+        continue;
+      }
+
+      const id = resolveColumnId(col);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+
+      const meta = resolveColumnMeta(col);
+      if (meta?.pin === false) continue;
+
+      if (meta?.pin === "left") {
+        left.push(id);
+        continue;
+      }
+
+      if (meta?.pin === "right") {
+        right.push(id);
+        continue;
+      }
+
+      if (meta?.kind === "select" || id === "select") {
+        left.push(id);
+        continue;
+      }
+
+      if (meta?.kind === "actions" || id === "actions") {
+        right.push(id);
+      }
+    }
+  };
+
+  visit(columns);
+
+  return {
+    ...(left.length ? { left } : {}),
+    ...(right.length ? { right } : {}),
+  };
 }
 
 export function normalizeSearchDefault(input: string): string {

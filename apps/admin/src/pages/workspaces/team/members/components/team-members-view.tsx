@@ -193,6 +193,7 @@ export function TeamMembersView(props: {
         meta: {
           title: t("team:TEAM_TABLE_COL_USER"),
           sortKey: "user__username",
+          kind: "primary",
         },
         header: t("team:TEAM_TABLE_COL_USER"),
         cell: ({ row }) => {
@@ -288,11 +289,14 @@ export function TeamMembersView(props: {
             </div>
           );
         },
+        size: 360,
+        minSize: 300,
       },
       {
         id: "roles",
         meta: {
           title: t("team:TEAM_TABLE_COL_ROLES"),
+          kind: "meta",
         },
         header: () => <span>{t("team:TEAM_TABLE_COL_ROLES")}</span>,
         cell: ({ row }) => {
@@ -315,12 +319,15 @@ export function TeamMembersView(props: {
             </div>
           );
         },
+        size: 220,
+        minSize: 180,
       },
       {
         accessorKey: "userStatus",
         meta: {
           title: t("team:TEAM_TABLE_COL_STATUS"),
           sortKey: "status",
+          kind: "status",
         },
         header: t("team:TEAM_TABLE_COL_STATUS"),
         cell: ({ row }) => {
@@ -356,12 +363,15 @@ export function TeamMembersView(props: {
             </div>
           );
         },
+        size: 190,
+        minSize: 168,
       },
       {
         accessorKey: "lastLoginAt",
         meta: {
           title: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
           sortKey: "user__last_login_at",
+          kind: "time",
         },
         header: t("team:TEAM_TABLE_COL_LAST_LOGIN"),
         cell: ({ row }) => {
@@ -372,6 +382,8 @@ export function TeamMembersView(props: {
             </span>
           );
         },
+        size: 210,
+        minSize: 190,
       },
     ];
     return cols;
@@ -442,30 +454,6 @@ export function TeamMembersView(props: {
           {t("team:TEAM_INVITE_MEMBER")}
         </Button>
       }
-      extra={
-        <TeamMembersPageToolbar
-          table={table}
-          searchInput={tableHook.searchInput}
-          onSearchInputChange={tableHook.setSearchInput}
-          filters={filters}
-          onFiltersChange={setFilters}
-          sort={sort}
-          onSortChange={(next) => {
-            setSort(next);
-            tableHook.setSorting(sortValueToTableSorting(next));
-          }}
-          roles={rolesQuery.data?.items ?? []}
-          rolesLoading={rolesQuery.isLoading}
-          rowHeight={rowHeight}
-          onRowHeightChange={setRowHeight}
-          wrapHeaders={wrapHeaders}
-          onWrapHeadersChange={setWrapHeaders}
-          refreshing={tableHook.isFetching}
-          onRefresh={() => void tableHook.refetch()}
-          onResetColumnVisibility={tableHook.resetColumnVisibility}
-          toolsLabels={toolsLabels}
-        />
-      }
     >
       <AdminDataTableSection
         table={table}
@@ -486,6 +474,30 @@ export function TeamMembersView(props: {
         rowHeight={rowHeight}
         wrapHeaders={wrapHeaders}
         refreshing={tableHook.isFetching && !tableHook.isLoading}
+        toolbar={
+          <TeamMembersPageToolbar
+            table={table}
+            searchInput={tableHook.searchInput}
+            onSearchInputChange={tableHook.setSearchInput}
+            filters={filters}
+            onFiltersChange={setFilters}
+            sort={sort}
+            onSortChange={(next) => {
+              setSort(next);
+              tableHook.setSorting(sortValueToTableSorting(next));
+            }}
+            roles={rolesQuery.data?.items ?? []}
+            rolesLoading={rolesQuery.isLoading}
+            rowHeight={rowHeight}
+            onRowHeightChange={setRowHeight}
+            wrapHeaders={wrapHeaders}
+            onWrapHeadersChange={setWrapHeaders}
+            refreshing={tableHook.isFetching}
+            onRefresh={() => void tableHook.refetch()}
+            onResetColumnVisibility={tableHook.resetColumnVisibility}
+            toolsLabels={toolsLabels}
+          />
+        }
       />
 
       <EditMemberRolesDialog

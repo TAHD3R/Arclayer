@@ -215,26 +215,6 @@ export function ContentLibraryPage() {
           onNavigate={() => void navigate({ to: workspaceContentCreatePath(String(workspaceId)) })}
         />
       }
-      extra={
-        <ContentLibraryToolbar
-          table={tableHook.table}
-          searchInput={tableHook.searchInput}
-          onSearchInputChange={tableHook.setSearchInput}
-          filters={toolbarFilters}
-          onFiltersChange={setToolbarFilters}
-          rowHeight={rowHeight}
-          onRowHeightChange={setRowHeight}
-          wrapHeaders={wrapHeaders}
-          onWrapHeadersChange={setWrapHeaders}
-          refreshing={refreshing}
-          onRefresh={() => {
-            void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
-          }}
-          onResetColumnVisibility={tableHook.resetColumnVisibility}
-          toolsLabels={toolsLabels}
-          modelOptions={models.map((model) => ({ value: model.key, label: model.name }))}
-        />
-      }
       sideSlots={{
         left: {
           title: t("content:CONTENT_LIBRARY_PANEL_TITLE"),
@@ -284,6 +264,26 @@ export function ContentLibraryPage() {
           rowHeight={rowHeight}
           wrapHeaders={wrapHeaders}
           refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
+          toolbar={
+            <ContentLibraryToolbar
+              table={tableHook.table}
+              searchInput={tableHook.searchInput}
+              onSearchInputChange={tableHook.setSearchInput}
+              filters={toolbarFilters}
+              onFiltersChange={setToolbarFilters}
+              rowHeight={rowHeight}
+              onRowHeightChange={setRowHeight}
+              wrapHeaders={wrapHeaders}
+              onWrapHeadersChange={setWrapHeaders}
+              refreshing={refreshing}
+              onRefresh={() => {
+                void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
+              }}
+              onResetColumnVisibility={tableHook.resetColumnVisibility}
+              toolsLabels={toolsLabels}
+              modelOptions={models.map((model) => ({ value: model.key, label: model.name }))}
+            />
+          }
         />
         <ContentLibraryActionDialogs
           duplicateDialog={{

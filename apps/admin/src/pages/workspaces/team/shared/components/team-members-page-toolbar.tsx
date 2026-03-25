@@ -190,6 +190,7 @@ export function TeamMembersPageToolbar<TData>({
 
   return (
     <PageExtraToolbar
+      className="items-center"
       leading={
         <>
           <DataTableSearchInput
@@ -259,7 +260,7 @@ export function TeamMembersPageToolbar<TData>({
           components={{ IconButton: DataTableToolbarAntdIconButton }}
         />
       }
-      leadingClassName="items-start"
+      leadingClassName="items-center"
       trailingClassName="justify-end"
     />
   );

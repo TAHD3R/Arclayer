@@ -178,6 +178,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         meta: {
           title: t("team:TEAM_INVITATIONS_COL_EMAIL"),
           sortKey: "email",
+          kind: "primary",
         },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => {
@@ -193,12 +194,15 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             </div>
           );
         },
+        size: 320,
+        minSize: 260,
       },
       {
         id: "inviter",
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
           defaultHidden: true,
+          kind: "meta",
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
         cell: ({ row }) => {
@@ -221,6 +225,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             />
           );
         },
+        size: 240,
+        minSize: 220,
       },
 
       {
@@ -228,18 +234,22 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         meta: {
           title: t("team:TEAM_INVITATIONS_COL_STATUS"),
           sortKey: "status",
+          kind: "status",
         },
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => {
           const status = row.original.status;
           return <InvitationStatusTag status={status} label={renderInvitationStatus(status)} />;
         },
+        size: 150,
+        minSize: 140,
       },
       {
         accessorKey: "createdAt",
         meta: {
           title: t("team:TEAM_INVITATIONS_COL_CREATED"),
           sortKey: "created_at",
+          kind: "time",
         },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
@@ -248,12 +258,15 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
           );
         },
+        size: 190,
+        minSize: 170,
       },
       {
         accessorKey: "expiresAt",
         meta: {
           title: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
           sortKey: "expires_at",
+          kind: "time",
         },
         header: t("team:TEAM_INVITATIONS_COL_EXPIRES"),
         cell: ({ row }) => {
@@ -264,6 +277,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             </span>
           );
         },
+        size: 190,
+        minSize: 170,
       },
       {
         id: "actions",
@@ -311,33 +326,41 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
     return [
       {
         id: "email",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_EMAIL"), sortKey: "email" },
+        meta: { title: t("team:TEAM_INVITATIONS_COL_EMAIL"), sortKey: "email", kind: "primary" },
         header: t("team:TEAM_INVITATIONS_COL_EMAIL"),
         cell: ({ row }) => <span>{row.original.email || "-"}</span>,
+        size: 260,
+        minSize: 220,
       },
       {
         id: "role",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_ROLE"), sortKey: "role_code" },
+        meta: { title: t("team:TEAM_INVITATIONS_COL_ROLE"), sortKey: "role_code", kind: "meta" },
         header: t("team:TEAM_INVITATIONS_COL_ROLE"),
         cell: ({ row }) => {
           const code = row.original.roleCode;
           return <span>{(code ? roleNameByCode.get(code) : null) || code || "-"}</span>;
         },
+        size: 180,
+        minSize: 160,
       },
       {
         id: "status",
         meta: {
           title: t("team:TEAM_INVITATIONS_COL_STATUS"),
           sortKey: "status",
+          kind: "status",
         },
         header: t("team:TEAM_INVITATIONS_COL_STATUS"),
         cell: ({ row }) => <span>{renderInvitationStatus(row.original.status)}</span>,
+        size: 150,
+        minSize: 140,
       },
       {
         id: "processedBy",
         meta: {
           title: t("common:ORG_MEMBERS_TABLE_MEMBER"),
           defaultHidden: true,
+          kind: "meta",
         },
         header: t("common:ORG_MEMBERS_TABLE_MEMBER"),
         cell: ({ row }) => {
@@ -362,12 +385,15 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             />
           );
         },
+        size: 240,
+        minSize: 220,
       },
       {
         id: "processedAt",
         meta: {
           title: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
           defaultHidden: true,
+          kind: "time",
         },
         header: t("team:TEAM_INVITATIONS_COL_ACCEPTED"),
         cell: ({ row }) => {
@@ -378,10 +404,16 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
           );
         },
+        size: 180,
+        minSize: 160,
       },
       {
         id: "createdAt",
-        meta: { title: t("team:TEAM_INVITATIONS_COL_CREATED"), sortKey: "created_at" },
+        meta: {
+          title: t("team:TEAM_INVITATIONS_COL_CREATED"),
+          sortKey: "created_at",
+          kind: "time",
+        },
         header: t("team:TEAM_INVITATIONS_COL_CREATED"),
         cell: ({ row }) => {
           const formatted = dateTime.formatDate(row.original.createdAt, { emptyValue: "" });
@@ -389,6 +421,8 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             <span className={formatted ? "" : "text-label-secondary"}>{formatted || "-"}</span>
           );
         },
+        size: 180,
+        minSize: 160,
       },
     ];
   }, [dateTime, renderInvitationStatus, roleNameByCode, t]);
@@ -401,6 +435,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
           defaultHidden: true,
+          kind: "meta",
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CREATOR"),
         cell: ({ row }) => {
@@ -430,6 +465,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         meta: {
           title: t("team:TEAM_INVITE_LINKS_COL_CODE"),
           sortKey: "display_code",
+          kind: "meta",
         },
         header: t("team:TEAM_INVITE_LINKS_COL_CODE"),
         cell: ({ row }) => {
@@ -675,33 +711,6 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   const [linksWrapHeaders, setLinksWrapHeaders] = useDataTableWrapHeadersPreference({
     tableId: inviteLinksTableId,
   });
-  const activeTableConfig =
-    tab === "pending"
-      ? {
-          tableHook: pendingTable,
-          placeholder: t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER"),
-          rowHeight: pendingRowHeight,
-          setRowHeight: setPendingRowHeight,
-          wrapHeaders: pendingWrapHeaders,
-          setWrapHeaders: setPendingWrapHeaders,
-        }
-      : tab === "accepted"
-        ? {
-            tableHook: acceptedTable,
-            placeholder: t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER"),
-            rowHeight: acceptedRowHeight,
-            setRowHeight: setAcceptedRowHeight,
-            wrapHeaders: acceptedWrapHeaders,
-            setWrapHeaders: setAcceptedWrapHeaders,
-          }
-        : {
-            tableHook: linksTable,
-            placeholder: t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER"),
-            rowHeight: linksRowHeight,
-            setRowHeight: setLinksRowHeight,
-            wrapHeaders: linksWrapHeaders,
-            setWrapHeaders: setLinksWrapHeaders,
-          };
   return (
     <ChromeTabs value={tab} onValueChange={(next) => setTab(next as TabKey)}>
       <DefaultPage
@@ -710,28 +719,6 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         className="h-full"
         contentClassName="min-h-0 flex flex-col"
         action={inviteAction}
-        extra={
-          <TeamInvitationsPageExtra
-            tabs={[
-              { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
-              { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
-              { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
-            ]}
-            table={activeTableConfig.tableHook.table}
-            searchInput={activeTableConfig.tableHook.searchInput}
-            onSearchInputChange={activeTableConfig.tableHook.setSearchInput}
-            searchPlaceholder={activeTableConfig.placeholder}
-            clearLabel={t("common:CLEAR")}
-            rowHeight={activeTableConfig.rowHeight}
-            onRowHeightChange={activeTableConfig.setRowHeight}
-            wrapHeaders={activeTableConfig.wrapHeaders}
-            onWrapHeadersChange={activeTableConfig.setWrapHeaders}
-            onRefresh={() => void activeTableConfig.tableHook.refetch()}
-            refreshing={activeTableConfig.tableHook.isFetching}
-            onResetColumnVisibility={activeTableConfig.tableHook.resetColumnVisibility}
-            labels={toolsLabels}
-          />
-        }
       >
         <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
@@ -741,6 +728,30 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             t={t}
             rowHeight={pendingRowHeight}
             wrapHeaders={pendingWrapHeaders}
+            toolbar={
+              tab === "pending" ? (
+                <TeamInvitationsPageExtra
+                  tabs={[
+                    { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
+                    { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
+                    { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
+                  ]}
+                  table={pendingTable.table}
+                  searchInput={pendingTable.searchInput}
+                  onSearchInputChange={pendingTable.setSearchInput}
+                  searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
+                  clearLabel={t("common:CLEAR")}
+                  rowHeight={pendingRowHeight}
+                  onRowHeightChange={setPendingRowHeight}
+                  wrapHeaders={pendingWrapHeaders}
+                  onWrapHeadersChange={setPendingWrapHeaders}
+                  onRefresh={() => void pendingTable.refetch()}
+                  refreshing={pendingTable.isFetching}
+                  onResetColumnVisibility={pendingTable.resetColumnVisibility}
+                  labels={toolsLabels}
+                />
+              ) : undefined
+            }
           />
         </ChromeTabsContent>
         <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col">
@@ -751,6 +762,30 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             t={t}
             rowHeight={acceptedRowHeight}
             wrapHeaders={acceptedWrapHeaders}
+            toolbar={
+              tab === "accepted" ? (
+                <TeamInvitationsPageExtra
+                  tabs={[
+                    { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
+                    { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
+                    { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
+                  ]}
+                  table={acceptedTable.table}
+                  searchInput={acceptedTable.searchInput}
+                  onSearchInputChange={acceptedTable.setSearchInput}
+                  searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
+                  clearLabel={t("common:CLEAR")}
+                  rowHeight={acceptedRowHeight}
+                  onRowHeightChange={setAcceptedRowHeight}
+                  wrapHeaders={acceptedWrapHeaders}
+                  onWrapHeadersChange={setAcceptedWrapHeaders}
+                  onRefresh={() => void acceptedTable.refetch()}
+                  refreshing={acceptedTable.isFetching}
+                  onResetColumnVisibility={acceptedTable.resetColumnVisibility}
+                  labels={toolsLabels}
+                />
+              ) : undefined
+            }
           />
         </ChromeTabsContent>
         <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
@@ -761,6 +796,30 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             t={t}
             rowHeight={linksRowHeight}
             wrapHeaders={linksWrapHeaders}
+            toolbar={
+              tab === "links" ? (
+                <TeamInvitationsPageExtra
+                  tabs={[
+                    { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
+                    { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
+                    { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
+                  ]}
+                  table={linksTable.table}
+                  searchInput={linksTable.searchInput}
+                  onSearchInputChange={linksTable.setSearchInput}
+                  searchPlaceholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
+                  clearLabel={t("common:CLEAR")}
+                  rowHeight={linksRowHeight}
+                  onRowHeightChange={setLinksRowHeight}
+                  wrapHeaders={linksWrapHeaders}
+                  onWrapHeadersChange={setLinksWrapHeaders}
+                  onRefresh={() => void linksTable.refetch()}
+                  refreshing={linksTable.isFetching}
+                  onResetColumnVisibility={linksTable.resetColumnVisibility}
+                  labels={toolsLabels}
+                />
+              ) : undefined
+            }
           />
         </ChromeTabsContent>
       </DefaultPage>

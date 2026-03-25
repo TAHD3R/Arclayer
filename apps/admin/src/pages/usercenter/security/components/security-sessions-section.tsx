@@ -210,29 +210,6 @@ export function UserSessionsSection() {
         }
       />
       <SettingCardContent className="min-w-0 max-w-full overflow-x-hidden">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <DataTableSearchInput
-            value={controller.table.searchInput}
-            onChange={controller.table.setSearchInput}
-            placeholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
-            clearLabel={t("common:CLEAR")}
-            className="max-w-[320px]"
-          />
-
-          <DataTableToolbarTools
-            table={controller.table.table}
-            rowHeight={controller.rowHeight}
-            onRowHeightChange={controller.setRowHeight}
-            wrapHeaders={controller.wrapHeaders}
-            onWrapHeadersChange={controller.setWrapHeaders}
-            onRefresh={() => void controller.table.refetch()}
-            refreshing={controller.table.isFetching}
-            onResetColumnVisibility={controller.table.resetColumnVisibility}
-            labels={controller.toolsLabels}
-            components={{ IconButton: DataTableToolbarAntdIconButton }}
-          />
-        </div>
-
         <SecuritySessionsTableContent
           table={controller.table.table}
           isFetching={controller.table.isFetching}
@@ -240,6 +217,30 @@ export function UserSessionsSection() {
           rowHeight={controller.rowHeight}
           wrapHeaders={controller.wrapHeaders}
           emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
+          toolbar={
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <DataTableSearchInput
+                value={controller.table.searchInput}
+                onChange={controller.table.setSearchInput}
+                placeholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
+                clearLabel={t("common:CLEAR")}
+                className="max-w-[320px]"
+              />
+
+              <DataTableToolbarTools
+                table={controller.table.table}
+                rowHeight={controller.rowHeight}
+                onRowHeightChange={controller.setRowHeight}
+                wrapHeaders={controller.wrapHeaders}
+                onWrapHeadersChange={controller.setWrapHeaders}
+                onRefresh={() => void controller.table.refetch()}
+                refreshing={controller.table.isFetching}
+                onResetColumnVisibility={controller.table.resetColumnVisibility}
+                labels={controller.toolsLabels}
+                components={{ IconButton: DataTableToolbarAntdIconButton }}
+              />
+            </div>
+          }
         />
       </SettingCardContent>
     </SettingCard>

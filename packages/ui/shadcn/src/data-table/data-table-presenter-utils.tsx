@@ -7,6 +7,7 @@ import type { CSSProperties } from "react";
 import { cn } from "@arclayer/lib/utils";
 
 type AlignClass = "text-left" | "text-center" | "text-right";
+type ColumnKind = "default" | "primary" | "meta" | "status" | "time" | "select" | "actions";
 
 type PinStyleState = {
   className: string | undefined;
@@ -15,14 +16,30 @@ type PinStyleState = {
 
 const DEFAULT_COLUMN_SIZE_PX = 150;
 
+export function resolveColumnKind(
+  meta: { kind?: string } | undefined,
+  columnId: string,
+): ColumnKind {
+  if (meta?.kind === "primary") return "primary";
+  if (meta?.kind === "meta") return "meta";
+  if (meta?.kind === "status") return "status";
+  if (meta?.kind === "time") return "time";
+  if (meta?.kind === "select" || columnId === "select") return "select";
+  if (meta?.kind === "actions" || columnId === "actions" || columnId === "action") {
+    return "actions";
+  }
+  return "default";
+}
+
 export function resolveHeaderAlignClass<TData>(header: Header<TData, unknown>): AlignClass {
   const meta = header.column.columnDef.meta;
   if (meta?.headerAlign === "left") return "text-left";
   if (meta?.headerAlign === "right") return "text-right";
   if (meta?.headerAlign === "center") return "text-center";
 
-  if (meta?.kind === "actions" || header.column.id === "actions") return "text-right";
-  if (meta?.kind === "select" || header.column.id === "select") return "text-center";
+  const kind = resolveColumnKind(meta, header.column.id);
+  if (kind === "actions") return "text-right";
+  if (kind === "select" || kind === "status") return "text-center";
 
   return "text-left";
 }
@@ -39,6 +56,31 @@ export function SortStateIcon(props: { state: false | "asc" | "desc" }) {
   return (
     <ArrowUpDown className="size-3.5 text-label-secondary/40 transition-colors group-hover:text-foreground/80" />
   );
+}
+
+export function resolveHeaderPaddingClass(
+  meta: { kind?: string } | undefined,
+  columnId: string,
+): string {
+  const kind = resolveColumnKind(meta, columnId);
+  if (kind === "select") return "px-0";
+  if (kind === "actions") return "px-2";
+  if (kind === "primary") return "px-5";
+  if (kind === "time") return "px-4";
+  return "px-4";
+}
+
+export function resolveCellPaddingXClass(
+  meta: { kind?: string } | undefined,
+  columnId: string,
+): string {
+  const kind = resolveColumnKind(meta, columnId);
+  if (kind === "select") return "px-0";
+  if (kind === "actions") return "px-2";
+  if (kind === "primary") return "px-5";
+  if (kind === "status") return "px-3";
+  if (kind === "time") return "px-4";
+  return "px-4";
 }
 
 function resolveColumnBaseStyle<TData>(

@@ -44,6 +44,7 @@ export function useUserCenterWorkspacesColumns(
         meta: {
           title: t("common:ORG_WORKSPACES_TABLE_WORKSPACE"),
           sortKey: "name",
+          kind: "primary",
         },
         header: t("common:ORG_WORKSPACES_TABLE_WORKSPACE"),
         cell: ({ row }) => {
@@ -125,14 +126,19 @@ export function useUserCenterWorkspacesColumns(
             </div>
           );
         },
+        size: 340,
+        minSize: 300,
       },
       {
         id: "members",
         meta: {
           title: t("common:ORG_WORKSPACES_TABLE_MEMBERS"),
+          kind: "meta",
         },
         header: t("common:ORG_WORKSPACES_TABLE_MEMBERS"),
         cell: ({ row }) => <WorkspaceMembersPopover workspace={row.original} />,
+        size: 200,
+        minSize: 180,
       },
       {
         id: "createdAt",
@@ -140,9 +146,12 @@ export function useUserCenterWorkspacesColumns(
           title: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
           sortKey: "created_at",
           defaultHidden: true,
+          kind: "time",
         },
         header: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
         cell: ({ row }) => <span>{dateTime.formatDateTime(row.original.createdAt)}</span>,
+        size: 190,
+        minSize: 170,
       },
     ],
     [

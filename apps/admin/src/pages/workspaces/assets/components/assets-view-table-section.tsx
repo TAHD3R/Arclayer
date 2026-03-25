@@ -28,6 +28,7 @@ import { Checkbox } from "@arclayer/ui/checkbox";
 import {
   clearVisibilityState,
   DataTablePresenter,
+  resolveDefaultColumnPinning,
   readVisibilityState,
   resolveDefaultColumnVisibility,
   useDataTableRowHeightPreference,
@@ -96,7 +97,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "name",
       accessorKey: "name",
-      meta: { title: t("assets:ASSET_EDIT_FILENAME") },
+      meta: { title: t("assets:ASSET_EDIT_FILENAME"), kind: "primary" },
       header: t("assets:ASSET_EDIT_FILENAME"),
       cell: ({ row }) => (
         <AssetPreviewCell
@@ -110,7 +111,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "uploadedBy",
       accessorFn: (asset) => asset.uploaderName || "",
-      meta: { title: t("assets:ASSET_META_UPLOADED_BY") },
+      meta: { title: t("assets:ASSET_META_UPLOADED_BY"), kind: "meta" },
       header: t("assets:ASSET_META_UPLOADED_BY"),
       cell: ({ row }) => (
         <AssetUploaderCell
@@ -125,7 +126,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "mime",
       accessorFn: (asset) => getMimeLabel(asset.mimeType, t),
-      meta: { title: t("assets:ASSET_META_MIME"), defaultHidden: true },
+      meta: { title: t("assets:ASSET_META_MIME"), defaultHidden: true, kind: "meta" },
       header: t("assets:ASSET_META_MIME"),
       cell: ({ row }) => <AssetMimeCell asset={row.original} t={t} />,
       size: 150,
@@ -134,7 +135,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "visibility",
       accessorFn: (asset) => getVisibilityLabel(asset.visibility, t),
-      meta: { title: t("assets:ASSET_META_VISIBILITY"), defaultHidden: true },
+      meta: { title: t("assets:ASSET_META_VISIBILITY"), defaultHidden: true, kind: "status" },
       header: t("assets:ASSET_META_VISIBILITY"),
       cell: ({ row }) => <AssetVisibilityCell asset={row.original} t={t} />,
       size: 140,
@@ -143,7 +144,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "purpose",
       accessorKey: "purpose",
-      meta: { title: t("assets:ASSET_META_PURPOSE"), defaultHidden: true },
+      meta: { title: t("assets:ASSET_META_PURPOSE"), defaultHidden: true, kind: "meta" },
       header: t("assets:ASSET_META_PURPOSE"),
       cell: ({ row }) => <AssetPurposeCell asset={row.original} t={t} />,
       size: 150,
@@ -152,7 +153,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "size",
       accessorFn: (asset) => asset.sizeBytes ?? 0,
-      meta: { title: t("assets:ASSET_META_SIZE"), defaultHidden: true },
+      meta: { title: t("assets:ASSET_META_SIZE"), defaultHidden: true, kind: "meta" },
       header: t("assets:ASSET_META_SIZE"),
       cell: ({ row }) => row.original.sizeText || "-",
       size: 120,
@@ -161,7 +162,7 @@ function buildAssetsTableColumns(params: {
     {
       id: "createdAt",
       accessorFn: (asset) => asset.createdAt || "",
-      meta: { title: t("assets:ASSET_META_CREATED_AT") },
+      meta: { title: t("assets:ASSET_META_CREATED_AT"), kind: "time" },
       header: t("assets:ASSET_META_CREATED_AT"),
       cell: ({ row }) => dateTime.formatDateTime(row.original.createdAt, { emptyValue: "-" }),
       size: 180,
@@ -205,6 +206,7 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId });
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [columnPinning, setColumnPinning] = useState(() => resolveDefaultColumnPinning(columns));
 
   const allVisibleSelected = useMemo(
     () =>
@@ -287,7 +289,8 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
 
   useEffect(() => {
     setColumnVisibility(loadInitialColumnVisibility());
-  }, [tableId]);
+    setColumnPinning(resolveDefaultColumnPinning(columns));
+  }, [columns, loadInitialColumnVisibility, tableId]);
 
   const handleColumnVisibilityChange = useCallback(
     (updater: Updater<VisibilityState>) => {
@@ -304,14 +307,17 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
     data: controller.items,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    state: { columnVisibility, columnOrder },
+    enableColumnPinning: true,
+    state: { columnVisibility, columnOrder, columnPinning },
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnOrderChange: setColumnOrder,
+    onColumnPinningChange: setColumnPinning,
   });
 
   const resetColumnVisibility = useCallback(() => {
     clearVisibilityState(tableId, visibilityStorage);
     setColumnVisibility(resolveDefaultColumnVisibility(columns));
+    setColumnPinning(resolveDefaultColumnPinning(columns));
     setColumnOrder([]);
   }, [columns, tableId, visibilityStorage]);
 
@@ -380,6 +386,24 @@ export function AssetsViewTableSection(props: {
           table={table}
           className="min-h-0 flex-1"
           emptyText={controller.t("common:EMPTY_DESC")}
+          footer={
+            pageData ? (
+              <DataPaginationControls
+                page={pageData.page}
+                size={pageData.size}
+                total={pageData.total}
+                onChange={(nextPage, nextSize) => {
+                  if (nextSize !== controller.pageSize) {
+                    controller.setPageSize(nextSize);
+                    controller.setPage(1);
+                    return;
+                  }
+                  controller.setPage(nextPage);
+                }}
+                t={controller.t}
+              />
+            ) : undefined
+          }
           rowHeight={props.rowHeight}
           wrapHeaders={props.wrapHeaders}
           refreshing={props.refreshing}
@@ -396,32 +420,6 @@ export function AssetsViewTableSection(props: {
           }
           onRowClick={(row, _rowIndex, event) => props.onRowClick(row.original, event)}
         />
-
-        {pageData ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <div className="text-footnote text-label-secondary">
-              {controller.t("team:TEAM_PAGINATION_TOTAL", {
-                total: pageData.total,
-                start: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-                end: Math.min(pageData.page * pageData.size, pageData.total),
-              })}
-            </div>
-            <DataPaginationControls
-              page={pageData.page}
-              size={pageData.size}
-              total={pageData.total}
-              onChange={(nextPage, nextSize) => {
-                if (nextSize !== controller.pageSize) {
-                  controller.setPageSize(nextSize);
-                  controller.setPage(1);
-                  return;
-                }
-                controller.setPage(nextPage);
-              }}
-              t={controller.t}
-            />
-          </div>
-        ) : null}
       </div>
     </ContentGuard>
   );

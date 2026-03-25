@@ -44,7 +44,7 @@ export function useContentLibraryTableColumns(params: {
     () => [
       {
         accessorKey: "name",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_NAME"), sortKey: "name" },
+        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_NAME"), sortKey: "name", kind: "primary" },
         header: t("CONTENT_LIBRARY_TABLE_COL_NAME"),
         cell: ({ row }) => <ContentLibraryNameCell row={row.original} />,
         size: 280,
@@ -52,7 +52,11 @@ export function useContentLibraryTableColumns(params: {
       },
       {
         accessorKey: "derivedStatus",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_STATUS"), sortKey: "derivedStatus" },
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_STATUS"),
+          sortKey: "derivedStatus",
+          kind: "status",
+        },
         header: t("CONTENT_LIBRARY_TABLE_COL_STATUS"),
         cell: ({ row }) => <ContentLibraryStatusTag status={row.original.derivedStatus} />,
         size: 140,
@@ -61,7 +65,7 @@ export function useContentLibraryTableColumns(params: {
       },
       {
         accessorKey: "locale",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_LOCALE") },
+        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_LOCALE"), kind: "meta" },
         header: t("CONTENT_LIBRARY_TABLE_COL_LOCALE"),
         cell: ({ row }) => <ContentLibraryLocaleCell locale={row.original.locale} />,
         size: 196,
@@ -69,7 +73,11 @@ export function useContentLibraryTableColumns(params: {
       },
       {
         accessorKey: "updatedAt",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_UPDATED"), sortKey: "updatedAt" },
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_UPDATED"),
+          sortKey: "updatedAt",
+          kind: "time",
+        },
         header: t("CONTENT_LIBRARY_TABLE_COL_UPDATED"),
         cell: ({ row }) => {
           const formatted = params.formatDateTimeOrNull(row.original.updatedAt);

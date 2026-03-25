@@ -28,6 +28,7 @@ interface WorkspacesContentSectionProps {
   searchInput: string;
   buildMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
   onCardClick?: (ws: OrganizationWorkspace) => void;
+  toolbar?: React.ReactNode;
 }
 
 export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
@@ -73,6 +74,7 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
       wrapHeaders={props.wrapHeaders}
       refreshing={props.tableHook.isFetching && !props.tableHook.isLoading}
       onRowClick={props.onRowClick}
+      toolbar={props.toolbar}
     />
   );
 }

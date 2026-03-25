@@ -5,7 +5,11 @@ import { flexRender, type Cell, type Row, type Table as ReactTable } from "@tans
 import { cn } from "@arclayer/lib/utils";
 import { TableBody, TableCell, TableRow } from "@arclayer/ui/table";
 
-import { resolveCellPinStyle, shouldIgnoreRowClick } from "./data-table-presenter-utils";
+import {
+  resolveCellPaddingXClass,
+  resolveCellPinStyle,
+  shouldIgnoreRowClick,
+} from "./data-table-presenter-utils";
 import type { DataTableRowHeight } from "./types";
 
 type ColumnMeta = { kind?: string };
@@ -14,15 +18,10 @@ const ACTIVE_COLUMN_FADE_CLASS = "opacity-35";
 const COLUMN_OVER_BG_CLASS = "bg-muted/60";
 
 function resolveCellPaddingClass(rowHeight: DataTableRowHeight): string {
-  if (rowHeight === "short") return "py-1.5";
-  if (rowHeight === "tall") return "py-3.5";
+  if (rowHeight === "short") return "py-2";
+  if (rowHeight === "tall") return "py-4";
   if (rowHeight === "extraTall") return "py-5";
-  return "py-2.5";
-}
-
-function isSelectColumn(meta: unknown, columnId: string): boolean {
-  const kind = (meta as ColumnMeta | undefined)?.kind;
-  return kind === "select" || columnId === "select";
+  return "py-3";
 }
 
 function isActionsColumn(meta: unknown, columnId: string): boolean {
@@ -54,7 +53,7 @@ export function DataTablePresenterBody<TData>(props: {
           <TableRow
             key={row.id}
             className={cn(
-              "group/row bg-background transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted/50 last:border-b-0",
+              "group/row border-border/50 bg-background transition-colors hover:bg-muted/35 data-[state=selected]:bg-muted/40 last:border-b-0",
               props.rowClassName?.(row, rowIndex),
             )}
             onClick={(event) => {
@@ -65,7 +64,6 @@ export function DataTablePresenterBody<TData>(props: {
           >
             {row.getVisibleCells().map((cell) => {
               const pinStyle = resolveCellPinStyle(cell);
-              const selectColumn = isSelectColumn(cell.column.columnDef.meta, cell.column.id);
               const actionsColumn = isActionsColumn(cell.column.columnDef.meta, cell.column.id);
               const isActiveColumn = Boolean(
                 props.activeColumnId && cell.column.id === props.activeColumnId,
@@ -83,7 +81,7 @@ export function DataTablePresenterBody<TData>(props: {
                     pinStyle.className,
                     actionsColumn ? "" : "overflow-hidden",
                     resolveCellPaddingClass(props.rowHeight),
-                    selectColumn ? "px-0" : "",
+                    resolveCellPaddingXClass(cell.column.columnDef.meta, cell.column.id),
                     isActiveColumn ? ACTIVE_COLUMN_FADE_CLASS : "",
                     isOverColumn ? COLUMN_OVER_BG_CLASS : "",
                     props.cellClassName?.(cell),
@@ -100,7 +98,7 @@ export function DataTablePresenterBody<TData>(props: {
         ))
       ) : (
         <TableRow className="border-border/40 hover:bg-transparent last:border-b-0">
-          <TableCell className="h-24 text-center text-label-secondary" colSpan={colSpan}>
+          <TableCell className="h-28 px-6 text-center text-label-secondary" colSpan={colSpan}>
             {props.emptyText}
           </TableCell>
         </TableRow>

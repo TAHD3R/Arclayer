@@ -39,7 +39,7 @@ export function DataTableColumnHeaderMenu<TData>(props: {
     return (
       <div
         className={cn(
-          "inline-flex min-h-8 max-w-full items-center gap-1 px-2 py-1.5",
+          "inline-flex min-h-8 max-w-full items-center gap-1 px-2 py-1.5 text-callout",
           props.justifyClass,
           resolveHeaderContentClass(props.wrapHeaders),
         )}
@@ -55,7 +55,7 @@ export function DataTableColumnHeaderMenu<TData>(props: {
         <ButtonPrimitive
           type="button"
           className={cn(
-            "group inline-flex min-h-8 max-w-full items-center gap-1 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50",
+            "group inline-flex min-h-8 max-w-full items-center gap-1 rounded-md px-2 py-1.5 text-callout transition-colors hover:bg-muted/50",
             props.justifyClass,
           )}
           tapScale={1}

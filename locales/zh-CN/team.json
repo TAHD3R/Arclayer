@@ -26,6 +26,7 @@
   "TEAM_ROLES_DELETE_DESC": "删除后将从所有成员解绑，且无法恢复。目标：{{roleName}}",
   "TEAM_ROLES_PERMISSION_PROVIDED_BY": "由 {{pluginName}} 提供",
   "TEAM_ROLES_COL_PERMISSION": "权限",
+  "TEAM_ROLES_PERMISSION_COUNT": "{{count}} 个权限",
   "TEAM_ROLES_EMPTY_SEARCH": "未找到匹配的权限或角色",
   "TEAM_INVITATIONS_TAB_PENDING": "待处理",
   "TEAM_INVITATIONS_TAB_ACCEPTED": "已接受",
@@ -198,6 +199,5 @@
   "TEAM_INVITATIONS_COL_ACCEPTED": "接受时间",
   "TEAM_INVITATIONS_COL_PROCESSED": "处理时间",
   "TEAM_INVITATIONS_SENT_AT": "发送于{{datetime}}",
-  "TEAM_INVITE_LINKS_COL_LAST_USED": "最近使用",
-  "TEAM_PAGINATION_TOTAL": "共 {{total}} 条 ({{start}}-{{end}})"
+  "TEAM_INVITE_LINKS_COL_LAST_USED": "最近使用"
 }

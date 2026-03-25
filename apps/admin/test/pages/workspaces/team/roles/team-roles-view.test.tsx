@@ -42,7 +42,8 @@ vi.mock("@/lib/notifications", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, options?: { count?: number }) =>
+      key === "team:TEAM_ROLES_PERMISSION_COUNT" ? `${options?.count ?? 0} permissions` : key,
   }),
 }));
 
@@ -173,7 +174,7 @@ describe("TeamRolesView", () => {
 
     renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
-    await screen.findByText("Content editor");
+    await screen.findByTitle("Content editor");
 
     await user.click(screen.getByRole("button", { name: "team:TEAM_ACTION_EDIT" }));
 
@@ -202,5 +203,22 @@ describe("TeamRolesView", () => {
         description: "Owns editorial workflow",
       });
     });
+  });
+
+  it("shows permission count beside search and uses a wide permission column with bordered header", async () => {
+    renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
+
+    await screen.findByTitle("Content editor");
+
+    expect(screen.getByText("1 permissions")).toHaveClass("text-headline");
+
+    const matrix = screen.getByRole("table");
+    const columns = matrix.querySelectorAll("col");
+    expect(columns).toHaveLength(3);
+    expect(columns[0]).toHaveAttribute("style", expect.stringContaining("42%"));
+    expect(columns[1]).toHaveAttribute("style", expect.stringContaining("29%"));
+
+    const tableHead = matrix.querySelector("thead");
+    expect(tableHead).toHaveClass("border-y");
   });
 });

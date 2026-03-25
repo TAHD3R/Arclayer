@@ -21,6 +21,7 @@ import {
 } from "@tanstack/react-table";
 
 import type { DataTableBaseQuery, DataTableFeatureOptions } from "./types";
+import { resolveDefaultColumnPinning } from "./use-data-table-utils";
 import { applyMetaSortability, applyUpdater, buildOrdering, collectColumnSortKeys } from "./utils";
 
 export type UseDataTableCoreOptions<TData> = {
@@ -80,29 +81,10 @@ export function useDataTableCore<TData>(
   );
 
   // Auto-detect actions/select columns and derive initial pinning state.
-  const autoPinning = React.useMemo<ColumnPinningState>(() => {
-    const left: string[] = [];
-    const right: string[] = [];
-    for (const col of options.columns) {
-      const id = col.id ?? (col as { accessorKey?: string }).accessorKey;
-      if (!id) continue;
-      const meta = col.meta as { kind?: string; pin?: "left" | "right" | false } | undefined;
-      if (meta?.pin === false) continue;
-      if (meta?.pin === "left") {
-        left.push(id);
-        continue;
-      }
-      if (meta?.pin === "right") {
-        right.push(id);
-        continue;
-      }
-      if (meta?.kind === "actions" || id === "actions") right.push(id);
-    }
-    return {
-      ...(left.length > 0 ? { left } : {}),
-      ...(right.length > 0 ? { right } : {}),
-    };
-  }, [options.columns]);
+  const autoPinning = React.useMemo<ColumnPinningState>(
+    () => resolveDefaultColumnPinning(options.columns),
+    [options.columns],
+  );
 
   const hasAutoPinning = (autoPinning.left?.length ?? 0) + (autoPinning.right?.length ?? 0) > 0;
 

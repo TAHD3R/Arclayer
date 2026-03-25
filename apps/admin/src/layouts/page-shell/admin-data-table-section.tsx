@@ -37,6 +37,7 @@ export type AdminDataTableSectionProps<TData> = {
   cellClassName?: (
     cell: import("@tanstack/react-table").Cell<TData, unknown>,
   ) => string | undefined;
+  toolbar?: ReactNode;
   footerSlot?: ReactNode;
 };
 
@@ -59,12 +60,32 @@ export function AdminDataTableSection<TData>({
   onRowClick,
   headerCellClassName,
   cellClassName,
+  toolbar,
   footerSlot,
 }: AdminDataTableSectionProps<TData>) {
   const empty = !loading && table.getRowModel().rows.length === 0;
+  const paginationFooter =
+    pageData && onPaginationChange ? (
+      <DataPaginationControls
+        page={pageData.page}
+        size={pageData.size}
+        total={pageData.total}
+        onChange={onPaginationChange}
+        t={t}
+      />
+    ) : null;
+  const footer =
+    paginationFooter && footerSlot ? (
+      <div className="flex flex-col gap-3">
+        {paginationFooter}
+        {footerSlot}
+      </div>
+    ) : (
+      (paginationFooter ?? footerSlot)
+    );
 
   return (
-    <div className="min-h-0 flex flex-col gap-4">
+    <div className="min-h-0 flex flex-col">
       <ContentGuard
         loading={loading}
         error={error}
@@ -80,6 +101,9 @@ export function AdminDataTableSection<TData>({
           table={table}
           className="flex-1 min-h-0"
           emptyText={emptyText}
+          toolbar={toolbar ? { fullWidth: toolbar } : undefined}
+          footer={footer}
+          surface="card"
           rowHeight={rowHeight}
           wrapHeaders={wrapHeaders}
           refreshing={refreshing}
@@ -94,27 +118,6 @@ export function AdminDataTableSection<TData>({
           headerCellClassName={headerCellClassName}
           cellClassName={cellClassName}
         />
-
-        {pageData && onPaginationChange ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <div className="text-label-secondary text-footnote">
-              {t("team:TEAM_PAGINATION_TOTAL", {
-                total: pageData.total,
-                start: pageData.total ? (pageData.page - 1) * pageData.size + 1 : 0,
-                end: Math.min(pageData.page * pageData.size, pageData.total),
-              })}
-            </div>
-            <DataPaginationControls
-              page={pageData.page}
-              size={pageData.size}
-              total={pageData.total}
-              onChange={onPaginationChange}
-              t={t}
-            />
-          </div>
-        ) : null}
-
-        {footerSlot}
       </ContentGuard>
     </div>
   );

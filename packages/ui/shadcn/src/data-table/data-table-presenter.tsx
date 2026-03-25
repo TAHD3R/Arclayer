@@ -45,6 +45,8 @@ type DataTableToolbarSlots = {
   right?: React.ReactNode;
 };
 
+type DataTableSurface = "card" | "embedded";
+
 const HEADER_DRAG_DISTANCE_PX = 6;
 
 type DataTablePresenterProps<TData> = {
@@ -53,6 +55,8 @@ type DataTablePresenterProps<TData> = {
   className?: string;
   tableClassName?: string;
   toolbar?: DataTableToolbarSlots;
+  footer?: React.ReactNode;
+  surface?: DataTableSurface;
   rowHeight?: DataTableRowHeight;
   density?: DataTableDensity;
   wrapHeaders?: boolean;
@@ -81,6 +85,8 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     className,
     tableClassName,
     toolbar,
+    footer,
+    surface = "card",
     rowHeight,
     density,
     wrapHeaders = false,
@@ -95,6 +101,8 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
 
   const resolvedRowHeight = resolveDataTableRowHeight(rowHeight ?? density);
   const hasToolbarRow = Boolean(toolbar?.left || toolbar?.right);
+  const hasToolbar = Boolean(toolbar?.fullWidth || hasToolbarRow);
+  const hasFooter = Boolean(footer);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const canScrollRight = useScrollOverflow(scrollRef);
@@ -206,22 +214,36 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     )
     .map((column) => column.id);
 
+  const surfaceClassName =
+    surface === "embedded"
+      ? "rounded-none border-0 bg-transparent shadow-none"
+      : "rounded-none border-0 bg-transparent shadow-none";
+  const sectionPaddingClass = "px-0";
+
   return (
     <div className={cn("min-h-0 flex flex-col", className)}>
-      {toolbar?.fullWidth ? <div className="pb-3">{toolbar.fullWidth}</div> : null}
+      <div
+        className={cn("relative min-h-0 flex flex-1 flex-col overflow-hidden", surfaceClassName)}
+      >
+        {hasToolbar ? (
+          <div
+            className={cn("border-b border-border/60 bg-muted/[0.04] py-3", sectionPaddingClass)}
+          >
+            {toolbar?.fullWidth ? <div className="min-w-0">{toolbar.fullWidth}</div> : null}
 
-      {hasToolbarRow ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2">{toolbar?.left}</div>
-          <div className="flex shrink-0 items-center gap-2">{toolbar?.right}</div>
-        </div>
-      ) : null}
+            {hasToolbarRow ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-2">{toolbar?.left}</div>
+                <div className="flex shrink-0 items-center gap-2">{toolbar?.right}</div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
-      <div className="relative min-h-0 flex-1 rounded-xl border border-border/60 bg-background shadow-xs">
         <div
           ref={scrollRef}
           className={cn(
-            "relative isolate h-full min-h-0 overflow-auto rounded-[inherit] transition-opacity duration-200",
+            "relative isolate min-h-0 flex-1 overflow-auto transition-opacity duration-200",
             refreshing ? "pointer-events-none opacity-90" : "",
           )}
         >
@@ -305,6 +327,14 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
             </DragOverlay>
           </DndContext>
         </div>
+
+        {hasFooter ? (
+          <div
+            className={cn("border-t border-border/60 bg-muted/[0.03] py-3", sectionPaddingClass)}
+          >
+            {footer}
+          </div>
+        ) : null}
 
         <DataTableRefreshOverlay active={refreshing} label={refreshingLabel} />
       </div>
