@@ -64,6 +64,12 @@ export function AdminDataTableSection<TData>({
   footerSlot,
 }: AdminDataTableSectionProps<TData>) {
   const empty = !loading && table.getRowModel().rows.length === 0;
+  const detachedToolbar =
+    empty && toolbar ? (
+      <div className="shrink-0 border-b border-border/60 bg-muted/[0.04] px-0 py-3">
+        <div className="min-w-0">{toolbar}</div>
+      </div>
+    ) : null;
   const paginationFooter =
     pageData && onPaginationChange ? (
       <DataPaginationControls
@@ -86,6 +92,7 @@ export function AdminDataTableSection<TData>({
 
   return (
     <div className="min-h-0 flex flex-col">
+      {detachedToolbar}
       <ContentGuard
         loading={loading}
         error={error}
@@ -101,7 +108,7 @@ export function AdminDataTableSection<TData>({
           table={table}
           className="flex-1 min-h-0"
           emptyText={emptyText}
-          toolbar={toolbar ? { fullWidth: toolbar } : undefined}
+          toolbar={!empty && toolbar ? { fullWidth: toolbar } : undefined}
           footer={footer}
           surface="card"
           rowHeight={rowHeight}

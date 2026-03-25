@@ -226,9 +226,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
         className={cn("relative min-h-0 flex flex-1 flex-col overflow-hidden", surfaceClassName)}
       >
         {hasToolbar ? (
-          <div
-            className={cn("border-b border-border/60 bg-muted/[0.04] py-3", sectionPaddingClass)}
-          >
+          <div className={cn("border-b border-border/60 bg-muted/4 py-3", sectionPaddingClass)}>
             {toolbar?.fullWidth ? <div className="min-w-0">{toolbar.fullWidth}</div> : null}
 
             {hasToolbarRow ? (

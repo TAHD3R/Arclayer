@@ -720,7 +720,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         contentClassName="min-h-0 flex flex-col"
         action={inviteAction}
       >
-        <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
+        <ChromeTabsContent value="pending" className="min-h-0 flex flex-col pt-0">
           <TeamInvitationsTableSection
             tableHook={pendingTable}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
@@ -754,7 +754,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             }
           />
         </ChromeTabsContent>
-        <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col">
+        <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col pt-0">
           <TeamInvitationsTableSection
             tableHook={acceptedTable}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
@@ -788,7 +788,7 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             }
           />
         </ChromeTabsContent>
-        <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
+        <ChromeTabsContent value="links" className="min-h-0 flex flex-col pt-0">
           <TeamInvitationsTableSection
             tableHook={linksTable}
             emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}
