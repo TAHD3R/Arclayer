@@ -37,14 +37,21 @@ function resolveSelectPortalContainer(
 }
 
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  const [triggerElement, setTriggerElement] = React.useState<HTMLElement | null>(null);
+  const [triggerElement, setTriggerElementState] = React.useState<HTMLElement | null>(null);
+  const setTriggerElement = React.useCallback((element: HTMLElement | null) => {
+    setTriggerElementState((current) => (current === element ? current : element));
+  }, []);
   const portalContainer = React.useMemo(
     () => resolveSelectPortalContainer(triggerElement),
     [triggerElement],
   );
+  const portalContextValue = React.useMemo(
+    () => ({ portalContainer, setTriggerElement }),
+    [portalContainer, setTriggerElement],
+  );
 
   return (
-    <SelectPortalContext.Provider value={{ portalContainer, setTriggerElement }}>
+    <SelectPortalContext.Provider value={portalContextValue}>
       <SelectPrimitive.Root data-slot="select" {...props} />
     </SelectPortalContext.Provider>
   );
@@ -67,11 +74,12 @@ function SelectTrigger({
   size?: "sm" | "default";
 }) {
   const portalContext = React.useContext(SelectPortalContext);
+  const setTriggerElement = portalContext?.setTriggerElement;
   const handleRef = React.useCallback(
     (node: HTMLButtonElement | null) => {
-      portalContext?.setTriggerElement(node);
+      setTriggerElement?.(node);
     },
-    [portalContext],
+    [setTriggerElement],
   );
 
   return (

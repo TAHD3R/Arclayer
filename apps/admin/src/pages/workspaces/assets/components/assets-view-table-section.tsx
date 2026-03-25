@@ -206,7 +206,6 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId });
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
-  const [columnPinning, setColumnPinning] = useState(() => resolveDefaultColumnPinning(columns));
 
   const allVisibleSelected = useMemo(
     () =>
@@ -276,6 +275,7 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
       }),
     [allVisibleSelected, controller, dateTime, handleMoreAction, handleToggleAllVisible, t],
   );
+  const [columnPinning, setColumnPinning] = useState(() => resolveDefaultColumnPinning(columns));
 
   const loadInitialColumnVisibility = useCallback(() => {
     const persisted = readVisibilityState(tableId, visibilityStorage);

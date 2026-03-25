@@ -1,0 +1,137 @@
+import * as React from "react";
+import { StrictMode } from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import { DeleteAssetFolderDialog } from "@/pages/workspaces/assets/components/delete-asset-folder-dialog";
+import { MoveAssetsToFolderModal } from "@/pages/workspaces/assets/components/move-assets-to-folder-modal";
+import { UpdateAssetsAccessDialog } from "@/pages/workspaces/assets/components/update-assets-access-dialog";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
+describe("shared Select", () => {
+  it("opens inside a settings dialog under StrictMode without triggering an infinite update loop", async () => {
+    const user = userEvent.setup();
+    expect(() =>
+      render(
+        <StrictMode>
+          <SettingDialog open onOpenChange={() => undefined} title="Edit asset access">
+            <Select value="one" onValueChange={() => undefined}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pick one" />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                <SelectItem value="one">One</SelectItem>
+                <SelectItem value="two">Two</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingDialog>
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+
+    await user.click(screen.getByRole("combobox"));
+
+    await waitFor(() => {
+      const dropdown = document.querySelector("[data-slot='select-content']");
+      const overlayRoot = document.querySelector("[data-overlay-root='dialog']");
+
+      expect(dropdown).not.toBeNull();
+      expect(overlayRoot).not.toBeNull();
+      expect(overlayRoot?.contains(dropdown ?? null)).toBe(true);
+    });
+  });
+
+  it("renders assets access dialog under StrictMode without hitting a nested update loop", () => {
+    expect(() =>
+      render(
+        <StrictMode>
+          <UpdateAssetsAccessDialog
+            open
+            onOpenChange={() => undefined}
+            mode="single"
+            currentVisibility="public"
+            currentPurpose="library"
+            currentIndexable
+            onConfirm={() => undefined}
+          />
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+  });
+
+  it("renders assets move dialog under StrictMode without hitting a nested update loop", () => {
+    expect(() =>
+      render(
+        <StrictMode>
+          <MoveAssetsToFolderModal
+            open
+            onOpenChange={() => undefined}
+            folders={[{ id: "folder-1", name: "Library" } as never]}
+            assetCount={2}
+            onMove={() => undefined}
+          />
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+  });
+
+  it("renders assets delete-folder dialog under StrictMode without hitting a nested update loop", () => {
+    expect(() =>
+      render(
+        <StrictMode>
+          <DeleteAssetFolderDialog
+            open
+            onOpenChange={() => undefined}
+            folder={{ id: "folder-1", name: "Library" } as never}
+            folders={
+              [
+                { id: "folder-1", name: "Library" },
+                { id: "folder-2", name: "Media", parentId: null },
+              ] as never
+            }
+            onConfirm={() => Promise.resolve()}
+          />
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+  });
+
+  it("stays stable when parent rerenders repeatedly under StrictMode", () => {
+    function StressHarness() {
+      const [tick, setTick] = React.useState(0);
+
+      React.useEffect(() => {
+        if (tick >= 8) return;
+        setTick((current) => current + 1);
+      }, [tick]);
+
+      return (
+        <SettingDialog open onOpenChange={() => undefined} title={`tick-${tick}`}>
+          <Select value="one" onValueChange={() => undefined}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Pick one" />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              <SelectItem value="one">One</SelectItem>
+              <SelectItem value="two">Two</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingDialog>
+      );
+    }
+
+    expect(() =>
+      render(
+        <StrictMode>
+          <StressHarness />
+        </StrictMode>,
+      ),
+    ).not.toThrow();
+  });
+});
