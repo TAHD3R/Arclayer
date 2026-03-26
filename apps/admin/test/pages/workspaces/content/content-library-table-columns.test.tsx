@@ -116,6 +116,9 @@ describe("content-library-table-columns", () => {
     render(<NameCellHarness />);
 
     expect(screen.getByText("CONTENT_LIBRARY_ROLE_PAGE")).toBeInTheDocument();
+    expect(screen.getByText("/homepage").closest("div.flex")).toHaveTextContent(
+      "CONTENT_LIBRARY_ROLE_PAGE",
+    );
     expect(screen.queryByText("CONTENT_LIBRARY_EDIT_WITH_CANVAS")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }),

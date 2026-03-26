@@ -20,6 +20,7 @@ function ContentLibraryNameCell(props: {
 }) {
   const [actionsHovered, setActionsHovered] = React.useState(false);
   const showAddress = contentHasAddress(props.row);
+  const showInlineAddress = showAddress && props.row.role === "page";
 
   return (
     <div
@@ -31,8 +32,9 @@ function ContentLibraryNameCell(props: {
         <div className="flex min-w-0 items-center gap-2">
           <div className="truncate text-headline text-label-primary">{props.row.name}</div>
           <ContentLibraryRoleTag role={props.row.role} />
+          {showInlineAddress ? <BaseTag color="blue">/{props.row.slug}</BaseTag> : null}
         </div>
-        {showAddress ? (
+        {showAddress && !showInlineAddress ? (
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
             <BaseTag color="blue">/{props.row.slug}</BaseTag>
           </div>
