@@ -2,11 +2,7 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import {
-  useDataTable,
-  useDataTableRowHeightPreference,
-  useDataTableWrapHeadersPreference,
-} from "@arclayer/ui/data-table";
+import { useDataTable } from "@arclayer/ui/data-table";
 import {
   archiveContentItem,
   createContentLibraryView,
@@ -157,15 +153,13 @@ function normalizeSavedViewColumns(value: ContentLibrarySavedView["columns"] | u
       : undefined;
   const order = value?.order?.length ? [...value.order] : undefined;
 
-  if (!visibility && !order && !value?.rowHeight && typeof value?.wrapHeaders === "undefined") {
+  if (!visibility && !order) {
     return undefined;
   }
 
   return {
     ...(visibility ? { visibility } : {}),
     ...(order ? { order } : {}),
-    ...(value?.rowHeight ? { rowHeight: value.rowHeight } : {}),
-    ...(typeof value?.wrapHeaders === "boolean" ? { wrapHeaders: value.wrapHeaders } : {}),
   };
 }
 
@@ -320,20 +314,6 @@ function summarizeViewColumns(
       }),
     );
   }
-  if (columns.rowHeight) {
-    parts.push(
-      t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_ROW_HEIGHT", {
-        value: columns.rowHeight,
-      }),
-    );
-  }
-  if (typeof columns.wrapHeaders === "boolean") {
-    parts.push(
-      columns.wrapHeaders
-        ? t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_WRAP_HEADERS_ON")
-        : t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_WRAP_HEADERS_OFF"),
-    );
-  }
   return parts.length ? parts.join(" · ") : t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_NONE");
 }
 
@@ -426,8 +406,6 @@ export function ContentLibraryPage() {
     () => contentLibraryTableId(workspaceId ? String(workspaceId) : null),
     [workspaceId],
   );
-  const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId: dataTableId });
-  const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId: dataTableId });
   const viewMode: ContentLibraryViewMode = manualViewMode ?? (autoCardMode ? "card" : "table");
   const modelsQuery = useQuery({
     queryKey: buildContentModelsQueryKey(workspaceId ? String(workspaceId) : null),
@@ -873,24 +851,20 @@ export function ContentLibraryPage() {
       sorting: normalizeSavedViewSorting(tableHook.sorting),
       viewMode,
       columns:
-        columnVisibility || columnOrder || rowHeight || typeof wrapHeaders === "boolean"
+        columnVisibility || columnOrder
           ? {
               ...(columnVisibility ? { visibility: columnVisibility } : {}),
               ...(columnOrder ? { order: columnOrder } : {}),
-              rowHeight,
-              wrapHeaders,
             }
           : undefined,
     };
   }, [
     effectiveSystemViewId,
-    rowHeight,
     tableHook.searchInput,
     tableHook.sorting,
     tableHook.table,
     toolbarFilters,
     viewMode,
-    wrapHeaders,
   ]);
   const currentWorkbenchDefinition = React.useMemo(
     () => buildCurrentViewDefinition(),
@@ -907,10 +881,6 @@ export function ContentLibraryPage() {
       tableHook.setSearchInput(savedView.query);
       tableHook.setSorting(savedView.sorting);
       if (savedView.viewMode) setManualViewMode(savedView.viewMode);
-      if (savedView.columns?.rowHeight) setRowHeight(savedView.columns.rowHeight);
-      if (typeof savedView.columns?.wrapHeaders === "boolean") {
-        setWrapHeaders(savedView.columns.wrapHeaders);
-      }
       if (savedView.columns) {
         if (savedView.columns.visibility) {
           tableHook.table.setColumnVisibility?.(savedView.columns.visibility);
@@ -920,7 +890,7 @@ export function ContentLibraryPage() {
         tableHook.table.setColumnOrder?.(savedView.columns.order ?? []);
       }
     },
-    [setRowHeight, setWrapHeaders, tableHook],
+    [tableHook],
   );
   const applySavedViewWorkbenchRef = React.useRef(applySavedViewWorkbench);
   React.useEffect(() => {
@@ -1095,6 +1065,10 @@ export function ContentLibraryPage() {
         id: view.id,
         label: view.name,
         active: viewState.kind === "saved" && viewState.viewId === view.id,
+        dirty:
+          viewState.kind === "saved" &&
+          viewState.viewId === view.id &&
+          !doesSavedViewMatchWorkbench(view, currentWorkbenchDefinition),
         onSelect: () => setActiveView({ kind: "saved", viewId: view.id }),
         onMoveForward: () => moveSavedView(view.id, "up"),
         moveForwardDisabled: index === 0,
@@ -1138,10 +1112,6 @@ export function ContentLibraryPage() {
       onSearchInputChange={tableHook.setSearchInput}
       filters={toolbarFilters}
       onFiltersChange={setToolbarFilters}
-      rowHeight={rowHeight}
-      onRowHeightChange={setRowHeight}
-      wrapHeaders={wrapHeaders}
-      onWrapHeadersChange={setWrapHeaders}
       refreshing={refreshing}
       onRefresh={() => {
         void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
@@ -1225,8 +1195,6 @@ export function ContentLibraryPage() {
               tableHook.table.setPageIndex(Math.max(0, nextPage - 1));
             }}
             t={t}
-            rowHeight={rowHeight}
-            wrapHeaders={wrapHeaders}
             refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
             onRowClick={(row) => setSelectedRow(row.original)}
             toolbar={toolbarNode}
@@ -1278,7 +1246,7 @@ export function ContentLibraryPage() {
                   <div className="text-callout font-semibold text-foreground">{item.label}</div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="grid gap-1.5">
-                      <div className="text-caption font-medium uppercase tracking-[0.08em] text-label-secondary">
+                      <div className="text-callout text-label-secondary">
                         {t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_SAVED")}
                       </div>
                       <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-callout text-label-primary">
@@ -1286,7 +1254,7 @@ export function ContentLibraryPage() {
                       </div>
                     </div>
                     <div className="grid gap-1.5">
-                      <div className="text-caption font-medium uppercase tracking-[0.08em] text-label-secondary">
+                      <div className="text-callout text-label-secondary">
                         {t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_CURRENT")}
                       </div>
                       <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-callout text-label-primary">

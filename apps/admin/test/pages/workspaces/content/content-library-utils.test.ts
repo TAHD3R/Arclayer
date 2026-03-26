@@ -103,7 +103,7 @@ describe("content-library-utils", () => {
         filters: { modelKey: "page", role: "page", editWith: "canvas" },
         sorting: [{ id: "updatedAt", desc: true }],
         viewMode: "table",
-        columns: { order: ["name", "status"], rowHeight: "medium", wrapHeaders: false },
+        columns: { order: ["name", "status"] },
         visibility: "private",
         pinned: true,
         isDefault: false,
@@ -116,7 +116,7 @@ describe("content-library-utils", () => {
         filters: { modelKey: "article", role: "article", editWith: "writing" },
         sorting: [],
         viewMode: "card",
-        columns: { rowHeight: "tall", wrapHeaders: true },
+        columns: undefined,
         visibility: "workspace",
         pinned: false,
         isDefault: false,
@@ -130,7 +130,7 @@ describe("content-library-utils", () => {
         pinned: true,
         filters: { role: "page", editWith: "canvas" },
         viewMode: "table",
-        columns: { order: ["name", "status"], rowHeight: "medium", wrapHeaders: false },
+        columns: { order: ["name", "status"] },
       },
       {
         id: "view-published",
@@ -138,7 +138,7 @@ describe("content-library-utils", () => {
         pinned: false,
         filters: { role: "article", editWith: "writing" },
         viewMode: "card",
-        columns: { rowHeight: "tall", wrapHeaders: true },
+        columns: undefined,
       },
     ]);
 

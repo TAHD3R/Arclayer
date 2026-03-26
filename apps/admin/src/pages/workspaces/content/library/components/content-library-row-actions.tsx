@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Archive, ArchiveRestore, Copy, MoreHorizontal, PenLine, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -9,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { cn } from "@arclayer/lib/utils";
 
 import type { ContentLibraryTableRow } from "../types";
 
@@ -20,8 +22,11 @@ export function ContentLibraryRowActions(props: {
   onArchive: (row: ContentLibraryTableRow) => void;
   onUnarchive: (row: ContentLibraryTableRow) => void;
   pending?: boolean;
+  persistVisible?: boolean;
+  className?: string;
 }) {
   const { t } = useTranslation("content");
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const archiveAction =
     props.row.derivedStatus === "archived"
       ? {
@@ -36,7 +41,11 @@ export function ContentLibraryRowActions(props: {
         };
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div
+      data-testid="content-library-row-actions"
+      data-visible={props.persistVisible || menuOpen ? "true" : "false"}
+      className={cn("flex items-center justify-end gap-1", props.className)}
+    >
       <Button
         type="button"
         variant="ghost"
@@ -48,18 +57,25 @@ export function ContentLibraryRowActions(props: {
         {t("CONTENT_LIBRARY_ACTION_CONTINUE")}
       </Button>
 
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
+            type="button"
             variant="ghost"
             size="icon-sm"
             aria-label={t("CONTENT_LIBRARY_ROW_ACTIONS")}
             disabled={props.pending}
+            className="!rounded-lg data-[state=open]:bg-accent/70"
           >
             <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+        >
           <DropdownMenuIconItem
             icon={<Copy className="size-4" />}
             disabled={props.pending}

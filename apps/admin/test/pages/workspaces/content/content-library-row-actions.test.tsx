@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -41,6 +41,33 @@ function buildRow(overrides: Partial<ContentLibraryTableRow> = {}): ContentLibra
 }
 
 describe("content-library-row-actions", () => {
+  it("uses shared shadcn button sizes for inline actions", () => {
+    render(
+      <ContentLibraryRowActions
+        row={buildRow()}
+        onContinue={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onArchive={vi.fn()}
+        onUnarchive={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" })).toHaveAttribute(
+      "data-size",
+      "sm",
+    );
+    expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" })).toHaveAttribute(
+      "data-slot",
+      "button",
+    );
+    expect(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS")).toHaveAttribute(
+      "data-size",
+      "icon-sm",
+    );
+    expect(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS")).toHaveClass("!rounded-lg");
+  });
+
   it("shows a direct continue action and routes duplicate delete archive actions to callbacks", async () => {
     const user = userEvent.setup();
     const onContinue = vi.fn();
@@ -118,5 +145,40 @@ describe("content-library-row-actions", () => {
     expect(onUnarchive).toHaveBeenCalledWith(
       expect.objectContaining({ id: "content-1", derivedStatus: "archived" }),
     );
+  });
+
+  it("releases the persisted visible state after closing the menu by clicking outside", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <div>
+        <ContentLibraryRowActions
+          row={buildRow()}
+          onContinue={vi.fn()}
+          onDuplicate={vi.fn()}
+          onDelete={vi.fn()}
+          onArchive={vi.fn()}
+          onUnarchive={vi.fn()}
+          persistVisible={false}
+        />
+        <button type="button">outside</button>
+      </div>,
+    );
+
+    const root = screen.getByTestId("content-library-row-actions");
+    const trigger = screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS");
+
+    expect(root).toHaveAttribute("data-visible", "false");
+
+    await user.click(trigger);
+    expect(root).toHaveAttribute("data-visible", "true");
+
+    fireEvent.pointerDown(document.body);
+    fireEvent.mouseDown(document.body);
+    fireEvent.click(document.body);
+
+    await waitFor(() => {
+      expect(root).toHaveAttribute("data-visible", "false");
+    });
   });
 });

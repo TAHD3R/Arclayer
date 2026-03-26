@@ -2,29 +2,53 @@ import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
-import {
-  buildDataTableActionsColumnMeta,
-  DataTableActionsCell,
-} from "@/components/common/data-table-actions-cell";
 import { BaseTag } from "@/components/ui/tags";
-import { ContentLibraryEditWithTag } from "./components/content-library-edit-with-tag";
 import { ContentLibraryRoleTag } from "./components/content-library-role-tag";
 import { ContentLibraryStatusTag } from "./components/content-library-status-tag";
 import { ContentLibraryRowActions } from "./components/content-library-row-actions";
 import type { ContentLibraryTableRow } from "./types";
 import { contentHasAddress } from "./utils";
 
-function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
+function ContentLibraryNameCell(props: {
+  row: ContentLibraryTableRow;
+  pending: boolean;
+  onContinue: (row: ContentLibraryTableRow) => void;
+  onDuplicate: (row: ContentLibraryTableRow) => void;
+  onDelete: (row: ContentLibraryTableRow) => void;
+  onArchive: (row: ContentLibraryTableRow) => void;
+  onUnarchive: (row: ContentLibraryTableRow) => void;
+}) {
+  const [actionsHovered, setActionsHovered] = React.useState(false);
   const showAddress = contentHasAddress(props.row);
 
   return (
-    <div className="min-w-0">
-      <div className="truncate text-headline text-label-primary">{props.row.name}</div>
-      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
-        <ContentLibraryRoleTag role={props.row.role} />
-        <ContentLibraryEditWithTag editWith={props.row.editWith} />
-        {showAddress ? <BaseTag color="blue">/{props.row.slug}</BaseTag> : null}
+    <div
+      className="relative min-w-0 pr-32"
+      onMouseEnter={() => setActionsHovered(true)}
+      onMouseLeave={() => setActionsHovered(false)}
+    >
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="truncate text-headline text-label-primary">{props.row.name}</div>
+          <ContentLibraryRoleTag role={props.row.role} />
+        </div>
+        {showAddress ? (
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+            <BaseTag color="blue">/{props.row.slug}</BaseTag>
+          </div>
+        ) : null}
       </div>
+      <ContentLibraryRowActions
+        row={props.row}
+        pending={props.pending}
+        persistVisible={actionsHovered}
+        onContinue={props.onContinue}
+        onDuplicate={props.onDuplicate}
+        onDelete={props.onDelete}
+        onArchive={props.onArchive}
+        onUnarchive={props.onUnarchive}
+        className="pointer-events-none absolute inset-y-0 right-0 w-30 justify-center opacity-0 transition-opacity duration-150 data-[visible=true]:pointer-events-auto data-[visible=true]:opacity-100"
+      />
     </div>
   );
 }
@@ -58,9 +82,19 @@ export function useContentLibraryTableColumns(params: {
         accessorKey: "name",
         meta: { title: t("CONTENT_LIBRARY_TABLE_COL_NAME"), sortKey: "name", kind: "primary" },
         header: t("CONTENT_LIBRARY_TABLE_COL_NAME"),
-        cell: ({ row }) => <ContentLibraryNameCell row={row.original} />,
-        size: 280,
-        minSize: 220,
+        cell: ({ row }) => (
+          <ContentLibraryNameCell
+            row={row.original}
+            pending={params.actionPending}
+            onContinue={params.onContinue}
+            onDuplicate={params.onDuplicate}
+            onDelete={params.onDelete}
+            onArchive={params.onArchive}
+            onUnarchive={params.onUnarchive}
+          />
+        ),
+        size: 360,
+        minSize: 300,
       },
       {
         accessorKey: "modelName",
@@ -126,29 +160,6 @@ export function useContentLibraryTableColumns(params: {
         },
         size: 180,
         minSize: 160,
-      },
-      {
-        id: "actions",
-        meta: buildDataTableActionsColumnMeta("center"),
-        header: "",
-        enableHiding: false,
-        enableSorting: false,
-        cell: ({ row }) => (
-          <DataTableActionsCell align="center">
-            <ContentLibraryRowActions
-              row={row.original}
-              pending={params.actionPending}
-              onContinue={params.onContinue}
-              onDuplicate={params.onDuplicate}
-              onDelete={params.onDelete}
-              onArchive={params.onArchive}
-              onUnarchive={params.onUnarchive}
-            />
-          </DataTableActionsCell>
-        ),
-        size: 180,
-        minSize: 168,
-        maxSize: 220,
       },
     ],
     [

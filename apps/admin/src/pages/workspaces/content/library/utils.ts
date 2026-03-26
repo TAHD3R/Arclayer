@@ -165,12 +165,7 @@ function normalizeContentLibraryViewColumns(
   value: unknown,
 ): ContentLibrarySavedView["columns"] | undefined {
   if (!value || typeof value !== "object") return undefined;
-  const candidate = value as {
-    visibility?: unknown;
-    order?: unknown;
-    rowHeight?: unknown;
-    wrapHeaders?: unknown;
-  };
+  const candidate = value as { visibility?: unknown; order?: unknown };
   const visibility =
     candidate.visibility && typeof candidate.visibility === "object"
       ? (Object.fromEntries(
@@ -184,30 +179,14 @@ function normalizeContentLibraryViewColumns(
         (item): item is string => typeof item === "string" && Boolean(item.trim()),
       )
     : undefined;
-  const rowHeight =
-    candidate.rowHeight === "short" ||
-    candidate.rowHeight === "medium" ||
-    candidate.rowHeight === "tall" ||
-    candidate.rowHeight === "extraTall"
-      ? candidate.rowHeight
-      : undefined;
-  const wrapHeaders =
-    typeof candidate.wrapHeaders === "boolean" ? candidate.wrapHeaders : undefined;
 
-  if (
-    (!visibility || Object.keys(visibility).length === 0) &&
-    (!order || order.length === 0) &&
-    !rowHeight &&
-    typeof wrapHeaders === "undefined"
-  ) {
+  if ((!visibility || Object.keys(visibility).length === 0) && (!order || order.length === 0)) {
     return undefined;
   }
 
   return {
     ...(visibility && Object.keys(visibility).length ? { visibility } : {}),
     ...(order?.length ? { order } : {}),
-    ...(rowHeight ? { rowHeight } : {}),
-    ...(typeof wrapHeaders === "boolean" ? { wrapHeaders } : {}),
   };
 }
 

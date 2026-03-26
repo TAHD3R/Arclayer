@@ -65,10 +65,6 @@ describe("ContentLibraryToolbar", () => {
         onSearchInputChange={vi.fn()}
         filters={{}}
         onFiltersChange={vi.fn()}
-        rowHeight={"comfortable" as never}
-        onRowHeightChange={vi.fn()}
-        wrapHeaders={false}
-        onWrapHeadersChange={vi.fn()}
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
@@ -125,10 +121,6 @@ describe("ContentLibraryToolbar", () => {
         onSearchInputChange={vi.fn()}
         filters={{}}
         onFiltersChange={vi.fn()}
-        rowHeight={"comfortable" as never}
-        onRowHeightChange={vi.fn()}
-        wrapHeaders={false}
-        onWrapHeadersChange={vi.fn()}
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
@@ -209,10 +201,6 @@ describe("ContentLibraryToolbar", () => {
         onSearchInputChange={vi.fn()}
         filters={{}}
         onFiltersChange={vi.fn()}
-        rowHeight={"comfortable" as never}
-        onRowHeightChange={vi.fn()}
-        wrapHeaders={false}
-        onWrapHeadersChange={vi.fn()}
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}
@@ -244,6 +232,39 @@ describe("ContentLibraryToolbar", () => {
     ).toHaveAttribute("data-disabled");
   });
 
+  test("shows a modified tag for a dirty saved view and constrains long labels", () => {
+    render(
+      <ContentLibraryToolbar
+        table={{} as never}
+        searchInput=""
+        onSearchInputChange={vi.fn()}
+        filters={{}}
+        onFiltersChange={vi.fn()}
+        onRefresh={vi.fn()}
+        toolsLabels={{} as never}
+        modelOptions={[]}
+        viewMode="table"
+        onViewModeChange={vi.fn()}
+        views={[
+          {
+            id: "view-1",
+            label: "An extremely long editorial queue view name that should truncate in the rail",
+            active: true,
+            dirty: true,
+            onSelect: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("CONTENT_LIBRARY_VIEW_DIRTY_TAG")).toBeVisible();
+    expect(
+      screen.getByRole("button", {
+        name: "An extremely long editorial queue view name that should truncate in the rail",
+      }).innerHTML,
+    ).toContain("max-w-[12rem] truncate");
+  });
+
   test("disables update when the active view already matches the current workbench", async () => {
     const user = userEvent.setup();
 
@@ -254,10 +275,6 @@ describe("ContentLibraryToolbar", () => {
         onSearchInputChange={vi.fn()}
         filters={{}}
         onFiltersChange={vi.fn()}
-        rowHeight={"comfortable" as never}
-        onRowHeightChange={vi.fn()}
-        wrapHeaders={false}
-        onWrapHeadersChange={vi.fn()}
         onRefresh={vi.fn()}
         toolsLabels={{} as never}
         modelOptions={[]}

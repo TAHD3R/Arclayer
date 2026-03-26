@@ -18,11 +18,7 @@ import type { Table as ReactTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
-import {
-  DataTableToolbarTools,
-  type DataTableRowHeight,
-  type DataTableToolsLabels,
-} from "@arclayer/ui/data-table";
+import { DataTableToolbarTools, type DataTableToolsLabels } from "@arclayer/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +30,7 @@ import {
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
+import { Badge } from "@arclayer/ui/badge";
 
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
@@ -66,6 +63,7 @@ type ContentLibraryToolbarView = {
   id: string;
   label: string;
   active?: boolean;
+  dirty?: boolean;
   onSelect?: () => void;
   onMoveForward?: () => void;
   moveForwardDisabled?: boolean;
@@ -84,6 +82,8 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
   const [hovered, setHovered] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [focusWithin, setFocusWithin] = React.useState(false);
+  const labelRef = React.useRef<HTMLSpanElement | null>(null);
+  const [labelTruncated, setLabelTruncated] = React.useState(false);
   const hasMenu =
     Boolean(props.view.onMoveForward) ||
     Boolean(props.view.onMoveBackward) ||
@@ -109,6 +109,58 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
     if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
     setFocusWithin(false);
   }, []);
+  React.useEffect(() => {
+    const node = labelRef.current;
+    if (!node) return;
+
+    const syncLabelTruncation = () => {
+      setLabelTruncated(node.scrollWidth > node.clientWidth + 1);
+    };
+
+    syncLabelTruncation();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncLabelTruncation) : null;
+    resizeObserver?.observe(node);
+
+    return () => {
+      resizeObserver?.disconnect();
+    };
+  }, [props.view.label, props.view.dirty, showMenuButton]);
+
+  const viewButton = (
+    <button
+      type="button"
+      data-active-view={props.view.active ? "true" : "false"}
+      aria-current={props.view.active ? "true" : undefined}
+      className={cn(
+        "flex h-9 min-w-0 shrink items-center rounded-md bg-transparent px-3 text-callout font-semibold outline-none transition-colors",
+        emphasized ? "text-accent-foreground" : "text-inherit",
+        showMenuButton ? "pr-2" : "pr-3",
+      )}
+      onPointerEnter={handlePointerEnter}
+      onMouseEnter={handlePointerEnter}
+      onClick={props.view.onSelect}
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <span ref={labelRef} className="max-w-[12rem] truncate whitespace-nowrap">
+          {props.view.label}
+        </span>
+        {props.view.dirty ? (
+          <Badge
+            variant="outline"
+            aria-hidden="true"
+            className={cn(
+              "shrink-0 border-amber-300/80 bg-amber-50/90 px-1.5 py-0 text-[11px] leading-none text-amber-700 shadow-none dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300",
+              emphasized ? "border-amber-300/80 bg-amber-50/90" : undefined,
+            )}
+          >
+            {t("CONTENT_LIBRARY_VIEW_DIRTY_TAG")}
+          </Badge>
+        ) : null}
+      </span>
+    </button>
+  );
 
   return (
     <div
@@ -124,21 +176,14 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
       onFocusCapture={handleFocusCapture}
       onBlurCapture={handleBlurCapture}
     >
-      <button
-        type="button"
-        data-active-view={props.view.active ? "true" : "false"}
-        aria-current={props.view.active ? "true" : undefined}
-        className={cn(
-          "flex h-9 shrink-0 items-center rounded-md bg-transparent px-3 text-callout font-semibold whitespace-nowrap outline-none transition-colors",
-          emphasized ? "text-accent-foreground" : "text-inherit",
-          showMenuButton ? "pr-2" : "pr-3",
-        )}
-        onPointerEnter={handlePointerEnter}
-        onMouseEnter={handlePointerEnter}
-        onClick={props.view.onSelect}
-      >
-        {props.view.label}
-      </button>
+      {labelTruncated ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{viewButton}</TooltipTrigger>
+          <TooltipContent>{props.view.label}</TooltipContent>
+        </Tooltip>
+      ) : (
+        viewButton
+      )}
       {hasMenu ? (
         <div
           className={cn(
@@ -285,10 +330,6 @@ export function ContentLibraryToolbar<TData>(props: {
   onSearchInputChange: (value: string) => void;
   filters: ContentLibraryToolbarFilters;
   onFiltersChange: (next: ContentLibraryToolbarFilters) => void;
-  rowHeight: DataTableRowHeight;
-  onRowHeightChange: (next: DataTableRowHeight) => void;
-  wrapHeaders: boolean;
-  onWrapHeadersChange: (next: boolean) => void;
   refreshing?: boolean;
   onRefresh: () => void;
   onResetColumnVisibility?: () => void;
@@ -518,10 +559,6 @@ export function ContentLibraryToolbar<TData>(props: {
             {props.primaryAction}
             <DataTableToolbarTools
               table={props.table}
-              rowHeight={props.rowHeight}
-              onRowHeightChange={props.onRowHeightChange}
-              wrapHeaders={props.wrapHeaders}
-              onWrapHeadersChange={props.onWrapHeadersChange}
               onRefresh={props.onRefresh}
               refreshing={props.refreshing}
               onResetColumnVisibility={props.onResetColumnVisibility}

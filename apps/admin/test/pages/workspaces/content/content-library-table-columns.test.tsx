@@ -116,7 +116,10 @@ describe("content-library-table-columns", () => {
     render(<NameCellHarness />);
 
     expect(screen.getByText("CONTENT_LIBRARY_ROLE_PAGE")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_LIBRARY_EDIT_WITH_CANVAS")).toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_LIBRARY_EDIT_WITH_CANVAS")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }),
+    ).toBeInTheDocument();
   });
 
   test("hides library group by default when no persisted column preference exists", () => {
