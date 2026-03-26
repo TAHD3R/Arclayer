@@ -20,8 +20,9 @@ function getLibraryGroupLabelKey(row: ContentLibraryTableRow) {
 
 type ContentLibraryCardListProps = {
   rows: ContentLibraryTableRow[];
+  previewRowId?: string | null;
   onCardClick: (row: ContentLibraryTableRow) => void;
-  onContinue: (row: ContentLibraryTableRow) => void;
+  onOpen: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
@@ -73,7 +74,8 @@ export function ContentLibraryCardList(props: ContentLibraryCardListProps) {
               <ContentLibraryRowActions
                 row={row}
                 pending={props.pending}
-                onContinue={props.onContinue}
+                previewOpen={props.previewRowId === row.id}
+                onOpen={props.onOpen}
                 onDuplicate={props.onDuplicate}
                 onDelete={props.onDelete}
                 onArchive={props.onArchive}

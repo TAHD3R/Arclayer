@@ -1,4 +1,6 @@
 import * as React from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useSidebar } from "@arclayer/ui/sidebar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -10,20 +12,16 @@ import {
   deleteContentItem,
   duplicateContentItem,
   getContentLibraryViews,
-  getContentItemVersion,
-  getContentSeoProfile,
-  getWorkspacePublishImpact,
-  // Content items stay sourced from the admin API. Continue routing uses site preview tokens below.
   listAllContentItems,
   listAllContentModels,
   moveContentLibraryView,
   updateContentLibraryView,
   unarchiveContentItem,
 } from "@/api/content";
-import { issueWorkspaceSitePreviewToken } from "@/api/workspace-site";
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { PageMainRegion } from "@/layouts/page-shell/page-main-region";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -42,16 +40,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@arclayer/ui/alert-dialog";
-import {
-  buildWorkspaceContentEditorUrl,
-  workspaceContentCreatePath,
-  workspaceContentLibraryPath,
-} from "@/lib/routing/workspace-content-routing";
+import { workspaceContentCreatePath } from "@/lib/routing/workspace-content-routing";
 import { useContentLibraryTableColumns } from "./content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryCardList } from "./components/content-library-card-list";
 import { ContentLibraryNewContentButton } from "./components/content-library-new-content-button";
-import { ContentLibraryRecordDrawer } from "./components/content-library-record-drawer";
+import { ContentLibraryPreviewPanel } from "./components/content-library-preview-panel";
+import { ContentLibrarySelectionToolbar } from "./components/content-library-selection-toolbar";
 import { ContentLibraryToolbar } from "./components/content-library-toolbar";
 import { ContentLibraryViewFormDialog } from "./components/content-library-view-form-dialog";
 import { type ContentLibraryViewMode } from "./components/content-library-view-mode-toggle";
@@ -66,6 +61,13 @@ import type {
   ContentLibraryToolbarFilters,
   ContentLibraryViewState,
 } from "./types";
+import {
+  clearSelection,
+  rangeSelect,
+  selectOnly,
+  toggleSelect,
+  type AssetSelectionState,
+} from "@/lib/assets/asset-selection";
 import {
   areContentLibraryToolbarFiltersEqual,
   buildContentItemsQueryKey,
@@ -96,6 +98,8 @@ type ArchiveDialogState = {
   mode: "archive" | "unarchive";
 };
 
+type BulkActionKind = "archive" | "delete";
+
 type ContentLibraryViewDialogState = {
   mode: "edit" | "saveAs";
   viewId: string;
@@ -114,10 +118,37 @@ type ContentLibraryViewDiffItem = {
 };
 
 const CONTENT_LIBRARY_CARD_MODE_QUERY = "(max-width: 960px)";
+const CONTENT_LIBRARY_PREVIEW_SIDEBAR_COLLAPSE_BREAKPOINT = 1280;
+const CONTENT_LIBRARY_PREVIEW_MIN_WIDTH_PERCENT = 30;
+
+function getContentLibraryPreviewWidthDefaults(viewportWidth: number) {
+  if (viewportWidth >= 1680) {
+    return { defaultPercent: 40, maxPercent: 42 };
+  }
+  if (viewportWidth >= 1440) {
+    return { defaultPercent: 40, maxPercent: 45 };
+  }
+  if (viewportWidth >= 1200) {
+    return { defaultPercent: 40, maxPercent: 48 };
+  }
+  return { defaultPercent: 40, maxPercent: 52 };
+}
+
+function getContentLibraryPreviewWidthDefaultsFromWindow() {
+  if (typeof window === "undefined") {
+    return { defaultPercent: 42, maxPercent: 45 };
+  }
+  return getContentLibraryPreviewWidthDefaults(window.innerWidth);
+}
 
 function getContentLibraryCardMode(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia(CONTENT_LIBRARY_CARD_MODE_QUERY).matches;
+}
+
+function shouldAutoCollapseSidebarForPreview(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.innerWidth < CONTENT_LIBRARY_PREVIEW_SIDEBAR_COLLAPSE_BREAKPOINT;
 }
 
 function useContentLibraryCardMode() {
@@ -382,6 +413,7 @@ export function ContentLibraryPage() {
   const navigate = useNavigate({ from: "/w/$workspaceId/content/library/" });
   const search = useSearch({ from: "/w/$workspaceId/content/library/" });
   const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const sidebar = useSidebar();
   const queryClient = useQueryClient();
   const dateTime = useWorkspaceDateTimeFormatter();
   const autoCardMode = useContentLibraryCardMode();
@@ -390,7 +422,11 @@ export function ContentLibraryPage() {
   const [viewState, setViewState] = React.useState<ContentLibraryViewState>(
     CONTENT_LIBRARY_DEFAULT_VIEW_STATE,
   );
-  const [selectedRow, setSelectedRow] = React.useState<ContentLibraryTableRow | null>(null);
+  const [selection, setSelection] = React.useState<AssetSelectionState>({
+    selectedIds: new Set(),
+    lastActiveId: null,
+  });
+  const [previewRowId, setPreviewRowId] = React.useState<string | null>(null);
   const [viewDialogState, setViewDialogState] =
     React.useState<ContentLibraryViewDialogState | null>(null);
   const [viewDialogDraft, setViewDialogDraft] = React.useState<ContentLibraryPrototypeViewDraft>(
@@ -399,9 +435,16 @@ export function ContentLibraryPage() {
   const [pendingDeleteViewId, setPendingDeleteViewId] = React.useState<string | null>(null);
   const [pendingUpdateViewId, setPendingUpdateViewId] = React.useState<string | null>(null);
   const [handledFocusItemId, setHandledFocusItemId] = React.useState<string | null>(null);
+  const [pendingBulkAction, setPendingBulkAction] = React.useState<BulkActionKind | null>(null);
+  const [previewWidthPercent, setPreviewWidthPercent] = React.useState(
+    () => getContentLibraryPreviewWidthDefaultsFromWindow().defaultPercent,
+  );
+  const [previewResizeActive, setPreviewResizeActive] = React.useState(false);
   const [duplicateRow, setDuplicateRow] = React.useState<ContentLibraryTableRow | null>(null);
   const [deleteRow, setDeleteRow] = React.useState<ContentLibraryTableRow | null>(null);
   const [archiveDialog, setArchiveDialog] = React.useState<ArchiveDialogState | null>(null);
+  const splitLayoutRef = React.useRef<HTMLDivElement | null>(null);
+  const previewResizeCleanupRef = React.useRef<(() => void) | null>(null);
   const dataTableId = React.useMemo(
     () => contentLibraryTableId(workspaceId ? String(workspaceId) : null),
     [workspaceId],
@@ -443,122 +486,11 @@ export function ContentLibraryPage() {
     () => buildContentLibraryRows(itemsQuery.data ?? [], models),
     [itemsQuery.data, models],
   );
-  const draftVersionQuery = useQuery({
-    queryKey: [
-      "content-library",
-      "version",
-      workspaceId,
-      selectedRow?.id,
-      "draft",
-      selectedRow?.draftVersion,
-    ],
-    enabled: Boolean(workspaceId && selectedRow && selectedRow.draftVersion > 0),
-    queryFn: async () =>
-      getContentItemVersion(String(workspaceId), selectedRow!.id, selectedRow!.draftVersion),
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-  const publishedVersionQuery = useQuery({
-    queryKey: [
-      "content-library",
-      "version",
-      workspaceId,
-      selectedRow?.id,
-      "published",
-      selectedRow?.publishedVersion,
-    ],
-    enabled: Boolean(workspaceId && selectedRow && selectedRow.publishedVersion),
-    queryFn: async () =>
-      getContentItemVersion(
-        String(workspaceId),
-        selectedRow!.id,
-        Number(selectedRow!.publishedVersion),
-      ),
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-  const seoVersionNumber = React.useMemo(() => {
-    if (!selectedRow) return null;
-    return selectedRow.draftVersion || selectedRow.publishedVersion || null;
-  }, [selectedRow]);
-  const seoSupported = React.useMemo(
-    () =>
-      Boolean(
-        selectedRow &&
-        (selectedRow.modelCapabilities.includes("seo_managed") ||
-          selectedRow.modelCapabilities.includes("routable") ||
-          selectedRow.capabilityPackIds.includes("seo_managed") ||
-          selectedRow.capabilityPackIds.includes("routable")),
-      ),
-    [selectedRow],
+  const previewRow = React.useMemo(
+    () => rows.find((row) => row.id === previewRowId) ?? null,
+    [previewRowId, rows],
   );
-  const seoQuery = useQuery({
-    queryKey: ["content-library", "seo", workspaceId, selectedRow?.id, seoVersionNumber],
-    enabled: Boolean(workspaceId && selectedRow && seoVersionNumber && seoSupported),
-    queryFn: async () =>
-      getContentSeoProfile(String(workspaceId), selectedRow!.id, Number(seoVersionNumber)),
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-  const publishImpactQuery = useQuery({
-    queryKey: ["content-library", "publish-impact", workspaceId],
-    enabled: Boolean(workspaceId && selectedRow),
-    queryFn: async () => getWorkspacePublishImpact(String(workspaceId)),
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-  const selectedVersions = React.useMemo(
-    () => ({
-      draft: draftVersionQuery.data ?? null,
-      published: publishedVersionQuery.data ?? null,
-      loading: draftVersionQuery.isLoading || publishedVersionQuery.isLoading,
-      error: draftVersionQuery.isError || publishedVersionQuery.isError,
-    }),
-    [
-      draftVersionQuery.data,
-      draftVersionQuery.isError,
-      draftVersionQuery.isLoading,
-      publishedVersionQuery.data,
-      publishedVersionQuery.isError,
-      publishedVersionQuery.isLoading,
-    ],
-  );
-  const selectedSeo = React.useMemo(
-    () => ({
-      supported: seoSupported,
-      data: seoQuery.data ?? null,
-      loading: seoQuery.isLoading,
-      error: seoQuery.isError,
-    }),
-    [seoQuery.data, seoQuery.isError, seoQuery.isLoading, seoSupported],
-  );
-  const selectedPublishImpact = React.useMemo(() => {
-    const rowId = selectedRow?.id;
-    const source = publishImpactQuery.data ?? null;
-    const missingRoute = Boolean(rowId && source?.missingRoutes.includes(rowId));
-    const unresolvedRelations = Boolean(rowId && source?.unresolvedRelations.includes(rowId));
-    const unpublishedDependencies = Boolean(
-      rowId && source?.unpublishedDependencies.includes(rowId),
-    );
-    return {
-      missingRoute,
-      unresolvedRelations,
-      unpublishedDependencies,
-      loading: publishImpactQuery.isLoading,
-      error: publishImpactQuery.isError,
-      hasBlockers: missingRoute || unresolvedRelations || unpublishedDependencies,
-      source,
-    };
-  }, [
-    publishImpactQuery.data,
-    publishImpactQuery.isError,
-    publishImpactQuery.isLoading,
-    selectedRow,
-  ]);
+  const orderedRowIds = React.useMemo(() => rows.map((row) => row.id), [rows]);
   const savedViews = React.useMemo<ContentLibrarySavedView[]>(
     () => viewsQuery.data?.items ?? [],
     [viewsQuery.data?.items],
@@ -644,9 +576,72 @@ export function ContentLibraryPage() {
     if (handledFocusItemId === focusItemId) return;
     const focusRow = rows.find((row) => row.id === focusItemId);
     if (!focusRow) return;
-    setSelectedRow(focusRow);
+    setPreviewRowId(focusRow.id);
     setHandledFocusItemId(focusItemId);
   }, [handledFocusItemId, rows, search.focusItemId]);
+  React.useEffect(() => {
+    setSelection((prev) => {
+      const nextSelectedIds = new Set(
+        Array.from(prev.selectedIds).filter((id) => orderedRowIds.includes(id)),
+      );
+      const nextLastActiveId =
+        prev.lastActiveId && nextSelectedIds.has(prev.lastActiveId) ? prev.lastActiveId : null;
+      if (
+        nextSelectedIds.size === prev.selectedIds.size &&
+        nextLastActiveId === prev.lastActiveId
+      ) {
+        return prev;
+      }
+      return {
+        selectedIds: nextSelectedIds,
+        lastActiveId: nextLastActiveId,
+      };
+    });
+  }, [orderedRowIds]);
+  React.useEffect(() => {
+    if (!previewRowId) return;
+    if (rows.some((row) => row.id === previewRowId)) return;
+    setPreviewRowId(null);
+  }, [previewRowId, rows]);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      const { maxPercent } = getContentLibraryPreviewWidthDefaults(window.innerWidth);
+      setPreviewWidthPercent((prev) =>
+        Math.min(maxPercent, Math.max(CONTENT_LIBRARY_PREVIEW_MIN_WIDTH_PERCENT, prev)),
+      );
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  React.useEffect(() => {
+    return () => {
+      previewResizeCleanupRef.current?.();
+      previewResizeCleanupRef.current = null;
+    };
+  }, []);
+  const previewOpenRef = React.useRef(false);
+  const collapsedSidebarForPreviewRef = React.useRef(false);
+  React.useEffect(() => {
+    const previewOpen = Boolean(previewRowId);
+    if (!sidebar.isMobile && previewOpen && !previewOpenRef.current) {
+      const shouldCollapseSidebar =
+        sidebar.state === "expanded" && shouldAutoCollapseSidebarForPreview();
+      collapsedSidebarForPreviewRef.current = shouldCollapseSidebar;
+      if (shouldCollapseSidebar) {
+        sidebar.setOpen(false);
+      }
+    }
+    if (!sidebar.isMobile && !previewOpen && previewOpenRef.current) {
+      if (collapsedSidebarForPreviewRef.current) {
+        sidebar.setOpen(true);
+      }
+      collapsedSidebarForPreviewRef.current = false;
+    }
+    previewOpenRef.current = previewOpen;
+  }, [previewRowId, sidebar]);
   React.useEffect(() => {
     if (!toolbarFilters.modelKey) return;
     if (models.some((model) => model.key === toolbarFilters.modelKey)) return;
@@ -701,26 +696,101 @@ export function ContentLibraryPage() {
     },
     onError: (error) => notifyError(error),
   });
-  const continueMutation = useMutation({
-    mutationFn: async (row: ContentLibraryTableRow) => {
+  const archiveSelectionMutation = useMutation({
+    mutationFn: async (rowIds: string[]) => {
       if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
-      const preview = await issueWorkspaceSitePreviewToken(String(workspaceId));
-      const url = buildWorkspaceContentEditorUrl({
-        siteId: row.siteId,
-        itemId: row.id,
-        token: preview.token,
-        returnTo: workspaceContentLibraryPath(String(workspaceId)),
+      await Promise.all(rowIds.map((rowId) => archiveContentItem(String(workspaceId), rowId)));
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_BULK_ARCHIVE_SUCCESS"));
+      setPendingBulkAction(null);
+      setSelection((prev) => clearSelection(prev));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
       });
-      window.location.assign(url);
-      return url;
     },
     onError: (error) => notifyError(error),
   });
-  const handleContinue = React.useCallback(
-    (row: ContentLibraryTableRow) => {
-      continueMutation.mutate(row);
+  const deleteSelectionMutation = useMutation({
+    mutationFn: async (rowIds: string[]) => {
+      if (!workspaceId) throw new Error("WORKSPACE_NOT_SELECTED");
+      await Promise.all(rowIds.map((rowId) => deleteContentItem(String(workspaceId), rowId)));
     },
-    [continueMutation],
+    onSuccess: async (_, rowIds) => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_BULK_DELETE_SUCCESS"));
+      setPendingBulkAction(null);
+      setSelection((prev) => clearSelection(prev));
+      setPreviewRowId((prev) => (prev && rowIds.includes(prev) ? null : prev));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentItemsQueryKey(workspaceId ? String(workspaceId) : null),
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const handleOpenPreview = React.useCallback((row: ContentLibraryTableRow) => {
+    setPreviewRowId((prev) => (prev === row.id ? null : row.id));
+  }, []);
+  const handlePreviewResizePointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const container = splitLayoutRef.current;
+      if (!container) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const updatePreviewWidth = (clientX: number) => {
+        const rect = container.getBoundingClientRect();
+        if (!rect.width) return;
+        const { maxPercent } = getContentLibraryPreviewWidthDefaults(window.innerWidth);
+        const nextPercent = ((rect.right - clientX) / rect.width) * 100;
+        setPreviewWidthPercent(
+          Math.min(maxPercent, Math.max(CONTENT_LIBRARY_PREVIEW_MIN_WIDTH_PERCENT, nextPercent)),
+        );
+      };
+
+      updatePreviewWidth(event.clientX);
+      setPreviewResizeActive(true);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+
+      const clearResizeState = () => {
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        setPreviewResizeActive(false);
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", clearResizeState);
+        window.removeEventListener("pointercancel", clearResizeState);
+        previewResizeCleanupRef.current = null;
+      };
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        updatePreviewWidth(moveEvent.clientX);
+      };
+
+      previewResizeCleanupRef.current?.();
+      previewResizeCleanupRef.current = clearResizeState;
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", clearResizeState);
+      window.addEventListener("pointercancel", clearResizeState);
+    },
+    [],
+  );
+  const handleRowSelection = React.useCallback(
+    (
+      row: ContentLibraryTableRow,
+      event?: Pick<React.MouseEvent, "metaKey" | "ctrlKey" | "shiftKey">,
+    ) => {
+      setSelection((prev) => {
+        if (event?.shiftKey) {
+          return rangeSelect(prev, row.id, orderedRowIds);
+        }
+        if (event?.metaKey || event?.ctrlKey) {
+          return toggleSelect(prev, row.id);
+        }
+        return selectOnly(prev, row.id);
+      });
+    },
+    [orderedRowIds],
   );
   const applyViewsState = React.useCallback(
     (next: AdminContentLibraryViewsState) => {
@@ -779,12 +849,29 @@ export function ContentLibraryPage() {
       archiveMutation.isPending ||
       duplicateMutation.isPending ||
       deleteMutation.isPending ||
-      continueMutation.isPending,
-    onContinue: handleContinue,
+      archiveSelectionMutation.isPending ||
+      deleteSelectionMutation.isPending,
+    selectedRowIds: selection.selectedIds,
+    onToggleVisibleRows: (visibleRows, allVisibleSelected) => {
+      if (allVisibleSelected) {
+        setSelection((prev) => clearSelection(prev));
+        return;
+      }
+      const orderedIds = visibleRows.map((row) => row.id);
+      setSelection({
+        selectedIds: new Set(orderedIds),
+        lastActiveId: orderedIds.at(-1) ?? null,
+      });
+    },
+    onToggleRowSelection: (row) => {
+      setSelection((prev) => toggleSelect(prev, row.id));
+    },
+    onOpen: handleOpenPreview,
     onDuplicate: setDuplicateRow,
     onDelete: setDeleteRow,
     onArchive: (row) => setArchiveDialog({ row, mode: "archive" }),
     onUnarchive: (row) => setArchiveDialog({ row, mode: "unarchive" }),
+    openPreviewRowId: previewRowId,
   });
   const dataReady = Boolean(workspaceId) && !modelsQuery.isLoading && !itemsQuery.isLoading;
   const dataError = modelsQuery.error ?? itemsQuery.error;
@@ -1096,6 +1183,11 @@ export function ContentLibraryPage() {
     () => [...systemViews, ...savedViewChips],
     [savedViewChips, systemViews],
   );
+  const selectedRowIds = React.useMemo(
+    () => orderedRowIds.filter((rowId) => selection.selectedIds.has(rowId)),
+    [orderedRowIds, selection.selectedIds],
+  );
+  const selectedCount = selectedRowIds.length;
   const isInitialEmptyState = !modelsQuery.isLoading && !itemsQuery.isLoading && rows.length === 0;
   const toolsLabels = React.useMemo(() => buildDataTableToolsLabels(t), [t]);
   const refreshing =
@@ -1104,7 +1196,8 @@ export function ContentLibraryPage() {
     itemsQuery.isFetching ||
     viewsQuery.isFetching ||
     archiveMutation.isPending ||
-    continueMutation.isPending;
+    archiveSelectionMutation.isPending ||
+    deleteSelectionMutation.isPending;
   const toolbarNode = (
     <ContentLibraryToolbar
       table={tableHook.table}
@@ -1133,86 +1226,149 @@ export function ContentLibraryPage() {
       }
     />
   );
+  const selectionToolbarNode = (
+    <ContentLibrarySelectionToolbar
+      t={t}
+      selectedCount={selectedCount}
+      archivePending={archiveSelectionMutation.isPending}
+      deletePending={deleteSelectionMutation.isPending}
+      onClearSelection={() => {
+        setSelection((prev) => clearSelection(prev));
+      }}
+      onOpenArchive={() => setPendingBulkAction("archive")}
+      onOpenDelete={() => setPendingBulkAction("delete")}
+    />
+  );
+  const workbenchNode = (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col px-10 pt-8 pb-20">
+      <PageMainRegion
+        title={t("nav:NAV_CONTENT_LIBRARY")}
+        description={t("content:CONTENT_LIBRARY_DESC")}
+        action={
+          <ContentLibraryPrimaryAction
+            workspaceId={workspaceId ? String(workspaceId) : null}
+            onNavigate={() =>
+              void navigate({ to: workspaceContentCreatePath(String(workspaceId)) })
+            }
+          />
+        }
+        extra={toolbarNode}
+        contentClassName="min-h-0 flex flex-col"
+      >
+        <div className="flex min-h-0 flex-1 flex-col">
+          {viewMode === "card" && (tableHook.pageData?.items.length ?? 0) > 0 ? (
+            <div className="flex min-h-0 flex-col gap-4">
+              <ContentLibraryCardList
+                rows={tableHook.pageData?.items ?? []}
+                previewRowId={previewRowId}
+                onCardClick={handleOpenPreview}
+                onOpen={handleOpenPreview}
+                onDuplicate={setDuplicateRow}
+                onDelete={setDeleteRow}
+                onArchive={(row) => setArchiveDialog({ row, mode: "archive" })}
+                onUnarchive={(row) => setArchiveDialog({ row, mode: "unarchive" })}
+                formatDateTimeOrNull={dateTime.formatDateTimeOrNull}
+                pending={
+                  archiveMutation.isPending ||
+                  duplicateMutation.isPending ||
+                  deleteMutation.isPending
+                }
+              />
+            </div>
+          ) : (
+            <AdminDataTableSection
+              table={tableHook.table}
+              emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}
+              emptyTitle={
+                isInitialEmptyState
+                  ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_TITLE")
+                  : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_TITLE")
+              }
+              emptyDescription={
+                isInitialEmptyState
+                  ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
+                  : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
+              }
+              loading={modelsQuery.isLoading || itemsQuery.isLoading}
+              error={dataError}
+              onRetry={() => {
+                void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
+              }}
+              pageData={tableHook.pageData}
+              onPaginationChange={(nextPage, nextSize) => {
+                if (nextSize !== tableHook.table.getState().pagination.pageSize) {
+                  tableHook.table.setPageSize(nextSize);
+                }
+                tableHook.table.setPageIndex(Math.max(0, nextPage - 1));
+              }}
+              t={t}
+              rowHeight="medium"
+              refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
+              onRowClick={(row, _rowIndex, event) => handleRowSelection(row.original, event)}
+            />
+          )}
+        </div>
+      </PageMainRegion>
+    </div>
+  );
 
   return (
-    <DefaultPage
-      title={t("nav:NAV_CONTENT_LIBRARY")}
-      description={t("content:CONTENT_LIBRARY_DESC")}
+    <AdminRouteContainer
       className="h-full"
-      contentClassName="min-h-0 flex flex-col"
-      action={
-        <ContentLibraryPrimaryAction
-          workspaceId={workspaceId ? String(workspaceId) : null}
-          onNavigate={() => void navigate({ to: workspaceContentCreatePath(String(workspaceId)) })}
-        />
-      }
+      innerClassName="min-h-0 flex flex-col px-0 pt-0 pb-0"
+      overlay={selectionToolbarNode}
     >
+      <div ref={splitLayoutRef} className="flex min-h-0 flex-1 bg-background">
+        <div className="min-h-0 min-w-0 flex-1">{workbenchNode}</div>
+        <AnimatePresence initial={false}>
+          {previewRow ? (
+            <motion.div
+              key="content-library-preview-shell"
+              className="flex min-h-0 shrink-0 overflow-hidden"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: `${previewWidthPercent}%`, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{
+                width: {
+                  duration: previewResizeActive ? 0 : 0.24,
+                  ease: [0.22, 1, 0.36, 1],
+                },
+                opacity: { duration: 0.16, ease: "easeOut" },
+              }}
+            >
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label={t("common:RESIZE")}
+                onPointerDown={handlePreviewResizePointerDown}
+                className="relative flex w-px shrink-0 items-center justify-center bg-border/70 transition-colors after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 hover:bg-border"
+              >
+                <div className="z-10 flex h-10 w-3 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm">
+                  <div className="flex flex-col gap-1">
+                    <span className="block h-1 w-1 rounded-full bg-muted-foreground/70" />
+                    <span className="block h-1 w-1 rounded-full bg-muted-foreground/70" />
+                    <span className="block h-1 w-1 rounded-full bg-muted-foreground/70" />
+                  </div>
+                </div>
+              </div>
+              <motion.div
+                key={previewRow.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                className="flex h-full min-h-0 min-w-0 flex-1 flex-col border-l border-border/70 bg-background shadow-[-24px_0_48px_-32px_rgba(15,23,42,0.28)]"
+              >
+                <ContentLibraryPreviewPanel
+                  className="min-h-0 w-full flex-1"
+                  onClose={() => setPreviewRowId(null)}
+                />
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
       <>
-        {viewMode === "card" && (tableHook.pageData?.items.length ?? 0) > 0 ? (
-          <div className="flex min-h-0 flex-col gap-4">
-            {toolbarNode}
-            <ContentLibraryCardList
-              rows={tableHook.pageData?.items ?? []}
-              onCardClick={setSelectedRow}
-              onContinue={handleContinue}
-              onDuplicate={setDuplicateRow}
-              onDelete={setDeleteRow}
-              onArchive={(row) => setArchiveDialog({ row, mode: "archive" })}
-              onUnarchive={(row) => setArchiveDialog({ row, mode: "unarchive" })}
-              formatDateTimeOrNull={dateTime.formatDateTimeOrNull}
-              pending={
-                archiveMutation.isPending ||
-                duplicateMutation.isPending ||
-                deleteMutation.isPending ||
-                continueMutation.isPending
-              }
-            />
-          </div>
-        ) : (
-          <AdminDataTableSection
-            table={tableHook.table}
-            emptyText={t("content:CONTENT_LIBRARY_EMPTY_TABLE")}
-            emptyTitle={
-              isInitialEmptyState
-                ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_TITLE")
-                : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_TITLE")
-            }
-            emptyDescription={
-              isInitialEmptyState
-                ? t("content:CONTENT_LIBRARY_EMPTY_INITIAL_DESC")
-                : t("content:CONTENT_LIBRARY_EMPTY_FILTERED_DESC")
-            }
-            loading={modelsQuery.isLoading || itemsQuery.isLoading}
-            error={dataError}
-            onRetry={() => {
-              void Promise.all([modelsQuery.refetch(), itemsQuery.refetch()]);
-            }}
-            pageData={tableHook.pageData}
-            onPaginationChange={(nextPage, nextSize) => {
-              if (nextSize !== tableHook.table.getState().pagination.pageSize) {
-                tableHook.table.setPageSize(nextSize);
-              }
-              tableHook.table.setPageIndex(Math.max(0, nextPage - 1));
-            }}
-            t={t}
-            refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
-            onRowClick={(row) => setSelectedRow(row.original)}
-            toolbar={toolbarNode}
-          />
-        )}
-        <ContentLibraryRecordDrawer
-          row={selectedRow}
-          open={Boolean(selectedRow)}
-          onOpenChange={(open) => {
-            if (!open) setSelectedRow(null);
-          }}
-          onContinue={handleContinue}
-          continuePending={continueMutation.isPending}
-          formatDateTimeOrNull={dateTime.formatDateTimeOrNull}
-          versions={selectedVersions}
-          seo={selectedSeo}
-          publishImpact={selectedPublishImpact}
-        />
         <ContentLibraryViewFormDialog
           open={Boolean(viewDialogState && dialogTargetView)}
           mode={viewDialogState?.mode ?? "edit"}
@@ -1351,8 +1507,32 @@ export function ContentLibraryPage() {
               archiveMutation.mutate(archiveDialog);
             },
           }}
+          bulkArchiveDialog={{
+            open: pendingBulkAction === "archive",
+            count: selectedCount,
+            pending: archiveSelectionMutation.isPending,
+            onOpenChange: (open) => {
+              if (!open && !archiveSelectionMutation.isPending) setPendingBulkAction(null);
+            },
+            onConfirm: () => {
+              if (!selectedRowIds.length) return;
+              archiveSelectionMutation.mutate(selectedRowIds);
+            },
+          }}
+          bulkDeleteDialog={{
+            open: pendingBulkAction === "delete",
+            count: selectedCount,
+            pending: deleteSelectionMutation.isPending,
+            onOpenChange: (open) => {
+              if (!open && !deleteSelectionMutation.isPending) setPendingBulkAction(null);
+            },
+            onConfirm: () => {
+              if (!selectedRowIds.length) return;
+              deleteSelectionMutation.mutate(selectedRowIds);
+            },
+          }}
         />
       </>
-    </DefaultPage>
+    </AdminRouteContainer>
   );
 }

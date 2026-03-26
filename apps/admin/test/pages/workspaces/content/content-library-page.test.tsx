@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -25,6 +25,9 @@ const mocked = vi.hoisted(() => ({
   issueWorkspaceSitePreviewToken: vi.fn(),
   locationAssign: vi.fn(),
   navigate: vi.fn(),
+  setSidebarOpen: vi.fn(),
+  sidebarState: "expanded" as "expanded" | "collapsed",
+  sidebarIsMobile: false,
   routeSearch: { current: {} as Record<string, unknown> },
 }));
 
@@ -53,6 +56,14 @@ vi.mock("@/api/workspace-site", () => ({
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocked.navigate,
   useSearch: () => mocked.routeSearch.current,
+}));
+
+vi.mock("@arclayer/ui/sidebar", () => ({
+  useSidebar: () => ({
+    state: mocked.sidebarState,
+    isMobile: mocked.sidebarIsMobile,
+    setOpen: mocked.setSidebarOpen,
+  }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -152,26 +163,39 @@ vi.mock("@arclayer/ui/data-table", async () => {
   };
 });
 
-vi.mock("@/layouts/page-shell/default-page", () => ({
-  DefaultPage: (props: {
+vi.mock("@/components/layout/admin-route-container", () => ({
+  AdminRouteContainer: (props: { children: ReactNode; overlay?: ReactNode }) => (
+    <div data-testid="admin-route-container">
+      {props.children}
+      <div data-testid="admin-route-overlay">{props.overlay}</div>
+    </div>
+  ),
+}));
+
+vi.mock("@/layouts/page-shell/page-main-region", () => ({
+  PageMainRegion: (props: {
     title: ReactNode;
     description?: ReactNode;
     action?: ReactNode;
+    extra?: ReactNode;
     children: ReactNode;
   }) => (
-    <div>
+    <div data-testid="page-main-region">
       <h1>{props.title}</h1>
       {props.description ? <p>{props.description}</p> : null}
       <div data-testid="page-action">{props.action}</div>
+      <div data-testid="page-extra">{props.extra}</div>
       {props.children}
     </div>
   ),
+  shouldHidePageHeader: () => false,
 }));
 
 vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
   AdminDataTableSection: (props: {
     toolbar?: ReactNode;
     pageData?: { items?: Array<{ id: string; name: string }> };
+    footerSlot?: ReactNode;
     onRowClick?: (row: { original: { id: string; name: string } }, index: number) => void;
   }) => (
     <div>
@@ -188,6 +212,7 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
           </button>
         ))}
       </div>
+      <div data-testid="content-library-footer-slot">{props.footerSlot}</div>
     </div>
   ),
 }));
@@ -382,6 +407,13 @@ describe("ContentLibraryPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setMatchMedia(false);
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    });
+    mocked.sidebarState = "expanded";
+    mocked.sidebarIsMobile = false;
     mocked.routeSearch.current = {};
     mocked.navigate.mockImplementation((input: { search?: Record<string, unknown> }) => {
       if (!input?.search) return;
@@ -1131,83 +1163,106 @@ describe("ContentLibraryPage", () => {
     });
   });
 
-  test("auto-opens the created draft drawer when the library receives focused return context", async () => {
+  test("auto-opens the sidebar preview when the library receives focused return context", async () => {
     mocked.routeSearch.current = { view: "draft", focusItemId: "content-1" };
 
     renderWithQuery(<ContentLibraryPage />);
 
-    expect(await screen.findByText("CONTENT_LIBRARY_RECORD_DRAWER_TITLE")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_LIBRARY_FIELD_ROLE")).toBeInTheDocument();
+    expect(await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).toBeInTheDocument();
     expect(
       screen.getByText("content:CONTENT_LIBRARY_VIEW_DRAFT").closest("button"),
     ).toHaveAttribute("data-active", "true");
+    expect(mocked.setSidebarOpen).not.toHaveBeenCalled();
   });
 
-  test("opens a summary drawer scaffold on row click instead of navigating away immediately", async () => {
+  test("collapses and restores the sidebar around preview mode on narrow viewports", async () => {
+    const user = userEvent.setup();
+    window.innerWidth = 1200;
+    mocked.routeSearch.current = { focusItemId: "content-1" };
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+    await user.click(screen.getByRole("button", { name: "common:CLOSE" }));
+
+    expect(mocked.setSidebarOpen).toHaveBeenNthCalledWith(1, false);
+    expect(mocked.setSidebarOpen).toHaveBeenNthCalledWith(2, true);
+  });
+
+  test("does not restore the sidebar when it was already collapsed before opening preview", async () => {
+    const user = userEvent.setup();
+    window.innerWidth = 1200;
+    mocked.sidebarState = "collapsed";
+    mocked.routeSearch.current = { focusItemId: "content-1" };
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+    await user.click(screen.getByRole("button", { name: "common:CLOSE" }));
+
+    expect(mocked.setSidebarOpen).not.toHaveBeenCalled();
+  });
+
+  test("selects rows and shows the bulk toolbar on row click instead of opening the preview", async () => {
     const user = userEvent.setup();
 
     renderWithQuery(<ContentLibraryPage />);
 
     await user.click(await screen.findByRole("button", { name: "row:Homepage" }));
 
-    expect(getByI18nTail("CONTENT_LIBRARY_RECORD_DRAWER_TITLE")).toBeInTheDocument();
-    expect(getByI18nTail("CONTENT_LIBRARY_ACTION_CONTINUE")).toBeInTheDocument();
-    expect(getByI18nTail("CONTENT_LIBRARY_FIELD_ROLE")).toBeInTheDocument();
+    const overlay = screen.getByTestId("admin-route-overlay");
+
+    expect(within(overlay).getByText("content:CONTENT_LIBRARY_SELECTED_COUNT")).toBeInTheDocument();
+    expect(
+      within(overlay).getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_ARCHIVE" }),
+    ).toBeInTheDocument();
+    expect(
+      within(overlay).getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_DELETE" }),
+    ).toBeInTheDocument();
+    expect(
+      within(overlay).getByRole("button", { name: "common:DATA_TABLE_CLEAR_SELECTION" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).not.toBeInTheDocument();
     expect(mocked.navigate).not.toHaveBeenCalled();
   });
 
-  test("shows quick metadata and next-surface summary in the record drawer", async () => {
-    const user = userEvent.setup();
+  test("renders a lightweight preview shell instead of the deprecated drawer fields", async () => {
+    mocked.routeSearch.current = { focusItemId: "content-1" };
 
     renderWithQuery(<ContentLibraryPage />);
 
-    await user.click(await screen.findByRole("button", { name: "row:Homepage" }));
+    const previewPanel = await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
 
-    expect(getByI18nTail("CONTENT_LIBRARY_FIELD_ADDRESS")).toBeInTheDocument();
-    expect(screen.getByText("/homepage")).toBeInTheDocument();
-    expect(getByI18nTail("CONTENT_LIBRARY_FIELD_LOCALE")).toBeInTheDocument();
-    expect(screen.getAllByText("en-US").length).toBeGreaterThan(0);
-    expect(getByI18nTail("CONTENT_LIBRARY_FIELD_VISIBILITY")).toBeInTheDocument();
-    expect(getByI18nTail("CONTENT_LIBRARY_VISIBILITY_PRIVATE")).toBeInTheDocument();
-    expect(getByI18nTail("CONTENT_LIBRARY_FIELD_NEXT_SURFACE")).toBeInTheDocument();
-    expect(getAllByI18nTail("CONTENT_LIBRARY_EDIT_WITH_CANVAS").length).toBeGreaterThan(0);
-    expect(screen.getByText("Primary site pages and landing flows")).toBeInTheDocument();
+    expect(
+      within(previewPanel).getByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE"),
+    ).toBeInTheDocument();
+    expect(
+      within(previewPanel).getByText("CONTENT_LIBRARY_PREVIEW_PANEL_DESC"),
+    ).toBeInTheDocument();
+    expect(within(previewPanel).queryByText("Homepage")).not.toBeInTheDocument();
+    expect(
+      within(previewPanel).queryByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_LIBRARY_FIELD_ROLE")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("CONTENT_LIBRARY_RECORD_DRAWER_SECTION_VERSIONS"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_LIBRARY_RECORD_DRAWER_SECTION_SEO")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("CONTENT_LIBRARY_RECORD_DRAWER_SECTION_PUBLISH_IMPACT"),
+    ).not.toBeInTheDocument();
   });
 
-  test("shows version SEO and publish-impact secondary workspace context in the drawer", async () => {
-    const user = userEvent.setup();
+  test("stops fetching the deprecated drawer side queries for the sidebar preview", async () => {
+    mocked.routeSearch.current = { focusItemId: "content-1" };
 
     renderWithQuery(<ContentLibraryPage />);
 
-    await user.click(await screen.findByRole("button", { name: "row:Homepage" }));
+    await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
 
-    expect(
-      await screen.findByText("CONTENT_LIBRARY_RECORD_DRAWER_SECTION_VERSIONS"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_LIBRARY_VERSION_DRAFT")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_LIBRARY_VERSION_PUBLISHED")).toBeInTheDocument();
-    expect(screen.getByText("Refined hero copy and CTA grouping")).toBeInTheDocument();
-
-    expect(screen.getByText("CONTENT_LIBRARY_RECORD_DRAWER_SECTION_SEO")).toBeInTheDocument();
-    expect(screen.getByText("Homepage | Arclayer")).toBeInTheDocument();
-    expect(screen.getByText("https://example.com/homepage")).toBeInTheDocument();
-
-    expect(
-      screen.getByText("CONTENT_LIBRARY_RECORD_DRAWER_SECTION_PUBLISH_IMPACT"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("CONTENT_LIBRARY_PUBLISH_IMPACT_UNRESOLVED_RELATIONS"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("CONTENT_LIBRARY_PUBLISH_IMPACT_UNPUBLISHED_DEPENDENCIES"),
-    ).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(mocked.getContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3);
-      expect(mocked.getContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 2);
-      expect(mocked.getContentSeoProfile).toHaveBeenCalledWith("ws-1", "content-1", 3);
-      expect(mocked.getWorkspacePublishImpact).toHaveBeenCalledWith("ws-1");
-    });
+    expect(mocked.getContentItemVersion).not.toHaveBeenCalled();
+    expect(mocked.getContentSeoProfile).not.toHaveBeenCalled();
+    expect(mocked.getWorkspacePublishImpact).not.toHaveBeenCalled();
   });
 
   test("filters the workbench by role without splitting the surface into separate pages", async () => {
@@ -1248,7 +1303,7 @@ describe("ContentLibraryPage", () => {
     expect(await screen.findByTestId("content-library-card-list")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "row:Homepage" })).not.toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }).length,
+      screen.getAllByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }).length,
     ).toBeGreaterThan(0);
     expect(getAllByI18nTail("CONTENT_LIBRARY_EDIT_WITH_CANVAS").length).toBeGreaterThan(0);
   });
@@ -1269,23 +1324,13 @@ describe("ContentLibraryPage", () => {
     expect(screen.queryByTestId("content-library-card-list")).not.toBeInTheDocument();
   });
 
-  test("continues through a preview-backed editor URL from the summary drawer", async () => {
-    const user = userEvent.setup();
+  test("renders the preview as a split pane beside the left workbench region", async () => {
+    mocked.routeSearch.current = { focusItemId: "content-1" };
 
     renderWithQuery(<ContentLibraryPage />);
 
-    await user.click(await screen.findByRole("button", { name: "row:Homepage" }));
-    await user.click(
-      screen.getAllByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" })[0]!,
-    );
-
-    await waitFor(() => {
-      expect(mocked.issueWorkspaceSitePreviewToken).toHaveBeenCalledWith("ws-1");
-      expect(mocked.locationAssign).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "/editor/site/site-1?token=preview-token&source=admin&itemId=content-1",
-        ),
-      );
-    });
+    expect(await screen.findByTestId("page-main-region")).toBeInTheDocument();
+    expect(screen.getByTestId("admin-route-container")).toBeInTheDocument();
+    expect(await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).toBeInTheDocument();
   });
 });

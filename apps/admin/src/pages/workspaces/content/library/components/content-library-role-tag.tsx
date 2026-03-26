@@ -1,7 +1,7 @@
 import {
   Blocks,
   Braces,
-  FilePenLine,
+  FileText,
   LayoutTemplate,
   Settings2,
   Sparkles,
@@ -28,7 +28,7 @@ const ROLE_PRESENTATION: Record<ContentLibraryRole, RolePresentation> = {
   },
   article: {
     color: "blue",
-    icon: FilePenLine,
+    icon: FileText,
     labelKey: "CONTENT_LIBRARY_ROLE_ARTICLE",
   },
   "reusable-section": {
@@ -67,12 +67,21 @@ export function getContentLibraryRoleLabelKey(role: ContentLibraryRole): string 
   return ROLE_PRESENTATION[role].labelKey;
 }
 
-export function ContentLibraryRoleTag(props: { role: ContentLibraryRole }) {
+export function getContentLibraryRoleIcon(role: ContentLibraryRole): LucideIcon {
+  return ROLE_PRESENTATION[role].icon;
+}
+
+export function ContentLibraryRoleTag(props: { role: ContentLibraryRole; className?: string }) {
   const { t } = useTranslation("content");
   const presentation = ROLE_PRESENTATION[props.role];
 
   return (
-    <BaseTag color={presentation.color} icon={lucideTagIcon(presentation.icon)}>
+    <BaseTag
+      color={presentation.color}
+      icon={lucideTagIcon(presentation.icon)}
+      className={props.className}
+      classNames={{ content: "min-w-0 max-w-full truncate" }}
+    >
       {t(presentation.labelKey)}
     </BaseTag>
   );

@@ -45,7 +45,7 @@ describe("content-library-row-actions", () => {
     render(
       <ContentLibraryRowActions
         row={buildRow()}
-        onContinue={vi.fn()}
+        onOpen={vi.fn()}
         onDuplicate={vi.fn()}
         onDelete={vi.fn()}
         onArchive={vi.fn()}
@@ -53,13 +53,13 @@ describe("content-library-row-actions", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" })).toHaveAttribute(
       "data-size",
       "sm",
     );
-    expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" })).toHaveAttribute(
-      "data-slot",
-      "button",
+    expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" })).toHaveClass(
+      "h-8",
+      "rounded-md",
     );
     expect(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS")).toHaveAttribute(
       "data-size",
@@ -68,9 +68,9 @@ describe("content-library-row-actions", () => {
     expect(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS")).toHaveClass("!rounded-lg");
   });
 
-  it("shows a direct continue action and routes duplicate delete archive actions to callbacks", async () => {
+  it("shows a direct open action with sidebar preview tooltip and routes other actions", async () => {
     const user = userEvent.setup();
-    const onContinue = vi.fn();
+    const onOpen = vi.fn();
     const onDuplicate = vi.fn();
     const onDelete = vi.fn();
     const onArchive = vi.fn();
@@ -78,7 +78,7 @@ describe("content-library-row-actions", () => {
     render(
       <ContentLibraryRowActions
         row={buildRow()}
-        onContinue={onContinue}
+        onOpen={onOpen}
         onDuplicate={onDuplicate}
         onDelete={onDelete}
         onArchive={onArchive}
@@ -86,7 +86,12 @@ describe("content-library-row-actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }));
+    await user.hover(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }));
+    expect(
+      await screen.findByText("CONTENT_LIBRARY_ACTION_OPEN_IN_SIDEBAR_PREVIEW"),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }));
 
     const trigger = screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS");
 
@@ -97,10 +102,36 @@ describe("content-library-row-actions", () => {
     await user.click(trigger);
     await user.click(screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_ARCHIVE" }));
 
-    expect(onContinue).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
     expect(onDuplicate).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
     expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
     expect(onArchive).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
+  });
+
+  it("switches the primary action into a close affordance when the sidebar preview is already open", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+
+    render(
+      <ContentLibraryRowActions
+        row={buildRow()}
+        previewOpen={true}
+        onOpen={onOpen}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onArchive={vi.fn()}
+        onUnarchive={vi.fn()}
+      />,
+    );
+
+    await user.hover(screen.getByRole("button", { name: "common:CLOSE" }));
+    expect(
+      await screen.findByText("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW"),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "common:CLOSE" }));
+
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
   });
 
   it("keeps archive action enabled for non-archived rows without relying on version pointers", async () => {
@@ -109,7 +140,7 @@ describe("content-library-row-actions", () => {
     render(
       <ContentLibraryRowActions
         row={buildRow({ draftVersion: 0, publishedVersion: null })}
-        onContinue={vi.fn()}
+        onOpen={vi.fn()}
         onDuplicate={vi.fn()}
         onDelete={vi.fn()}
         onArchive={vi.fn()}
@@ -131,7 +162,7 @@ describe("content-library-row-actions", () => {
     render(
       <ContentLibraryRowActions
         row={buildRow({ status: "archived", derivedStatus: "archived" })}
-        onContinue={vi.fn()}
+        onOpen={vi.fn()}
         onDuplicate={vi.fn()}
         onDelete={vi.fn()}
         onArchive={vi.fn()}
@@ -154,7 +185,7 @@ describe("content-library-row-actions", () => {
       <div>
         <ContentLibraryRowActions
           row={buildRow()}
-          onContinue={vi.fn()}
+          onOpen={vi.fn()}
           onDuplicate={vi.fn()}
           onDelete={vi.fn()}
           onArchive={vi.fn()}

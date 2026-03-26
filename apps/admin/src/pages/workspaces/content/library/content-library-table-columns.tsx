@@ -3,7 +3,11 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
 import { BaseTag } from "@/components/ui/tags";
-import { ContentLibraryRoleTag } from "./components/content-library-role-tag";
+import { Checkbox } from "@arclayer/ui/checkbox";
+import {
+  getContentLibraryRoleIcon,
+  getContentLibraryRoleLabelKey,
+} from "./components/content-library-role-tag";
 import { ContentLibraryStatusTag } from "./components/content-library-status-tag";
 import { ContentLibraryRowActions } from "./components/content-library-row-actions";
 import type { ContentLibraryTableRow } from "./types";
@@ -12,15 +16,18 @@ import { contentHasAddress } from "./utils";
 function ContentLibraryNameCell(props: {
   row: ContentLibraryTableRow;
   pending: boolean;
-  onContinue: (row: ContentLibraryTableRow) => void;
+  onOpen: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
   onUnarchive: (row: ContentLibraryTableRow) => void;
+  previewOpen?: boolean;
 }) {
   const [actionsHovered, setActionsHovered] = React.useState(false);
   const showAddress = contentHasAddress(props.row);
-  const showInlineAddress = showAddress && props.row.role === "page";
+  const RoleIcon = getContentLibraryRoleIcon(props.row.role);
+  const roleLabelKey = getContentLibraryRoleLabelKey(props.row.role);
+  const { t } = useTranslation("content");
 
   return (
     <div
@@ -30,13 +37,20 @@ function ContentLibraryNameCell(props: {
     >
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="truncate text-headline text-label-primary">{props.row.name}</div>
-          <ContentLibraryRoleTag role={props.row.role} />
-          {showInlineAddress ? <BaseTag color="blue">/{props.row.slug}</BaseTag> : null}
+          <span
+            className="inline-flex shrink-0 text-label-secondary"
+            title={t(roleLabelKey)}
+            aria-label={t(roleLabelKey)}
+          >
+            <RoleIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1 truncate text-headline text-label-primary">
+            {props.row.name}
+          </div>
         </div>
-        {showAddress && !showInlineAddress ? (
-          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
-            <BaseTag color="blue">/{props.row.slug}</BaseTag>
+        {showAddress ? (
+          <div className="mt-1 min-w-0 truncate text-footnote text-label-secondary">
+            /{props.row.slug}
           </div>
         ) : null}
       </div>
@@ -44,7 +58,8 @@ function ContentLibraryNameCell(props: {
         row={props.row}
         pending={props.pending}
         persistVisible={actionsHovered}
-        onContinue={props.onContinue}
+        previewOpen={props.previewOpen}
+        onOpen={props.onOpen}
         onDuplicate={props.onDuplicate}
         onDelete={props.onDelete}
         onArchive={props.onArchive}
@@ -70,16 +85,54 @@ function ContentLibraryGroupCell(props: { row: ContentLibraryTableRow; label: st
 export function useContentLibraryTableColumns(params: {
   formatDateTimeOrNull: (value: string | null | undefined) => string | null;
   actionPending: boolean;
-  onContinue: (row: ContentLibraryTableRow) => void;
+  selectedRowIds: ReadonlySet<string>;
+  onToggleVisibleRows: (rows: ContentLibraryTableRow[], selected: boolean) => void;
+  onToggleRowSelection: (row: ContentLibraryTableRow) => void;
+  onOpen: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
   onUnarchive: (row: ContentLibraryTableRow) => void;
+  openPreviewRowId?: string | null;
 }) {
-  const { t } = useTranslation("content");
+  const { t } = useTranslation(["content", "common"]);
 
   return React.useMemo<ColumnDef<ContentLibraryTableRow, unknown>[]>(
     () => [
+      {
+        id: "select",
+        enableHiding: false,
+        enableSorting: false,
+        size: 52,
+        minSize: 52,
+        maxSize: 52,
+        meta: { title: "", kind: "select", headerAlign: "center" },
+        header: ({ table }) => {
+          const visibleRows = table.getRowModel().rows.map((entry) => entry.original);
+          const allVisibleSelected =
+            visibleRows.length > 0 && visibleRows.every((row) => params.selectedRowIds.has(row.id));
+          return (
+            <div className="flex w-full items-center justify-center">
+              <Checkbox
+                checked={allVisibleSelected}
+                aria-label={t("common:SELECT_ALL") || "Select all"}
+                onCheckedChange={() => params.onToggleVisibleRows(visibleRows, allVisibleSelected)}
+              />
+            </div>
+          );
+        },
+        cell: ({ row }) => (
+          <div className="flex w-full items-center justify-center">
+            <Checkbox
+              checked={params.selectedRowIds.has(row.original.id)}
+              aria-label={t("common:SELECT") || "Select"}
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
+              onCheckedChange={() => params.onToggleRowSelection(row.original)}
+            />
+          </div>
+        ),
+      },
       {
         accessorKey: "name",
         meta: { title: t("CONTENT_LIBRARY_TABLE_COL_NAME"), sortKey: "name", kind: "primary" },
@@ -88,11 +141,12 @@ export function useContentLibraryTableColumns(params: {
           <ContentLibraryNameCell
             row={row.original}
             pending={params.actionPending}
-            onContinue={params.onContinue}
+            onOpen={params.onOpen}
             onDuplicate={params.onDuplicate}
             onDelete={params.onDelete}
             onArchive={params.onArchive}
             onUnarchive={params.onUnarchive}
+            previewOpen={params.openPreviewRowId === row.original.id}
           />
         ),
         size: 360,
@@ -166,12 +220,16 @@ export function useContentLibraryTableColumns(params: {
     ],
     [
       params.actionPending,
-      params.onContinue,
+      params.onOpen,
       params.formatDateTimeOrNull,
       params.onArchive,
       params.onDelete,
       params.onDuplicate,
+      params.onToggleVisibleRows,
+      params.onToggleRowSelection,
       params.onUnarchive,
+      params.openPreviewRowId,
+      params.selectedRowIds,
       t,
     ],
   );

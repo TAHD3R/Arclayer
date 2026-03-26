@@ -26,6 +26,14 @@ type ContentLibraryArchiveDialogState = ContentLibraryDialogState & {
   mode: "archive" | "unarchive";
 };
 
+type ContentLibraryBulkDialogState = {
+  count: number;
+  pending: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+};
+
 function ContentLibraryConfirmDialog(props: {
   open: boolean;
   pending: boolean;
@@ -70,6 +78,8 @@ export function ContentLibraryActionDialogs(props: {
   duplicateDialog: ContentLibraryDialogState;
   deleteDialog: ContentLibraryDialogState;
   archiveDialog: ContentLibraryArchiveDialogState;
+  bulkArchiveDialog: ContentLibraryBulkDialogState;
+  bulkDeleteDialog: ContentLibraryBulkDialogState;
 }) {
   const { t } = useTranslation("content");
   const archiveTitle =
@@ -125,6 +135,30 @@ export function ContentLibraryActionDialogs(props: {
         description={archiveDescription}
         confirmLabel={archiveConfirmLabel}
         confirmVariant={archiveConfirmVariant}
+      />
+      <ContentLibraryConfirmDialog
+        open={props.bulkArchiveDialog.open}
+        pending={props.bulkArchiveDialog.pending}
+        onOpenChange={props.bulkArchiveDialog.onOpenChange}
+        onConfirm={props.bulkArchiveDialog.onConfirm}
+        title={t("CONTENT_LIBRARY_BULK_ARCHIVE_DIALOG_TITLE")}
+        description={t("CONTENT_LIBRARY_BULK_ARCHIVE_DIALOG_DESC", {
+          count: props.bulkArchiveDialog.count,
+        })}
+        confirmLabel={t("CONTENT_LIBRARY_ACTION_ARCHIVE")}
+        confirmVariant="destructive"
+      />
+      <ContentLibraryConfirmDialog
+        open={props.bulkDeleteDialog.open}
+        pending={props.bulkDeleteDialog.pending}
+        onOpenChange={props.bulkDeleteDialog.onOpenChange}
+        onConfirm={props.bulkDeleteDialog.onConfirm}
+        title={t("CONTENT_LIBRARY_BULK_DELETE_DIALOG_TITLE")}
+        description={t("CONTENT_LIBRARY_BULK_DELETE_DIALOG_DESC", {
+          count: props.bulkDeleteDialog.count,
+        })}
+        confirmLabel={t("CONTENT_LIBRARY_ACTION_DELETE")}
+        confirmVariant="destructive"
       />
     </>
   );

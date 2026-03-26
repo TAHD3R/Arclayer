@@ -14,7 +14,10 @@ function ColumnsHarness() {
   const columns = useContentLibraryTableColumns({
     formatDateTimeOrNull: (value) => value ?? null,
     actionPending: false,
-    onContinue: vi.fn(),
+    selectedRowIds: new Set(),
+    onToggleVisibleRows: vi.fn(),
+    onToggleRowSelection: vi.fn(),
+    onOpen: vi.fn(),
     onDuplicate: vi.fn(),
     onDelete: vi.fn(),
     onArchive: vi.fn(),
@@ -35,7 +38,10 @@ function ColumnMetaHarness(props: { columnId: string }) {
   const columns = useContentLibraryTableColumns({
     formatDateTimeOrNull: (value) => value ?? null,
     actionPending: false,
-    onContinue: vi.fn(),
+    selectedRowIds: new Set(),
+    onToggleVisibleRows: vi.fn(),
+    onToggleRowSelection: vi.fn(),
+    onOpen: vi.fn(),
     onDuplicate: vi.fn(),
     onDelete: vi.fn(),
     onArchive: vi.fn(),
@@ -58,13 +64,25 @@ function NameCellHarness() {
   const columns = useContentLibraryTableColumns({
     formatDateTimeOrNull: (value) => value ?? null,
     actionPending: false,
-    onContinue: vi.fn(),
+    selectedRowIds: new Set(),
+    onToggleVisibleRows: vi.fn(),
+    onToggleRowSelection: vi.fn(),
+    onOpen: vi.fn(),
     onDuplicate: vi.fn(),
     onDelete: vi.fn(),
     onArchive: vi.fn(),
     onUnarchive: vi.fn(),
   });
-  const nameColumn = columns[0]!;
+  const nameColumn = columns.find((column) => {
+    const id =
+      typeof column.id === "string"
+        ? column.id
+        : "accessorKey" in column && typeof column.accessorKey === "string"
+          ? column.accessorKey
+          : null;
+    return id === "name";
+  });
+  if (!nameColumn) return null;
   const row = {
     id: "content-1",
     workspaceId: "ws-1",
@@ -112,17 +130,15 @@ describe("content-library-table-columns", () => {
     expect(screen.queryByText("CONTENT_LIBRARY_TABLE_COL_LOCALE")).not.toBeInTheDocument();
   });
 
-  test("shows the derived role and editing surface inside the primary row identity cell", () => {
+  test("shows the type as a leading icon and demotes the address into muted secondary text", () => {
     render(<NameCellHarness />);
 
-    expect(screen.getByText("CONTENT_LIBRARY_ROLE_PAGE")).toBeInTheDocument();
-    expect(screen.getByText("/homepage").closest("div.flex")).toHaveTextContent(
-      "CONTENT_LIBRARY_ROLE_PAGE",
-    );
+    expect(screen.getByLabelText("CONTENT_LIBRARY_ROLE_PAGE")).toBeInTheDocument();
+    expect(screen.getByText("Homepage")).toBeInTheDocument();
+    expect(screen.getByText("/homepage")).toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_LIBRARY_ROLE_PAGE")).not.toBeInTheDocument();
     expect(screen.queryByText("CONTENT_LIBRARY_EDIT_WITH_CANVAS")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" })).toBeInTheDocument();
   });
 
   test("hides library group by default when no persisted column preference exists", () => {

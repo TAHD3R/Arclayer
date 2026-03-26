@@ -1,5 +1,13 @@
 import * as React from "react";
-import { Archive, ArchiveRestore, Copy, MoreHorizontal, PenLine, Trash2 } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Copy,
+  MoreHorizontal,
+  PanelRightClose,
+  PanelRightOpen,
+  Trash2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
@@ -10,23 +18,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
 import type { ContentLibraryTableRow } from "../types";
 
 export function ContentLibraryRowActions(props: {
   row: ContentLibraryTableRow;
-  onContinue: (row: ContentLibraryTableRow) => void;
+  onOpen: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
   onUnarchive: (row: ContentLibraryTableRow) => void;
   pending?: boolean;
   persistVisible?: boolean;
+  previewOpen?: boolean;
   className?: string;
 }) {
-  const { t } = useTranslation("content");
+  const { t } = useTranslation(["content", "common"]);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const openLabel = props.previewOpen ? t("common:CLOSE") : t("CONTENT_LIBRARY_ACTION_OPEN");
+  const openTooltip = props.previewOpen
+    ? t("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")
+    : t("CONTENT_LIBRARY_ACTION_OPEN_IN_SIDEBAR_PREVIEW");
   const archiveAction =
     props.row.derivedStatus === "archived"
       ? {
@@ -46,16 +60,33 @@ export function ContentLibraryRowActions(props: {
       data-visible={props.persistVisible || menuOpen ? "true" : "false"}
       className={cn("flex items-center justify-end gap-1", props.className)}
     >
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        disabled={props.pending}
-        onClick={() => props.onContinue(props.row)}
-      >
-        <PenLine className="size-4" />
-        {t("CONTENT_LIBRARY_ACTION_CONTINUE")}
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild focusTrigger={false}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={props.pending}
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onOpen(props.row);
+              }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              {props.previewOpen ? (
+                <PanelRightClose className="size-4" />
+              ) : (
+                <PanelRightOpen className="size-4" />
+              )}
+              {openLabel}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{openTooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
@@ -66,6 +97,12 @@ export function ContentLibraryRowActions(props: {
             aria-label={t("CONTENT_LIBRARY_ROW_ACTIONS")}
             disabled={props.pending}
             className="!rounded-lg data-[state=open]:bg-accent/70"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
           >
             <MoreHorizontal className="size-4" />
           </Button>
