@@ -1,5 +1,6 @@
 import type {
   AdminContentItem,
+  AdminContentLibraryView,
   AdminContentModel,
   AdminContentModelCapability,
   AdminContentModelCategory,
@@ -53,14 +54,7 @@ export type ContentLibraryViewDefinition = {
   labelKey: string;
 };
 
-export type ContentLibrarySavedView = {
-  id: string;
-  name: string;
-  baseViewId: ContentLibrarySystemViewId;
-  query: string;
-  filters: ContentLibraryToolbarFilters;
-  pinned: boolean;
-};
+export type ContentLibrarySavedView = AdminContentLibraryView;
 
 export type ContentLibraryFacetOption<TValue extends string> = {
   id: TValue;

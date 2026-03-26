@@ -1,5 +1,19 @@
 import * as React from "react";
-import { FileStackIcon, FunnelXIcon, Layers3Icon, ListFilterIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CopyPlusIcon,
+  ChevronLeft,
+  ChevronRight,
+  FileStackIcon,
+  FunnelXIcon,
+  Layers3Icon,
+  ListFilterIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  RefreshCcwIcon,
+  Trash2Icon,
+} from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
@@ -9,7 +23,17 @@ import {
   type DataTableRowHeight,
   type DataTableToolsLabels,
 } from "@arclayer/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItemContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
+import { cn } from "@arclayer/lib/utils";
 
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
@@ -25,8 +49,213 @@ import {
   ContentLibraryViewModeToggle,
   type ContentLibraryViewMode,
 } from "./content-library-view-mode-toggle";
+import { ContentLibraryCreateViewPopover } from "./content-library-create-view-popover";
+import type { ContentLibraryPrototypeViewDraft } from "./content-library-view-form";
 
 type FilterValue = string;
+const VIEW_SCROLL_THRESHOLD_PX = 1;
+const VIEW_SCROLL_DELTA_PX = 240;
+
+type ViewScrollState = Readonly<{
+  hasOverflow: boolean;
+  canScrollLeft: boolean;
+  canScrollRight: boolean;
+}>;
+
+type ContentLibraryToolbarView = {
+  id: string;
+  label: string;
+  active?: boolean;
+  onSelect?: () => void;
+  onMoveForward?: () => void;
+  moveForwardDisabled?: boolean;
+  onMoveBackward?: () => void;
+  moveBackwardDisabled?: boolean;
+  onEdit?: () => void;
+  onSaveAs?: () => void;
+  onUpdate?: () => void;
+  updateDisabled?: boolean;
+  updateDisabledReason?: string;
+  onDelete?: () => void;
+};
+
+function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView }) {
+  const { t } = useTranslation("content");
+  const [hovered, setHovered] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [focusWithin, setFocusWithin] = React.useState(false);
+  const hasMenu =
+    Boolean(props.view.onMoveForward) ||
+    Boolean(props.view.onMoveBackward) ||
+    Boolean(props.view.onEdit) ||
+    Boolean(props.view.onSaveAs) ||
+    Boolean(props.view.onUpdate) ||
+    Boolean(props.view.onDelete);
+  const showMenuButton = hasMenu && (props.view.active || hovered || menuOpen || focusWithin);
+  const emphasized = props.view.active || hovered || menuOpen || focusWithin;
+  const hasMoveActions = Boolean(props.view.onMoveForward) || Boolean(props.view.onMoveBackward);
+  const hasSecondaryActions =
+    Boolean(props.view.onSaveAs) || Boolean(props.view.onUpdate) || Boolean(props.view.onDelete);
+  const handlePointerEnter = React.useCallback(() => {
+    setHovered(true);
+  }, []);
+  const handlePointerLeave = React.useCallback(() => {
+    setHovered(false);
+  }, []);
+  const handleFocusCapture = React.useCallback(() => {
+    setFocusWithin(true);
+  }, []);
+  const handleBlurCapture = React.useCallback((event: React.FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setFocusWithin(false);
+  }, []);
+
+  return (
+    <div
+      className={cn(
+        "flex min-h-8 shrink-0 items-center rounded-md border border-transparent transition-colors duration-200 ease-out",
+        emphasized
+          ? "border-border/70 bg-accent text-accent-foreground shadow-sm"
+          : "bg-transparent text-foreground hover:bg-accent/80 hover:text-accent-foreground",
+        props.view.active ? "ring-1 ring-inset ring-border/80" : "",
+      )}
+      onPointerLeave={handlePointerLeave}
+      onMouseLeave={handlePointerLeave}
+      onFocusCapture={handleFocusCapture}
+      onBlurCapture={handleBlurCapture}
+    >
+      <button
+        type="button"
+        data-active-view={props.view.active ? "true" : "false"}
+        aria-current={props.view.active ? "true" : undefined}
+        className={cn(
+          "flex h-8 shrink-0 items-center rounded-md bg-transparent px-3 text-callout font-semibold whitespace-nowrap outline-none transition-colors",
+          emphasized ? "text-accent-foreground" : "text-inherit",
+          showMenuButton ? "pr-2" : "pr-3",
+        )}
+        onPointerEnter={handlePointerEnter}
+        onMouseEnter={handlePointerEnter}
+        onClick={props.view.onSelect}
+      >
+        {props.view.label}
+      </button>
+      {hasMenu ? (
+        <div
+          className={cn(
+            "flex items-center overflow-hidden transition-all duration-200 ease-out",
+            showMenuButton ? "w-9 opacity-100" : "w-0 opacity-0 pointer-events-none",
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              "h-4 w-px shrink-0 transition-colors duration-200",
+              emphasized ? "bg-border/70" : "bg-border/40",
+            )}
+          />
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "mr-1 flex size-7 items-center justify-center rounded-sm bg-transparent outline-none transition-all duration-200 ease-out",
+                  emphasized ? "text-accent-foreground" : "text-label-secondary",
+                  props.view.active
+                    ? "hover:bg-background/70 focus-visible:bg-background/70"
+                    : "hover:bg-background/70 focus-visible:bg-background/70",
+                )}
+                aria-label={t("CONTENT_LIBRARY_ACTION_VIEW_MENU")}
+                aria-hidden={!showMenuButton}
+                tabIndex={showMenuButton ? 0 : -1}
+                onPointerEnter={handlePointerEnter}
+                onMouseEnter={handlePointerEnter}
+              >
+                <MoreHorizontalIcon className="size-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {props.view.onEdit ? (
+                <DropdownMenuItem onSelect={props.view.onEdit}>
+                  <DropdownMenuItemContent icon={<PencilIcon className="size-4" />}>
+                    {t("CONTENT_LIBRARY_ACTION_EDIT_VIEW")}
+                  </DropdownMenuItemContent>
+                </DropdownMenuItem>
+              ) : null}
+              {props.view.onMoveForward ? (
+                <DropdownMenuItem
+                  disabled={props.view.moveForwardDisabled}
+                  onSelect={props.view.onMoveForward}
+                >
+                  <DropdownMenuItemContent icon={<ArrowUpIcon className="size-4" />}>
+                    {t("CONTENT_LIBRARY_ACTION_MOVE_VIEW_FORWARD")}
+                  </DropdownMenuItemContent>
+                </DropdownMenuItem>
+              ) : null}
+              {props.view.onMoveBackward ? (
+                <DropdownMenuItem
+                  disabled={props.view.moveBackwardDisabled}
+                  onSelect={props.view.onMoveBackward}
+                >
+                  <DropdownMenuItemContent icon={<ArrowDownIcon className="size-4" />}>
+                    {t("CONTENT_LIBRARY_ACTION_MOVE_VIEW_BACKWARD")}
+                  </DropdownMenuItemContent>
+                </DropdownMenuItem>
+              ) : null}
+              {hasMoveActions && hasSecondaryActions ? <DropdownMenuSeparator /> : null}
+              {props.view.onSaveAs ? (
+                <DropdownMenuItem onSelect={props.view.onSaveAs}>
+                  <DropdownMenuItemContent icon={<CopyPlusIcon className="size-4" />}>
+                    {t("CONTENT_LIBRARY_ACTION_SAVE_AS_VIEW")}
+                  </DropdownMenuItemContent>
+                </DropdownMenuItem>
+              ) : null}
+              {props.view.onUpdate ? (
+                props.view.updateDisabled ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="w-full">
+                        <DropdownMenuItem disabled>
+                          <DropdownMenuItemContent icon={<RefreshCcwIcon className="size-4" />}>
+                            {t("CONTENT_LIBRARY_ACTION_UPDATE_VIEW")}
+                          </DropdownMenuItemContent>
+                        </DropdownMenuItem>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {props.view.updateDisabledReason ??
+                        t("CONTENT_LIBRARY_UPDATE_VIEW_DISABLED_TOOLTIP")}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <DropdownMenuItem onSelect={props.view.onUpdate}>
+                    <DropdownMenuItemContent icon={<RefreshCcwIcon className="size-4" />}>
+                      {t("CONTENT_LIBRARY_ACTION_UPDATE_VIEW")}
+                    </DropdownMenuItemContent>
+                  </DropdownMenuItem>
+                )
+              ) : null}
+              {props.view.onDelete ? (
+                <DropdownMenuItem variant="destructive" onSelect={props.view.onDelete}>
+                  <DropdownMenuItemContent icon={<Trash2Icon className="size-4" />}>
+                    {t("CONTENT_LIBRARY_ACTION_DELETE_VIEW")}
+                  </DropdownMenuItemContent>
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function getViewScrollState(el: HTMLDivElement): ViewScrollState {
+  return {
+    hasOverflow: el.scrollWidth > el.clientWidth + VIEW_SCROLL_THRESHOLD_PX,
+    canScrollLeft: el.scrollLeft > VIEW_SCROLL_THRESHOLD_PX,
+    canScrollRight: el.scrollLeft + el.clientWidth < el.scrollWidth - VIEW_SCROLL_THRESHOLD_PX,
+  };
+}
 
 function toReuiFilters(filters: ContentLibraryToolbarFilters): Filter<FilterValue>[] {
   const next: Filter<FilterValue>[] = [];
@@ -67,8 +296,8 @@ export function ContentLibraryToolbar<TData>(props: {
   modelOptions: Array<{ value: string; label: string }>;
   viewMode: ContentLibraryViewMode;
   onViewModeChange: (next: ContentLibraryViewMode) => void;
-  views?: Array<{ id: string; label: string; active?: boolean; onSelect?: () => void }>;
-  onOpenViewsManager?: () => void;
+  views?: ContentLibraryToolbarView[];
+  onCreateView?: (draft: ContentLibraryPrototypeViewDraft) => Promise<void> | void;
   primaryAction?: React.ReactNode;
 }) {
   const { t } = useTranslation(["common", "content"]);
@@ -78,6 +307,12 @@ export function ContentLibraryToolbar<TData>(props: {
     () => buildReuiFilterI18n(t, t("content:CONTENT_LIBRARY_FILTER_TITLE")),
     [t],
   );
+  const viewsScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const [viewScrollState, setViewScrollState] = React.useState<ViewScrollState>({
+    hasOverflow: false,
+    canScrollLeft: false,
+    canScrollRight: false,
+  });
 
   const fields = React.useMemo<FilterFieldConfig<FilterValue>[]>(
     () => [
@@ -139,28 +374,108 @@ export function ContentLibraryToolbar<TData>(props: {
     [props.modelOptions, t],
   );
 
+  const syncViewScrollState = React.useCallback(() => {
+    const el = viewsScrollRef.current;
+    if (!el) return;
+
+    const next = getViewScrollState(el);
+    setViewScrollState((prev) =>
+      prev.hasOverflow === next.hasOverflow &&
+      prev.canScrollLeft === next.canScrollLeft &&
+      prev.canScrollRight === next.canScrollRight
+        ? prev
+        : next,
+    );
+  }, []);
+
+  React.useEffect(() => {
+    const el = viewsScrollRef.current;
+    if (!el) return;
+
+    syncViewScrollState();
+    el.addEventListener("scroll", syncViewScrollState, { passive: true });
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncViewScrollState) : null;
+    resizeObserver?.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", syncViewScrollState);
+      resizeObserver?.disconnect();
+    };
+  }, [syncViewScrollState]);
+
+  React.useEffect(() => {
+    const el = viewsScrollRef.current;
+    if (!el) return;
+
+    syncViewScrollState();
+
+    const activeView = el.querySelector<HTMLElement>('[data-active-view="true"]');
+    if (!activeView) return;
+
+    const listRect = el.getBoundingClientRect();
+    const activeRect = activeView.getBoundingClientRect();
+    if (activeRect.left >= listRect.left && activeRect.right <= listRect.right) return;
+
+    activeView.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [props.views, syncViewScrollState]);
+
+  const scrollViews = React.useCallback((direction: "left" | "right") => {
+    const el = viewsScrollRef.current;
+    if (!el) return;
+
+    el.scrollBy({
+      left: direction === "left" ? -VIEW_SCROLL_DELTA_PX : VIEW_SCROLL_DELTA_PX,
+      behavior: "smooth",
+    });
+  }, []);
+
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      {props.views?.length || props.onOpenViewsManager ? (
-        <div className="flex flex-wrap items-center gap-2">
-          {(props.views ?? []).map((view) => (
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {viewScrollState.hasOverflow ? (
             <Button
-              key={view.id}
               type="button"
-              variant={view.active ? "secondary" : "ghost"}
-              size="sm"
-              onClick={view.onSelect}
+              variant="outline"
+              size="icon-sm"
+              className="size-8 shrink-0 rounded-md"
+              aria-label={t("content:CONTENT_LIBRARY_ACTION_SCROLL_VIEWS_LEFT")}
+              disabled={!viewScrollState.canScrollLeft}
+              onClick={() => scrollViews("left")}
             >
-              {view.label}
-            </Button>
-          ))}
-          {props.onOpenViewsManager ? (
-            <Button type="button" variant="outline" size="sm" onClick={props.onOpenViewsManager}>
-              {t("content:CONTENT_LIBRARY_ACTION_MANAGE_VIEWS")}
+              <ChevronLeft className="size-4" />
             </Button>
           ) : null}
+          <div
+            ref={viewsScrollRef}
+            className="min-w-0 flex-1 self-stretch overflow-x-auto overflow-y-hidden scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <div className="flex min-h-8 min-w-max items-center gap-2 pr-1">
+              {(props.views ?? []).map((view) => (
+                <ContentLibraryToolbarViewChip key={view.id} view={view} />
+              ))}
+            </div>
+          </div>
+          {viewScrollState.hasOverflow ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              className="size-8 shrink-0 rounded-md"
+              aria-label={t("content:CONTENT_LIBRARY_ACTION_SCROLL_VIEWS_RIGHT")}
+              disabled={!viewScrollState.canScrollRight}
+              onClick={() => scrollViews("right")}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          ) : null}
+          {props.onCreateView ? (
+            <ContentLibraryCreateViewPopover onCreate={props.onCreateView} />
+          ) : null}
         </div>
-      ) : null}
+      </div>
 
       <PageExtraToolbar
         className="items-center"

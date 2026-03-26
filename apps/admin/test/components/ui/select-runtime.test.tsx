@@ -105,7 +105,7 @@ describe("shared Select", () => {
     ).not.toThrow();
   });
 
-  it("opens a Select inside a popover under StrictMode without triggering an infinite update loop", async () => {
+  it("opens a Select inside a popover without portaling back into the popover content box", async () => {
     const user = userEvent.setup();
 
     expect(() =>
@@ -139,7 +139,8 @@ describe("shared Select", () => {
 
       expect(dropdown).not.toBeNull();
       expect(overlayRoot).not.toBeNull();
-      expect(overlayRoot?.contains(dropdown ?? null)).toBe(true);
+      expect(overlayRoot?.contains(dropdown ?? null)).toBe(false);
+      expect(document.body.contains(dropdown)).toBe(true);
     });
   });
 

@@ -52,11 +52,16 @@ const CONTENT_LIBRARY_EDIT_WITH_SET = new Set<ContentLibraryEditWith>(
 
 const CONTENT_LIBRARY_SYSTEM_VIEWS: ContentLibraryViewDefinition[] = [
   { id: "all", labelKey: "CONTENT_LIBRARY_VIEW_ALL" },
-  { id: "site-content", labelKey: "CONTENT_LIBRARY_VIEW_SITE_CONTENT" },
   { id: "draft", labelKey: "CONTENT_LIBRARY_VIEW_DRAFT" },
   { id: "published", labelKey: "CONTENT_LIBRARY_VIEW_PUBLISHED" },
-  { id: "needs-attention", labelKey: "CONTENT_LIBRARY_VIEW_NEEDS_ATTENTION" },
 ];
+const CONTENT_LIBRARY_SUPPORTED_SYSTEM_VIEW_IDS = new Set<ContentLibrarySystemViewId>([
+  "all",
+  "site-content",
+  "draft",
+  "published",
+  "needs-attention",
+]);
 
 function isRecentTimestamp(value: string, now: number): boolean {
   const updatedAt = Date.parse(value);
@@ -143,6 +148,67 @@ function isContentLibraryEditWith(value: unknown): value is ContentLibraryEditWi
   return (
     typeof value === "string" && CONTENT_LIBRARY_EDIT_WITH_SET.has(value as ContentLibraryEditWith)
   );
+}
+
+function normalizeContentLibraryViewSorting(value: unknown): ContentLibrarySavedView["sorting"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const candidate = item as { id?: unknown; desc?: unknown };
+    const id = typeof candidate.id === "string" ? candidate.id.trim() : "";
+    if (!id) return [];
+    return [{ id, desc: Boolean(candidate.desc) }];
+  });
+}
+
+function normalizeContentLibraryViewColumns(
+  value: unknown,
+): ContentLibrarySavedView["columns"] | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as {
+    visibility?: unknown;
+    order?: unknown;
+    rowHeight?: unknown;
+    wrapHeaders?: unknown;
+  };
+  const visibility =
+    candidate.visibility && typeof candidate.visibility === "object"
+      ? (Object.fromEntries(
+          Object.entries(candidate.visibility as Record<string, unknown>).filter(
+            ([key, nextValue]) => Boolean(key.trim()) && typeof nextValue === "boolean",
+          ),
+        ) as Record<string, boolean>)
+      : undefined;
+  const order = Array.isArray(candidate.order)
+    ? candidate.order.filter(
+        (item): item is string => typeof item === "string" && Boolean(item.trim()),
+      )
+    : undefined;
+  const rowHeight =
+    candidate.rowHeight === "short" ||
+    candidate.rowHeight === "medium" ||
+    candidate.rowHeight === "tall" ||
+    candidate.rowHeight === "extraTall"
+      ? candidate.rowHeight
+      : undefined;
+  const wrapHeaders =
+    typeof candidate.wrapHeaders === "boolean" ? candidate.wrapHeaders : undefined;
+
+  if (
+    (!visibility || Object.keys(visibility).length === 0) &&
+    (!order || order.length === 0) &&
+    !rowHeight &&
+    typeof wrapHeaders === "undefined"
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...(visibility && Object.keys(visibility).length ? { visibility } : {}),
+    ...(order?.length ? { order } : {}),
+    ...(rowHeight ? { rowHeight } : {}),
+    ...(typeof wrapHeaders === "boolean" ? { wrapHeaders } : {}),
+  };
 }
 
 export function deriveContentRuntime(
@@ -266,7 +332,7 @@ export function parseContentLibraryViewState(
     const savedId = normalized.slice("saved:".length).trim();
     if (savedId) return { kind: "saved", viewId: savedId };
   }
-  if (CONTENT_LIBRARY_SYSTEM_VIEWS.some((view) => view.id === normalized)) {
+  if (CONTENT_LIBRARY_SUPPORTED_SYSTEM_VIEW_IDS.has(normalized as ContentLibrarySystemViewId)) {
     return { kind: "system", viewId: normalized as ContentLibrarySystemViewId };
   }
   return CONTENT_LIBRARY_DEFAULT_VIEW_STATE;
@@ -279,6 +345,13 @@ export function serializeContentLibraryViewState(value: ContentLibraryViewState)
       : serializeContentLibraryViewState(CONTENT_LIBRARY_DEFAULT_VIEW_STATE);
   }
   return parseContentLibraryViewState(value.viewId).viewId;
+}
+
+export function isSameContentLibraryViewState(
+  left: ContentLibraryViewState,
+  right: ContentLibraryViewState,
+): boolean {
+  return left.kind === right.kind && left.viewId === right.viewId;
 }
 
 export function contentLibraryViewStorageKey(workspaceId: string | null | undefined): string {
@@ -343,7 +416,18 @@ function normalizeContentLibrarySavedView(value: unknown): ContentLibrarySavedVi
       role: isContentLibraryRole(rawRole) ? rawRole : undefined,
       editWith: isContentLibraryEditWith(rawEditWith) ? rawEditWith : undefined,
     },
+    sorting: normalizeContentLibraryViewSorting(candidate.sorting),
+    viewMode:
+      candidate.viewMode === "card" || candidate.viewMode === "table"
+        ? candidate.viewMode
+        : undefined,
+    columns: normalizeContentLibraryViewColumns(candidate.columns),
+    visibility:
+      candidate.visibility === "workspace" || candidate.visibility === "private"
+        ? candidate.visibility
+        : "private",
     pinned: Boolean(candidate.pinned),
+    isDefault: Boolean(candidate.isDefault),
   };
 }
 
@@ -420,6 +504,9 @@ export function buildContentLibrarySavedView(input: {
   baseViewId: ContentLibrarySystemViewId;
   query: string;
   filters: ContentLibraryToolbarFilters;
+  sorting?: ContentLibrarySavedView["sorting"];
+  viewMode?: ContentLibrarySavedView["viewMode"];
+  columns?: ContentLibrarySavedView["columns"];
 }): ContentLibrarySavedView {
   const id =
     typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -431,7 +518,12 @@ export function buildContentLibrarySavedView(input: {
     baseViewId: input.baseViewId,
     query: input.query,
     filters: input.filters,
+    sorting: input.sorting ?? [],
+    viewMode: input.viewMode,
+    columns: input.columns,
+    visibility: "private",
     pinned: false,
+    isDefault: false,
   };
 }
 
@@ -446,11 +538,23 @@ export function findContentLibrarySavedView(
 export function normalizeContentLibraryViewState(
   state: ContentLibraryViewState,
   savedViews: ContentLibrarySavedView[],
+  fallbackState: ContentLibraryViewState = CONTENT_LIBRARY_DEFAULT_VIEW_STATE,
 ): ContentLibraryViewState {
   if (state.kind === "saved" && !findContentLibrarySavedView(savedViews, state.viewId)) {
-    return CONTENT_LIBRARY_DEFAULT_VIEW_STATE;
+    return fallbackState;
   }
   return state;
+}
+
+export function resolveContentLibraryDefaultViewState(
+  savedViews: ContentLibrarySavedView[],
+  defaultViewId: string | null | undefined,
+): ContentLibraryViewState {
+  const savedView = findContentLibrarySavedView(savedViews, defaultViewId);
+  if (savedView) {
+    return { kind: "saved", viewId: savedView.id };
+  }
+  return CONTENT_LIBRARY_DEFAULT_VIEW_STATE;
 }
 
 export function resolveContentLibrarySystemViewId(

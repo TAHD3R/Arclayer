@@ -246,7 +246,7 @@
   "PAGE_NOT_FOUND_TITLE": "We couldn't find that page",
   "PAGE_RATE_LIMIT_DESC": "Speedster! You're sending requests too quickly. Please wait a moment and try again.",
   "PAGE_RATE_LIMIT_TITLE": "Slow down — you're going too fast",
-  "PAGE_SERVER_ERROR_DESC": "Our systems hit a hiccup. We're on it—please try again in a moment.",
+  "PAGE_SERVER_ERROR_DESC": "Our systems hit a hiccup. We're on it! Please try again in a moment.",
   "PAGE_SERVER_ERROR_TITLE": "We encountered an internal error",
   "PAGE_UNAUTHORIZED_DESC": "We couldn't verify your identity. Sign in to continue, or contact your administrator if you believe this is a mistake.",
   "PAGE_UNAUTHORIZED_TITLE": "Authentication required",

@@ -31,6 +31,9 @@ from apps.api.src.modules.workspaces.content.routing.router import (
     canonical_routing_router as workspace_content_routing_router,
 )
 from apps.api.src.modules.workspaces.content.seo.router import seo_router as workspace_content_seo_router
+from apps.api.src.modules.workspaces.content.views.router import (
+    content_library_views_router as workspace_content_library_views_router,
+)
 from apps.api.src.modules.workspaces.danger_service import WorkspaceDangerService
 from apps.api.src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
@@ -64,6 +67,7 @@ router.include_router(workspace_content_models_router)
 router.include_router(workspace_content_items_router)
 router.include_router(workspace_content_presentations_router)
 router.include_router(workspace_content_seo_router)
+router.include_router(workspace_content_library_views_router)
 router.include_router(workspace_content_bindings_router)
 router.include_router(workspace_content_routing_router)
 router.include_router(workspace_publish_router)

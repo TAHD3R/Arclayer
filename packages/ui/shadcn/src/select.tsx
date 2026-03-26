@@ -7,10 +7,9 @@ import { Select as SelectPrimitive } from "radix-ui";
 import { cn } from "@arclayer/lib/utils";
 
 const DIALOG_OVERLAY_ROOT_SELECTOR = "[data-overlay-root=dialog]";
-const OVERLAY_ROOT_SELECTORS = [
+const ROOT_OVERLAY_SELECTORS = [
   "[data-slot=dialog-content]",
   "[data-slot=sheet-content]",
-  "[data-slot=popover-content]",
   "[data-slot=alert-dialog-content]",
 ].join(", ");
 
@@ -30,7 +29,7 @@ function resolveSelectPortalContainer(
   const dialogOverlayRoot = triggerElement.closest(DIALOG_OVERLAY_ROOT_SELECTOR);
   if (dialogOverlayRoot instanceof HTMLElement) return dialogOverlayRoot;
 
-  const overlayRoot = triggerElement.closest(OVERLAY_ROOT_SELECTORS);
+  const overlayRoot = triggerElement.closest(ROOT_OVERLAY_SELECTORS);
   if (overlayRoot instanceof HTMLElement) return overlayRoot;
 
   return document.body;
@@ -77,16 +76,16 @@ function SelectTrigger({
   size?: "sm" | "default";
 }) {
   const portalContext = React.useContext(SelectPortalContext);
-  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
-  const setTriggerElement = portalContext?.setTriggerElement;
-
-  React.useLayoutEffect(() => {
-    setTriggerElement?.(triggerRef.current);
-  });
+  const handleTriggerRef = React.useCallback(
+    (element: HTMLButtonElement | null) => {
+      portalContext?.setTriggerElement(element);
+    },
+    [portalContext],
+  );
 
   return (
     <SelectPrimitive.Trigger
-      ref={triggerRef}
+      ref={handleTriggerRef}
       data-slot="select-trigger"
       data-size={size}
       className={cn(

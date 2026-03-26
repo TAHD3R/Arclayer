@@ -5,10 +5,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentLibraryPage } from "@/pages/workspaces/content/library/page";
-import {
-  contentLibrarySavedViewsStorageKey,
-  contentLibraryViewStorageKey,
-} from "@/pages/workspaces/content/library/utils";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 const mocked = vi.hoisted(() => ({
@@ -17,6 +13,11 @@ const mocked = vi.hoisted(() => ({
   getContentItemVersion: vi.fn(),
   getContentSeoProfile: vi.fn(),
   getWorkspacePublishImpact: vi.fn(),
+  getContentLibraryViews: vi.fn(),
+  createContentLibraryView: vi.fn(),
+  updateContentLibraryView: vi.fn(),
+  moveContentLibraryView: vi.fn(),
+  deleteContentLibraryView: vi.fn(),
   archiveContentItem: vi.fn(),
   deleteContentItem: vi.fn(),
   duplicateContentItem: vi.fn(),
@@ -33,6 +34,11 @@ vi.mock("@/api/content", () => ({
   getContentItemVersion: (...args: unknown[]) => mocked.getContentItemVersion(...args),
   getContentSeoProfile: (...args: unknown[]) => mocked.getContentSeoProfile(...args),
   getWorkspacePublishImpact: (...args: unknown[]) => mocked.getWorkspacePublishImpact(...args),
+  getContentLibraryViews: (...args: unknown[]) => mocked.getContentLibraryViews(...args),
+  createContentLibraryView: (...args: unknown[]) => mocked.createContentLibraryView(...args),
+  updateContentLibraryView: (...args: unknown[]) => mocked.updateContentLibraryView(...args),
+  moveContentLibraryView: (...args: unknown[]) => mocked.moveContentLibraryView(...args),
+  deleteContentLibraryView: (...args: unknown[]) => mocked.deleteContentLibraryView(...args),
   archiveContentItem: (...args: unknown[]) => mocked.archiveContentItem(...args),
   deleteContentItem: (...args: unknown[]) => mocked.deleteContentItem(...args),
   duplicateContentItem: (...args: unknown[]) => mocked.duplicateContentItem(...args),
@@ -94,6 +100,9 @@ vi.mock("@arclayer/ui/data-table", async () => {
       extraQuery?: { fingerprint?: string };
     }) => {
       const [searchInput, setSearchInput] = React.useState("");
+      const [sorting, setSorting] = React.useState<Array<{ id: string; desc: boolean }>>([]);
+      const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({});
+      const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
       const [pageData, setPageData] = React.useState<{
         items: unknown[];
         total: number;
@@ -124,10 +133,16 @@ vi.mock("@arclayer/ui/data-table", async () => {
       }, [props.extraQuery?.fingerprint, props.queryOptions?.enabled, props.fetcher, searchInput]);
 
       return {
-        table: {},
+        table: {
+          getState: () => ({ columnVisibility, columnOrder }),
+          setColumnVisibility,
+          setColumnOrder,
+        },
         pageData,
         searchInput,
         setSearchInput,
+        sorting,
+        setSorting,
         isFetching: false,
         resetColumnVisibility: vi.fn(),
       };
@@ -180,26 +195,91 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
 vi.mock("@/pages/workspaces/content/library/components/content-library-toolbar", () => ({
   ContentLibraryToolbar: (props: {
     viewMode?: "card" | "table";
+    searchInput?: string;
+    onSearchInputChange?: (next: string) => void;
     onViewModeChange?: (next: "card" | "table") => void;
     filters?: { role?: string; editWith?: string };
     onFiltersChange?: (next: { role?: string; editWith?: string }) => void;
-    views?: Array<{ id: string; label: string; active?: boolean; onSelect?: () => void }>;
-    onOpenViewsManager?: () => void;
+    views?: Array<{
+      id: string;
+      label: string;
+      active?: boolean;
+      onSelect?: () => void;
+      onMoveForward?: () => void;
+      moveForwardDisabled?: boolean;
+      onMoveBackward?: () => void;
+      moveBackwardDisabled?: boolean;
+      onEdit?: () => void;
+      onSaveAs?: () => void;
+      onUpdate?: () => void;
+      updateDisabled?: boolean;
+      updateDisabledReason?: string;
+      onDelete?: () => void;
+    }>;
+    onCreateView?: (draft: {
+      name: string;
+      visibility: "private" | "workspace";
+      isDefault: boolean;
+    }) => void;
   }) => (
     <div data-testid="content-library-toolbar">
       {(props.views ?? []).map((view) => (
-        <button
-          key={view.id}
-          type="button"
-          data-active={view.active ? "true" : "false"}
-          onClick={view.onSelect}
-        >
-          {view.label}
-        </button>
+        <div key={view.id}>
+          <button
+            type="button"
+            data-active={view.active ? "true" : "false"}
+            onClick={view.onSelect}
+          >
+            {view.label}
+          </button>
+          {view.onEdit ? (
+            <button type="button" onClick={view.onEdit}>
+              mock-edit-{view.id}
+            </button>
+          ) : null}
+          {view.onMoveForward ? (
+            <button type="button" disabled={view.moveForwardDisabled} onClick={view.onMoveForward}>
+              mock-move-forward-{view.id}
+            </button>
+          ) : null}
+          {view.onMoveBackward ? (
+            <button
+              type="button"
+              disabled={view.moveBackwardDisabled}
+              onClick={view.onMoveBackward}
+            >
+              mock-move-backward-{view.id}
+            </button>
+          ) : null}
+          {view.onSaveAs ? (
+            <button type="button" onClick={view.onSaveAs}>
+              mock-save-as-{view.id}
+            </button>
+          ) : null}
+          {view.onUpdate ? (
+            <button type="button" disabled={view.updateDisabled} onClick={view.onUpdate}>
+              mock-update-{view.id}
+            </button>
+          ) : null}
+          {view.onDelete ? (
+            <button type="button" onClick={view.onDelete}>
+              mock-delete-{view.id}
+            </button>
+          ) : null}
+        </div>
       ))}
-      {props.onOpenViewsManager ? (
-        <button type="button" onClick={props.onOpenViewsManager}>
-          content:CONTENT_LIBRARY_ACTION_MANAGE_VIEWS
+      {props.onCreateView ? (
+        <button
+          type="button"
+          onClick={() =>
+            props.onCreateView?.({
+              name: "Editorial queue",
+              visibility: "private",
+              isDefault: true,
+            })
+          }
+        >
+          content:CONTENT_LIBRARY_ACTION_CREATE_VIEW
         </button>
       ) : null}
       <button
@@ -208,6 +288,9 @@ vi.mock("@/pages/workspaces/content/library/components/content-library-toolbar",
         onClick={() => props.onFiltersChange?.({ role: "page" })}
       >
         content:CONTENT_LIBRARY_ROLE_PAGE
+      </button>
+      <button type="button" onClick={() => props.onSearchInputChange?.("editorial")}>
+        mock-search-editorial
       </button>
       <button
         type="button"
@@ -257,14 +340,24 @@ function renderWithQuery(node: ReactElement) {
 }
 
 function getByI18nTail(key: string) {
-  return screen.getByText(
-    (_, node) => node?.textContent === key || node?.textContent === `content:${key}`,
+  return screen.getByText((_, node) =>
+    Boolean(
+      node &&
+      node.textContent &&
+      (node.textContent === key || node.textContent === `content:${key}`) &&
+      node.children.length === 0,
+    ),
   );
 }
 
 function getAllByI18nTail(key: string) {
-  return screen.getAllByText(
-    (_, node) => node?.textContent === key || node?.textContent === `content:${key}`,
+  return screen.getAllByText((_, node) =>
+    Boolean(
+      node &&
+      node.textContent &&
+      (node.textContent === key || node.textContent === `content:${key}`) &&
+      node.children.length === 0,
+    ),
   );
 }
 
@@ -290,6 +383,13 @@ describe("ContentLibraryPage", () => {
     vi.clearAllMocks();
     setMatchMedia(false);
     mocked.routeSearch.current = {};
+    mocked.navigate.mockImplementation((input: { search?: Record<string, unknown> }) => {
+      if (!input?.search) return;
+      mocked.routeSearch.current = {
+        ...mocked.routeSearch.current,
+        ...input.search,
+      };
+    });
     Object.defineProperty(window, "location", {
       configurable: true,
       value: {
@@ -327,7 +427,38 @@ describe("ContentLibraryPage", () => {
       unresolvedRelations: ["content-1"],
       unpublishedDependencies: ["content-1"],
     });
-    window.localStorage.clear();
+    const initialViewsState = {
+      items: [] as Array<Record<string, unknown>>,
+      defaultViewId: null as string | null,
+    };
+    mocked.getContentLibraryViews.mockResolvedValue(initialViewsState);
+    mocked.createContentLibraryView.mockImplementation(
+      async (_workspaceId: string, payload: Record<string, unknown>) => {
+        const nextState = {
+          items: [
+            {
+              id: "view-1",
+              name: payload.name,
+              baseViewId: payload.baseViewId,
+              query: payload.query,
+              filters: payload.filters,
+              sorting: payload.sorting ?? [],
+              viewMode: payload.viewMode,
+              columns: payload.columns,
+              visibility: payload.visibility,
+              pinned: true,
+              isDefault: payload.isDefault,
+            },
+          ],
+          defaultViewId: payload.isDefault ? "view-1" : null,
+        };
+        mocked.getContentLibraryViews.mockResolvedValue(nextState);
+        return nextState;
+      },
+    );
+    mocked.updateContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
+    mocked.moveContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
+    mocked.deleteContentLibraryView.mockImplementation(async () => mocked.getContentLibraryViews());
     mocked.listAllContentModels.mockResolvedValue([
       {
         id: "model-page",
@@ -398,10 +529,12 @@ describe("ContentLibraryPage", () => {
     await screen.findByRole("button", { name: "row:Homepage" });
 
     expect(getByI18nTail("CONTENT_LIBRARY_VIEW_ALL")).toBeInTheDocument();
-    expect(getByI18nTail("CONTENT_LIBRARY_VIEW_SITE_CONTENT")).toBeInTheDocument();
     expect(getByI18nTail("CONTENT_LIBRARY_VIEW_DRAFT")).toBeInTheDocument();
     expect(getByI18nTail("CONTENT_LIBRARY_VIEW_PUBLISHED")).toBeInTheDocument();
-    expect(getByI18nTail("CONTENT_LIBRARY_VIEW_NEEDS_ATTENTION")).toBeInTheDocument();
+    expect(screen.queryByText("content:CONTENT_LIBRARY_VIEW_SITE_CONTENT")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("content:CONTENT_LIBRARY_VIEW_NEEDS_ATTENTION"),
+    ).not.toBeInTheDocument();
   });
 
   test("hydrates the active view from route search and persists a new selection", async () => {
@@ -415,51 +548,604 @@ describe("ContentLibraryPage", () => {
     });
     expect(publishedButton).toHaveAttribute("data-active", "true");
 
-    await user.click(
-      screen.getByRole("button", { name: "content:CONTENT_LIBRARY_VIEW_SITE_CONTENT" }),
-    );
+    await user.click(screen.getByRole("button", { name: "content:CONTENT_LIBRARY_VIEW_DRAFT" }));
 
-    expect(mocked.navigate).toHaveBeenCalled();
-    expect(window.localStorage.getItem(contentLibraryViewStorageKey("ws-1"))).toBe("site-content");
+    expect(mocked.navigate).toHaveBeenCalledWith({
+      replace: true,
+      search: { view: "draft" },
+    });
   });
 
-  test("recovers the persisted view when route search is absent", async () => {
-    window.localStorage.setItem(contentLibraryViewStorageKey("ws-1"), "draft");
-
-    renderWithQuery(<ContentLibraryPage />);
-
-    expect(
-      await screen.findByRole("button", { name: "content:CONTENT_LIBRARY_VIEW_DRAFT" }),
-    ).toHaveAttribute("data-active", "true");
-  });
-
-  test("renders pinned saved views and applies their workbench state when selected", async () => {
-    const user = userEvent.setup();
-
-    window.localStorage.setItem(
-      contentLibrarySavedViewsStorageKey("ws-1"),
-      JSON.stringify([
+  test("hydrates the default saved view from the views API when route search is absent", async () => {
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
         {
           id: "view-1",
           name: "Published launch",
           baseViewId: "published",
           query: "launch",
           filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
           pinned: true,
+          isDefault: true,
         },
-      ]),
+      ],
+      defaultViewId: "view-1",
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    expect(await screen.findByRole("button", { name: "Published launch" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "row:Homepage" })).not.toBeInTheDocument();
+    });
+  });
+
+  test("keeps the routed state on the default saved view instead of downgrading to its base system view", async () => {
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: true,
+        },
+      ],
+      defaultViewId: "view-1",
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "Published launch" });
+
+    await waitFor(() => {
+      expect(mocked.navigate).toHaveBeenLastCalledWith({
+        replace: true,
+        search: { view: "saved:view-1" },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Published launch" })).toHaveAttribute(
+        "data-active",
+        "true",
+      );
+      expect(
+        screen.getByRole("button", { name: "content:CONTENT_LIBRARY_VIEW_PUBLISHED" }),
+      ).toHaveAttribute("data-active", "false");
+    });
+  });
+
+  test("normalizes a deleted saved-view route to the surviving default saved view", async () => {
+    mocked.routeSearch.current = { view: "saved:view-deleted" };
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-2",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: true,
+        },
+      ],
+      defaultViewId: "view-2",
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await waitFor(() => {
+      expect(mocked.navigate).toHaveBeenLastCalledWith({
+        replace: true,
+        search: { view: "saved:view-2" },
+      });
+    });
+
+    expect(screen.getByRole("button", { name: "Published launch" })).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+  });
+
+  test("creates a persisted saved view from the toolbar action", async () => {
+    const user = userEvent.setup();
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_CREATE_VIEW" }),
+    );
+
+    await waitFor(() => {
+      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("ws-1", {
+        name: "Editorial queue",
+        baseViewId: "all",
+        query: "",
+        filters: {},
+        sorting: [],
+        viewMode: "table",
+        columns: { rowHeight: "medium", wrapHeaders: false },
+        visibility: "private",
+        pinned: true,
+        isDefault: true,
+      });
+    });
+
+    expect(screen.getByRole("button", { name: "Editorial queue" })).toBeInTheDocument();
+  });
+
+  test("bundles system view state into the saved-view payload", async () => {
+    const user = userEvent.setup();
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "content:CONTENT_LIBRARY_VIEW_DRAFT" }));
+    await user.click(
+      screen.getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_CREATE_VIEW" }),
+    );
+
+    await waitFor(() => {
+      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("ws-1", {
+        name: "Editorial queue",
+        baseViewId: "draft",
+        query: "",
+        filters: { status: "draft" },
+        sorting: [],
+        viewMode: "table",
+        columns: { rowHeight: "medium", wrapHeaders: false },
+        visibility: "private",
+        pinned: true,
+        isDefault: true,
+      });
+    });
+  });
+
+  test("clears saved-view search state when switching back to a system view", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "Published launch" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "row:Homepage" })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "content:CONTENT_LIBRARY_VIEW_ALL" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "row:Homepage" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
+    });
+  });
+
+  test("updates a saved view from the current workbench state", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
+    });
+    mocked.updateContentLibraryView.mockImplementation(
+      async (_workspaceId: string, _viewId: string, payload: Record<string, unknown>) => ({
+        items: [
+          {
+            id: "view-1",
+            name: "Published launch",
+            baseViewId: payload.baseViewId,
+            query: payload.query,
+            filters: payload.filters,
+            sorting: payload.sorting ?? [],
+            viewMode: payload.viewMode,
+            columns: payload.columns,
+            visibility: "private",
+            pinned: true,
+            isDefault: false,
+          },
+        ],
+        defaultViewId: null,
+      }),
     );
 
     renderWithQuery(<ContentLibraryPage />);
 
-    await user.click(await screen.findByRole("button", { name: "Published launch" }));
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "Published launch" }));
+    await user.click(screen.getByRole("button", { name: "content:CONTENT_LIBRARY_ROLE_PAGE" }));
+    await user.click(screen.getByRole("button", { name: "mock-update-view-1" }));
+
+    expect(
+      await screen.findByText("content:CONTENT_LIBRARY_UPDATE_VIEW_DIALOG_TITLE"),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_UPDATE_VIEW" }),
+    );
 
     await waitFor(() => {
-      expect(mocked.navigate).toHaveBeenCalled();
+      expect(mocked.updateContentLibraryView).toHaveBeenCalledWith("ws-1", "view-1", {
+        baseViewId: "published",
+        query: "launch",
+        filters: { role: "page" },
+        sorting: [],
+        viewMode: "table",
+        columns: { rowHeight: "medium", wrapHeaders: false },
+      });
+    });
+  });
+
+  test("keeps an active saved view selected while its filters and search diverge", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
     });
 
-    expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "row:Homepage" })).not.toBeInTheDocument();
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "Published launch" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Published launch" })).toHaveAttribute(
+        "data-active",
+        "true",
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "content:CONTENT_LIBRARY_ROLE_PAGE" }));
+    await user.click(screen.getByRole("button", { name: "mock-search-editorial" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Published launch" })).toHaveAttribute(
+        "data-active",
+        "true",
+      );
+      expect(
+        screen.getByRole("button", { name: "content:CONTENT_LIBRARY_VIEW_ALL" }),
+      ).toHaveAttribute("data-active", "false");
+    });
+  });
+
+  test("activates a saved view without entering a reapply loop", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "Published launch" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Published launch" })).toHaveAttribute(
+        "data-active",
+        "true",
+      );
+      expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "row:Homepage" })).not.toBeInTheDocument();
+    });
+  });
+
+  test("edits saved view metadata including visibility and default state", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
+    });
+    mocked.updateContentLibraryView.mockImplementation(
+      async (_workspaceId: string, _viewId: string, payload: Record<string, unknown>) => ({
+        items: [
+          {
+            id: "view-1",
+            name: payload.name ?? "Published launch",
+            baseViewId: "published",
+            query: "launch",
+            filters: { status: "published" },
+            sorting: [],
+            viewMode: "table",
+            columns: { rowHeight: "medium", wrapHeaders: false },
+            visibility: payload.visibility ?? "private",
+            pinned: true,
+            isDefault: payload.isDefault ?? false,
+          },
+        ],
+        defaultViewId: payload.isDefault ? "view-1" : null,
+      }),
+    );
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "mock-edit-view-1" }));
+
+    const nameInput = await screen.findByLabelText("CONTENT_LIBRARY_VIEW_CREATE_NAME");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Shared launch board");
+    await user.click(
+      screen.getByRole("combobox", { name: "CONTENT_LIBRARY_VIEW_VISIBILITY_LABEL" }),
+    );
+    await user.click(
+      screen.getByRole("option", { name: "CONTENT_LIBRARY_VIEW_VISIBILITY_WORKSPACE" }),
+    );
+    await user.click(screen.getByRole("switch", { name: "CONTENT_LIBRARY_VIEW_DEFAULT_LABEL" }));
+    await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_UPDATE_VIEW" }));
+
+    await waitFor(() => {
+      expect(mocked.updateContentLibraryView).toHaveBeenCalledWith("ws-1", "view-1", {
+        name: "Shared launch board",
+        visibility: "workspace",
+        isDefault: true,
+      });
+    });
+  });
+
+  test("saves a custom view as a new persisted copy", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
+    });
+    mocked.createContentLibraryView.mockImplementation(
+      async (_workspaceId: string, payload: Record<string, unknown>) => ({
+        items: [
+          {
+            id: "view-1",
+            name: "Published launch",
+            baseViewId: "published",
+            query: "launch",
+            filters: { status: "published" },
+            sorting: [],
+            viewMode: "table",
+            columns: { rowHeight: "medium", wrapHeaders: false },
+            visibility: "private",
+            pinned: true,
+            isDefault: false,
+          },
+          {
+            id: "view-2",
+            name: payload.name,
+            baseViewId: payload.baseViewId,
+            query: payload.query,
+            filters: payload.filters,
+            sorting: payload.sorting ?? [],
+            viewMode: payload.viewMode,
+            columns: payload.columns,
+            visibility: payload.visibility,
+            pinned: payload.pinned,
+            isDefault: payload.isDefault,
+          },
+        ],
+        defaultViewId: payload.isDefault ? "view-2" : null,
+      }),
+    );
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "mock-save-as-view-1" }));
+
+    const nameInput = await screen.findByLabelText("CONTENT_LIBRARY_VIEW_CREATE_NAME");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Published launch copy");
+    await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_SAVE_AS_VIEW" }));
+
+    await waitFor(() => {
+      expect(mocked.createContentLibraryView).toHaveBeenCalledWith("ws-1", {
+        name: "Published launch copy",
+        baseViewId: "published",
+        query: "launch",
+        filters: { status: "published" },
+        sorting: [],
+        viewMode: "table",
+        columns: { rowHeight: "medium", wrapHeaders: false },
+        visibility: "private",
+        pinned: true,
+        isDefault: false,
+      });
+    });
+  });
+
+  test("disables save as when the duplicated view keeps the same name", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "mock-save-as-view-1" }));
+
+    const nameInput = screen.getByRole("textbox", {
+      name: "CONTENT_LIBRARY_VIEW_CREATE_NAME",
+    });
+    expect(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_SAVE_AS_VIEW" }),
+    ).toBeDisabled();
+    expect(nameInput).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("CONTENT_LIBRARY_SAVE_AS_UNCHANGED_NAME_HINT")).toBeInTheDocument();
+    expect(nameInput.nextElementSibling).toHaveTextContent(
+      "CONTENT_LIBRARY_SAVE_AS_UNCHANGED_NAME_HINT",
+    );
+    expect(mocked.createContentLibraryView).not.toHaveBeenCalled();
+  });
+
+  test("confirms before deleting a saved view", async () => {
+    const user = userEvent.setup();
+
+    mocked.getContentLibraryViews.mockResolvedValue({
+      items: [
+        {
+          id: "view-1",
+          name: "Published launch",
+          baseViewId: "published",
+          query: "launch",
+          filters: { status: "published" },
+          sorting: [],
+          viewMode: "table",
+          columns: { rowHeight: "medium", wrapHeaders: false },
+          visibility: "private",
+          pinned: true,
+          isDefault: false,
+        },
+      ],
+      defaultViewId: null,
+    });
+    mocked.deleteContentLibraryView.mockResolvedValue({
+      items: [],
+      defaultViewId: null,
+    });
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+    await user.click(screen.getByRole("button", { name: "mock-delete-view-1" }));
+
+    expect(
+      await screen.findByText("content:CONTENT_LIBRARY_DELETE_VIEW_DIALOG_TITLE"),
+    ).toBeInTheDocument();
+    expect(mocked.deleteContentLibraryView).not.toHaveBeenCalled();
+
+    await user.click(
+      screen.getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_DELETE_VIEW" }),
+    );
+
+    await waitFor(() => {
+      expect(mocked.deleteContentLibraryView).toHaveBeenCalledWith("ws-1", "view-1");
+    });
   });
 
   test("auto-opens the created draft drawer when the library receives focused return context", async () => {
@@ -563,25 +1249,6 @@ describe("ContentLibraryPage", () => {
     await screen.findByRole("button", { name: "row:Homepage" });
     await user.click(
       screen.getByRole("button", { name: "content:CONTENT_LIBRARY_EDIT_WITH_WRITING" }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "row:Launch note" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "row:Homepage" })).not.toBeInTheDocument();
-    });
-  });
-
-  test("applies grouped surface pivots from the views manager", async () => {
-    const user = userEvent.setup();
-
-    renderWithQuery(<ContentLibraryPage />);
-
-    await screen.findByRole("button", { name: "row:Homepage" });
-    await user.click(
-      screen.getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_MANAGE_VIEWS" }),
-    );
-    await user.click(
-      await screen.findByRole("button", { name: "content:CONTENT_LIBRARY_EDIT_WITH_WRITING" }),
     );
 
     await waitFor(() => {

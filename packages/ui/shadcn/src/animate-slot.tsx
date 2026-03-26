@@ -20,17 +20,42 @@ type SlotProps<T extends HTMLElement = HTMLElement> = {
   children?: any;
 } & DOMMotionProps<T>;
 
-function mergeRefs<T>(...refs: (React.Ref<T> | undefined)[]): React.RefCallback<T> {
-  return (node) => {
-    refs.forEach((ref) => {
-      if (!ref) return;
-      if (typeof ref === "function") {
-        ref(node);
-      } else {
-        (ref as React.RefObject<T | null>).current = node;
+function setRef<T>(ref: React.Ref<T> | undefined, node: T | null) {
+  if (!ref) return undefined;
+  if (typeof ref === "function") {
+    return ref(node);
+  }
+  (ref as React.RefObject<T | null>).current = node;
+  return undefined;
+}
+
+function useMergedRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
+  return React.useMemo<React.RefCallback<T>>(() => {
+    return (node) => {
+      let hasCleanup = false;
+      const cleanups = refs.map((currentRef) => {
+        const cleanup = setRef(currentRef, node);
+        if (!hasCleanup && typeof cleanup === "function") {
+          hasCleanup = true;
+        }
+        return cleanup;
+      });
+
+      if (hasCleanup) {
+        return () => {
+          cleanups.forEach((cleanup, index) => {
+            if (typeof cleanup === "function") {
+              cleanup();
+              return;
+            }
+            setRef(refs[index], null);
+          });
+        };
       }
-    });
-  };
+
+      return undefined;
+    };
+  }, refs);
 }
 
 function mergeProps<T extends HTMLElement>(
@@ -68,10 +93,11 @@ function Slot<T extends HTMLElement = HTMLElement>({ children, ref, ...props }: 
   if (!React.isValidElement(children)) return null;
 
   const { ref: childRef, ...childProps } = children.props as AnyProps;
+  const mergedRef = useMergedRefs(childRef as React.Ref<T>, ref);
 
   const mergedProps = mergeProps(childProps, props);
 
-  return <Base {...mergedProps} ref={mergeRefs(childRef as React.Ref<T>, ref)} />;
+  return <Base {...mergedProps} ref={mergedRef} />;
 }
 
 export { Slot, type SlotProps, type WithAsChild, type DOMMotionProps, type AnyProps };

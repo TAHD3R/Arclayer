@@ -33,6 +33,9 @@ function buildRow(overrides: Partial<ContentLibraryTableRow> = {}): ContentLibra
     derivedStatus: "draft",
     runtime: "unknown",
     context: "standalone",
+    libraryGroup: "general-content",
+    editWith: "structured",
+    role: "general",
     ...overrides,
   };
 }

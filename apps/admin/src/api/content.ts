@@ -2,15 +2,19 @@ import { workspacePath, toQueryString } from "@/lib/api";
 import { api } from "@/lib/http";
 import type {
   AdminContentItem,
+  AdminContentLibraryViewsState,
   AdminContentModel,
   AdminContentSeoProfile,
   AdminContentVersion,
   AdminPublishImpact,
   ApplyAdminContentBootstrapShapePayload,
+  CreateAdminContentLibraryViewPayload,
   CreateAdminContentItemPayload,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
+  MoveAdminContentLibraryViewPayload,
   PageData,
+  PatchAdminContentLibraryViewPayload,
 } from "@/types/api";
 
 const CONTENT_LIST_PAGE_SIZE = 200;
@@ -114,6 +118,55 @@ export async function getContentSeoProfile(
 
 export async function getWorkspacePublishImpact(workspaceId: string): Promise<AdminPublishImpact> {
   return api.get<AdminPublishImpact>(workspacePath(workspaceId, "/publish/impact"));
+}
+
+export async function getContentLibraryViews(
+  workspaceId: string,
+): Promise<AdminContentLibraryViewsState> {
+  return api.get<AdminContentLibraryViewsState>(
+    workspacePath(workspaceId, "/content/library/views"),
+  );
+}
+
+export async function createContentLibraryView(
+  workspaceId: string,
+  payload: CreateAdminContentLibraryViewPayload,
+): Promise<AdminContentLibraryViewsState> {
+  return api.post<AdminContentLibraryViewsState>(
+    workspacePath(workspaceId, "/content/library/views"),
+    payload,
+  );
+}
+
+export async function updateContentLibraryView(
+  workspaceId: string,
+  viewId: string,
+  payload: PatchAdminContentLibraryViewPayload,
+): Promise<AdminContentLibraryViewsState> {
+  return api.patch<AdminContentLibraryViewsState>(
+    workspacePath(workspaceId, `/content/library/views/${viewId}`),
+    payload,
+  );
+}
+
+export async function moveContentLibraryView(
+  workspaceId: string,
+  viewId: string,
+  payload: MoveAdminContentLibraryViewPayload,
+): Promise<AdminContentLibraryViewsState> {
+  return api.post<AdminContentLibraryViewsState>(
+    workspacePath(workspaceId, `/content/library/views/${viewId}/move`),
+    payload,
+  );
+}
+
+export async function deleteContentLibraryView(
+  workspaceId: string,
+  viewId: string,
+): Promise<AdminContentLibraryViewsState> {
+  return api.delete<AdminContentLibraryViewsState>(
+    workspacePath(workspaceId, `/content/library/views/${viewId}`),
+  );
 }
 
 export async function archiveContentItem(

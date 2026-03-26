@@ -36,7 +36,7 @@ export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
       },
       {
         key: "content.library",
-        label: "Contents",
+        label: "Contents Library",
         labelKey: "nav:NAV_CONTENT_LIBRARY",
         to: "/content/library",
         activeMatchPaths: ["/content/create"],

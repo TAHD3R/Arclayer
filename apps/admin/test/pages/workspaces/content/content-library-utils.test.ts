@@ -9,6 +9,7 @@ import {
   contentLibraryViewStorageKey,
   contentHasAddress,
   deleteContentLibrarySavedView,
+  isSameContentLibraryViewState,
   moveContentLibrarySavedView,
   parseContentLibraryViewState,
   readPersistedContentLibrarySavedViews,
@@ -24,10 +25,8 @@ describe("content-library-utils", () => {
   test("exposes the agreed system preset views for the workbench", () => {
     expect(buildContentLibrarySystemViews()).toMatchObject([
       { id: "all" },
-      { id: "site-content" },
       { id: "draft" },
       { id: "published" },
-      { id: "needs-attention" },
     ]);
   });
 
@@ -48,6 +47,27 @@ describe("content-library-utils", () => {
       kind: "saved",
       viewId: "saved-view-1",
     });
+  });
+
+  test("compares view state by semantic identity", () => {
+    expect(
+      isSameContentLibraryViewState(
+        { kind: "saved", viewId: "saved-view-1" },
+        { kind: "saved", viewId: "saved-view-1" },
+      ),
+    ).toBe(true);
+    expect(
+      isSameContentLibraryViewState(
+        { kind: "saved", viewId: "saved-view-1" },
+        { kind: "saved", viewId: "saved-view-2" },
+      ),
+    ).toBe(false);
+    expect(
+      isSameContentLibraryViewState(
+        { kind: "saved", viewId: "saved-view-1" },
+        { kind: "system", viewId: "published" },
+      ),
+    ).toBe(false);
   });
 
   test("reads and writes persisted workbench view state", () => {
@@ -81,7 +101,12 @@ describe("content-library-utils", () => {
         baseViewId: "draft",
         query: "home",
         filters: { modelKey: "page", role: "page", editWith: "canvas" },
+        sorting: [{ id: "updatedAt", desc: true }],
+        viewMode: "table",
+        columns: { order: ["name", "status"], rowHeight: "medium", wrapHeaders: false },
+        visibility: "private",
         pinned: true,
+        isDefault: false,
       },
       {
         id: "view-published",
@@ -89,7 +114,12 @@ describe("content-library-utils", () => {
         baseViewId: "published",
         query: "launch",
         filters: { modelKey: "article", role: "article", editWith: "writing" },
+        sorting: [],
+        viewMode: "card",
+        columns: { rowHeight: "tall", wrapHeaders: true },
+        visibility: "workspace",
         pinned: false,
+        isDefault: false,
       },
     ]);
 
@@ -99,12 +129,16 @@ describe("content-library-utils", () => {
         name: "Draft pages",
         pinned: true,
         filters: { role: "page", editWith: "canvas" },
+        viewMode: "table",
+        columns: { order: ["name", "status"], rowHeight: "medium", wrapHeaders: false },
       },
       {
         id: "view-published",
         name: "Published articles",
         pinned: false,
         filters: { role: "article", editWith: "writing" },
+        viewMode: "card",
+        columns: { rowHeight: "tall", wrapHeaders: true },
       },
     ]);
 

@@ -132,9 +132,7 @@ export function DataTableColumnsPanel<TData>(props: {
       >
         <DropdownCardBody className="px-0 py-0 ">
           <div className="w-full border-b">
-            <div className="px-2 py-1.5 text-headline text-label-secondary">
-              {props.labels.columnsTitle}
-            </div>
+            <div className="p-2 text-headline text-label-primary">{props.labels.columnsTitle}</div>
           </div>
           <DndContext
             sensors={sensors}
@@ -149,7 +147,7 @@ export function DataTableColumnsPanel<TData>(props: {
             >
               <ScrollArea className="max-h-[320px]">
                 {columns.length ? (
-                  <div className="grid w-full grid-cols-1 gap-0.5">
+                  <div className="grid w-full grid-cols-1 gap-1 py-2">
                     {columns.map((column) => (
                       <DataTableColumnSettingsRow
                         key={column.id}

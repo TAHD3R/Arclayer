@@ -45,6 +45,50 @@ async def _ensure_creator_admin_has_admin_role(*, ctx: WorkspaceContext, user_id
     await WorkspaceMembershipRole.get_or_create(membership_id=ctx.workspace_membership_id, role_id=admin_role.id)
 
 
+async def ensure_workspace_permission_granted(
+    permission: str,
+    *,
+    user_id: UUID,
+    ctx: WorkspaceContext,
+    error_code: str = "PERMISSION_DENIED",
+) -> None:
+    if (
+        not await Role.filter(workspace_id=ctx.workspace_id, is_system=True).exists()
+        or not await RolePermission.filter(
+            role__workspace_id=ctx.workspace_id,
+            role__is_system=True,
+        ).exists()
+    ):
+        from apps.api.src.config import get_settings
+        from apps.api.src.modules.system.rbac.service import RBACService
+
+        await RBACService(get_settings()).ensure_workspace_system_role_grants(workspace_id=ctx.workspace_id)
+
+    await _ensure_creator_admin_has_admin_role(ctx=ctx, user_id=user_id)
+
+    role_codes = await _list_user_role_codes_in_workspace(user_id=user_id, workspace_id=ctx.workspace_id)
+    if not role_codes:
+        raise Forbidden(
+            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            error=error_code,
+        )
+
+    if await Role.filter(workspace_id=ctx.workspace_id, code__in=role_codes, is_superuser=True).exists():
+        return
+
+    ok = await Permission.filter(
+        code=permission,
+        scope=PermissionScope.WORKSPACE,
+        permission_roles__role__workspace_id=ctx.workspace_id,
+        permission_roles__role__code__in=role_codes,
+    ).exists()
+    if not ok:
+        raise Forbidden(
+            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            error=error_code,
+        )
+
+
 def require_workspace_permission(permission: str, *, error_code: str = "PERMISSION_DENIED"):
     """
     Workspace-scoped permission gate.
@@ -58,40 +102,11 @@ def require_workspace_permission(permission: str, *, error_code: str = "PERMISSI
         user_id: UUID = Depends(get_current_user_id),
         ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     ) -> None:
-        if (
-            not await Role.filter(workspace_id=ctx.workspace_id, is_system=True).exists()
-            or not await RolePermission.filter(
-                role__workspace_id=ctx.workspace_id,
-                role__is_system=True,
-            ).exists()
-        ):
-            from apps.api.src.config import get_settings
-            from apps.api.src.modules.system.rbac.service import RBACService
-
-            await RBACService(get_settings()).ensure_workspace_system_role_grants(workspace_id=ctx.workspace_id)
-
-        await _ensure_creator_admin_has_admin_role(ctx=ctx, user_id=user_id)
-
-        role_codes = await _list_user_role_codes_in_workspace(user_id=user_id, workspace_id=ctx.workspace_id)
-        if not role_codes:
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error=error_code,
-            )
-
-        if await Role.filter(workspace_id=ctx.workspace_id, code__in=role_codes, is_superuser=True).exists():
-            return
-
-        ok = await Permission.filter(
-            code=permission,
-            scope=PermissionScope.WORKSPACE,
-            permission_roles__role__workspace_id=ctx.workspace_id,
-            permission_roles__role__code__in=role_codes,
-        ).exists()
-        if not ok:
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
-                error=error_code,
-            )
+        await ensure_workspace_permission_granted(
+            permission,
+            user_id=user_id,
+            ctx=ctx,
+            error_code=error_code,
+        )
 
     return Depends(_dep)

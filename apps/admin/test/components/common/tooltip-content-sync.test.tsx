@@ -1,3 +1,5 @@
+import * as React from "react";
+import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -40,5 +42,35 @@ describe("Tooltip content sync", () => {
         "zh-CN 文案",
       );
     });
+  });
+
+  it("stays stable under StrictMode when the trigger rerenders repeatedly", () => {
+    function StressTooltip() {
+      const [tick, setTick] = React.useState(0);
+
+      React.useEffect(() => {
+        if (tick >= 8) return;
+        setTick((current) => current + 1);
+      }, [tick]);
+
+      return (
+        <TooltipProvider openDelay={0} closeDelay={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button">Trigger {tick}</button>
+            </TooltipTrigger>
+            <TooltipContent>Tooltip body</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    expect(() =>
+      render(
+        <StrictMode>
+          <StressTooltip />
+        </StrictMode>,
+      ),
+    ).not.toThrow();
   });
 });

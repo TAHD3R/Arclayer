@@ -99,3 +99,93 @@ export type ListAdminContentItemsParams = {
   size?: number;
   modelKey?: string;
 };
+
+export type AdminContentLibraryViewStatus = "published" | "changed" | "draft" | "archived";
+export type AdminContentLibraryViewRole =
+  | "page"
+  | "article"
+  | "reusable-section"
+  | "taxonomy"
+  | "person"
+  | "settings"
+  | "data"
+  | "general";
+export type AdminContentLibraryViewEditWith = "canvas" | "writing" | "structured";
+export type AdminContentLibraryViewVisibility = "private" | "workspace";
+export type AdminContentLibrarySystemViewId =
+  | "all"
+  | "site-content"
+  | "draft"
+  | "published"
+  | "needs-attention";
+
+export type AdminContentLibraryViewFilters = {
+  status?: AdminContentLibraryViewStatus;
+  modelKey?: string;
+  role?: AdminContentLibraryViewRole;
+  editWith?: AdminContentLibraryViewEditWith;
+};
+
+export type AdminContentLibraryViewSorting = {
+  id: string;
+  desc: boolean;
+};
+
+export type AdminContentLibraryViewMode = "table" | "card";
+export type AdminContentLibraryViewRowHeight = "short" | "medium" | "tall" | "extraTall";
+
+export type AdminContentLibraryViewColumns = {
+  visibility?: Record<string, boolean>;
+  order?: string[];
+  rowHeight?: AdminContentLibraryViewRowHeight;
+  wrapHeaders?: boolean;
+};
+
+export type AdminContentLibraryView = {
+  id: string;
+  name: string;
+  baseViewId: AdminContentLibrarySystemViewId;
+  query: string;
+  filters: AdminContentLibraryViewFilters;
+  sorting: AdminContentLibraryViewSorting[];
+  viewMode?: AdminContentLibraryViewMode;
+  columns?: AdminContentLibraryViewColumns;
+  visibility: AdminContentLibraryViewVisibility;
+  pinned: boolean;
+  isDefault: boolean;
+};
+
+export type AdminContentLibraryViewsState = {
+  items: AdminContentLibraryView[];
+  defaultViewId: string | null;
+};
+
+export type CreateAdminContentLibraryViewPayload = {
+  name: string;
+  baseViewId: AdminContentLibrarySystemViewId;
+  query: string;
+  filters: AdminContentLibraryViewFilters;
+  sorting: AdminContentLibraryViewSorting[];
+  viewMode?: AdminContentLibraryViewMode;
+  columns?: AdminContentLibraryViewColumns;
+  visibility: AdminContentLibraryViewVisibility;
+  pinned: boolean;
+  isDefault: boolean;
+};
+
+export type PatchAdminContentLibraryViewPayload = {
+  name?: string;
+  baseViewId?: AdminContentLibrarySystemViewId;
+  query?: string;
+  filters?: AdminContentLibraryViewFilters;
+  sorting?: AdminContentLibraryViewSorting[];
+  viewMode?: AdminContentLibraryViewMode;
+  columns?: AdminContentLibraryViewColumns;
+  visibility?: AdminContentLibraryViewVisibility;
+  pinned?: boolean;
+  isDefault?: boolean;
+};
+
+export type MoveAdminContentLibraryViewPayload = {
+  direction: "up" | "down";
+};
