@@ -16,7 +16,6 @@ export function WorkspacesViewModeToggle({ t, value, onChange }: WorkspacesViewM
     <ToggleGroup
       type="single"
       variant="outline"
-      size="sm"
       value={value}
       aria-label={`${cardLabel}, ${tableLabel}`}
       onValueChange={(next) => {

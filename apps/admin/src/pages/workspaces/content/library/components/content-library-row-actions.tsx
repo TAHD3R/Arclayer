@@ -39,7 +39,7 @@ export function ContentLibraryRowActions(props: {
     <div className="flex items-center justify-end gap-1">
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="sm"
         disabled={props.pending}
         onClick={() => props.onContinue(props.row)}

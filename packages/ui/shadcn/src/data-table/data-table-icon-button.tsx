@@ -19,7 +19,7 @@ export const DataTableDefaultIconButton = React.forwardRef<
       type="button"
       aria-label={label}
       className={cn(
-        buttonVariants({ variant: "ghost", size: "icon-sm" }),
+        buttonVariants({ variant: "ghost", size: "icon" }),
         active ? "bg-accent" : undefined,
         className,
       )}

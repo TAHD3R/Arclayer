@@ -31,6 +31,29 @@ function ColumnsHarness() {
   );
 }
 
+function ColumnMetaHarness(props: { columnId: string }) {
+  const columns = useContentLibraryTableColumns({
+    formatDateTimeOrNull: (value) => value ?? null,
+    actionPending: false,
+    onContinue: vi.fn(),
+    onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
+    onArchive: vi.fn(),
+    onUnarchive: vi.fn(),
+  });
+  const column = columns.find((column) => {
+    const id =
+      typeof column.id === "string"
+        ? column.id
+        : "accessorKey" in column && typeof column.accessorKey === "string"
+          ? column.accessorKey
+          : null;
+    return id === props.columnId;
+  });
+  const meta = column?.meta as { defaultHidden?: boolean } | undefined;
+  return <span>{meta?.defaultHidden ? "hidden" : "visible"}</span>;
+}
+
 function NameCellHarness() {
   const columns = useContentLibraryTableColumns({
     formatDateTimeOrNull: (value) => value ?? null,
@@ -94,5 +117,13 @@ describe("content-library-table-columns", () => {
 
     expect(screen.getByText("CONTENT_LIBRARY_ROLE_PAGE")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_EDIT_WITH_CANVAS")).toBeInTheDocument();
+  });
+
+  test("hides library group by default when no persisted column preference exists", () => {
+    const { rerender } = render(<ColumnMetaHarness columnId="libraryGroup" />);
+    expect(screen.getByText("hidden")).toBeInTheDocument();
+
+    rerender(<ColumnMetaHarness columnId="modelName" />);
+    expect(screen.getByText("visible")).toBeInTheDocument();
   });
 });

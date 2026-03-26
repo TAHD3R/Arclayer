@@ -55,8 +55,7 @@ export function ContentLibraryCreateViewPopover(props: {
         <Button
           type="button"
           variant="outline"
-          size="sm"
-          className="h-8 shrink-0 border-dashed bg-muted/25 text-label-secondary hover:bg-muted/50 hover:text-label-primary"
+          className="shrink-0 border-dashed bg-muted/25 text-label-secondary hover:bg-muted/50 hover:text-label-primary"
         >
           <PlusIcon className="size-4" />
           {triggerLabel}

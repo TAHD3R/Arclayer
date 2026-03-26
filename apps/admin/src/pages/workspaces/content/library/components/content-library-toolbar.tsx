@@ -113,7 +113,7 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
   return (
     <div
       className={cn(
-        "flex min-h-8 shrink-0 items-center rounded-md border border-transparent transition-colors duration-200 ease-out",
+        "flex min-h-9 shrink-0 items-center rounded-md border border-transparent transition-colors duration-200 ease-out",
         emphasized
           ? "border-border/70 bg-accent text-accent-foreground shadow-sm"
           : "bg-transparent text-foreground hover:bg-accent/80 hover:text-accent-foreground",
@@ -129,7 +129,7 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
         data-active-view={props.view.active ? "true" : "false"}
         aria-current={props.view.active ? "true" : undefined}
         className={cn(
-          "flex h-8 shrink-0 items-center rounded-md bg-transparent px-3 text-callout font-semibold whitespace-nowrap outline-none transition-colors",
+          "flex h-9 shrink-0 items-center rounded-md bg-transparent px-3 text-callout font-semibold whitespace-nowrap outline-none transition-colors",
           emphasized ? "text-accent-foreground" : "text-inherit",
           showMenuButton ? "pr-2" : "pr-3",
         )}
@@ -439,8 +439,8 @@ export function ContentLibraryToolbar<TData>(props: {
             <Button
               type="button"
               variant="outline"
-              size="icon-sm"
-              className="size-8 shrink-0 rounded-md"
+              size="icon"
+              className="size-9 shrink-0 rounded-md"
               aria-label={t("content:CONTENT_LIBRARY_ACTION_SCROLL_VIEWS_LEFT")}
               disabled={!viewScrollState.canScrollLeft}
               onClick={() => scrollViews("left")}
@@ -452,7 +452,7 @@ export function ContentLibraryToolbar<TData>(props: {
             ref={viewsScrollRef}
             className="min-w-0 flex-1 self-stretch overflow-x-auto overflow-y-hidden scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            <div className="flex min-h-8 min-w-max items-center gap-2 pr-1">
+            <div className="flex min-h-9 min-w-max items-center gap-2 pr-1">
               {(props.views ?? []).map((view) => (
                 <ContentLibraryToolbarViewChip key={view.id} view={view} />
               ))}
@@ -462,8 +462,8 @@ export function ContentLibraryToolbar<TData>(props: {
             <Button
               type="button"
               variant="outline"
-              size="icon-sm"
-              className="size-8 shrink-0 rounded-md"
+              size="icon"
+              className="size-9 shrink-0 rounded-md"
               aria-label={t("content:CONTENT_LIBRARY_ACTION_SCROLL_VIEWS_RIGHT")}
               disabled={!viewScrollState.canScrollRight}
               onClick={() => scrollViews("right")}

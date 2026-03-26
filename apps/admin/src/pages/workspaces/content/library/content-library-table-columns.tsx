@@ -77,7 +77,11 @@ export function useContentLibraryTableColumns(params: {
       },
       {
         accessorKey: "libraryGroup",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP"), kind: "meta" },
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP"),
+          kind: "meta",
+          defaultHidden: true,
+        },
         header: t("CONTENT_LIBRARY_TABLE_COL_LIBRARY_GROUP"),
         cell: ({ row }) => {
           const label =

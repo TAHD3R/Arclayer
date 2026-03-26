@@ -16,7 +16,6 @@ export function ContentLibraryViewModeToggle(props: {
     <ToggleGroup
       type="single"
       variant="outline"
-      size="sm"
       value={props.value}
       aria-label={`${cardLabel}, ${tableLabel}`}
       onValueChange={(next) => {

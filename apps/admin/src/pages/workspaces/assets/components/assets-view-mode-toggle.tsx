@@ -17,7 +17,6 @@ export function AssetsViewModeToggle({ t, value, onChange }: AssetsViewModeToggl
     <ToggleGroup
       type="single"
       variant="outline"
-      size="sm"
       value={value}
       aria-label={`${cardLabel}, ${tableLabel}`}
       onValueChange={(next) => {
