@@ -1,10 +1,17 @@
-import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@arclayer/ui/button";
+import { ContentLibraryArticleEditorShell } from "../article-editor/content-library-article-editor-shell";
 
-export function ContentLibraryPreviewPanel(props: { onClose: () => void; className?: string }) {
-  const { t } = useTranslation(["content", "common"]);
+export function ContentLibraryPreviewPanel(props: {
+  title: string;
+  summary: string;
+  onTitleChange: (value: string) => void;
+  onSummaryChange: (value: string) => void;
+  onClose: () => void;
+  onOpenPage: () => void;
+  className?: string;
+}) {
+  const { t } = useTranslation("content");
 
   return (
     <aside
@@ -12,30 +19,16 @@ export function ContentLibraryPreviewPanel(props: { onClose: () => void; classNa
       className={props.className}
       aria-label={t("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")}
     >
-      <div className="flex h-full min-h-0 flex-col bg-background">
-        <div className="flex items-start justify-between gap-4 border-b border-border/70 px-6 py-4">
-          <div className="min-w-0 space-y-1.5">
-            <div className="text-title3 text-label-primary">
-              {t("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")}
-            </div>
-            <div className="text-callout text-label-secondary">
-              {t("CONTENT_LIBRARY_PREVIEW_PANEL_DESC")}
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="shrink-0"
-            onClick={props.onClose}
-            aria-label={t("common:CLOSE")}
-          >
-            <X className="size-4" />
-          </Button>
-        </div>
-
-        <div className="min-h-0 flex-1 bg-background" />
-      </div>
+      <ContentLibraryArticleEditorShell
+        mode="split"
+        title={props.title}
+        summary={props.summary}
+        onTitleChange={props.onTitleChange}
+        onSummaryChange={props.onSummaryChange}
+        onClose={props.onClose}
+        onOpenPage={props.onOpenPage}
+        className="h-full"
+      />
     </aside>
   );
 }

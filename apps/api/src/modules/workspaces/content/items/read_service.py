@@ -106,6 +106,22 @@ class WorkspaceContentCanonicalItemReadService:
             raise NotFound("Content version not found", error="CONTENT_ITEM_VERSION_NOT_FOUND")
         return version
 
+    async def get_version(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        version_number: int,
+    ) -> ContentVersionOut:
+        version = await self._get_item_version(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            item_id=item_id,
+            version_number=version_number,
+        )
+        return await self.build_version_out(version=version)
+
     async def list_presentations(
         self,
         *,

@@ -13,8 +13,10 @@ import type {
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
   MoveAdminContentLibraryViewPayload,
+  PatchAdminContentVersionPayload,
   PageData,
   PatchAdminContentLibraryViewPayload,
+  SaveAdminContentDraftVersionPayload,
 } from "@/types/api";
 
 const CONTENT_LIST_PAGE_SIZE = 200;
@@ -96,6 +98,17 @@ export async function archiveContentItemVersion(
   );
 }
 
+export async function saveContentItemDraftVersion(
+  workspaceId: string,
+  itemId: string,
+  payload: SaveAdminContentDraftVersionPayload,
+): Promise<AdminContentVersion> {
+  return api.post<AdminContentVersion>(
+    workspacePath(workspaceId, `/content/items/${itemId}/versions/draft`),
+    payload,
+  );
+}
+
 export async function getContentItemVersion(
   workspaceId: string,
   itemId: string,
@@ -103,6 +116,28 @@ export async function getContentItemVersion(
 ): Promise<AdminContentVersion> {
   return api.get<AdminContentVersion>(
     workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}`),
+  );
+}
+
+export async function patchContentItemVersion(
+  workspaceId: string,
+  itemId: string,
+  versionNumber: number,
+  payload: PatchAdminContentVersionPayload,
+): Promise<AdminContentVersion> {
+  return api.patch<AdminContentVersion>(
+    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}`),
+    payload,
+  );
+}
+
+export async function publishContentItemVersion(
+  workspaceId: string,
+  itemId: string,
+  versionNumber: number,
+): Promise<AdminContentVersion> {
+  return api.post<AdminContentVersion>(
+    workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}/publish`),
   );
 }
 

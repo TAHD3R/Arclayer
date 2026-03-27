@@ -29,6 +29,14 @@ export type AdminContentModel = {
 export type AdminContentItemStatus = "draft" | "published" | "archived";
 export type AdminContentItemVisibility = "public" | "private";
 export type AdminContentBootstrapPresetState = "selected" | "customized" | "none";
+export type AdminContentVersionState = "draft" | "published" | "scheduled" | "archived";
+export type AdminContentPresentationKind =
+  | "form_data"
+  | "rich_text_document"
+  | "visual_blueprint"
+  | "query_definition"
+  | "slot_mapping"
+  | "seo";
 export type AdminContentCapabilityPackId =
   | AdminContentModelCapability
   | "layout_bound"
@@ -65,14 +73,34 @@ export type ApplyAdminContentBootstrapShapePayload = {
   capabilityPackIds: AdminContentCapabilityPackId[];
 };
 
+export type AdminContentPresentation = {
+  kind: AdminContentPresentationKind;
+  payload?: Record<string, unknown> | null;
+};
+
 export type AdminContentVersion = {
   itemId: string;
   versionNumber: number;
-  state: "draft" | "published" | "scheduled" | "archived";
+  state: AdminContentVersionState;
   createdAt: string;
   createdByUserId?: string | null;
   lastTransitionByUserId?: string | null;
+  fieldsSnapshot: Record<string, unknown>;
+  presentations: AdminContentPresentation[];
   changeSummary?: string | null;
+};
+
+export type SaveAdminContentDraftVersionPayload = {
+  expectedVersion?: number | null;
+  changeSummary?: string | null;
+  fieldsSnapshot: Record<string, unknown>;
+  presentations: AdminContentPresentation[];
+};
+
+export type PatchAdminContentVersionPayload = {
+  changeSummary?: string | null;
+  fieldsSnapshot?: Record<string, unknown>;
+  presentations?: AdminContentPresentation[];
 };
 
 export type AdminContentSeoProfile = {

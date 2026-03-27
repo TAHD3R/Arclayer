@@ -40,7 +40,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@arclayer/ui/alert-dialog";
-import { workspaceContentCreatePath } from "@/lib/routing/workspace-content-routing";
+import {
+  workspaceContentCreatePath,
+  workspaceContentLibraryItemPath,
+} from "@/lib/routing/workspace-content-routing";
 import { useContentLibraryTableColumns } from "./content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryCardList } from "./components/content-library-card-list";
@@ -120,6 +123,8 @@ type ContentLibraryViewDiffItem = {
 const CONTENT_LIBRARY_CARD_MODE_QUERY = "(max-width: 960px)";
 const CONTENT_LIBRARY_PREVIEW_SIDEBAR_COLLAPSE_BREAKPOINT = 1280;
 const CONTENT_LIBRARY_PREVIEW_MIN_WIDTH_PERCENT = 30;
+const CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME =
+  "bg-accent/24 shadow-[inset_2px_0_0_0_hsl(var(--primary))] hover:bg-accent/30";
 
 function getContentLibraryPreviewWidthDefaults(viewportWidth: number) {
   if (viewportWidth >= 1680) {
@@ -427,6 +432,8 @@ export function ContentLibraryPage() {
     lastActiveId: null,
   });
   const [previewRowId, setPreviewRowId] = React.useState<string | null>(null);
+  const [previewEditorTitle, setPreviewEditorTitle] = React.useState("");
+  const [previewEditorSummary, setPreviewEditorSummary] = React.useState("");
   const [viewDialogState, setViewDialogState] =
     React.useState<ContentLibraryViewDialogState | null>(null);
   const [viewDialogDraft, setViewDialogDraft] = React.useState<ContentLibraryPrototypeViewDraft>(
@@ -490,6 +497,15 @@ export function ContentLibraryPage() {
     () => rows.find((row) => row.id === previewRowId) ?? null,
     [previewRowId, rows],
   );
+  React.useEffect(() => {
+    if (!previewRow) {
+      setPreviewEditorTitle("");
+      setPreviewEditorSummary("");
+      return;
+    }
+    setPreviewEditorTitle(previewRow.title || previewRow.name);
+    setPreviewEditorSummary("");
+  }, [previewRow]);
   const orderedRowIds = React.useMemo(() => rows.map((row) => row.id), [rows]);
   const savedViews = React.useMemo<ContentLibrarySavedView[]>(
     () => viewsQuery.data?.items ?? [],
@@ -1304,6 +1320,11 @@ export function ContentLibraryPage() {
               t={t}
               rowHeight="medium"
               refreshing={refreshing && !modelsQuery.isLoading && !itemsQuery.isLoading}
+              rowClassName={(row) =>
+                previewRowId === row.original.id
+                  ? CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME
+                  : undefined
+              }
               onRowClick={(row, _rowIndex, event) => handleRowSelection(row.original, event)}
             />
           )}
@@ -1341,9 +1362,9 @@ export function ContentLibraryPage() {
                 aria-orientation="vertical"
                 aria-label={t("common:RESIZE")}
                 onPointerDown={handlePreviewResizePointerDown}
-                className="relative flex w-px shrink-0 items-center justify-center bg-border/70 transition-colors after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 hover:bg-border"
+                className="relative flex w-px shrink-0 cursor-col-resize items-center justify-center bg-border/70 transition-colors after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 hover:bg-border"
               >
-                <div className="z-10 flex h-10 w-3 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm">
+                <div className="z-10 flex h-10 w-3 cursor-col-resize items-center justify-center rounded-full border border-border/80 bg-background shadow-sm">
                   <div className="flex flex-col gap-1">
                     <span className="block h-1 w-1 rounded-full bg-muted-foreground/70" />
                     <span className="block h-1 w-1 rounded-full bg-muted-foreground/70" />
@@ -1361,7 +1382,17 @@ export function ContentLibraryPage() {
               >
                 <ContentLibraryPreviewPanel
                   className="min-h-0 w-full flex-1"
+                  title={previewEditorTitle}
+                  summary={previewEditorSummary}
+                  onTitleChange={setPreviewEditorTitle}
+                  onSummaryChange={setPreviewEditorSummary}
                   onClose={() => setPreviewRowId(null)}
+                  onOpenPage={() => {
+                    if (!workspaceId) return;
+                    void navigate({
+                      to: workspaceContentLibraryItemPath(String(workspaceId), previewRow.id),
+                    });
+                  }}
                 />
               </motion.div>
             </motion.div>

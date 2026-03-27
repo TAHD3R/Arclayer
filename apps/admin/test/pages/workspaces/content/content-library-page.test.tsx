@@ -196,6 +196,7 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
     toolbar?: ReactNode;
     pageData?: { items?: Array<{ id: string; name: string }> };
     footerSlot?: ReactNode;
+    rowClassName?: (row: { original: { id: string; name: string } }, index: number) => string;
     onRowClick?: (row: { original: { id: string; name: string } }, index: number) => void;
   }) => (
     <div>
@@ -206,6 +207,7 @@ vi.mock("@/layouts/page-shell/admin-data-table-section", () => ({
             key={row.id}
             type="button"
             aria-label={`row:${row.name}`}
+            className={props.rowClassName?.({ original: row }, index)}
             onClick={() => props.onRowClick?.({ original: row }, index)}
           >
             {row.name}
@@ -1168,11 +1170,46 @@ describe("ContentLibraryPage", () => {
 
     renderWithQuery(<ContentLibraryPage />);
 
-    expect(await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).toBeInTheDocument();
+    expect(await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).toBeInTheDocument();
     expect(
       screen.getByText("content:CONTENT_LIBRARY_VIEW_DRAFT").closest("button"),
     ).toHaveAttribute("data-active", "true");
     expect(mocked.setSidebarOpen).not.toHaveBeenCalled();
+  });
+
+  test("highlights the previewed row while the sidebar preview is open", async () => {
+    mocked.routeSearch.current = { focusItemId: "content-1" };
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+
+    expect(screen.getByRole("button", { name: "row:Homepage" })).toHaveClass(
+      "bg-accent/24",
+      "shadow-[inset_2px_0_0_0_hsl(var(--primary))]",
+      "hover:bg-accent/30",
+    );
+    expect(screen.getByRole("button", { name: "row:Launch note" })).not.toHaveClass(
+      "shadow-[inset_2px_0_0_0_hsl(var(--primary))]",
+    );
+  });
+
+  test("maximizes the split editor into the library article page route", async () => {
+    const user = userEvent.setup();
+    mocked.routeSearch.current = { focusItemId: "content-1" };
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+    await user.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR" }),
+    );
+
+    expect(mocked.navigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/w/ws-1/content/library/content-1",
+      }),
+    );
   });
 
   test("collapses and restores the sidebar around preview mode on narrow viewports", async () => {
@@ -1182,8 +1219,10 @@ describe("ContentLibraryPage", () => {
 
     renderWithQuery(<ContentLibraryPage />);
 
-    await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
-    await user.click(screen.getByRole("button", { name: "common:CLOSE" }));
+    await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+    await user.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW" }),
+    );
 
     expect(mocked.setSidebarOpen).toHaveBeenNthCalledWith(1, false);
     expect(mocked.setSidebarOpen).toHaveBeenNthCalledWith(2, true);
@@ -1197,8 +1236,10 @@ describe("ContentLibraryPage", () => {
 
     renderWithQuery(<ContentLibraryPage />);
 
-    await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
-    await user.click(screen.getByRole("button", { name: "common:CLOSE" }));
+    await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+    await user.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW" }),
+    );
 
     expect(mocked.setSidebarOpen).not.toHaveBeenCalled();
   });
@@ -1222,11 +1263,11 @@ describe("ContentLibraryPage", () => {
     expect(
       within(overlay).getByRole("button", { name: "common:DATA_TABLE_CLEAR_SELECTION" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).not.toBeInTheDocument();
     expect(mocked.navigate).not.toHaveBeenCalled();
   });
 
-  test("renders a lightweight preview shell instead of the deprecated drawer fields", async () => {
+  test("renders the article editor shell inside the split preview surface", async () => {
     mocked.routeSearch.current = { focusItemId: "content-1" };
 
     renderWithQuery(<ContentLibraryPage />);
@@ -1234,12 +1275,25 @@ describe("ContentLibraryPage", () => {
     const previewPanel = await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
 
     expect(
-      within(previewPanel).getByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE"),
+      within(previewPanel).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW",
+      }),
     ).toBeInTheDocument();
     expect(
-      within(previewPanel).getByText("CONTENT_LIBRARY_PREVIEW_PANEL_DESC"),
+      within(previewPanel).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR",
+      }),
     ).toBeInTheDocument();
-    expect(within(previewPanel).queryByText("Homepage")).not.toBeInTheDocument();
+    expect(
+      within(previewPanel).getByLabelText("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU"),
+    ).toBeInTheDocument();
+    expect(
+      within(previewPanel).getByPlaceholderText("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER"),
+    ).toBeInTheDocument();
+    expect(within(previewPanel).getByDisplayValue("Homepage")).toBeInTheDocument();
+    expect(
+      within(previewPanel).getByText("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER"),
+    ).toBeInTheDocument();
     expect(
       within(previewPanel).queryByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }),
     ).not.toBeInTheDocument();
@@ -1258,7 +1312,7 @@ describe("ContentLibraryPage", () => {
 
     renderWithQuery(<ContentLibraryPage />);
 
-    await screen.findByText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
+    await screen.findByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE");
 
     expect(mocked.getContentItemVersion).not.toHaveBeenCalled();
     expect(mocked.getContentSeoProfile).not.toHaveBeenCalled();

@@ -257,6 +257,31 @@ async def save_workspace_content_item_draft_version_canonical(
     return Response.success(data=data)
 
 
+@canonical_items_router.get(
+    "/items/{item_id}/versions/{version_number}",
+    response_model=ResponseModel[ContentVersionOut],
+    response_model_exclude_none=True,
+    summary="Get rebuilt content version detail (workspace RBAC protected)",
+)
+async def get_workspace_content_item_version_canonical(
+    item_id: PublicUUID,
+    version_number: int,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemReadService,
+        Depends(get_workspace_content_canonical_item_reads),
+    ],
+) -> ResponseModel[ContentVersionOut]:
+    data = await service.get_version(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+        version_number=version_number,
+    )
+    return Response.success(data=data)
+
+
 @canonical_items_router.post(
     "/items/{item_id}/versions/{version_number}/publish",
     response_model=ResponseModel[ContentVersionOut],

@@ -342,6 +342,44 @@ async def test_content_items_reject_direct_writes_to_published_version(
 
 
 @pytest.mark.asyncio
+async def test_content_items_return_version_detail_with_fields_snapshot_and_presentations(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
+
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=_draft_payload(),
+        )
+        assert draft_res.status_code == 201, draft_res.text
+
+        version_res = await client.get(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1",
+        )
+        assert version_res.status_code == 200, version_res.text
+        data = version_res.json()["data"]
+        assert data["fieldsSnapshot"]["title"] == "Hello World"
+        assert {entry["kind"] for entry in data["presentations"]} == {
+            "form_data",
+            "rich_text_document",
+            "visual_blueprint",
+        }
+
+
+@pytest.mark.asyncio
 async def test_content_items_archive_transition_is_explicit_and_terminal_for_publish(
     prepared_db,
     integration_valkey_settings,

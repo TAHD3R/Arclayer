@@ -52,6 +52,7 @@ import { Route as WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport } from './
 import { Route as WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/basics/index'
 import { Route as WWorkspaceIdSettingsSiteLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/site/localization/index'
 import { Route as WWorkspaceIdSettingsSiteBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/site/basics/index'
+import { Route as WWorkspaceIdContentLibraryItemIdIndexRouteImport } from './routes/w/$workspaceId/content/library/$itemId/index'
 
 const UsercenterRoute = UsercenterRouteImport.update({
   id: '/usercenter',
@@ -362,6 +363,16 @@ const WWorkspaceIdSettingsSiteBasicsIndexRoute =
       (d) => d.Route,
     ),
   )
+const WWorkspaceIdContentLibraryItemIdIndexRoute =
+  WWorkspaceIdContentLibraryItemIdIndexRouteImport.update({
+    id: '/content/library/$itemId/',
+    path: '/content/library/$itemId/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/content/library/$itemId/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -403,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
+  '/w/$workspaceId/content/library/$itemId/': typeof WWorkspaceIdContentLibraryItemIdIndexRoute
   '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -445,6 +457,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/team/invitations': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles': typeof WWorkspaceIdTeamRolesIndexRoute
+  '/w/$workspaceId/content/library/$itemId': typeof WWorkspaceIdContentLibraryItemIdIndexRoute
   '/w/$workspaceId/settings/site/basics': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -491,6 +504,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/team/invitations/': typeof WWorkspaceIdTeamInvitationsIndexRoute
   '/w/$workspaceId/team/members/': typeof WWorkspaceIdTeamMembersIndexRoute
   '/w/$workspaceId/team/roles/': typeof WWorkspaceIdTeamRolesIndexRoute
+  '/w/$workspaceId/content/library/$itemId/': typeof WWorkspaceIdContentLibraryItemIdIndexRoute
   '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -538,6 +552,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/team/invitations/'
     | '/w/$workspaceId/team/members/'
     | '/w/$workspaceId/team/roles/'
+    | '/w/$workspaceId/content/library/$itemId/'
     | '/w/$workspaceId/settings/site/basics/'
     | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
@@ -580,6 +595,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/team/invitations'
     | '/w/$workspaceId/team/members'
     | '/w/$workspaceId/team/roles'
+    | '/w/$workspaceId/content/library/$itemId'
     | '/w/$workspaceId/settings/site/basics'
     | '/w/$workspaceId/settings/site/localization'
     | '/w/$workspaceId/settings/workspace/basics'
@@ -625,6 +641,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/team/invitations/'
     | '/w/$workspaceId/team/members/'
     | '/w/$workspaceId/team/roles/'
+    | '/w/$workspaceId/content/library/$itemId/'
     | '/w/$workspaceId/settings/site/basics/'
     | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
@@ -949,6 +966,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdSettingsSiteBasicsIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/content/library/$itemId/': {
+      id: '/w/$workspaceId/content/library/$itemId/'
+      path: '/content/library/$itemId'
+      fullPath: '/w/$workspaceId/content/library/$itemId/'
+      preLoaderRoute: typeof WWorkspaceIdContentLibraryItemIdIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
   }
 }
 
@@ -1009,6 +1033,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdTeamInvitationsIndexRoute: typeof WWorkspaceIdTeamInvitationsIndexRoute
   WWorkspaceIdTeamMembersIndexRoute: typeof WWorkspaceIdTeamMembersIndexRoute
   WWorkspaceIdTeamRolesIndexRoute: typeof WWorkspaceIdTeamRolesIndexRoute
+  WWorkspaceIdContentLibraryItemIdIndexRoute: typeof WWorkspaceIdContentLibraryItemIdIndexRoute
   WWorkspaceIdSettingsSiteBasicsIndexRoute: typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   WWorkspaceIdSettingsSiteLocalizationIndexRoute: typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute: typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
@@ -1035,6 +1060,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
   WWorkspaceIdTeamInvitationsIndexRoute: WWorkspaceIdTeamInvitationsIndexRoute,
   WWorkspaceIdTeamMembersIndexRoute: WWorkspaceIdTeamMembersIndexRoute,
   WWorkspaceIdTeamRolesIndexRoute: WWorkspaceIdTeamRolesIndexRoute,
+  WWorkspaceIdContentLibraryItemIdIndexRoute:
+    WWorkspaceIdContentLibraryItemIdIndexRoute,
   WWorkspaceIdSettingsSiteBasicsIndexRoute:
     WWorkspaceIdSettingsSiteBasicsIndexRoute,
   WWorkspaceIdSettingsSiteLocalizationIndexRoute:

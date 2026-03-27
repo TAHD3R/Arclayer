@@ -15,6 +15,10 @@ export function workspaceContentLibraryPath(workspaceId: string): string {
   return `/w/${encodeURIComponent(workspaceId)}/content/library`;
 }
 
+export function workspaceContentLibraryItemPath(workspaceId: string, itemId: string): string {
+  return `/w/${encodeURIComponent(workspaceId)}/content/library/${encodeURIComponent(itemId)}`;
+}
+
 export function workspaceContentCreatePath(workspaceId: string): string {
   return `/w/${encodeURIComponent(workspaceId)}/content/create`;
 }
