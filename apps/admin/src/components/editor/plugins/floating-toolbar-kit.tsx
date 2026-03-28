@@ -9,12 +9,40 @@ import {
   useFloatingToolbar,
   useFloatingToolbarState,
 } from "@platejs/floating";
+import {
+  FloatingLinkUrlInput,
+  LinkOpenButton,
+  useFloatingLinkEdit,
+  useFloatingLinkEditState,
+  useFloatingLinkInsert,
+  useFloatingLinkInsertState,
+} from "@platejs/link/react";
+import {
+  BaselineIcon,
+  BoldIcon,
+  Code2Icon,
+  ItalicIcon,
+  Link2,
+  PaintBucketIcon,
+  StrikethroughIcon,
+  UnderlineIcon,
+} from "lucide-react";
 import { useEditorRef } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
+import { FontColorToolbarButton } from "@/components/editor/font-color-toolbar-button";
+import { InlineEquationToolbarButton } from "@/components/editor/equation-toolbar-button";
 import { LinkToolbarButton } from "@/components/editor/link-toolbar-button";
+import { MoreToolbarButton } from "@/components/editor/more-toolbar-button";
+import { TurnIntoToolbarButton } from "@/components/editor/turn-into-toolbar-button";
 import { MarkToolbarButton } from "@/components/ui/mark-toolbar-button";
-import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/components/ui/toolbar";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { Button } from "@arclayer/ui/button";
+import { Separator } from "@arclayer/ui/separator";
+import { cn } from "@arclayer/lib/utils";
+
+const MARK_COLOR = "color";
+const MARK_BACKGROUND_COLOR = "backgroundColor";
 
 type FloatingToolbarRef =
   | ((node: HTMLDivElement | null) => void)
@@ -30,6 +58,108 @@ function assignFloatingToolbarRef(
     return;
   }
   target.current = node;
+}
+
+function PlateLinkFloatingToolbar() {
+  const { t } = useTranslation(["content", "common"]);
+  const floatingOptions = React.useMemo(
+    () => ({
+      middleware: [offset(10), flip({ padding: 12 }), shift({ padding: 12 })],
+      placement: "bottom-start" as const,
+    }),
+    [],
+  );
+  const insertState = useFloatingLinkInsertState({ floatingOptions });
+  const insert = useFloatingLinkInsert(insertState) as {
+    hidden?: boolean;
+    props: React.HTMLAttributes<HTMLDivElement>;
+    ref: React.Ref<HTMLDivElement>;
+    textInputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  };
+  const editState = useFloatingLinkEditState({ floatingOptions });
+  const edit = useFloatingLinkEdit(editState) as {
+    editButtonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
+    props: React.HTMLAttributes<HTMLDivElement>;
+    ref: React.Ref<HTMLDivElement>;
+    unlinkButtonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
+  };
+
+  if (insert.hidden) return null;
+
+  return (
+    <>
+      <div
+        ref={insert.ref}
+        {...insert.props}
+        className={cn(
+          "z-50 w-[22rem] rounded-2xl border border-border/70 bg-background/96 p-2 shadow-xl backdrop-blur",
+          insert.props.className,
+        )}
+      >
+        <div className="space-y-2">
+          <FloatingLinkUrlInput
+            className="h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none"
+            placeholder="https://"
+            data-plate-focus
+          />
+          <input
+            className="h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none"
+            placeholder={t("CONTENT_LIBRARY_EDITOR_LINK_TEXT")}
+            data-plate-focus
+            {...insert.textInputProps}
+          />
+        </div>
+      </div>
+
+      <div
+        ref={edit.ref}
+        {...edit.props}
+        className={cn(
+          "z-50 flex items-center rounded-2xl border border-border/70 bg-background/96 p-1 shadow-xl backdrop-blur",
+          edit.props.className,
+        )}
+      >
+        {editState.isEditing ? (
+          <div className="w-[22rem] space-y-2 p-1">
+            <FloatingLinkUrlInput
+              className="h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none"
+              placeholder="https://"
+              data-plate-focus
+            />
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="inline-flex h-8 items-center rounded-lg px-3 text-sm transition-colors hover:bg-accent"
+              {...edit.editButtonProps}
+            >
+              {t("CONTENT_LIBRARY_EDITOR_MARK_LINK")}
+            </button>
+            <Separator orientation="vertical" className="mx-0.5 h-6" />
+            <LinkOpenButton asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("CONTENT_LIBRARY_EDITOR_LINK_OPEN")}
+              >
+                <Link2 className="size-4" />
+              </Button>
+            </LinkOpenButton>
+            <Separator orientation="vertical" className="mx-0.5 h-6" />
+            <button
+              type="button"
+              className="inline-flex h-8 items-center rounded-lg px-3 text-sm transition-colors hover:bg-accent"
+              {...edit.unlinkButtonProps}
+            >
+              {t("CONTENT_LIBRARY_EDITOR_LINK_REMOVE")}
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  );
 }
 
 export function PlateFloatingToolbar() {
@@ -56,60 +186,62 @@ export function PlateFloatingToolbar() {
   if (hidden) return null;
 
   return (
-    <div
-      ref={setRefs}
-      style={props.style}
-      className="ignore-click-outside/toolbar z-50"
-      onMouseDown={(event) => event.preventDefault()}
-    >
-      <Toolbar className="rounded-2xl border border-border/70 bg-background/95 p-1 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/88">
-        <ToolbarGroup>
-          <MarkToolbarButton
-            nodeType="bold"
-            tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BOLD")}
-            variant="outline"
-          >
-            <span className="font-semibold">B</span>
-          </MarkToolbarButton>
-          <MarkToolbarButton
-            nodeType="italic"
-            tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ITALIC")}
-            variant="outline"
-          >
-            <span className="italic">I</span>
-          </MarkToolbarButton>
-          <MarkToolbarButton
-            nodeType="underline"
-            tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_UNDERLINE")}
-            variant="outline"
-          >
-            <span className="underline underline-offset-2">U</span>
-          </MarkToolbarButton>
-          <MarkToolbarButton
-            nodeType="strikethrough"
-            tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_STRIKETHROUGH")}
-            variant="outline"
-          >
-            <span className="line-through">S</span>
-          </MarkToolbarButton>
-          <ToolbarSeparator />
-          <LinkToolbarButton variant="outline" />
-          <MarkToolbarButton
-            nodeType="code"
-            tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_CODE")}
-            variant="outline"
-          >
-            <span className="font-mono text-[0.82rem]">{"</>"}</span>
-          </MarkToolbarButton>
-          <MarkToolbarButton
-            nodeType="highlight"
-            tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_HIGHLIGHT")}
-            variant="outline"
-          >
-            <span className="rounded bg-warning/20 px-1 text-[0.82rem]">H</span>
-          </MarkToolbarButton>
-        </ToolbarGroup>
-      </Toolbar>
-    </div>
+    <>
+      <div
+        ref={setRefs}
+        style={props.style}
+        className="ignore-click-outside/toolbar z-50"
+        onMouseDown={(event) => event.preventDefault()}
+      >
+        <Toolbar className="rounded-2xl border border-border/70 bg-background/95 p-1 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/88">
+          <ToolbarGroup>
+            <TurnIntoToolbarButton />
+          </ToolbarGroup>
+
+          <ToolbarGroup>
+            <MarkToolbarButton nodeType="bold" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BOLD")}>
+              <BoldIcon />
+            </MarkToolbarButton>
+            <MarkToolbarButton nodeType="italic" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ITALIC")}>
+              <ItalicIcon />
+            </MarkToolbarButton>
+            <MarkToolbarButton
+              nodeType="underline"
+              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_UNDERLINE")}
+            >
+              <UnderlineIcon />
+            </MarkToolbarButton>
+            <MarkToolbarButton
+              nodeType="strikethrough"
+              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_STRIKETHROUGH")}
+            >
+              <StrikethroughIcon />
+            </MarkToolbarButton>
+            <MarkToolbarButton nodeType="code" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_CODE")}>
+              <Code2Icon />
+            </MarkToolbarButton>
+            <InlineEquationToolbarButton />
+            <LinkToolbarButton />
+            <FontColorToolbarButton
+              nodeType={MARK_COLOR}
+              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
+            >
+              <BaselineIcon />
+            </FontColorToolbarButton>
+            <FontColorToolbarButton
+              nodeType={MARK_BACKGROUND_COLOR}
+              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
+            >
+              <PaintBucketIcon />
+            </FontColorToolbarButton>
+          </ToolbarGroup>
+
+          <ToolbarGroup>
+            <MoreToolbarButton />
+          </ToolbarGroup>
+        </Toolbar>
+      </div>
+      <PlateLinkFloatingToolbar />
+    </>
   );
 }

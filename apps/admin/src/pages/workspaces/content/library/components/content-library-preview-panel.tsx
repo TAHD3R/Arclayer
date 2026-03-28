@@ -46,7 +46,9 @@ export function ContentLibraryPreviewPanel(props: {
         onSeoChange={editor.setSeo}
         bodyDocument={editor.bodyDocument}
         onBodyDocumentChange={editor.setBodyDocument}
+        isLoading={editor.isLoading}
         saveState={editor.saveState}
+        saveError={editor.saveError}
         isPublishing={editor.isPublishing}
         hasPublishableVersion={Boolean(editor.draftVersionNumber)}
         onPublish={editor.publish}

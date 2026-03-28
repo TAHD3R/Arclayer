@@ -299,10 +299,12 @@ export function NodeExpandedGroupSub({
               className="w-full justify-start text-left"
             >
               <span className="min-w-0 flex-1 truncate">{label}</span>
-              <ChevronRightIcon
+              <ChevronRight
                 size={16}
-                expanded={isOpen}
-                className="ml-auto shrink-0 text-label-secondary"
+                className={cn(
+                  "ml-auto shrink-0 text-label-secondary transition-transform duration-150",
+                  isOpen && "rotate-90",
+                )}
                 aria-hidden="true"
               />
             </ButtonPrimitive>

@@ -10,9 +10,12 @@ export function ContentLibraryArticleEditorPage(props: { workspaceId: string; it
   });
 
   return (
-    <AdminRouteContainer className="h-full" innerClassName="min-h-0 flex flex-col px-0 pt-0 pb-0">
+    <AdminRouteContainer
+      className="h-full overflow-hidden"
+      innerClassName="h-full min-h-0 flex flex-col overflow-hidden px-0 pt-0 pb-0"
+    >
       <div
-        className="flex min-h-0 flex-1 flex-col bg-background"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
         data-item-id={props.itemId}
         data-workspace-id={props.workspaceId}
       >
@@ -35,7 +38,9 @@ export function ContentLibraryArticleEditorPage(props: { workspaceId: string; it
           onSeoChange={editor.setSeo}
           bodyDocument={editor.bodyDocument}
           onBodyDocumentChange={editor.setBodyDocument}
+          isLoading={editor.isLoading}
           saveState={editor.saveState}
+          saveError={editor.saveError}
           isPublishing={editor.isPublishing}
           hasPublishableVersion={Boolean(editor.draftVersionNumber)}
           onPublish={editor.publish}

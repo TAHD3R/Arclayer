@@ -9,8 +9,6 @@ import { Textarea } from "@arclayer/ui/textarea";
 type SeoDraft = {
   metaTitle: string;
   metaDescription: string;
-  canonicalUrl: string;
-  robotsDirective: string;
 };
 
 function SeoField(props: { id: string; label: string; help: string; children: React.ReactNode }) {
@@ -29,8 +27,6 @@ function normalizeSeoDraft(value: SeoDraft): SeoDraft {
   return {
     metaTitle: value.metaTitle ?? "",
     metaDescription: value.metaDescription ?? "",
-    canonicalUrl: value.canonicalUrl ?? "",
-    robotsDirective: value.robotsDirective ?? "",
   };
 }
 
@@ -44,8 +40,6 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
   const [draft, setDraft] = React.useState(() => normalizeSeoDraft(props.seo));
   const metaTitleId = React.useId();
   const metaDescriptionId = React.useId();
-  const canonicalUrlId = React.useId();
-  const robotsDirectiveId = React.useId();
 
   React.useEffect(() => {
     if (!props.open) return;
@@ -67,7 +61,8 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
       onOpenChange={props.onOpenChange}
       title={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_TITLE")}
       description={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_DESC")}
-      contentClassName="sm:max-w-xl"
+      contentClassName="max-h-[calc(100dvh-2rem)] sm:max-w-2xl lg:max-w-3xl"
+      bodyClassName="min-h-0 overflow-y-auto"
       footer={
         <>
           <Button type="button" variant="ghost" onClick={() => props.onOpenChange(false)}>
@@ -108,30 +103,6 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
             rows={4}
             value={draft.metaDescription}
             onChange={(event) => handleFieldChange("metaDescription", event.target.value)}
-          />
-        </SeoField>
-
-        <SeoField
-          id={canonicalUrlId}
-          label={t("CONTENT_LIBRARY_EDITOR_SEO_CANONICAL_URL")}
-          help={t("CONTENT_LIBRARY_EDITOR_SEO_CANONICAL_URL_HELP")}
-        >
-          <Input
-            id={canonicalUrlId}
-            value={draft.canonicalUrl}
-            onChange={(event) => handleFieldChange("canonicalUrl", event.target.value)}
-          />
-        </SeoField>
-
-        <SeoField
-          id={robotsDirectiveId}
-          label={t("CONTENT_LIBRARY_EDITOR_SEO_ROBOTS_DIRECTIVE")}
-          help={t("CONTENT_LIBRARY_EDITOR_SEO_ROBOTS_DIRECTIVE_HELP")}
-        >
-          <Input
-            id={robotsDirectiveId}
-            value={draft.robotsDirective}
-            onChange={(event) => handleFieldChange("robotsDirective", event.target.value)}
           />
         </SeoField>
       </form>

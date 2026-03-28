@@ -73,11 +73,7 @@ export const BlockDraggable: RenderNodeWrapper = (props) => {
   return (props) => <Draggable {...props} />;
 };
 
-function BlockInsertMenu(props: {
-  editor: PlateEditor;
-  path: PlateElementProps["path"];
-  top: number;
-}) {
+function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["path"] }) {
   const { t } = useTranslation("content");
   const commands = useArticleEditorCommands();
   const [open, setOpen] = React.useState(false);
@@ -126,11 +122,10 @@ function BlockInsertMenu(props: {
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="absolute left-0 size-6 rounded-md border border-border/60 bg-background p-0 text-label-secondary shadow-sm hover:bg-accent hover:text-foreground"
-          style={{ top: `${props.top + 3}px` }}
+          className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-foreground"
           data-plate-prevent-deselect
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-2.5" />
           <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</span>
         </Button>
       </PopoverTrigger>
@@ -261,98 +256,105 @@ function Draggable(props: PlateElementProps) {
           <div className={cn("slate-blockToolbarWrapper", "flex h-[1.5em]", isInColumn && "h-4")}>
             <div
               className={cn(
-                "slate-blockToolbar relative w-12",
-                "pointer-events-auto mr-2 flex items-center gap-1",
+                "slate-blockToolbar pointer-events-auto relative mr-3.5 w-[4.25rem]",
+                "flex items-center",
                 isInColumn && "mr-1.5",
               )}
             >
-              <BlockInsertMenu editor={editor} path={path} top={dragButtonTop} />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    ref={handleRef}
-                    size="icon-sm"
-                    variant="ghost"
-                    type="button"
-                    className="absolute left-6 size-6 rounded-md border border-transparent p-0 text-label-secondary hover:border-border/60 hover:bg-accent hover:text-foreground"
-                    style={{ top: `${dragButtonTop + 3}px` }}
-                    data-plate-prevent-deselect
-                    onClick={(e) => {
-                      e.preventDefault();
-                      editor.getApi(BlockSelectionPlugin).blockSelection.focus();
-                    }}
-                    onMouseDown={(e) => {
-                      resetPreview();
+              <div
+                className="absolute left-0 flex items-center gap-4"
+                style={{ top: `${dragButtonTop + 3}px` }}
+              >
+                <BlockInsertMenu editor={editor} path={path} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      ref={handleRef}
+                      size="icon-sm"
+                      variant="ghost"
+                      type="button"
+                      className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-foreground"
+                      data-plate-prevent-deselect
+                      onClick={(e) => {
+                        e.preventDefault();
+                        editor
+                          .getApi(BlockSelectionPlugin)
+                          .blockSelection.set([element.id as string]);
+                        editor.getApi(BlockSelectionPlugin).blockSelection.focus();
+                      }}
+                      onMouseDown={(e) => {
+                        resetPreview();
 
-                      if ((e.button !== 0 && e.button !== 2) || e.shiftKey) return;
+                        if ((e.button !== 0 && e.button !== 2) || e.shiftKey) return;
 
-                      const blockSelection = editor
-                        .getApi(BlockSelectionPlugin)
-                        .blockSelection.getNodes({ sort: true });
+                        const blockSelection = editor
+                          .getApi(BlockSelectionPlugin)
+                          .blockSelection.getNodes({ sort: true });
 
-                      let selectionNodes =
-                        blockSelection.length > 0
-                          ? blockSelection
-                          : editor.api.blocks({ mode: "highest" });
+                        let selectionNodes =
+                          blockSelection.length > 0
+                            ? blockSelection
+                            : editor.api.blocks({ mode: "highest" });
 
-                      if (!selectionNodes.some(([node]) => node.id === element.id)) {
-                        selectionNodes = [[element, editor.api.findPath(element)!]];
-                      }
+                        if (!selectionNodes.some(([node]) => node.id === element.id)) {
+                          selectionNodes = [[element, editor.api.findPath(element)!]];
+                        }
 
-                      const blocks = selectionNodes.map(([node]) => node);
+                        const blocks = selectionNodes.map(([node]) => node);
 
-                      if (blockSelection.length === 0) {
-                        editor.tf.blur();
-                        editor.tf.collapse();
-                      }
+                        if (blockSelection.length === 0) {
+                          editor.tf.blur();
+                          editor.tf.collapse();
+                        }
 
-                      const elements = createDragPreviewElements(editor, blocks);
-                      previewRef.current?.append(...elements);
-                      previewRef.current?.classList.remove("hidden");
-                      previewRef.current?.classList.add("opacity-0");
-                      editor.setOption(DndPlugin, "multiplePreviewRef", previewRef);
+                        const elements = createDragPreviewElements(editor, blocks);
+                        previewRef.current?.append(...elements);
+                        previewRef.current?.classList.remove("hidden");
+                        previewRef.current?.classList.add("opacity-0");
+                        editor.setOption(DndPlugin, "multiplePreviewRef", previewRef);
 
-                      editor
-                        .getApi(BlockSelectionPlugin)
-                        .blockSelection.set(blocks.map((block) => block.id as string));
-                    }}
-                    onMouseEnter={() => {
-                      if (isDragging) return;
+                        editor
+                          .getApi(BlockSelectionPlugin)
+                          .blockSelection.set(blocks.map((block) => block.id as string));
+                      }}
+                      onMouseEnter={() => {
+                        if (isDragging) return;
 
-                      const blockSelection = editor
-                        .getApi(BlockSelectionPlugin)
-                        .blockSelection.getNodes({ sort: true });
+                        const blockSelection = editor
+                          .getApi(BlockSelectionPlugin)
+                          .blockSelection.getNodes({ sort: true });
 
-                      let selectedBlocks =
-                        blockSelection.length > 0
-                          ? blockSelection
-                          : editor.api.blocks({ mode: "highest" });
+                        let selectedBlocks =
+                          blockSelection.length > 0
+                            ? blockSelection
+                            : editor.api.blocks({ mode: "highest" });
 
-                      if (!selectedBlocks.some(([node]) => node.id === element.id)) {
-                        selectedBlocks = [[element, editor.api.findPath(element)!]];
-                      }
+                        if (!selectedBlocks.some(([node]) => node.id === element.id)) {
+                          selectedBlocks = [[element, editor.api.findPath(element)!]];
+                        }
 
-                      const ids = selectedBlocks.map((block) => block[0].id as string);
+                        const ids = selectedBlocks.map((block) => block[0].id as string);
 
-                      if (ids.length > 1 && ids.includes(element.id as string)) {
-                        const previewTop = calculatePreviewTop(editor, {
-                          blocks: selectedBlocks.map((block) => block[0]),
-                          element,
-                        });
-                        setPreviewTop(previewTop);
-                      } else {
-                        setPreviewTop(0);
-                      }
-                    }}
-                    onMouseUp={() => {
-                      resetPreview();
-                    }}
-                  >
-                    <GripVertical className="size-4 text-muted-foreground" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Drag to move</TooltipContent>
-              </Tooltip>
+                        if (ids.length > 1 && ids.includes(element.id as string)) {
+                          const previewTop = calculatePreviewTop(editor, {
+                            blocks: selectedBlocks.map((block) => block[0]),
+                            element,
+                          });
+                          setPreviewTop(previewTop);
+                        } else {
+                          setPreviewTop(0);
+                        }
+                      }}
+                      onMouseUp={() => {
+                        resetPreview();
+                      }}
+                    >
+                      <GripVertical className="size-2.5 text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Drag to move</TooltipContent>
+                </Tooltip>
+              </div>
             </div>
           </div>
         </Gutter>
@@ -390,12 +392,12 @@ function Gutter({ children, className, ...props }: React.ComponentProps<"div">) 
       {...props}
       className={cn(
         "slate-gutterLeft",
-        "pointer-events-none absolute right-full top-0 z-50 mr-3 flex h-full w-12 cursor-text hover:opacity-100 sm:opacity-0",
+        "pointer-events-none absolute left-0 top-0 z-50 flex h-full -translate-x-[calc(100%+0.75rem)] cursor-text hover:opacity-100 sm:opacity-0",
         getPluginByType(editor, element.type)?.node.isContainer
           ? "group-hover/container:opacity-100"
           : "group-hover:opacity-100",
         isSelectionAreaVisible && "hidden",
-        !selected && "opacity-0 sm:group-hover:opacity-100 sm:group-hover/container:opacity-100",
+        selected && "opacity-100",
         className,
       )}
       contentEditable={false}

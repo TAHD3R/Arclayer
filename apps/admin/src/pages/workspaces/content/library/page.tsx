@@ -1245,7 +1245,7 @@ export function ContentLibraryPage() {
     />
   );
   const workbenchNode = (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col px-10 pt-8 pb-20">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto px-10 pt-8 pb-20">
       <PageMainRegion
         title={t("nav:NAV_CONTENT_LIBRARY")}
         description={t("content:CONTENT_LIBRARY_DESC")}
@@ -1324,17 +1324,17 @@ export function ContentLibraryPage() {
 
   return (
     <AdminRouteContainer
-      className="h-full"
-      innerClassName="min-h-0 flex flex-col px-0 pt-0 pb-0"
+      className="h-full overflow-hidden"
+      innerClassName="h-full min-h-0 flex flex-col overflow-hidden px-0 pt-0 pb-0"
       overlay={selectionToolbarNode}
     >
-      <div ref={splitLayoutRef} className="flex min-h-0 flex-1 bg-background">
-        <div className="min-h-0 min-w-0 flex-1">{workbenchNode}</div>
+      <div ref={splitLayoutRef} className="flex min-h-0 flex-1 overflow-hidden bg-background">
+        <div className="min-h-0 min-w-0 flex-1 overflow-hidden">{workbenchNode}</div>
         <AnimatePresence initial={false}>
           {previewRow ? (
             <motion.div
               key="content-library-preview-shell"
-              className="flex min-h-0 shrink-0 overflow-hidden"
+              className="flex h-full min-h-0 shrink-0 overflow-hidden"
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: `${previewWidthPercent}%`, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
@@ -1367,7 +1367,7 @@ export function ContentLibraryPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="flex h-full min-h-0 min-w-0 flex-1 flex-col border-l border-border/70 bg-background shadow-[-24px_0_48px_-32px_rgba(15,23,42,0.28)]"
+                className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border/70 bg-background shadow-[-24px_0_48px_-32px_rgba(15,23,42,0.28)]"
               >
                 <ContentLibraryPreviewPanel
                   className="min-h-0 w-full flex-1"

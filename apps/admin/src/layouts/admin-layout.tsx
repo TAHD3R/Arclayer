@@ -140,7 +140,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
           : undefined
       }
       guardContainer="admin-route"
-      routeTransitionClassName="min-h-full w-full"
+      routeTransitionClassName="h-full min-h-0 w-full"
     >
       {children ?? <Outlet />}
     </AdminSceneLayout>

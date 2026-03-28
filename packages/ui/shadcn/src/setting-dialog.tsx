@@ -50,7 +50,12 @@ export function SettingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("min-w-0 overflow-hidden p-0", contentClassName)}>
+      <DialogContent
+        className={cn(
+          "flex min-w-0 max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-0 sm:max-w-2xl",
+          contentClassName,
+        )}
+      >
         <DialogHeader className="min-w-0 border-b px-6 py-4 text-left">
           <DialogTitle>{displayTitle}</DialogTitle>
           {displayDescription ? (
@@ -58,7 +63,9 @@ export function SettingDialog({
           ) : null}
         </DialogHeader>
 
-        <div className={cn("min-w-0 px-6 py-4", bodyClassName)}>{children}</div>
+        <div className={cn("min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-4", bodyClassName)}>
+          {children}
+        </div>
 
         {footer ? (
           <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-4">{footer}</DialogFooter>

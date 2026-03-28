@@ -2,6 +2,7 @@ import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BaseTag } from "@/components/ui/tags";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import {
@@ -52,9 +53,9 @@ function ContentLibraryNameCell(props: {
           >
             <RoleIcon className="size-4" />
           </span>
-          <div className="min-w-0 flex-1 truncate text-headline text-label-primary">
+          <OverflowTooltipText className="min-w-0 flex-1 truncate text-headline text-label-primary">
             {props.row.name}
-          </div>
+          </OverflowTooltipText>
         </div>
         {showAddress ? (
           <div className="mt-1 min-w-0 truncate text-footnote text-label-secondary">
@@ -62,12 +63,9 @@ function ContentLibraryNameCell(props: {
           </div>
         ) : null}
         {summaryText ? (
-          <div
-            className="mt-1 min-w-0 truncate text-footnote text-label-secondary/90"
-            title={summaryText}
-          >
+          <OverflowTooltipText className="mt-1 min-w-0 truncate text-footnote text-label-secondary/90">
             {summaryText}
-          </div>
+          </OverflowTooltipText>
         ) : null}
       </div>
       <ContentLibraryRowActions
@@ -83,6 +81,48 @@ function ContentLibraryNameCell(props: {
         className="pointer-events-none absolute inset-y-0 right-0 w-30 justify-center opacity-0 transition-opacity duration-150 data-[visible=true]:pointer-events-auto data-[visible=true]:opacity-100"
       />
     </div>
+  );
+}
+
+function OverflowTooltipText(props: { className?: string; children: string }) {
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const [isOverflowing, setIsOverflowing] = React.useState(false);
+
+  React.useEffect(() => {
+    const element = contentRef.current;
+    if (!element) return;
+
+    const update = () => {
+      setIsOverflowing(element.scrollWidth > element.clientWidth);
+    };
+
+    update();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(update);
+      observer.observe(element);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [props.children]);
+
+  const content = (
+    <div ref={contentRef} className={props.className}>
+      {props.children}
+    </div>
+  );
+
+  if (!isOverflowing) return content;
+
+  return (
+    <TooltipProvider>
+      <Tooltip side="top">
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent className="max-w-[28rem]">{props.children}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

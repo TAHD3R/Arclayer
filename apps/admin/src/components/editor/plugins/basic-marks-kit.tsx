@@ -1,6 +1,13 @@
 "use client";
 
 import {
+  FontBackgroundColorPlugin,
+  FontColorPlugin,
+  FontSizePlugin,
+  LineHeightPlugin,
+  TextAlignPlugin,
+} from "@platejs/basic-styles/react";
+import {
   BoldPlugin,
   CodePlugin,
   HighlightPlugin,
@@ -37,5 +44,10 @@ export const BasicMarksKit = [
     node: { component: HighlightLeaf },
     shortcuts: { toggle: { keys: "mod+shift+h" } },
   }),
+  FontSizePlugin,
+  FontColorPlugin,
+  FontBackgroundColorPlugin,
+  TextAlignPlugin,
+  LineHeightPlugin,
   KbdPlugin.withComponent(KbdLeaf),
 ];

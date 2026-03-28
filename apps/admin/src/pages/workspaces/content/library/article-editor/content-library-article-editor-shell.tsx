@@ -1,17 +1,30 @@
 import * as React from "react";
-import { ImagePlus, Maximize2, MoreHorizontal, PanelRightClose, Search } from "lucide-react";
+import {
+  ImagePlus,
+  Maximize2,
+  MoreHorizontal,
+  PanelRightClose,
+  Search,
+  Upload,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
 import { Button } from "@arclayer/ui/button";
 import { DropdownMenu, DropdownMenuTrigger } from "@arclayer/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
+import { Progress } from "@arclayer/ui/progress";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
 import { ContentLibraryArticleEditorBody } from "./content-library-article-editor-body";
+import {
+  ContentLibraryArticleEditorDocumentProvider,
+  useContentLibraryArticleEditorDocumentState,
+} from "./content-library-article-editor-document";
 import { ContentLibraryCoverPickerPopover } from "./content-library-cover-picker-popover";
 import { ContentLibraryArticleEditorMenu } from "./content-library-article-editor-menu";
+import { ContentLibraryArticleEditorPageToolbar } from "./content-library-article-editor-page-toolbar";
 import { ContentLibraryArticleEditorSaveIndicator } from "./content-library-article-editor-save-indicator";
 import { ContentLibraryArticleEditorSeoDialog } from "./content-library-article-editor-seo-dialog";
 
@@ -44,7 +57,9 @@ type ContentLibraryArticleEditorShellProps = {
   }) => void;
   bodyDocument?: Record<string, unknown>;
   onBodyDocumentChange?: (value: Record<string, unknown>) => void;
+  isLoading?: boolean;
   saveState?: "hidden" | "saving" | "saved" | "error";
+  saveError?: unknown;
   isPublishing?: boolean;
   hasPublishableVersion?: boolean;
   onPublish?: () => void;
@@ -52,6 +67,32 @@ type ContentLibraryArticleEditorShellProps = {
   onOpenPage?: () => void;
   className?: string;
 };
+
+function ContentLibraryArticleEditorLoadingOverlay(props: { label: string }) {
+  const [progress, setProgress] = React.useState(14);
+
+  React.useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setProgress((current) => (current >= 84 ? 28 : current + 8));
+    }, 220);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={props.label}
+      className="absolute inset-0 z-40 flex items-center justify-center bg-background/56 backdrop-blur-md"
+    >
+      <div className="w-full max-w-xs px-6">
+        <div className="mb-3 text-center text-sm font-medium text-foreground/88">{props.label}</div>
+        <Progress value={progress} className="h-2.5 bg-background/60 shadow-sm" />
+      </div>
+    </div>
+  );
+}
 
 function ToolbarIconButton(props: {
   label: string;
@@ -86,207 +127,230 @@ function HeaderActionButton(props: { icon: React.ReactNode; label: string; onCli
   );
 }
 
-export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEditorShellProps) {
+function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
+  const { isHydrated } = useContentLibraryArticleEditorDocumentState();
   const [coverPopoverOpen, setCoverPopoverOpen] = React.useState(false);
   const [seoDialogOpen, setSeoDialogOpen] = React.useState(false);
-  const pageFrameClass = "w-full";
+  const showLoadingOverlay = Boolean(props.isLoading) || !isHydrated;
   const textLaneClass =
     props.mode === "page"
-      ? "mx-auto flex w-full max-w-[76rem] flex-col px-10 pl-24"
-      : "flex w-full flex-col px-6 pl-24";
+      ? "mx-auto flex w-full max-w-[76rem] flex-col px-6 pl-16"
+      : "flex w-full flex-col px-4 pl-16";
   const coverImageUrl = React.useMemo(
     () => resolveAssetRefToPublicUrlPath(props.coverAssetId),
     [props.coverAssetId],
   );
 
   return (
-    <div
-      className={cn("flex h-full min-h-0 flex-col overflow-hidden bg-background", props.className)}
-    >
-      <TooltipProvider>
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-background px-3">
-          <div className="flex items-center gap-1">
-            {props.mode === "split" && props.onClose ? (
-              <ToolbarIconButton
-                label={t("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")}
-                onClick={props.onClose}
-              >
-                <PanelRightClose className="size-4" />
-              </ToolbarIconButton>
-            ) : null}
-            {props.mode === "split" && props.onOpenPage ? (
-              <ToolbarIconButton
-                label={t("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")}
-                onClick={props.onOpenPage}
-              >
-                <Maximize2 className="size-4" />
-              </ToolbarIconButton>
-            ) : null}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <ContentLibraryArticleEditorSaveIndicator
-              state={props.saveState ?? "hidden"}
-              isPublishing={props.isPublishing}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!props.hasPublishableVersion || props.isPublishing}
-              onClick={props.onPublish}
-            >
-              {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
+    <>
+      <div
+        className={cn(
+          "relative flex h-full min-h-0 flex-col overflow-hidden bg-background",
+          props.className,
+        )}
+      >
+        {props.mode === "split" ? (
+          <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-background px-3">
+            <div className="flex items-center gap-1">
+              {props.onClose ? (
+                <ToolbarIconButton
+                  label={t("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")}
+                  onClick={props.onClose}
                 >
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <ContentLibraryArticleEditorMenu
-                status={props.status}
-                visibility={props.visibility}
-                onVisibilityChange={props.onVisibilityChange}
-                slug={props.slug}
-                onSlugChange={props.onSlugChange}
-              />
-            </DropdownMenu>
-          </div>
-        </div>
-      </TooltipProvider>
+                  <PanelRightClose className="size-4" />
+                </ToolbarIconButton>
+              ) : null}
+              {props.onOpenPage ? (
+                <ToolbarIconButton
+                  label={t("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")}
+                  onClick={props.onOpenPage}
+                >
+                  <Maximize2 className="size-4" />
+                </ToolbarIconButton>
+              ) : null}
+            </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain">
-        <div className="flex min-h-0 w-full flex-1 flex-col">
-          {coverImageUrl ? (
-            <div className={cn(pageFrameClass, props.mode === "page" ? "pt-0" : "px-3 pt-3")}>
+            <div className="flex items-center gap-2">
+              <ContentLibraryArticleEditorSaveIndicator
+                state={props.saveState ?? "hidden"}
+                isPublishing={props.isPublishing}
+                error={props.saveError}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={
+                  !props.hasPublishableVersion || props.isPublishing || props.saveState === "saving"
+                }
+                onClick={props.onPublish}
+              >
+                <Upload className="size-4" />
+                {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <ContentLibraryArticleEditorMenu
+                  status={props.status}
+                  visibility={props.visibility}
+                  onVisibilityChange={props.onVisibilityChange}
+                  slug={props.slug}
+                  onSlugChange={props.onSlugChange}
+                />
+              </DropdownMenu>
+            </div>
+          </div>
+        ) : null}
+
+        {props.mode === "page" ? (
+          <ContentLibraryArticleEditorPageToolbar
+            saveState={props.saveState}
+            saveError={props.saveError}
+            isPublishing={props.isPublishing}
+            hasPublishableVersion={props.hasPublishableVersion}
+            onPublish={props.onPublish}
+            status={props.status}
+            visibility={props.visibility}
+            onVisibilityChange={props.onVisibilityChange}
+            slug={props.slug}
+            onSlugChange={props.onSlugChange}
+          />
+        ) : null}
+
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain">
+            <div className="flex min-h-full w-full flex-col">
+              {coverImageUrl ? (
+                <div className="w-full">
+                  <div className="group/cover relative overflow-hidden border-b border-border/70 bg-muted/20">
+                    <div className="relative aspect-[3.15/1]">
+                      <LazyAssetImage
+                        eager
+                        src={coverImageUrl}
+                        alt={t("CONTENT_LIBRARY_EDITOR_COVER_ALT", {
+                          title: props.title || t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER"),
+                        })}
+                        rootClassName="absolute inset-0"
+                        className="object-cover"
+                        showErrorOverlay
+                      />
+                    </div>
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
+                    <div className="absolute right-4 top-4 opacity-0 transition-opacity duration-150 group-hover/cover:opacity-100 group-focus-within/cover:opacity-100">
+                      <ContentLibraryCoverPickerPopover
+                        workspaceId={props.workspaceId}
+                        value={props.coverAssetId}
+                        open={coverPopoverOpen}
+                        onOpenChange={setCoverPopoverOpen}
+                        onChange={props.onCoverAssetIdChange}
+                      >
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="h-9 rounded-xl px-3 shadow-sm"
+                        >
+                          {t("CONTENT_LIBRARY_EDITOR_CHANGE_COVER")}
+                        </Button>
+                      </ContentLibraryCoverPickerPopover>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               <div
                 className={cn(
-                  "group/cover relative overflow-hidden bg-muted/20",
+                  "group/header",
+                  textLaneClass,
                   props.mode === "page"
-                    ? "border-b border-border/70"
-                    : "rounded-[30px] border border-border/70",
+                    ? props.coverAssetId
+                      ? "pt-6"
+                      : "pt-8"
+                    : props.coverAssetId
+                      ? "pt-4"
+                      : "pt-6",
+                  "space-y-3",
                 )}
               >
-                <div className="relative aspect-[3.15/1]">
-                  <LazyAssetImage
-                    eager
-                    src={coverImageUrl}
-                    alt={t("CONTENT_LIBRARY_EDITOR_COVER_ALT", {
-                      title: props.title || t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER"),
-                    })}
-                    rootClassName="absolute inset-0"
-                    className="object-cover"
-                    showErrorOverlay
+                <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
+                  {!props.coverAssetId ? (
+                    <ContentLibraryCoverPickerPopover
+                      workspaceId={props.workspaceId}
+                      value={props.coverAssetId}
+                      open={coverPopoverOpen}
+                      onOpenChange={setCoverPopoverOpen}
+                      onChange={props.onCoverAssetIdChange}
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-foreground"
+                      >
+                        <ImagePlus className="size-4" />
+                        {t("CONTENT_LIBRARY_EDITOR_ADD_COVER")}
+                      </Button>
+                    </ContentLibraryCoverPickerPopover>
+                  ) : null}
+                  <HeaderActionButton
+                    icon={<Search className="size-4" />}
+                    label={t("CONTENT_LIBRARY_EDITOR_OPEN_SEO_DIALOG")}
+                    onClick={() => setSeoDialogOpen(true)}
                   />
                 </div>
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
-                <div className="absolute right-4 top-4 opacity-0 transition-opacity duration-150 group-hover/cover:opacity-100 group-focus-within/cover:opacity-100">
-                  <ContentLibraryCoverPickerPopover
-                    workspaceId={props.workspaceId}
-                    value={props.coverAssetId}
-                    open={coverPopoverOpen}
-                    onOpenChange={setCoverPopoverOpen}
-                    onChange={props.onCoverAssetIdChange}
-                  >
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="h-9 rounded-xl px-3 shadow-sm"
-                    >
-                      {t("CONTENT_LIBRARY_EDITOR_CHANGE_COVER")}
-                    </Button>
-                  </ContentLibraryCoverPickerPopover>
-                </div>
+
+                <input
+                  type="text"
+                  value={props.title}
+                  onChange={(event) => props.onTitleChange(event.target.value)}
+                  placeholder={t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER")}
+                  className={cn(
+                    "w-full appearance-none border-none bg-transparent p-0 font-semibold leading-[0.94] tracking-[-0.045em] text-foreground outline-none placeholder:text-label-tertiary",
+                    props.mode === "page"
+                      ? "text-[clamp(1.85rem,3.6vw,2.8rem)]"
+                      : "text-[clamp(1.55rem,4vw,2.15rem)]",
+                  )}
+                />
+
+                <textarea
+                  value={props.summary}
+                  onChange={(event) => props.onSummaryChange(event.target.value)}
+                  placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
+                  className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-[1.02rem] leading-7 text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
+                  rows={2}
+                />
+              </div>
+
+              <div
+                className={cn(
+                  "flex min-h-0 flex-1 flex-col",
+                  props.mode === "page" ? "mt-8" : "mt-5",
+                )}
+              >
+                <ContentLibraryArticleEditorBody
+                  placeholder={t("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER")}
+                  mode={props.mode}
+                />
               </div>
             </div>
-          ) : null}
-
-          <div
-            className={cn(
-              "group/header",
-              textLaneClass,
-              props.mode === "page"
-                ? props.coverAssetId
-                  ? "pt-6"
-                  : "pt-8"
-                : props.coverAssetId
-                  ? "pt-4"
-                  : "pt-6",
-              "space-y-3",
-            )}
-          >
-            <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
-              <ContentLibraryCoverPickerPopover
-                workspaceId={props.workspaceId}
-                value={props.coverAssetId}
-                open={coverPopoverOpen}
-                onOpenChange={setCoverPopoverOpen}
-                onChange={props.onCoverAssetIdChange}
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-foreground"
-                >
-                  <ImagePlus className="size-4" />
-                  {t(
-                    props.coverAssetId
-                      ? "CONTENT_LIBRARY_EDITOR_CHANGE_COVER"
-                      : "CONTENT_LIBRARY_EDITOR_ADD_COVER",
-                  )}
-                </Button>
-              </ContentLibraryCoverPickerPopover>
-              <HeaderActionButton
-                icon={<Search className="size-4" />}
-                label={t("CONTENT_LIBRARY_EDITOR_OPEN_SEO_DIALOG")}
-                onClick={() => setSeoDialogOpen(true)}
-              />
-            </div>
-
-            <input
-              type="text"
-              value={props.title}
-              onChange={(event) => props.onTitleChange(event.target.value)}
-              placeholder={t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER")}
-              className={cn(
-                "w-full appearance-none border-none bg-transparent p-0 font-semibold leading-[0.94] tracking-[-0.045em] text-foreground outline-none placeholder:text-label-tertiary",
-                props.mode === "page"
-                  ? "text-[clamp(1.85rem,3.6vw,2.8rem)]"
-                  : "text-[clamp(1.55rem,4vw,2.15rem)]",
-              )}
-            />
-
-            <textarea
-              value={props.summary}
-              onChange={(event) => props.onSummaryChange(event.target.value)}
-              placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
-              className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-[1.02rem] leading-7 text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
-              rows={2}
-            />
-          </div>
-
-          <div
-            className={cn("flex min-h-0 flex-1 flex-col", props.mode === "page" ? "mt-8" : "mt-5")}
-          >
-            <ContentLibraryArticleEditorBody
-              workspaceId={props.workspaceId}
-              editorIdentity={`${props.workspaceId}:${props.itemId}`}
-              document={props.bodyDocument}
-              placeholder={t("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER")}
-              mode={props.mode}
-              onChange={props.onBodyDocumentChange}
-            />
           </div>
         </div>
+
+        {showLoadingOverlay ? (
+          <ContentLibraryArticleEditorLoadingOverlay
+            label={t("CONTENT_LIBRARY_EDITOR_LOADING_TITLE")}
+          />
+        ) : null}
       </div>
 
       <ContentLibraryArticleEditorSeoDialog
@@ -295,6 +359,19 @@ export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEdi
         onOpenChange={setSeoDialogOpen}
         onSeoChange={props.onSeoChange}
       />
-    </div>
+    </>
+  );
+}
+
+export function ContentLibraryArticleEditorShell(props: ContentLibraryArticleEditorShellProps) {
+  return (
+    <ContentLibraryArticleEditorDocumentProvider
+      workspaceId={props.workspaceId}
+      editorIdentity={`${props.workspaceId}:${props.itemId}`}
+      document={props.bodyDocument}
+      onChange={props.onBodyDocumentChange}
+    >
+      <ContentLibraryArticleEditorShellInner {...props} />
+    </ContentLibraryArticleEditorDocumentProvider>
   );
 }
