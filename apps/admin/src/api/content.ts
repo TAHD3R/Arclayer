@@ -70,6 +70,13 @@ export async function listAllContentItems(workspaceId: string): Promise<AdminCon
   );
 }
 
+export async function getContentItem(
+  workspaceId: string,
+  itemId: string,
+): Promise<AdminContentItem> {
+  return api.get<AdminContentItem>(workspacePath(workspaceId, `/content/items/${itemId}`));
+}
+
 export async function createContentItem(
   workspaceId: string,
   payload: CreateAdminContentItemPayload,

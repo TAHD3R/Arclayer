@@ -1,29 +1,47 @@
-import * as React from "react";
-
-import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 
 import { ContentLibraryArticleEditorShell } from "./content-library-article-editor-shell";
+import { useContentLibraryArticleEditor } from "./use-content-library-article-editor";
 
 export function ContentLibraryArticleEditorPage(props: { workspaceId: string; itemId: string }) {
-  const [title, setTitle] = React.useState("");
-  const [summary, setSummary] = React.useState("");
+  const editor = useContentLibraryArticleEditor({
+    workspaceId: props.workspaceId,
+    itemId: props.itemId,
+  });
 
   return (
-    <DefaultPage className="h-full" contentClassName="min-h-0 flex flex-col">
+    <AdminRouteContainer className="h-full" innerClassName="min-h-0 flex flex-col px-0 pt-0 pb-0">
       <div
-        className="flex min-h-0 flex-1 flex-col"
+        className="flex min-h-0 flex-1 flex-col bg-background"
         data-item-id={props.itemId}
         data-workspace-id={props.workspaceId}
       >
         <ContentLibraryArticleEditorShell
+          workspaceId={props.workspaceId}
+          itemId={props.itemId}
           mode="page"
-          title={title}
-          summary={summary}
-          onTitleChange={setTitle}
-          onSummaryChange={setSummary}
+          title={editor.title}
+          summary={editor.summary}
+          onTitleChange={editor.setTitle}
+          onSummaryChange={editor.setSummary}
+          slug={editor.slug}
+          onSlugChange={editor.setSlug}
+          status={editor.status}
+          visibility={editor.visibility}
+          onVisibilityChange={editor.setVisibility}
+          coverAssetId={editor.coverAssetId}
+          onCoverAssetIdChange={editor.setCoverAssetId}
+          seo={editor.seo}
+          onSeoChange={editor.setSeo}
+          bodyDocument={editor.bodyDocument}
+          onBodyDocumentChange={editor.setBodyDocument}
+          saveState={editor.saveState}
+          isPublishing={editor.isPublishing}
+          hasPublishableVersion={Boolean(editor.draftVersionNumber)}
+          onPublish={editor.publish}
           className="min-h-0 flex-1"
         />
       </div>
-    </DefaultPage>
+    </AdminRouteContainer>
   );
 }

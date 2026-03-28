@@ -1,0 +1,140 @@
+import * as React from "react";
+import { useTranslation } from "react-i18next";
+
+import { Button } from "@arclayer/ui/button";
+import { Input } from "@arclayer/ui/input";
+import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Textarea } from "@arclayer/ui/textarea";
+
+type SeoDraft = {
+  metaTitle: string;
+  metaDescription: string;
+  canonicalUrl: string;
+  robotsDirective: string;
+};
+
+function SeoField(props: { id: string; label: string; help: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-1.5">
+      <label htmlFor={props.id} className="font-semibold text-foreground">
+        {props.label}
+      </label>
+      <div className="text-label-secondary">{props.help}</div>
+      {props.children}
+    </div>
+  );
+}
+
+function normalizeSeoDraft(value: SeoDraft): SeoDraft {
+  return {
+    metaTitle: value.metaTitle ?? "",
+    metaDescription: value.metaDescription ?? "",
+    canonicalUrl: value.canonicalUrl ?? "",
+    robotsDirective: value.robotsDirective ?? "",
+  };
+}
+
+export function ContentLibraryArticleEditorSeoDialog(props: {
+  open: boolean;
+  seo: SeoDraft;
+  onOpenChange: (open: boolean) => void;
+  onSeoChange: (value: Partial<SeoDraft>) => void;
+}) {
+  const { t } = useTranslation(["content", "common"]);
+  const [draft, setDraft] = React.useState(() => normalizeSeoDraft(props.seo));
+  const metaTitleId = React.useId();
+  const metaDescriptionId = React.useId();
+  const canonicalUrlId = React.useId();
+  const robotsDirectiveId = React.useId();
+
+  React.useEffect(() => {
+    if (!props.open) return;
+    setDraft(normalizeSeoDraft(props.seo));
+  }, [props.open, props.seo]);
+
+  const handleFieldChange = React.useCallback((field: keyof SeoDraft, value: string) => {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }, []);
+
+  const handleConfirm = React.useCallback(() => {
+    props.onSeoChange(draft);
+    props.onOpenChange(false);
+  }, [draft, props]);
+
+  return (
+    <SettingDialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_TITLE")}
+      description={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_DESC")}
+      contentClassName="sm:max-w-xl"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={() => props.onOpenChange(false)}>
+            {t("common:CANCEL")}
+          </Button>
+          <Button type="button" onClick={handleConfirm}>
+            {t("common:CONFIRM")}
+          </Button>
+        </>
+      }
+    >
+      <form
+        className="grid gap-4 py-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleConfirm();
+        }}
+      >
+        <SeoField
+          id={metaTitleId}
+          label={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}
+          help={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}
+        >
+          <Input
+            id={metaTitleId}
+            value={draft.metaTitle}
+            onChange={(event) => handleFieldChange("metaTitle", event.target.value)}
+          />
+        </SeoField>
+
+        <SeoField
+          id={metaDescriptionId}
+          label={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
+          help={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION_HELP")}
+        >
+          <Textarea
+            id={metaDescriptionId}
+            rows={4}
+            value={draft.metaDescription}
+            onChange={(event) => handleFieldChange("metaDescription", event.target.value)}
+          />
+        </SeoField>
+
+        <SeoField
+          id={canonicalUrlId}
+          label={t("CONTENT_LIBRARY_EDITOR_SEO_CANONICAL_URL")}
+          help={t("CONTENT_LIBRARY_EDITOR_SEO_CANONICAL_URL_HELP")}
+        >
+          <Input
+            id={canonicalUrlId}
+            value={draft.canonicalUrl}
+            onChange={(event) => handleFieldChange("canonicalUrl", event.target.value)}
+          />
+        </SeoField>
+
+        <SeoField
+          id={robotsDirectiveId}
+          label={t("CONTENT_LIBRARY_EDITOR_SEO_ROBOTS_DIRECTIVE")}
+          help={t("CONTENT_LIBRARY_EDITOR_SEO_ROBOTS_DIRECTIVE_HELP")}
+        >
+          <Input
+            id={robotsDirectiveId}
+            value={draft.robotsDirective}
+            onChange={(event) => handleFieldChange("robotsDirective", event.target.value)}
+          />
+        </SeoField>
+      </form>
+    </SettingDialog>
+  );
+}

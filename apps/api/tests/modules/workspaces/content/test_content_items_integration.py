@@ -111,10 +111,18 @@ def _draft_payload() -> dict:
         "changeSummary": "initial draft",
         "fieldsSnapshot": {
             "title": "Hello World",
+            "summary": "This is the canonical summary.",
             "body": "Draft body",
         },
         "presentations": [
-            {"kind": "form_data", "payload": {"title": "Hello World", "body": "Draft body"}},
+            {
+                "kind": "form_data",
+                "payload": {
+                    "title": "Hello World",
+                    "summary": "This is the canonical summary.",
+                    "body": "Draft body",
+                },
+            },
             {"kind": "rich_text_document", "payload": {"type": "doc", "content": []}},
             {"kind": "visual_blueprint", "payload": {"root": "page", "nodes": {}}},
         ],
@@ -201,6 +209,32 @@ async def test_content_items_list_is_available_from_canonical_read_endpoint(
         assert payload["items"][0]["bootstrapPresetState"] == "none"
         assert payload["items"][0]["capabilityPackIds"] == []
         assert payload["items"][0]["slug"].startswith("hello-world")
+
+
+@pytest.mark.asyncio
+async def test_content_items_list_returns_active_version_summary(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=_draft_payload(),
+        )
+        assert draft_res.status_code == 201, draft_res.text
+
+        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        assert list_res.status_code == 200, list_res.text
+        payload = list_res.json()["data"]
+        assert payload["total"] == 1
+        assert payload["items"][0]["summary"] == "This is the canonical summary."
 
 
 @pytest.mark.asyncio
@@ -339,6 +373,27 @@ async def test_content_items_reject_direct_writes_to_published_version(
         assert patch_res.status_code == 409, patch_res.text
         assert patch_res.json()["error"] == "CONTENT_VERSION_IMMUTABLE"
         assert patch_res.json()["message"] == "Non-draft version is immutable"
+
+
+@pytest.mark.asyncio
+async def test_content_items_return_single_item_detail(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        detail_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}")
+        assert detail_res.status_code == 200, detail_res.text
+        data = detail_res.json()["data"]
+        assert data["id"] == item_id
+        assert data["title"] == "Hello World"
+        assert data["draftVersion"] == 0
 
 
 @pytest.mark.asyncio

@@ -69,6 +69,29 @@ async def list_workspace_content_items_canonical(
     return Response.success(data=data)
 
 
+@canonical_items_router.get(
+    "/items/{item_id}",
+    response_model=ResponseModel[ContentItemOut],
+    response_model_exclude_none=True,
+    summary="Get rebuilt content item detail (workspace RBAC protected)",
+)
+async def get_workspace_content_item_canonical(
+    item_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemReadService,
+        Depends(get_workspace_content_canonical_item_reads),
+    ],
+) -> ResponseModel[ContentItemOut]:
+    data = await service.get_item(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+    )
+    return Response.success(data=data)
+
+
 @canonical_items_router.post(
     "/items",
     response_model=ResponseModel[ContentItemOut],

@@ -1,10 +1,19 @@
 import type { ReactNode } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ContentLibraryArticleEditorPage } from "@/pages/workspaces/content/library/article-editor/page";
 import { ContentLibraryArticleEditorShell } from "@/pages/workspaces/content/library/article-editor/content-library-article-editor-shell";
+
+const mocked = vi.hoisted(() => ({
+  loadContentLibraryArticleEditorSnapshot: vi.fn(),
+  getCoreSettings: vi.fn(),
+  saveContentItemDraftVersion: vi.fn(),
+  patchContentItemVersion: vi.fn(),
+  publishContentItemVersion: vi.fn(),
+}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -12,17 +21,140 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/layouts/page-shell/default-page", () => ({
-  DefaultPage: (props: { children?: ReactNode }) => (
-    <div data-testid="default-page-shell">{props.children}</div>
+vi.mock("@/components/layout/admin-route-container", () => ({
+  AdminRouteContainer: (props: {
+    children?: ReactNode;
+    className?: string;
+    innerClassName?: string;
+  }) => (
+    <div data-testid="admin-route-container" className={props.className}>
+      <div data-testid="admin-route-container-inner" className={props.innerClassName}>
+        {props.children}
+      </div>
+    </div>
   ),
 }));
 
-describe("content-library-article-editor-page", () => {
-  it("renders the page mode shell inside the default page layout", () => {
-    render(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+vi.mock("@/pages/workspaces/content/library/article-editor/api", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/pages/workspaces/content/library/article-editor/api")>();
+  return {
+    ...actual,
+    loadContentLibraryArticleEditorSnapshot: (...args: unknown[]) =>
+      mocked.loadContentLibraryArticleEditorSnapshot(...args),
+  };
+});
 
-    expect(screen.getByTestId("default-page-shell")).toBeInTheDocument();
+vi.mock("@/api/content", () => ({
+  saveContentItemDraftVersion: (...args: unknown[]) => mocked.saveContentItemDraftVersion(...args),
+  patchContentItemVersion: (...args: unknown[]) => mocked.patchContentItemVersion(...args),
+  publishContentItemVersion: (...args: unknown[]) => mocked.publishContentItemVersion(...args),
+}));
+
+vi.mock("@/api/settings", () => ({
+  getCoreSettings: (...args: unknown[]) => mocked.getCoreSettings(...args),
+}));
+
+vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
+  AssetPickerDialog: () => null,
+}));
+
+function renderWithQuery(component: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+}
+
+function buildSnapshot(options?: {
+  draftVersionNumber?: number;
+  draftState?: "draft" | "published";
+  itemStatus?: "draft" | "published" | "archived";
+  fieldsSnapshot?: Record<string, unknown>;
+  seoPayload?: Record<string, unknown> | null;
+}) {
+  return {
+    item: {
+      id: "content-1",
+      workspaceId: "ws-1",
+      siteId: "site-1",
+      modelId: "model-1",
+      modelKey: "article",
+      slug: "launch-memo",
+      title: "Launch memo",
+      status: options?.itemStatus ?? "draft",
+      visibility: "public",
+      locale: "en-US",
+      bootstrapPresetKey: "post",
+      bootstrapPresetState: "selected",
+      capabilityPackIds: ["publishable", "rich_text_editable", "seo_managed"],
+      draftVersion: options?.draftVersionNumber ?? 3,
+      publishedVersion: 2,
+      updatedAt: "2026-03-28T00:00:00Z",
+    },
+    draftVersion: {
+      itemId: "content-1",
+      versionNumber: options?.draftVersionNumber ?? 3,
+      state: options?.draftState ?? "draft",
+      createdAt: "2026-03-28T00:00:00Z",
+      fieldsSnapshot: {
+        title: "Launch memo",
+        summary: "Loaded summary",
+        slug: "launch-memo",
+        visibility: "public",
+        ...options?.fieldsSnapshot,
+      },
+      presentations: [
+        { kind: "rich_text_document", payload: { type: "doc", content: [] } },
+        ...(options?.seoPayload ? [{ kind: "seo", payload: options.seoPayload }] : []),
+      ],
+      changeSummary: null,
+    },
+    publishedVersion: null,
+    bodyPresentation: { kind: "rich_text_document", payload: { type: "doc", content: [] } },
+  };
+}
+
+describe("content-library-article-editor-page", () => {
+  beforeEach(() => {
+    mocked.loadContentLibraryArticleEditorSnapshot.mockReset();
+    mocked.getCoreSettings.mockReset();
+    mocked.saveContentItemDraftVersion.mockReset();
+    mocked.patchContentItemVersion.mockReset();
+    mocked.publishContentItemVersion.mockReset();
+    mocked.getCoreSettings.mockResolvedValue({
+      namespace: "core",
+      value: {
+        content_strategy: {
+          autosave: {
+            enabled: true,
+            interval_sec: 1,
+            save_on_blur: true,
+          },
+          retention: {
+            draft_max_revisions: 100,
+          },
+        },
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("renders the page mode shell inside the immersive route container", async () => {
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
+
+    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+
+    expect(screen.getByTestId("admin-route-container")).toBeInTheDocument();
+    expect(screen.getByTestId("admin-route-container-inner")).toBeInTheDocument();
     expect(screen.getByLabelText("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER"),
@@ -30,13 +162,208 @@ describe("content-library-article-editor-page", () => {
     expect(
       screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER"),
     ).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER")).toBeInTheDocument();
+    expect(screen.getByTestId("content-library-article-editor-body")).toBeInTheDocument();
     expect(
       screen.queryByLabelText("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW"),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR"),
     ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Launch memo")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Loaded summary")).toBeInTheDocument();
+    });
+  });
+
+  it("autosaves changed draft fields and seo metadata through the patch endpoint", async () => {
+    const user = userEvent.setup();
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(
+      buildSnapshot({
+        seoPayload: {
+          metaTitle: "Launch memo | Arclayer",
+          metaDescription: "Loaded SEO summary",
+          canonicalUrl: "/launch-memo",
+        },
+      }),
+    );
+    mocked.patchContentItemVersion.mockResolvedValueOnce({
+      itemId: "content-1",
+      versionNumber: 3,
+      state: "draft",
+      createdAt: "2026-03-28T00:00:00Z",
+      fieldsSnapshot: {
+        title: "Launch memo",
+        summary: "Updated summary",
+        slug: "launch-memo-v2",
+        visibility: "private",
+      },
+      presentations: [
+        { kind: "rich_text_document", payload: { type: "doc", content: [] } },
+        {
+          kind: "seo",
+          payload: {
+            metaTitle: "Launch memo updated | Arclayer",
+            metaDescription: "Loaded SEO summary",
+            canonicalUrl: "/launch-memo",
+          },
+        },
+      ],
+      changeSummary: null,
+    });
+
+    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+
+    const summary = await screen.findByDisplayValue("Loaded summary");
+    await user.clear(summary);
+    await user.type(summary, "Updated summary");
+
+    await user.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_OPEN_SEO_DIALOG" }),
+    );
+    const metaTitleInput = await screen.findByLabelText("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE");
+    await user.clear(metaTitleInput);
+    await user.type(metaTitleInput, "Launch memo updated | Arclayer");
+    await user.click(screen.getByRole("button", { name: "common:CONFIRM" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByLabelText("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE"),
+      ).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU"));
+    const slugInput = await screen.findByLabelText("CONTENT_LIBRARY_EDITOR_MENU_SLUG");
+    await user.clear(slugInput);
+    await user.type(slugInput, "launch-memo-v2");
+    await user.click(screen.getByRole("radio", { name: "CONTENT_LIBRARY_VISIBILITY_PRIVATE" }));
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 1100));
+    });
+
+    await waitFor(() => {
+      expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3, {
+        changeSummary: "Update article draft",
+        fieldsSnapshot: {
+          title: "Launch memo",
+          summary: "Updated summary",
+          slug: "launch-memo-v2",
+          status: "draft",
+          visibility: "private",
+          coverAssetId: null,
+        },
+        presentations: [
+          { kind: "rich_text_document", payload: { type: "doc", content: [] } },
+          {
+            kind: "seo",
+            payload: {
+              metaTitle: "Launch memo updated | Arclayer",
+              metaDescription: "Loaded SEO summary",
+              canonicalUrl: "/launch-memo",
+            },
+          },
+        ],
+      });
+    });
+  });
+
+  it("creates a new draft version when the current active version is already published", async () => {
+    const user = userEvent.setup();
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(
+      buildSnapshot({
+        draftVersionNumber: 5,
+        draftState: "published",
+        itemStatus: "published",
+      }),
+    );
+    mocked.saveContentItemDraftVersion.mockResolvedValueOnce({
+      itemId: "content-1",
+      versionNumber: 6,
+      state: "draft",
+      createdAt: "2026-03-28T00:00:00Z",
+      fieldsSnapshot: {
+        title: "Launch memo",
+        summary: "Published base summary",
+        slug: "launch-memo",
+        status: "published",
+        visibility: "public",
+      },
+      presentations: [{ kind: "rich_text_document", payload: { type: "doc", content: [] } }],
+      changeSummary: null,
+    });
+
+    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+
+    const summary = await screen.findByDisplayValue("Loaded summary");
+    await user.clear(summary);
+    await user.type(summary, "Published base summary");
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 1100));
+    });
+
+    await waitFor(() => {
+      expect(mocked.saveContentItemDraftVersion).toHaveBeenCalledWith("ws-1", "content-1", {
+        expectedVersion: 5,
+        changeSummary: "Update article draft",
+        fieldsSnapshot: {
+          title: "Launch memo",
+          summary: "Published base summary",
+          slug: "launch-memo",
+          status: "published",
+          visibility: "public",
+          coverAssetId: null,
+        },
+        presentations: [{ kind: "rich_text_document", payload: { type: "doc", content: [] } }],
+      });
+    });
+  });
+
+  it("publishes the latest draft version from the editor toolbar", async () => {
+    const user = userEvent.setup();
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
+    mocked.patchContentItemVersion.mockResolvedValueOnce({
+      itemId: "content-1",
+      versionNumber: 3,
+      state: "draft",
+      createdAt: "2026-03-28T00:00:00Z",
+      fieldsSnapshot: {
+        title: "Launch memo revised",
+        summary: "Loaded summary",
+        slug: "launch-memo",
+        status: "published",
+        visibility: "public",
+        coverAssetId: null,
+      },
+      presentations: [{ kind: "rich_text_document", payload: { type: "doc", content: [] } }],
+      changeSummary: null,
+    });
+    mocked.publishContentItemVersion.mockResolvedValueOnce({
+      itemId: "content-1",
+      versionNumber: 3,
+      state: "published",
+      createdAt: "2026-03-28T00:00:00Z",
+      fieldsSnapshot: {
+        title: "Launch memo revised",
+        summary: "Loaded summary",
+        slug: "launch-memo",
+        visibility: "public",
+      },
+      presentations: [{ kind: "rich_text_document", payload: { type: "doc", content: [] } }],
+      changeSummary: null,
+    });
+
+    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+
+    const title = await screen.findByDisplayValue("Launch memo");
+    await user.clear(title);
+    await user.type(title, "Launch memo revised");
+
+    await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_PUBLISH" }));
+
+    await waitFor(() => {
+      expect(mocked.patchContentItemVersion).toHaveBeenCalled();
+      expect(mocked.publishContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3);
+    });
   });
 
   it("renders split toolbar actions with tooltips and handlers", async () => {
@@ -44,13 +371,33 @@ describe("content-library-article-editor-page", () => {
     const onClose = vi.fn();
     const onOpenPage = vi.fn();
 
-    render(
+    renderWithQuery(
       <ContentLibraryArticleEditorShell
+        workspaceId="ws-1"
+        itemId="content-1"
         mode="split"
         title="Test article"
         summary=""
         onTitleChange={vi.fn()}
         onSummaryChange={vi.fn()}
+        slug="test-article"
+        onSlugChange={vi.fn()}
+        status="draft"
+        visibility="public"
+        onVisibilityChange={vi.fn()}
+        coverAssetId=""
+        onCoverAssetIdChange={vi.fn()}
+        seo={{
+          metaTitle: "",
+          metaDescription: "",
+          canonicalUrl: "",
+          robotsDirective: "",
+        }}
+        onSeoChange={vi.fn()}
+        saveState="hidden"
+        isPublishing={false}
+        hasPublishableVersion
+        onPublish={vi.fn()}
         onClose={onClose}
         onOpenPage={onOpenPage}
       />,

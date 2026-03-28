@@ -16,13 +16,39 @@ from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentSeoProfileOut,
     ContentVersionOut,
 )
-from apps.api.src.modules.workspaces.content.items.domain_helpers import to_item_out, to_version_out
+from apps.api.src.modules.workspaces.content.items.domain_helpers import read_summary_field, to_item_out, to_version_out
 from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
 
 
 class WorkspaceContentCanonicalItemReadService:
     def __init__(self, repo: WorkspaceContentItemsRepository) -> None:
         self.repo = repo
+
+    async def _build_item_summaries(
+        self,
+        items,
+    ) -> dict[UUID, str | None]:
+        active_versions: dict[UUID, int] = {}
+        for item in items:
+            active_version = item.draft_version or item.published_version
+            if active_version:
+                active_versions[item.id] = active_version
+
+        if not active_versions:
+            return {}
+
+        versions = await self.repo.list_versions_for_items(
+            item_ids=list(active_versions.keys()),
+            version_numbers=list(set(active_versions.values())),
+        )
+        summary_by_version = {
+            (version.item_id, version.version): read_summary_field(version.fields_snapshot) for version in versions
+        }
+
+        return {
+            item_id: summary_by_version.get((item_id, version_number))
+            for item_id, version_number in active_versions.items()
+        }
 
     async def list_items_paginated(
         self,
@@ -48,8 +74,33 @@ class WorkspaceContentCanonicalItemReadService:
             site_id=site_id,
             model_definition_id=model_definition_id,
         )
-        rows = [to_item_out(item, item.model_definition) for item in items]
+        summaries = await self._build_item_summaries(items)
+        rows = [
+            to_item_out(
+                item,
+                item.model_definition,
+                summary=summaries.get(item.id),
+            )
+            for item in items
+        ]
         return paginate_items(rows, params=params)
+
+    async def get_item(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+    ) -> ContentItemOut:
+        item = await self.repo.get_item_with_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            item_id=item_id,
+        )
+        if item is None:
+            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
+        summaries = await self._build_item_summaries([item])
+        return to_item_out(item, item.model_definition, summary=summaries.get(item.id))
 
     @staticmethod
     def _to_presentation_outs(presentations: list[tuple[str, dict | None]]) -> list[ContentPresentationOut]:

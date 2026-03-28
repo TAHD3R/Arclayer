@@ -28,6 +28,14 @@ function ContentLibraryNameCell(props: {
   const RoleIcon = getContentLibraryRoleIcon(props.row.role);
   const roleLabelKey = getContentLibraryRoleLabelKey(props.row.role);
   const { t } = useTranslation("content");
+  const summary = props.row.summary?.trim();
+  const fallbackSummary =
+    props.row.role === "article"
+      ? t("CONTENT_LIBRARY_ROW_SUMMARY_EMPTY_ARTICLE")
+      : props.row.role === "page"
+        ? t("CONTENT_LIBRARY_ROW_SUMMARY_EMPTY_PAGE")
+        : null;
+  const summaryText = summary || fallbackSummary;
 
   return (
     <div
@@ -51,6 +59,14 @@ function ContentLibraryNameCell(props: {
         {showAddress ? (
           <div className="mt-1 min-w-0 truncate text-footnote text-label-secondary">
             /{props.row.slug}
+          </div>
+        ) : null}
+        {summaryText ? (
+          <div
+            className="mt-1 min-w-0 truncate text-footnote text-label-secondary/90"
+            title={summaryText}
+          >
+            {summaryText}
           </div>
         ) : null}
       </div>

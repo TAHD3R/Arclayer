@@ -11,6 +11,7 @@ const mocked = vi.hoisted(() => ({
   listAllContentItems: vi.fn(),
   listAllContentModels: vi.fn(),
   getContentItemVersion: vi.fn(),
+  loadContentLibraryArticleEditorSnapshot: vi.fn(),
   getContentSeoProfile: vi.fn(),
   getWorkspacePublishImpact: vi.fn(),
   getContentLibraryViews: vi.fn(),
@@ -18,6 +19,10 @@ const mocked = vi.hoisted(() => ({
   updateContentLibraryView: vi.fn(),
   moveContentLibraryView: vi.fn(),
   deleteContentLibraryView: vi.fn(),
+  saveContentItemDraftVersion: vi.fn(),
+  patchContentItemVersion: vi.fn(),
+  publishContentItemVersion: vi.fn(),
+  getCoreSettings: vi.fn(),
   archiveContentItem: vi.fn(),
   deleteContentItem: vi.fn(),
   duplicateContentItem: vi.fn(),
@@ -42,11 +47,28 @@ vi.mock("@/api/content", () => ({
   updateContentLibraryView: (...args: unknown[]) => mocked.updateContentLibraryView(...args),
   moveContentLibraryView: (...args: unknown[]) => mocked.moveContentLibraryView(...args),
   deleteContentLibraryView: (...args: unknown[]) => mocked.deleteContentLibraryView(...args),
+  saveContentItemDraftVersion: (...args: unknown[]) => mocked.saveContentItemDraftVersion(...args),
+  patchContentItemVersion: (...args: unknown[]) => mocked.patchContentItemVersion(...args),
+  publishContentItemVersion: (...args: unknown[]) => mocked.publishContentItemVersion(...args),
   archiveContentItem: (...args: unknown[]) => mocked.archiveContentItem(...args),
   deleteContentItem: (...args: unknown[]) => mocked.deleteContentItem(...args),
   duplicateContentItem: (...args: unknown[]) => mocked.duplicateContentItem(...args),
   unarchiveContentItem: (...args: unknown[]) => mocked.unarchiveContentItem(...args),
 }));
+
+vi.mock("@/api/settings", () => ({
+  getCoreSettings: (...args: unknown[]) => mocked.getCoreSettings(...args),
+}));
+
+vi.mock("@/pages/workspaces/content/library/article-editor/api", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/pages/workspaces/content/library/article-editor/api")>();
+  return {
+    ...actual,
+    loadContentLibraryArticleEditorSnapshot: (...args: unknown[]) =>
+      mocked.loadContentLibraryArticleEditorSnapshot(...args),
+  };
+});
 
 vi.mock("@/api/workspace-site", () => ({
   issueWorkspaceSitePreviewToken: (...args: unknown[]) =>
@@ -86,6 +108,10 @@ vi.mock("@/components/common/data-table-tools-labels", () => ({
     refresh: "refresh",
     reset: "reset",
   }),
+}));
+
+vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
+  AssetPickerDialog: () => null,
 }));
 
 vi.mock("@arclayer/ui/data-table", async () => {
@@ -437,16 +463,69 @@ describe("ContentLibraryPage", () => {
       token: "preview-token",
       expiresAtMs: 123,
     });
+    mocked.getCoreSettings.mockResolvedValue({
+      namespace: "core",
+      value: {
+        content_strategy: {
+          autosave: {
+            enabled: true,
+            interval_sec: 1,
+            save_on_blur: true,
+          },
+          retention: {
+            draft_max_revisions: 100,
+          },
+        },
+      },
+    });
     mocked.getContentItemVersion.mockImplementation(
       async (_workspaceId: string, itemId: string, versionNumber: number) => ({
         itemId,
         versionNumber,
         state: versionNumber === 3 ? "draft" : "published",
         createdAt: versionNumber === 3 ? "2026-03-26T08:00:00Z" : "2026-03-20T08:00:00Z",
+        fieldsSnapshot: {},
+        presentations: [],
         changeSummary:
           versionNumber === 3
             ? "Refined hero copy and CTA grouping"
             : "Published homepage baseline",
+      }),
+    );
+    mocked.loadContentLibraryArticleEditorSnapshot.mockImplementation(
+      async (_workspaceId: string, itemId: string) => ({
+        item: {
+          id: itemId,
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          modelId: "model-1",
+          modelKey: itemId === "content-1" ? "page" : "article",
+          slug: itemId === "content-1" ? "homepage" : "launch-note",
+          title: itemId === "content-1" ? "Homepage" : "Launch note",
+          status: "draft",
+          visibility: "public",
+          locale: "en-US",
+          bootstrapPresetKey: "post",
+          bootstrapPresetState: "selected",
+          capabilityPackIds: ["publishable", "rich_text_editable"],
+          draftVersion: 3,
+          publishedVersion: 2,
+          updatedAt: "2026-03-28T00:00:00Z",
+        },
+        draftVersion: {
+          itemId,
+          versionNumber: 3,
+          state: "draft",
+          createdAt: "2026-03-28T00:00:00Z",
+          fieldsSnapshot: {
+            title: itemId === "content-1" ? "Homepage" : "Launch note",
+            summary: itemId === "content-1" ? "Loaded homepage summary" : "Loaded note summary",
+          },
+          presentations: [{ kind: "rich_text_document", payload: { type: "doc", content: [] } }],
+          changeSummary: null,
+        },
+        publishedVersion: null,
+        bodyPresentation: { kind: "rich_text_document", payload: { type: "doc", content: [] } },
       }),
     );
     mocked.getContentSeoProfile.mockResolvedValue({
@@ -1292,7 +1371,7 @@ describe("ContentLibraryPage", () => {
     ).toBeInTheDocument();
     expect(within(previewPanel).getByDisplayValue("Homepage")).toBeInTheDocument();
     expect(
-      within(previewPanel).getByText("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER"),
+      within(previewPanel).getByTestId("content-library-article-editor-body"),
     ).toBeInTheDocument();
     expect(
       within(previewPanel).queryByRole("button", { name: "CONTENT_LIBRARY_ACTION_CONTINUE" }),

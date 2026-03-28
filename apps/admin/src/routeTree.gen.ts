@@ -49,6 +49,7 @@ import { Route as WWorkspaceIdContentModelsIndexRouteImport } from './routes/w/$
 import { Route as WWorkspaceIdContentLibraryIndexRouteImport } from './routes/w/$workspaceId/content/library/index'
 import { Route as WWorkspaceIdContentCreateIndexRouteImport } from './routes/w/$workspaceId/content/create/index'
 import { Route as WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/danger/index'
+import { Route as WWorkspaceIdSettingsWorkspaceContentIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/content/index'
 import { Route as WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/workspace/basics/index'
 import { Route as WWorkspaceIdSettingsSiteLocalizationIndexRouteImport } from './routes/w/$workspaceId/settings/site/localization/index'
 import { Route as WWorkspaceIdSettingsSiteBasicsIndexRouteImport } from './routes/w/$workspaceId/settings/site/basics/index'
@@ -333,6 +334,16 @@ const WWorkspaceIdSettingsWorkspaceDangerIndexRoute =
       (d) => d.Route,
     ),
   )
+const WWorkspaceIdSettingsWorkspaceContentIndexRoute =
+  WWorkspaceIdSettingsWorkspaceContentIndexRouteImport.update({
+    id: '/settings/workspace/content/',
+    path: '/settings/workspace/content/',
+    getParentRoute: () => WWorkspaceIdRoute,
+  } as any).lazy(() =>
+    import('./routes/w/$workspaceId/settings/workspace/content/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const WWorkspaceIdSettingsWorkspaceBasicsIndexRoute =
   WWorkspaceIdSettingsWorkspaceBasicsIndexRouteImport.update({
     id: '/settings/workspace/basics/',
@@ -418,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
+  '/w/$workspaceId/settings/workspace/content/': typeof WWorkspaceIdSettingsWorkspaceContentIndexRoute
   '/w/$workspaceId/settings/workspace/danger/': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
 }
 export interface FileRoutesByTo {
@@ -461,6 +473,7 @@ export interface FileRoutesByTo {
   '/w/$workspaceId/settings/site/basics': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
+  '/w/$workspaceId/settings/workspace/content': typeof WWorkspaceIdSettingsWorkspaceContentIndexRoute
   '/w/$workspaceId/settings/workspace/danger': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
 }
 export interface FileRoutesById {
@@ -508,6 +521,7 @@ export interface FileRoutesById {
   '/w/$workspaceId/settings/site/basics/': typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   '/w/$workspaceId/settings/site/localization/': typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   '/w/$workspaceId/settings/workspace/basics/': typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
+  '/w/$workspaceId/settings/workspace/content/': typeof WWorkspaceIdSettingsWorkspaceContentIndexRoute
   '/w/$workspaceId/settings/workspace/danger/': typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
 }
 export interface FileRouteTypes {
@@ -556,6 +570,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/site/basics/'
     | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
+    | '/w/$workspaceId/settings/workspace/content/'
     | '/w/$workspaceId/settings/workspace/danger/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -599,6 +614,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/site/basics'
     | '/w/$workspaceId/settings/site/localization'
     | '/w/$workspaceId/settings/workspace/basics'
+    | '/w/$workspaceId/settings/workspace/content'
     | '/w/$workspaceId/settings/workspace/danger'
   id:
     | '__root__'
@@ -645,6 +661,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/settings/site/basics/'
     | '/w/$workspaceId/settings/site/localization/'
     | '/w/$workspaceId/settings/workspace/basics/'
+    | '/w/$workspaceId/settings/workspace/content/'
     | '/w/$workspaceId/settings/workspace/danger/'
   fileRoutesById: FileRoutesById
 }
@@ -945,6 +962,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceDangerIndexRouteImport
       parentRoute: typeof WWorkspaceIdRoute
     }
+    '/w/$workspaceId/settings/workspace/content/': {
+      id: '/w/$workspaceId/settings/workspace/content/'
+      path: '/settings/workspace/content'
+      fullPath: '/w/$workspaceId/settings/workspace/content/'
+      preLoaderRoute: typeof WWorkspaceIdSettingsWorkspaceContentIndexRouteImport
+      parentRoute: typeof WWorkspaceIdRoute
+    }
     '/w/$workspaceId/settings/workspace/basics/': {
       id: '/w/$workspaceId/settings/workspace/basics/'
       path: '/settings/workspace/basics'
@@ -1037,6 +1061,7 @@ interface WWorkspaceIdRouteChildren {
   WWorkspaceIdSettingsSiteBasicsIndexRoute: typeof WWorkspaceIdSettingsSiteBasicsIndexRoute
   WWorkspaceIdSettingsSiteLocalizationIndexRoute: typeof WWorkspaceIdSettingsSiteLocalizationIndexRoute
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute: typeof WWorkspaceIdSettingsWorkspaceBasicsIndexRoute
+  WWorkspaceIdSettingsWorkspaceContentIndexRoute: typeof WWorkspaceIdSettingsWorkspaceContentIndexRoute
   WWorkspaceIdSettingsWorkspaceDangerIndexRoute: typeof WWorkspaceIdSettingsWorkspaceDangerIndexRoute
 }
 
@@ -1068,6 +1093,8 @@ const WWorkspaceIdRouteChildren: WWorkspaceIdRouteChildren = {
     WWorkspaceIdSettingsSiteLocalizationIndexRoute,
   WWorkspaceIdSettingsWorkspaceBasicsIndexRoute:
     WWorkspaceIdSettingsWorkspaceBasicsIndexRoute,
+  WWorkspaceIdSettingsWorkspaceContentIndexRoute:
+    WWorkspaceIdSettingsWorkspaceContentIndexRoute,
   WWorkspaceIdSettingsWorkspaceDangerIndexRoute:
     WWorkspaceIdSettingsWorkspaceDangerIndexRoute,
 }

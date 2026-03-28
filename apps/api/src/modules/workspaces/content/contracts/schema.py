@@ -99,6 +99,7 @@ class ContentItemOut(BaseSchema):
     model_key: str | None = Field(default=None, min_length=1, max_length=64, description="Optional content model key.")
     slug: str = Field(..., min_length=1, max_length=256, description="Stable item slug.")
     title: str | None = Field(default=None, description="Optional item title.")
+    summary: str | None = Field(default=None, description="Optional item summary/description.")
     status: ContentItemStatus = Field(..., description="Lifecycle status.")
     visibility: ContentItemVisibility = Field(..., description="Visibility status.")
     locale: str = Field(..., min_length=2, max_length=16, description="Locale code.")

@@ -1,1 +1,1 @@
-export type WorkspaceSettingsTabKey = "basics" | "danger";
+export type WorkspaceSettingsTabKey = "basics" | "content" | "danger";

@@ -1,0 +1,11 @@
+"use client";
+
+import type { PlateElementProps } from "platejs/react";
+
+import { PlateElement } from "platejs/react";
+
+import { cn } from "@arclayer/lib/utils";
+
+export function ParagraphElement(props: PlateElementProps) {
+  return <PlateElement {...props} className={cn("relative m-0 px-0 py-1")} />;
+}

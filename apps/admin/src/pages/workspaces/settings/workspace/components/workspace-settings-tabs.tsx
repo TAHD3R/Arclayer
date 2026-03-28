@@ -10,6 +10,9 @@ export function WorkspaceSettingsTabs() {
       <ChromeTabsTrigger value="basics">
         {t("settings:SETTINGS_WORKSPACE_TAB_BASICS")}
       </ChromeTabsTrigger>
+      <ChromeTabsTrigger value="content">
+        {t("settings:SETTINGS_WORKSPACE_TAB_CONTENT")}
+      </ChromeTabsTrigger>
       <ChromeTabsTrigger value="danger">
         {t("settings:SETTINGS_WORKSPACE_TAB_DANGER")}
       </ChromeTabsTrigger>

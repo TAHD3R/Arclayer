@@ -51,6 +51,7 @@ export type AdminContentItem = {
   modelKey?: string | null;
   slug: string;
   title?: string | null;
+  summary?: string | null;
   status: AdminContentItemStatus;
   visibility: AdminContentItemVisibility;
   locale: string;

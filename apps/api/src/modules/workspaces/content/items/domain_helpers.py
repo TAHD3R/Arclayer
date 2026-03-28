@@ -104,7 +104,24 @@ def item_has_capability(item: ContentItemRecord, capability: str) -> bool:
     return capability in {str(value).strip() for value in raw if isinstance(value, str)}
 
 
-def to_item_out(item: ContentItemRecord, model: ContentModelDefinitionRecord | None) -> ContentItemOut:
+def read_summary_field(fields_snapshot: dict[str, Any] | None) -> str | None:
+    if not isinstance(fields_snapshot, dict):
+        return None
+
+    value = fields_snapshot.get("summary")
+    if not isinstance(value, str):
+        return None
+
+    normalized = value.strip()
+    return normalized or None
+
+
+def to_item_out(
+    item: ContentItemRecord,
+    model: ContentModelDefinitionRecord | None,
+    *,
+    summary: str | None = None,
+) -> ContentItemOut:
     return ContentItemOut(
         id=item.id,
         workspace_id=item.workspace_id,
@@ -113,6 +130,7 @@ def to_item_out(item: ContentItemRecord, model: ContentModelDefinitionRecord | N
         model_key=model.key if model is not None else None,
         slug=item.slug,
         title=item.title,
+        summary=summary,
         status=str(item.status),
         visibility=str(item.visibility),
         locale=item.locale,

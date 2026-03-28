@@ -101,6 +101,22 @@ class WorkspaceContentItemsRepository(BaseRepository):
         query = query.prefetch_related("model_definition").order_by("-updated_at", "-id")
         return list(await self.using_db(query, conn))
 
+    async def list_versions_for_items(
+        self,
+        *,
+        item_ids: list[UUID],
+        version_numbers: list[int],
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ContentVersionRecord]:
+        if not item_ids or not version_numbers:
+            return []
+
+        query = ContentVersionRecord.filter(
+            item_id__in=item_ids,
+            version__in=version_numbers,
+        )
+        return list(await self.using_db(query, conn))
+
     async def create_version(
         self,
         *,

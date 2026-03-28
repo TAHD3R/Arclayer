@@ -128,15 +128,15 @@ const CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME =
 
 function getContentLibraryPreviewWidthDefaults(viewportWidth: number) {
   if (viewportWidth >= 1680) {
-    return { defaultPercent: 40, maxPercent: 42 };
+    return { defaultPercent: 55, maxPercent: 60 };
   }
   if (viewportWidth >= 1440) {
-    return { defaultPercent: 40, maxPercent: 45 };
+    return { defaultPercent: 50, maxPercent: 55 };
   }
   if (viewportWidth >= 1200) {
-    return { defaultPercent: 40, maxPercent: 48 };
+    return { defaultPercent: 40, maxPercent: 50 };
   }
-  return { defaultPercent: 40, maxPercent: 52 };
+  return { defaultPercent: 40, maxPercent: 45 };
 }
 
 function getContentLibraryPreviewWidthDefaultsFromWindow() {
@@ -432,8 +432,6 @@ export function ContentLibraryPage() {
     lastActiveId: null,
   });
   const [previewRowId, setPreviewRowId] = React.useState<string | null>(null);
-  const [previewEditorTitle, setPreviewEditorTitle] = React.useState("");
-  const [previewEditorSummary, setPreviewEditorSummary] = React.useState("");
   const [viewDialogState, setViewDialogState] =
     React.useState<ContentLibraryViewDialogState | null>(null);
   const [viewDialogDraft, setViewDialogDraft] = React.useState<ContentLibraryPrototypeViewDraft>(
@@ -497,15 +495,6 @@ export function ContentLibraryPage() {
     () => rows.find((row) => row.id === previewRowId) ?? null,
     [previewRowId, rows],
   );
-  React.useEffect(() => {
-    if (!previewRow) {
-      setPreviewEditorTitle("");
-      setPreviewEditorSummary("");
-      return;
-    }
-    setPreviewEditorTitle(previewRow.title || previewRow.name);
-    setPreviewEditorSummary("");
-  }, [previewRow]);
   const orderedRowIds = React.useMemo(() => rows.map((row) => row.id), [rows]);
   const savedViews = React.useMemo<ContentLibrarySavedView[]>(
     () => viewsQuery.data?.items ?? [],
@@ -1382,10 +1371,10 @@ export function ContentLibraryPage() {
               >
                 <ContentLibraryPreviewPanel
                   className="min-h-0 w-full flex-1"
-                  title={previewEditorTitle}
-                  summary={previewEditorSummary}
-                  onTitleChange={setPreviewEditorTitle}
-                  onSummaryChange={setPreviewEditorSummary}
+                  workspaceId={String(workspaceId)}
+                  itemId={previewRow.id}
+                  initialTitle={previewRow.title || previewRow.name}
+                  initialSummary=""
                   onClose={() => setPreviewRowId(null)}
                   onOpenPage={() => {
                     if (!workspaceId) return;

@@ -6,6 +6,12 @@ export function resolveWorkspaceSettingsTabNavigation(
   workspaceId: string,
   tab: WorkspaceSettingsTabKey,
 ): WorkspaceSettingsTabNavigation {
+  if (tab === "content") {
+    return {
+      to: "/w/$workspaceId/settings/workspace/content",
+      params: { workspaceId },
+    };
+  }
   if (tab === "danger") {
     return {
       to: "/w/$workspaceId/settings/workspace/danger",
