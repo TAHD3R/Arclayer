@@ -37,6 +37,7 @@ import { MoreToolbarButton } from "../more-toolbar-button";
 import { TurnIntoToolbarButton } from "../turn-into-toolbar-button";
 import { MarkToolbarButton } from "../ui/mark-toolbar-button";
 import { Toolbar, ToolbarGroup } from "../ui/toolbar";
+import { captureEditorSelection } from "../transforms";
 import { Button } from "@arclayer/ui/button";
 import { Separator } from "@arclayer/ui/separator";
 import { cn } from "@arclayer/lib/utils";
@@ -62,6 +63,8 @@ function assignFloatingToolbarRef(
 
 function PlateLinkFloatingToolbar() {
   const { t } = useTranslation(["content", "common"]);
+  const editor = useEditorRef();
+  const selectionRef = React.useRef(captureEditorSelection(editor));
   const floatingOptions = React.useMemo(
     () => ({
       middleware: [offset(10), flip({ padding: 12 }), shift({ padding: 12 })],
@@ -84,32 +87,32 @@ function PlateLinkFloatingToolbar() {
     unlinkButtonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
   };
 
-  if (insert.hidden) return null;
-
   return (
     <>
-      <div
-        ref={insert.ref}
-        {...insert.props}
-        className={cn(
-          "z-50 w-[22rem] rounded-2xl border border-border/70 bg-card/96 p-2  backdrop-blur",
-          insert.props.className,
-        )}
-      >
-        <div className="space-y-2">
-          <FloatingLinkUrlInput
-            className="h-9 w-full rounded-lg border border-border/70 bg-card px-3 text-footnote outline-none"
-            placeholder="https://"
-            data-plate-focus
-          />
-          <input
-            className="h-9 w-full rounded-lg border border-border/70 bg-card px-3 text-footnote outline-none"
-            placeholder={t("CONTENT_LIBRARY_EDITOR_LINK_TEXT")}
-            data-plate-focus
-            {...insert.textInputProps}
-          />
+      {!insert.hidden ? (
+        <div
+          ref={insert.ref}
+          {...insert.props}
+          className={cn(
+            "z-50 w-[22rem] rounded-2xl border border-border/70 bg-card/96 p-2  backdrop-blur",
+            insert.props.className,
+          )}
+        >
+          <div className="space-y-2">
+            <FloatingLinkUrlInput
+              className="h-9 w-full rounded-lg border border-border/70 bg-card px-3 text-footnote outline-none"
+              placeholder="https://"
+              data-plate-focus
+            />
+            <input
+              className="h-9 w-full rounded-lg border border-border/70 bg-card px-3 text-footnote outline-none"
+              placeholder={t("CONTENT_LIBRARY_EDITOR_LINK_TEXT")}
+              data-plate-focus
+              {...insert.textInputProps}
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div
         ref={edit.ref}
@@ -133,6 +136,10 @@ function PlateLinkFloatingToolbar() {
               type="button"
               className="inline-flex h-8 items-center rounded-lg px-3 text-footnote transition-colors hover:bg-accent"
               {...edit.editButtonProps}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
             >
               {t("CONTENT_LIBRARY_EDITOR_MARK_LINK")}
             </button>
@@ -152,6 +159,10 @@ function PlateLinkFloatingToolbar() {
               type="button"
               className="inline-flex h-8 items-center rounded-lg px-3 text-footnote transition-colors hover:bg-accent"
               {...edit.unlinkButtonProps}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
             >
               {t("CONTENT_LIBRARY_EDITOR_LINK_REMOVE")}
             </button>
@@ -183,64 +194,67 @@ export function PlateFloatingToolbar() {
     [clickOutsideRef, ref],
   );
 
-  if (hidden) return null;
-
   return (
     <>
-      <div
-        ref={setRefs}
-        style={props.style}
-        className="ignore-click-outside/toolbar z-50"
-        onMouseDown={(event) => event.preventDefault()}
-      >
-        <Toolbar className="rounded-2xl border border-border/70 bg-card/95 p-1  backdrop-blur supports-[backdrop-filter]:bg-card/88">
-          <ToolbarGroup>
-            <TurnIntoToolbarButton />
-          </ToolbarGroup>
+      {!hidden ? (
+        <div
+          ref={setRefs}
+          style={props.style}
+          className="ignore-click-outside/toolbar z-50"
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          <Toolbar className="rounded-2xl border border-border/70 bg-card/95 p-1  backdrop-blur supports-[backdrop-filter]:bg-card/88">
+            <ToolbarGroup>
+              <TurnIntoToolbarButton />
+            </ToolbarGroup>
 
-          <ToolbarGroup>
-            <MarkToolbarButton nodeType="bold" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BOLD")}>
-              <BoldIcon />
-            </MarkToolbarButton>
-            <MarkToolbarButton nodeType="italic" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ITALIC")}>
-              <ItalicIcon />
-            </MarkToolbarButton>
-            <MarkToolbarButton
-              nodeType="underline"
-              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_UNDERLINE")}
-            >
-              <UnderlineIcon />
-            </MarkToolbarButton>
-            <MarkToolbarButton
-              nodeType="strikethrough"
-              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_STRIKETHROUGH")}
-            >
-              <StrikethroughIcon />
-            </MarkToolbarButton>
-            <MarkToolbarButton nodeType="code" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_CODE")}>
-              <Code2Icon />
-            </MarkToolbarButton>
-            <InlineEquationToolbarButton />
-            <LinkToolbarButton />
-            <FontColorToolbarButton
-              nodeType={MARK_COLOR}
-              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
-            >
-              <BaselineIcon />
-            </FontColorToolbarButton>
-            <FontColorToolbarButton
-              nodeType={MARK_BACKGROUND_COLOR}
-              tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
-            >
-              <PaintBucketIcon />
-            </FontColorToolbarButton>
-          </ToolbarGroup>
+            <ToolbarGroup>
+              <MarkToolbarButton nodeType="bold" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BOLD")}>
+                <BoldIcon />
+              </MarkToolbarButton>
+              <MarkToolbarButton
+                nodeType="italic"
+                tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ITALIC")}
+              >
+                <ItalicIcon />
+              </MarkToolbarButton>
+              <MarkToolbarButton
+                nodeType="underline"
+                tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_UNDERLINE")}
+              >
+                <UnderlineIcon />
+              </MarkToolbarButton>
+              <MarkToolbarButton
+                nodeType="strikethrough"
+                tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_STRIKETHROUGH")}
+              >
+                <StrikethroughIcon />
+              </MarkToolbarButton>
+              <MarkToolbarButton nodeType="code" tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_CODE")}>
+                <Code2Icon />
+              </MarkToolbarButton>
+              <InlineEquationToolbarButton />
+              <LinkToolbarButton />
+              <FontColorToolbarButton
+                nodeType={MARK_COLOR}
+                tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
+              >
+                <BaselineIcon />
+              </FontColorToolbarButton>
+              <FontColorToolbarButton
+                nodeType={MARK_BACKGROUND_COLOR}
+                tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
+              >
+                <PaintBucketIcon />
+              </FontColorToolbarButton>
+            </ToolbarGroup>
 
-          <ToolbarGroup>
-            <MoreToolbarButton />
-          </ToolbarGroup>
-        </Toolbar>
-      </div>
+            <ToolbarGroup>
+              <MoreToolbarButton />
+            </ToolbarGroup>
+          </Toolbar>
+        </div>
+      ) : null}
       <PlateLinkFloatingToolbar />
     </>
   );

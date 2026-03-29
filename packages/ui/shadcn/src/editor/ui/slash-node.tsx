@@ -9,8 +9,8 @@ import type { TComboboxInputElement } from "platejs";
 import {
   applyArticleEditorInsertItem,
   getArticleEditorInsertGroups,
-} from "@/components/editor/article-editor-insert-items";
-import { useArticleEditorCommands } from "@/components/editor/article-editor-command-context";
+} from "../article-editor-insert-items";
+import { useArticleEditorCommands } from "../article-editor-command-context";
 
 import {
   InlineCombobox,

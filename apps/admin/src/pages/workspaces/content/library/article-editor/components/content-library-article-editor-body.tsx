@@ -1,7 +1,6 @@
 "use client";
 
-import { PlateFloatingToolbar } from "@/components/editor/plugins/floating-toolbar-kit";
-import { Editor, EditorContainer } from "@/components/ui/editor";
+import { Editor, EditorContainer, PlateFloatingToolbar } from "@arclayer/ui/editor";
 import { cn } from "@arclayer/lib/utils";
 
 export function ContentLibraryArticleEditorBody(props: {

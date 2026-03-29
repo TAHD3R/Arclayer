@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { AuthFieldError, AuthLinkButton, AuthPasswordControl } from "@/components/ui/auth-controls";
+import { AuthFieldError, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";

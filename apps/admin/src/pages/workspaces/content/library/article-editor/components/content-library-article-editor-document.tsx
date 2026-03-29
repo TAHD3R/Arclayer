@@ -3,34 +3,38 @@
 import * as React from "react";
 
 import { DndPlugin } from "@platejs/dnd";
-import { insertImage } from "@platejs/media";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { normalizeNodeId, type Value } from "platejs";
+import { KEYS, normalizeNodeId, type Value } from "platejs";
 import { Plate, usePlateEditor } from "platejs/react";
 import { useTranslation } from "react-i18next";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
-import { ArticleEditorCommandProvider } from "@/components/editor/article-editor-command-context";
+import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
+import { SlashKit } from "@/components/editor/plugins/slash-kit";
+import { Button } from "@arclayer/ui/button";
 import {
+  AdvancedBlocksKit,
+  applyArticleEditorInsertItem,
   ARTICLE_EDITOR_INSERT_AUDIO,
   ARTICLE_EDITOR_INSERT_FILE,
   ARTICLE_EDITOR_INSERT_IMAGE,
   ARTICLE_EDITOR_INSERT_VIDEO,
-  applyArticleEditorInsertItem,
-} from "@/components/editor/article-editor-insert-items";
-import { AdvancedBlocksKit } from "@/components/editor/plugins/advanced-blocks-kit";
-import { AutoformatKit } from "@/components/editor/plugins/autoformat-kit";
-import { BasicNodesKit } from "@/components/editor/plugins/basic-nodes-kit";
-import { SlashKit } from "@/components/editor/plugins/slash-kit";
-import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
-import { Button } from "@arclayer/ui/button";
+  ArticleEditorCommandProvider,
+  AutoformatKit,
+  BasicNodesKit,
+} from "@arclayer/ui/editor";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
+import {
+  isEditorDocumentHydrated,
+  shouldApplyExternalDocumentSync,
+} from "./content-library-article-editor-document-sync";
 
 const DEFAULT_PLATE_VALUE: Value = normalizeNodeId([{ type: "p", children: [{ text: "" }] }]);
+const DEFAULT_MEDIA_WIDTH = 720;
 
 type MediaUrlInsertKind = "audio" | "file" | "video";
 
@@ -135,6 +139,17 @@ function isHttpUrl(value: string) {
   }
 }
 
+function buildMediaNode(params: { name?: string; type: string; url: string }) {
+  return {
+    align: "center" as const,
+    children: [{ text: "" }],
+    name: params.name,
+    type: params.type,
+    url: params.url,
+    width: DEFAULT_MEDIA_WIDTH,
+  };
+}
+
 export function ContentLibraryArticleEditorDocumentProvider(
   props: ContentLibraryArticleEditorDocumentProviderProps,
 ) {
@@ -177,6 +192,16 @@ export function ContentLibraryArticleEditorDocumentProvider(
   React.useEffect(() => {
     if (!editor) return;
     if (appliedDocumentKey === externalSerialized) return;
+    if (
+      !shouldApplyExternalDocumentSync({
+        appliedDocumentKey,
+        externalSerialized,
+        lastSyncedDocumentKey: lastSyncedDocumentRef.current,
+      })
+    ) {
+      setAppliedDocumentKey(externalSerialized);
+      return;
+    }
     editor.tf.setValue(externalValue);
     resetEditorHistory(editor);
     lastSyncedDocumentRef.current = externalSerialized;
@@ -234,7 +259,12 @@ export function ContentLibraryArticleEditorDocumentProvider(
 
       if (!nextUrl) return;
       editor.tf.focus();
-      insertImage(editor, nextUrl);
+      editor.tf.insertNodes(
+        buildMediaNode({
+          type: editor.getType(KEYS.img),
+          url: nextUrl,
+        }),
+      );
       pendingInsertSelectionRef.current = null;
       setImagePickerOpen(false);
     },
@@ -251,12 +281,13 @@ export function ContentLibraryArticleEditorDocumentProvider(
     }
 
     editor.tf.focus();
-    editor.tf.insertNodes({
-      children: [{ text: "" }],
-      name: mediaUrlDialog.kind === "file" ? deriveFileNameFromUrl(nextUrl) : undefined,
-      type: getMediaUrlInsertConfig(mediaUrlDialog.kind, t).nodeType,
-      url: nextUrl,
-    });
+    editor.tf.insertNodes(
+      buildMediaNode({
+        name: mediaUrlDialog.kind === "file" ? deriveFileNameFromUrl(nextUrl) : undefined,
+        type: getMediaUrlInsertConfig(mediaUrlDialog.kind, t).nodeType,
+        url: nextUrl,
+      }),
+    );
 
     pendingInsertSelectionRef.current = null;
     setMediaUrlDialog((current) => ({ ...current, open: false, url: "" }));
@@ -264,7 +295,13 @@ export function ContentLibraryArticleEditorDocumentProvider(
 
   return (
     <ContentLibraryArticleEditorDocumentStateContext.Provider
-      value={{ isHydrated: appliedDocumentKey === externalSerialized }}
+      value={{
+        isHydrated: isEditorDocumentHydrated({
+          appliedDocumentKey,
+          externalSerialized,
+          lastSyncedDocumentKey: lastSyncedDocumentRef.current,
+        }),
+      }}
     >
       <TooltipProvider>
         <DndProvider backend={HTML5Backend}>

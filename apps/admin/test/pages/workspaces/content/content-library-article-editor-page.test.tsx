@@ -22,6 +22,14 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("platejs/react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("platejs/react")>();
+  return {
+    ...actual,
+    useEditorScrollRef: () => ({ current: null }),
+  };
+});
+
 vi.mock("@/components/layout/admin-route-container", () => ({
   AdminRouteContainer: (props: {
     children?: ReactNode;
@@ -68,7 +76,10 @@ vi.mock(
     ContentLibraryArticleEditorDocumentProvider: (props: { children?: ReactNode }) => (
       <>{props.children}</>
     ),
-    useContentLibraryArticleEditorDocumentState: () => ({ isHydrated: true }),
+    useContentLibraryArticleEditorDocumentState: () => ({
+      isHydrated: true,
+      scrollContainerRef: { current: null },
+    }),
   }),
 );
 
@@ -237,19 +248,19 @@ describe("content-library-article-editor-page", () => {
     expect(screen.getByTestId("admin-route-container-inner")).toBeInTheDocument();
     expect(screen.getByLabelText("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER"),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("content-library-article-editor-body")).toBeInTheDocument();
-    expect(
       screen.queryByLabelText("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW"),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR"),
     ).not.toBeInTheDocument();
     await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("content-library-article-editor-body")).toBeInTheDocument();
       expect(screen.getByDisplayValue("Launch memo")).toBeInTheDocument();
       expect(screen.getByDisplayValue("Loaded summary")).toBeInTheDocument();
     });

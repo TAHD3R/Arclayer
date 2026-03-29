@@ -9,6 +9,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { useEquationElement, useEquationInput } from "@platejs/math/react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
 import { CornerDownLeftIcon, RadicalIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   createPrimitiveComponent,
   PlateElement,
@@ -142,6 +143,13 @@ function EquationPopoverContent({
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const element = useElement<TEquationElement>();
+  const { t } = useTranslation(["content", "common"]);
+  const title = isInline
+    ? t("content:CONTENT_LIBRARY_EDITOR_INSERT_INLINE_EQUATION")
+    : t("content:CONTENT_LIBRARY_EDITOR_INSERT_EQUATION");
+  const description = isInline
+    ? t("content:CONTENT_LIBRARY_EDITOR_INSERT_INLINE_EQUATION_DESC")
+    : t("content:CONTENT_LIBRARY_EDITOR_INSERT_EQUATION_DESC");
 
   const onClose = React.useCallback(() => {
     setOpen(false);
@@ -156,22 +164,35 @@ function EquationPopoverContent({
 
   return (
     <PopoverContent
-      className="flex w-[min(32rem,calc(100vw-2rem))] gap-3 p-3"
+      className="w-[min(36rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border/70 bg-card p-0 shadow-2xl"
       contentEditable={false}
     >
-      <EquationInput
-        className={cn(
-          "max-h-[40vh] min-h-24 flex-1 resize-none rounded-xl border border-border bg-card px-3 py-2 text-footnote  outline-none",
-          className,
-        )}
-        state={{ isInline, open, onClose }}
-        autoFocus
-        placeholder={placeholder}
-      />
-      <Button type="button" variant="secondary" className="self-end" onClick={onClose}>
-        Done
-        <CornerDownLeftIcon className="size-3.5" />
-      </Button>
+      <div className="border-b border-border/70 px-5 py-4">
+        <div className="text-title3 font-semibold text-label-primary">{title}</div>
+        <div className="mt-1 text-footnote text-label-secondary">{description}</div>
+      </div>
+
+      <div className="p-5">
+        <EquationInput
+          className={cn(
+            "max-h-[40vh] min-h-32 w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-footnote outline-none",
+            className,
+          )}
+          state={{ isInline, open, onClose }}
+          autoFocus
+          placeholder={placeholder}
+        />
+      </div>
+
+      <div className="flex items-center justify-end gap-2 border-t border-border/70 px-5 py-4">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          {t("common:CANCEL")}
+        </Button>
+        <Button type="button" variant="accent" onClick={onClose}>
+          {t("common:CONFIRM")}
+          <CornerDownLeftIcon className="size-3.5" />
+        </Button>
+      </div>
     </PopoverContent>
   );
 }

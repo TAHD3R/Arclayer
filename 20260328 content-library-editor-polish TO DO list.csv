@@ -1,6 +1,0 @@
-id,task,status,completed_at,notes
-1,梳理10个任务的现状、锁定相关文件与Plate能力映射,DONE,2026-03-28 21:45,
-2,先处理非Plate的library/editor shell、tooltip、dialog、scroll、publish按钮等改动,DONE,2026-03-28 23:00,vitest content-library suite passed
-3,通过Plate MCP核对toolbar、slash menu、block controls的正确实现方式,DONE,2026-03-28 23:18,confirmed via Plate MCP examples for floating toolbar insert menu media equation date and block actions
-4,实现Plate相关交互与菜单改动,DONE,2026-03-29 00:08,aligned against Plate MCP examples for floating toolbar slash insert equation and more actions
-5,运行针对性的前后端/前端验证并汇总结果,DONE,2026-03-29 00:09,admin build passed; per user instruction skipped Plate-related vitest issue

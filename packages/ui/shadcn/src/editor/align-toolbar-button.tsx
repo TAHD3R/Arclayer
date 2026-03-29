@@ -17,6 +17,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
 import { ToolbarButton } from "./ui/toolbar";
 
 const ALIGN_ITEMS = [
@@ -34,6 +35,7 @@ export function AlignToolbarButton() {
   const { t } = useTranslation("content");
   const { editor, tf } = useEditorPlugin(TextAlignPlugin);
   const [open, setOpen] = React.useState(false);
+  const selectionRef = React.useRef(captureEditorSelection(editor));
   const value =
     useSelectionFragmentProp({
       defaultValue: "left",
@@ -42,19 +44,50 @@ export function AlignToolbarButton() {
   const SelectedIcon = ALIGN_ITEMS.find((item) => item.value === value)?.icon ?? AlignLeftIcon;
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          selectionRef.current = captureEditorSelection(editor);
+        }
+        setOpen(nextOpen);
+      }}
+      modal={false}
+    >
       <DropdownMenuTrigger asChild>
-        <ToolbarButton pressed={open} tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ALIGN")} isDropdown>
+        <ToolbarButton
+          pressed={open}
+          tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ALIGN")}
+          isDropdown
+          onMouseDown={(event) => {
+            event.preventDefault();
+            selectionRef.current = captureEditorSelection(editor);
+          }}
+        >
           <SelectedIcon />
         </ToolbarButton>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="ignore-click-outside/toolbar min-w-[12rem]">
+      <DropdownMenuContent
+        align="start"
+        className="ignore-click-outside/toolbar min-w-[12rem]"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          runEditorTransformPreservingSelection(editor, () => undefined, {
+            selection: selectionRef.current,
+          });
+        }}
+      >
         <DropdownMenuRadioGroup
           value={value}
           onValueChange={(nextValue) => {
-            tf.textAlign.setNodes(nextValue as Alignment);
-            editor.tf.focus();
+            runEditorTransformPreservingSelection(
+              editor,
+              () => {
+                tf.textAlign.setNodes(nextValue as Alignment);
+              },
+              { selection: selectionRef.current },
+            );
           }}
         >
           {ALIGN_ITEMS.map(({ icon: Icon, labelKey, value: itemValue }) => (

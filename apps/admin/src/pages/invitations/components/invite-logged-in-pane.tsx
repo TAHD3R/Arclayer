@@ -1,6 +1,6 @@
 import { motion, type Variants } from "motion/react";
 
-import { AuthLinkButton } from "@/components/ui/auth-controls";
+import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { OrganizationAvatar } from "@/components/common/entity-avatar";
 

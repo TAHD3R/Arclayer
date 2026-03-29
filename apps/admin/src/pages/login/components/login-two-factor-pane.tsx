@@ -6,7 +6,7 @@ import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
-import { AuthLinkButton } from "@/components/ui/auth-controls";
+import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
 

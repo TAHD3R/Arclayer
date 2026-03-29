@@ -225,7 +225,11 @@ const InlineComboboxInput = ({
 
   return (
     <>
-      {showTrigger && trigger}
+      {showTrigger ? (
+        <span className="inline-flex min-h-[1lh] items-center align-baseline leading-none text-label-primary">
+          {trigger}
+        </span>
+      ) : null}
 
       <span className="relative inline-block min-h-[1lh] min-w-[12ch] max-w-[min(24rem,72vw)] align-baseline">
         <span
@@ -236,14 +240,17 @@ const InlineComboboxInput = ({
         </span>
 
         {!value && placeholder ? (
-          <span className="pointer-events-none absolute top-0 left-0 max-w-full overflow-hidden text-nowrap text-label-tertiary">
+          <span className="pointer-events-none absolute left-0 top-1/2 max-w-full -translate-y-1/2 overflow-hidden text-nowrap text-label-tertiary">
             {placeholder}
           </span>
         ) : null}
 
         <Combobox
           ref={ref}
-          className={cn("absolute top-0 left-0 size-full bg-transparent outline-none", className)}
+          className={cn(
+            "absolute left-0 top-1/2 size-full -translate-y-1/2 bg-transparent outline-none",
+            className,
+          )}
           value={value}
           autoSelect
           {...inputProps}

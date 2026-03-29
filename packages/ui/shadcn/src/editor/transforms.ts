@@ -2,7 +2,7 @@
 
 import type { PlateEditor } from "platejs/react";
 
-import { type NodeEntry, type Path, type TElement, KEYS, PathApi } from "platejs";
+import { type NodeEntry, type Path, type Range, type TElement, KEYS, PathApi } from "platejs";
 
 type InsertBlockOptions = {
   upsert?: boolean;
@@ -37,6 +37,61 @@ export const insertBlock = (
     });
   });
 };
+
+function cloneSelection(selection: Range | null | undefined) {
+  if (!selection) return null;
+
+  return JSON.parse(JSON.stringify(selection)) as Range;
+}
+
+export function captureEditorSelection(editor: PlateEditor) {
+  return cloneSelection(editor.selection);
+}
+
+export function restoreEditorSelection(
+  editor: PlateEditor,
+  selection: Range | null | undefined,
+  options: {
+    focus?: boolean;
+    restoreSelection?: boolean;
+  } = {},
+) {
+  const { focus = true, restoreSelection = true } = options;
+  const nextSelection = cloneSelection(selection);
+
+  if (restoreSelection && nextSelection) {
+    editor.tf.select(nextSelection as never);
+  }
+
+  if (focus) {
+    editor.tf.focus();
+  }
+
+  return nextSelection;
+}
+
+export function runEditorTransformPreservingSelection(
+  editor: PlateEditor,
+  transform: (selection: Range | null) => void,
+  options: {
+    focus?: boolean;
+    restoreSelection?: boolean;
+    selection?: Range | null;
+  } = {},
+) {
+  const selection = cloneSelection(options.selection ?? captureEditorSelection(editor));
+
+  if (selection) {
+    editor.tf.select(selection as never);
+  }
+
+  transform(selection);
+
+  return restoreEditorSelection(editor, selection, {
+    focus: options.focus,
+    restoreSelection: options.restoreSelection,
+  });
+}
 
 export const setBlockType = (editor: PlateEditor, type: string, { at }: { at?: Path } = {}) => {
   editor.tf.withoutNormalizing(() => {

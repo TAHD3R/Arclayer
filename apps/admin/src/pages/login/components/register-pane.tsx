@@ -8,11 +8,7 @@ import { z } from "zod";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
-import {
-  AuthInputControl,
-  AuthLinkButton,
-  AuthPasswordControl,
-} from "@/components/ui/auth-controls";
+import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 

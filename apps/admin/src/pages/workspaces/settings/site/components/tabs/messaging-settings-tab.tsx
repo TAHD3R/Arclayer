@@ -14,7 +14,7 @@ import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 
 import { type SettingOverlayConfig, useSettingOverlays } from "@/hooks/use-setting-overlays";
-import { NumberInput } from "@/components/ui/number-input";
+import { NumberInput } from "@arclayer/ui/number-input";
 import { sendTestEmail } from "@/api/mail";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 

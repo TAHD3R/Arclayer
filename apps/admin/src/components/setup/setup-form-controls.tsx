@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@arclayer/lib/utils";
-import { AuthInputControl, AuthPasswordControl } from "@/components/ui/auth-controls";
+import { AuthInputControl, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Textarea } from "@arclayer/ui/textarea";
 

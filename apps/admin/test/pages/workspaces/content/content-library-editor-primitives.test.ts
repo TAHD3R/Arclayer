@@ -1,0 +1,74 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  isEditorDocumentHydrated,
+  shouldApplyExternalDocumentSync,
+} from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document-sync";
+import { resolveLineHeightOptions } from "../../../../../../packages/ui/shadcn/src/editor/line-height-toolbar-button";
+import {
+  hasSlashInputChild,
+  shouldShowParagraphPlaceholder,
+} from "../../../../../../packages/ui/shadcn/src/editor/ui/paragraph-placeholder";
+
+describe("content-library-editor-primitives", () => {
+  it("does not treat a locally echoed document update as an external rehydrate", () => {
+    expect(
+      shouldApplyExternalDocumentSync({
+        appliedDocumentKey: '{"type":"doc","content":[]}',
+        externalSerialized: '{"type":"doc","content":[{"type":"p","children":[{"text":"x"}]}]}',
+        lastSyncedDocumentKey: '{"type":"doc","content":[{"type":"p","children":[{"text":"x"}]}]}',
+      }),
+    ).toBe(false);
+
+    expect(
+      isEditorDocumentHydrated({
+        appliedDocumentKey: '{"type":"doc","content":[]}',
+        externalSerialized: '{"type":"doc","content":[{"type":"p","children":[{"text":"x"}]}]}',
+        lastSyncedDocumentKey: '{"type":"doc","content":[{"type":"p","children":[{"text":"x"}]}]}',
+      }),
+    ).toBe(true);
+  });
+
+  it("still applies a real external snapshot refresh", () => {
+    expect(
+      shouldApplyExternalDocumentSync({
+        appliedDocumentKey: '{"type":"doc","content":[]}',
+        externalSerialized:
+          '{"type":"doc","content":[{"type":"p","children":[{"text":"server"}]}]}',
+        lastSyncedDocumentKey: '{"type":"doc","content":[]}',
+      }),
+    ).toBe(true);
+
+    expect(
+      isEditorDocumentHydrated({
+        appliedDocumentKey: '{"type":"doc","content":[]}',
+        externalSerialized:
+          '{"type":"doc","content":[{"type":"p","children":[{"text":"server"}]}]}',
+        lastSyncedDocumentKey: '{"type":"doc","content":[]}',
+      }),
+    ).toBe(false);
+  });
+
+  it("suppresses the paragraph placeholder while the slash input is active", () => {
+    const paragraph = {
+      children: [{ children: [{ text: "" }], type: "slash_input" }],
+      type: "p",
+    };
+
+    expect(hasSlashInputChild(paragraph)).toBe(true);
+    expect(
+      shouldShowParagraphPlaceholder({
+        element: paragraph,
+        focused: true,
+        selected: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("falls back to a stable line-height option set when Plate does not inject values", () => {
+    expect(resolveLineHeightOptions(undefined, "1.5")).toEqual(["1", "1.25", "1.5", "2"]);
+    expect(resolveLineHeightOptions([], "1.75")).toEqual(["1", "1.25", "1.5", "2", "1.75"]);
+    expect(resolveLineHeightOptions(["1", "1.5", "1.5", "2"], "1.5")).toEqual(["1", "1.5", "2"]);
+    expect(resolveLineHeightOptions(undefined, " 1.5 ")).toEqual(["1", "1.25", "1.5", "2"]);
+  });
+});

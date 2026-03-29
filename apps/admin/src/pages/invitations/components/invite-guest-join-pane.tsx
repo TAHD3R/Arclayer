@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, type Variants } from "motion/react";
 
-import { AuthLinkButton } from "@/components/ui/auth-controls";
+import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { InviteRegisterForm } from "./invite-register-form";
 import { InviteLoginJoinForm } from "./invite-login-join-form";

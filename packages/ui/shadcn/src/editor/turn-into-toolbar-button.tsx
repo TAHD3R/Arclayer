@@ -22,7 +22,12 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { ToolbarButton, ToolbarMenuGroup } from "./ui/toolbar";
-import { getBlockType, setBlockType } from "./transforms";
+import {
+  captureEditorSelection,
+  getBlockType,
+  runEditorTransformPreservingSelection,
+  setBlockType,
+} from "./transforms";
 
 const TURN_INTO_ITEMS = [
   { icon: <PilcrowIcon />, value: KEYS.p, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_TEXT" },
@@ -36,6 +41,7 @@ export function TurnIntoToolbarButton() {
   const { t } = useTranslation("content");
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
+  const selectionRef = React.useRef(captureEditorSelection(editor));
   const value = useSelectionFragmentProp({
     defaultValue: KEYS.p,
     getProp: (node) => getBlockType(node as TElement),
@@ -47,13 +53,26 @@ export function TurnIntoToolbarButton() {
   );
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          selectionRef.current = captureEditorSelection(editor);
+        }
+        setOpen(nextOpen);
+      }}
+      modal={false}
+    >
       <DropdownMenuTrigger asChild>
         <ToolbarButton
           className="min-w-[7.5rem]"
           pressed={open}
           tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
           isDropdown
+          onMouseDown={(event) => {
+            event.preventDefault();
+            selectionRef.current = captureEditorSelection(editor);
+          }}
         >
           {t(selectedItem.labelKey)}
         </ToolbarButton>
@@ -63,13 +82,23 @@ export function TurnIntoToolbarButton() {
         className="ignore-click-outside/toolbar min-w-0"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          editor.tf.focus();
+          runEditorTransformPreservingSelection(editor, () => undefined, {
+            selection: selectionRef.current,
+          });
         }}
       >
         <ToolbarMenuGroup
           label={t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
           value={value}
-          onValueChange={(nextType) => setBlockType(editor, nextType)}
+          onValueChange={(nextType) => {
+            runEditorTransformPreservingSelection(
+              editor,
+              () => {
+                setBlockType(editor, nextType);
+              },
+              { selection: selectionRef.current },
+            );
+          }}
         >
           {TURN_INTO_ITEMS.map((item) => (
             <DropdownMenuRadioItem

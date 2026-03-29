@@ -21,12 +21,12 @@ import { useTranslation } from "react-i18next";
 import {
   applyArticleEditorInsertItem,
   getArticleEditorInsertGroups,
-} from "@/components/editor/article-editor-insert-items";
-import { useArticleEditorCommands } from "@/components/editor/article-editor-command-context";
+} from "../article-editor-insert-items";
+import { useArticleEditorCommands } from "../article-editor-command-context";
 import { Input } from "@arclayer/ui/input";
 import { Button } from "@arclayer/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
 const UNDRAGGABLE_KEYS = [KEYS.column, KEYS.tr, KEYS.td];
@@ -121,11 +121,12 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
         <Button
           type="button"
           variant="ghost"
-          size="icon-sm"
-          className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary"
+          size="icon-xs"
+          title={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
+          className="size-[22px] rounded-[9px] p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary [&_svg:not([class*='size-'])]:size-2.5"
           data-plate-prevent-deselect
         >
-          <Plus className="size-2.5" />
+          <Plus className="size-3" />
           <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</span>
         </Button>
       </PopoverTrigger>
@@ -256,24 +257,24 @@ function Draggable(props: PlateElementProps) {
           <div className={cn("slate-blockToolbarWrapper", "flex h-[1.5em]", isInColumn && "h-4")}>
             <div
               className={cn(
-                "slate-blockToolbar pointer-events-auto relative mr-3.5 w-[4.25rem]",
+                "slate-blockToolbar pointer-events-auto relative mr-1 w-9",
                 "flex items-center",
-                isInColumn && "mr-1.5",
+                isInColumn && "mr-0.5",
               )}
             >
               <div
-                className="absolute left-0 flex items-center gap-4"
-                style={{ top: `${dragButtonTop + 3}px` }}
+                className="absolute left-0 flex w-auto items-center gap-0.5"
+                style={{ top: `${dragButtonTop + 2}px` }}
               >
                 <BlockInsertMenu editor={editor} path={path} />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       ref={handleRef}
-                      size="icon-sm"
+                      size="icon-xs"
                       variant="ghost"
                       type="button"
-                      className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary"
+                      className="size-[22px] rounded-[9px] p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary [&_svg:not([class*='size-'])]:size-2.5"
                       data-plate-prevent-deselect
                       onClick={(e) => {
                         e.preventDefault();
@@ -349,7 +350,7 @@ function Draggable(props: PlateElementProps) {
                         resetPreview();
                       }}
                     >
-                      <GripVertical className="size-2.5 text-label-secondary" />
+                      <GripVertical className="size-3 text-label-secondary" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Drag to move</TooltipContent>
@@ -392,7 +393,7 @@ function Gutter({ children, className, ...props }: React.ComponentProps<"div">) 
       {...props}
       className={cn(
         "slate-gutterLeft",
-        "pointer-events-none absolute left-0 top-0 z-50 flex h-full -translate-x-[calc(100%+0.75rem)] cursor-text hover:opacity-100 sm:opacity-0",
+        "pointer-events-none absolute left-0 top-0 z-50 flex h-full -translate-x-[calc(100%+0.375rem)] cursor-text hover:opacity-100 sm:opacity-0",
         getPluginByType(editor, element.type)?.node.isContainer
           ? "group-hover/container:opacity-100"
           : "group-hover:opacity-100",

@@ -6,11 +6,12 @@ import type { TElement } from "platejs";
 
 import { toUnitLess } from "@platejs/basic-styles";
 import { FontSizePlugin } from "@platejs/basic-styles/react";
-import { Minus, Plus } from "lucide-react";
+import { ChevronDown, Minus, Plus } from "lucide-react";
 import { KEYS } from "platejs";
 import { useEditorPlugin, useEditorSelector } from "platejs/react";
 
 import { ToolbarButton } from "./ui/toolbar";
+import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { cn } from "@arclayer/lib/utils";
 
@@ -38,10 +39,9 @@ const FONT_SIZE_MAP = {
 } as const;
 
 export function FontSizeToolbarButton(props: { tooltip?: string }) {
-  const [inputValue, setInputValue] = React.useState(DEFAULT_FONT_SIZE);
   const [open, setOpen] = React.useState(false);
-  const [isFocused, setIsFocused] = React.useState(false);
   const { editor, tf } = useEditorPlugin(FontSizePlugin);
+  const selectionRef = React.useRef(captureEditorSelection(editor));
 
   const cursorFontSize = useEditorSelector((currentEditor) => {
     const fontSize = currentEditor.api.marks()?.[KEYS.fontSize];
@@ -57,33 +57,32 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
       : DEFAULT_FONT_SIZE;
   }, []);
 
-  const displayValue = isFocused ? inputValue : cursorFontSize;
-
-  const commitInputValue = React.useCallback(() => {
-    const nextSize = toUnitLess(inputValue);
-    const parsedSize = Number.parseInt(nextSize, 10);
-
-    if (!Number.isFinite(parsedSize) || parsedSize < 1 || parsedSize > 100) {
-      editor.tf.focus();
-      setIsFocused(false);
-      return;
-    }
-
-    if (nextSize !== toUnitLess(cursorFontSize)) {
-      tf.fontSize.addMark(`${nextSize}px`);
-    }
-
-    editor.tf.focus();
-    setIsFocused(false);
-  }, [cursorFontSize, editor, inputValue, tf.fontSize]);
-
   const adjustFontSize = React.useCallback(
     (delta: number) => {
-      const nextSize = Math.max(1, Number(displayValue) + delta);
-      tf.fontSize.addMark(`${nextSize}px`);
-      editor.tf.focus();
+      const nextSize = Math.max(1, Number(cursorFontSize) + delta);
+      runEditorTransformPreservingSelection(
+        editor,
+        () => {
+          tf.fontSize.addMark(`${nextSize}px`);
+        },
+        { selection: selectionRef.current },
+      );
     },
-    [displayValue, editor, tf.fontSize],
+    [cursorFontSize, editor, tf.fontSize],
+  );
+
+  const applyFontSize = React.useCallback(
+    (size: string) => {
+      runEditorTransformPreservingSelection(
+        editor,
+        () => {
+          tf.fontSize.addMark(`${size}px`);
+        },
+        { selection: selectionRef.current },
+      );
+      setOpen(false);
+    },
+    [editor, tf.fontSize],
   );
 
   return (
@@ -92,67 +91,65 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
         size="sm"
         tooltip={props.tooltip}
         onClick={() => adjustFontSize(-1)}
-        onMouseDown={(event) => event.preventDefault()}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          selectionRef.current = captureEditorSelection(editor);
+        }}
       >
         <Minus />
       </ToolbarButton>
 
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) {
+            selectionRef.current = captureEditorSelection(editor);
+          }
+          setOpen(nextOpen);
+        }}
+      >
         <PopoverTrigger asChild>
-          <input
-            type="text"
-            value={displayValue}
-            className={cn(
-              "h-6 w-11 shrink-0 rounded bg-transparent px-1 text-center text-footnote outline-none transition-colors hover:bg-accent/60",
-              isFocused && "bg-accent/60",
-            )}
+          <ToolbarButton
+            size="sm"
+            pressed={open}
+            className="h-6 min-w-11 shrink-0 gap-1 rounded bg-transparent px-1 text-center text-footnote font-medium hover:bg-accent/60"
+            tooltip={props.tooltip}
             data-plate-focus="true"
-            onBlur={() => {
-              commitInputValue();
-              setOpen(false);
+            onMouseDown={(event) => {
+              event.preventDefault();
+              selectionRef.current = captureEditorSelection(editor);
             }}
-            onChange={(event) => setInputValue(event.target.value)}
-            onFocus={() => {
-              setIsFocused(true);
-              setOpen(true);
-              setInputValue(toUnitLess(cursorFontSize));
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commitInputValue();
-                setOpen(false);
-              }
-            }}
-          />
+          >
+            <span>{toUnitLess(cursorFontSize)}</span>
+            <ChevronDown className="size-3 text-label-secondary" />
+          </ToolbarButton>
         </PopoverTrigger>
         <PopoverContent
           align="center"
           sideOffset={10}
-          className="w-12 rounded-xl border border-border/70 p-1 "
+          className="w-14 rounded-xl border border-border/70 p-1"
           onOpenAutoFocus={(event) => event.preventDefault()}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            runEditorTransformPreservingSelection(editor, () => undefined, {
+              selection: selectionRef.current,
+            });
+          }}
         >
-          <div className="max-h-56 overflow-y-auto">
-            {FONT_SIZES.map((size) => (
-              <button
-                key={size}
-                type="button"
-                className={cn(
-                  "flex h-8 w-full items-center justify-center rounded-md text-footnote transition-colors hover:bg-accent",
-                  size === displayValue && "bg-accent",
-                )}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  tf.fontSize.addMark(`${size}px`);
-                  setOpen(false);
-                  setIsFocused(false);
-                  editor.tf.focus();
-                }}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
+          {FONT_SIZES.map((size) => (
+            <button
+              key={size}
+              type="button"
+              className={cn(
+                "flex h-8 w-full items-center justify-center rounded-md text-footnote transition-colors hover:bg-accent",
+                size === toUnitLess(cursorFontSize) && "bg-accent",
+              )}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => applyFontSize(size)}
+            >
+              {size}
+            </button>
+          ))}
         </PopoverContent>
       </Popover>
 
@@ -160,7 +157,10 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
         size="sm"
         tooltip={props.tooltip}
         onClick={() => adjustFontSize(1)}
-        onMouseDown={(event) => event.preventDefault()}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          selectionRef.current = captureEditorSelection(editor);
+        }}
       >
         <Plus />
       </ToolbarButton>

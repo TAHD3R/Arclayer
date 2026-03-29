@@ -12,8 +12,8 @@ import {
 } from "@platejs/basic-nodes/react";
 import { ParagraphPlugin } from "platejs/react";
 
-import { BlockquoteElement } from "@/components/ui/blockquote-node";
-import { BlockDraggable } from "@/components/ui/block-draggable";
+import { BlockquoteElement } from "../ui/blockquote-node";
+import { BlockDraggable } from "../ui/block-draggable";
 import {
   H1Element,
   H2Element,
@@ -21,9 +21,9 @@ import {
   H4Element,
   H5Element,
   H6Element,
-} from "@/components/ui/heading-node";
-import { HrElement } from "@/components/ui/hr-node";
-import { ParagraphElement } from "@/components/ui/paragraph-node";
+} from "../ui/heading-node";
+import { HrElement } from "../ui/hr-node";
+import { ParagraphElement } from "../ui/paragraph-node";
 
 export const BasicBlocksKit = [
   ParagraphPlugin.configure({

@@ -14,7 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { AdminAssetTag } from "@/types/api";
-import { DateTimeRangeField } from "@/components/ui/date-time-range-field";
+import { DateTimeRangeField } from "@arclayer/ui/date-time-range-field";
 import { buildReuiFilterI18n } from "@/components/common/reui-filter-i18n";
 import { Button } from "@arclayer/ui/button";
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from "@arclayer/ui/filters";

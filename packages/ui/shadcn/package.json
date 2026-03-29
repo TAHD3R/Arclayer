@@ -123,6 +123,8 @@
     "./input-otp": "./src/input-otp.tsx",
     "./editor": "./src/editor/index.ts",
     "./editor/ui/media-audio-node": "./src/editor/ui/media-audio-node.tsx",
+    "./editor/ui/media-image-node": "./src/editor/ui/media-image-node.tsx",
+    "./editor/ui/media-toolbar": "./src/editor/ui/media-toolbar.tsx",
     "./editor/ui/paragraph-node": "./src/editor/ui/paragraph-node.tsx",
     "./editor/ui/code-node": "./src/editor/ui/code-node.tsx",
     "./editor/ui/heading-node": "./src/editor/ui/heading-node.tsx",
@@ -133,6 +135,7 @@
     "./editor/link-toolbar-button": "./src/editor/link-toolbar-button.tsx",
     "./editor/ui/table-node": "./src/editor/ui/table-node.tsx",
     "./editor/ui/media-video-node": "./src/editor/ui/media-video-node.tsx",
+    "./editor/ui/resize-handle": "./src/editor/ui/resize-handle.tsx",
     "./editor/ui/code-block-node": "./src/editor/ui/code-block-node.tsx",
     "./editor/ui/inline-combobox": "./src/editor/ui/inline-combobox.tsx",
     "./editor/ui/highlight-node-static": "./src/editor/ui/highlight-node-static.tsx",
@@ -168,7 +171,11 @@
     "./editor/plugins/basic-marks-kit": "./src/editor/plugins/basic-marks-kit.tsx",
     "./editor/turn-into-toolbar-button": "./src/editor/turn-into-toolbar-button.tsx",
     "./editor/ui/blockquote-node": "./src/editor/ui/blockquote-node.tsx",
-    "./editor/ui/toggle-node": "./src/editor/ui/toggle-node.tsx"
+    "./editor/ui/toggle-node": "./src/editor/ui/toggle-node.tsx",
+    "./auth-controls": "./src/auth-controls.tsx",
+    "./date-time-range-field": "./src/date-time-range-field.tsx",
+    "./number-input": "./src/number-input.tsx",
+    "./string-tags-field": "./src/string-tags-field.tsx"
   },
   "dependencies": {
     "@rc-component/qrcode": "^1.1.1",

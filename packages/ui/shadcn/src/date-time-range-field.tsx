@@ -1,4 +1,4 @@
-import { Input } from "@arclayer/ui/input";
+import { Input } from "./input";
 
 type DateTimeRangeFieldProps = {
   startValue?: string;

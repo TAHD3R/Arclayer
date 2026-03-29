@@ -2,7 +2,7 @@ import { AlertCircle, Cloud, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getErrorMessage } from "@/lib/notifications";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { Spinner } from "@arclayer/ui/spinner";
 
 type SaveIndicatorState = "hidden" | "saving" | "saved" | "error";

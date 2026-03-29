@@ -20,26 +20,58 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
 import { ToolbarButton } from "./ui/toolbar";
 
 export function MoreToolbarButton() {
   const { t } = useTranslation("content");
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
+  const selectionRef = React.useRef(captureEditorSelection(editor));
 
   const toggleMark = (mark: string, remove?: string) => {
-    editor.tf.toggleMark(mark, remove ? { remove } : undefined);
-    editor.tf.focus();
+    runEditorTransformPreservingSelection(
+      editor,
+      () => {
+        editor.tf.toggleMark(mark, remove ? { remove } : undefined);
+      },
+      { selection: selectionRef.current },
+    );
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          selectionRef.current = captureEditorSelection(editor);
+        }
+        setOpen(nextOpen);
+      }}
+      modal={false}
+    >
       <DropdownMenuTrigger asChild>
-        <ToolbarButton pressed={open} tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_MORE")}>
+        <ToolbarButton
+          pressed={open}
+          tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_MORE")}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            selectionRef.current = captureEditorSelection(editor);
+          }}
+        >
           <MoreHorizontalIcon />
         </ToolbarButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="ignore-click-outside/toolbar min-w-[12rem]">
+      <DropdownMenuContent
+        align="start"
+        className="ignore-click-outside/toolbar min-w-[12rem]"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          runEditorTransformPreservingSelection(editor, () => undefined, {
+            selection: selectionRef.current,
+          });
+        }}
+      >
         <DropdownMenuGroup>
           <DropdownMenuItem onSelect={() => toggleMark(KEYS.kbd)}>
             <KeyboardIcon />

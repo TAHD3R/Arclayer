@@ -9,7 +9,7 @@ import {
   AuthInputControl,
   AuthLinkButton,
   AuthPasswordControl,
-} from "@/components/ui/auth-controls";
+} from "@arclayer/ui/auth-controls";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { Button } from "@arclayer/ui/button";

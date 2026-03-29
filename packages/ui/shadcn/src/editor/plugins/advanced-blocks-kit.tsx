@@ -7,7 +7,7 @@ import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
 import { LinkPlugin } from "@platejs/link/react";
 import { ListPlugin } from "@platejs/list/react";
 import { EquationPlugin, InlineEquationPlugin } from "@platejs/math/react";
-import { AudioPlugin, FilePlugin, VideoPlugin } from "@platejs/media/react";
+import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
 import { TogglePlugin } from "@platejs/toggle/react";
 import {
   TableCellHeaderPlugin,
@@ -23,8 +23,10 @@ import { ColumnElement, ColumnGroupElement } from "../ui/column-node";
 import { DateElement } from "../ui/date-node";
 import { EquationElement, InlineEquationElement } from "../ui/equation-node";
 import { LinkElement } from "../ui/link-node";
+import { ListItemElement } from "../ui/list-node";
 import { AudioElement } from "../ui/media-audio-node";
 import { FileElement } from "../ui/media-file-node";
+import { MediaImageElement } from "../ui/media-image-node";
 import { VideoElement } from "../ui/media-video-node";
 import {
   TableCellElement,
@@ -39,7 +41,9 @@ export const AdvancedBlocksKit = [
   LinkPlugin.configure({
     node: { component: LinkElement },
   }),
-  ListPlugin,
+  ListPlugin.configure({
+    node: { component: ListItemElement },
+  }),
   TogglePlugin.configure({
     node: { component: ToggleElement },
   }),
@@ -69,6 +73,9 @@ export const AdvancedBlocksKit = [
   }),
   AudioPlugin.configure({
     node: { component: AudioElement },
+  }),
+  ImagePlugin.configure({
+    node: { component: MediaImageElement },
   }),
   FilePlugin.configure({
     node: { component: FileElement },

@@ -23,29 +23,31 @@ import { KEYS, type TElement } from "platejs";
 import { useEditorRef, useEditorSelector, useSelectionFragmentProp } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
-import {
-  applyArticleEditorInsertItem,
-  getArticleEditorInsertGroups,
-  type ArticleEditorInsertItem,
-} from "@/components/editor/article-editor-insert-items";
-import { AlignToolbarButton } from "@/components/editor/align-toolbar-button";
-import { useArticleEditorCommands } from "@/components/editor/article-editor-command-context";
-import { FontSizeToolbarButton } from "@/components/editor/font-size-toolbar-button";
-import { FontColorToolbarButton } from "@/components/editor/font-color-toolbar-button";
-import { InlineEquationToolbarButton } from "@/components/editor/equation-toolbar-button";
-import { LineHeightToolbarButton } from "@/components/editor/line-height-toolbar-button";
-import { LinkToolbarButton } from "@/components/editor/link-toolbar-button";
-import { MoreToolbarButton } from "@/components/editor/more-toolbar-button";
-import { TableToolbarButton } from "@/components/editor/table-toolbar-button";
-import { TurnIntoToolbarButton } from "@/components/editor/turn-into-toolbar-button";
-import { getBlockType } from "@/components/editor/transforms";
-import { MarkToolbarButton } from "@/components/ui/mark-toolbar-button";
-import { Toolbar, ToolbarButton, ToolbarGroup } from "@/components/ui/toolbar";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu as ActionDropdownMenu,
   DropdownMenuTrigger as ActionDropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import {
+  AlignToolbarButton,
+  applyArticleEditorInsertItem,
+  type ArticleEditorInsertItem,
+  FontColorToolbarButton,
+  FontSizeToolbarButton,
+  getArticleEditorInsertGroups,
+  getBlockType,
+  InlineEquationToolbarButton,
+  LineHeightToolbarButton,
+  LinkToolbarButton,
+  MarkToolbarButton,
+  MoreToolbarButton,
+  TableToolbarButton,
+  Toolbar,
+  ToolbarButton,
+  ToolbarGroup,
+  TurnIntoToolbarButton,
+  useArticleEditorCommands,
+} from "@arclayer/ui/editor";
 import {
   FloatingPanelButton,
   FloatingPanelContent,

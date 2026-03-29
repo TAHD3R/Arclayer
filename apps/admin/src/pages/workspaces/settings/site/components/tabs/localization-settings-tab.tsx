@@ -11,7 +11,7 @@ import {
   DateTimeFormatLocalizationControl,
   TimezoneLocalizationControl,
 } from "@/components/settings/date-time-localization-controls";
-import { StringTagsField } from "@/components/ui/string-tags-field";
+import { StringTagsField } from "@arclayer/ui/string-tags-field";
 import { getLocaleMetadata } from "@/lib/i18n";
 import {
   resolveLocalizationDateFormatSummary,

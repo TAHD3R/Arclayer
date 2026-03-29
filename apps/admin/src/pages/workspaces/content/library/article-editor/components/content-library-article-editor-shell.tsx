@@ -8,12 +8,13 @@ import {
   Upload,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useEditorScrollRef } from "platejs/react";
 
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
 import { Button } from "@arclayer/ui/button";
 import { DropdownMenu, DropdownMenuTrigger } from "@arclayer/ui/dropdown-menu";
-import { Progress } from "@arclayer/ui/progress";
+import { Skeleton } from "@arclayer/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
@@ -68,29 +69,46 @@ type ContentLibraryArticleEditorShellProps = {
   className?: string;
 };
 
-function ContentLibraryArticleEditorLoadingOverlay(props: { label: string }) {
-  const [progress, setProgress] = React.useState(14);
-
-  React.useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setProgress((current) => (current >= 84 ? 28 : current + 8));
-    }, 220);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
-
+function ContentLibraryArticleEditorLoadingSkeleton(props: {
+  bodyClassName?: string;
+  mode: "split" | "page";
+  showHeaderSkeleton?: boolean;
+}) {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-label={props.label}
-      className="absolute inset-0 z-40 flex items-center justify-center bg-card/56 backdrop-blur-md"
-    >
-      <div className="w-full max-w-xs px-6">
-        <div className="mb-3 text-center text-footnote font-medium text-label-primary/88">
-          {props.label}
+    <div className={cn("flex min-h-0 flex-1 flex-col", props.bodyClassName)}>
+      {props.showHeaderSkeleton ? (
+        <div
+          className={cn(
+            props.mode === "page"
+              ? "mx-auto flex w-full max-w-[76rem] flex-col px-6 pl-16"
+              : "flex w-full flex-col px-4 pl-16",
+            "space-y-3",
+          )}
+        >
+          <Skeleton className="h-12 w-full max-w-[30rem] rounded-xl" />
+          <Skeleton className="h-6 w-full max-w-[42rem] rounded-xl" />
+          <Skeleton className="h-6 w-full max-w-[28rem] rounded-xl" />
         </div>
-        <Progress value={progress} className="h-2.5 bg-card/60 " />
+      ) : null}
+
+      <div className={cn("flex min-h-0 flex-1 flex-col", props.showHeaderSkeleton ? "mt-8" : "")}>
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(
+            props.mode === "page"
+              ? "mx-auto flex w-full max-w-[76rem] flex-1 flex-col px-6 pl-16"
+              : "flex w-full flex-1 flex-col px-4 pl-16",
+          )}
+        >
+          <div className="space-y-3 pt-2">
+            <Skeleton className="h-5 w-full max-w-[22rem] rounded-full" />
+            <Skeleton className="h-5 w-full max-w-[30rem] rounded-full" />
+            <Skeleton className="h-5 w-full max-w-[26rem] rounded-full" />
+            <Skeleton className="h-5 w-full max-w-[34rem] rounded-full" />
+            <Skeleton className="h-5 w-full max-w-[18rem] rounded-full" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -132,9 +150,11 @@ function HeaderActionButton(props: { icon: React.ReactNode; label: string; onCli
 function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
   const { isHydrated } = useContentLibraryArticleEditorDocumentState();
+  const scrollContainerRef = useEditorScrollRef();
   const [coverPopoverOpen, setCoverPopoverOpen] = React.useState(false);
   const [seoDialogOpen, setSeoDialogOpen] = React.useState(false);
-  const showLoadingOverlay = Boolean(props.isLoading) || !isHydrated;
+  const showShellSkeleton = Boolean(props.isLoading);
+  const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
   const textLaneClass =
     props.mode === "page"
       ? "mx-auto flex w-full max-w-[76rem] flex-col px-6 pl-16"
@@ -230,7 +250,10 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-hidden">
-          <div className="flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain">
+          <div
+            ref={scrollContainerRef}
+            className="flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain"
+          >
             <div className="flex min-h-full w-full flex-col">
               {coverImageUrl ? (
                 <div className="w-full">
@@ -270,87 +293,95 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                 </div>
               ) : null}
 
-              <div
-                className={cn(
-                  "group/header",
-                  textLaneClass,
-                  props.mode === "page"
-                    ? props.coverAssetId
-                      ? "pt-6"
-                      : "pt-8"
-                    : props.coverAssetId
-                      ? "pt-4"
-                      : "pt-6",
-                  "space-y-3",
-                )}
-              >
-                <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
-                  {!props.coverAssetId ? (
-                    <ContentLibraryCoverPickerPopover
-                      workspaceId={props.workspaceId}
-                      value={props.coverAssetId}
-                      open={coverPopoverOpen}
-                      onOpenChange={setCoverPopoverOpen}
-                      onChange={props.onCoverAssetIdChange}
-                    >
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-label-primary"
-                      >
-                        <ImagePlus className="size-4" />
-                        {t("CONTENT_LIBRARY_EDITOR_ADD_COVER")}
-                      </Button>
-                    </ContentLibraryCoverPickerPopover>
-                  ) : null}
-                  <HeaderActionButton
-                    icon={<Search className="size-4" />}
-                    label={t("CONTENT_LIBRARY_EDITOR_OPEN_SEO_DIALOG")}
-                    onClick={() => setSeoDialogOpen(true)}
-                  />
-                </div>
-
-                <input
-                  type="text"
-                  value={props.title}
-                  onChange={(event) => props.onTitleChange(event.target.value)}
-                  placeholder={t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER")}
-                  className={cn(
-                    "w-full appearance-none border-none bg-transparent p-0 font-semibold  tracking-[-0.045em] text-label-primary outline-none placeholder:text-label-tertiary",
-                    props.mode === "page" ? "text-largetitle" : "text-title",
-                  )}
-                />
-
-                <textarea
-                  value={props.summary}
-                  onChange={(event) => props.onSummaryChange(event.target.value)}
-                  placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
-                  className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
-                  rows={2}
-                />
-              </div>
-
-              <div
-                className={cn(
-                  "flex min-h-0 flex-1 flex-col",
-                  props.mode === "page" ? "mt-8" : "mt-5",
-                )}
-              >
-                <ContentLibraryArticleEditorBody
-                  placeholder={t("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER")}
+              {showShellSkeleton ? (
+                <ContentLibraryArticleEditorLoadingSkeleton
                   mode={props.mode}
+                  showHeaderSkeleton
+                  bodyClassName={props.mode === "page" ? "mt-8" : "mt-5"}
                 />
-              </div>
+              ) : (
+                <>
+                  <div
+                    className={cn(
+                      "group/header",
+                      textLaneClass,
+                      props.mode === "page"
+                        ? props.coverAssetId
+                          ? "pt-6"
+                          : "pt-8"
+                        : props.coverAssetId
+                          ? "pt-4"
+                          : "pt-6",
+                      "space-y-3",
+                    )}
+                  >
+                    <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
+                      {!props.coverAssetId ? (
+                        <ContentLibraryCoverPickerPopover
+                          workspaceId={props.workspaceId}
+                          value={props.coverAssetId}
+                          open={coverPopoverOpen}
+                          onOpenChange={setCoverPopoverOpen}
+                          onChange={props.onCoverAssetIdChange}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-label-primary"
+                          >
+                            <ImagePlus className="size-4" />
+                            {t("CONTENT_LIBRARY_EDITOR_ADD_COVER")}
+                          </Button>
+                        </ContentLibraryCoverPickerPopover>
+                      ) : null}
+                      <HeaderActionButton
+                        icon={<Search className="size-4" />}
+                        label={t("CONTENT_LIBRARY_EDITOR_OPEN_SEO_DIALOG")}
+                        onClick={() => setSeoDialogOpen(true)}
+                      />
+                    </div>
+
+                    <input
+                      type="text"
+                      value={props.title}
+                      onChange={(event) => props.onTitleChange(event.target.value)}
+                      placeholder={t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER")}
+                      className={cn(
+                        "w-full appearance-none border-none bg-transparent p-0 font-semibold  tracking-[-0.045em] text-label-primary outline-none placeholder:text-label-tertiary",
+                        props.mode === "page" ? "text-largetitle" : "text-title",
+                      )}
+                    />
+
+                    <textarea
+                      value={props.summary}
+                      onChange={(event) => props.onSummaryChange(event.target.value)}
+                      placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
+                      className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div
+                    className={cn(
+                      "flex min-h-0 flex-1 flex-col",
+                      props.mode === "page" ? "mt-8" : "mt-5",
+                    )}
+                  >
+                    {showBodySkeleton ? (
+                      <ContentLibraryArticleEditorLoadingSkeleton mode={props.mode} />
+                    ) : (
+                      <ContentLibraryArticleEditorBody
+                        placeholder={t("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER")}
+                        mode={props.mode}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
-
-        {showLoadingOverlay ? (
-          <ContentLibraryArticleEditorLoadingOverlay
-            label={t("CONTENT_LIBRARY_EDITOR_LOADING_TITLE")}
-          />
-        ) : null}
       </div>
 
       <ContentLibraryArticleEditorSeoDialog

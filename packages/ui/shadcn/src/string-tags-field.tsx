@@ -4,7 +4,8 @@ import * as React from "react";
 import { X } from "lucide-react";
 
 import { cn } from "@arclayer/lib/utils";
-import { Button } from "@arclayer/ui/button";
+
+import { Button } from "./button";
 
 type StringTagsFieldProps = {
   value: string[];
@@ -66,7 +67,7 @@ export function StringTagsField({
   return (
     <div
       className={cn(
-        "flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-input bg-card px-2 py-1.5  transition-[color,box-shadow]",
+        "flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-input bg-card px-2 py-1.5 transition-[color,box-shadow]",
         "focus-within:border-ring focus-within:ring-ring/20 focus-within:ring-[3px]",
         disabled ? "cursor-not-allowed opacity-60" : undefined,
       )}

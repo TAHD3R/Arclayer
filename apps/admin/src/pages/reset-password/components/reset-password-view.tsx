@@ -6,11 +6,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import {
-  AuthInputControl,
-  AuthLinkButton,
-  AuthPasswordControl,
-} from "@/components/ui/auth-controls";
+import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { Button } from "@arclayer/ui/button";

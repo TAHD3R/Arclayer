@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
 
-import { AuthLinkButton } from "@/components/ui/auth-controls";
+import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { getErrorMessage } from "@/lib/notifications";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";

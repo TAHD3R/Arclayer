@@ -97,6 +97,14 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("platejs/react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("platejs/react")>();
+  return {
+    ...actual,
+    useEditorScrollRef: () => ({ current: null }),
+  };
+});
+
 vi.mock("@/hooks/use-workspace-date-time-formatter", () => ({
   useWorkspaceDateTimeFormatter: () => ({
     formatDateTimeOrNull: (value: string | null | undefined) => value ?? null,
@@ -123,7 +131,10 @@ vi.mock(
     ContentLibraryArticleEditorDocumentProvider: (props: { children?: ReactNode }) => (
       <>{props.children}</>
     ),
-    useContentLibraryArticleEditorDocumentState: () => ({ isHydrated: true }),
+    useContentLibraryArticleEditorDocumentState: () => ({
+      isHydrated: true,
+      scrollContainerRef: { current: null },
+    }),
   }),
 );
 

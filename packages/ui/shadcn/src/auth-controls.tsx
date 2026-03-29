@@ -1,9 +1,10 @@
 import * as React from "react";
 
 import { cn } from "@arclayer/lib/utils";
-import { Button } from "@arclayer/ui/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@arclayer/ui/input-group";
-import { PasswordInput } from "@arclayer/ui/password-input";
+
+import { Button } from "./button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group";
+import { PasswordInput } from "./password-input";
 
 type AuthFieldErrorProps = {
   message?: string;
@@ -46,7 +47,7 @@ export function AuthLinkButton({ className, size = "inline", ...props }: AuthLin
     <Button
       variant="link"
       size={size}
-      className={cn("inline-flex items-baseline gap-0 align-baseline text-footnote ", className)}
+      className={cn("inline-flex items-baseline gap-0 align-baseline text-footnote", className)}
       {...props}
     />
   );

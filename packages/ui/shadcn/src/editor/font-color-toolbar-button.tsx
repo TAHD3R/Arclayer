@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
 import { ToolbarButton, ToolbarMenuGroup } from "./ui/toolbar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
@@ -66,35 +67,68 @@ export function FontColorToolbarButton({
 }) {
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
+  const selectionRef = React.useRef(captureEditorSelection(editor));
   const selectedColor = useEditorSelector(
     (currentEditor) => currentEditor.api.mark(nodeType) as string | undefined,
     [nodeType],
   );
 
   const applyColor = (value: string) => {
-    if (!editor.selection) return;
-    editor.tf.select(editor.selection);
-    editor.tf.addMarks({ [nodeType]: value });
-    editor.tf.focus();
+    runEditorTransformPreservingSelection(
+      editor,
+      () => {
+        editor.tf.addMarks({ [nodeType]: value });
+      },
+      { selection: selectionRef.current },
+    );
     setOpen(false);
   };
 
   const clearColor = () => {
-    if (!editor.selection) return;
-    editor.tf.select(editor.selection);
-    editor.tf.removeMarks(nodeType);
-    editor.tf.focus();
+    runEditorTransformPreservingSelection(
+      editor,
+      () => {
+        editor.tf.removeMarks(nodeType);
+      },
+      { selection: selectionRef.current },
+    );
     setOpen(false);
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          selectionRef.current = captureEditorSelection(editor);
+        }
+        setOpen(nextOpen);
+      }}
+      modal={false}
+    >
       <DropdownMenuTrigger asChild>
-        <ToolbarButton pressed={open} tooltip={tooltip}>
+        <ToolbarButton
+          pressed={open}
+          tooltip={tooltip}
+          data-plate-focus
+          onMouseDown={(event) => {
+            event.preventDefault();
+            selectionRef.current = captureEditorSelection(editor);
+          }}
+        >
           {children}
         </ToolbarButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="ignore-click-outside/toolbar w-[15rem]">
+      <DropdownMenuContent
+        align="start"
+        className="ignore-click-outside/toolbar w-[15rem]"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          runEditorTransformPreservingSelection(editor, () => undefined, {
+            selection: selectionRef.current,
+          });
+        }}
+      >
         <ToolbarMenuGroup label={tooltip}>
           <div className="grid grid-cols-6 gap-1 px-2 pb-2 pt-1">
             <TooltipProvider>

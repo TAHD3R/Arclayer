@@ -6,7 +6,7 @@ import {
   buildDataTableActionsColumnMeta,
   DataTableActionsCell,
 } from "@/components/common/data-table-actions-cell";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { BaseTag } from "@/components/ui/tags";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import {

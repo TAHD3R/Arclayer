@@ -33,7 +33,7 @@ import { insertTable } from "@platejs/table";
 import { KEYS } from "platejs";
 import type { PlateEditor } from "platejs/react";
 
-import { insertBlock } from "@/components/editor/transforms";
+import { insertBlock } from "./transforms";
 
 type Translate = (key: string) => string;
 
