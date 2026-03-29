@@ -37,7 +37,7 @@ export function AdminLocaleToggle(props: { className?: string }) {
           {localeOptions.map((option) => (
             <DropdownMenuRadioItem key={option.value} value={option.value}>
               <DropdownMenuItemContent
-                icon={<LocaleFlag locale={option.value} className="text-[1rem]" />}
+                icon={<LocaleFlag locale={option.value} className="text-body" />}
               >
                 {option.label}
               </DropdownMenuItemContent>

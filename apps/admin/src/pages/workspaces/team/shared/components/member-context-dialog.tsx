@@ -120,13 +120,13 @@ export function MemberContextDialog(props: MemberContextDialogProps) {
       description={props.dialogDescription}
       contentClassName={cn(
         "rounded-[14px]",
-        "w-[90vw]! max-w-[1240px]!",
+        "w-[90vw]! max-w-310!",
         "h-[calc(100%-100px)]! max-h-[calc(100%-100px)]!",
         "[&>div]:h-full [&>div]:min-h-0",
       )}
       bodyClassName="flex h-full min-h-0 flex-col gap-0 overflow-hidden p-0!"
     >
-      <div className="flex min-h-0 flex-1 flex-col bg-background">
+      <div className="flex min-h-0 flex-1 flex-col bg-card">
         <div className="border-b bg-gradient-to-b from-muted/40 to-background px-7 pt-6">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="flex min-w-0 flex-1 items-center gap-4 pb-5">
@@ -137,7 +137,7 @@ export function MemberContextDialog(props: MemberContextDialogProps) {
                 className="shrink-0"
               />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-title2 font-bold text-foreground">{primary}</div>
+                <div className="truncate text-title2 font-bold text-label-primary">{primary}</div>
                 {secondary ? (
                   <div className="truncate text-callout text-label-secondary">{secondary}</div>
                 ) : null}

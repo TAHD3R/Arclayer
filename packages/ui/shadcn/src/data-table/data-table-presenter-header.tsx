@@ -29,9 +29,7 @@ function resolveHeaderHeightClass(rowHeight: DataTableRowHeight, wrapHeaders: bo
 }
 
 function resolveHeaderContentClass(wrapHeaders: boolean): string {
-  return wrapHeaders
-    ? "whitespace-normal break-words leading-[1.15rem] py-2"
-    : "truncate whitespace-nowrap";
+  return wrapHeaders ? "whitespace-normal break-words  py-2" : "truncate whitespace-nowrap";
 }
 
 function isSelectColumn(meta: unknown, columnId: string): boolean {
@@ -153,7 +151,7 @@ function SortableHeaderCell<TData>(
       data-pinned={props.header.column.getIsPinned() || undefined}
       className={cn(
         state.className,
-        over ? "bg-muted/60 ring-1 ring-ring/40 shadow-sm" : "",
+        over ? "bg-muted/60 ring-1 ring-ring/40 " : "",
         active ? "opacity-35" : "",
         sortable.isDragging ? "opacity-30" : "",
       )}

@@ -84,11 +84,13 @@ function ContentLibraryArticleEditorLoadingOverlay(props: { label: string }) {
       role="status"
       aria-live="polite"
       aria-label={props.label}
-      className="absolute inset-0 z-40 flex items-center justify-center bg-background/56 backdrop-blur-md"
+      className="absolute inset-0 z-40 flex items-center justify-center bg-card/56 backdrop-blur-md"
     >
       <div className="w-full max-w-xs px-6">
-        <div className="mb-3 text-center text-sm font-medium text-foreground/88">{props.label}</div>
-        <Progress value={progress} className="h-2.5 bg-background/60 shadow-sm" />
+        <div className="mb-3 text-center text-footnote font-medium text-label-primary/88">
+          {props.label}
+        </div>
+        <Progress value={progress} className="h-2.5 bg-card/60 " />
       </div>
     </div>
   );
@@ -118,7 +120,7 @@ function HeaderActionButton(props: { icon: React.ReactNode; label: string; onCli
       type="button"
       variant="ghost"
       size="sm"
-      className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-foreground"
+      className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-label-primary"
       onClick={props.onClick}
     >
       {props.icon}
@@ -146,12 +148,12 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
     <>
       <div
         className={cn(
-          "relative flex h-full min-h-0 flex-col overflow-hidden bg-background",
+          "relative flex h-full min-h-0 flex-col overflow-hidden bg-card",
           props.className,
         )}
       >
         {props.mode === "split" ? (
-          <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-background px-3">
+          <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-card px-3">
             <div className="flex items-center gap-1">
               {props.onClose ? (
                 <ToolbarIconButton
@@ -258,7 +260,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                           type="button"
                           size="sm"
                           variant="secondary"
-                          className="h-9 rounded-xl px-3 shadow-sm"
+                          className="h-9 rounded-xl px-3 "
                         >
                           {t("CONTENT_LIBRARY_EDITOR_CHANGE_COVER")}
                         </Button>
@@ -295,7 +297,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-foreground"
+                        className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-label-primary"
                       >
                         <ImagePlus className="size-4" />
                         {t("CONTENT_LIBRARY_EDITOR_ADD_COVER")}
@@ -315,10 +317,8 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                   onChange={(event) => props.onTitleChange(event.target.value)}
                   placeholder={t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER")}
                   className={cn(
-                    "w-full appearance-none border-none bg-transparent p-0 font-semibold leading-[0.94] tracking-[-0.045em] text-foreground outline-none placeholder:text-label-tertiary",
-                    props.mode === "page"
-                      ? "text-[clamp(1.85rem,3.6vw,2.8rem)]"
-                      : "text-[clamp(1.55rem,4vw,2.15rem)]",
+                    "w-full appearance-none border-none bg-transparent p-0 font-semibold  tracking-[-0.045em] text-label-primary outline-none placeholder:text-label-tertiary",
+                    props.mode === "page" ? "text-largetitle" : "text-title",
                   )}
                 />
 
@@ -326,7 +326,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                   value={props.summary}
                   onChange={(event) => props.onSummaryChange(event.target.value)}
                   placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
-                  className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-[1.02rem] leading-7 text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
+                  className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
                   rows={2}
                 />
               </div>

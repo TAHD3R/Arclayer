@@ -79,7 +79,7 @@ export function AssetPreviewTextViewer(props: AssetPreviewTextViewerProps) {
 
   if (error) {
     return (
-      <div className="flex min-h-[320px] items-center justify-center rounded-[20px] border border-border/60 bg-card/70 p-8 text-center">
+      <div className="flex min-h-80 items-center justify-center rounded-[20px] border border-border/60 bg-card/70 p-8 text-center">
         <div className="space-y-2">
           <div className="text-title3 font-semibold text-label-primary">
             {props.t("assets:ASSET_PREVIEW_LOAD_FAILED")}
@@ -92,7 +92,7 @@ export function AssetPreviewTextViewer(props: AssetPreviewTextViewerProps) {
 
   if (!state) {
     return (
-      <div className="flex min-h-[320px] items-center justify-center rounded-[20px] border border-border/60 bg-card/70 p-8">
+      <div className="flex min-h-80 items-center justify-center rounded-[20px] border border-border/60 bg-card/70 p-8">
         <Spinner className="size-5 text-label-secondary" />
       </div>
     );
@@ -117,7 +117,7 @@ export function AssetPreviewTextViewer(props: AssetPreviewTextViewerProps) {
       <div className="border-b border-border/60 px-4 py-3 text-caption text-label-secondary">
         {props.t("assets:ASSET_TEXT_PREVIEW_CONTENT")}
       </div>
-      <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words px-5 py-5 text-footnote leading-6 text-foreground">
+      <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words px-5 py-5 text-footnote  text-label-primary">
         {state.text}
       </pre>
     </div>

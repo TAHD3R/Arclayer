@@ -68,11 +68,11 @@ function SheetContent({
       <SheetOverlay />
       <SheetContentPrimitive
         className={cn(
-          "bg-background fixed z-50 flex flex-col gap-4 shadow-lg",
-          side === "right" && "h-full w-[350px] border-l",
-          side === "left" && "h-full w-[350px] border-r",
-          side === "top" && "w-full h-[350px] border-b",
-          side === "bottom" && "w-full h-[350px] border-t",
+          "bg-card fixed z-50 flex flex-col gap-4 ",
+          side === "right" && "h-full w-87.5 border-l",
+          side === "left" && "h-full w-87.5 border-r",
+          side === "top" && "w-full h-87.5 border-b",
+          side === "bottom" && "w-full h-87.5 border-t",
           className,
         )}
         side={side}
@@ -117,7 +117,7 @@ type SheetTitleProps = SheetTitlePrimitiveProps;
 function SheetTitle({ className, ...props }: SheetTitleProps) {
   return (
     <SheetTitlePrimitive
-      className={cn("text-foreground text-title3 mb-0.5 font-bold", className)}
+      className={cn("text-label-primary text-title3 mb-0.5 font-bold", className)}
       {...props}
     />
   );

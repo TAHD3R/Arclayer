@@ -1,5 +1,3 @@
-import * as React from "react";
-
 export {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,7 +16,3 @@ export {
   DropdownMenuItemContent,
   DropdownMenuIconItem,
 } from "@arclayer/ui/dropdown-menu";
-
-export function DropdownMenuPortal(props: { children: React.ReactNode }) {
-  return <>{props.children}</>;
-}

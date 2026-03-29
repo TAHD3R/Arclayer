@@ -39,7 +39,7 @@ export function FolderDescriptionTooltip(props: FolderDescriptionTooltipProps) {
     <div
       ref={descriptionRef}
       className={cn(
-        "min-h-10 text-footnote leading-snug text-label-secondary",
+        "min-h-10 text-footnote  text-label-secondary",
         "line-clamp-2",
         props.className,
       )}

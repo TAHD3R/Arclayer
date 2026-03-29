@@ -18,7 +18,7 @@ export function SceneLoadingOverlay({ visible }: SceneLoadingOverlayProps) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="fixed inset-0 z-2147483646 flex items-center justify-center bg-background pointer-events-none"
+          className="fixed inset-0 z-2147483646 flex items-center justify-center bg-card pointer-events-none"
         >
           <div className="scene-loader" role="status" aria-label="Loading" />
         </motion.div>

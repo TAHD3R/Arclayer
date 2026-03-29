@@ -52,7 +52,7 @@ function AssetShareLinks(props: { controller: AssetPreviewController }) {
 
   if (!rows.length) {
     return (
-      <div className="text-footnote leading-6 text-label-secondary">
+      <div className="text-footnote  text-label-secondary">
         {props.controller.t("assets:ASSET_LINKS_REQUIRES_PUBLIC")}
       </div>
     );
@@ -67,7 +67,7 @@ function AssetShareLinks(props: { controller: AssetPreviewController }) {
           value={
             <span className="inline-flex min-w-0 items-start gap-2">
               <Link2 className="mt-0.5 size-3.5 shrink-0 text-label-tertiary" />
-              <span className="line-clamp-2 font-mono text-caption break-all text-foreground">
+              <span className="line-clamp-2 font-mono text-caption break-all text-label-primary">
                 {row.value}
               </span>
             </span>
@@ -102,7 +102,7 @@ function AssetTagEditor(props: { controller: AssetPreviewController }) {
           ref={props.controller.inputRef}
           type="text"
           style={tagInputStyle}
-          className="h-[22px] w-[88px] px-2 text-caption"
+          className="h-5.5 w-22 px-2 text-caption"
           value={props.controller.inputValue}
           onChange={(event) => props.controller.setInputValue(event.target.value)}
           onBlur={() => void props.controller.confirmAddTag()}
@@ -132,7 +132,7 @@ function AssetDescriptionEditor(props: { controller: AssetPreviewController }) {
   return (
     <div className="space-y-3">
       <textarea
-        className="min-h-28 w-full resize-none rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-callout text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="min-h-28 w-full resize-none rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-callout text-label-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
         placeholder={props.controller.t("assets:ASSET_META_DESCRIPTION_PLACEHOLDER")}
         value={props.controller.descriptionDraft}
         onChange={(event) => {

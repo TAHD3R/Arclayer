@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getMyNotificationPreferences, patchMyNotificationPreference } from "@/api/notifications";
-import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/user-notification-settings-view";
+import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
 
 vi.mock("@/api/notifications", () => ({
   getMyNotificationPreferences: vi.fn(),

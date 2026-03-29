@@ -179,9 +179,9 @@ export function SettingAccordionItem(props: SettingAccordionItemProps) {
         >
           <div className="flex w-full items-start justify-between gap-4 px-4 py-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="text-title3 font-bold leading-tight">{props.title}</div>
+              <div className="text-title3 font-bold ">{props.title}</div>
               {hasDescription || shouldRenderSummary ? (
-                <div className="text-label-secondary leading-snug no-underline font-normal">
+                <div className="text-label-secondary  no-underline font-normal">
                   {hasDescription ? props.description : null}
                   {shouldRenderSummary ? (
                     <>

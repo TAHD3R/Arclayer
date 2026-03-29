@@ -51,10 +51,10 @@ export function resolveHeaderJustifyClass(align: AlignClass): string {
 }
 
 export function SortStateIcon(props: { state: false | "asc" | "desc" }) {
-  if (props.state === "asc") return <ArrowUp className="size-3.5 text-foreground" />;
-  if (props.state === "desc") return <ArrowDown className="size-3.5 text-foreground" />;
+  if (props.state === "asc") return <ArrowUp className="size-3.5 text-label-primary" />;
+  if (props.state === "desc") return <ArrowDown className="size-3.5 text-label-primary" />;
   return (
-    <ArrowUpDown className="size-3.5 text-label-secondary/40 transition-colors group-hover:text-foreground/80" />
+    <ArrowUpDown className="size-3.5 text-label-secondary/40 transition-colors group-hover:text-label-primary/80" />
   );
 }
 
@@ -128,13 +128,9 @@ export function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): Pi
 
   return {
     className: cn(
-      "z-30 bg-background",
-      pinned === "left" && header.column.getIsLastColumn("left")
-        ? "shadow-[8px_0_16px_-4px_rgba(0,0,0,0.05),_1px_0_0_0_hsl(var(--border)/0.3)]"
-        : "",
-      pinned === "right" && header.column.getIsFirstColumn("right")
-        ? "shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.05),_-1px_0_0_0_hsl(var(--border)/0.3)]"
-        : "",
+      "z-30 bg-card",
+      pinned === "left" && header.column.getIsLastColumn("left") ? "" : "",
+      pinned === "right" && header.column.getIsFirstColumn("right") ? "" : "",
     ),
     style,
   };
@@ -156,13 +152,9 @@ export function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyle
 
   return {
     className: cn(
-      "z-20 bg-background group-hover/row:bg-muted/60 transition-colors",
-      pinned === "left" && cell.column.getIsLastColumn("left")
-        ? "shadow-[8px_0_16px_-4px_rgba(0,0,0,0.05),_1px_0_0_0_hsl(var(--border)/0.3)]"
-        : "",
-      pinned === "right" && cell.column.getIsFirstColumn("right")
-        ? "shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.05),_-1px_0_0_0_hsl(var(--border)/0.3)]"
-        : "",
+      "z-20 bg-card group-hover/row:bg-muted/60 transition-colors",
+      pinned === "left" && cell.column.getIsLastColumn("left") ? "" : "",
+      pinned === "right" && cell.column.getIsFirstColumn("right") ? "" : "",
     ),
     style,
   };

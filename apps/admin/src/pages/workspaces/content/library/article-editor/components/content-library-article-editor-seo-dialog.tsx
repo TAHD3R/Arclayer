@@ -14,7 +14,7 @@ type SeoDraft = {
 function SeoField(props: { id: string; label: string; help: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={props.id} className="font-semibold text-foreground">
+      <label htmlFor={props.id} className="font-semibold text-label-primary">
         {props.label}
       </label>
       <div className="text-label-secondary">{props.help}</div>

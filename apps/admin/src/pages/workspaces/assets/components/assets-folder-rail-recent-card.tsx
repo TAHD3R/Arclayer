@@ -115,7 +115,7 @@ function RecentAssetActions(props: {
         <button
           type="button"
           className={cn(
-            "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-label-secondary opacity-0 transition hover:bg-accent/70 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100",
+            "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-label-secondary opacity-0 transition hover:bg-accent/70 hover:text-label-primary focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100",
             recentTextShadowClassName,
           )}
           aria-label={props.t("common:MORE")}

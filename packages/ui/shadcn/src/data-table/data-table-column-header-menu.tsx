@@ -18,9 +18,7 @@ import { SortStateIcon } from "./data-table-presenter-utils";
 import type { DataTableToolsLabels } from "./data-table-tools.types";
 
 function resolveHeaderContentClass(wrapHeaders: boolean): string {
-  return wrapHeaders
-    ? "whitespace-normal break-words leading-5 py-2"
-    : "truncate whitespace-nowrap";
+  return wrapHeaders ? "whitespace-normal break-words  py-2" : "truncate whitespace-nowrap";
 }
 
 export function DataTableColumnHeaderMenu<TData>(props: {

@@ -207,7 +207,7 @@ export function UserLinkedAccountsSection(props: UserLinkedAccountsSectionProps)
                         <PopoverContent
                           align="end"
                           sideOffset={8}
-                          className="w-[320px] max-w-[min(320px,calc(100vw-2rem))] p-3"
+                          className="w-80 max-w-[min(320px,calc(100vw-2rem))] p-3"
                         >
                           <div className="text-callout text-label-primary">
                             {t("ME_LINKED_ACCOUNTS_DISCONNECT_CONFIRM")}

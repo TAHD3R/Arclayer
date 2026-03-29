@@ -198,11 +198,11 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
           ) : null
         }
         contentClassName={`w-[min(96vw,96rem)]! max-w-[96rem]! ${buildDialogHeightClass()} [&>div]:h-full [&>div]:min-h-0`}
-        bodyClassName="flex h-full min-h-0 gap-0 overflow-hidden bg-background p-0!"
+        bodyClassName="flex h-full min-h-0 gap-0 overflow-hidden bg-card p-0!"
       >
         {active ? (
-          <div className="flex min-h-0 flex-1 bg-background">
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border/60 bg-background">
+          <div className="flex min-h-0 flex-1 bg-card">
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border/60 bg-card">
               <div className="min-h-0 flex-1 overflow-hidden">
                 <AssetPreviewStage
                   active={active}
@@ -218,7 +218,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
               </div>
             </section>
 
-            <aside className="flex w-[24rem] min-w-0 flex-col bg-background/95 backdrop-blur-sm">
+            <aside className="flex w-[24rem] min-w-0 flex-col bg-card/95 backdrop-blur-sm">
               <div className="min-h-0 flex-1 overflow-auto p-4">
                 <AssetPreviewSidebar
                   active={active}

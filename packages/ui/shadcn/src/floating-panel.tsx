@@ -198,7 +198,7 @@ export const FloatingPanelTrigger = React.forwardRef<HTMLButtonElement, Floating
         layoutId={disableLayoutId ? undefined : `floating-panel-trigger-${uniqueId}`}
         className={cn(
           "flex items-center",
-          "border border-border bg-background text-foreground",
+          "border border-border bg-card text-label-primary",
           className,
         )}
         {...buttonProps}
@@ -387,7 +387,7 @@ export function FloatingPanelContent({
             layoutId={`floating-panel-${uniqueId}`}
             className={cn(
               "fixed z-50 overflow-hidden outline-none",
-              "rounded-xl border border-border bg-popover text-popover-foreground shadow-lg",
+              "rounded-xl border border-border bg-popover text-popover-foreground ",
               className,
             )}
             style={{
@@ -448,7 +448,7 @@ function FloatingPanelTitle({
     >
       <motion.div
         layoutId={`floating-panel-label-${uniqueId}`}
-        className={cn("text-title3! font-bold! text-foreground", titleClassName)}
+        className={cn("text-title3! font-bold! text-label-primary", titleClassName)}
         id={`floating-panel-title-${uniqueId}`}
       >
         {children}

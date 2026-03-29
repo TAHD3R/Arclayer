@@ -129,7 +129,7 @@ export function InvitationsView(props: { token: string | null }) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[480px] pt-12">
+    <div className="mx-auto w-full max-w-120 pt-12">
       <InviteTokenInputDialog
         open={state.tokenDialogOpen}
         onOpenChange={state.setTokenDialogOpen}

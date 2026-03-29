@@ -28,7 +28,7 @@ export type AssetMasonryRenderItem =
 
 function AssetMasonrySkeletonTile() {
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-border/50 bg-card shadow-sm">
+    <div className="w-full overflow-hidden rounded-lg border border-border/50 bg-card ">
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: 4 / 3 }}>
         <Skeleton className="absolute inset-0 h-full w-full" />
         <div className="absolute left-3 right-3 bottom-3 space-y-2">

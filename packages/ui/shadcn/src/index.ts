@@ -90,3 +90,5 @@ export * from "./setting-panel";
 export * from "./setting-sheet";
 export * from "./setting-vertical-item";
 export { IconButton, type IconButtonProps } from "./icon-button";
+
+export * from "./editor";

@@ -53,7 +53,7 @@ function DropdownMenuContent({ sideOffset = 4, className, ...props }: DropdownMe
     <DropdownMenuContentPrimitive
       sideOffset={sideOffset}
       className={cn(
-        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col overflow-hidden rounded-md border p-1 shadow-md outline-none",
+        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col overflow-hidden rounded-md border p-1  outline-none",
         className,
       )}
       {...props}
@@ -277,7 +277,7 @@ function DropdownMenuSubContent({ className, ...props }: DropdownMenuSubContentP
   return (
     <DropdownMenuSubContentPrimitive
       className={cn(
-        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col items-stretch overflow-hidden rounded-md border p-1 shadow-md outline-none",
+        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col items-stretch overflow-hidden rounded-md border p-1  outline-none",
         className,
       )}
       {...props}

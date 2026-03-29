@@ -11,7 +11,7 @@ const checkboxVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-background border",
+        default: "bg-card border",
         accent: "bg-input",
       },
       size: {

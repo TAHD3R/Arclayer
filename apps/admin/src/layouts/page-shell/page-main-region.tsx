@@ -47,8 +47,8 @@ function FavoriteToggle() {
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           className={clsx(
-            "shrink-0 leading-none transition-colors",
-            "text-label-secondary hover:text-foreground",
+            "shrink-0  transition-colors",
+            "text-label-secondary hover:text-label-primary",
             isFavorited &&
               "text-amber-500 hover:text-amber-500 dark:text-amber-300 dark:hover:text-amber-300",
           )}

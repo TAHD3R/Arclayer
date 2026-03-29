@@ -53,8 +53,8 @@ const SHORTCUTS_HELP_HASH = "#shortcuts";
 const HEADER_TRIGGER_CLASSNAME = cn(
   "group/panel-trigger flex h-11 items-center gap-1.5 rounded-xl border border-transparent bg-transparent pl-0.5 pr-1.5",
   "text-label-secondary transition-[background-color,color,border-color] duration-200",
-  "hover:bg-accent/70 hover:text-foreground",
-  "data-[state=open]:border-border/70 data-[state=open]:bg-accent data-[state=open]:text-foreground",
+  "hover:bg-accent/70 hover:text-label-primary",
+  "data-[state=open]:border-border/70 data-[state=open]:bg-accent data-[state=open]:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 const SIDEBAR_TRIGGER_CLASSNAME = cn(
@@ -111,7 +111,7 @@ type AdminAccountPanelContentProps = {
 const PANEL_WIDTH_CLASSNAME = "w-75";
 const MENU_ITEM_CLASSNAME = cn(
   "group transition-[background-color,color] duration-200",
-  "hover:bg-accent hover:text-foreground",
+  "hover:bg-accent hover:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
 const VIEW_TRANSITIONS = {

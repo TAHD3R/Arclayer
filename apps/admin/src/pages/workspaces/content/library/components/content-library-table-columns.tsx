@@ -2,29 +2,23 @@ import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BaseTag } from "@/components/ui/tags";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import {
   getContentLibraryRoleIcon,
   getContentLibraryRoleLabelKey,
-} from "./components/content-library-role-tag";
-import { ContentLibraryStatusTag } from "./components/content-library-status-tag";
-import { ContentLibraryRowActions } from "./components/content-library-row-actions";
-import type { ContentLibraryTableRow } from "./types";
-import { contentHasAddress } from "./utils";
+} from "./content-library-role-tag";
+import { ContentLibraryStatusTag } from "./content-library-status-tag";
+import { ContentLibraryRowActions } from "./content-library-row-actions";
+import type { ContentLibraryTableRow } from "../types";
+import { contentHasAddress } from "../utils";
 
-function ContentLibraryNameCell(props: {
-  row: ContentLibraryTableRow;
-  pending: boolean;
-  onOpen: (row: ContentLibraryTableRow) => void;
-  onDuplicate: (row: ContentLibraryTableRow) => void;
-  onDelete: (row: ContentLibraryTableRow) => void;
-  onArchive: (row: ContentLibraryTableRow) => void;
-  onUnarchive: (row: ContentLibraryTableRow) => void;
-  previewOpen?: boolean;
-}) {
-  const [actionsHovered, setActionsHovered] = React.useState(false);
+function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
   const showAddress = contentHasAddress(props.row);
   const RoleIcon = getContentLibraryRoleIcon(props.row.role);
   const roleLabelKey = getContentLibraryRoleLabelKey(props.row.role);
@@ -39,11 +33,7 @@ function ContentLibraryNameCell(props: {
   const summaryText = summary || fallbackSummary;
 
   return (
-    <div
-      className="relative min-w-0 pr-32"
-      onMouseEnter={() => setActionsHovered(true)}
-      onMouseLeave={() => setActionsHovered(false)}
-    >
+    <div className="min-w-0">
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
           <span
@@ -68,18 +58,6 @@ function ContentLibraryNameCell(props: {
           </OverflowTooltipText>
         ) : null}
       </div>
-      <ContentLibraryRowActions
-        row={props.row}
-        pending={props.pending}
-        persistVisible={actionsHovered}
-        previewOpen={props.previewOpen}
-        onOpen={props.onOpen}
-        onDuplicate={props.onDuplicate}
-        onDelete={props.onDelete}
-        onArchive={props.onArchive}
-        onUnarchive={props.onUnarchive}
-        className="pointer-events-none absolute inset-y-0 right-0 w-30 justify-center opacity-0 transition-opacity duration-150 data-[visible=true]:pointer-events-auto data-[visible=true]:opacity-100"
-      />
     </div>
   );
 }
@@ -193,18 +171,7 @@ export function useContentLibraryTableColumns(params: {
         accessorKey: "name",
         meta: { title: t("CONTENT_LIBRARY_TABLE_COL_NAME"), sortKey: "name", kind: "primary" },
         header: t("CONTENT_LIBRARY_TABLE_COL_NAME"),
-        cell: ({ row }) => (
-          <ContentLibraryNameCell
-            row={row.original}
-            pending={params.actionPending}
-            onOpen={params.onOpen}
-            onDuplicate={params.onDuplicate}
-            onDelete={params.onDelete}
-            onArchive={params.onArchive}
-            onUnarchive={params.onUnarchive}
-            previewOpen={params.openPreviewRowId === row.original.id}
-          />
-        ),
+        cell: ({ row }) => <ContentLibraryNameCell row={row.original} />,
         size: 360,
         minSize: 300,
       },
@@ -272,6 +239,30 @@ export function useContentLibraryTableColumns(params: {
         },
         size: 180,
         minSize: 160,
+      },
+      {
+        id: "actions",
+        enableHiding: false,
+        enableSorting: false,
+        meta: buildDataTableActionsColumnMeta("right"),
+        header: "",
+        cell: ({ row }) => (
+          <DataTableActionsCell>
+            <ContentLibraryRowActions
+              row={row.original}
+              pending={params.actionPending}
+              previewOpen={params.openPreviewRowId === row.original.id}
+              onOpen={params.onOpen}
+              onDuplicate={params.onDuplicate}
+              onDelete={params.onDelete}
+              onArchive={params.onArchive}
+              onUnarchive={params.onUnarchive}
+            />
+          </DataTableActionsCell>
+        ),
+        size: 124,
+        minSize: 124,
+        maxSize: 124,
       },
     ],
     [

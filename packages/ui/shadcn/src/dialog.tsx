@@ -110,7 +110,7 @@ function DialogContent({
       >
         <DialogContentPrimitive
           className={cn(
-            "bg-background grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",
+            "bg-card grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6  sm:max-w-lg",
             "relative",
             className,
           )}
@@ -156,10 +156,7 @@ type DialogTitleProps = DialogTitlePrimitiveProps;
 
 function DialogTitle({ className, ...props }: DialogTitleProps) {
   return (
-    <DialogTitlePrimitive
-      className={cn("text-title2 font-bold! mb-0! leading-none", className)}
-      {...props}
-    />
+    <DialogTitlePrimitive className={cn("text-title2 font-bold! mb-0! ", className)} {...props} />
   );
 }
 

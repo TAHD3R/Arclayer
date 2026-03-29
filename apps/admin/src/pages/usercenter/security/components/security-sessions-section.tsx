@@ -224,7 +224,7 @@ export function UserSessionsSection() {
                 onChange={controller.table.setSearchInput}
                 placeholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
                 clearLabel={t("common:CLEAR")}
-                className="max-w-[320px]"
+                className="max-w-80"
               />
 
               <DataTableToolbarTools

@@ -284,14 +284,14 @@ export function AssetPickerDialog(props: {
           {/* Toolbar: search + filters + upload */}
           <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-end gap-3">
-              <div className="grid min-w-[280px] flex-1 gap-1.5">
+              <div className="grid min-w-70 flex-1 gap-1.5">
                 <label className="text-callout font-semibold text-label-primary">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH")}
                 </label>
                 <div className="text-footnote text-label-secondary">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
                 </div>
-                <div className="relative w-full max-w-[320px]">
+                <div className="relative w-full max-w-80">
                   <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-label-secondary" />
                   <Input
                     className="w-full pl-9 pr-9"

@@ -151,7 +151,7 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
             variant="outline"
             aria-hidden="true"
             className={cn(
-              "shrink-0 border-amber-300/80 bg-amber-50/90 px-1.5 py-0 text-[11px] leading-none text-amber-700 shadow-none dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300",
+              "shrink-0 border-amber-300/80 bg-amber-50/90 px-1.5 py-0 text-caption text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300",
               emphasized ? "border-amber-300/80 bg-amber-50/90" : undefined,
             )}
           >
@@ -167,8 +167,8 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
       className={cn(
         "flex min-h-9 shrink-0 items-center rounded-md border border-transparent transition-colors duration-200 ease-out",
         emphasized
-          ? "border-border/70 bg-accent text-accent-foreground shadow-sm"
-          : "bg-transparent text-foreground hover:bg-accent/80 hover:text-accent-foreground",
+          ? "border-border/70 bg-accent text-accent-foreground "
+          : "bg-transparent text-label-primary hover:bg-accent/80 hover:text-accent-foreground",
         props.view.active ? "ring-1 ring-inset ring-border/80" : "",
       )}
       onPointerLeave={handlePointerLeave}
@@ -206,8 +206,8 @@ function ContentLibraryToolbarViewChip(props: { view: ContentLibraryToolbarView 
                   "mr-1 flex size-7 items-center justify-center rounded-sm bg-transparent outline-none transition-all duration-200 ease-out",
                   emphasized ? "text-accent-foreground" : "text-label-secondary",
                   props.view.active
-                    ? "hover:bg-background/70 focus-visible:bg-background/70"
-                    : "hover:bg-background/70 focus-visible:bg-background/70",
+                    ? "hover:bg-card/70 focus-visible:bg-card/70"
+                    : "hover:bg-card/70 focus-visible:bg-card/70",
                 )}
                 aria-label={t("CONTENT_LIBRARY_ACTION_VIEW_MENU")}
                 aria-hidden={!showMenuButton}

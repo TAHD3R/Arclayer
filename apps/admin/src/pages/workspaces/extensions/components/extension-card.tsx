@@ -79,9 +79,9 @@ export function ExtensionCard({
   );
 
   const sharedClassName = cn(
-    "col-span-1 flex flex-col rounded-lg border border-border bg-card/50! p-4 shadow-sm!",
-    "text-foreground no-underline transition-colors! duration-200!",
-    "hover:shadow-md! hover:border-border/80! hover:bg-accent/50!",
+    "col-span-1 flex flex-col rounded-lg border border-border bg-card/50! p-4 !",
+    "text-label-primary no-underline transition-colors! duration-200!",
+    "hover:! hover:border-border/80! hover:bg-accent/50!",
     "focus-within:z-[1] active:z-[1]",
     className,
   );

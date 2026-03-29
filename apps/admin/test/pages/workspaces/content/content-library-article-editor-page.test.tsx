@@ -5,7 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ContentLibraryArticleEditorPage } from "@/pages/workspaces/content/library/article-editor/page";
-import { ContentLibraryArticleEditorShell } from "@/pages/workspaces/content/library/article-editor/content-library-article-editor-shell";
+import { ContentLibraryArticleEditorShell } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-shell";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const mocked = vi.hoisted(() => ({
   loadContentLibraryArticleEditorSnapshot: vi.fn(),
@@ -35,9 +36,11 @@ vi.mock("@/components/layout/admin-route-container", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/content/library/article-editor/api", async (importOriginal) => {
+vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("@/pages/workspaces/content/library/article-editor/api")>();
+    await importOriginal<
+      typeof import("@/pages/workspaces/content/library/article-editor/hooks/api")
+    >();
   return {
     ...actual,
     loadContentLibraryArticleEditorSnapshot: (...args: unknown[]) =>
@@ -59,6 +62,79 @@ vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
   AssetPickerDialog: () => null,
 }));
 
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document",
+  () => ({
+    ContentLibraryArticleEditorDocumentProvider: (props: { children?: ReactNode }) => (
+      <>{props.children}</>
+    ),
+    useContentLibraryArticleEditorDocumentState: () => ({ isHydrated: true }),
+  }),
+);
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body",
+  () => ({
+    ContentLibraryArticleEditorBody: () => (
+      <div data-testid="content-library-article-editor-body" />
+    ),
+  }),
+);
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-page-toolbar",
+  () => ({
+    ContentLibraryArticleEditorPageToolbar: (props: {
+      saveState?: "hidden" | "saving" | "saved" | "error";
+      isPublishing?: boolean;
+      hasPublishableVersion?: boolean;
+      onPublish?: () => void;
+      slug: string;
+      onSlugChange: (value: string) => void;
+      visibility: "public" | "private";
+      onVisibilityChange: (value: "public" | "private") => void;
+    }) => (
+      <div data-testid="content-library-article-editor-page-toolbar">
+        <button type="button" aria-label="CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU">
+          CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU
+        </button>
+        <input
+          aria-label="CONTENT_LIBRARY_EDITOR_MENU_SLUG"
+          value={props.slug}
+          onChange={(event) => props.onSlugChange(event.target.value)}
+        />
+        <label>
+          <input
+            type="radio"
+            name="mock-visibility"
+            aria-label="CONTENT_LIBRARY_VISIBILITY_PUBLIC"
+            checked={props.visibility === "public"}
+            onChange={() => props.onVisibilityChange("public")}
+          />
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="mock-visibility"
+            aria-label="CONTENT_LIBRARY_VISIBILITY_PRIVATE"
+            checked={props.visibility === "private"}
+            onChange={() => props.onVisibilityChange("private")}
+          />
+        </label>
+        <button
+          type="button"
+          disabled={
+            !props.hasPublishableVersion || props.isPublishing || props.saveState === "saving"
+          }
+          onClick={props.onPublish}
+        >
+          CONTENT_LIBRARY_ACTION_PUBLISH
+        </button>
+      </div>
+    ),
+  }),
+);
+
 function renderWithQuery(component: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -68,7 +144,11 @@ function renderWithQuery(component: React.ReactElement) {
     },
   });
 
-  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{component}</TooltipProvider>
+    </QueryClientProvider>,
+  );
 }
 
 function buildSnapshot(options?: {

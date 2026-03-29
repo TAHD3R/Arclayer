@@ -1,7 +1,7 @@
 import { AdminRouteContainer } from "@/components/layout/admin-route-container";
 
-import { ContentLibraryArticleEditorShell } from "./content-library-article-editor-shell";
-import { useContentLibraryArticleEditor } from "./use-content-library-article-editor";
+import { ContentLibraryArticleEditorShell } from "./components/content-library-article-editor-shell";
+import { useContentLibraryArticleEditor } from "./hooks/use-content-library-article-editor";
 
 export function ContentLibraryArticleEditorPage(props: { workspaceId: string; itemId: string }) {
   const editor = useContentLibraryArticleEditor({
@@ -15,7 +15,7 @@ export function ContentLibraryArticleEditorPage(props: { workspaceId: string; it
       innerClassName="h-full min-h-0 flex flex-col overflow-hidden px-0 pt-0 pb-0"
     >
       <div
-        className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card"
         data-item-id={props.itemId}
         data-workspace-id={props.workspaceId}
       >

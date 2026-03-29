@@ -316,10 +316,7 @@ export function AdminNotificationsPanel({
   return (
     <motion.div
       data-slot="admin-notifications-panel"
-      className={cn(
-        "flex min-w-0 flex-col bg-background border-r border-border shadow-lg",
-        className,
-      )}
+      className={cn("flex min-w-0 flex-col bg-card border-r border-border ", className)}
       variants={PANEL_VARIANTS}
       transition={PANEL_TRANSITION}
       initial={initialState}
@@ -439,7 +436,7 @@ export function AdminNotificationsPanel({
           className={cn(
             "w-full rounded-md px-3 py-2 text-left",
             "text-footnote text-label-secondary",
-            "hover:bg-muted hover:text-foreground",
+            "hover:bg-muted hover:text-label-primary",
             "transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}

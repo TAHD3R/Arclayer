@@ -216,8 +216,8 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
 
   const surfaceClassName =
     surface === "embedded"
-      ? "rounded-none border-0 bg-transparent shadow-none"
-      : "rounded-none border-0 bg-transparent shadow-none";
+      ? "rounded-none border-0 bg-transparent "
+      : "rounded-none border-0 bg-transparent ";
   const sectionPaddingClass = "px-0";
 
   return (

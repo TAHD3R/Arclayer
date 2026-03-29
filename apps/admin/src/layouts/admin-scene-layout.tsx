@@ -95,7 +95,7 @@ export function AdminSceneLayout({
       }
     >
       <RouteProgress />
-      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
+      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-card">
         {renderTopbar({
           notificationOpen: notificationPanelOpen,
           showNotificationsBadge,

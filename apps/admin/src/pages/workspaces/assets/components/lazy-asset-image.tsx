@@ -194,8 +194,8 @@ export function LazyAssetImage(props: {
 
       {showLoading ? (
         <SpinnerOverlay
-          className="bg-background/40 backdrop-blur-[1px]"
-          spinnerContainerClassName="border-0 bg-transparent p-0 shadow-none"
+          className="bg-card/40 backdrop-blur-[1px]"
+          spinnerContainerClassName="border-0 bg-transparent p-0 "
           spinnerClassName="size-5 text-label-secondary/80"
         />
       ) : null}
@@ -208,7 +208,7 @@ export function LazyAssetImage(props: {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 text-label-secondary">
-              <div className="rounded-full bg-background/70 p-3 shadow-sm">
+              <div className="rounded-full bg-card/70 p-3 ">
                 <ImageOff className="size-5" />
               </div>
               <div className="text-caption">

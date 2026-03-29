@@ -90,7 +90,7 @@ export function ActivityDetailDialog(props: {
       onOpenChange={props.onOpenChange}
       title={event ? buildTitle(t, event) : t("activity:ACTIVITY_DETAIL_TITLE")}
       description={event ? buildDescription(t, event) : undefined}
-      contentClassName="max-w-[860px]"
+      contentClassName="max-w-215"
     >
       {!event ? null : (
         <div className="space-y-4">

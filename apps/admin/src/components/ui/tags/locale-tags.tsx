@@ -13,7 +13,7 @@ export function LocaleFlag(props: { locale: string; className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "fi rounded-[2px] text-[0.8rem] leading-none",
+        "fi rounded-[2px] text-caption",
         `fi-${metadata.flagCountryCode}`,
         props.className,
       )}

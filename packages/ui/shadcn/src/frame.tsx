@@ -9,7 +9,7 @@ const frameVariants = cva(
       variant: {
         default: "border border-border/50 bg-clip-padding",
         inverse:
-          "border border-border/60 bg-background bg-clip-padding [&_[data-slot=frame-panel]]:bg-muted/40 [&_[data-slot=frame-panel]]:border-border/60",
+          "border border-border/60 bg-card bg-clip-padding [&_[data-slot=frame-panel]]:bg-muted/40 [&_[data-slot=frame-panel]]:border-border/60",
         ghost: "",
       },
       spacing: {
@@ -68,7 +68,7 @@ function FramePanel({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "bg-background grow relative rounded-(--frame-radius) border bg-clip-padding shadow-xs before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--frame-radius)-1px)] before:shadow-black/5 dark:bg-clip-border dark:before:shadow-white/5",
+        "bg-card grow relative rounded-(--frame-radius) border bg-clip-padding  before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--frame-radius)-1px)] before: dark:bg-clip-border dark:before:",
         className,
       )}
       data-slot="frame-panel"
@@ -86,7 +86,7 @@ function FrameHeader({ className, ...props }: React.ComponentProps<"header">) {
 function FrameTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("text-sm font-semibold", className)}
+      className={cn("text-footnote font-semibold", className)}
       data-slot="frame-panel-title"
       {...props}
     />
@@ -96,7 +96,7 @@ function FrameTitle({ className, ...props }: React.ComponentProps<"div">) {
 function FrameDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-label-secondary text-footnote", className)}
       data-slot="frame-panel-description"
       {...props}
     />

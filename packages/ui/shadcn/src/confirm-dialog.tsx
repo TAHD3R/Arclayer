@@ -45,7 +45,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
 
   return (
     <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[520px]">
+      <AlertDialogContent className="sm:max-w-130">
         <AlertDialogHeader>
           <AlertDialogTitle>{displayTitle}</AlertDialogTitle>
           {displayDescription ? (

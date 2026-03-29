@@ -106,7 +106,7 @@ describe("sidebar route state wiring", () => {
     mockSearchStr = "";
     useAuthStore.setState({ accessToken: null, sessionVersion: 0 });
     usePreferencesStore.setState({
-      localePreferenceMode: "system",
+      localePreferenceMode: "browser",
       setEffectiveLocale: vi.fn(),
       cacheWorkspaceLocale: vi.fn(),
     });

@@ -147,7 +147,7 @@ function LoginPaneFooter(props: LoginPaneFooterProps) {
       className="grid gap-2.5 pt-2 text-center text-footnote text-label-secondary"
     >
       {props.publicRegisterEnabled ? (
-        <div className="leading-6">
+        <div className="">
           <span>{t("auth:NO_ACCOUNT")} </span>
           <AuthLinkButton onClick={props.onSwitchToRegister} type="button">
             {t("auth:CREATE_ACCOUNT")}

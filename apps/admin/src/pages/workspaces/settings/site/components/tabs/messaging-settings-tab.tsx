@@ -442,7 +442,7 @@ export function MessagingSettingsTab({
         description={t("settings:SETTINGS_MESSAGING_MAIL_PANEL_DESC")}
         bordered={false}
       >
-        <div className="divide-y rounded-xl bg-background">
+        <div className="divide-y rounded-xl bg-card">
           <SettingActionItem
             as="div"
             title={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_TITLE")}
@@ -549,7 +549,7 @@ export function MessagingSettingsTab({
         description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_PANEL_DESC")}
         bordered={false}
       >
-        <div className="divide-y rounded-xl bg-background">
+        <div className="divide-y rounded-xl bg-card">
           <Accordion type="single" collapsible className="px-0">
             <SettingAccordionItem
               value="notificationTypes"

@@ -11,19 +11,19 @@ export const AUTH_PANE_STACK_CLASS = "grid gap-5";
 export const AUTH_FIELD_CLASS = "gap-2";
 export const AUTH_FIELD_TITLE_CLASS = "text-headline text-label-primary";
 export const AUTH_INPUT_GROUP_CLASS = cn(
-  "h-10 min-w-0 rounded-xl border-border/80 bg-background shadow-none",
+  "h-10 min-w-0 rounded-xl border-border/80 bg-card ",
   "has-[[data-slot=input-group-control]:focus-visible]:border-primary",
   "has-[[data-slot=input-group-control]:focus-visible]:ring-primary/15",
 );
 export const AUTH_INPUT_CLASS =
   "h-10 min-w-0 px-0 text-callout placeholder:text-label-tertiary md:text-callout";
 export const AUTH_PLAIN_INPUT_CLASS = cn(
-  "h-10 min-w-0 rounded-xl border-border/80 bg-background px-4 text-callout shadow-none",
+  "h-10 min-w-0 rounded-xl border-border/80 bg-card px-4 text-callout ",
   "placeholder:text-label-tertiary focus-visible:ring-primary/15 md:text-callout",
 );
 export const AUTH_OTP_GROUP_CLASS = "gap-2";
 export const AUTH_OTP_SLOT_CLASS = cn(
-  "h-10 w-11 rounded-none border border-input text-callout shadow-none transition-colors",
+  "h-10 w-11 rounded-none border border-input text-callout  transition-colors",
   "first:rounded-l-xl last:rounded-r-xl first:border-l",
 );
 
@@ -40,10 +40,8 @@ export function AuthPaneHeader(props: {
         <AdminFullLogo to="/login" ariaLabel="Arclayer" width={132} />
       </div>
       <div className="grid gap-2">
-        <h1 className="select-none text-largetitle leading-none text-label-primary">
-          {t(props.titleKey)}
-        </h1>
-        <p className="max-w-[30ch] select-none text-title3 font-normal leading-relaxed text-label-secondary text-pretty">
+        <h1 className="select-none text-largetitle  text-label-primary">{t(props.titleKey)}</h1>
+        <p className="max-w-[30ch] select-none text-title3 font-normal  text-label-secondary text-pretty">
           {t(props.subtitleKey)}
         </p>
       </div>

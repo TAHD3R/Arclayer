@@ -26,10 +26,8 @@ export function ContentLibraryArticleEditorBody(props: {
           <Editor
             aria-label="Article body"
             className={cn(
-              "min-h-full flex-1 overflow-visible text-foreground placeholder:text-label-tertiary **:data-slate-placeholder:!top-1 **:data-slate-placeholder:!left-0 **:data-slate-placeholder:!translate-y-0 [&_.slate-blockWrapper]:overflow-visible",
-              props.mode === "page"
-                ? "pb-28 pt-4 text-[1.06rem] leading-8"
-                : "pb-10 pt-0 text-base leading-7",
+              "min-h-full flex-1 overflow-visible text-label-primary placeholder:text-label-tertiary **:data-slate-placeholder:!top-1 **:data-slate-placeholder:!left-0 **:data-slate-placeholder:!translate-y-0 [&_.slate-blockWrapper]:overflow-visible",
+              props.mode === "page" ? "pb-28 pt-4 text-body" : "pb-10 pt-0 text-body ",
             )}
             placeholder={props.placeholder}
             variant="none"

@@ -148,7 +148,6 @@ describe("DataTablePresenter", () => {
     expect(surface?.className).not.toContain("rounded-2xl");
     expect(surface?.className).toContain("rounded-none");
     expect(surface?.className).toContain("border-0");
-    expect(surface?.className).toContain("shadow-none");
 
     const separators = container.querySelectorAll(
       "div.border-b.border-border\\/60, div.border-t.border-border\\/60",

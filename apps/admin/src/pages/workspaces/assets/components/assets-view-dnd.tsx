@@ -255,7 +255,7 @@ export function AssetsDragOverlayCard(props: {
       transition={{ duration: 0.12, ease: "easeOut" }}
       style={{ width: 220, willChange: "transform" }}
     >
-      <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-2xl">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-card ">
         <div className="relative overflow-hidden bg-muted/20" style={{ aspectRatio: 4 / 3 }}>
           {props.asset.previewUrl ? (
             <img
@@ -279,7 +279,7 @@ export function AssetsDragOverlayCard(props: {
             </div>
           </div>
           {props.assetCount > 1 ? (
-            <Badge className="absolute right-3 top-3 rounded-full bg-background/92 text-foreground shadow-sm">
+            <Badge className="absolute right-3 top-3 rounded-full bg-card/92 text-label-primary ">
               {props.t("assets:ASSET_SELECTED_COUNT", { count: props.assetCount })}
             </Badge>
           ) : null}

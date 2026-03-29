@@ -99,7 +99,7 @@ function PreferenceSliderCard(props: PreferenceSliderCardProps) {
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                "shrink-0 select-none text-title2 leading-none text-label-secondary",
+                "shrink-0 select-none text-title2  text-label-secondary",
                 props.leftPreviewClassName,
               )}
             >
@@ -120,7 +120,7 @@ function PreferenceSliderCard(props: PreferenceSliderCardProps) {
             />
             <div
               className={cn(
-                "shrink-0 select-none text-largetitle leading-none text-label-secondary",
+                "shrink-0 select-none text-largetitle  text-label-secondary",
                 props.rightPreviewClassName,
               )}
             >

@@ -29,7 +29,7 @@ const QRCode = React.forwardRef<SVGSVGElement, QRCodeProps>(function QRCode(
       marginSize={marginSize}
       bgColor={bgColor}
       fgColor={fgColor}
-      className={cn("shrink-0 text-foreground", className)}
+      className={cn("shrink-0 text-label-primary", className)}
       {...props}
     />
   );

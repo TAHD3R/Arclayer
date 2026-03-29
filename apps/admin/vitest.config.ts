@@ -30,6 +30,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       // Keep consistent with Vite config so i18n resource imports work in tests.
       "@locales": path.resolve(__dirname, "../../locales"),
+      // Plate math side-effect imports KaTeX CSS; jsdom tests only need the module to resolve.
+      "katex/dist/katex.min.css": path.resolve(__dirname, "./test/mocks/empty-style-module.ts"),
     },
   },
   test: {
@@ -37,6 +39,11 @@ export default defineConfig({
     setupFiles: [path.resolve(__dirname, "./test/setup.ts")],
     globals: true,
     css: true,
+    server: {
+      deps: {
+        inline: [/^@platejs\/math/, /^katex/],
+      },
+    },
     include: ["test/**/*.test.{ts,tsx}", "test/**/*.spec.{ts,tsx}"],
   },
 });

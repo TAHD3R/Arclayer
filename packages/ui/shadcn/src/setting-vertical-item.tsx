@@ -24,12 +24,7 @@ export function SettingVerticalItem(props: SettingVerticalItemProps) {
       <div className={cn("mt-2 min-w-0", props.controlClassName)}>{props.control}</div>
 
       {hasDescription ? (
-        <div
-          className={cn(
-            "mt-2 text-callout leading-snug text-label-secondary",
-            props.descriptionClassName,
-          )}
-        >
+        <div className={cn("mt-2 text-callout  text-label-secondary", props.descriptionClassName)}>
           {props.description}
         </div>
       ) : null}

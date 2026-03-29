@@ -63,7 +63,7 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
   if (!file) return null;
 
   return (
-    <div className="flex h-full min-h-[320px] flex-col">
+    <div className="flex h-full min-h-80 flex-col">
       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/70 px-4 py-3">
         <div>
           <div className="text-footnote font-medium text-label-primary">PDF</div>
@@ -122,7 +122,7 @@ export function AssetPreviewPdfViewer(props: AssetPreviewPdfViewerProps) {
         </Document>
 
         {loadError ? (
-          <div className="flex min-h-[320px] items-center justify-center text-center">
+          <div className="flex min-h-80 items-center justify-center text-center">
             <div className="space-y-2">
               <div className="text-title3 font-semibold text-label-primary">
                 {props.t("assets:ASSET_PREVIEW_LOAD_FAILED")}

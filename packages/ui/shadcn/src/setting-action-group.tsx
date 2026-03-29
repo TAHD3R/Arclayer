@@ -11,7 +11,7 @@ export function SettingActionGroup({ children, className }: SettingActionGroupPr
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border border-border bg-background",
+        "overflow-hidden rounded-lg border border-border bg-card",
         "divide-y divide-border",
         className,
       )}

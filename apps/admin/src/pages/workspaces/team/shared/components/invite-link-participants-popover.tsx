@@ -81,7 +81,7 @@ export function InviteLinkParticipantsPopover(props: {
   const totalPages = query.data?.pages || 0;
 
   const content = (
-    <div className="w-[380px] max-w-[85vw]">
+    <div className="w-95 max-w-[85vw]">
       <div className="flex items-center justify-between gap-2">
         <div className="text-footnote font-medium">
           {t("team:TEAM_INVITE_LINKS_PARTICIPANT_POPOVER_TITLE")}
@@ -227,7 +227,7 @@ export function InviteLinkParticipantsPopover(props: {
           </div>
         </ButtonPrimitive>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} className="w-[380px] max-w-[85vw] p-3">
+      <PopoverContent align="start" sideOffset={8} className="w-95 max-w-[85vw] p-3">
         {content}
       </PopoverContent>
     </Popover>

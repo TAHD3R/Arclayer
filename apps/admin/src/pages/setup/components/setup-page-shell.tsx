@@ -13,7 +13,7 @@ import { Button } from "@arclayer/ui/button";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { SetupFieldShell, SetupPasswordControl } from "@/components/setup/setup-form-controls";
 import type { SetupAccessMode, SetupWizardStep } from "@/types/stores";
-import { MAX_STEP, SETUP_PROGRESS_STAGE_ORDER } from "./constants";
+import { MAX_STEP, SETUP_PROGRESS_STAGE_ORDER } from "../constants";
 
 type SetupStageMeta = {
   title: string;
@@ -190,7 +190,7 @@ export function SetupPageShell(props: SetupPageShellProps) {
       </div>
 
       <ExpandableScreenContent
-        className="border border-border/60 bg-background shadow-2xl"
+        className="border border-border/60 bg-card "
         closeButtonClassName="bg-muted/35/70 text-label-primary hover:bg-muted/35"
       >
         <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-3">
@@ -251,7 +251,7 @@ export function SetupPageShell(props: SetupPageShellProps) {
               </MotionConfig>
             </div>
 
-            <div className="border-t border-border/70 bg-background/95 px-4 py-3 sm:px-6">
+            <div className="border-t border-border/70 bg-card/95 px-4 py-3 sm:px-6">
               {props.step === MAX_STEP && props.access === "token" ? (
                 <SetupTokenField
                   disabled={props.submitting}

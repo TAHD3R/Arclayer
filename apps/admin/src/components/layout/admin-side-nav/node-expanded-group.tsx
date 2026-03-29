@@ -54,7 +54,7 @@ const DROPDOWN_CHILD_ITEM_CLASSNAME = cn(
   "hover:bg-accent/40 hover:text-label-primary",
   "focus:bg-accent/40 focus:text-label-primary",
   "data-[active=true]:bg-accent/40 data-[active=true]:text-label-primary",
-  "aria-[current=page]:bg-accent/50 aria-[current=page]:text-foreground aria-[current=page]:font-semibold",
+  "aria-[current=page]:bg-accent/50 aria-[current=page]:text-label-primary aria-[current=page]:font-semibold",
 );
 
 function GroupChildren({ children }: { children: ReactNode }) {

@@ -302,7 +302,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
             onChange={setSearch}
             placeholder={t("team:TEAM_ROLES_SEARCH_PLACEHOLDER")}
             clearLabel={t("common:CLEAR")}
-            className="w-full max-w-[360px]"
+            className="w-full max-w-90"
           />
           <div className="text-headline text-label-primary">
             {t("team:TEAM_ROLES_PERMISSION_COUNT", { count: filteredPermissions.length })}
@@ -314,7 +314,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <div className="relative isolate overflow-x-auto bg-background/90">
+          <div className="relative isolate overflow-x-auto bg-card/90">
             <table className="w-full table-fixed border-collapse caption-bottom text-callout">
               <colgroup>
                 <col style={{ width: matrixColumnWidths.permission }} />
@@ -324,7 +324,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
               </colgroup>
               <TableHeader className="border-y border-border/50">
                 <TableRow className="border-border/40 hover:bg-transparent">
-                  <TableHead className="sticky top-0 left-0 z-[3] bg-background/95 align-top text-center backdrop-blur supports-[backdrop-filter]:bg-background/85">
+                  <TableHead className="sticky top-0 left-0 z-[3] bg-card/95 align-top text-center backdrop-blur supports-[backdrop-filter]:bg-card/85">
                     <div className="flex min-h-24 items-center justify-center px-2 py-2.5 text-center">
                       <span className="block text-callout font-semibold text-label-secondary">
                         {t("team:TEAM_ROLES_COL_PERMISSION")}
@@ -336,14 +336,14 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                     return (
                       <TableHead
                         key={role.code}
-                        className="sticky top-0 z-[2] min-w-[5.5rem] bg-background/95 align-top backdrop-blur supports-[backdrop-filter]:bg-background/85"
+                        className="sticky top-0 z-[2] min-w-[5.5rem] bg-card/95 align-top backdrop-blur supports-[backdrop-filter]:bg-card/85"
                       >
                         <div className="relative min-h-24 px-2 py-2.5">
                           <div
                             className="flex min-h-[4.5rem] items-center justify-center"
                             title={role.name}
                           >
-                            <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 text-center text-footnote font-semibold leading-tight text-label-primary">
+                            <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 text-center text-footnote font-semibold  text-label-primary">
                               {roleHeaderLines.map((line, index) => (
                                 <span
                                   key={`${role.code}-${index}`}
@@ -405,16 +405,18 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                     key={perm.code}
                     className="group/row border-border/40 hover:bg-muted/40"
                   >
-                    <TableCell className="sticky left-0 z-[1] bg-background group-hover/row:bg-muted/40 transition-colors">
+                    <TableCell className="sticky left-0 z-[1] bg-card group-hover/row:bg-muted/40 transition-colors">
                       <div className="min-w-0">
-                        <div className="break-words font-semibold text-foreground">{perm.name}</div>
+                        <div className="break-words font-semibold text-label-primary">
+                          {perm.name}
+                        </div>
                         {perm.description ? (
                           <div className="mt-0.5 line-clamp-3 text-label-secondary">
                             {perm.description}
                           </div>
                         ) : null}
                         {perm.pluginId && perm.pluginId !== "core" ? (
-                          <div className="mt-1 rounded-md border border-border bg-background p-1 text-caption text-label-secondary select-none">
+                          <div className="mt-1 rounded-md border border-border bg-card p-1 text-caption text-label-secondary select-none">
                             {t("team:TEAM_ROLES_PERMISSION_PROVIDED_BY", {
                               pluginName: perm.pluginName || perm.pluginId,
                             })}

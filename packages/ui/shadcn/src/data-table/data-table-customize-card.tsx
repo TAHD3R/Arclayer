@@ -172,7 +172,7 @@ export function DataTableCustomizeCard<TData>(props: {
         </span>
       </DropdownCardTrigger>
 
-      <DropdownCardContent align="end" sideOffset={8} className="w-[720px] max-w-[92vw]">
+      <DropdownCardContent align="end" sideOffset={8} className="w-180 max-w-[92vw]">
         <DropdownCardHeader className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-headline">{props.labels.customizeTitle}</div>
@@ -208,7 +208,7 @@ export function DataTableCustomizeCard<TData>(props: {
                   items={configurableColumns.map((c) => c.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="max-h-[360px] overflow-auto pr-1">
+                  <div className="max-h-90 overflow-auto pr-1">
                     <div className="grid grid-cols-1 gap-2">
                       {configurableColumns.map((column) => (
                         <DataTableColumnSettingsRow
@@ -248,7 +248,7 @@ export function DataTableCustomizeCard<TData>(props: {
               </DndContext>
             </div>
 
-            <div className="min-w-0 max-h-[360px] overflow-auto ">
+            <div className="min-w-0 max-h-90 overflow-auto ">
               <div className="pb-3">
                 <div className="font-semibold">{props.labels.density}</div>
               </div>

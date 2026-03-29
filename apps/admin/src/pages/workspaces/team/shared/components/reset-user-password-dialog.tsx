@@ -114,7 +114,7 @@ export function ResetUserPasswordDialog(props: {
     >
       <form onSubmit={onSubmit} className="grid gap-4 py-2">
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="newPassword">
+          <label className="font-semibold text-label-primary" htmlFor="newPassword">
             {t("team:TEAM_FIELD_NEW_PASSWORD")}
           </label>
           <div className="text-label-secondary">
@@ -134,7 +134,7 @@ export function ResetUserPasswordDialog(props: {
         </div>
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="confirmPassword">
+          <label className="font-semibold text-label-primary" htmlFor="confirmPassword">
             {t("team:TEAM_FIELD_CONFIRM_PASSWORD")}
           </label>
           <div className="text-label-secondary">

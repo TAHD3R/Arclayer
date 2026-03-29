@@ -53,7 +53,7 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
       }
     >
       <div className="grid gap-1.5">
-        <label className="font-semibold text-foreground">
+        <label className="font-semibold text-label-primary">
           {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
         </label>
         <div className="text-label-secondary">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>

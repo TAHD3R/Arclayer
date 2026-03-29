@@ -28,10 +28,10 @@ function AssetUnsupportedPreview(props: {
   publicUrl?: string;
 }) {
   return (
-    <div className="grid h-full min-h-[320px] place-items-center bg-muted/10 px-8">
+    <div className="grid h-full min-h-80 place-items-center bg-muted/10 px-8">
       <div className="max-w-md space-y-3 text-center">
         <div className="text-title3 font-semibold text-label-primary">{props.title}</div>
-        <p className="text-footnote leading-6 text-label-secondary">{props.description}</p>
+        <p className="text-footnote  text-label-secondary">{props.description}</p>
         <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
           {props.publicUrl ? (
             <Button
@@ -83,7 +83,7 @@ function AssetImagePreview(props: AssetPreviewStageProps) {
   }, [candidates, currentSrc, loadFailed, props.failedPreviewRef, props.setPreviewSrc]);
 
   return (
-    <div className="relative h-full min-h-[320px] overflow-hidden bg-muted/10">
+    <div className="relative h-full min-h-80 overflow-hidden bg-muted/10">
       <div className="relative h-full w-full">
         {resolvedSrc ? (
           <LazyAssetImage
@@ -194,7 +194,7 @@ export function AssetPreviewStage(props: AssetPreviewStageProps) {
   if (kind === "image") return <AssetImagePreview {...props} />;
   if (kind === "video" && props.active.contentUrl) {
     return (
-      <div className="h-full min-h-[320px] overflow-hidden bg-black">
+      <div className="h-full min-h-80 overflow-hidden bg-black">
         <video
           className="h-full w-full object-contain"
           controls
@@ -206,7 +206,7 @@ export function AssetPreviewStage(props: AssetPreviewStageProps) {
   }
   if (kind === "audio" && props.active.contentUrl) {
     return (
-      <div className="grid h-full min-h-[320px] place-items-center bg-muted/10 px-8">
+      <div className="grid h-full min-h-80 place-items-center bg-muted/10 px-8">
         <audio
           className="w-full max-w-xl"
           controls

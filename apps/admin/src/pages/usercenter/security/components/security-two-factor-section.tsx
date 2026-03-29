@@ -453,7 +453,7 @@ export function UserTwoFactorSection() {
         />
         <SettingCardContent>
           <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/30 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/30 ">
               <Smartphone className="h-5 w-5 text-label-secondary" />
             </div>
             <div className="min-w-0 flex-1">

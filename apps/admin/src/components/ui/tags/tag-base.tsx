@@ -10,7 +10,7 @@ const TAG_TEXT_STYLE_CLASSNAMES = {
 } as const;
 
 export const TAG_BASE_ROOT_CLASSNAME =
-  "inline-flex items-center rounded-full border border-border px-2 py-1 font-semibold leading-none";
+  "inline-flex items-center rounded-full border border-border px-2 py-1 font-semibold ";
 
 type TagSemanticClassNames = {
   root?: string;
@@ -43,9 +43,9 @@ function mergeTagClassNames(
 ): TagSemanticClassNames {
   return {
     root: cn(TAG_BASE_ROOT_CLASSNAME, overrides?.root),
-    icon: cn("inline-flex items-center leading-none", overrides?.icon),
+    icon: cn("inline-flex items-center ", overrides?.icon),
     content: cn(
-      "inline-flex items-center gap-1 leading-none",
+      "inline-flex items-center gap-1 ",
       TAG_TEXT_STYLE_CLASSNAMES[textStyle],
       overrides?.content,
     ),
@@ -65,7 +65,7 @@ function getColorClassName(color: BaseTagColor | undefined): string {
       return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300";
     case "default":
     default:
-      return "border-border bg-muted/55 text-foreground";
+      return "border-border bg-muted/55 text-label-primary";
   }
 }
 

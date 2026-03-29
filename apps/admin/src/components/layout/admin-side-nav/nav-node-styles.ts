@@ -7,7 +7,7 @@ export const INTERACTIVE_TRANSITION_CLASSNAME = cn(
 
 export const NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME = cn(
   "text-label-secondary! hover:text-label-primary!",
-  "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+  "data-[active=true]:font-semibold data-[active=true]:text-label-primary!",
 );
 
 export const NAV_ITEM_INTERACTIVE_BG_CLASSNAME = cn(

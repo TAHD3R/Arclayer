@@ -122,7 +122,7 @@ export function AssetsSelectionToolbar(
           exit={{ opacity: 0, y: 10 }}
           transition={{ duration: 0.12, ease: "easeOut" }}
         >
-          <div className="pointer-events-auto w-full border-t border-border bg-card shadow-[0_-18px_36px_-28px_rgba(0,0,0,0.28)]">
+          <div className="pointer-events-auto w-full border-t border-border bg-card ">
             <div className="flex w-full flex-wrap items-center justify-between gap-3 px-4 pt-3 pb-5 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 <SelectedCountTag

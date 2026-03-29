@@ -25,7 +25,7 @@ const folderCardBaseClassName =
   "group relative overflow-hidden rounded-lg border text-card-foreground transition-all duration-300";
 
 const folderActionButtonClassName =
-  "inline-flex size-8 items-center justify-center rounded-full text-label-tertiary opacity-0 transition hover:bg-accent/70 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100";
+  "inline-flex size-8 items-center justify-center rounded-full text-label-tertiary opacity-0 transition hover:bg-accent/70 hover:text-label-primary focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100";
 
 const folderGlyphDecorationClassName =
   "pointer-events-none absolute -bottom-3 -right-1 scale-[2.55] opacity-[0.24] transition-transform duration-300 group-hover:scale-[2.7] xl:-bottom-4 xl:right-0 xl:scale-[3] xl:group-hover:scale-[3.15]";
@@ -34,7 +34,7 @@ function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: s
   const sizeClassName = props.large ? "size-16" : "size-8";
 
   return (
-    <div className={cn(sizeClassName, props.className ?? "text-foreground dark:text-white")}>
+    <div className={cn(sizeClassName, props.className ?? "text-label-primary dark:text-white")}>
       <svg viewBox="0 0 24 24" className="size-full fill-none stroke-current">
         <path
           d="M3.75 7.75h5l1.7-2.25h9.8a1.75 1.75 0 0 1 1.75 1.75v8.75a1.75 1.75 0 0 1-1.75 1.75H3.75A1.75 1.75 0 0 1 2 16V9.5a1.75 1.75 0 0 1 1.75-1.75Z"
@@ -51,7 +51,7 @@ function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: s
 
 function FolderMetaLine(props: { label: string }) {
   return (
-    <div className="relative mt-auto flex items-center gap-1.5 pt-3 text-caption leading-4 text-label-tertiary xl:gap-2 xl:pt-4 xl:leading-5">
+    <div className="relative mt-auto flex items-center gap-1.5 pt-3 text-caption  text-label-tertiary xl:gap-2 xl:pt-4 xl:">
       <svg viewBox="0 0 20 20" className="size-3.5 shrink-0 stroke-current fill-none xl:size-4">
         <path
           d="M3.5 6.5h4l1.4-2h7.6a1.5 1.5 0 0 1 1.5 1.5v7.5A1.5 1.5 0 0 1 16.5 15h-13A1.5 1.5 0 0 1 2 13.5V8a1.5 1.5 0 0 1 1.5-1.5Z"
@@ -170,10 +170,10 @@ export function FolderAddCard(props: {
 
           <div className="relative flex h-full flex-col">
             <div className="flex min-h-0 flex-1 flex-col ">
-              <div className="pr-10 text-headline font-semibold leading-5 text-label-primary xl:pr-11">
+              <div className="pr-10 text-headline font-semibold  text-label-primary xl:pr-11">
                 {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
               </div>
-              <div className="mt-1.5 max-w-[18ch] text-caption leading-[1.35] text-label-secondary xl:mt-2 xl:leading-[1.45]">
+              <div className="mt-1.5 max-w-[18ch] text-caption  text-label-secondary xl:mt-2 xl:">
                 {props.currentFolder
                   ? props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_IN", {
                       name: props.currentFolder.name,
@@ -247,14 +247,14 @@ export function FolderCard(props: {
               />
 
               <div className="flex min-h-0 flex-1 flex-col" style={{ overflowWrap: "anywhere" }}>
-                <div className="pr-10 text-headline font-semibold leading-5 text-label-primary xl:pr-11">
+                <div className="pr-10 text-headline font-semibold  text-label-primary xl:pr-11">
                   {props.folder.name}
                 </div>
                 <FolderDescriptionTooltip
                   text={props.folder.description}
                   emptyText={props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
                   disabled={props.tooltipDisabled}
-                  className="mt-1.5 min-h-0 text-caption! leading-[1.35] text-label-secondary xl:mt-2 xl:leading-[1.45]"
+                  className="mt-1.5 min-h-0 text-caption!  text-label-secondary xl:mt-2 xl:"
                 />
                 <FolderMetaLine label={metaLabel} />
               </div>

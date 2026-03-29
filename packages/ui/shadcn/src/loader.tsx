@@ -67,7 +67,7 @@ export const LoaderTwo = () => {
         animate={{
           x: [0, 20, 0],
         }}
-        className="h-4 w-4 rounded-full bg-neutral-200 shadow-md dark:bg-neutral-500"
+        className="h-4 w-4 rounded-full bg-neutral-200  dark:bg-neutral-500"
       />
       <motion.div
         initial={{
@@ -77,7 +77,7 @@ export const LoaderTwo = () => {
           x: [0, 20, 0],
         }}
         transition={transition(0.4)}
-        className="h-4 w-4 -translate-x-2 rounded-full bg-neutral-200 shadow-md dark:bg-neutral-500"
+        className="h-4 w-4 -translate-x-2 rounded-full bg-neutral-200  dark:bg-neutral-500"
       />
       <motion.div
         initial={{
@@ -87,7 +87,7 @@ export const LoaderTwo = () => {
           x: [0, 20, 0],
         }}
         transition={transition(0.8)}
-        className="h-4 w-4 -translate-x-4 rounded-full bg-neutral-200 shadow-md dark:bg-neutral-500"
+        className="h-4 w-4 -translate-x-4 rounded-full bg-neutral-200  dark:bg-neutral-500"
       />
     </div>
   );
@@ -144,7 +144,8 @@ export const LoaderFour = ({ text = "Loading..." }: { text?: string }) => {
         {text}
       </motion.span>
       <motion.span
-        className="absolute inset-0 text-[#00e571]/50 blur-[0.5px] dark:text-[#00e571]"
+        className="absolute inset-0 blur-[0.5px] opacity-50"
+        style={{ color: "#00e571" }}
         animate={{
           x: [-2, 4, -3, 1.5, -2],
           y: [-2, 4, -3, 1.5, -2],
@@ -161,7 +162,8 @@ export const LoaderFour = ({ text = "Loading..." }: { text?: string }) => {
         {text}
       </motion.span>
       <motion.span
-        className="absolute inset-0 text-[#8b00ff]/50 dark:text-[#8b00ff]"
+        className="absolute inset-0 opacity-50"
+        style={{ color: "#8b00ff" }}
         animate={{
           x: [0, 1, -1.5, 1.5, -1, 0],
           y: [0, -1, 1.5, -0.5, 0],

@@ -282,7 +282,7 @@ export function InviteMembersDialog(props: {
       <form onSubmit={onSubmit} className="grid gap-4 py-2">
         {props.mode === "email" ? (
           <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground" htmlFor="invite-emails">
+            <label className="font-semibold text-label-primary" htmlFor="invite-emails">
               {t("team:TEAM_INVITE_FIELD_TO")}
             </label>
             <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
@@ -308,7 +308,7 @@ export function InviteMembersDialog(props: {
         ) : null}
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="invite-role">
+          <label className="font-semibold text-label-primary" htmlFor="invite-role">
             {t("team:TEAM_INVITE_FIELD_ROLE")}
           </label>
           <div className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
@@ -339,7 +339,7 @@ export function InviteMembersDialog(props: {
 
         {props.mode === "link" ? (
           <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground" htmlFor="allowedEmailDomain">
+            <label className="font-semibold text-label-primary" htmlFor="allowedEmailDomain">
               {t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL")}
             </label>
             <div className="text-label-secondary">
@@ -361,7 +361,7 @@ export function InviteMembersDialog(props: {
         ) : null}
 
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="invite-expires">
+          <label className="font-semibold text-label-primary" htmlFor="invite-expires">
             {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
           </label>
           <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>

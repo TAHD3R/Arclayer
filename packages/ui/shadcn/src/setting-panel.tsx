@@ -20,12 +20,12 @@ export function SettingPanel(props: SettingPanelProps) {
   return (
     <section className={cn("flex flex-col gap-3", props.className)}>
       <header className="flex flex-col gap-1">
-        <div className="text-title2 font-bold leading-tight">{props.title}</div>
+        <div className="text-title2 font-bold ">{props.title}</div>
         {props.description ? (
           <div className="text-body text-label-secondary">{props.description}</div>
         ) : null}
       </header>
-      {bordered ? <div className="bg-background">{props.children}</div> : props.children}
+      {bordered ? <div className="bg-card">{props.children}</div> : props.children}
     </section>
   );
 }

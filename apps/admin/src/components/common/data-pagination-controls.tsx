@@ -108,10 +108,7 @@ export function DataPaginationControls({
             onChange(Math.min(safePage, nextTotalPages), nextSize);
           }}
         >
-          <SelectTrigger
-            size="sm"
-            className="w-[4.75rem] justify-between border-transparent px-2 shadow-none"
-          >
+          <SelectTrigger size="sm" className="w-[4.75rem] justify-between border-transparent px-2 ">
             <SelectValue />
           </SelectTrigger>
           <SelectContent position="popper" align="end">

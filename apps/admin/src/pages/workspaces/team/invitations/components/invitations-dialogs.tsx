@@ -74,7 +74,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
           if (!open) setDeleteInvitation(null);
         }}
       >
-        <AlertDialogContent className="sm:max-w-[520px]">
+        <AlertDialogContent className="sm:max-w-130">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("team:TEAM_INVITATIONS_DELETE_TITLE")}</AlertDialogTitle>
             {deleteInvitation ? (
@@ -149,7 +149,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         {renewInvitation ? (
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
+              <label className="font-semibold text-label-primary">
                 {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
               </label>
               <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
@@ -209,7 +209,7 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         {renewLink ? (
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">
+              <label className="font-semibold text-label-primary">
                 {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
               </label>
               <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>

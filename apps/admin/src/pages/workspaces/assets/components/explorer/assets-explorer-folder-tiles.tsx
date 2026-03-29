@@ -18,7 +18,7 @@ export function AssetsExplorerFolderUpTile(props: {
       data-folder-tile="true"
       className={cn(
         "group relative w-full overflow-hidden border border-border/50 bg-card",
-        "rounded-lg shadow-sm transition duration-200 hover:shadow-md",
+        "rounded-lg  transition duration-200 hover:",
         "cursor-pointer outline-none select-none",
       )}
       onClick={(event) => {
@@ -67,7 +67,7 @@ export const AssetsExplorerFolderTile = forwardRef<
       data-folder-tile="true"
       className={cn(
         "group relative w-full overflow-hidden border border-border/50 bg-card",
-        "rounded-lg shadow-sm transition duration-200 hover:shadow-md",
+        "rounded-lg  transition duration-200 hover:",
         "cursor-pointer outline-none",
         "select-none",
         focused ? "ring-1 ring-foreground/60" : null,
@@ -100,7 +100,7 @@ export const AssetsExplorerFolderTile = forwardRef<
               </div>
               {props.folder.description ? (
                 <div
-                  className="mt-1 line-clamp-2 text-footnote leading-snug text-label-secondary/80"
+                  className="mt-1 line-clamp-2 text-footnote  text-label-secondary/80"
                   title={props.folder.description}
                 >
                   {props.folder.description}

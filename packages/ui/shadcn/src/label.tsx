@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@arclayer/lib/utils";
 
 const labelVariants = cva(
-  "text-footnote font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+  "text-footnote font-medium  peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
 );
 
 const Label = React.forwardRef<

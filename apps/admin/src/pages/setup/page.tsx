@@ -34,12 +34,12 @@ import {
   SETUP_PROGRESS_STAGE_ORDER,
   WORKSPACE_FIELDS,
 } from "./constants";
-import { SetupPageShell } from "./setup-page-shell";
+import { SetupPageShell } from "./components/setup-page-shell";
 import {
   createSetupAdminSchema,
   createSetupDefaultsSchema,
   createSetupSiteSchema,
-} from "./setup-schemas";
+} from "./hooks/setup-schemas";
 import { resolvePrimaryBendColor, resolveSetupDryRunFlag, resolveSiteOrigin, sleep } from "./utils";
 import type { SystemSetupJobStage, SystemSetupJobStatusPayload } from "@/types/api";
 

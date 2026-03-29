@@ -186,7 +186,7 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
                 <button
                   type="button"
                   disabled={disabled}
-                  className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary hover:text-label-primary disabled:pointer-events-none disabled:opacity-50"
                   aria-label={t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}
                 >
                   <CircleHelp className="size-4" />

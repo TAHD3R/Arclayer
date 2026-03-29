@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/layouts/page-shell/default-page";
-import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/user-notification-settings-view";
+import { UserNotificationSettingsView } from "@/pages/usercenter/notifications/components/user-notification-settings-view";
 
 export function UserCenterNotificationsPage() {
   const { t } = useTranslation("account");

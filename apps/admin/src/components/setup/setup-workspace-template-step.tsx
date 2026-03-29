@@ -47,7 +47,7 @@ export function SetupWorkspaceTemplateStep(props: {
             <Card
               key={template.key}
               className={clsx(
-                "cursor-pointer border transition-all duration-200 shadow-xs hover:shadow-sm",
+                "cursor-pointer border transition-all duration-200  hover:",
                 selected ? "border-primary bg-primary/7" : "border-border/70",
               )}
               onClick={() => props.onTemplateSelect(template.key)}

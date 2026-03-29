@@ -122,7 +122,7 @@ export function DataTableColumnSettingsCard<TData>(props: {
         </span>
       </DropdownCardTrigger>
 
-      <DropdownCardContent align="end" sideOffset={8} className="w-[560px] max-w-[90vw]">
+      <DropdownCardContent align="end" sideOffset={8} className="w-140 max-w-[90vw]">
         <DropdownCardHeader className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="font-semibold">{props.labels.columnsTitle}</div>
@@ -165,7 +165,7 @@ export function DataTableColumnSettingsCard<TData>(props: {
                     dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}
                   >
                     {activeLabel ? (
-                      <div className="rounded-xl border bg-background/92 px-3 py-2 shadow-2xl ring-2 ring-ring/30">
+                      <div className="rounded-xl border bg-card/92 px-3 py-2  ring-2 ring-ring/30">
                         <div className="flex items-center gap-3">
                           <div className="flex size-7 items-center justify-center rounded-md bg-accent/40 text-label-secondary">
                             <GripVertical className={ICON_CLASS} />

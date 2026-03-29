@@ -54,7 +54,7 @@ function NodeActionSub({
           "bg-transparent focus-visible:bg-transparent data-[active=true]:bg-transparent",
           "[&:not([data-highlight])]:hover:bg-transparent",
           "text-callout",
-          isActive && "font-semibold text-foreground!",
+          isActive && "font-semibold text-label-primary!",
         )}
       >
         <ButtonPrimitive
@@ -104,7 +104,7 @@ function NodeActionRoot({ item, depth, label, isActive, hoverDropdown }: NodeAct
           NAV_ITEM_INTERACTIVE_TEXT_CLASSNAME,
           NAV_ITEM_INTERACTIVE_BG_CLASSNAME,
           NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
-          isActive && "font-semibold text-foreground!",
+          isActive && "font-semibold text-label-primary!",
           NAV_ITEM_BUTTON_PADDING_CLASSNAME,
           "group-data-[collapsible=icon]:gap-0",
           item.disabled ? DISABLED_ITEM_CLASSNAME : null,

@@ -122,7 +122,7 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-foreground"
+          className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary"
           data-plate-prevent-deselect
         >
           <Plus className="size-2.5" />
@@ -134,7 +134,7 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
         align="start"
         side="right"
         sideOffset={12}
-        className="w-[22rem] rounded-2xl border border-border p-0 shadow-2xl"
+        className="w-[22rem] rounded-2xl border border-border p-0 "
       >
         <div className="border-b border-border/70 p-3">
           <div className="relative">
@@ -144,7 +144,7 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t("CONTENT_LIBRARY_EDITOR_SLASH_SEARCH_PLACEHOLDER")}
-              className="h-9 border-0 bg-transparent pl-9 pr-3 shadow-none focus-visible:ring-0"
+              className="h-9 border-0 bg-transparent pl-9 pr-3  focus-visible:ring-0"
             />
           </div>
         </div>
@@ -273,7 +273,7 @@ function Draggable(props: PlateElementProps) {
                       size="icon-sm"
                       variant="ghost"
                       type="button"
-                      className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-foreground"
+                      className="size-4 rounded-md p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary"
                       data-plate-prevent-deselect
                       onClick={(e) => {
                         e.preventDefault();
@@ -349,7 +349,7 @@ function Draggable(props: PlateElementProps) {
                         resetPreview();
                       }}
                     >
-                      <GripVertical className="size-2.5 text-muted-foreground" />
+                      <GripVertical className="size-2.5 text-label-secondary" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Drag to move</TooltipContent>

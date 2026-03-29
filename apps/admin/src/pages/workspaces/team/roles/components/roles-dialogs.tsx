@@ -59,7 +59,9 @@ function RoleDetailsFields<
   return (
     <>
       <div className="grid gap-1.5">
-        <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_NAME")}</label>
+        <label className="font-semibold text-label-primary">
+          {t("team:TEAM_ROLES_FIELD_NAME")}
+        </label>
         <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
         <Controller
           name={"name" as never}
@@ -74,7 +76,9 @@ function RoleDetailsFields<
       </div>
 
       <div className="grid gap-1.5">
-        <label className="font-semibold text-foreground">{t("team:TEAM_ROLES_FIELD_DESC")}</label>
+        <label className="font-semibold text-label-primary">
+          {t("team:TEAM_ROLES_FIELD_DESC")}
+        </label>
         <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
         <Controller
           name={"description" as never}
@@ -125,7 +129,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
           if (!open) setDeleteTarget(null);
         }}
       >
-        <AlertDialogContent className="sm:max-w-[520px]">
+        <AlertDialogContent className="sm:max-w-130">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("team:TEAM_ROLES_DELETE_TITLE")}</AlertDialogTitle>
             <AlertDialogDescription className="text-body">
@@ -170,7 +174,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         onOpenChange={setCreateOpen}
         title={t("team:TEAM_ROLES_ADD_ROLE_DIALOG_TITLE")}
         description={t("team:TEAM_ROLES_ADD_ROLE_DIALOG_DESC")}
-        contentClassName="max-w-[640px]"
+        contentClassName="max-w-160"
         footer={
           <>
             <Button
@@ -191,7 +195,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
       >
         <form className="grid gap-4" onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}>
           <div className="grid gap-1.5">
-            <label className="font-semibold text-foreground">
+            <label className="font-semibold text-label-primary">
               {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
             </label>
             <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
@@ -233,7 +237,7 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         onOpenChange={setEditOpen}
         title={t("team:TEAM_ROLES_EDIT_ROLE_DIALOG_TITLE")}
         description={t("team:TEAM_ROLES_EDIT_ROLE_DIALOG_DESC")}
-        contentClassName="max-w-[640px]"
+        contentClassName="max-w-160"
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditOpen(false)} disabled={editRolePending}>

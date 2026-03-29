@@ -109,7 +109,7 @@ export function ContentGuard(props: ContentGuardProps) {
   const emptyClassName = variant === "compact" ? "gap-4 p-4 md:p-8" : undefined;
   const titleClassName = variant === "compact" ? "text-title md:text-largetitle" : undefined;
   const descriptionClassName = variant === "compact" ? "text-footnote md:text-body" : undefined;
-  const illustrationClassName = variant === "compact" ? "max-w-[260px]" : "max-w-[360px]";
+  const illustrationClassName = variant === "compact" ? "max-w-65" : "max-w-90";
 
   const retryExtra = useMemo(() => {
     if (props.hideRetry) return null;

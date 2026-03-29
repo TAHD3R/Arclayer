@@ -12,7 +12,7 @@ import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-s
 function dialogFieldLabel(title: string, description: string) {
   return (
     <div className="grid gap-1.5">
-      <span className="font-semibold text-foreground">{title}</span>
+      <span className="font-semibold text-label-primary">{title}</span>
       <span className="text-label-secondary">{description}</span>
     </div>
   );
@@ -76,7 +76,9 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
         <div className="grid gap-4 py-2">
           {c.assignRoleDescription ? (
             <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
-              <div className="text-footnote font-semibold text-foreground">{c.assignRoleLabel}</div>
+              <div className="text-footnote font-semibold text-label-primary">
+                {c.assignRoleLabel}
+              </div>
               <div className="mt-1 text-caption text-label-secondary">
                 {c.assignRoleDescription}
               </div>

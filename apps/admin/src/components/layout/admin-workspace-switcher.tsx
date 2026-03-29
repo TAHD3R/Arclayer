@@ -74,7 +74,7 @@ function PanelMenuItemContent(props: {
         {props.icon ? <span className="shrink-0 [&>svg]:size-4">{props.icon}</span> : null}
         <ClampedText
           text={props.text}
-          className={cn("min-w-0 flex-1 text-callout leading-snug", props.textClassName)}
+          className={cn("min-w-0 flex-1 text-callout ", props.textClassName)}
         />
       </span>
       {props.right ? (
@@ -91,7 +91,7 @@ const panelMenuButtonClassName = cn(
   "min-h-11 rounded-xl",
   "text-label-secondary",
   INTERACTION_TRANSITION_CLASSNAME,
-  "hover:bg-accent/80 hover:text-foreground",
+  "hover:bg-accent/80 hover:text-label-primary",
   "active:scale-[0.992]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
@@ -122,8 +122,8 @@ function PanelMenuButton(props: {
 
 export const breadcrumbTriggerClassName = cn(
   "flex items-center gap-1 rounded-md px-1.5 py-0.5",
-  "text-label-secondary border-0 bg-transparent hover:bg-accent hover:text-foreground",
-  "data-[state=open]:bg-accent data-[state=open]:text-foreground transition-colors",
+  "text-label-secondary border-0 bg-transparent hover:bg-accent hover:text-label-primary",
+  "data-[state=open]:bg-accent data-[state=open]:text-label-primary transition-colors",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
@@ -146,7 +146,7 @@ const sidebarTriggerButtonClassName = cn(
   "!border-0",
   "!bg-transparent !text-label-secondary",
   "hover:!bg-accent/40 hover:!text-label-primary",
-  "data-[state=open]:!bg-accent/50 data-[state=open]:!text-foreground",
+  "data-[state=open]:!bg-accent/50 data-[state=open]:!text-label-primary",
   "transition-[color,background-color,transform,box-shadow,width,height,padding,margin,gap] duration-400 ease-[cubic-bezier(0.75,0,0.25,1)] motion-reduce:transition-none",
   "!text-left",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -157,10 +157,10 @@ export const headerTriggerButtonClassName = cn(
   HEADER_TRIGGER_HEIGHT_CLASSNAME,
   "group/panel-trigger",
   "inline-flex max-w-full min-w-0 items-center gap-2 rounded-lg border border-transparent",
-  "bg-transparent px-2 text-label-secondary shadow-none",
+  "bg-transparent px-2 text-label-secondary ",
   "transition-[border-color,background-color,color] duration-200",
-  "hover:bg-accent/60 hover:text-foreground",
-  "data-[state=open]:border-border/60 data-[state=open]:bg-accent/70 data-[state=open]:text-foreground",
+  "hover:bg-accent/60 hover:text-label-primary",
+  "data-[state=open]:border-border/60 data-[state=open]:bg-accent/70 data-[state=open]:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
@@ -168,7 +168,7 @@ const collapseButtonBaseClassName = cn(
   SIDEBAR_TRIGGER_HEIGHT_CLASSNAME,
   "!border-0 !bg-transparent !text-label-secondary",
   "hover:!bg-accent/40 hover:!text-label-primary",
-  "active:!bg-accent/50 active:!text-foreground",
+  "active:!bg-accent/50 active:!text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 
@@ -306,7 +306,7 @@ function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
           ) : null}
         </AvatarGroup>
       ) : null}
-      <span className="min-w-0 truncate leading-tight">
+      <span className="min-w-0 truncate ">
         {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: memberCount })}
       </span>
     </div>
@@ -328,7 +328,7 @@ function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: b
         <div className="min-w-0 flex-1 text-left">
           <ClampedText
             text={title}
-            className="truncate text-callout font-semibold leading-snug text-foreground"
+            className="truncate text-callout font-semibold  text-label-primary"
           />
           <WorkspaceMemberMeta workspace={props.workspace} />
         </div>
@@ -371,7 +371,7 @@ function WorkspacePickerSection(props: {
               onClick={() => props.onSelect(workspace.workspaceId)}
               className={cn(
                 "min-h-[4.5rem] items-start px-3 py-2.5",
-                selected && "bg-background/95 text-foreground",
+                selected && "bg-card/95 text-label-primary",
               )}
             >
               <WorkspacePickerItemContent workspace={workspace} selected={selected} />
@@ -398,7 +398,7 @@ function WorkspaceActionButton(props: {
       <PanelMenuItemContent
         icon={props.icon}
         text={props.text}
-        textClassName="leading-snug text-label-primary"
+        textClassName=" text-label-primary"
       />
     </PanelMenuButton>
   );

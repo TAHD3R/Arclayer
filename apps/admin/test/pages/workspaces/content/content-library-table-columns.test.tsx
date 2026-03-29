@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import { useContentLibraryTableColumns } from "@/pages/workspaces/content/library/content-library-table-columns";
+import { useContentLibraryTableColumns } from "@/pages/workspaces/content/library/components/content-library-table-columns";
 import type { ContentLibraryTableRow } from "@/pages/workspaces/content/library/types";
 
 vi.mock("react-i18next", () => ({
@@ -118,6 +118,54 @@ function NameCellHarness() {
   return <div>{cell({ row: { original: row } } as never)}</div>;
 }
 
+function ActionsCellHarness() {
+  const columns = useContentLibraryTableColumns({
+    formatDateTimeOrNull: (value) => value ?? null,
+    actionPending: false,
+    selectedRowIds: new Set(),
+    onToggleVisibleRows: vi.fn(),
+    onToggleRowSelection: vi.fn(),
+    onOpen: vi.fn(),
+    onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
+    onArchive: vi.fn(),
+    onUnarchive: vi.fn(),
+  });
+  const actionsColumn = columns.find((column) => column.id === "actions");
+  if (!actionsColumn || typeof actionsColumn.cell !== "function") return null;
+
+  const row = {
+    id: "content-1",
+    workspaceId: "ws-1",
+    siteId: "site-1",
+    modelId: "model-page",
+    modelKey: "page",
+    slug: "homepage",
+    title: "Homepage",
+    name: "Homepage",
+    status: "draft",
+    visibility: "private",
+    locale: "en-US",
+    bootstrapPresetKey: "page",
+    bootstrapPresetState: "selected",
+    capabilityPackIds: ["publishable", "routable"],
+    draftVersion: 1,
+    updatedAt: "2026-03-26T00:00:00Z",
+    modelName: "Page",
+    modelDescription: null,
+    modelCategory: "site_builder",
+    modelCapabilities: ["visual_editable", "publishable", "routable"],
+    derivedStatus: "draft",
+    runtime: "visual",
+    context: "site_builder",
+    libraryGroup: "site-content",
+    editWith: "canvas",
+    role: "page",
+  } satisfies ContentLibraryTableRow;
+
+  return <div>{actionsColumn.cell({ row: { original: row } } as never)}</div>;
+}
+
 describe("content-library-table-columns", () => {
   test("uses the agreed default visible workbench columns", () => {
     render(<ColumnsHarness />);
@@ -138,7 +186,13 @@ describe("content-library-table-columns", () => {
     expect(screen.getByText("/homepage")).toBeInTheDocument();
     expect(screen.queryByText("CONTENT_LIBRARY_ROLE_PAGE")).not.toBeInTheDocument();
     expect(screen.queryByText("CONTENT_LIBRARY_EDIT_WITH_CANVAS")).not.toBeInTheDocument();
+  });
+
+  test("renders row actions in the dedicated shared actions column", () => {
+    render(<ActionsCellHarness />);
+
     expect(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" })).toBeInTheDocument();
+    expect(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS")).toBeInTheDocument();
   });
 
   test("hides library group by default when no persisted column preference exists", () => {

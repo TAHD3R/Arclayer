@@ -74,7 +74,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
         <Button
           variant="ghost"
           size="sm"
-          className="h-auto px-2 py-1 font-medium text-foreground hover:bg-accent"
+          className="h-auto px-2 py-1 font-medium text-label-primary hover:bg-accent"
         >
           {t("common:ORG_WORKSPACES_MEMBERS_COUNT", { count: workspace.memberCount })}
         </Button>
@@ -106,7 +106,7 @@ export function WorkspaceMembersPopover({ workspace }: { workspace: Organization
             ) : null}
           </InputGroup>
 
-          <div className="max-h-[420px] overflow-auto pr-1">
+          <div className="max-h-105 overflow-auto pr-1">
             {membersQuery.isLoading ? (
               <div className="flex justify-center py-8">
                 <Spinner className="size-4 text-label-secondary" />

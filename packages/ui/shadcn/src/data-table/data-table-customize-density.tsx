@@ -10,7 +10,7 @@ export function DataTableDensityDiagram(props: { density: DataTableDensity }) {
     props.density === "compact" ? "h-8" : props.density === "relaxed" ? "h-12" : "h-10";
 
   return (
-    <div className="rounded-xl border bg-background overflow-hidden">
+    <div className="rounded-xl border bg-card overflow-hidden">
       <div className="flex items-center gap-2 border-b border-border/60 bg-primary/15 px-3 py-2">
         <div className="h-2 w-10 rounded bg-primary/70" />
         <div className="h-2 w-14 rounded bg-primary/55" />
@@ -25,7 +25,7 @@ export function DataTableDensityDiagram(props: { density: DataTableDensity }) {
             className={cn(
               "grid grid-cols-[24px_1fr_88px] items-center px-3",
               rowClass,
-              idx === 1 ? "bg-accent/25" : idx % 2 === 0 ? "bg-primary/10" : "bg-background",
+              idx === 1 ? "bg-accent/25" : idx % 2 === 0 ? "bg-primary/10" : "bg-card",
             )}
           >
             <div className="flex items-center justify-center">

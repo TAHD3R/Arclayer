@@ -46,10 +46,7 @@ export function AuthLinkButton({ className, size = "inline", ...props }: AuthLin
     <Button
       variant="link"
       size={size}
-      className={cn(
-        "inline-flex items-baseline gap-0 align-baseline text-footnote leading-normal",
-        className,
-      )}
+      className={cn("inline-flex items-baseline gap-0 align-baseline text-footnote ", className)}
       {...props}
     />
   );

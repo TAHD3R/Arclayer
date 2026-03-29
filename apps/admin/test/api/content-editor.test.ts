@@ -19,7 +19,7 @@ import {
 import {
   findArticleEditorPresentation,
   loadContentLibraryArticleEditorSnapshot,
-} from "@/pages/workspaces/content/library/article-editor/api";
+} from "@/pages/workspaces/content/library/article-editor/hooks/api";
 import type {
   AdminContentItem,
   AdminContentPresentation,

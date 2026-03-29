@@ -28,7 +28,7 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
   const radiusClass = shape === "circle" ? "rounded-full" : "rounded-md";
   const isBusy = Boolean(props.loading) || Boolean(props.disabled);
   const shellClassName = cn(
-    "inline-flex items-center justify-center overflow-hidden bg-muted/20 text-foreground ring-1 ring-border/60",
+    "inline-flex items-center justify-center overflow-hidden bg-muted/20 text-label-primary ring-1 ring-border/60",
     radiusClass,
   );
 
@@ -55,7 +55,7 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
         )}
       </button>
 
-      {props.loading ? <SpinnerOverlay className={cn("bg-background/40", radiusClass)} /> : null}
+      {props.loading ? <SpinnerOverlay className={cn("bg-card/40", radiusClass)} /> : null}
 
       {canRemove ? (
         <Button
@@ -63,7 +63,7 @@ export function AvatarUploadSlot(props: AvatarUploadSlotProps) {
           size="icon-xs"
           variant="destructive"
           disabled={isBusy}
-          className="absolute -bottom-1 -right-1 rounded-full shadow-sm"
+          className="absolute -bottom-1 -right-1 rounded-full "
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();

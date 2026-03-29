@@ -59,14 +59,14 @@ export function DataTableColumnDragOverlay<TData>(
     <div
       className={cn(
         "pointer-events-none select-none overflow-hidden rounded-lg opacity-80 ring-2 ring-ring/50",
-        "bg-background outline outline-1 outline-border/60 box-border",
+        "bg-card outline outline-1 outline-border/60 box-border",
       )}
       style={{ width, minWidth: width, maxWidth: width }}
     >
       <div
         className={cn(
           "px-2 text-label-secondary text-callout font-semibold",
-          "flex items-center border-b border-border/60 bg-background",
+          "flex items-center border-b border-border/60 bg-card",
           resolveHeaderHeightClass(rowHeight),
         )}
       >
@@ -82,10 +82,7 @@ export function DataTableColumnDragOverlay<TData>(
           const cell = row.getVisibleCells().find((c) => c.column.id === props.columnId);
 
           return (
-            <div
-              key={row.id}
-              className={cn("px-2 bg-background", resolveCellPaddingClass(rowHeight))}
-            >
+            <div key={row.id} className={cn("px-2 bg-card", resolveCellPaddingClass(rowHeight))}>
               <div className="min-w-0 w-full overflow-hidden text-callout">
                 {cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : null}
               </div>

@@ -44,7 +44,7 @@ import {
   workspaceContentCreatePath,
   workspaceContentLibraryItemPath,
 } from "@/lib/routing/workspace-content-routing";
-import { useContentLibraryTableColumns } from "./content-library-table-columns";
+import { useContentLibraryTableColumns } from "./components/content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryCardList } from "./components/content-library-card-list";
 import { ContentLibraryNewContentButton } from "./components/content-library-new-content-button";
@@ -123,8 +123,7 @@ type ContentLibraryViewDiffItem = {
 const CONTENT_LIBRARY_CARD_MODE_QUERY = "(max-width: 960px)";
 const CONTENT_LIBRARY_PREVIEW_SIDEBAR_COLLAPSE_BREAKPOINT = 1280;
 const CONTENT_LIBRARY_PREVIEW_MIN_WIDTH_PERCENT = 30;
-const CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME =
-  "bg-accent/24 shadow-[inset_2px_0_0_0_hsl(var(--primary))] hover:bg-accent/30";
+const CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME = "bg-accent/24  hover:bg-accent/30";
 
 function getContentLibraryPreviewWidthDefaults(viewportWidth: number) {
   if (viewportWidth >= 1680) {
@@ -1328,7 +1327,7 @@ export function ContentLibraryPage() {
       innerClassName="h-full min-h-0 flex flex-col overflow-hidden px-0 pt-0 pb-0"
       overlay={selectionToolbarNode}
     >
-      <div ref={splitLayoutRef} className="flex min-h-0 flex-1 overflow-hidden bg-background">
+      <div ref={splitLayoutRef} className="flex min-h-0 flex-1 overflow-hidden bg-card">
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">{workbenchNode}</div>
         <AnimatePresence initial={false}>
           {previewRow ? (
@@ -1353,7 +1352,7 @@ export function ContentLibraryPage() {
                 onPointerDown={handlePreviewResizePointerDown}
                 className="relative flex w-px shrink-0 cursor-col-resize items-center justify-center bg-border/70 transition-colors after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2 hover:bg-border"
               >
-                <div className="z-10 flex h-10 w-3 cursor-col-resize items-center justify-center rounded-full border border-border/80 bg-background shadow-sm">
+                <div className="z-10 flex h-10 w-3 cursor-col-resize items-center justify-center rounded-full border border-border/80 bg-card ">
                   <div className="flex flex-col gap-1">
                     <span className="block h-1 w-1 rounded-full bg-muted-foreground/70" />
                     <span className="block h-1 w-1 rounded-full bg-muted-foreground/70" />
@@ -1367,7 +1366,7 @@ export function ContentLibraryPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border/70 bg-background shadow-[-24px_0_48px_-32px_rgba(15,23,42,0.28)]"
+                className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border/70 bg-card "
               >
                 <ContentLibraryPreviewPanel
                   className="min-h-0 w-full flex-1"
@@ -1405,7 +1404,7 @@ export function ContentLibraryPage() {
             if (!open && !updateViewMutation.isPending) setPendingUpdateViewId(null);
           }}
         >
-          <AlertDialogContent className="sm:max-w-[640px]">
+          <AlertDialogContent className="sm:max-w-160">
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIALOG_TITLE")}
@@ -1419,13 +1418,13 @@ export function ContentLibraryPage() {
             <div className="grid divide-y divide-border/60 py-1">
               {pendingUpdateDiffItems.map((item) => (
                 <div key={item.id} className="grid gap-3 py-4 first:pt-0 last:pb-0">
-                  <div className="text-callout font-semibold text-foreground">{item.label}</div>
+                  <div className="text-callout font-semibold text-label-primary">{item.label}</div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="grid gap-1.5">
                       <div className="text-callout text-label-secondary">
                         {t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_SAVED")}
                       </div>
-                      <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-callout text-label-primary">
+                      <div className="rounded-lg border border-border/60 bg-card px-3 py-2 text-callout text-label-primary">
                         {item.savedValue}
                       </div>
                     </div>
@@ -1433,7 +1432,7 @@ export function ContentLibraryPage() {
                       <div className="text-callout text-label-secondary">
                         {t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_CURRENT")}
                       </div>
-                      <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-callout text-label-primary">
+                      <div className="rounded-lg border border-border/60 bg-card px-3 py-2 text-callout text-label-primary">
                         {item.nextValue}
                       </div>
                     </div>
@@ -1462,7 +1461,7 @@ export function ContentLibraryPage() {
             if (!open && !deleteViewMutation.isPending) setPendingDeleteViewId(null);
           }}
         >
-          <AlertDialogContent className="sm:max-w-[520px]">
+          <AlertDialogContent className="sm:max-w-130">
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {t("content:CONTENT_LIBRARY_DELETE_VIEW_DIALOG_TITLE")}

@@ -60,7 +60,9 @@ export function EditMemberRolesDialog(props: {
       }
     >
       <div className="grid gap-1.5">
-        <label className="font-semibold text-foreground">{t("team:TEAM_INVITE_FIELD_ROLE")}</label>
+        <label className="font-semibold text-label-primary">
+          {t("team:TEAM_INVITE_FIELD_ROLE")}
+        </label>
         <div className="text-label-secondary">{t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}</div>
         <Select
           value={props.value ?? "__none__"}

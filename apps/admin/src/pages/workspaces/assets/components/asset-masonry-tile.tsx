@@ -233,7 +233,7 @@ export const AssetMasonryTile = memo(
         className={cn(
           "group relative w-full overflow-hidden border border-border/50 bg-card",
           "rounded-lg",
-          "shadow-sm transition-[box-shadow,opacity,transform] duration-200 ease-out hover:shadow-md",
+          " transition-[box-shadow,opacity,transform] duration-200 ease-out hover:",
           "cursor-pointer outline-none select-none",
           "scale-100 opacity-100",
           props.dragHandle?.isDragging && "opacity-60",
@@ -303,7 +303,7 @@ export const AssetMasonryTile = memo(
               )}
               data-tile-actions-visible={overlayVisible ? "true" : "false"}
             >
-              <ButtonGroup className="rounded-lg border border-white/15 bg-black/55 shadow-sm backdrop-blur-sm">
+              <ButtonGroup className="rounded-lg border border-white/15 bg-black/55  backdrop-blur-sm">
                 <Button
                   type="button"
                   variant="ghost"
@@ -376,7 +376,7 @@ export const AssetMasonryTile = memo(
                     checked={selected}
                     size="sm"
                     variant="accent"
-                    className="border-white/35 bg-transparent text-white shadow-none data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                    className="border-white/35 bg-transparent text-white  data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => event.stopPropagation()}
                     onDoubleClick={(event) => event.stopPropagation()}

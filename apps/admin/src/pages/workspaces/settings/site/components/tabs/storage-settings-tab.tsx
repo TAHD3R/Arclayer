@@ -250,7 +250,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <div className="space-y-4">
-            <div className="text-label-secondary leading-relaxed">
+            <div className="text-label-secondary ">
               {t("settings:SETTINGS_STORAGE_PROVIDER_DIALOG_HELP")}
             </div>
             <Controller
@@ -306,7 +306,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <div className="space-y-4">
-            <div className="text-label-secondary leading-relaxed">
+            <div className="text-label-secondary ">
               {t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_HELP")}
             </div>
             <Controller
@@ -356,7 +356,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <div className="space-y-4">
-            <div className="text-label-secondary leading-relaxed">
+            <div className="text-label-secondary ">
               {t("settings:SETTINGS_STORAGE_UPLOAD_POLICY_SHEET_HELP")}
             </div>
             <Controller
@@ -446,7 +446,7 @@ export function StorageSettingsTab({
         ),
         content: () => (
           <div className="space-y-4">
-            <div className="text-label-secondary leading-relaxed">
+            <div className="text-label-secondary ">
               {t("settings:SETTINGS_STORAGE_S3_CONFIG_SHEET_HELP")}
             </div>
 

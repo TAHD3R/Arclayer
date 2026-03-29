@@ -32,7 +32,7 @@ export function SlashInputElement(props: PlateElementProps<TComboboxInputElement
       <InlineCombobox element={props.element} trigger="/">
         <InlineComboboxInput placeholder={t("CONTENT_LIBRARY_EDITOR_SLASH_SEARCH_PLACEHOLDER")} />
 
-        <InlineComboboxContent className="w-[22rem] rounded-2xl border border-border bg-popover p-2 shadow-2xl">
+        <InlineComboboxContent className="w-[22rem] rounded-2xl border border-border bg-popover p-2 ">
           <InlineComboboxEmpty className="h-9 rounded-xl px-3 text-label-secondary">
             {t("CONTENT_LIBRARY_EDITOR_INSERT_EMPTY")}
           </InlineComboboxEmpty>

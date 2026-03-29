@@ -103,7 +103,7 @@ function ThemePreferenceToggleGroup({
     <div
       role="radiogroup"
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border border-border bg-background p-1",
+        "inline-flex items-center gap-1 rounded-md border border-border bg-card p-1",
         className,
       )}
     >

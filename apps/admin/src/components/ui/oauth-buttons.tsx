@@ -108,7 +108,7 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
           <Button
             key={provider.provider}
             className={cn(
-              "rounded-xl border-border/80 bg-background/80 shadow-none transition-colors hover:bg-accent/35",
+              "rounded-xl border-border/80 bg-card/80  transition-colors hover:bg-accent/35",
               isSingleProvider
                 ? "h-10 w-full justify-center px-4"
                 : "h-10 min-w-[7.5rem] flex-1 justify-center px-3 text-footnote sm:min-w-0",

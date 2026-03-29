@@ -56,7 +56,7 @@ function AlertDialogContent({ className, ...props }: AlertDialogContentProps) {
       <AlertDialogOverlay />
       <AlertDialogContentPrimitive
         className={cn(
-          "bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",
+          "bg-card fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6  sm:max-w-lg",
           className,
         )}
         {...props}
@@ -92,7 +92,7 @@ type AlertDialogTitleProps = AlertDialogTitlePrimitiveProps;
 function AlertDialogTitle({ className, ...props }: AlertDialogTitleProps) {
   return (
     <AlertDialogTitlePrimitive
-      className={cn("text-title2 font-bold! mb-0! leading-none", className)}
+      className={cn("text-title2 font-bold! mb-0! ", className)}
       {...props}
     />
   );

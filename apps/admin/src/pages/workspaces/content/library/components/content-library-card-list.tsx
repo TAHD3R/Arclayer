@@ -45,9 +45,9 @@ export function ContentLibraryCardList(props: ContentLibraryCardListProps) {
           role="button"
           tabIndex={0}
           className={cn(
-            "col-span-1 flex cursor-pointer flex-col rounded-lg border border-border bg-card! p-4 shadow-sm!",
+            "col-span-1 flex cursor-pointer flex-col rounded-lg border border-border bg-card! p-4 !",
             "transition-colors! duration-200!",
-            "hover:border-border/80! hover:bg-accent/50! hover:shadow-md!",
+            "hover:border-border/80! hover:bg-accent/50! hover:!",
           )}
           onClick={() => props.onCardClick(row)}
           onKeyDown={(event) => {

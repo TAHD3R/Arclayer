@@ -35,14 +35,14 @@ function SpinnerOverlay({
       aria-live="polite"
       aria-label={label}
       className={cn(
-        "pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-[inherit] bg-background/50 backdrop-blur-[1px]",
+        "pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-[inherit] bg-card/50 backdrop-blur-[1px]",
         className,
       )}
       {...props}
     >
       <div
         className={cn(
-          "inline-flex items-center justify-center rounded-full border border-border/60 bg-card/95 p-2 shadow-sm shadow-black/5",
+          "inline-flex items-center justify-center rounded-full border border-border/60 bg-card/95 p-2  ",
           spinnerContainerClassName,
         )}
       >

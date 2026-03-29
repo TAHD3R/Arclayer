@@ -10,9 +10,7 @@ export function SettingCard({
   className?: string;
 }) {
   return (
-    <section className={cn("overflow-hidden rounded-2xl bg-background shadow-sm", className)}>
-      {children}
-    </section>
+    <section className={cn("overflow-hidden rounded-2xl bg-card ", className)}>{children}</section>
   );
 }
 

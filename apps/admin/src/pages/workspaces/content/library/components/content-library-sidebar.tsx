@@ -43,13 +43,13 @@ function TreeLeafButton(props: {
       tapScale={1}
       className={cn(
         "flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-3 text-left",
-        "text-sm transition-colors",
-        "text-label-secondary hover:bg-accent/40 hover:text-foreground",
-        "data-[active=true]:bg-accent/50 data-[active=true]:font-medium data-[active=true]:text-foreground",
+        "text-footnote transition-colors",
+        "text-label-secondary hover:bg-accent/40 hover:text-label-primary",
+        "data-[active=true]:bg-accent/50 data-[active=true]:font-medium data-[active=true]:text-label-primary",
       )}
     >
       <span className="inline-flex size-4 shrink-0 items-center justify-center">{props.icon}</span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{props.label}</span>
+      <span className="min-w-0 flex-1 truncate text-footnote font-medium">{props.label}</span>
       {typeof props.count === "number" ? (
         <span className="text-caption text-label-secondary tabular-nums">{props.count}</span>
       ) : null}
@@ -59,7 +59,7 @@ function TreeLeafButton(props: {
 
 function SidebarSectionLabel(props: { label: string }) {
   return (
-    <div className="px-3 pt-4 pb-2 text-[0.7rem] font-semibold text-label-secondary/80 ">
+    <div className="px-3 pt-4 pb-2 text-caption font-semibold text-label-secondary/80">
       {props.label}
     </div>
   );
@@ -95,8 +95,8 @@ function TreeBranch(props: {
             tapScale={1}
             className={cn(
               "flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-3 text-left",
-              "text-sm font-medium text-label-secondary transition-colors",
-              "hover:bg-accent/35 hover:text-foreground",
+              "text-footnote font-medium text-label-secondary transition-colors",
+              "hover:bg-accent/35 hover:text-label-primary",
             )}
           >
             <ChevronRight
@@ -177,7 +177,7 @@ export function ContentLibrarySidebar(props: {
   const showTypeBranch = props.contentTypesLoading || props.models.length > 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background/90">
+    <div className="flex h-full min-h-0 flex-col bg-card/90">
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-4">
         <MiniCategoryNav
           items={quickNavItems}
@@ -196,7 +196,7 @@ export function ContentLibrarySidebar(props: {
             >
               {props.contentTypesLoading ? (
                 <SidebarMenuSubItem>
-                  <div className="px-3 py-2 text-sm text-label-secondary">
+                  <div className="px-3 py-2 text-footnote text-label-secondary">
                     {t("common:LOADING")}
                   </div>
                 </SidebarMenuSubItem>

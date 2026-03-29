@@ -30,7 +30,7 @@ function DropdownCardContent({ className, ...props }: DropdownCardContentProps) 
     <PopoverContent
       className={cn(
         // Keep consistent with dropdown-menu's "card-like" styling.
-        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-popover-content-available-height) min-w-32 flex-col rounded-xl border p-2 shadow-md outline-hidden",
+        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-popover-content-available-height) min-w-32 flex-col rounded-xl border p-2  outline-hidden",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

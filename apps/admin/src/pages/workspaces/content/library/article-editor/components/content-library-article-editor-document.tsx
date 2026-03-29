@@ -312,7 +312,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
               >
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <div className="text-sm font-medium text-label-primary">
+                    <div className="text-footnote font-medium text-label-primary">
                       {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}
                     </div>
                     <div className="text-footnote text-label-secondary">

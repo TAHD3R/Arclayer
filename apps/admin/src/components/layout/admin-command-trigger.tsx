@@ -68,7 +68,7 @@ function EntryShortcut(props: { shortcut: readonly string[] }) {
       {props.shortcut.map((key) => (
         <Kbd
           key={key}
-          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-background/70 px-2 text-caption font-semibold text-label-secondary"
+          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-card/70 px-2 text-caption font-semibold text-label-secondary"
         >
           {key}
         </Kbd>
@@ -94,10 +94,10 @@ function CommandTriggerButton(props: {
       data-state={props.open ? "open" : "closed"}
       className={cn(
         "group flex h-8 w-full items-center gap-3 rounded-lg border border-border/50",
-        "bg-muted/85 px-3 text-left text-footnote text-label-secondary shadow-none",
+        "bg-muted/85 px-3 text-left text-footnote text-label-secondary ",
         TRANSITION_CLASSNAME,
         "hover:bg-accent/70 hover:text-label-primary",
-        "data-[state=open]:bg-accent data-[state=open]:text-foreground",
+        "data-[state=open]:bg-accent data-[state=open]:text-label-primary",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         props.className,
       )}
@@ -107,7 +107,7 @@ function CommandTriggerButton(props: {
           "size-4 shrink-0 opacity-70",
           TRANSITION_CLASSNAME,
           "group-hover:opacity-100 group-hover:text-label-primary",
-          "group-data-[state=open]:opacity-100 group-data-[state=open]:text-foreground",
+          "group-data-[state=open]:opacity-100 group-data-[state=open]:text-label-primary",
         )}
       />
       <span className="min-w-0 flex-1 truncate">{props.label}</span>
@@ -115,10 +115,10 @@ function CommandTriggerButton(props: {
         platform={props.platform}
         className={cn("ml-auto hidden shrink-0 gap-1.5 sm:inline-flex", TRANSITION_CLASSNAME)}
         keyClassName={cn(
-          "bg-background/60 text-label-tertiary",
+          "bg-card/60 text-label-tertiary",
           TRANSITION_CLASSNAME,
-          "group-hover:bg-background/72 group-hover:text-label-secondary",
-          "group-data-[state=open]:bg-background/84 group-data-[state=open]:text-foreground",
+          "group-hover:bg-card/72 group-hover:text-label-secondary",
+          "group-data-[state=open]:bg-card/84 group-data-[state=open]:text-label-primary",
         )}
       />
     </ButtonPrimitive>
@@ -137,7 +137,7 @@ function CommandResultItem(props: { item: CommandEntry; onSelect: () => void }) 
       className={cn(
         "group/item items-start gap-3 rounded-xl border border-transparent px-3 py-3.5",
         "transition-[background-color,border-color,color,transform] duration-200 ease-out",
-        "data-[selected=true]:border-border/60 data-[selected=true]:bg-accent/55 data-[selected=true]:text-foreground",
+        "data-[selected=true]:border-border/60 data-[selected=true]:bg-accent/55 data-[selected=true]:text-label-primary",
       )}
     >
       {props.item.avatar ? (
@@ -148,14 +148,14 @@ function CommandResultItem(props: { item: CommandEntry; onSelect: () => void }) 
           className="mt-0.5 ring-border/60"
         />
       ) : Icon ? (
-        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-background/55 text-label-primary transition-[background-color,color] duration-200 group-data-[selected=true]/item:bg-background/80 group-data-[selected=true]/item:text-foreground">
+        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-card/55 text-label-primary transition-[background-color,color] duration-200 group-data-[selected=true]/item:bg-card/80 group-data-[selected=true]/item:text-label-primary">
           <Icon className="size-4" aria-hidden="true" />
         </span>
       ) : null}
 
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-3">
-          <span className="min-w-0 flex-1 truncate text-footnote font-semibold text-foreground">
+          <span className="min-w-0 flex-1 truncate text-footnote font-semibold text-label-primary">
             {props.item.title}
           </span>
           {props.item.shortcut?.length ? <EntryShortcut shortcut={props.item.shortcut} /> : null}
@@ -182,7 +182,7 @@ function CommandPanelFooter(props: {
       <ShortcutKeys
         platform={props.platform}
         className="gap-1"
-        keyClassName="h-5 min-w-5 rounded-[5px] bg-background/70 px-2 text-callout text-label-secondary"
+        keyClassName="h-5 min-w-5 rounded-[5px] bg-card/70 px-2 text-callout text-label-secondary"
       />
       <span>{props.suffix}</span>
       <AdminFullLogo
@@ -247,7 +247,7 @@ export function AdminCommandTrigger(props: {
           showCloseButton={false}
           className={cn(
             "self-start overflow-hidden border-border/70 p-0",
-            "mt-3 w-[min(40rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] rounded-2xl bg-popover shadow-2xl",
+            "mt-3 w-[min(40rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] rounded-2xl bg-popover ",
           )}
         >
           <DialogHeader className="sr-only border-0 p-0">

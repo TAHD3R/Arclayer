@@ -23,7 +23,7 @@ export function LegalFooter({ i18nKey }: LegalFooterProps) {
 
   return (
     <>
-      <p className="text-footnote leading-6 text-label-secondary">
+      <p className="text-footnote  text-label-secondary">
         <Trans
           i18nKey={i18nKey}
           components={{

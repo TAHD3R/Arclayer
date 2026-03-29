@@ -129,8 +129,8 @@ export function ThemeCard(props: {
         "w-full overflow-hidden rounded-xl border text-left",
         "transition-all duration-200",
         props.selected
-          ? "border-primary bg-background ring-1 ring-primary shadow-sm"
-          : "border-border/60 bg-background hover:bg-muted/30",
+          ? "border-primary bg-card ring-1 ring-primary "
+          : "border-border/60 bg-card hover:bg-muted/30",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       )}
     >

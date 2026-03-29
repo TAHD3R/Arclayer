@@ -120,7 +120,7 @@ function renderNavNodeTitle(node: AdminNavItem, t: (key: string) => string, isLa
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
       {Icon ? <Icon className="size-4 shrink-0" aria-hidden="true" /> : null}
-      <span className={cn("min-w-0 truncate", isLast ? "text-foreground" : undefined)}>
+      <span className={cn("min-w-0 truncate", isLast ? "text-label-primary" : undefined)}>
         {label}
       </span>
     </span>
@@ -156,7 +156,7 @@ export function AdminHeader(props: {
   return (
     <header
       className={cn(
-        "h-12 w-full shrink-0 border-b bg-background px-2",
+        "h-12 w-full shrink-0 border-b bg-card px-2",
         "flex items-center gap-1",
         props.className,
       )}
@@ -172,7 +172,7 @@ export function AdminHeader(props: {
           className={cn(
             "shrink-0 size-8 inline-flex items-center justify-center rounded-lg",
             "border-0 bg-transparent text-label-secondary",
-            "hover:bg-muted hover:text-foreground",
+            "hover:bg-muted hover:text-label-primary",
             "transition-colors duration-150",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
@@ -239,7 +239,7 @@ export function AdminHeader(props: {
                           {content}
                         </ButtonPrimitive>
                       ) : (
-                        <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-foreground font-medium">
+                        <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-label-primary font-medium">
                           {content}
                         </span>
                       )}

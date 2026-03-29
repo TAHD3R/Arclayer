@@ -32,12 +32,12 @@ export function ContentLibraryArticleEditorMenu(props: ContentLibraryArticleEdit
   const statusKey = `CONTENT_LIBRARY_STATUS_${props.status.toUpperCase()}`;
 
   return (
-    <DropdownMenuContent align="end" className="w-[360px]">
+    <DropdownMenuContent align="end" className="w-90">
       <DropdownMenuLabel>{t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}</DropdownMenuLabel>
       <DropdownMenuSeparator />
       <div className="space-y-4 px-2 py-2">
         <MenuSection label={t("CONTENT_LIBRARY_EDITOR_MENU_STATUS")}>
-          <div className="rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-footnote text-foreground">
+          <div className="rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-footnote text-label-primary">
             {t(statusKey)}
           </div>
         </MenuSection>

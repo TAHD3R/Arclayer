@@ -309,7 +309,7 @@ function StepperIndicator({ children, className }: React.ComponentProps<"div">) 
       data-state={state}
       className={cn(
         "border-background bg-accent text-accent-foreground data-[state=completed]:bg-primary data-[state=completed]:text-primary-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative flex size-6 shrink-0 items-center justify-center overflow-hidden",
-        "rounded-full text-xs",
+        "rounded-full text-caption",
         className,
       )}
     >
@@ -351,7 +351,7 @@ function StepperTitle({ children, className }: React.ComponentProps<"h3">) {
     <h3
       data-slot="stepper-title"
       data-state={state}
-      className={cn("text-sm leading-none font-medium", className)}
+      className={cn("text-footnote  font-medium", className)}
     >
       {children}
     </h3>
@@ -365,7 +365,7 @@ function StepperDescription({ children, className }: React.ComponentProps<"div">
     <div
       data-slot="stepper-description"
       data-state={state}
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-label-secondary text-footnote", className)}
     >
       {children}
     </div>

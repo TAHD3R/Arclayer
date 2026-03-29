@@ -137,7 +137,7 @@ export function MiniCategoryNav({
                   "motion-reduce:transition-none",
                   "text-label-secondary hover:text-label-primary!",
                   "bg-transparent hover:bg-accent/40 data-[active=true]:bg-accent/50",
-                  "data-[active=true]:font-semibold data-[active=true]:text-foreground!",
+                  "data-[active=true]:font-semibold data-[active=true]:text-label-primary!",
                   isDisabled
                     ? cn(
                         "opacity-60 cursor-not-allowed",
@@ -148,7 +148,7 @@ export function MiniCategoryNav({
                 )}
               >
                 {item.icon ? (
-                  <span className="shrink-0 text-label-secondary data-[active=true]:text-foreground">
+                  <span className="shrink-0 text-label-secondary data-[active=true]:text-label-primary">
                     {item.icon}
                   </span>
                 ) : null}

@@ -27,7 +27,7 @@ function EmptyTableHarness() {
       error={null}
       onRetry={() => undefined}
       t={(key) => key}
-      rowHeight="md"
+      rowHeight="medium"
       toolbar={<div data-testid="table-toolbar">toolbar</div>}
     />
   );

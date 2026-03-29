@@ -121,7 +121,9 @@ function InsertItemMenuEntry(props: { item: ArticleEditorInsertItem }) {
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-foreground">{props.item.label}</span>
+        <span className="block text-footnote font-medium text-label-primary">
+          {props.item.label}
+        </span>
         <span className="mt-0.5 block text-left text-footnote text-label-secondary">
           {props.item.description}
         </span>
@@ -139,7 +141,7 @@ function ArticleEditorInsertToolbarButton() {
       <FloatingPanelTrigger
         title={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
         aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
-        className="h-8 min-w-8 rounded-md border-0 bg-transparent px-2 shadow-none hover:bg-muted"
+        className="h-8 min-w-8 rounded-md border-0 bg-transparent px-2  hover:bg-muted"
       >
         <span className="flex items-center justify-center">
           <PlusIcon />
@@ -323,7 +325,7 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
   const { t } = useTranslation("content");
 
   return (
-    <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-background px-3">
+    <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-card px-3">
       <ToolbarScroller>
         <Toolbar className="min-w-max flex-nowrap gap-0.5 pr-2">
           <ToolbarGroup>

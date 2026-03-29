@@ -10,7 +10,7 @@ export function DataTableRefreshOverlay(props: { active: boolean; label: string 
       role="status"
       aria-live="polite"
       aria-label={props.label}
-      className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-[inherit] bg-background/55 backdrop-blur-sm"
+      className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-[inherit] bg-card/55 backdrop-blur-sm"
     >
       <div className="inline-flex items-center gap-2.5 rounded-full px-4 py-2">
         <Spinner aria-hidden="true" className="size-4 text-label-secondary" />

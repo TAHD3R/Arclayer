@@ -34,8 +34,8 @@ function VisibilityToggle(props: {
       <div
         aria-hidden
         className={cn(
-          "flex size-7 items-center justify-center rounded-md border border-border/50 bg-background/70",
-          props.visible ? "text-foreground" : "text-label-secondary",
+          "flex size-7 items-center justify-center rounded-md border border-border/50 bg-card/70",
+          props.visible ? "text-label-primary" : "text-label-secondary",
         )}
       >
         {icon}
@@ -52,8 +52,8 @@ function VisibilityToggle(props: {
       className={cn(
         "flex size-7 shrink-0 items-center justify-center rounded-md border transition-colors",
         props.visible
-          ? "border-border/60 bg-accent/20 text-foreground"
-          : "border-transparent text-label-secondary hover:border-border/50 hover:bg-accent/12 hover:text-foreground",
+          ? "border-border/60 bg-accent/20 text-label-primary"
+          : "border-transparent text-label-secondary hover:border-border/50 hover:bg-accent/12 hover:text-label-primary",
         props.disabled ? "pointer-events-none opacity-35" : "",
       )}
       onClick={props.onToggle}
@@ -116,10 +116,8 @@ function DataTableColumnSettingsRowView<TData>(props: DataTableColumnSettingsRow
         "group/column-settings-row flex items-center gap-2.5 rounded-sm border border-transparent px-2 py-1.5 select-none",
         "transition-[background-color,box-shadow,opacity,transform] duration-150",
         locked ? "opacity-80 cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
-        overlay ? "border-border/60 bg-popover/95 opacity-92 shadow-2xl" : "",
-        over
-          ? "border-border/70 bg-accent/18 shadow-[0_14px_32px_-22px_rgba(0,0,0,0.65)]"
-          : "hover:bg-accent/12",
+        overlay ? "border-border/60 bg-popover/95 opacity-92 " : "",
+        over ? "border-border/70 bg-accent/18 " : "hover:bg-accent/12",
         dragging ? "invisible" : "",
         overlay ? "pointer-events-none" : "",
       )}
@@ -131,7 +129,7 @@ function DataTableColumnSettingsRowView<TData>(props: DataTableColumnSettingsRow
       {...props.dnd?.listeners}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex size-4 items-center justify-center text-label-secondary transition-colors group-hover/column-settings-row:text-foreground/80">
+        <div className="flex size-4 items-center justify-center text-label-secondary transition-colors group-hover/column-settings-row:text-label-primary/80">
           <GripVertical className={ICON_CLASS} />
         </div>
 

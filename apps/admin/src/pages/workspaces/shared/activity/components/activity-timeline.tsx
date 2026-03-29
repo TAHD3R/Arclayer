@@ -165,7 +165,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
 
         return (
           <div key={group.key}>
-            <div className="sticky top-0 z-10 bg-background/90 backdrop-blur py-2">
+            <div className="sticky top-0 z-10 bg-card/90 backdrop-blur py-2">
               <div className="text-title2 font-bold">{group.label}</div>
             </div>
 
@@ -185,7 +185,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
               {showLoading && (
                 <TimelineItem step={group.items.length + 1}>
                   <TimelineSeparator />
-                  <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-background animate-pulse">
+                  <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-card animate-pulse">
                     <Circle className="size-3 text-label-secondary" />
                   </TimelineIndicator>
                   <TimelineContent>
@@ -261,7 +261,7 @@ function ActivityTimelineEntry({
   return (
     <TimelineItem step={step}>
       <TimelineSeparator />
-      <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-background">
+      <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-card">
         <Icon className={cn("size-3.5", iconClass)} />
       </TimelineIndicator>
 

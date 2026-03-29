@@ -19,7 +19,7 @@ import { getMimeLabel, getPurposeLabel, getVisibilityLabel } from "./asset-mason
 import { LazyAssetImage } from "./lazy-asset-image";
 
 const UNKNOWN_UPLOADER_FALLBACK = "-";
-const HOVER_CARD_WIDTH_CLASSNAME = "w-[280px]";
+const HOVER_CARD_WIDTH_CLASSNAME = "w-70";
 
 export const ASSET_TABLE_SELECT_COLUMN_WIDTH = 56;
 export const ASSET_TABLE_ACTIONS_COLUMN_WIDTH = 72;
@@ -64,7 +64,7 @@ export function AssetPreviewCell(props: { asset: AssetMasonryItem; subtitle: str
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-body font-medium text-foreground">{props.asset.name}</div>
+        <div className="truncate text-body font-medium text-label-primary">{props.asset.name}</div>
         <div className="truncate text-footnote text-label-secondary">{props.subtitle}</div>
       </div>
     </div>
@@ -94,7 +94,7 @@ export function AssetUploaderCell(props: {
             className="shrink-0"
           />
           <div className="min-w-0 flex-1">
-            <div className="truncate text-body text-foreground">{uploaderName}</div>
+            <div className="truncate text-body text-label-primary">{uploaderName}</div>
             {uploaderEmail ? (
               <div className="truncate text-footnote text-label-secondary">{uploaderEmail}</div>
             ) : null}
@@ -105,7 +105,7 @@ export function AssetUploaderCell(props: {
         side="top"
         align="start"
         sideOffset={8}
-        className={`${HOVER_CARD_WIDTH_CLASSNAME} rounded-xl border bg-popover p-0 text-popover-foreground shadow-md`}
+        className={`${HOVER_CARD_WIDTH_CLASSNAME} rounded-xl border bg-popover p-0 text-popover-foreground `}
       >
         <div className="p-4 text-popover-foreground">
           <div className="flex items-start gap-3">
@@ -116,16 +116,16 @@ export function AssetUploaderCell(props: {
               className="shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-body font-semibold text-foreground">{uploaderName}</div>
+              <div className="truncate text-body font-semibold text-label-primary">
+                {uploaderName}
+              </div>
               {uploaderEmail ? (
                 <div className="mt-1 truncate text-footnote text-label-secondary">
                   {uploaderEmail}
                 </div>
               ) : null}
               {uploadedAtLabel ? (
-                <div className="mt-2 text-footnote leading-5 text-label-secondary">
-                  {uploadedAtLabel}
-                </div>
+                <div className="mt-2 text-footnote  text-label-secondary">{uploadedAtLabel}</div>
               ) : null}
             </div>
           </div>

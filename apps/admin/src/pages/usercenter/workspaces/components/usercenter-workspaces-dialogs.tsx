@@ -75,7 +75,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
         }}
         title={t("common:ORG_WORKSPACES_CREATE")}
         description={t("common:ORG_WORKSPACES_CREATE_DIALOG_DESC")}
-        contentClassName="sm:max-w-[620px]"
+        contentClassName="sm:max-w-155"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <Button
@@ -103,7 +103,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
       >
         <div className="grid gap-4">
           <div className="grid gap-1.5">
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-label-primary">
               {t("common:ORG_WORKSPACES_FIELD_NAME")}
             </span>
             <span className="text-label-secondary">
@@ -127,7 +127,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
           </div>
 
           <div className="grid gap-1.5">
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-label-primary">
               {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
             </span>
             <span className="text-label-secondary">
@@ -144,7 +144,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
               }
               placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
               className={cn(
-                "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body shadow-sm transition-colors",
+                "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
                 "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 "disabled:cursor-not-allowed disabled:opacity-50",
               )}
@@ -159,7 +159,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
           if (!open) archiveDialog.setWorkspace(null);
         }}
       >
-        <AlertDialogContent className="sm:max-w-[520px]">
+        <AlertDialogContent className="sm:max-w-130">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("common:ORG_WORKSPACES_ARCHIVE_CONFIRM_TITLE")}</AlertDialogTitle>
             <AlertDialogDescription className="text-body">
@@ -208,7 +208,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
         description={t("common:ORG_WORKSPACES_DELETE_CONFIRM_DESC", {
           name: deleteDialog.workspace?.name || "",
         })}
-        contentClassName="sm:max-w-[560px]"
+        contentClassName="sm:max-w-140"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <Button
@@ -239,7 +239,10 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
         }
       >
         <div className="grid gap-1.5">
-          <label className="font-semibold text-foreground" htmlFor="workspace-delete-confirm-name">
+          <label
+            className="font-semibold text-label-primary"
+            htmlFor="workspace-delete-confirm-name"
+          >
             {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
               name: deleteDialog.workspace?.name || "",
             })}

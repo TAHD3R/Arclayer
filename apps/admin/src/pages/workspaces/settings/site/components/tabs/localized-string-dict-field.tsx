@@ -132,7 +132,7 @@ export function LocalizedStringDictField(props: {
             <div key={locale} className="rounded-md border border-border p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-footnote font-medium text-foreground">
+                  <div className="truncate text-footnote font-medium text-label-primary">
                     {localeMetadata.label}
                   </div>
                   <div className="truncate font-mono text-caption text-label-secondary">
@@ -166,7 +166,7 @@ export function LocalizedStringDictField(props: {
                   rows={3}
                   onChange={(event) => setValueForLocale(locale, event.target.value)}
                   className={cn(
-                    "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body shadow-sm transition-colors",
+                    "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
                     "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   )}
                 />

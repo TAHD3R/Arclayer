@@ -180,7 +180,7 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
                       disabled={!canSaveDisplayName || updateProfileMutation.isPending}
                       loading={updateProfileMutation.isPending}
                       onClick={() => setConfirmDisplayNameOpen(true)}
-                      className="h-10 px-5 font-medium shadow-none"
+                      className="h-10 px-5 font-medium "
                     >
                       {t("settings:SETTINGS_SAVE")}
                     </Button>
@@ -271,7 +271,7 @@ export function UserProfileBasicsSection(props: UserProfileBasicsSectionProps) {
           </div>
 
           {!isDisplayNameValid ? (
-            <div className="mt-4 text-callout leading-snug text-destructive">
+            <div className="mt-4 text-callout  text-destructive">
               {t("account:ME_PROFILE_DISPLAY_NAME_INVALID")}
             </div>
           ) : null}

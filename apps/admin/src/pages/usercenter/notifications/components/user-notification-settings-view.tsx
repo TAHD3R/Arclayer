@@ -153,7 +153,7 @@ export function UserNotificationSettingsView(props: UserNotificationSettingsPage
               <div className="h-px bg-border" />
 
               <div className="pt-4">
-                <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+                <div className="overflow-hidden rounded-xl border border-border/70 bg-card">
                   <div className="divide-y divide-border/60">
                     {topics.map((topic) => {
                       const channel = topic.channels[section.key];

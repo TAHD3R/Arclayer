@@ -206,7 +206,7 @@ export function ExtensionSettingsForm({
                   >
                     <div className="min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="truncate font-semibold text-foreground">
+                        <div className="truncate font-semibold text-label-primary">
                           {field.label || field.key}
                         </div>
                         {field.secret ? (
@@ -224,7 +224,7 @@ export function ExtensionSettingsForm({
                       ) : null}
                     </div>
 
-                    <div className="min-w-0 max-w-[560px]">
+                    <div className="min-w-0 max-w-140">
                       {field.type === "bool" ? (
                         <Controller
                           control={form.control}

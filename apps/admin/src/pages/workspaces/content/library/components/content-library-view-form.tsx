@@ -34,7 +34,7 @@ export function ContentLibraryViewFormHeader(props: {
 }) {
   return (
     <div className="space-y-1">
-      <div className="text-headline text-foreground">{props.title}</div>
+      <div className="text-headline text-label-primary">{props.title}</div>
       <div className="text-body text-label-secondary">{props.description}</div>
     </div>
   );
@@ -58,7 +58,7 @@ export function ContentLibraryViewFormFields(props: {
   return (
     <>
       <div className="grid gap-1.5">
-        <label htmlFor={nameFieldId} className="font-semibold text-foreground">
+        <label htmlFor={nameFieldId} className="font-semibold text-label-primary">
           {t("CONTENT_LIBRARY_VIEW_CREATE_NAME")}
         </label>
         <Input
@@ -80,7 +80,7 @@ export function ContentLibraryViewFormFields(props: {
       </div>
 
       <div className="grid gap-1.5">
-        <label id={visibilityLabelId} className="font-semibold text-foreground">
+        <label id={visibilityLabelId} className="font-semibold text-label-primary">
           {t("CONTENT_LIBRARY_VIEW_VISIBILITY_LABEL")}
         </label>
         <div className="text-label-secondary">{t("CONTENT_LIBRARY_VIEW_VISIBILITY_HELP")}</div>
@@ -109,7 +109,7 @@ export function ContentLibraryViewFormFields(props: {
       <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <div id={defaultLabelId} className="font-semibold text-foreground">
+            <div id={defaultLabelId} className="font-semibold text-label-primary">
               {t("CONTENT_LIBRARY_VIEW_DEFAULT_LABEL")}
             </div>
             <div className="text-label-secondary">

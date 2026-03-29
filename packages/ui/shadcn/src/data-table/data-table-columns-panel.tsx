@@ -128,7 +128,7 @@ export function DataTableColumnsPanel<TData>(props: {
       <DropdownCardContent
         align="end"
         sideOffset={8}
-        className="w-[240px] max-w-[80vw] rounded-md border p-1 shadow-md"
+        className="w-60 max-w-[80vw] rounded-md border p-1 "
       >
         <DropdownCardBody className="px-0 py-0 ">
           <div className="w-full border-b">
@@ -145,7 +145,7 @@ export function DataTableColumnsPanel<TData>(props: {
               items={columns.map((column) => column.id)}
               strategy={verticalListSortingStrategy}
             >
-              <ScrollArea className="max-h-[320px]">
+              <ScrollArea className="max-h-80">
                 {columns.length ? (
                   <div className="grid w-full grid-cols-1 gap-1 py-2">
                     {columns.map((column) => (

@@ -35,7 +35,7 @@ function normalizeDescription(desc: Description): ReactNode {
     return (
       <div className="flex flex-col gap-1">
         {items.map((item, idx) => (
-          <div key={idx} className="leading-snug">
+          <div key={idx} className="">
             <span className="mr-1">·</span>
             <span>{item}</span>
           </div>
@@ -43,7 +43,7 @@ function normalizeDescription(desc: Description): ReactNode {
       </div>
     );
   }
-  return <div className="leading-snug">{desc}</div>;
+  return <div className="">{desc}</div>;
 }
 
 export function SettingActionItem(props: SettingActionItemProps) {

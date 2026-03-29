@@ -201,7 +201,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
                 <SummaryCard
                   title={t("team:TEAM_MEMBER_CONTEXT_OVERVIEW_ROLES")}
                   body={
-                    <div className="text-title3 font-medium text-foreground">{roleSummary}</div>
+                    <div className="text-title3 font-medium text-label-primary">{roleSummary}</div>
                   }
                   footer={roleLabels.join(" · ") || "-"}
                 />
@@ -209,7 +209,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
                   title={t("team:TEAM_MEMBER_CONTEXT_OVERVIEW_ACCESS")}
                   body={
                     <>
-                      <div className="text-title3 font-medium text-foreground">
+                      <div className="text-title3 font-medium text-label-primary">
                         {grantedPermissions.length}
                       </div>
                       <div className="text-body text-label-secondary">
@@ -236,7 +236,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
                   title={t("team:TEAM_MEMBER_CONTEXT_OVERVIEW_ACTIVITY")}
                   body={
                     activityQuery.data?.[0] ? (
-                      <div className="text-title3 font-medium text-foreground">
+                      <div className="text-title3 font-medium text-label-primary">
                         {getActivityTitle(t, activityQuery.data[0])}
                       </div>
                     ) : (
@@ -265,7 +265,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
               >
                 <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
                   <section className="rounded-xl border border-border/60 bg-card p-4">
-                    <div className="text-title3 font-medium text-foreground">
+                    <div className="text-title3 font-medium text-label-primary">
                       {t("team:TEAM_TABLE_COL_ROLES")}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -282,7 +282,7 @@ export function WorkspaceMemberContextDialog(props: WorkspaceMemberContextDialog
                     <div className="divide-y overflow-hidden rounded-lg border border-border/60">
                       {grantedPermissions.map((permission) => (
                         <div key={permission.code} className="grid gap-1 px-3 py-2">
-                          <div className="font-medium text-foreground">{permission.name}</div>
+                          <div className="font-medium text-label-primary">{permission.name}</div>
                           {permission.description ? (
                             <div className="text-footnote text-label-secondary">
                               {permission.description}

@@ -22,7 +22,7 @@ export function IllustrationWrapper({
       role={decorative ? undefined : "img"}
       aria-label={ariaLabel}
       aria-hidden={decorative ? true : undefined}
-      className={cn("block w-full text-foreground", className)}
+      className={cn("block w-full text-label-primary", className)}
     >
       <defs>
         <filter id="arclayer-grain" x="-20%" y="-20%" width="140%" height="140%">

@@ -159,7 +159,7 @@ export function SiteTitlePatternField(props: {
         <div className="mt-1 text-caption text-label-secondary">
           {t("settings:SETTINGS_SEO_TITLE_FORMAT_PREVIEW_DESC")}
         </div>
-        <div className="mt-3 rounded-lg bg-background/80 px-3 py-2">
+        <div className="mt-3 rounded-lg bg-card/80 px-3 py-2">
           <div className="text-caption text-label-secondary">
             {t("settings:SETTINGS_SEO_TITLE_FORMAT_HOME_MODE")}
           </div>
@@ -177,16 +177,16 @@ export function SiteTitlePatternField(props: {
               variant="outline"
               aria-pressed={isSelected}
               className={cn(
-                "h-auto w-full min-w-0 shrink !whitespace-normal items-start justify-start overflow-hidden rounded-xl border px-4 py-3 text-left shadow-none transition-colors",
+                "h-auto w-full min-w-0 shrink !whitespace-normal items-start justify-start overflow-hidden rounded-xl border px-4 py-3 text-left  transition-colors",
                 isSelected
                   ? "border-primary/25 bg-primary/8 hover:bg-primary/10"
-                  : "border-border/60 bg-background hover:bg-muted/40",
+                  : "border-border/60 bg-card hover:bg-muted/40",
               )}
               onClick={() => updatePolicy({ preset: option.value })}
             >
               <div className="flex w-full min-w-0 flex-col items-start gap-1 overflow-hidden">
                 <div className="text-callout text-label-primary">{t(option.labelKey)}</div>
-                <div className="max-w-full whitespace-normal text-caption leading-5 [overflow-wrap:anywhere] text-label-secondary/90">
+                <div className="max-w-full whitespace-normal text-caption  [overflow-wrap:anywhere] text-label-secondary/90">
                   {t(option.descKey)}
                 </div>
               </div>

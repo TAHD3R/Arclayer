@@ -50,7 +50,7 @@ describe("DefaultPage", () => {
     expect(title).toHaveClass("text-title", "text-label-primary");
     expect(titleCluster).toHaveClass("items-end");
     expect(favoriteButton).toHaveAttribute("data-size", "icon-sm");
-    expect(favoriteButton).toHaveClass("size-8", "leading-none", "shrink-0");
+    expect(favoriteButton).toHaveClass("size-8", "shrink-0");
     expect(favoriteButton).not.toHaveClass("gap-1.5", "px-3");
     expect(favoriteButton).not.toHaveTextContent("common:FAVORITE_ADD");
     expect(favoriteSvg).toHaveAttribute("width", "16");

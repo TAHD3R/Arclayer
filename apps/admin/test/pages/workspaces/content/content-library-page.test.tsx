@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { ContentLibraryPage } from "@/pages/workspaces/content/library/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const mocked = vi.hoisted(() => ({
   listAllContentItems: vi.fn(),
@@ -60,9 +61,11 @@ vi.mock("@/api/settings", () => ({
   getCoreSettings: (...args: unknown[]) => mocked.getCoreSettings(...args),
 }));
 
-vi.mock("@/pages/workspaces/content/library/article-editor/api", async (importOriginal) => {
+vi.mock("@/pages/workspaces/content/library/article-editor/hooks/api", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("@/pages/workspaces/content/library/article-editor/api")>();
+    await importOriginal<
+      typeof import("@/pages/workspaces/content/library/article-editor/hooks/api")
+    >();
   return {
     ...actual,
     loadContentLibraryArticleEditorSnapshot: (...args: unknown[]) =>
@@ -113,6 +116,34 @@ vi.mock("@/components/common/data-table-tools-labels", () => ({
 vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
   AssetPickerDialog: () => null,
 }));
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document",
+  () => ({
+    ContentLibraryArticleEditorDocumentProvider: (props: { children?: ReactNode }) => (
+      <>{props.children}</>
+    ),
+    useContentLibraryArticleEditorDocumentState: () => ({ isHydrated: true }),
+  }),
+);
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body",
+  () => ({
+    ContentLibraryArticleEditorBody: () => (
+      <div data-testid="content-library-article-editor-body" />
+    ),
+  }),
+);
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-page-toolbar",
+  () => ({
+    ContentLibraryArticleEditorPageToolbar: () => (
+      <div data-testid="content-library-article-editor-page-toolbar" />
+    ),
+  }),
+);
 
 vi.mock("@arclayer/ui/data-table", async () => {
   const React = await import("react");
@@ -389,7 +420,11 @@ function renderWithQuery(node: ReactElement) {
     },
   });
 
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{node}</TooltipProvider>
+    </QueryClientProvider>,
+  );
 }
 
 function getByI18nTail(key: string) {
@@ -1265,12 +1300,9 @@ describe("ContentLibraryPage", () => {
 
     expect(screen.getByRole("button", { name: "row:Homepage" })).toHaveClass(
       "bg-accent/24",
-      "shadow-[inset_2px_0_0_0_hsl(var(--primary))]",
       "hover:bg-accent/30",
     );
-    expect(screen.getByRole("button", { name: "row:Launch note" })).not.toHaveClass(
-      "shadow-[inset_2px_0_0_0_hsl(var(--primary))]",
-    );
+    expect(screen.getByRole("button", { name: "row:Launch note" })).not.toHaveClass("bg-accent/24");
   });
 
   test("maximizes the split editor into the library article page route", async () => {

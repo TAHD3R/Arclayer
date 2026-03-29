@@ -9,8 +9,8 @@ export function SetupLayout({ children }: PropsWithChildren) {
   useLockViewport();
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden bg-background text-label-primary">
-      <div className="absolute inset-0 bg-background" />
+    <div className="fixed inset-0 w-full overflow-hidden bg-card text-label-primary">
+      <div className="absolute inset-0 bg-card" />
 
       <div className="absolute top-0 right-0 p-4 z-30">
         <div className="flex items-center gap-1.5">
@@ -28,7 +28,7 @@ export function SetupLayout({ children }: PropsWithChildren) {
           <Trans
             i18nKey="auth:FOOTER_COPYRIGHT"
             components={{
-              brand: <span className="text-foreground">Arclayer</span>,
+              brand: <span className="text-label-primary">Arclayer</span>,
             }}
           />
         </div>

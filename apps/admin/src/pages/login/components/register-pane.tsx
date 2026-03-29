@@ -168,7 +168,7 @@ function RegisterPaneFooter(props: RegisterPaneSectionProps & { onSwitchToLogin:
       variants={props.variants}
       className="grid gap-2.5 pt-2 text-center text-footnote text-label-secondary"
     >
-      <div className="leading-6">
+      <div className="">
         <span>{t("auth:HAVE_ACCOUNT")} </span>
         <AuthLinkButton onClick={props.onSwitchToLogin} type="button">
           {t("auth:SIGN_IN")}

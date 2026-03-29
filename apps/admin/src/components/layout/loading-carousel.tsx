@@ -163,10 +163,10 @@ export function LoadingCarousel({
             className="grid min-w-0 gap-4"
           >
             <div className="grid min-w-0 gap-2.5">
-              <h2 className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(1.72rem,2.8vw,2.95rem)] leading-[0.94] font-medium text-white">
+              <h2 className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-largetitle font-medium text-white">
                 {item.title}
               </h2>
-              <p className="max-w-[26rem] text-body leading-relaxed text-white/68 text-pretty">
+              <p className="max-w-[26rem] text-body  text-white/68 text-pretty">
                 {item.description}
               </p>
             </div>

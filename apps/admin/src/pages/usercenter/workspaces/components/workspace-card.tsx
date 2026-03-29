@@ -27,9 +27,9 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
   return (
     <div
       className={cn(
-        "col-span-1 flex cursor-pointer flex-col rounded-lg border border-border bg-card! p-4 shadow-sm!",
+        "col-span-1 flex cursor-pointer flex-col rounded-lg border border-border bg-card! p-4 !",
         "transition-colors! duration-200!",
-        "hover:shadow-md! hover:border-border/80! hover:bg-accent/50!",
+        "hover:! hover:border-border/80! hover:bg-accent/50!",
         className,
       )}
       onClick={onClick}
@@ -89,7 +89,7 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
               />
             ))}
             {workspace.membersPreview.length > 3 ? (
-              <div className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground ring-2 ring-background">
+              <div className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-caption font-semibold text-primary-foreground ring-2 ring-background">
                 +{workspace.membersPreview.length - 3}
               </div>
             ) : null}

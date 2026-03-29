@@ -34,25 +34,25 @@ function StarterPresetOption(props: {
       aria-label={props.name}
       aria-pressed={selected}
       className={cn(
-        "col-span-1! flex! h-auto! min-h-28! flex-col! rounded-lg! border! bg-card! p-4! text-left! shadow-sm!",
+        "col-span-1! flex! h-auto! min-h-28! flex-col! rounded-lg! border! bg-card! p-4! text-left! !",
         "transition-colors! duration-200!",
-        "hover:border-border/80! hover:bg-accent/50! hover:shadow-md!",
-        selected && "border-border/80! bg-accent/60! shadow-md!",
+        "hover:border-border/80! hover:bg-accent/50! hover:!",
+        selected && "border-border/80! bg-accent/60! !",
       )}
     >
       <div className="flex w-full items-start gap-4">
         <Icon
           className={cn(
             "mt-0.5 size-5 shrink-0 text-label-secondary",
-            selected && "text-foreground",
+            selected && "text-label-primary",
           )}
         />
         <div
           className="flex min-w-0 flex-1 flex-col wrap-break-word"
           style={{ overflowWrap: "anywhere" }}
         >
-          <div className="text-headline font-semibold text-foreground">{props.name}</div>
-          <div className="mt-1 break-words whitespace-normal text-footnote leading-6 text-label-secondary">
+          <div className="text-headline font-semibold text-label-primary">{props.name}</div>
+          <div className="mt-1 break-words whitespace-normal text-footnote  text-label-secondary">
             {props.description}
           </div>
         </div>
@@ -68,7 +68,7 @@ function TitleField(props: Pick<StepOnePanelProps, "busy" | "title" | "onTitleCh
     <Accordion type="single" collapsible defaultValue="content-title" className="px-0">
       <SettingAccordionItem
         value="content-title"
-        title={<span className="text-base">{t("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")}</span>}
+        title={<span className="text-body">{t("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")}</span>}
         description={t("CONTENT_BOOTSTRAP_FIELD_TITLE_DESC")}
         keepRendered
         contentClassName="max-w-none"
@@ -108,7 +108,7 @@ function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "on
     <Accordion type="single" collapsible className="px-0">
       <SettingAccordionItem
         value="start-from-template"
-        title={<span className="text-base">{t("CONTENT_BOOTSTRAP_START_WITH_LABEL")}</span>}
+        title={<span className="text-body">{t("CONTENT_BOOTSTRAP_START_WITH_LABEL")}</span>}
         description={startFromDescription}
         keepRendered
         contentClassName="max-w-none"
@@ -119,7 +119,7 @@ function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "on
           onValueChange={(value) => {
             props.onPresetSelect(value ? (value as ContentBootstrapPresetKey) : null);
           }}
-          className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent shadow-none md:grid-cols-2"
+          className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent  md:grid-cols-2"
         >
           {CONTENT_BOOTSTRAP_PRESETS.map((preset) => (
             <StarterPresetOption

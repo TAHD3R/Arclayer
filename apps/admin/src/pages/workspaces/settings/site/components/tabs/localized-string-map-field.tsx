@@ -64,7 +64,7 @@ export function LocalizedStringMapField(props: {
           rows={3}
           onChange={(event) => setValueForLocale(effectiveLocale, event.target.value)}
           className={cn(
-            "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body shadow-sm transition-colors",
+            "min-h-24 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
             "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           )}
         />

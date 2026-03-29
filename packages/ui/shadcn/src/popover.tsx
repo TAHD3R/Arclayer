@@ -1,9 +1,11 @@
 import {
   Popover as PopoverPrimitive,
+  PopoverAnchor as PopoverAnchorPrimitive,
   PopoverTrigger as PopoverTriggerPrimitive,
   PopoverContent as PopoverContentPrimitive,
   PopoverPortal as PopoverPortalPrimitive,
   PopoverClose as PopoverClosePrimitive,
+  type PopoverAnchorProps as PopoverAnchorPrimitiveProps,
   type PopoverProps as PopoverPrimitiveProps,
   type PopoverTriggerProps as PopoverTriggerPrimitiveProps,
   type PopoverContentProps as PopoverContentPrimitiveProps,
@@ -23,6 +25,12 @@ function PopoverTrigger(props: PopoverTriggerProps) {
   return <PopoverTriggerPrimitive {...props} />;
 }
 
+type PopoverAnchorProps = PopoverAnchorPrimitiveProps;
+
+function PopoverAnchor(props: PopoverAnchorProps) {
+  return <PopoverAnchorPrimitive {...props} />;
+}
+
 type PopoverContentProps = PopoverContentPrimitiveProps;
 
 function PopoverContent({
@@ -37,7 +45,7 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "bg-popover text-popover-foreground z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4 shadow-md outline-hidden",
+          "bg-popover text-popover-foreground z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4  outline-hidden",
           className,
         )}
         {...props}
@@ -54,10 +62,12 @@ function PopoverClose(props: PopoverCloseProps) {
 
 export {
   Popover,
+  PopoverAnchor,
   PopoverTrigger,
   PopoverContent,
   PopoverClose,
   type PopoverProps,
+  type PopoverAnchorProps,
   type PopoverTriggerProps,
   type PopoverContentProps,
   type PopoverCloseProps,

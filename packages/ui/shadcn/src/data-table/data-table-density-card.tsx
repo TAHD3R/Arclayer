@@ -34,7 +34,7 @@ function DensityPreview(props: { density: DataTableDensity }) {
     props.density === "compact" ? "h-5" : props.density === "relaxed" ? "h-9" : "h-7";
 
   return (
-    <div className="rounded-md border bg-background p-2">
+    <div className="rounded-md border bg-card p-2">
       <div className="h-2.5 w-2/3 rounded bg-muted/70" />
       <div className="mt-2 space-y-1">
         <div className={cn("rounded bg-muted/40", rowClass)} />
@@ -107,7 +107,7 @@ export function DataTableDensityCard(props: {
         </span>
       </DropdownCardTrigger>
 
-      <DropdownCardContent align="end" sideOffset={8} className="w-[520px] max-w-[90vw]">
+      <DropdownCardContent align="end" sideOffset={8} className="w-130 max-w-[90vw]">
         <DropdownCardBody className="pt-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <DensityCardButton

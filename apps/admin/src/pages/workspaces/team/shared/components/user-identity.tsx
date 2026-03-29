@@ -6,7 +6,7 @@ import { UserAvatar } from "@/components/common/entity-avatar";
 
 const HOVER_CARD_OPEN_DELAY_MS = 120;
 const HOVER_CARD_CLOSE_DELAY_MS = 80;
-const HOVER_CARD_WIDTH_CLASSNAME = "w-[320px]";
+const HOVER_CARD_WIDTH_CLASSNAME = "w-80";
 const CARD_AVATAR_SIZE = 56;
 
 export type UserIdentity = {
@@ -115,9 +115,7 @@ function UserIdentityCard(props: {
             <div className="mt-1 truncate text-callout text-label-secondary">{props.secondary}</div>
           ) : null}
           {hasRenderableContent(props.description) ? (
-            <div className="mt-3 text-caption leading-5 text-label-secondary">
-              {props.description}
-            </div>
+            <div className="mt-3 text-caption  text-label-secondary">{props.description}</div>
           ) : null}
           {hasRenderableContent(props.badges) ? (
             <div className="mt-3 flex min-w-0 flex-wrap gap-1.5 *:max-w-full">{props.badges}</div>
@@ -209,7 +207,7 @@ export function UserIdentityInline(props: UserIdentityInlineProps) {
           sideOffset={8}
           className={cn(
             HOVER_CARD_WIDTH_CLASSNAME,
-            "rounded-xl border bg-popover p-0 text-popover-foreground shadow-md",
+            "rounded-xl border bg-popover p-0 text-popover-foreground ",
             props.cardClassName,
           )}
         >

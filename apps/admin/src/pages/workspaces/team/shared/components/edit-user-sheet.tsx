@@ -166,7 +166,9 @@ export function EditUserSheet(props: {
             <input type="hidden" {...form.register("avatarUrl")} />
 
             <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground">{t("team:TEAM_FIELD_AVATAR")}</label>
+              <label className="font-semibold text-label-primary">
+                {t("team:TEAM_FIELD_AVATAR")}
+              </label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_AVATAR_DESC")}</div>
               <div className="relative h-16 w-16">
                 <button
@@ -199,7 +201,7 @@ export function EditUserSheet(props: {
                     <DropdownMenuTrigger asChild>
                       <Button
                         size="icon-xs"
-                        className="rounded-full shadow-sm"
+                        className="rounded-full "
                         aria-label={t("team:TEAM_FIELD_AVATAR")}
                       >
                         <PencilLine size={14} />
@@ -235,7 +237,7 @@ export function EditUserSheet(props: {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground" htmlFor="username">
+              <label className="font-semibold text-label-primary" htmlFor="username">
                 {t("team:TEAM_FIELD_USERNAME")}
               </label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_USERNAME_HELP")}</div>
@@ -247,7 +249,7 @@ export function EditUserSheet(props: {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground" htmlFor="displayName">
+              <label className="font-semibold text-label-primary" htmlFor="displayName">
                 {t("team:TEAM_FIELD_DISPLAY_NAME")}
               </label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_DISPLAY_NAME_HELP")}</div>
@@ -274,7 +276,7 @@ export function EditUserSheet(props: {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="font-semibold text-foreground" htmlFor="email">
+              <label className="font-semibold text-label-primary" htmlFor="email">
                 {t("team:TEAM_FIELD_EMAIL")}
               </label>
               <div className="text-label-secondary">{t("team:TEAM_FIELD_EMAIL_HELP")}</div>

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
-import { ContentLibraryArticleEditorShell } from "../article-editor/content-library-article-editor-shell";
-import { useContentLibraryArticleEditor } from "../article-editor/use-content-library-article-editor";
+import { ContentLibraryArticleEditorShell } from "../article-editor/components/content-library-article-editor-shell";
+import { useContentLibraryArticleEditor } from "../article-editor/hooks/use-content-library-article-editor";
 import { cn } from "@arclayer/lib/utils";
 
 export function ContentLibraryPreviewPanel(props: {

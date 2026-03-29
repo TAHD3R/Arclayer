@@ -24,7 +24,7 @@ export function HomePage() {
       <Card className="max-w-3xl">
         <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <p className="text-body font-medium text-foreground">{t("nav:NAV_HOME")}</p>
+            <p className="text-body font-medium text-label-primary">{t("nav:NAV_HOME")}</p>
             <p className="text-body text-label-secondary">
               {t("account:ACCOUNT_PAGE_WORKSPACES_DESC")}
             </p>

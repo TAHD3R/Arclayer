@@ -348,7 +348,7 @@ function FilterInput<T = unknown>({
                 </InputGroupButton>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-sm">{validationMessage}</p>
+                <p className="text-footnote">{validationMessage}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -593,7 +593,7 @@ function FilterOperatorDropdown<T = unknown>({
         <Button
           variant="outline"
           size={context.size}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-label-secondary hover:text-label-primary"
         >
           {operatorLabel}
         </Button>
@@ -704,7 +704,7 @@ function SelectOptionsPopover<T = unknown>({
             }
             placeholder={context.i18n.placeholders.searchField(field.label || "")}
             className={cn(
-              "border-input h-8 rounded-none border-0 bg-transparent! px-2 text-sm shadow-none",
+              "border-input h-8 rounded-none border-0 bg-transparent! px-2 text-footnote ",
               "focus-visible:border-border focus-visible:ring-0 focus-visible:ring-offset-0",
             )}
             value={searchInput}
@@ -770,7 +770,7 @@ function SelectOptionsPopover<T = unknown>({
         >
           <ScrollArea className="size-full min-h-0 **:data-[slot=scroll-area-scrollbar]:m-0 **:data-[slot=scroll-area-viewport]:h-full **:data-[slot=scroll-area-viewport]:overscroll-contain">
             {allFilteredOptions.length === 0 && (
-              <div className="text-muted-foreground py-2 text-center text-sm">
+              <div className="text-label-secondary py-2 text-center text-footnote">
                 {context.i18n.noResultsFound}
               </div>
             )}
@@ -911,7 +911,7 @@ function SelectOptionsPopover<T = unknown>({
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className={cn("w-[200px] px-0", field.className)}>
+      <DropdownMenuContent align="start" className={cn("w-50 px-0", field.className)}>
         {renderMenuContent()}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -931,7 +931,7 @@ function FilterValueSelector<T = unknown>({
 
   if (field.customRenderer) {
     return (
-      <ButtonGroupText className="hover:bg-accent aria-expanded:bg-accent bg-background dark:bg-input/30 text-start whitespace-nowrap outline-hidden">
+      <ButtonGroupText className="hover:bg-accent aria-expanded:bg-accent bg-card dark:bg-input/30 text-start whitespace-nowrap outline-hidden">
         {field.customRenderer({ field, values, onChange, operator })}
       </ButtonGroupText>
     );
@@ -1148,7 +1148,7 @@ function FilterSubmenuContent<T = unknown>({
             }
             placeholder={i18n.placeholders.searchField(field.label || "")}
             className={cn(
-              "h-8 rounded-none border-0 bg-transparent! px-2 text-sm shadow-none",
+              "h-8 rounded-none border-0 bg-transparent! px-2 text-footnote ",
               "focus-visible:border-border focus-visible:ring-0 focus-visible:ring-offset-0",
             )}
             value={searchInput}
@@ -1227,7 +1227,7 @@ function FilterSubmenuContent<T = unknown>({
         >
           <ScrollArea className="size-full min-h-0 **:data-[slot=scroll-area-scrollbar]:m-0 **:data-[slot=scroll-area-viewport]:h-full **:data-[slot=scroll-area-viewport]:overscroll-contain">
             {filteredOptions.length === 0 ? (
-              <div className="text-muted-foreground py-2 text-center text-sm">
+              <div className="text-label-secondary py-2 text-center text-footnote">
                 {i18n.noResultsFound}
               </div>
             ) : (
@@ -1448,7 +1448,7 @@ export function Filters<T = unknown>({
                 </Button>
               )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent className={cn("w-[220px]", menuPopupClassName)} align="start">
+            <DropdownMenuContent className={cn("w-55", menuPopupClassName)} align="start">
               {showSearchInput && (
                 <>
                   <div className="relative">
@@ -1461,7 +1461,7 @@ export function Filters<T = unknown>({
                       }
                       placeholder={mergedI18n.searchFields}
                       className={cn(
-                        "h-8 rounded-none border-0 bg-transparent! px-2 text-sm shadow-none",
+                        "h-8 rounded-none border-0 bg-transparent! px-2 text-footnote ",
                         "focus-visible:border-border focus-visible:ring-0 focus-visible:ring-offset-0",
                       )}
                       value={menuSearchInput}
@@ -1529,7 +1529,7 @@ export function Filters<T = unknown>({
                       }}
                     />
                     {enableShortcut && shortcutLabel && (
-                      <Kbd className="bg-background absolute top-1/2 right-2 -translate-y-1/2 border">
+                      <Kbd className="bg-card absolute top-1/2 right-2 -translate-y-1/2 border">
                         {shortcutLabel}
                       </Kbd>
                     )}
@@ -1548,7 +1548,7 @@ export function Filters<T = unknown>({
                     {(() => {
                       if (filteredFields.length === 0) {
                         return (
-                          <div className="text-muted-foreground py-2 text-center text-sm">
+                          <div className="text-label-secondary py-2 text-center text-footnote">
                             {mergedI18n.noFieldsFound}
                           </div>
                         );
@@ -1597,7 +1597,7 @@ export function Filters<T = unknown>({
                                 {field.icon}
                                 <span>{field.label}</span>
                               </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-[200px]">
+                              <DropdownMenuSubContent className="w-50">
                                 <FilterSubmenuContent
                                   field={field}
                                   currentValues={currentValues}
@@ -1695,7 +1695,7 @@ export function Filters<T = unknown>({
           if (!field) return null;
           return (
             <ButtonGroup key={filter.id}>
-              <ButtonGroupText className="bg-background dark:bg-input/30">
+              <ButtonGroupText className="bg-card dark:bg-input/30">
                 {field.icon}
                 {field.label}
               </ButtonGroupText>

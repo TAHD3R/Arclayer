@@ -211,9 +211,7 @@ export function SysSettingsPage() {
                 variant="outline"
                 disabled={!hasValidSysToken || namespacesQuery.isPending || namespaces.length <= 1}
               >
-                <span className="max-w-[220px] truncate">
-                  {currentSummary?.title ?? namespaceId}
-                </span>
+                <span className="max-w-55 truncate">{currentSummary?.title ?? namespaceId}</span>
                 <ChevronDownIcon className="ml-2 size-4 text-label-secondary" />
               </Button>
             </DropdownMenuTrigger>
@@ -265,7 +263,7 @@ export function SysSettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 min-h-0">
         <div className="min-w-0">
           {detail ? (
-            <div className="rounded-lg border bg-background/60 p-4">
+            <div className="rounded-lg border bg-card/60 p-4">
               <ExtensionSettingsForm
                 detail={detail}
                 disabled={patchMutation.isPending}
@@ -278,13 +276,13 @@ export function SysSettingsPage() {
               />
             </div>
           ) : (
-            <div className="rounded-lg border bg-background/60 p-4 text-label-secondary">
+            <div className="rounded-lg border bg-card/60 p-4 text-label-secondary">
               {detailQuery.isPending ? t("common:LOADING") : t("errors:ERROR_GENERIC")}
             </div>
           )}
 
           {lastDraftRevisionId ? (
-            <div className="mt-4 rounded-lg border bg-background/60 p-4">
+            <div className="mt-4 rounded-lg border bg-card/60 p-4">
               <div className="text-footnote text-label-secondary">{t("sys:SYS_REVISION_ID")}</div>
               <div className="mt-1 font-mono text-footnote break-all">{lastDraftRevisionId}</div>
 
@@ -321,7 +319,7 @@ export function SysSettingsPage() {
         </div>
 
         <aside className="min-w-0 min-h-0">
-          <div className="rounded-lg border bg-background/60 p-4">
+          <div className="rounded-lg border bg-card/60 p-4">
             <div className="text-title3">{t("sys:SYS_REVISION_TITLE")}</div>
             <div className="mt-1 text-footnote text-label-secondary">
               {activeRevisionId ? (
@@ -342,9 +340,7 @@ export function SysSettingsPage() {
                     key={rev.id}
                     className={cn(
                       "rounded-md border px-3 py-2",
-                      isActive
-                        ? "border-primary/40 bg-primary/5"
-                        : "border-border/60 bg-background/40",
+                      isActive ? "border-primary/40 bg-primary/5" : "border-border/60 bg-card/40",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">

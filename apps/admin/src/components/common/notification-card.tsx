@@ -58,7 +58,7 @@ export function NotificationCard({
       variant={isRead ? "muted" : "default"}
       className={cn(
         "w-full min-w-0 cursor-pointer rounded-md border-0 transition-[background-color,box-shadow,opacity] duration-150",
-        "hover:bg-accent/40 hover:shadow-sm active:bg-accent/60",
+        "hover:bg-accent/40 hover: active:bg-accent/60",
       )}
       role="button"
       tabIndex={0}

@@ -248,7 +248,7 @@ function ContentLibraryCoverPickerPopoverContent(props: {
       align="end"
       side="bottom"
       sideOffset={10}
-      className="w-[30rem] rounded-2xl border border-border/70 p-0 shadow-2xl"
+      className="w-[30rem] rounded-2xl border border-border/70 p-0 "
     >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between border-b border-border/70 px-4 pt-4">

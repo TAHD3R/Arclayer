@@ -58,7 +58,7 @@ function DialogField(props: {
   return (
     <div className="space-y-2">
       <div className="grid gap-1.5">
-        <span className="font-semibold text-foreground">{props.title}</span>
+        <span className="font-semibold text-label-primary">{props.title}</span>
         <span className="text-label-secondary">{props.description}</span>
       </div>
       {props.children}

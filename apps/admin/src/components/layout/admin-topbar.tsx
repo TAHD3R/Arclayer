@@ -18,8 +18,8 @@ import type { CommandScope } from "@/lib/command/command-types";
 const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
   "relative inline-flex size-11 items-center justify-center rounded-xl border border-transparent",
   "bg-transparent text-label-secondary transition-[background-color,color,border-color] duration-200",
-  "hover:bg-background/60 hover:text-foreground",
-  "data-[state=open]:border-border/60 data-[state=open]:bg-background/70 data-[state=open]:text-foreground",
+  "hover:bg-card/60 hover:text-label-primary",
+  "data-[state=open]:border-border/60 data-[state=open]:bg-card/70 data-[state=open]:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 const TOPBAR_CONTENT_PADDING_CLASSNAME = "pl-2 pr-4";
@@ -95,7 +95,7 @@ function TopbarLeading(props: {
           className={cn(
             headerTriggerButtonClassName,
             "text-callout font-semibold text-label-primary",
-            "active:border-border/60 active:bg-accent/70 active:text-foreground",
+            "active:border-border/60 active:bg-accent/70 active:text-label-primary",
           )}
         >
           <ArrowLeft className="size-4 shrink-0 opacity-80" aria-hidden="true" />
@@ -125,7 +125,7 @@ function TopbarTrailing(props: {
       >
         <Bell className="size-4" aria-hidden="true" />
         {props.showNotificationsBadge && props.unreadCount > 0 ? (
-          <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold leading-none text-primary-foreground">
+          <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold  text-primary-foreground">
             {props.unreadCount > 99 ? "99+" : props.unreadCount}
           </span>
         ) : null}
