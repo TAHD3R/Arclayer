@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 
-import { triggerFloatingLinkEdit, useLink } from "@platejs/link/react";
+import { LinkPlugin, triggerFloatingLinkEdit, useLink } from "@platejs/link/react";
 import type { TLinkElement } from "platejs";
 import type { PlateElementProps } from "platejs/react";
 
@@ -15,22 +15,23 @@ export function LinkElement(props: PlateElementProps) {
     const path = editor.api.findPath(element);
     if (!path) return;
 
-    const point = editor.api.end(path);
-    if (!point) return;
+    const focusPoint = editor.api.start(path) ?? editor.api.end(path);
+    if (!focusPoint) return;
 
-    editor.tf.select({ anchor: point, focus: point });
-    editor.tf.focus({ at: point });
+    editor.tf.select(focusPoint);
+    editor.tf.focus({ at: focusPoint });
     window.requestAnimationFrame(() => {
-      (
-        editor.api as typeof editor.api & {
-          floatingLink?: { show: (mode: "edit" | "insert", editorId: string) => void };
-        }
-      ).floatingLink?.show("edit", editor.id);
+      editor.getApi(LinkPlugin).floatingLink.show("edit", editor.id);
       triggerFloatingLinkEdit(editor);
     });
   };
   const anchorProps = {
     ...linkProps,
+    onMouseOver: (event: MouseEvent<HTMLAnchorElement>) => {
+      linkProps.onMouseOver?.(event);
+      if (readOnly) return;
+      openLinkToolbar();
+    },
     onPointerEnter: () => {
       if (readOnly) return;
       openLinkToolbar();
@@ -50,6 +51,7 @@ export function LinkElement(props: PlateElementProps) {
       if (readOnly) return;
       event.preventDefault();
       event.stopPropagation();
+      openLinkToolbar();
     },
     onFocus: () => {
       if (readOnly) return;

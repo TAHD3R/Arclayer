@@ -23,7 +23,7 @@ import { ColumnElement, ColumnGroupElement } from "../ui/column-node";
 import { DateElement } from "../ui/date-node";
 import { EquationElement, InlineEquationElement } from "../ui/equation-node";
 import { LinkElement } from "../ui/link-node";
-import { ListItemElement } from "../ui/list-node";
+import { BlockList } from "../ui/list-node";
 import { AudioElement } from "../ui/media-audio-node";
 import { FileElement } from "../ui/media-file-node";
 import { MediaImageElement } from "../ui/media-image-node";
@@ -42,7 +42,13 @@ export const AdvancedBlocksKit = [
     node: { component: LinkElement },
   }),
   ListPlugin.configure({
-    node: { component: ListItemElement },
+    render: {
+      belowNodes: ({ element }) => {
+        if (!element.listStyleType) return;
+
+        return (props) => <BlockList {...props} />;
+      },
+    },
   }),
   TogglePlugin.configure({
     node: { component: ToggleElement },

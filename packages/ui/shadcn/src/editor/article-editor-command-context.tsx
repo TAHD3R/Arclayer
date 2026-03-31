@@ -4,6 +4,10 @@ import * as React from "react";
 
 type ArticleEditorCommandContextValue = {
   insertItem: (editor: unknown, value: string) => void;
+  openMediaInsert?: (
+    editor: unknown,
+    params: { kind: "image" | "video" | "audio" | "file"; source: "upload" | "url" },
+  ) => void;
 };
 
 const ArticleEditorCommandContext = React.createContext<ArticleEditorCommandContextValue | null>(

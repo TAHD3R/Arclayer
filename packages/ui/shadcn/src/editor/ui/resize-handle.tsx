@@ -16,14 +16,14 @@ import { cn } from "@arclayer/lib/utils";
 
 export const mediaResizeHandleVariants = cva(
   cn(
-    "top-0 flex w-6 select-none flex-col justify-center",
-    "after:flex after:h-16 after:w-[3px] after:rounded-[6px] after:bg-ring after:opacity-0 after:content-[''] group-hover/media:after:opacity-100 data-[resizing=true]:after:opacity-100",
+    "top-0 flex w-3 select-none flex-col justify-center",
+    "after:flex after:h-20 after:w-[3px] after:rounded-full after:bg-primary after:shadow-[0_0_0_3px_rgba(0,0,0,0.18)] after:opacity-0 after:transition-opacity after:content-[''] group-hover/media:after:opacity-100 data-[resizing=true]:after:opacity-100",
   ),
   {
     variants: {
       direction: {
-        left: "-left-3 -ml-3 pl-3",
-        right: "-right-3 -mr-3 items-end pr-3",
+        left: "left-0 -translate-x-1/2",
+        right: "right-0 translate-x-1/2 items-end",
       },
     },
   },
@@ -60,7 +60,7 @@ export function ResizeHandle({
   );
 }
 
-const resizableVariants = cva("", {
+const resizableVariants = cva("relative", {
   variants: {
     align: {
       center: "mx-auto",

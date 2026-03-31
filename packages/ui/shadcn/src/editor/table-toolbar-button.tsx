@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { TablePlugin, useTableMergeState } from "@platejs/table/react";
+import { TablePlugin } from "@platejs/table/react";
 import {
   ArrowDownIcon,
   ArrowLeftIcon,
@@ -29,7 +29,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-import { ToolbarButton } from "./ui/toolbar";
+import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
+import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
 import { cn } from "@arclayer/lib/utils";
 
 export function TableToolbarButton() {
@@ -38,19 +39,69 @@ export function TableToolbarButton() {
     (editor) => editor.api.some({ match: { type: KEYS.table } }),
     [],
   );
+  const selectionExpanded = useEditorSelector((editor) => editor.api.isExpanded(), []);
   const { editor, tf } = useEditorPlugin(TablePlugin);
-  const { canMerge, canSplit } = useTableMergeState();
   const [open, setOpen] = React.useState(false);
+  const selectionRef = React.useRef(captureEditorSelection(editor));
+  const canMerge = tableSelected && selectionExpanded;
+  const canSplit = tableSelected && !selectionExpanded;
+
+  const runTableAction = React.useCallback(
+    (action: () => void) => {
+      runEditorTransformPreservingSelection(
+        editor,
+        () => {
+          action();
+        },
+        {
+          focus: false,
+          restoreSelection: false,
+          selection: selectionRef.current,
+        },
+      );
+    },
+    [editor],
+  );
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger asChild>
-        <ToolbarButton pressed={open} tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TABLE")} isDropdown>
-          <Table2Icon />
-        </ToolbarButton>
-      </DropdownMenuTrigger>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          selectionRef.current = captureEditorSelection(editor);
+        }
+        setOpen(nextOpen);
+      }}
+      modal={false}
+    >
+      <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TABLE")}>
+        <DropdownMenuTrigger asChild>
+          <ToolbarButton
+            pressed={open}
+            tooltip={undefined}
+            isDropdown
+            onMouseDown={(event) => {
+              event.preventDefault();
+              selectionRef.current = captureEditorSelection(editor);
+            }}
+          >
+            <Table2Icon />
+          </ToolbarButton>
+        </DropdownMenuTrigger>
+      </ToolbarTooltip>
 
-      <DropdownMenuContent align="start" className="ignore-click-outside/toolbar min-w-[13rem]">
+      <DropdownMenuContent
+        align="start"
+        className="ignore-click-outside/toolbar min-w-[13rem]"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          runEditorTransformPreservingSelection(editor, () => undefined, {
+            focus: false,
+            restoreSelection: false,
+            selection: selectionRef.current,
+          });
+        }}
+      >
         <DropdownMenuGroup>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="gap-2">
@@ -60,8 +111,9 @@ export function TableToolbarButton() {
             <DropdownMenuSubContent className="min-w-[13rem]">
               <DropdownMenuItem
                 onSelect={() => {
-                  tf.insert.table({ colCount: 3, rowCount: 3 }, { select: true });
-                  editor.tf.focus();
+                  runTableAction(() =>
+                    tf.insert.table({ colCount: 3, rowCount: 3 }, { select: true }),
+                  );
                 }}
               >
                 <Table2Icon className="size-4" />
@@ -70,8 +122,7 @@ export function TableToolbarButton() {
               <DropdownMenuItem
                 disabled={!tableSelected}
                 onSelect={() => {
-                  tf.remove.table();
-                  editor.tf.focus();
+                  runTableAction(() => tf.remove.table());
                 }}
               >
                 <Trash2Icon className="size-4" />
@@ -92,8 +143,7 @@ export function TableToolbarButton() {
               <DropdownMenuItem
                 disabled={!canMerge}
                 onSelect={() => {
-                  tf.table.merge();
-                  editor.tf.focus();
+                  runTableAction(() => tf.table.merge());
                 }}
               >
                 <CombineIcon className="size-4" />
@@ -102,8 +152,7 @@ export function TableToolbarButton() {
               <DropdownMenuItem
                 disabled={!canSplit}
                 onSelect={() => {
-                  tf.table.split();
-                  editor.tf.focus();
+                  runTableAction(() => tf.table.split());
                 }}
               >
                 <UngroupIcon className="size-4" />
@@ -123,8 +172,7 @@ export function TableToolbarButton() {
             <DropdownMenuSubContent className="min-w-[13rem]">
               <DropdownMenuItem
                 onSelect={() => {
-                  tf.insert.tableRow({ before: true });
-                  editor.tf.focus();
+                  runTableAction(() => tf.insert.tableRow({ before: true }));
                 }}
               >
                 <ArrowUpIcon className="size-4" />
@@ -132,8 +180,7 @@ export function TableToolbarButton() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() => {
-                  tf.insert.tableRow();
-                  editor.tf.focus();
+                  runTableAction(() => tf.insert.tableRow());
                 }}
               >
                 <ArrowDownIcon className="size-4" />
@@ -141,8 +188,7 @@ export function TableToolbarButton() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() => {
-                  tf.remove.tableRow();
-                  editor.tf.focus();
+                  runTableAction(() => tf.remove.tableRow());
                 }}
               >
                 <XIcon className="size-4" />
@@ -162,8 +208,7 @@ export function TableToolbarButton() {
             <DropdownMenuSubContent className="min-w-[13rem]">
               <DropdownMenuItem
                 onSelect={() => {
-                  tf.insert.tableColumn({ before: true });
-                  editor.tf.focus();
+                  runTableAction(() => tf.insert.tableColumn({ before: true }));
                 }}
               >
                 <ArrowLeftIcon className="size-4" />
@@ -171,8 +216,7 @@ export function TableToolbarButton() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() => {
-                  tf.insert.tableColumn();
-                  editor.tf.focus();
+                  runTableAction(() => tf.insert.tableColumn());
                 }}
               >
                 <ArrowRightIcon className="size-4" />
@@ -180,8 +224,7 @@ export function TableToolbarButton() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() => {
-                  tf.remove.tableColumn();
-                  editor.tf.focus();
+                  runTableAction(() => tf.remove.tableColumn());
                 }}
               >
                 <XIcon className="size-4" />

@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { DndPlugin } from "@platejs/dnd";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { KEYS, normalizeNodeId, type Value } from "platejs";
+import { normalizeNodeId, type Value } from "platejs";
 import { Plate, usePlateEditor } from "platejs/react";
 import { useTranslation } from "react-i18next";
 import { DndProvider } from "react-dnd";
@@ -14,6 +14,7 @@ import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
 import { SlashKit } from "@/components/editor/plugins/slash-kit";
 import { Button } from "@arclayer/ui/button";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import {
   AdvancedBlocksKit,
   applyArticleEditorInsertItem,
@@ -36,7 +37,7 @@ import {
 const DEFAULT_PLATE_VALUE: Value = normalizeNodeId([{ type: "p", children: [{ text: "" }] }]);
 const DEFAULT_MEDIA_WIDTH = 720;
 
-type MediaUrlInsertKind = "audio" | "file" | "video";
+type MediaInsertKind = "audio" | "file" | "image" | "video";
 
 type ContentLibraryArticleEditorDocumentProviderProps = {
   children: React.ReactNode;
@@ -97,10 +98,19 @@ function resetEditorHistory(editor: NonNullable<ReturnType<typeof usePlateEditor
   editor.history.undos = [];
 }
 
-function getMediaUrlInsertConfig(kind: MediaUrlInsertKind, t: (key: string) => string) {
+function getMediaInsertConfig(kind: MediaInsertKind, t: (key: string) => string) {
+  if (kind === "image") {
+    return {
+      description: t("CONTENT_LIBRARY_EDITOR_INSERT_IMAGE_DESC"),
+      mimePrefix: "image/" as const,
+      nodeType: "img",
+      title: t("CONTENT_LIBRARY_EDITOR_INSERT_IMAGE"),
+    };
+  }
   if (kind === "audio") {
     return {
       description: t("CONTENT_LIBRARY_EDITOR_INSERT_AUDIO_DESC"),
+      mimePrefix: "audio/" as const,
       nodeType: "audio",
       title: t("CONTENT_LIBRARY_EDITOR_INSERT_AUDIO"),
     };
@@ -108,12 +118,14 @@ function getMediaUrlInsertConfig(kind: MediaUrlInsertKind, t: (key: string) => s
   if (kind === "file") {
     return {
       description: t("CONTENT_LIBRARY_EDITOR_INSERT_FILE_DESC"),
+      mimePrefix: undefined,
       nodeType: "file",
       title: t("CONTENT_LIBRARY_EDITOR_INSERT_FILE"),
     };
   }
   return {
     description: t("CONTENT_LIBRARY_EDITOR_INSERT_VIDEO_DESC"),
+    mimePrefix: "video/" as const,
     nodeType: "video",
     title: t("CONTENT_LIBRARY_EDITOR_INSERT_VIDEO"),
   };
@@ -163,12 +175,15 @@ export function ContentLibraryArticleEditorDocumentProvider(
   const lastSyncedDocumentRef = React.useRef(externalSerialized);
   const [appliedDocumentKey, setAppliedDocumentKey] = React.useState(externalSerialized);
   const pendingInsertSelectionRef = React.useRef<unknown>(null);
-  const [imagePickerOpen, setImagePickerOpen] = React.useState(false);
+  const [assetPickerState, setAssetPickerState] = React.useState<{
+    kind: MediaInsertKind;
+    open: boolean;
+  }>({ kind: "image", open: false });
   const [mediaUrlDialog, setMediaUrlDialog] = React.useState<{
-    kind: MediaUrlInsertKind;
+    kind: MediaInsertKind;
     open: boolean;
     url: string;
-  }>({ kind: "video", open: false, url: "" });
+  }>({ kind: "image", open: false, url: "" });
   const plugins = React.useMemo(
     () => [
       BlockSelectionPlugin,
@@ -216,7 +231,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
   const handleInsertItem = React.useCallback((activeEditor: typeof editor, value: string) => {
     if (value === ARTICLE_EDITOR_INSERT_IMAGE) {
       pendingInsertSelectionRef.current = cloneSelection(activeEditor.selection);
-      setImagePickerOpen(true);
+      setAssetPickerState({ kind: "image", open: true });
       return;
     }
 
@@ -242,11 +257,25 @@ export function ContentLibraryArticleEditorDocumentProvider(
     applyArticleEditorInsertItem(activeEditor, value);
   }, []);
 
+  const handleOpenMediaInsert = React.useCallback(
+    (activeEditor: typeof editor, params: { kind: MediaInsertKind; source: "upload" | "url" }) => {
+      pendingInsertSelectionRef.current = cloneSelection(activeEditor.selection);
+
+      if (params.source === "upload") {
+        setAssetPickerState({ kind: params.kind, open: true });
+        return;
+      }
+
+      setMediaUrlDialog({ kind: params.kind, open: true, url: "" });
+    },
+    [],
+  );
+
   const handleConfirmImage = React.useCallback(
     (next: { assetIds: string[] }) => {
       const assetId = next.assetIds[0];
       if (!assetId) {
-        setImagePickerOpen(false);
+        setAssetPickerState((current) => ({ ...current, open: false }));
         return;
       }
 
@@ -261,14 +290,14 @@ export function ContentLibraryArticleEditorDocumentProvider(
       editor.tf.focus();
       editor.tf.insertNodes(
         buildMediaNode({
-          type: editor.getType(KEYS.img),
+          type: editor.getType(getMediaInsertConfig(assetPickerState.kind, t).nodeType),
           url: nextUrl,
         }),
       );
       pendingInsertSelectionRef.current = null;
-      setImagePickerOpen(false);
+      setAssetPickerState((current) => ({ ...current, open: false }));
     },
-    [editor],
+    [assetPickerState.kind, editor, t],
   );
 
   const handleConfirmMediaUrl = React.useCallback(() => {
@@ -284,7 +313,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
     editor.tf.insertNodes(
       buildMediaNode({
         name: mediaUrlDialog.kind === "file" ? deriveFileNameFromUrl(nextUrl) : undefined,
-        type: getMediaUrlInsertConfig(mediaUrlDialog.kind, t).nodeType,
+        type: editor.getType(getMediaInsertConfig(mediaUrlDialog.kind, t).nodeType),
         url: nextUrl,
       }),
     );
@@ -316,21 +345,30 @@ export function ContentLibraryArticleEditorDocumentProvider(
             }}
           >
             <ArticleEditorCommandProvider
-              value={{ insertItem: handleInsertItem as (editor: unknown, value: string) => void }}
+              value={{
+                insertItem: handleInsertItem as (editor: unknown, value: string) => void,
+                openMediaInsert: handleOpenMediaInsert as (
+                  editor: unknown,
+                  params: {
+                    kind: "image" | "video" | "audio" | "file";
+                    source: "upload" | "url";
+                  },
+                ) => void,
+              }}
             >
               {props.children}
 
               <AssetPickerDialog
-                open={imagePickerOpen}
-                onOpenChange={setImagePickerOpen}
+                open={assetPickerState.open}
+                onOpenChange={(open) => setAssetPickerState((current) => ({ ...current, open }))}
                 scope={{ id: props.workspaceId, type: "workspace" }}
                 mode="single"
                 allowClear={false}
                 allowUpload
                 uploadPurpose="content_image"
-                mimePrefix="image/"
-                title={t("CONTENT_LIBRARY_EDITOR_INSERT_IMAGE")}
-                description={t("CONTENT_LIBRARY_EDITOR_INSERT_IMAGE_DESC")}
+                mimePrefix={getMediaInsertConfig(assetPickerState.kind, t).mimePrefix}
+                title={getMediaInsertConfig(assetPickerState.kind, t).title}
+                description={getMediaInsertConfig(assetPickerState.kind, t).description}
                 onConfirm={handleConfirmImage}
               />
 
@@ -343,36 +381,11 @@ export function ContentLibraryArticleEditorDocumentProvider(
                     url: open ? current.url : "",
                   }))
                 }
-                title={getMediaUrlInsertConfig(mediaUrlDialog.kind, t).title}
-                description={getMediaUrlInsertConfig(mediaUrlDialog.kind, t).description}
+                title={getMediaInsertConfig(mediaUrlDialog.kind, t).title}
+                description={getMediaInsertConfig(mediaUrlDialog.kind, t).description}
                 contentClassName="sm:max-w-xl"
-              >
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="text-footnote font-medium text-label-primary">
-                      {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}
-                    </div>
-                    <div className="text-footnote text-label-secondary">
-                      {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_HINT")}
-                    </div>
-                  </div>
-                  <Input
-                    autoFocus
-                    type="url"
-                    value={mediaUrlDialog.url}
-                    onChange={(event) =>
-                      setMediaUrlDialog((current) => ({ ...current, url: event.target.value }))
-                    }
-                    placeholder="https://"
-                    className="h-10"
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && isHttpUrl(mediaUrlDialog.url.trim())) {
-                        event.preventDefault();
-                        handleConfirmMediaUrl();
-                      }
-                    }}
-                  />
-                  <div className="flex items-center justify-end gap-2">
+                footer={
+                  <>
                     <Button
                       type="button"
                       variant="ghost"
@@ -389,8 +402,33 @@ export function ContentLibraryArticleEditorDocumentProvider(
                     >
                       {t("common:CONFIRM")}
                     </Button>
-                  </div>
-                </div>
+                  </>
+                }
+              >
+                <FieldGroup className="gap-5">
+                  <Field>
+                    <FieldLabel>{t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}</FieldLabel>
+                    <FieldDescription>
+                      {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_HINT")}
+                    </FieldDescription>
+                    <Input
+                      autoFocus
+                      type="url"
+                      value={mediaUrlDialog.url}
+                      onChange={(event) =>
+                        setMediaUrlDialog((current) => ({ ...current, url: event.target.value }))
+                      }
+                      placeholder="https://"
+                      className="h-10"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && isHttpUrl(mediaUrlDialog.url.trim())) {
+                          event.preventDefault();
+                          handleConfirmMediaUrl();
+                        }
+                      }}
+                    />
+                  </Field>
+                </FieldGroup>
               </SettingDialog>
             </ArticleEditorCommandProvider>
           </Plate>

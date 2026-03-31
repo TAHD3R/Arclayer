@@ -5,7 +5,7 @@ import * as React from "react";
 import { useEditorRef, useMarkToolbarButtonState } from "platejs/react";
 
 import { runEditorTransformPreservingSelection } from "../transforms";
-import { ToolbarButton } from "./toolbar";
+import { ToolbarButton, ToolbarTooltip } from "./toolbar";
 
 export function MarkToolbarButton({
   clear,
@@ -29,21 +29,24 @@ export function MarkToolbarButton({
   );
 
   return (
-    <ToolbarButton
-      {...props}
-      pressed={state.pressed}
-      onMouseDown={(event) => {
-        event.preventDefault();
-        runEditorTransformPreservingSelection(editor, () => {
-          if (state.pressed) {
-            editor.tf.removeMarks(nodeType);
-            return;
-          }
+    <ToolbarTooltip tooltip={props.tooltip}>
+      <ToolbarButton
+        {...props}
+        tooltip={undefined}
+        pressed={state.pressed}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          runEditorTransformPreservingSelection(editor, () => {
+            if (state.pressed) {
+              editor.tf.removeMarks(nodeType);
+              return;
+            }
 
-          removeMarks(clear);
-          editor.tf.addMarks({ [nodeType]: true });
-        });
-      }}
-    />
+            removeMarks(clear);
+            editor.tf.addMarks({ [nodeType]: true });
+          });
+        }}
+      />
+    </ToolbarTooltip>
   );
 }

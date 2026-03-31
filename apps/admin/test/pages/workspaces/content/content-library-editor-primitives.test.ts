@@ -65,6 +65,47 @@ describe("content-library-editor-primitives", () => {
     ).toBe(false);
   });
 
+  it("suppresses the paragraph placeholder for todo list paragraphs", () => {
+    expect(
+      shouldShowParagraphPlaceholder({
+        element: {
+          checked: false,
+          children: [{ text: "" }],
+          listStyleType: "todo",
+          type: "p",
+        },
+        focused: true,
+        selected: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("suppresses the paragraph placeholder inside todo list items", () => {
+    const editor = {
+      api: {
+        node: (path: number[]) => {
+          if (path.length === 1 && path[0] === 0) {
+            return [{ checked: false, children: [{ text: "" }], listStyleType: "todo" }, path];
+          }
+          return null;
+        },
+      },
+    };
+
+    expect(
+      shouldShowParagraphPlaceholder({
+        editor: editor as never,
+        element: {
+          children: [{ text: "" }],
+          type: "p",
+        },
+        focused: true,
+        path: [0, 0],
+        selected: true,
+      }),
+    ).toBe(false);
+  });
+
   it("falls back to a stable line-height option set when Plate does not inject values", () => {
     expect(resolveLineHeightOptions(undefined, "1.5")).toEqual(["1", "1.25", "1.5", "2"]);
     expect(resolveLineHeightOptions([], "1.75")).toEqual(["1", "1.25", "1.5", "2", "1.75"]);

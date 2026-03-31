@@ -248,11 +248,11 @@ function ContentLibraryCoverPickerPopoverContent(props: {
       align="end"
       side="bottom"
       sideOffset={10}
-      className="w-[30rem] rounded-2xl border border-border/70 p-0 "
+      className="w-[30rem] border border-border/70 p-0"
     >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between border-b border-border/70 px-4 pt-4">
-          <TabsList className="h-9 rounded-lg bg-muted/40 p-1">
+          <TabsList className="h-9 rounded-md bg-muted/40 p-1">
             <TabsTrigger value="library" className="rounded-md px-3">
               {t("CONTENT_LIBRARY_EDITOR_COVER_TAB_LIBRARY")}
             </TabsTrigger>
@@ -293,7 +293,7 @@ function ContentLibraryCoverPickerPopoverContent(props: {
               <Spinner className="size-5" />
             </div>
           ) : items.length === 0 ? (
-            <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/20 px-6 text-center text-callout text-label-secondary">
+            <div className="flex h-48 items-center justify-center rounded-md border border-dashed border-border/70 bg-muted/20 px-6 text-center text-footnote text-label-secondary">
               {t("CONTENT_LIBRARY_EDITOR_COVER_LIBRARY_EMPTY")}
             </div>
           ) : (
@@ -305,7 +305,7 @@ function ContentLibraryCoverPickerPopoverContent(props: {
                     key={asset.id}
                     type="button"
                     className={cn(
-                      "group overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition-colors hover:border-border hover:bg-accent/20",
+                      "group overflow-hidden rounded-md border border-border/70 bg-card text-left transition-colors hover:border-border hover:bg-accent/20",
                       props.value === asset.id ? "ring-2 ring-primary/45" : undefined,
                     )}
                     onClick={() => handleSelectAsset(asset.id)}
@@ -321,13 +321,13 @@ function ContentLibraryCoverPickerPopoverContent(props: {
                           showErrorOverlay
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-callout text-label-secondary">
+                        <div className="absolute inset-0 flex items-center justify-center text-footnote text-label-secondary">
                           {t("assets:ASSET_PREVIEW_LOAD_FAILED")}
                         </div>
                       )}
                     </div>
                     <div className="px-3 py-2">
-                      <div className="truncate text-footnote font-medium text-label-primary">
+                      <div className="truncate text-footnote font-semibold text-label-primary">
                         {asset.altName || asset.name}
                       </div>
                     </div>
@@ -347,7 +347,7 @@ function ContentLibraryCoverPickerPopoverContent(props: {
             hintDetail={t("CONTENT_LIBRARY_EDITOR_COVER_UPLOAD_DETAIL")}
             onPickFiles={handlePickUpload}
           />
-          <div className="min-h-5 text-callout">
+          <div className="min-h-5 text-footnote">
             {uploading ? (
               <div className="inline-flex items-center gap-2 text-label-secondary">
                 <Loader2 className="size-4 animate-spin" />

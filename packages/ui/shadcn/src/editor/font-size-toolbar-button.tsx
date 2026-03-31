@@ -10,10 +10,17 @@ import { ChevronDown, Minus, Plus } from "lucide-react";
 import { KEYS } from "platejs";
 import { useEditorPlugin, useEditorSelector } from "platejs/react";
 
-import { ToolbarButton } from "./ui/toolbar";
-import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
-import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { cn } from "@arclayer/lib/utils";
+
+import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
+import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
 
 const DEFAULT_FONT_SIZE = "16";
 const FONT_SIZES = [
@@ -87,19 +94,21 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
 
   return (
     <div className="flex h-8 items-center gap-1 rounded-md border border-border/70 bg-muted/25 px-1">
-      <ToolbarButton
-        size="sm"
-        tooltip={props.tooltip}
-        onClick={() => adjustFontSize(-1)}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          selectionRef.current = captureEditorSelection(editor);
-        }}
-      >
-        <Minus />
-      </ToolbarButton>
+      <ToolbarTooltip tooltip={props.tooltip}>
+        <ToolbarButton
+          size="sm"
+          tooltip={undefined}
+          onClick={() => adjustFontSize(-1)}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            selectionRef.current = captureEditorSelection(editor);
+          }}
+        >
+          <Minus />
+        </ToolbarButton>
+      </ToolbarTooltip>
 
-      <Popover
+      <DropdownMenu
         open={open}
         onOpenChange={(nextOpen) => {
           if (nextOpen) {
@@ -107,28 +116,31 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
           }
           setOpen(nextOpen);
         }}
+        modal={false}
       >
-        <PopoverTrigger asChild>
-          <ToolbarButton
-            size="sm"
-            pressed={open}
-            className="h-6 min-w-11 shrink-0 gap-1 rounded bg-transparent px-1 text-center text-footnote font-medium hover:bg-accent/60"
-            tooltip={props.tooltip}
-            data-plate-focus="true"
-            onMouseDown={(event) => {
-              event.preventDefault();
-              selectionRef.current = captureEditorSelection(editor);
-            }}
-          >
-            <span>{toUnitLess(cursorFontSize)}</span>
-            <ChevronDown className="size-3 text-label-secondary" />
-          </ToolbarButton>
-        </PopoverTrigger>
-        <PopoverContent
+        <ToolbarTooltip tooltip={props.tooltip}>
+          <DropdownMenuTrigger asChild>
+            <ToolbarButton
+              size="sm"
+              pressed={open}
+              className="min-w-11 shrink-0 gap-1 px-1"
+              tooltip={undefined}
+              data-plate-focus="true"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
+            >
+              <span>{toUnitLess(cursorFontSize)}</span>
+              <ChevronDown className="size-3 text-label-secondary" />
+            </ToolbarButton>
+          </DropdownMenuTrigger>
+        </ToolbarTooltip>
+
+        <DropdownMenuContent
           align="center"
           sideOffset={10}
-          className="w-14 rounded-xl border border-border/70 p-1"
-          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="ignore-click-outside/toolbar w-14 rounded-md border border-border/70 p-1"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             runEditorTransformPreservingSelection(editor, () => undefined, {
@@ -136,34 +148,36 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
             });
           }}
         >
-          {FONT_SIZES.map((size) => (
-            <button
-              key={size}
-              type="button"
-              className={cn(
-                "flex h-8 w-full items-center justify-center rounded-md text-footnote transition-colors hover:bg-accent",
-                size === toUnitLess(cursorFontSize) && "bg-accent",
-              )}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => applyFontSize(size)}
-            >
-              {size}
-            </button>
-          ))}
-        </PopoverContent>
-      </Popover>
+          <DropdownMenuRadioGroup value={toUnitLess(cursorFontSize)} onValueChange={applyFontSize}>
+            {FONT_SIZES.map((size) => (
+              <DropdownMenuRadioItem
+                key={size}
+                value={size}
+                className={cn(
+                  "justify-center px-2 text-center",
+                  size === toUnitLess(cursorFontSize) && "bg-accent",
+                )}
+              >
+                {size}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      <ToolbarButton
-        size="sm"
-        tooltip={props.tooltip}
-        onClick={() => adjustFontSize(1)}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          selectionRef.current = captureEditorSelection(editor);
-        }}
-      >
-        <Plus />
-      </ToolbarButton>
+      <ToolbarTooltip tooltip={props.tooltip}>
+        <ToolbarButton
+          size="sm"
+          tooltip={undefined}
+          onClick={() => adjustFontSize(1)}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            selectionRef.current = captureEditorSelection(editor);
+          }}
+        >
+          <Plus />
+        </ToolbarButton>
+      </ToolbarTooltip>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export function CalloutElement({ className, ...props }: React.ComponentProps<typ
     <PlateElement
       {...props}
       className={cn(
-        "my-4 flex rounded-2xl border border-border/70 bg-muted/30 px-4 py-3",
+        "my-4 flex rounded-md border border-border/70 bg-muted/30 px-4 py-3",
         className,
       )}
       style={{
@@ -23,7 +23,7 @@ export function CalloutElement({ className, ...props }: React.ComponentProps<typ
     >
       <div className="flex w-full gap-3">
         <div
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-card/70 text-label-secondary"
+          className="flex size-7 shrink-0 items-center justify-center rounded-md bg-card/70 text-label-secondary"
           contentEditable={false}
         >
           {typeof props.element.icon === "string" && props.element.icon ? (

@@ -25,7 +25,12 @@ import {
 import { useArticleEditorCommands } from "../article-editor-command-context";
 import { Input } from "@arclayer/ui/input";
 import { Button } from "@arclayer/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
@@ -116,26 +121,41 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          title={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
-          className="size-[22px] rounded-[9px] p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary [&_svg:not([class*='size-'])]:size-2.5"
-          data-plate-prevent-deselect
-        >
-          <Plus className="size-3" />
-          <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</span>
-        </Button>
-      </PopoverTrigger>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setQuery("");
+        }
+      }}
+      modal={false}
+    >
+      <Tooltip>
+        <TooltipTrigger asChild focusTrigger={false}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="size-5 rounded-md text-label-secondary hover:bg-accent/70 hover:text-label-primary"
+              data-plate-prevent-deselect
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              <Plus className="size-3" />
+              <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</span>
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</TooltipContent>
+      </Tooltip>
 
-      <PopoverContent
+      <DropdownMenuContent
         align="start"
         side="right"
         sideOffset={12}
-        className="w-[22rem] rounded-2xl border border-border p-0 "
+        className="w-[22rem] rounded-md border border-border p-0"
+        onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <div className="border-b border-border/70 p-3">
           <div className="relative">
@@ -152,37 +172,36 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
 
         <div className="max-h-[22rem] overflow-y-auto p-2">
           {filteredGroups.length === 0 ? (
-            <div className="rounded-xl px-3 py-2 text-callout text-label-secondary">
+            <div className="rounded-md px-3 py-2 text-footnote text-label-secondary">
               {t("CONTENT_LIBRARY_EDITOR_INSERT_EMPTY")}
             </div>
           ) : (
             filteredGroups.map((group) => (
               <div key={group.id} className="py-1.5">
-                <div className="px-3 pb-1 text-caption font-medium text-label-secondary">
+                <div className="px-3 pb-1 text-caption font-semibold text-label-secondary">
                   {group.label}
                 </div>
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     return (
-                      <button
+                      <DropdownMenuItem
                         key={item.value}
-                        type="button"
-                        className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent/70"
+                        className="h-auto items-start gap-3 rounded-md px-3 py-2.5"
                         onClick={() => insertAtCurrentBlock(item.value)}
                       >
-                        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/20 text-label-secondary">
+                        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/20 text-label-secondary">
                           <Icon className="size-4" />
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-callout font-medium text-label-primary">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-footnote font-semibold text-label-primary">
                             {item.label}
                           </div>
                           <div className="text-footnote text-label-secondary">
                             {item.description}
                           </div>
                         </div>
-                      </button>
+                      </DropdownMenuItem>
                     );
                   })}
                 </div>
@@ -190,8 +209,8 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
             ))
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -257,7 +276,7 @@ function Draggable(props: PlateElementProps) {
           <div className={cn("slate-blockToolbarWrapper", "flex h-[1.5em]", isInColumn && "h-4")}>
             <div
               className={cn(
-                "slate-blockToolbar pointer-events-auto relative mr-1 w-9",
+                "slate-blockToolbar pointer-events-auto relative mr-1 w-6",
                 "flex items-center",
                 isInColumn && "mr-0.5",
               )}
@@ -268,13 +287,13 @@ function Draggable(props: PlateElementProps) {
               >
                 <BlockInsertMenu editor={editor} path={path} />
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger asChild focusTrigger={false}>
                     <Button
                       ref={handleRef}
                       size="icon-xs"
                       variant="ghost"
                       type="button"
-                      className="size-[22px] rounded-[9px] p-0 text-label-secondary hover:bg-accent/70 hover:text-label-primary [&_svg:not([class*='size-'])]:size-2.5"
+                      className="size-5 rounded-md text-label-secondary hover:bg-accent/70 hover:text-label-primary"
                       data-plate-prevent-deselect
                       onClick={(e) => {
                         e.preventDefault();
@@ -393,7 +412,7 @@ function Gutter({ children, className, ...props }: React.ComponentProps<"div">) 
       {...props}
       className={cn(
         "slate-gutterLeft",
-        "pointer-events-none absolute left-0 top-0 z-50 flex h-full -translate-x-[calc(100%+0.375rem)] cursor-text hover:opacity-100 sm:opacity-0",
+        "pointer-events-none absolute left-0 top-0 z-[70] flex h-full -translate-x-[calc(100%+0.125rem)] cursor-text hover:opacity-100 sm:opacity-0",
         getPluginByType(editor, element.type)?.node.isContainer
           ? "group-hover/container:opacity-100"
           : "group-hover:opacity-100",

@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
-import { ToolbarButton } from "./ui/toolbar";
+import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
 
 export function MoreToolbarButton() {
   const { t } = useTranslation("content");
@@ -50,18 +50,20 @@ export function MoreToolbarButton() {
       }}
       modal={false}
     >
-      <DropdownMenuTrigger asChild>
-        <ToolbarButton
-          pressed={open}
-          tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_MORE")}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            selectionRef.current = captureEditorSelection(editor);
-          }}
-        >
-          <MoreHorizontalIcon />
-        </ToolbarButton>
-      </DropdownMenuTrigger>
+      <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_MORE")}>
+        <DropdownMenuTrigger asChild>
+          <ToolbarButton
+            pressed={open}
+            tooltip={undefined}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              selectionRef.current = captureEditorSelection(editor);
+            }}
+          >
+            <MoreHorizontalIcon />
+          </ToolbarButton>
+        </DropdownMenuTrigger>
+      </ToolbarTooltip>
       <DropdownMenuContent
         align="start"
         className="ignore-click-outside/toolbar min-w-[12rem]"

@@ -21,7 +21,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-import { ToolbarButton, ToolbarMenuGroup } from "./ui/toolbar";
+import { ToolbarButton, ToolbarMenuGroup, ToolbarTooltip } from "./ui/toolbar";
 import {
   captureEditorSelection,
   getBlockType,
@@ -63,20 +63,22 @@ export function TurnIntoToolbarButton() {
       }}
       modal={false}
     >
-      <DropdownMenuTrigger asChild>
-        <ToolbarButton
-          className="min-w-[7.5rem]"
-          pressed={open}
-          tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
-          isDropdown
-          onMouseDown={(event) => {
-            event.preventDefault();
-            selectionRef.current = captureEditorSelection(editor);
-          }}
-        >
-          {t(selectedItem.labelKey)}
-        </ToolbarButton>
-      </DropdownMenuTrigger>
+      <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}>
+        <DropdownMenuTrigger asChild>
+          <ToolbarButton
+            className="min-w-[7.5rem]"
+            pressed={open}
+            tooltip={undefined}
+            isDropdown
+            onMouseDown={(event) => {
+              event.preventDefault();
+              selectionRef.current = captureEditorSelection(editor);
+            }}
+          >
+            {t(selectedItem.labelKey)}
+          </ToolbarButton>
+        </DropdownMenuTrigger>
+      </ToolbarTooltip>
       <DropdownMenuContent
         align="start"
         className="ignore-click-outside/toolbar min-w-0"

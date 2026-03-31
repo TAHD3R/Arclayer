@@ -15,6 +15,8 @@ import { insertEmptyCodeBlock } from "@platejs/code-block";
 import { toggleList } from "@platejs/list";
 import { KEYS } from "platejs";
 
+import { toggleTodoList } from "../article-editor-insert-items";
+
 const autoformatMarks: AutoformatRule[] = [
   {
     match: "***",
@@ -179,31 +181,19 @@ const autoformatLists: AutoformatRule[] = [
     },
   },
   {
-    match: ["[] "],
+    match: ["[] ", "- [] ", "- [ ] "],
     mode: "block",
     type: "list",
     format: (editor) => {
-      toggleList(editor, {
-        listStyleType: KEYS.listTodo,
-      });
-      editor.tf.setNodes({
-        checked: false,
-        listStyleType: KEYS.listTodo,
-      });
+      toggleTodoList(editor, false);
     },
   },
   {
-    match: ["[x] "],
+    match: ["[x] ", "[X] ", "- [x] ", "- [X] "],
     mode: "block",
     type: "list",
     format: (editor) => {
-      toggleList(editor, {
-        listStyleType: KEYS.listTodo,
-      });
-      editor.tf.setNodes({
-        checked: true,
-        listStyleType: KEYS.listTodo,
-      });
+      toggleTodoList(editor, true);
     },
   },
 ];

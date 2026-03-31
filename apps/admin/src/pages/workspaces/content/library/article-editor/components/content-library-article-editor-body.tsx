@@ -10,8 +10,8 @@ export function ContentLibraryArticleEditorBody(props: {
 }) {
   const contentLaneClass =
     props.mode === "page"
-      ? "mx-auto flex min-h-0 w-full max-w-[76rem] flex-1 flex-col px-6 pl-16"
-      : "flex min-h-0 w-full flex-1 flex-col px-4 pl-16";
+      ? "mx-auto flex min-h-0 w-full max-w-[76rem] flex-1 flex-col px-6"
+      : "flex min-h-0 w-full flex-1 flex-col px-4";
 
   return (
     <div
@@ -26,7 +26,9 @@ export function ContentLibraryArticleEditorBody(props: {
             aria-label="Article body"
             className={cn(
               "min-h-full flex-1 overflow-visible text-label-primary placeholder:text-label-tertiary **:data-slate-placeholder:!top-1 **:data-slate-placeholder:!left-0 **:data-slate-placeholder:!translate-y-0 [&_.slate-blockWrapper]:overflow-visible",
-              props.mode === "page" ? "pb-28 pt-4 text-body" : "pb-10 pt-0 text-body ",
+              props.mode === "page"
+                ? "-ml-9 pb-28 pl-9 pt-4 text-body"
+                : "-ml-7 pb-10 pl-7 pt-0 text-body",
             )}
             placeholder={props.placeholder}
             variant="none"

@@ -17,7 +17,7 @@ export const FileElement = withHOC(
     return (
       <PlateElement className="my-3 rounded-sm" {...props}>
         <a
-          className="inline-flex max-w-full items-center gap-2 rounded-lg px-1 py-1.5 text-footnote hover:bg-accent/40"
+          className="inline-flex max-w-full items-center gap-2 rounded-md px-1 py-1.5 text-footnote hover:bg-accent/40"
           contentEditable={false}
           download={name}
           href={unsafeUrl}

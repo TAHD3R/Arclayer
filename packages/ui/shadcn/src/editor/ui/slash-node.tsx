@@ -32,14 +32,14 @@ export function SlashInputElement(props: PlateElementProps<TComboboxInputElement
       <InlineCombobox element={props.element} trigger="/">
         <InlineComboboxInput placeholder={t("CONTENT_LIBRARY_EDITOR_SLASH_SEARCH_PLACEHOLDER")} />
 
-        <InlineComboboxContent className="w-[22rem] rounded-2xl border border-border bg-popover p-2 ">
-          <InlineComboboxEmpty className="h-9 rounded-xl px-3 text-label-secondary">
+        <InlineComboboxContent className="w-[22rem] rounded-md border border-border bg-popover p-2">
+          <InlineComboboxEmpty className="h-9 rounded-md px-3 text-label-secondary">
             {t("CONTENT_LIBRARY_EDITOR_INSERT_EMPTY")}
           </InlineComboboxEmpty>
 
           {groups.map((group) => (
             <InlineComboboxGroup key={group.id}>
-              <InlineComboboxGroupLabel className="px-3 pb-1 text-caption font-medium text-label-secondary">
+              <InlineComboboxGroupLabel className="px-3 pb-1 text-caption font-semibold text-label-secondary">
                 {group.label}
               </InlineComboboxGroupLabel>
 
@@ -52,18 +52,18 @@ export function SlashInputElement(props: PlateElementProps<TComboboxInputElement
                     group={group.id}
                     label={item.label}
                     keywords={item.keywords}
-                    className="h-auto items-start gap-3 rounded-xl px-3 py-2.5"
+                    className="h-auto items-start gap-3 rounded-md px-3 py-2.5"
                     onClick={() =>
                       commands?.insertItem
                         ? commands.insertItem(props.editor, item.value)
                         : applyArticleEditorInsertItem(props.editor, item.value)
                     }
                   >
-                    <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/20 text-label-secondary">
+                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/20 text-label-secondary">
                       <Icon className="size-4" />
                     </div>
                     <div className="min-w-0 space-y-0.5">
-                      <div className="text-callout font-medium text-label-primary">
+                      <div className="text-footnote font-semibold text-label-primary">
                         {item.label}
                       </div>
                       <div className="text-footnote text-label-secondary">{item.description}</div>

@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
-import { ToolbarButton } from "./ui/toolbar";
+import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
 
 const ALIGN_ITEMS = [
   { icon: AlignLeftIcon, labelKey: "CONTENT_LIBRARY_EDITOR_MARK_ALIGN_LEFT", value: "left" },
@@ -54,19 +54,21 @@ export function AlignToolbarButton() {
       }}
       modal={false}
     >
-      <DropdownMenuTrigger asChild>
-        <ToolbarButton
-          pressed={open}
-          tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ALIGN")}
-          isDropdown
-          onMouseDown={(event) => {
-            event.preventDefault();
-            selectionRef.current = captureEditorSelection(editor);
-          }}
-        >
-          <SelectedIcon />
-        </ToolbarButton>
-      </DropdownMenuTrigger>
+      <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ALIGN")}>
+        <DropdownMenuTrigger asChild>
+          <ToolbarButton
+            pressed={open}
+            tooltip={undefined}
+            isDropdown
+            onMouseDown={(event) => {
+              event.preventDefault();
+              selectionRef.current = captureEditorSelection(editor);
+            }}
+          >
+            <SelectedIcon />
+          </ToolbarButton>
+        </DropdownMenuTrigger>
+      </ToolbarTooltip>
 
       <DropdownMenuContent
         align="start"

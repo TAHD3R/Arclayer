@@ -80,8 +80,8 @@ function ContentLibraryArticleEditorLoadingSkeleton(props: {
         <div
           className={cn(
             props.mode === "page"
-              ? "mx-auto flex w-full max-w-[76rem] flex-col px-6 pl-16"
-              : "flex w-full flex-col px-4 pl-16",
+              ? "mx-auto flex w-full max-w-[76rem] flex-col px-6"
+              : "flex w-full flex-col px-4",
             "space-y-3",
           )}
         >
@@ -97,8 +97,8 @@ function ContentLibraryArticleEditorLoadingSkeleton(props: {
           aria-live="polite"
           className={cn(
             props.mode === "page"
-              ? "mx-auto flex w-full max-w-[76rem] flex-1 flex-col px-6 pl-16"
-              : "flex w-full flex-1 flex-col px-4 pl-16",
+              ? "mx-auto flex w-full max-w-[76rem] flex-1 flex-col px-6"
+              : "flex w-full flex-1 flex-col px-4",
           )}
         >
           <div className="space-y-3 pt-2">
@@ -134,16 +134,21 @@ function ToolbarIconButton(props: {
 
 function HeaderActionButton(props: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-label-primary"
-      onClick={props.onClick}
-    >
-      {props.icon}
-      {props.label}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild focusTrigger={false}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 px-3 text-label-secondary hover:text-label-primary"
+          onClick={props.onClick}
+        >
+          {props.icon}
+          {props.label}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{props.label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -157,8 +162,8 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
   const textLaneClass =
     props.mode === "page"
-      ? "mx-auto flex w-full max-w-[76rem] flex-col px-6 pl-16"
-      : "flex w-full flex-col px-4 pl-16";
+      ? "mx-auto flex w-full max-w-[76rem] flex-col px-6"
+      : "flex w-full flex-col px-4";
   const coverImageUrl = React.useMemo(
     () => resolveAssetRefToPublicUrlPath(props.coverAssetId),
     [props.coverAssetId],
@@ -212,16 +217,21 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                 {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
               </Button>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
-                  >
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <Tooltip>
+                  <TooltipTrigger asChild focusTrigger={false}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}</TooltipContent>
+                </Tooltip>
                 <ContentLibraryArticleEditorMenu
                   status={props.status}
                   visibility={props.visibility}
@@ -279,12 +289,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                         onOpenChange={setCoverPopoverOpen}
                         onChange={props.onCoverAssetIdChange}
                       >
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          className="h-9 rounded-xl px-3 "
-                        >
+                        <Button type="button" size="sm" variant="secondary" className="h-9 px-3">
                           {t("CONTENT_LIBRARY_EDITOR_CHANGE_COVER")}
                         </Button>
                       </ContentLibraryCoverPickerPopover>
@@ -328,7 +333,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-8 rounded-full px-3 text-callout text-label-secondary hover:text-label-primary"
+                            className="h-8 px-3 text-label-secondary hover:text-label-primary"
                           >
                             <ImagePlus className="size-4" />
                             {t("CONTENT_LIBRARY_EDITOR_ADD_COVER")}

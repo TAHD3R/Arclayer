@@ -21,6 +21,7 @@ import {
 } from "platejs/react";
 
 import { Button } from "@arclayer/ui/button";
+import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@arclayer/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { cn } from "@arclayer/lib/utils";
 
@@ -49,7 +50,7 @@ export function EquationElement(props: PlateElementProps<TEquationElement>) {
         <PopoverTrigger asChild>
           <div
             className={cn(
-              "flex cursor-pointer select-none items-center justify-center rounded-xl border border-border/70 bg-muted/20 hover:bg-muted/30",
+              "flex cursor-pointer select-none items-center justify-center rounded-md border border-border/70 bg-muted/20 hover:bg-muted/30",
               props.element.texExpression?.length ? "px-3 py-3" : "px-4 py-5",
             )}
             contentEditable={false}
@@ -164,18 +165,18 @@ function EquationPopoverContent({
 
   return (
     <PopoverContent
-      className="w-[min(36rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border/70 bg-card p-0 shadow-2xl"
+      className="w-[min(36rem,calc(100vw-2rem))] overflow-hidden rounded-md border border-border/70 bg-card p-0 shadow-2xl"
       contentEditable={false}
     >
-      <div className="border-b border-border/70 px-5 py-4">
-        <div className="text-title3 font-semibold text-label-primary">{title}</div>
-        <div className="mt-1 text-footnote text-label-secondary">{description}</div>
-      </div>
+      <DialogHeader className="min-w-0 border-b px-6 py-4 text-left">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription className="mb-0">{description}</DialogDescription>
+      </DialogHeader>
 
-      <div className="p-5">
+      <div className="px-6 py-4">
         <EquationInput
           className={cn(
-            "max-h-[40vh] min-h-32 w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-footnote outline-none",
+            "max-h-[40vh] min-h-32 w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-footnote outline-none",
             className,
           )}
           state={{ isInline, open, onClose }}
@@ -184,7 +185,7 @@ function EquationPopoverContent({
         />
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-border/70 px-5 py-4">
+      <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-4">
         <Button type="button" variant="ghost" onClick={onClose}>
           {t("common:CANCEL")}
         </Button>
@@ -192,7 +193,7 @@ function EquationPopoverContent({
           {t("common:CONFIRM")}
           <CornerDownLeftIcon className="size-3.5" />
         </Button>
-      </div>
+      </DialogFooter>
     </PopoverContent>
   );
 }

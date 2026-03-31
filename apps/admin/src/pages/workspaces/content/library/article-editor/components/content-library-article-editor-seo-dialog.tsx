@@ -2,6 +2,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
@@ -10,18 +11,6 @@ type SeoDraft = {
   metaTitle: string;
   metaDescription: string;
 };
-
-function SeoField(props: { id: string; label: string; help: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <label htmlFor={props.id} className="font-semibold text-label-primary">
-        {props.label}
-      </label>
-      <div className="text-label-secondary">{props.help}</div>
-      {props.children}
-    </div>
-  );
-}
 
 function normalizeSeoDraft(value: SeoDraft): SeoDraft {
   return {
@@ -75,36 +64,40 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
       }
     >
       <form
-        className="grid gap-4 py-2"
+        className="py-2"
         onSubmit={(event) => {
           event.preventDefault();
           handleConfirm();
         }}
       >
-        <SeoField
-          id={metaTitleId}
-          label={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}
-          help={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}
-        >
-          <Input
-            id={metaTitleId}
-            value={draft.metaTitle}
-            onChange={(event) => handleFieldChange("metaTitle", event.target.value)}
-          />
-        </SeoField>
+        <FieldGroup className="gap-5">
+          <Field>
+            <FieldLabel htmlFor={metaTitleId}>
+              {t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}
+            </FieldLabel>
+            <FieldDescription>{t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}</FieldDescription>
+            <Input
+              id={metaTitleId}
+              value={draft.metaTitle}
+              onChange={(event) => handleFieldChange("metaTitle", event.target.value)}
+            />
+          </Field>
 
-        <SeoField
-          id={metaDescriptionId}
-          label={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
-          help={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION_HELP")}
-        >
-          <Textarea
-            id={metaDescriptionId}
-            rows={4}
-            value={draft.metaDescription}
-            onChange={(event) => handleFieldChange("metaDescription", event.target.value)}
-          />
-        </SeoField>
+          <Field>
+            <FieldLabel htmlFor={metaDescriptionId}>
+              {t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
+            </FieldLabel>
+            <FieldDescription>
+              {t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION_HELP")}
+            </FieldDescription>
+            <Textarea
+              id={metaDescriptionId}
+              rows={4}
+              value={draft.metaDescription}
+              onChange={(event) => handleFieldChange("metaDescription", event.target.value)}
+            />
+          </Field>
+        </FieldGroup>
       </form>
     </SettingDialog>
   );

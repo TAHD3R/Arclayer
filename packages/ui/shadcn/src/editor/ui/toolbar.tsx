@@ -6,12 +6,14 @@ import * as ToolbarPrimitive from "@radix-ui/react-toolbar";
 import { type VariantProps, cva } from "class-variance-authority";
 import { ChevronDown } from "lucide-react";
 
+import { buttonVariants } from "@arclayer/ui/button";
 import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuSeparator,
 } from "@arclayer/ui/dropdown-menu";
 import { Separator } from "@arclayer/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
 export function Toolbar({
@@ -64,7 +66,10 @@ export function ToolbarSeparator({
 
 // From toggleVariants
 const toolbarButtonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium text-footnote outline-none transition-[color,box-shadow] hover:bg-muted hover:text-label-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  cn(
+    buttonVariants({ size: "icon-sm", variant: "ghost" }),
+    "cursor-pointer data-[state=on]:bg-accent data-[state=on]:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+  ),
   {
     defaultVariants: {
       size: "default",
@@ -72,13 +77,14 @@ const toolbarButtonVariants = cva(
     },
     variants: {
       size: {
-        default: "h-9 min-w-9 px-2",
-        lg: "h-10 min-w-10 px-2.5",
-        sm: "h-8 min-w-8 px-1.5",
+        default: "h-9 min-w-9 px-3 has-[>svg]:px-2.5",
+        lg: "h-10 min-w-10 px-4 has-[>svg]:px-3",
+        sm: "h-8 min-w-8 px-2.5",
       },
       variant: {
         default: "bg-transparent",
-        outline: "border border-input bg-transparent  hover:bg-accent hover:text-accent-foreground",
+        outline:
+          "border bg-card hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
       },
     },
   },
@@ -86,7 +92,7 @@ const toolbarButtonVariants = cva(
 
 const dropdownArrowVariants = cva(
   cn(
-    "inline-flex items-center justify-center rounded-r-md font-medium text-label-primary text-footnote transition-colors disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex items-center justify-center rounded-r-md font-semibold text-label-primary text-footnote transition-colors disabled:pointer-events-none disabled:opacity-50",
   ),
   {
     defaultVariants: {
@@ -118,6 +124,19 @@ type ToolbarButtonProps = {
 type ToolbarTooltipProps = {
   tooltip?: React.ReactNode;
 };
+
+export function ToolbarTooltip(props: { children: React.ReactElement; tooltip?: React.ReactNode }) {
+  if (!props.tooltip) return props.children;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild focusTrigger={false}>
+        {props.children}
+      </TooltipTrigger>
+      <TooltipContent>{props.tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export const ToolbarButton = React.forwardRef<
   HTMLButtonElement,

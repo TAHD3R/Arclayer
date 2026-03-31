@@ -16,7 +16,7 @@ export function ContentLibraryArticleEditorSaveIndicator(props: {
 
   if (props.isPublishing) {
     return (
-      <div className="inline-flex items-center gap-2 text-callout text-label-secondary">
+      <div className="inline-flex items-center gap-2 text-footnote text-label-secondary">
         <Spinner className="size-4" />
         <span>{t("CONTENT_LIBRARY_EDITOR_SAVE_STATE_PUBLISHING")}</span>
       </div>
@@ -27,7 +27,7 @@ export function ContentLibraryArticleEditorSaveIndicator(props: {
 
   if (props.state === "saving") {
     return (
-      <div className="inline-flex items-center gap-2 text-callout text-label-secondary">
+      <div className="inline-flex items-center gap-2 text-footnote text-label-secondary">
         <LoaderCircle className="size-4 animate-spin" />
         <span>{t("CONTENT_LIBRARY_EDITOR_SAVE_STATE_SAVING")}</span>
       </div>
@@ -36,7 +36,7 @@ export function ContentLibraryArticleEditorSaveIndicator(props: {
 
   if (props.state === "saved") {
     return (
-      <div className="inline-flex items-center gap-2 text-callout text-label-secondary">
+      <div className="inline-flex items-center gap-2 text-footnote text-label-secondary">
         <Cloud className="size-4" />
         <span>{t("CONTENT_LIBRARY_EDITOR_SAVE_STATE_SAVED")}</span>
       </div>
@@ -48,7 +48,7 @@ export function ContentLibraryArticleEditorSaveIndicator(props: {
     : t("CONTENT_LIBRARY_EDITOR_SAVE_STATE_ERROR");
 
   const content = (
-    <div className="inline-flex items-center gap-2 text-callout text-destructive">
+    <div className="inline-flex items-center gap-2 text-footnote text-destructive">
       <AlertCircle className="size-4" />
       <span>{t("CONTENT_LIBRARY_EDITOR_SAVE_STATE_ERROR")}</span>
     </div>

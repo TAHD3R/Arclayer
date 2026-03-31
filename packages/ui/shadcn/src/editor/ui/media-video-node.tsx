@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from "react";
+
 import LiteYouTubeEmbed from "react-lite-youtube-embed";
 import ReactPlayer from "react-player";
 
@@ -10,15 +12,18 @@ import { parseVideoUrl } from "@platejs/media";
 import { useMediaState } from "@platejs/media/react";
 import { ResizableProvider, useResizableValue } from "@platejs/resizable";
 import { PlateElement, useEditorMounted, withHOC } from "platejs/react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@arclayer/lib/utils";
 
+import { MediaCaption } from "./media-caption";
 import { MediaToolbar } from "./media-toolbar";
 import { mediaResizeHandleVariants, Resizable, ResizeHandle } from "./resize-handle";
 
 export const VideoElement = withHOC(
   ResizableProvider,
   function VideoElement(props: PlateElementProps<TVideoElement>) {
+    const { t } = useTranslation("content");
     const {
       align = "center",
       embed,
@@ -35,10 +40,18 @@ export const VideoElement = withHOC(
     const mounted = useEditorMounted();
     const renderEmbedPlayer = mounted && !isUpload && !isYoutube && isVideo;
     const renderFileVideo = mounted && (isUpload || !isVideo);
+    const [editingCaption, setEditingCaption] = React.useState(false);
 
     return (
       <PlateElement className="py-2.5" {...props}>
-        <MediaToolbar url={unsafeUrl}>
+        <MediaToolbar
+          compact
+          supportsCaption
+          url={unsafeUrl}
+          showAlignment={false}
+          showExternalLink={false}
+          onCaptionToggle={() => setEditingCaption((value) => !value)}
+        >
           <figure
             className="group/media relative m-0 w-full cursor-default"
             contentEditable={false}
@@ -59,7 +72,7 @@ export const VideoElement = withHOC(
 
               <div
                 className={cn(
-                  "overflow-hidden rounded-sm bg-black",
+                  "overflow-hidden rounded-md bg-black",
                   focused &&
                     selected &&
                     "ring-2 ring-primary/70 ring-offset-2 ring-offset-background",
@@ -87,6 +100,11 @@ export const VideoElement = withHOC(
                 options={{ direction: "right" }}
               />
             </Resizable>
+            <MediaCaption
+              editing={editingCaption}
+              onEditingChange={setEditingCaption}
+              placeholder={t("CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION_PLACEHOLDER")}
+            />
           </figure>
         </MediaToolbar>
         {props.children}

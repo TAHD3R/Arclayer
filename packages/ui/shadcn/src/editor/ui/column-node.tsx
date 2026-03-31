@@ -63,7 +63,7 @@ export const ColumnElement = withHOC(
         >
           <div
             className={cn(
-              "relative h-full rounded-xl border border-dashed border-border p-2",
+              "relative h-full rounded-md border border-dashed border-border p-2",
               isDragging && "opacity-50",
             )}
           >
@@ -80,7 +80,7 @@ function ColumnDragHandle() {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger asChild focusTrigger={false}>
           <Button type="button" variant="ghost" size="icon-sm" className="h-5 px-1">
             <GripHorizontal className="size-4 text-label-secondary" />
           </Button>
@@ -133,7 +133,7 @@ function ColumnFloatingToolbar({ children }: React.PropsWithChildren) {
   return (
     <div className="relative">
       {open ? (
-        <div className="absolute left-1/2 top-0 z-40 -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] rounded-xl border border-border bg-card/96 p-1  backdrop-blur">
+        <div className="absolute left-1/2 top-0 z-40 -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] rounded-md border border-border bg-card/96 p-1 backdrop-blur">
           <div className="flex items-center gap-1">
             <Button
               type="button"

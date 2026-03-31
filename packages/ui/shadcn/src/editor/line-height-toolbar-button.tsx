@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
-import { ToolbarButton } from "./ui/toolbar";
+import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
 
 const DEFAULT_LINE_HEIGHT = "1.5";
 const FALLBACK_LINE_HEIGHT_VALUES = ["1", "1.25", DEFAULT_LINE_HEIGHT, "2"] as const;
@@ -71,19 +71,21 @@ export function LineHeightToolbarButton() {
       }}
       modal={false}
     >
-      <DropdownMenuTrigger asChild>
-        <ToolbarButton
-          pressed={open}
-          tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_LINE_HEIGHT")}
-          isDropdown
-          onMouseDown={(event) => {
-            event.preventDefault();
-            selectionRef.current = captureEditorSelection(editor);
-          }}
-        >
-          <WrapTextIcon />
-        </ToolbarButton>
-      </DropdownMenuTrigger>
+      <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_LINE_HEIGHT")}>
+        <DropdownMenuTrigger asChild>
+          <ToolbarButton
+            pressed={open}
+            tooltip={undefined}
+            isDropdown
+            onMouseDown={(event) => {
+              event.preventDefault();
+              selectionRef.current = captureEditorSelection(editor);
+            }}
+          >
+            <WrapTextIcon />
+          </ToolbarButton>
+        </DropdownMenuTrigger>
+      </ToolbarTooltip>
 
       <DropdownMenuContent
         align="start"

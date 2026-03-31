@@ -23,12 +23,12 @@ export function TocElement(props: PlateElementProps) {
   return (
     <PlateElement {...props} as="nav" className="my-6 py-1">
       <div contentEditable={false}>
-        <div className="mb-3 inline-flex items-center gap-2 text-callout font-medium text-label-primary">
+        <div className="mb-3 inline-flex items-center gap-2 text-footnote font-semibold text-label-primary">
           <ListTree className="size-4" />
           {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
         </div>
 
-        <div className="space-y-1.5 text-callout text-label-secondary">
+        <div className="space-y-1.5 text-footnote text-label-secondary">
           {headingList.length > 0 ? (
             headingList.map((item) => (
               <Button
@@ -36,7 +36,7 @@ export function TocElement(props: PlateElementProps) {
                 type="button"
                 variant="ghost"
                 className={cn(
-                  "h-auto w-full justify-start rounded-lg px-2 py-1.5 text-left text-callout font-medium text-label-secondary hover:bg-accent/60 hover:text-label-primary",
+                  "h-auto w-full justify-start rounded-md px-2 py-1.5 text-left text-footnote font-semibold text-label-secondary hover:bg-accent/60 hover:text-label-primary",
                   getHeadingIndent(item.depth),
                 )}
                 onClick={(event) => buttonProps.onClick(event, item, "smooth")}

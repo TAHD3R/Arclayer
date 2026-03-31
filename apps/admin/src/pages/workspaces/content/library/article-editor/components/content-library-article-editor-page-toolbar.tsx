@@ -3,9 +3,14 @@
 import * as React from "react";
 
 import {
+  AudioLinesIcon,
   ChevronLeft,
   ChevronRight,
   Code2,
+  FileUpIcon,
+  FilmIcon,
+  ImageIcon,
+  Link2Icon,
   ListIcon,
   ListOrderedIcon,
   MoreHorizontal,
@@ -26,6 +31,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import {
   DropdownMenu as ActionDropdownMenu,
+  DropdownMenuContent as ActionDropdownMenuContent,
+  DropdownMenuItem as ActionDropdownMenuItem,
   DropdownMenuTrigger as ActionDropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import {
@@ -37,6 +44,7 @@ import {
   getArticleEditorInsertGroups,
   getBlockType,
   InlineEquationToolbarButton,
+  insertTodoList,
   LineHeightToolbarButton,
   LinkToolbarButton,
   MarkToolbarButton,
@@ -45,16 +53,10 @@ import {
   Toolbar,
   ToolbarButton,
   ToolbarGroup,
+  ToolbarTooltip,
   TurnIntoToolbarButton,
   useArticleEditorCommands,
 } from "@arclayer/ui/editor";
-import {
-  FloatingPanelButton,
-  FloatingPanelContent,
-  FloatingPanelRoot,
-  FloatingPanelTrigger,
-  useFloatingPanel,
-} from "@arclayer/ui/floating-panel";
 import { cn } from "@arclayer/lib/utils";
 
 import { ContentLibraryArticleEditorMenu } from "./content-library-article-editor-menu";
@@ -69,14 +71,16 @@ function UndoToolbarButton() {
   );
 
   return (
-    <ToolbarButton
-      disabled={disabled}
-      onClick={() => editor.undo()}
-      onMouseDown={(event) => event.preventDefault()}
-      tooltip={t("CONTENT_LIBRARY_EDITOR_ACTION_UNDO")}
-    >
-      <Undo2Icon />
-    </ToolbarButton>
+    <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_ACTION_UNDO")}>
+      <ToolbarButton
+        disabled={disabled}
+        onClick={() => editor.undo()}
+        onMouseDown={(event) => event.preventDefault()}
+        tooltip={undefined}
+      >
+        <Undo2Icon />
+      </ToolbarButton>
+    </ToolbarTooltip>
   );
 }
 
@@ -89,26 +93,27 @@ function RedoToolbarButton() {
   );
 
   return (
-    <ToolbarButton
-      disabled={disabled}
-      onClick={() => editor.redo()}
-      onMouseDown={(event) => event.preventDefault()}
-      tooltip={t("CONTENT_LIBRARY_EDITOR_ACTION_REDO")}
-    >
-      <Redo2Icon />
-    </ToolbarButton>
+    <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_ACTION_REDO")}>
+      <ToolbarButton
+        disabled={disabled}
+        onClick={() => editor.redo()}
+        onMouseDown={(event) => event.preventDefault()}
+        tooltip={undefined}
+      >
+        <Redo2Icon />
+      </ToolbarButton>
+    </ToolbarTooltip>
   );
 }
 
-function InsertItemMenuEntry(props: { item: ArticleEditorInsertItem }) {
+function InsertItemMenuEntry(props: { item: ArticleEditorInsertItem; onInserted?: () => void }) {
   const editor = useEditorRef();
   const commands = useArticleEditorCommands();
-  const { closeFloatingPanel } = useFloatingPanel();
   const Icon = props.item.icon;
 
   return (
-    <FloatingPanelButton
-      className="items-start gap-3 rounded-lg px-3 py-2.5 hover:bg-accent/70"
+    <ActionDropdownMenuItem
+      className="h-auto items-start gap-3 rounded-md px-3 py-2.5"
       onClick={() => {
         if (commands?.insertItem) {
           commands.insertItem(editor, props.item.value);
@@ -116,57 +121,125 @@ function InsertItemMenuEntry(props: { item: ArticleEditorInsertItem }) {
           applyArticleEditorInsertItem(editor, props.item.value);
         }
         editor.tf.focus();
-        closeFloatingPanel();
+        props.onInserted?.();
       }}
     >
-      <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-label-secondary">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/20 text-label-secondary">
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-footnote font-medium text-label-primary">
+        <span className="block text-footnote font-semibold text-label-primary">
           {props.item.label}
         </span>
         <span className="mt-0.5 block text-left text-footnote text-label-secondary">
           {props.item.description}
         </span>
       </span>
-    </FloatingPanelButton>
+    </ActionDropdownMenuItem>
   );
 }
 
 function ArticleEditorInsertToolbarButton() {
   const { t } = useTranslation("content");
   const groups = getArticleEditorInsertGroups(t);
+  const [open, setOpen] = React.useState(false);
 
   return (
-    <FloatingPanelRoot>
-      <FloatingPanelTrigger
-        title={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
-        aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
-        className="h-8 min-w-8 rounded-md border-0 bg-transparent px-2  hover:bg-muted"
-      >
-        <span className="flex items-center justify-center">
-          <PlusIcon />
-        </span>
-      </FloatingPanelTrigger>
-      <FloatingPanelContent
-        placement="bottom"
-        offset={10}
-        showTitle={false}
-        className="ignore-click-outside/toolbar max-h-[30rem] min-w-[17rem] overflow-y-auto p-2"
+    <ActionDropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+      <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}>
+        <ActionDropdownMenuTrigger asChild>
+          <ToolbarButton
+            pressed={open}
+            tooltip={undefined}
+            aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            <PlusIcon />
+          </ToolbarButton>
+        </ActionDropdownMenuTrigger>
+      </ToolbarTooltip>
+      <ActionDropdownMenuContent
+        align="start"
+        className="ignore-click-outside/toolbar max-h-[30rem] min-w-[20rem] overflow-y-auto p-2"
       >
         {groups.map((group, index) => (
           <div key={group.id} className={cn("border-border/70", index > 0 && "mt-2 border-t pt-2")}>
-            <div className="px-3 pb-1 text-caption font-medium text-label-secondary">
+            <div className="px-3 pb-1 text-caption font-semibold text-label-secondary">
               {group.label}
             </div>
             {group.items.map((item) => (
-              <InsertItemMenuEntry key={item.value} item={item} />
+              <InsertItemMenuEntry key={item.value} item={item} onInserted={() => setOpen(false)} />
             ))}
           </div>
         ))}
-      </FloatingPanelContent>
-    </FloatingPanelRoot>
+      </ActionDropdownMenuContent>
+    </ActionDropdownMenu>
+  );
+}
+
+function MediaInsertToolbarButton(props: {
+  icon: React.ReactNode;
+  kind: "image" | "video" | "audio" | "file";
+  tooltip: string;
+}) {
+  const { t } = useTranslation("content");
+  const editor = useEditorRef();
+  const commands = useArticleEditorCommands();
+
+  if (!commands?.openMediaInsert) return null;
+
+  return (
+    <ActionDropdownMenu modal={false}>
+      <ToolbarTooltip tooltip={props.tooltip}>
+        <ActionDropdownMenuTrigger asChild>
+          <ToolbarButton
+            isDropdown
+            tooltip={undefined}
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            {props.icon}
+          </ToolbarButton>
+        </ActionDropdownMenuTrigger>
+      </ToolbarTooltip>
+      <ActionDropdownMenuContent
+        align="start"
+        className="ignore-click-outside/toolbar min-w-[15rem]"
+      >
+        <ActionDropdownMenuItem
+          onSelect={() =>
+            commands.openMediaInsert?.(editor, { kind: props.kind, source: "upload" })
+          }
+        >
+          <Upload className="size-4" />
+          {t("CONTENT_LIBRARY_EDITOR_UPLOAD_FROM_COMPUTER")}
+        </ActionDropdownMenuItem>
+        <ActionDropdownMenuItem
+          onSelect={() => commands.openMediaInsert?.(editor, { kind: props.kind, source: "url" })}
+        >
+          <Link2Icon className="size-4" />
+          {t("CONTENT_LIBRARY_EDITOR_INSERT_VIA_URL")}
+        </ActionDropdownMenuItem>
+      </ActionDropdownMenuContent>
+    </ActionDropdownMenu>
+  );
+}
+
+function InsertCodeBlockToolbarButton() {
+  const { t } = useTranslation("content");
+  const editor = useEditorRef();
+
+  return (
+    <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_CODE_BLOCK")}>
+      <ToolbarButton
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => {
+          applyArticleEditorInsertItem(editor, KEYS.codeBlock);
+          editor.tf.focus();
+        }}
+      >
+        <Code2 />
+      </ToolbarButton>
+    </ToolbarTooltip>
   );
 }
 
@@ -180,17 +253,23 @@ function ListToolbarButton(props: { icon: React.ReactNode; listType: string; too
   );
 
   return (
-    <ToolbarButton
-      pressed={pressed}
-      tooltip={props.tooltip}
-      onClick={() => {
-        toggleList(editor, { listStyleType: props.listType });
-        editor.tf.focus();
-      }}
-      onMouseDown={(event) => event.preventDefault()}
-    >
-      {props.icon}
-    </ToolbarButton>
+    <ToolbarTooltip tooltip={props.tooltip}>
+      <ToolbarButton
+        pressed={pressed}
+        tooltip={undefined}
+        onClick={() => {
+          if (props.listType === KEYS.listTodo) {
+            insertTodoList(editor, false);
+          } else {
+            toggleList(editor, { listStyleType: props.listType });
+          }
+          editor.tf.focus();
+        }}
+        onMouseDown={(event) => event.preventDefault()}
+      >
+        {props.icon}
+      </ToolbarButton>
+    </ToolbarTooltip>
   );
 }
 
@@ -203,17 +282,19 @@ function ToggleBlockToolbarButton() {
   });
 
   return (
-    <ToolbarButton
-      pressed={blockType === KEYS.toggle}
-      tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_TOGGLE")}
-      onClick={() => {
-        applyArticleEditorInsertItem(editor, KEYS.toggle);
-        editor.tf.focus();
-      }}
-      onMouseDown={(event) => event.preventDefault()}
-    >
-      <ToggleRight />
-    </ToolbarButton>
+    <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_TOGGLE")}>
+      <ToolbarButton
+        pressed={blockType === KEYS.toggle}
+        tooltip={undefined}
+        onClick={() => {
+          applyArticleEditorInsertItem(editor, KEYS.toggle);
+          editor.tf.focus();
+        }}
+        onMouseDown={(event) => event.preventDefault()}
+      >
+        <ToggleRight />
+      </ToolbarButton>
+    </ToolbarTooltip>
   );
 }
 
@@ -263,16 +344,18 @@ function ToolbarScroller(props: { children: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">
       {canScrollLeft ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0"
-          aria-label={t("CONTENT_LIBRARY_EDITOR_TOOLBAR_SCROLL_LEFT")}
-          onClick={() => scrollByAmount("left")}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
+        <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_TOOLBAR_SCROLL_LEFT")}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0"
+            aria-label={t("CONTENT_LIBRARY_EDITOR_TOOLBAR_SCROLL_LEFT")}
+            onClick={() => scrollByAmount("left")}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+        </ToolbarTooltip>
       ) : null}
 
       <div className="relative min-w-0 flex-1">
@@ -297,16 +380,18 @@ function ToolbarScroller(props: { children: React.ReactNode }) {
       </div>
 
       {canScrollRight ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0"
-          aria-label={t("CONTENT_LIBRARY_EDITOR_TOOLBAR_SCROLL_RIGHT")}
-          onClick={() => scrollByAmount("right")}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
+        <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_TOOLBAR_SCROLL_RIGHT")}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0"
+            aria-label={t("CONTENT_LIBRARY_EDITOR_TOOLBAR_SCROLL_RIGHT")}
+            onClick={() => scrollByAmount("right")}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </ToolbarTooltip>
       ) : null}
     </div>
   );
@@ -342,6 +427,29 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
           </ToolbarGroup>
 
           <ToolbarGroup>
+            <MediaInsertToolbarButton
+              kind="image"
+              icon={<ImageIcon />}
+              tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_IMAGE")}
+            />
+            <MediaInsertToolbarButton
+              kind="video"
+              icon={<FilmIcon />}
+              tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_VIDEO")}
+            />
+            <MediaInsertToolbarButton
+              kind="audio"
+              icon={<AudioLinesIcon />}
+              tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_AUDIO")}
+            />
+            <MediaInsertToolbarButton
+              kind="file"
+              icon={<FileUpIcon />}
+              tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_FILE")}
+            />
+          </ToolbarGroup>
+
+          <ToolbarGroup>
             <MarkToolbarButton nodeType={KEYS.bold} tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BOLD")}>
               <strong>B</strong>
             </MarkToolbarButton>
@@ -374,13 +482,13 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
               nodeType={KEYS.color}
               tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
             >
-              <span className="font-medium">A</span>
+              <span className="font-semibold">A</span>
             </FontColorToolbarButton>
             <FontColorToolbarButton
               nodeType={KEYS.backgroundColor}
               tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
             >
-              <span className="rounded bg-warning/20 px-1 font-medium">A</span>
+              <span className="rounded-sm bg-warning/20 px-1 font-semibold">A</span>
             </FontColorToolbarButton>
             <LinkToolbarButton />
           </ToolbarGroup>
@@ -407,6 +515,7 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
           <ToolbarGroup>
             <AlignToolbarButton />
             <LineHeightToolbarButton />
+            <InsertCodeBlockToolbarButton />
             <TableToolbarButton />
           </ToolbarGroup>
 
@@ -435,16 +544,18 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
           {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
         </Button>
         <ActionDropdownMenu>
-          <ActionDropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </ActionDropdownMenuTrigger>
+          <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}>
+            <ActionDropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </ActionDropdownMenuTrigger>
+          </ToolbarTooltip>
           <ContentLibraryArticleEditorMenu
             status={props.status}
             visibility={props.visibility}
