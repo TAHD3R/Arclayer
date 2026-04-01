@@ -4,6 +4,7 @@ import * as React from "react";
 
 import {
   AudioLinesIcon,
+  BaselineIcon,
   ChevronLeft,
   ChevronRight,
   Code2,
@@ -14,6 +15,7 @@ import {
   ListIcon,
   ListOrderedIcon,
   MoreHorizontal,
+  PaintBucketIcon,
   PlusIcon,
   Redo2Icon,
   SquareIcon,
@@ -412,9 +414,9 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
   const { t } = useTranslation("content");
 
   return (
-    <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-card px-3">
+    <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-card px-4 md:px-5">
       <ToolbarScroller>
-        <Toolbar className="min-w-max flex-nowrap gap-0.5 pr-2">
+        <Toolbar className="min-w-max flex-nowrap gap-0.5 pr-3">
           <ToolbarGroup>
             <UndoToolbarButton />
             <RedoToolbarButton />
@@ -482,13 +484,13 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
               nodeType={KEYS.color}
               tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
             >
-              <span className="font-semibold">A</span>
+              <BaselineIcon />
             </FontColorToolbarButton>
             <FontColorToolbarButton
               nodeType={KEYS.backgroundColor}
               tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
             >
-              <span className="rounded-sm bg-warning/20 px-1 font-semibold">A</span>
+              <PaintBucketIcon />
             </FontColorToolbarButton>
             <LinkToolbarButton />
           </ToolbarGroup>

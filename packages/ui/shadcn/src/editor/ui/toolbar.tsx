@@ -158,15 +158,15 @@ export const ToolbarButton = React.forwardRef<
           size,
           variant,
         }),
-        isDropdown && "justify-between gap-1 pr-1",
+        isDropdown && "justify-start gap-1.5 pr-1.5",
         className,
       )}
       {...props}
     >
       {isDropdown ? (
         <>
-          <div className="flex flex-1 items-center gap-2 whitespace-nowrap">{children}</div>
-          <div>
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">{children}</div>
+          <div className="flex shrink-0 items-center">
             <ChevronDown className="size-3.5 text-label-secondary" data-icon />
           </div>
         </>

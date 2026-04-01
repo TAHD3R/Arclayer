@@ -276,9 +276,9 @@ function Draggable(props: PlateElementProps) {
           <div className={cn("slate-blockToolbarWrapper", "flex h-[1.5em]", isInColumn && "h-4")}>
             <div
               className={cn(
-                "slate-blockToolbar pointer-events-auto relative mr-1 w-6",
+                "slate-blockToolbar pointer-events-auto relative mr-2 w-11",
                 "flex items-center",
-                isInColumn && "mr-0.5",
+                isInColumn && "mr-1 w-8",
               )}
             >
               <div

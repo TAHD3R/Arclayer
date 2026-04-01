@@ -3,15 +3,27 @@
 import { Editor, EditorContainer, PlateFloatingToolbar } from "@arclayer/ui/editor";
 import { cn } from "@arclayer/lib/utils";
 
+export function getContentLibraryArticleEditorTextLaneClass(mode: "split" | "page") {
+  return mode === "page"
+    ? "mx-auto flex w-full max-w-[72rem] flex-col px-6 pb-12 md:px-10 xl:px-14"
+    : "mx-auto flex w-full max-w-[56rem] flex-col px-6 pb-10 md:px-10 xl:px-12";
+}
+
+export function getContentLibraryArticleEditorBodyEditorClass(mode: "split" | "page") {
+  return mode === "page"
+    ? "-ml-[3.75rem] scroll-pb-40 pb-40 pl-[4.25rem] pt-4 text-body"
+    : "-ml-[2.5rem] scroll-pb-32 pb-32 pl-[3.25rem] pt-0 text-body";
+}
+
 export function ContentLibraryArticleEditorBody(props: {
   placeholder: string;
   mode: "split" | "page";
   className?: string;
 }) {
-  const contentLaneClass =
-    props.mode === "page"
-      ? "mx-auto flex min-h-0 w-full max-w-[76rem] flex-1 flex-col px-6"
-      : "flex min-h-0 w-full flex-1 flex-col px-4";
+  const contentLaneClass = cn(
+    getContentLibraryArticleEditorTextLaneClass(props.mode),
+    "min-h-0 flex-1",
+  );
 
   return (
     <div
@@ -26,9 +38,7 @@ export function ContentLibraryArticleEditorBody(props: {
             aria-label="Article body"
             className={cn(
               "min-h-full flex-1 overflow-visible text-label-primary placeholder:text-label-tertiary **:data-slate-placeholder:!top-1 **:data-slate-placeholder:!left-0 **:data-slate-placeholder:!translate-y-0 [&_.slate-blockWrapper]:overflow-visible",
-              props.mode === "page"
-                ? "-ml-9 pb-28 pl-9 pt-4 text-body"
-                : "-ml-7 pb-10 pl-7 pt-0 text-body",
+              getContentLibraryArticleEditorBodyEditorClass(props.mode),
             )}
             placeholder={props.placeholder}
             variant="none"

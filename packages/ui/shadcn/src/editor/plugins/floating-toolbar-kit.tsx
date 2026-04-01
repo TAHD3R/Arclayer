@@ -162,19 +162,6 @@ function PlateLinkFloatingToolbar() {
 
   const currentLinkUrl = readCurrentLinkUrl() || linkUrl;
 
-  const syncLinkPreviewText = React.useCallback(
-    (value: string) => {
-      const entry = editor.api.above({ match: { type } });
-      if (!entry) return;
-
-      const domNode = editor.api.toDOMNode(entry[0]);
-      if (domNode instanceof HTMLElement) {
-        domNode.textContent = value;
-      }
-    },
-    [editor, type],
-  );
-
   React.useEffect(() => {
     if (editState.isEditing && !wasEditingRef.current) {
       const nextText = readCurrentLinkText();
@@ -186,10 +173,9 @@ function PlateLinkFloatingToolbar() {
       const nextText = readCurrentLinkText();
       floatingLinkDraftTextCache = nextText;
       setEditTextValue(nextText);
-      syncLinkPreviewText(nextText);
     }
     wasEditingRef.current = editState.isEditing;
-  }, [editState.isEditing, readCurrentLinkText, setOption, syncLinkPreviewText]);
+  }, [editState.isEditing, readCurrentLinkText, setOption]);
 
   const handleEditTextChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,18 +186,13 @@ function PlateLinkFloatingToolbar() {
       floatingLinkDraftTextCache = nextValue;
       setEditTextValue(nextValue);
       setOption("text", nextValue);
-      syncLinkPreviewText(nextValue);
-
-      window.requestAnimationFrame(() => {
-        setOption("isEditing", true);
-        window.setTimeout(() => {
-          const nextInput = editTextInputRef.current ?? input;
-          nextInput.focus();
-          nextInput.setSelectionRange(selectionStart, selectionEnd);
-        }, 32);
-      });
+      window.setTimeout(() => {
+        const nextInput = editTextInputRef.current ?? input;
+        nextInput.focus();
+        nextInput.setSelectionRange(selectionStart, selectionEnd);
+      }, 0);
     },
-    [editor, setOption, type],
+    [setOption],
   );
 
   return (

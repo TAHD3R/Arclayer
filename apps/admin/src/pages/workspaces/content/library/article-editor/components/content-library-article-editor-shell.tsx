@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
 import { ContentLibraryArticleEditorBody } from "./content-library-article-editor-body";
+import { getContentLibraryArticleEditorTextLaneClass } from "./content-library-article-editor-body";
 import {
   ContentLibraryArticleEditorDocumentProvider,
   useContentLibraryArticleEditorDocumentState,
@@ -77,14 +78,7 @@ function ContentLibraryArticleEditorLoadingSkeleton(props: {
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", props.bodyClassName)}>
       {props.showHeaderSkeleton ? (
-        <div
-          className={cn(
-            props.mode === "page"
-              ? "mx-auto flex w-full max-w-[76rem] flex-col px-6"
-              : "flex w-full flex-col px-4",
-            "space-y-3",
-          )}
-        >
+        <div className={cn(getContentLibraryArticleEditorTextLaneClass(props.mode), "space-y-3")}>
           <Skeleton className="h-12 w-full max-w-[30rem] rounded-xl" />
           <Skeleton className="h-6 w-full max-w-[42rem] rounded-xl" />
           <Skeleton className="h-6 w-full max-w-[28rem] rounded-xl" />
@@ -95,11 +89,7 @@ function ContentLibraryArticleEditorLoadingSkeleton(props: {
         <div
           role="status"
           aria-live="polite"
-          className={cn(
-            props.mode === "page"
-              ? "mx-auto flex w-full max-w-[76rem] flex-1 flex-col px-6"
-              : "flex w-full flex-1 flex-col px-4",
-          )}
+          className={cn(getContentLibraryArticleEditorTextLaneClass(props.mode), "flex-1")}
         >
           <div className="space-y-3 pt-2">
             <Skeleton className="h-5 w-full max-w-[22rem] rounded-full" />
@@ -160,10 +150,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
   const [seoDialogOpen, setSeoDialogOpen] = React.useState(false);
   const showShellSkeleton = Boolean(props.isLoading);
   const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
-  const textLaneClass =
-    props.mode === "page"
-      ? "mx-auto flex w-full max-w-[76rem] flex-col px-6"
-      : "flex w-full flex-col px-4";
+  const textLaneClass = getContentLibraryArticleEditorTextLaneClass(props.mode);
   const coverImageUrl = React.useMemo(
     () => resolveAssetRefToPublicUrlPath(props.coverAssetId),
     [props.coverAssetId],
@@ -178,7 +165,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         )}
       >
         {props.mode === "split" ? (
-          <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-card px-3">
+          <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-card px-4 md:px-5">
             <div className="flex items-center gap-1">
               {props.onClose ? (
                 <ToolbarIconButton
@@ -262,7 +249,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         <div className="min-h-0 flex-1 overflow-hidden">
           <div
             ref={scrollContainerRef}
-            className="flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain"
+            className="flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain scroll-pb-32"
           >
             <div className="flex min-h-full w-full flex-col">
               {coverImageUrl ? (
@@ -370,7 +357,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                   <div
                     className={cn(
                       "flex min-h-0 flex-1 flex-col",
-                      props.mode === "page" ? "mt-8" : "mt-5",
+                      props.mode === "page" ? "mt-6" : "mt-4",
                     )}
                   >
                     {showBodySkeleton ? (
