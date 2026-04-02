@@ -64,6 +64,18 @@ export const BlockDraggable: RenderNodeWrapper = (props) => {
   const enabled = React.useMemo(() => {
     if (editor.dom.readOnly) return false;
 
+    const isInsideTable = Boolean(
+      editor.api.block({
+        above: true,
+        at: path,
+        match: { type: editor.getType(KEYS.table) },
+      }),
+    );
+
+    if (isInsideTable && path.length > 1) {
+      return false;
+    }
+
     if (path.length === 1 && !isType(editor, element, UNDRAGGABLE_KEYS)) {
       return true;
     }
@@ -72,18 +84,6 @@ export const BlockDraggable: RenderNodeWrapper = (props) => {
         at: path,
         match: {
           type: editor.getType(KEYS.column),
-        },
-      });
-
-      if (block) {
-        return true;
-      }
-    }
-    if (path.length === 4 && !isType(editor, element, UNDRAGGABLE_KEYS)) {
-      const block = editor.api.some({
-        at: path,
-        match: {
-          type: editor.getType(KEYS.table),
         },
       });
 
@@ -343,10 +343,8 @@ function Draggable(props: PlateElementProps) {
         data-block-id={element.id ? String(element.id) : undefined}
         data-plate-selectable="true"
         className={cn(
-          "slate-blockWrapper relative isolate my-0.5 w-full rounded-md transition-colors",
+          "slate-blockWrapper relative isolate my-0.5 w-full",
           selectable.props.className,
-          blockSelected &&
-            "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-md before:bg-brand/8 before:ring-1 before:ring-brand/20 before:content-['']",
         )}
         style={getBlockWrapperStyle(element)}
         onContextMenu={(event) => {
@@ -360,8 +358,16 @@ function Draggable(props: PlateElementProps) {
           });
         }}
       >
-        <MemoizedChildren>{children}</MemoizedChildren>
-        <DropLine />
+        <div
+          className={cn(
+            "relative w-full rounded-md transition-colors",
+            blockSelected &&
+              "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-md before:bg-brand/8 before:ring-1 before:ring-brand/20 before:content-['']",
+          )}
+        >
+          <MemoizedChildren>{children}</MemoizedChildren>
+          <DropLine />
+        </div>
       </div>
     </div>
   );

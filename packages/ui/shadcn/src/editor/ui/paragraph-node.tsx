@@ -2,23 +2,49 @@
 
 import type { PlateElementProps } from "platejs/react";
 
-import { PlateElement, useEditorRef, useFocused, useSelected } from "platejs/react";
+import { BlockSelectionPlugin } from "@platejs/selection/react";
+import {
+  PlateElement,
+  useEditorRef,
+  useEditorSelector,
+  useFocused,
+  usePluginOption,
+} from "platejs/react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@arclayer/lib/utils";
-import { shouldShowParagraphPlaceholder } from "./paragraph-placeholder";
+import { isExpandedSelection, shouldShowParagraphPlaceholder } from "./paragraph-placeholder";
+
+function isSamePath(a: number[] | undefined, b: number[] | undefined) {
+  if (!a || !b) return false;
+  return a.length === b.length && a.every((segment, index) => segment === b[index]);
+}
 
 export function ParagraphElement(props: PlateElementProps) {
   const { t } = useTranslation("content");
   const editor = useEditorRef();
   const focused = useFocused();
-  const selected = useSelected();
+  const isCurrentBlock = useEditorSelector(
+    (currentEditor) => {
+      const currentBlockEntry = currentEditor.api.block();
+      return isSamePath(currentBlockEntry?.[1], props.path);
+    },
+    [props.path],
+  );
+  const hasExpandedSelection = useEditorSelector(
+    (currentEditor) =>
+      Boolean(currentEditor.api.isExpanded?.()) || isExpandedSelection(currentEditor.selection),
+    [],
+  );
+  const isSelectingBlocks = usePluginOption(BlockSelectionPlugin, "isSelectingSome");
   const showPlaceholder = shouldShowParagraphPlaceholder({
     editor,
     element: props.element,
     focused,
+    hasExpandedSelection,
+    isSelectingBlocks,
     path: props.path,
-    selected,
+    selected: isCurrentBlock,
   });
 
   return (

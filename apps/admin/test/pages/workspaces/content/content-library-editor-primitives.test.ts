@@ -37,6 +37,7 @@ import {
   getTurnIntoValue,
 } from "../../../../../../packages/ui/shadcn/src/editor/turn-into-helpers";
 import {
+  isArticleEditorBlockSelectableAtPath,
   getBlockContextMenuActionIds,
   isArticleEditorBlockSelectable,
 } from "../../../../../../packages/ui/shadcn/src/editor/block-menu-helpers";
@@ -177,6 +178,50 @@ describe("content-library-editor-primitives", () => {
         },
         focused: true,
         path: [0, 0],
+        selected: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("shows the paragraph placeholder for the current empty paragraph only", () => {
+    const editor = {
+      api: {
+        block: () => [
+          {
+            children: [{ text: "" }],
+            type: "p",
+          },
+          [1],
+        ],
+      },
+      selection: {
+        anchor: { offset: 0, path: [1, 0] },
+        focus: { offset: 0, path: [1, 0] },
+      },
+    };
+
+    expect(
+      shouldShowParagraphPlaceholder({
+        editor: editor as never,
+        element: {
+          children: [{ text: "" }],
+          type: "p",
+        },
+        focused: true,
+        path: [1],
+        selected: true,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldShowParagraphPlaceholder({
+        editor: editor as never,
+        element: {
+          children: [{ text: "" }],
+          type: "p",
+        },
+        focused: true,
+        path: [0],
         selected: true,
       }),
     ).toBe(false);
@@ -368,6 +413,26 @@ describe("content-library-editor-primitives", () => {
         id: "cell-1",
         type: KEYS.td,
       }),
+    ).toBe(false);
+  });
+
+  it("disables block selection for paragraphs inside table rows", () => {
+    const editor = {
+      api: {
+        block: vi.fn(() => [{ id: "row-1", type: KEYS.tr }, [1]]),
+      },
+      getType: vi.fn((value: string) => value),
+    };
+
+    expect(
+      isArticleEditorBlockSelectableAtPath(
+        editor as never,
+        {
+          id: "paragraph-1",
+          type: KEYS.p,
+        },
+        [1, 0, 0],
+      ),
     ).toBe(false);
   });
 

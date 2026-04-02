@@ -52,10 +52,10 @@ export function BlockList(props: { children: React.ReactNode; element: TodoListE
     <ListTag
       start={typeof element.listStart === "number" ? element.listStart : undefined}
       style={{
-        listStyleType: element.listStyleType,
-        listStylePosition: "outside",
+        listStyleType: isTodo ? "none" : element.listStyleType,
+        listStylePosition: isTodo ? "inside" : "outside",
         margin: 0,
-        paddingInlineStart: "1.5rem",
+        paddingInlineStart: isTodo ? 0 : "1.5rem",
         position: "relative",
       }}
     >

@@ -27,7 +27,7 @@ export function hasSlashInputChild(element: unknown) {
   return element.children.some((child) => isElementLike(child) && child.type === "slash_input");
 }
 
-function isExpandedSelection(selection: Range | null | undefined) {
+export function isExpandedSelection(selection: Range | null | undefined) {
   if (!selection) return false;
 
   const { anchor, focus } = selection;
@@ -37,34 +37,41 @@ function isExpandedSelection(selection: Range | null | undefined) {
   return anchor.path.some((segment, index) => segment !== focus.path[index]);
 }
 
+function isSamePath(a: Path, b: Path) {
+  return a.length === b.length && a.every((segment, index) => segment === b[index]);
+}
+
 export function shouldShowParagraphPlaceholder(params: {
   editor?: PlateEditor;
   element: unknown;
   focused: boolean;
+  hasExpandedSelection?: boolean;
+  isSelectingBlocks?: boolean;
   path?: Path;
   selected: boolean;
 }) {
   const hasExpandedSelection =
-    Boolean(params.editor?.api?.isExpanded?.()) || isExpandedSelection(params.editor?.selection);
+    params.hasExpandedSelection ??
+    (Boolean(params.editor?.api?.isExpanded?.()) || isExpandedSelection(params.editor?.selection));
   const isSelectingBlocks =
-    params.editor && "getOption" in params.editor && typeof params.editor.getOption === "function"
+    params.isSelectingBlocks ??
+    (params.editor && "getOption" in params.editor && typeof params.editor.getOption === "function"
       ? Boolean(params.editor.getOption({ key: KEYS.blockSelection }, "isSelectingSome"))
-      : false;
+      : false);
 
   if (!params.focused || !params.selected) return false;
   if (hasExpandedSelection || isSelectingBlocks) {
     return false;
   }
   if (hasSlashInputChild(params.element)) return false;
-  if (params.editor && params.path) {
-    const isOnlyRootParagraph =
-      params.path.length === 1 && params.path[0] === 0 && params.editor.children.length === 1;
+  if (params.editor && params.path && typeof params.editor.api?.block === "function") {
+    const currentBlockEntry = params.editor.api.block();
 
-    if (!isOnlyRootParagraph) {
+    if (!currentBlockEntry || !isSamePath(currentBlockEntry[1], params.path)) {
       return false;
     }
   }
-  if (params.editor && params.path) {
+  if (params.editor && params.path && typeof params.editor.api?.node === "function") {
     let currentPath = params.path;
     while (currentPath.length > 0) {
       const parentPath = PathApi.parent(currentPath);
