@@ -4,7 +4,6 @@ import * as React from "react";
 
 import { DndPlugin } from "@platejs/dnd";
 import { LinkPlugin, triggerFloatingLinkInsert } from "@platejs/link/react";
-import { BlockSelectionPlugin } from "@platejs/selection/react";
 import { normalizeNodeId, type Value } from "platejs";
 import { Plate, usePlateEditor } from "platejs/react";
 import { useTranslation } from "react-i18next";
@@ -17,8 +16,10 @@ import { SlashKit } from "@/components/editor/plugins/slash-kit";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import {
+  ArticleEditorBlockMenuPlugin,
   AdvancedBlocksKit,
   applyArticleEditorInsertItem,
+  ArticleEditorBlockSelectionPlugin,
   ARTICLE_EDITOR_INSERT_AUDIO,
   ARTICLE_EDITOR_INSERT_FILE,
   ARTICLE_EDITOR_INSERT_IMAGE,
@@ -188,7 +189,8 @@ export function ContentLibraryArticleEditorDocumentProvider(
   }>({ kind: "image", open: false, url: "" });
   const plugins = React.useMemo(
     () => [
-      BlockSelectionPlugin,
+      ArticleEditorBlockSelectionPlugin,
+      ArticleEditorBlockMenuPlugin,
       DndPlugin,
       ...AdvancedBlocksKit,
       ...SlashKit,

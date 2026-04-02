@@ -249,7 +249,8 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         <div className="min-h-0 flex-1 overflow-hidden">
           <div
             ref={scrollContainerRef}
-            className="flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain scroll-pb-32"
+            data-article-editor-scroll-root="true"
+            className="relative flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain scroll-pb-32"
           >
             <div className="flex min-h-full w-full flex-col">
               {coverImageUrl ? (
@@ -355,10 +356,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                   </div>
 
                   <div
-                    className={cn(
-                      "flex min-h-0 flex-1 flex-col",
-                      props.mode === "page" ? "mt-6" : "mt-4",
-                    )}
+                    className={cn("flex w-full flex-col", props.mode === "page" ? "mt-6" : "mt-4")}
                   >
                     {showBodySkeleton ? (
                       <ContentLibraryArticleEditorLoadingSkeleton mode={props.mode} />

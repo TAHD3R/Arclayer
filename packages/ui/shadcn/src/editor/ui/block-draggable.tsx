@@ -3,7 +3,12 @@
 import * as React from "react";
 
 import { DndPlugin, useDraggable, useDropLine } from "@platejs/dnd";
-import { BlockSelectionPlugin } from "@platejs/selection/react";
+import {
+  BlockMenuPlugin,
+  BlockSelectionPlugin,
+  useBlockSelectable,
+  useBlockSelected,
+} from "@platejs/selection/react";
 import { GripVertical, Plus } from "lucide-react";
 import { type TElement, getPluginByType, isType, KEYS } from "platejs";
 import {
@@ -139,6 +144,8 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
 function Draggable(props: PlateElementProps) {
   const { children, editor, element, path } = props;
   const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
+  const selectable = useBlockSelectable();
+  const blockSelected = useBlockSelected();
 
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } = useDraggable({
     element,
@@ -311,10 +318,24 @@ function Draggable(props: PlateElementProps) {
 
       <div
         ref={nodeRef}
-        className="slate-blockWrapper flow-root"
-        onContextMenu={(event) =>
-          editor.getApi(BlockSelectionPlugin).blockSelection.addOnContextMenu({ element, event })
-        }
+        data-block-id={element.id ? String(element.id) : undefined}
+        data-plate-selectable="true"
+        className={cn(
+          "slate-blockWrapper relative isolate my-0.5 flow-root w-full rounded-md py-1 transition-colors",
+          selectable.props.className,
+          blockSelected &&
+            "before:pointer-events-none before:absolute before:inset-x-0 before:inset-y-0.5 before:-z-10 before:rounded-md before:bg-brand/8 before:ring-1 before:ring-brand/20 before:content-['']",
+        )}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          selectable.props.onContextMenu?.(event);
+          if (!element.id) return;
+
+          editor.getApi(BlockMenuPlugin).blockMenu.showContextMenu(String(element.id), {
+            x: event.clientX,
+            y: event.clientY,
+          });
+        }}
       >
         <MemoizedChildren>{children}</MemoizedChildren>
         <DropLine />
@@ -328,6 +349,7 @@ function Gutter({ children, className, ...props }: React.ComponentProps<"div">) 
   const element = useElement();
   const isSelectionAreaVisible = usePluginOption(BlockSelectionPlugin, "isSelectionAreaVisible");
   const selected = useSelected();
+  const blockSelected = useBlockSelected();
 
   return (
     <div
@@ -339,7 +361,7 @@ function Gutter({ children, className, ...props }: React.ComponentProps<"div">) 
           ? "group-hover/container:opacity-100"
           : "group-hover:opacity-100",
         isSelectionAreaVisible && "hidden",
-        selected && "opacity-100",
+        (selected || blockSelected) && "opacity-100",
         className,
       )}
       contentEditable={false}

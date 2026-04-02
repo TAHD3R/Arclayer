@@ -1,4 +1,6 @@
 // Shared Plate editor primitives and composition helpers
+export * from "./block-context-menu";
+export * from "./block-menu-helpers";
 export * from "./ui/editor";
 export * from "./ui/editor-static";
 export * from "./ui/toolbar";
@@ -57,4 +59,5 @@ export * from "./plugins/basic-blocks-kit";
 export * from "./plugins/basic-nodes-kit";
 export * from "./plugins/advanced-blocks-kit";
 export * from "./plugins/autoformat-kit";
+export * from "./plugins/block-selection-kit";
 export * from "./plugins/floating-toolbar-kit";

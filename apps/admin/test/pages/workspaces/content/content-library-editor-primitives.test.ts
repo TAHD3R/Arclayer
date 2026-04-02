@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { KEYS } from "platejs";
 
 import {
@@ -16,6 +16,15 @@ import {
   hasSlashInputChild,
   shouldShowParagraphPlaceholder,
 } from "../../../../../../packages/ui/shadcn/src/editor/ui/paragraph-placeholder";
+import {
+  applyTurnInto,
+  getTurnIntoValue,
+} from "../../../../../../packages/ui/shadcn/src/editor/turn-into-helpers";
+import {
+  getBlockContextMenuActionIds,
+  isArticleEditorBlockSelectable,
+} from "../../../../../../packages/ui/shadcn/src/editor/block-menu-helpers";
+import { getContentLibraryArticleEditorBodyEditorClass } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body-layout";
 
 describe("content-library-editor-primitives", () => {
   it("does not treat a locally echoed document update as an external rehydrate", () => {
@@ -151,5 +160,110 @@ describe("content-library-editor-primitives", () => {
     expect(filtered).toHaveLength(1);
     expect(filtered[0]?.id).toBe("inline");
     expect(filtered[0]?.items.map((item) => item.value)).toEqual([ARTICLE_EDITOR_INSERT_LINK]);
+  });
+
+  it("keeps article editor body geometry on a single horizontal lane", () => {
+    expect(getContentLibraryArticleEditorBodyEditorClass("page")).not.toMatch(/-mx|px-/);
+    expect(getContentLibraryArticleEditorBodyEditorClass("split")).not.toMatch(/-mx|px-/);
+  });
+
+  it("resolves turn-into values for lists, toggles, and code blocks", () => {
+    expect(getTurnIntoValue({ children: [{ text: "" }], type: KEYS.p })).toBe(KEYS.p);
+    expect(
+      getTurnIntoValue({
+        children: [{ text: "" }],
+        listStyleType: KEYS.ul,
+        type: KEYS.p,
+      } as never),
+    ).toBe(KEYS.ul);
+    expect(
+      getTurnIntoValue({
+        checked: false,
+        children: [{ text: "" }],
+        listStyleType: KEYS.listTodo,
+        type: KEYS.p,
+      } as never),
+    ).toBe(KEYS.listTodo);
+    expect(getTurnIntoValue({ children: [{ text: "" }], type: KEYS.toggle } as never)).toBe(
+      KEYS.toggle,
+    );
+    expect(getTurnIntoValue({ children: [{ text: "" }], type: KEYS.codeBlock } as never)).toBe(
+      KEYS.codeBlock,
+    );
+  });
+
+  it("dispatches turn-into transforms by current and next type", () => {
+    const actions: string[] = [];
+    const editor = {
+      getType: (value: string) => `type:${value}`,
+      tf: {
+        collapse: () => {
+          actions.push("collapse");
+        },
+        toggleBlock: (value: string) => {
+          actions.push(`toggle-block:${value}`);
+        },
+      },
+    };
+
+    const deps = {
+      openNextToggles: vi.fn(() => {
+        actions.push("open-next-toggles");
+      }),
+      setBlockType: vi.fn(() => {
+        actions.push("set-block-type");
+      }),
+      toggleList: vi.fn((_: unknown, options: { listStyleType?: string }) => {
+        actions.push(`toggle-list:${options.listStyleType}`);
+      }),
+      toggleTodoList: vi.fn(() => {
+        actions.push("toggle-todo");
+      }),
+    };
+
+    applyTurnInto(editor as never, KEYS.ul, KEYS.codeBlock, deps);
+    expect(actions).toEqual([`toggle-block:type:${KEYS.codeBlock}`, `toggle-list:${KEYS.ul}`]);
+
+    actions.length = 0;
+    applyTurnInto(editor as never, KEYS.toggle, KEYS.ul, deps);
+    expect(actions).toEqual([
+      `toggle-list:${KEYS.ul}`,
+      "open-next-toggles",
+      `toggle-block:${KEYS.toggle}`,
+      "collapse",
+    ]);
+  });
+
+  it("limits block selection to supported block types", () => {
+    expect(
+      isArticleEditorBlockSelectable({
+        id: "paragraph-1",
+        type: KEYS.p,
+      }),
+    ).toBe(true);
+    expect(
+      isArticleEditorBlockSelectable({
+        id: "column-1",
+        type: KEYS.column,
+      }),
+    ).toBe(false);
+    expect(
+      isArticleEditorBlockSelectable({
+        id: "row-1",
+        type: KEYS.tr,
+      }),
+    ).toBe(false);
+    expect(
+      isArticleEditorBlockSelectable({
+        id: "cell-1",
+        type: KEYS.td,
+      }),
+    ).toBe(false);
+  });
+
+  it("shows turn-into only for single-block context menus", () => {
+    expect(getBlockContextMenuActionIds(0)).toEqual([]);
+    expect(getBlockContextMenuActionIds(1)).toEqual(["turn-into", "duplicate", "delete"]);
+    expect(getBlockContextMenuActionIds(2)).toEqual(["duplicate", "delete"]);
   });
 });
