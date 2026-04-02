@@ -40,7 +40,7 @@ import {
 import {
   AlignToolbarButton,
   applyArticleEditorInsertItem,
-  type ArticleEditorInsertItem,
+  ArticleEditorInsertMenuContent,
   FontColorToolbarButton,
   FontSizeToolbarButton,
   getArticleEditorInsertGroups,
@@ -108,49 +108,33 @@ function RedoToolbarButton() {
   );
 }
 
-function InsertItemMenuEntry(props: { item: ArticleEditorInsertItem; onInserted?: () => void }) {
-  const editor = useEditorRef();
-  const commands = useArticleEditorCommands();
-  const Icon = props.item.icon;
-
-  return (
-    <ActionDropdownMenuItem
-      className="h-auto items-start gap-3 rounded-md px-3 py-2.5"
-      onClick={() => {
-        if (commands?.insertItem) {
-          commands.insertItem(editor, props.item.value);
-        } else {
-          applyArticleEditorInsertItem(editor, props.item.value);
-        }
-        editor.tf.focus();
-        props.onInserted?.();
-      }}
-    >
-      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/20 text-label-secondary">
-        <Icon className="size-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-footnote font-semibold text-label-primary">
-          {props.item.label}
-        </span>
-        <span className="mt-0.5 block text-left text-footnote text-label-secondary">
-          {props.item.description}
-        </span>
-      </span>
-    </ActionDropdownMenuItem>
-  );
-}
-
 function ArticleEditorInsertToolbarButton() {
   const { t } = useTranslation("content");
+  const editor = useEditorRef();
+  const commands = useArticleEditorCommands();
   const groups = getArticleEditorInsertGroups(t);
   const [open, setOpen] = React.useState(false);
+
+  const handleInsert = React.useCallback(
+    (value: string) => {
+      if (commands?.insertItem) {
+        commands.insertItem(editor, value);
+      } else {
+        applyArticleEditorInsertItem(editor, value);
+      }
+      editor.tf.focus();
+      setOpen(false);
+    },
+    [commands, editor],
+  );
 
   return (
     <ActionDropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}>
         <ActionDropdownMenuTrigger asChild>
           <ToolbarButton
+            isDropdown
+            dropdownMode="icon"
             pressed={open}
             tooltip={undefined}
             aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
@@ -160,21 +144,12 @@ function ArticleEditorInsertToolbarButton() {
           </ToolbarButton>
         </ActionDropdownMenuTrigger>
       </ToolbarTooltip>
-      <ActionDropdownMenuContent
+      <ArticleEditorInsertMenuContent
+        groups={groups}
+        onSelectItem={handleInsert}
         align="start"
-        className="ignore-click-outside/toolbar max-h-[30rem] min-w-[20rem] overflow-y-auto p-2"
-      >
-        {groups.map((group, index) => (
-          <div key={group.id} className={cn("border-border/70", index > 0 && "mt-2 border-t pt-2")}>
-            <div className="px-3 pb-1 text-caption font-semibold text-label-secondary">
-              {group.label}
-            </div>
-            {group.items.map((item) => (
-              <InsertItemMenuEntry key={item.value} item={item} onInserted={() => setOpen(false)} />
-            ))}
-          </div>
-        ))}
-      </ActionDropdownMenuContent>
+        className="ignore-click-outside/toolbar"
+      />
     </ActionDropdownMenu>
   );
 }
@@ -196,6 +171,7 @@ function MediaInsertToolbarButton(props: {
         <ActionDropdownMenuTrigger asChild>
           <ToolbarButton
             isDropdown
+            dropdownMode="icon"
             tooltip={undefined}
             onMouseDown={(event) => event.preventDefault()}
           >

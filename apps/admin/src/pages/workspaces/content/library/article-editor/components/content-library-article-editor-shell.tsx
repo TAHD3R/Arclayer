@@ -340,7 +340,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       onChange={(event) => props.onTitleChange(event.target.value)}
                       placeholder={t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER")}
                       className={cn(
-                        "w-full appearance-none border-none bg-transparent p-0 font-semibold  tracking-[-0.045em] text-label-primary outline-none placeholder:text-label-tertiary",
+                        "w-full appearance-none border-none bg-transparent p-0 font-semibold text-label-primary outline-none placeholder:text-label-tertiary",
                         props.mode === "page" ? "text-largetitle" : "text-title",
                       )}
                     />

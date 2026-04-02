@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { DndPlugin, useDraggable, useDropLine } from "@platejs/dnd";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { GripVertical, Plus, Search } from "lucide-react";
+import { GripVertical, Plus } from "lucide-react";
 import { type TElement, getPluginByType, isType, KEYS } from "platejs";
 import {
   type PlateEditor,
@@ -23,14 +23,9 @@ import {
   getArticleEditorInsertGroups,
 } from "../article-editor-insert-items";
 import { useArticleEditorCommands } from "../article-editor-command-context";
-import { Input } from "@arclayer/ui/input";
+import { ArticleEditorInsertMenuContent } from "../article-editor-insert-menu";
 import { Button } from "@arclayer/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger } from "@arclayer/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
@@ -82,25 +77,7 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
   const { t } = useTranslation("content");
   const commands = useArticleEditorCommands();
   const [open, setOpen] = React.useState(false);
-  const [query, setQuery] = React.useState("");
   const groups = React.useMemo(() => getArticleEditorInsertGroups(t), [t]);
-
-  const filteredGroups = React.useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return groups;
-
-    return groups
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) => {
-          const haystack = [item.label, item.description, ...(item.keywords ?? [])]
-            .join(" ")
-            .toLowerCase();
-          return haystack.includes(normalizedQuery);
-        }),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [groups, query]);
 
   const insertAtCurrentBlock = React.useCallback(
     (value: string) => {
@@ -115,7 +92,6 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
         applyArticleEditorInsertItem(props.editor, value);
       }
       setOpen(false);
-      setQuery("");
     },
     [commands, props.editor, props.path],
   );
@@ -125,9 +101,6 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (!nextOpen) {
-          setQuery("");
-        }
       }}
       modal={false}
     >
@@ -150,66 +123,15 @@ function BlockInsertMenu(props: { editor: PlateEditor; path: PlateElementProps["
         <TooltipContent>{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</TooltipContent>
       </Tooltip>
 
-      <DropdownMenuContent
+      <ArticleEditorInsertMenuContent
+        groups={groups}
+        onSelectItem={insertAtCurrentBlock}
         align="start"
         side="right"
         sideOffset={12}
-        className="w-[22rem] rounded-md border border-border p-0"
+        className="w-[16rem]"
         onCloseAutoFocus={(event) => event.preventDefault()}
-      >
-        <div className="border-b border-border/70 p-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
-            <Input
-              autoFocus
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t("CONTENT_LIBRARY_EDITOR_SLASH_SEARCH_PLACEHOLDER")}
-              className="h-9 border-0 bg-transparent pl-9 pr-3  focus-visible:ring-0"
-            />
-          </div>
-        </div>
-
-        <div className="max-h-[22rem] overflow-y-auto p-2">
-          {filteredGroups.length === 0 ? (
-            <div className="rounded-md px-3 py-2 text-footnote text-label-secondary">
-              {t("CONTENT_LIBRARY_EDITOR_INSERT_EMPTY")}
-            </div>
-          ) : (
-            filteredGroups.map((group) => (
-              <div key={group.id} className="py-1.5">
-                <div className="px-3 pb-1 text-caption font-semibold text-label-secondary">
-                  {group.label}
-                </div>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <DropdownMenuItem
-                        key={item.value}
-                        className="h-auto items-start gap-3 rounded-md px-3 py-2.5"
-                        onClick={() => insertAtCurrentBlock(item.value)}
-                      >
-                        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/20 text-label-secondary">
-                          <Icon className="size-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-footnote font-semibold text-label-primary">
-                            {item.label}
-                          </div>
-                          <div className="text-footnote text-label-secondary">
-                            {item.description}
-                          </div>
-                        </div>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </DropdownMenuContent>
+      />
     </DropdownMenu>
   );
 }

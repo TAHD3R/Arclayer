@@ -116,6 +116,7 @@ const dropdownArrowVariants = cva(
 );
 
 type ToolbarButtonProps = {
+  dropdownMode?: "icon" | "text";
   isDropdown?: boolean;
   pressed?: boolean;
 } & Omit<React.ComponentPropsWithoutRef<typeof ToolbarPrimitive.Button>, "asChild"> &
@@ -142,7 +143,17 @@ export const ToolbarButton = React.forwardRef<
   HTMLButtonElement,
   ToolbarButtonProps & ToolbarTooltipProps
 >(function ToolbarButton(
-  { children, className, isDropdown, pressed, size = "sm", tooltip, variant, ...props },
+  {
+    children,
+    className,
+    dropdownMode = "text",
+    isDropdown,
+    pressed,
+    size = "sm",
+    tooltip,
+    variant,
+    ...props
+  },
   ref,
 ) {
   return (
@@ -158,17 +169,31 @@ export const ToolbarButton = React.forwardRef<
           size,
           variant,
         }),
-        isDropdown && "justify-start gap-1.5 pr-1.5",
+        isDropdown &&
+          (dropdownMode === "icon"
+            ? "w-auto gap-1.5 px-2"
+            : "w-auto justify-between gap-2 pl-3 pr-2"),
         className,
       )}
       {...props}
     >
       {isDropdown ? (
         <>
-          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">{children}</div>
-          <div className="flex shrink-0 items-center">
+          <span
+            data-toolbar-dropdown-content={dropdownMode}
+            className={cn(
+              "flex items-center whitespace-nowrap",
+              dropdownMode === "icon" ? "shrink-0 justify-center" : "min-w-0 flex-1",
+            )}
+          >
+            {children}
+          </span>
+          <span
+            data-toolbar-dropdown-indicator=""
+            className="flex shrink-0 items-center justify-center"
+          >
             <ChevronDown className="size-3.5 text-label-secondary" data-icon />
-          </div>
+          </span>
         </>
       ) : (
         children
@@ -262,7 +287,7 @@ export const ToolbarToggleItem = React.forwardRef<
 export function ToolbarGroup({ children, className }: React.ComponentProps<"div">) {
   return (
     <div className={cn("group/toolbar-group", "relative hidden has-[button]:flex", className)}>
-      <div className="flex items-center">{children}</div>
+      <div className="flex items-center gap-1">{children}</div>
 
       <div className="group-last/toolbar-group:hidden! mx-1.5 py-0.5">
         <Separator orientation="vertical" />

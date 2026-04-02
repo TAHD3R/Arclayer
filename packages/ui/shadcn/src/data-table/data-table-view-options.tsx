@@ -135,7 +135,7 @@ export function DataTableViewOptions(props: {
 
         <DropdownCardBody className="space-y-3 px-3 pb-3 pt-2">
           <section className="rounded-[20px] border border-border/55 bg-card/35 p-2">
-            <div className="px-2 pb-2 text-caption font-semibold  tracking-[0.16em] text-label-secondary">
+            <div className="px-2 pb-2 text-caption font-semibold text-label-secondary">
               {props.labels.rowHeightTitle}
             </div>
             <div className="grid grid-cols-2 gap-1.5">
@@ -151,7 +151,7 @@ export function DataTableViewOptions(props: {
           </section>
 
           <section className="rounded-[20px] border border-border/55 bg-card/35 p-2">
-            <div className="px-2 pb-2 text-caption font-semibold  tracking-[0.16em] text-label-secondary">
+            <div className="px-2 pb-2 text-caption font-semibold text-label-secondary">
               {props.labels.headerOptions}
             </div>
             <OptionCard
@@ -174,7 +174,7 @@ export function DataTableViewOptions(props: {
           </section>
 
           <section className="rounded-[20px] border border-border/55 bg-card/35 p-2">
-            <div className="px-2 pb-2 text-caption font-semibold  tracking-[0.16em] text-label-secondary">
+            <div className="px-2 pb-2 text-caption font-semibold  text-label-secondary">
               {props.labels.tableSettings}
             </div>
             <div className="grid gap-1.5">

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { KEYS } from "platejs";
 
+import {
+  ARTICLE_EDITOR_INSERT_LINK,
+  ARTICLE_EDITOR_INSERT_TOGGLE,
+  filterArticleEditorInsertGroups,
+  getArticleEditorInsertGroups,
+} from "../../../../../../packages/ui/shadcn/src/editor/article-editor-insert-groups";
 import {
   isEditorDocumentHydrated,
   shouldApplyExternalDocumentSync,
@@ -111,5 +118,38 @@ describe("content-library-editor-primitives", () => {
     expect(resolveLineHeightOptions([], "1.75")).toEqual(["1", "1.25", "1.5", "2", "1.75"]);
     expect(resolveLineHeightOptions(["1", "1.5", "1.5", "2"], "1.5")).toEqual(["1", "1.5", "2"]);
     expect(resolveLineHeightOptions(undefined, " 1.5 ")).toEqual(["1", "1.25", "1.5", "2"]);
+  });
+
+  it("separates list inserts into their own group and exposes link in inline inserts", () => {
+    const groups = getArticleEditorInsertGroups((key) => key);
+
+    expect(groups.map((group) => group.id)).toEqual([
+      "basic",
+      "lists",
+      "media",
+      "advanced",
+      "inline",
+    ]);
+    expect(groups.find((group) => group.id === "lists")?.items.map((item) => item.value)).toEqual([
+      KEYS.ul,
+      KEYS.ol,
+      KEYS.listTodo,
+      ARTICLE_EDITOR_INSERT_TOGGLE,
+    ]);
+    expect(
+      groups
+        .find((group) => group.id === "inline")
+        ?.items.some((item) => item.value === ARTICLE_EDITOR_INSERT_LINK),
+    ).toBe(true);
+  });
+
+  it("filters insert groups by label, description, and keywords", () => {
+    const groups = getArticleEditorInsertGroups((key) => key);
+
+    const filtered = filterArticleEditorInsertGroups(groups, "hyperlink");
+
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.id).toBe("inline");
+    expect(filtered[0]?.items.map((item) => item.value)).toEqual([ARTICLE_EDITOR_INSERT_LINK]);
   });
 });

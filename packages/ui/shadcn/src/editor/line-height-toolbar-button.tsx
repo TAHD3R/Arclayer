@@ -77,6 +77,7 @@ export function LineHeightToolbarButton() {
             pressed={open}
             tooltip={undefined}
             isDropdown
+            dropdownMode="icon"
             onMouseDown={(event) => {
               event.preventDefault();
               selectionRef.current = captureEditorSelection(editor);

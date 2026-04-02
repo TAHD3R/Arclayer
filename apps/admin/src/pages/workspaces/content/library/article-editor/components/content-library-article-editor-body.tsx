@@ -5,14 +5,14 @@ import { cn } from "@arclayer/lib/utils";
 
 export function getContentLibraryArticleEditorTextLaneClass(mode: "split" | "page") {
   return mode === "page"
-    ? "mx-auto flex w-full max-w-[72rem] flex-col px-6 pb-12 md:px-10 xl:px-14"
-    : "mx-auto flex w-full max-w-[56rem] flex-col px-6 pb-10 md:px-10 xl:px-12";
+    ? "mx-auto flex w-full max-w-[72rem] flex-col px-6  md:px-10 xl:px-14"
+    : "mx-auto flex w-full max-w-[56rem] flex-col px-5  md:px-8 xl:px-10";
 }
 
 export function getContentLibraryArticleEditorBodyEditorClass(mode: "split" | "page") {
   return mode === "page"
     ? "-ml-[3.75rem] scroll-pb-40 pb-40 pl-[4.25rem] pt-4 text-body"
-    : "-ml-[2.5rem] scroll-pb-32 pb-32 pl-[3.25rem] pt-0 text-body";
+    : "-ml-[3.25rem] scroll-pb-32 pb-32 pl-[3.75rem] pt-0 text-body";
 }
 
 export function ContentLibraryArticleEditorBody(props: {

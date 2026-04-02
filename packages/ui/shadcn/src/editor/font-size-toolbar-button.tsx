@@ -6,7 +6,7 @@ import type { TElement } from "platejs";
 
 import { toUnitLess } from "@platejs/basic-styles";
 import { FontSizePlugin } from "@platejs/basic-styles/react";
-import { ChevronDown, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { KEYS } from "platejs";
 import { useEditorPlugin, useEditorSelector } from "platejs/react";
 
@@ -123,7 +123,7 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
             <ToolbarButton
               size="sm"
               pressed={open}
-              className="min-w-11 shrink-0 gap-1 px-1"
+              className="min-w-11 shrink-0 justify-center px-1 tabular-nums"
               tooltip={undefined}
               data-plate-focus="true"
               onMouseDown={(event) => {
@@ -132,7 +132,6 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
               }}
             >
               <span>{toUnitLess(cursorFontSize)}</span>
-              <ChevronDown className="size-3 text-label-secondary" />
             </ToolbarButton>
           </DropdownMenuTrigger>
         </ToolbarTooltip>

@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { DndPlugin } from "@platejs/dnd";
+import { LinkPlugin, triggerFloatingLinkInsert } from "@platejs/link/react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
 import { normalizeNodeId, type Value } from "platejs";
 import { Plate, usePlateEditor } from "platejs/react";
@@ -21,6 +22,7 @@ import {
   ARTICLE_EDITOR_INSERT_AUDIO,
   ARTICLE_EDITOR_INSERT_FILE,
   ARTICLE_EDITOR_INSERT_IMAGE,
+  ARTICLE_EDITOR_INSERT_LINK,
   ARTICLE_EDITOR_INSERT_VIDEO,
   ArticleEditorCommandProvider,
   AutoformatKit,
@@ -250,6 +252,15 @@ export function ContentLibraryArticleEditorDocumentProvider(
               : "file",
         open: true,
         url: "",
+      });
+      return;
+    }
+
+    if (value === ARTICLE_EDITOR_INSERT_LINK) {
+      activeEditor.tf.focus();
+      window.requestAnimationFrame(() => {
+        activeEditor.getApi(LinkPlugin).floatingLink.show("insert", activeEditor.id);
+        triggerFloatingLinkInsert(activeEditor, { focused: true });
       });
       return;
     }
