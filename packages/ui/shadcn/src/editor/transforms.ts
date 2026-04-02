@@ -1,5 +1,6 @@
 "use client";
 
+import { BlockSelectionPlugin } from "@platejs/selection/react";
 import type { PlateEditor } from "platejs/react";
 
 import { type NodeEntry, type Path, type Range, type TElement, KEYS, PathApi } from "platejs";
@@ -44,27 +45,58 @@ function cloneSelection(selection: Range | null | undefined) {
   return JSON.parse(JSON.stringify(selection)) as Range;
 }
 
+export type EditorSelectionSnapshot = {
+  blockSelectionIds: string[];
+  selection: Range | null;
+};
+
+function cloneSelectionSnapshot(selection: EditorSelectionSnapshot | null | undefined) {
+  if (!selection) return null;
+
+  return {
+    blockSelectionIds: [...selection.blockSelectionIds],
+    selection: cloneSelection(selection.selection),
+  } satisfies EditorSelectionSnapshot;
+}
+
 export function captureEditorSelection(editor: PlateEditor) {
-  return cloneSelection(editor.selection);
+  const selectedIds = editor.getOption(BlockSelectionPlugin, "selectedIds") as
+    | Set<string>
+    | undefined;
+
+  return {
+    blockSelectionIds: selectedIds ? Array.from(selectedIds) : [],
+    selection: cloneSelection(editor.selection),
+  } satisfies EditorSelectionSnapshot;
 }
 
 export function restoreEditorSelection(
   editor: PlateEditor,
-  selection: Range | null | undefined,
+  selection: EditorSelectionSnapshot | null | undefined,
   options: {
     focus?: boolean;
     restoreSelection?: boolean;
   } = {},
 ) {
   const { focus = true, restoreSelection = true } = options;
-  const nextSelection = cloneSelection(selection);
+  const nextSelection = cloneSelectionSnapshot(selection);
+  const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
+  const hasBlockSelection = (nextSelection?.blockSelectionIds.length ?? 0) > 0;
 
   if (restoreSelection && nextSelection) {
-    editor.tf.select(nextSelection as never);
+    if (hasBlockSelection) {
+      blockSelectionApi.set(nextSelection.blockSelectionIds);
+    } else if (nextSelection.selection) {
+      editor.tf.select(nextSelection.selection as never);
+    }
   }
 
   if (focus) {
-    editor.tf.focus();
+    if (restoreSelection && hasBlockSelection) {
+      blockSelectionApi.focus();
+    } else {
+      editor.tf.focus();
+    }
   }
 
   return nextSelection;
@@ -72,17 +104,19 @@ export function restoreEditorSelection(
 
 export function runEditorTransformPreservingSelection(
   editor: PlateEditor,
-  transform: (selection: Range | null) => void,
+  transform: (selection: EditorSelectionSnapshot | null) => void,
   options: {
     focus?: boolean;
     restoreSelection?: boolean;
-    selection?: Range | null;
+    selection?: EditorSelectionSnapshot | null;
   } = {},
 ) {
-  const selection = cloneSelection(options.selection ?? captureEditorSelection(editor));
+  const selection = cloneSelectionSnapshot(options.selection ?? captureEditorSelection(editor));
 
-  if (selection) {
-    editor.tf.select(selection as never);
+  if (selection?.blockSelectionIds.length) {
+    editor.getApi(BlockSelectionPlugin).blockSelection.set(selection.blockSelectionIds);
+  } else if (selection?.selection) {
+    editor.tf.select(selection.selection as never);
   }
 
   transform(selection);

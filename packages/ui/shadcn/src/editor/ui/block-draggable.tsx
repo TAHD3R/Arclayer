@@ -8,6 +8,7 @@ import {
   BlockSelectionPlugin,
   useBlockSelectable,
   useBlockSelected,
+  useIsSelecting,
 } from "@platejs/selection/react";
 import { GripVertical, Plus } from "lucide-react";
 import { type TElement, getPluginByType, isType, KEYS } from "platejs";
@@ -17,10 +18,10 @@ import {
   type RenderNodeWrapper,
   MemoizedChildren,
   useEditorRef,
+  useEditorSelector,
   useElement,
   usePluginOption,
 } from "platejs/react";
-import { useSelected } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -35,6 +36,27 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
 
 const UNDRAGGABLE_KEYS = [KEYS.column, KEYS.tr, KEYS.td];
+const INDENT_OFFSET_PX = 24;
+
+function getBlockWrapperStyle(element: TElement): React.CSSProperties {
+  const isListItem =
+    ("listStyleType" in element && typeof element.listStyleType === "string") ||
+    ("checked" in element && typeof element.checked === "boolean");
+
+  const indent =
+    !isListItem && "indent" in element && typeof element.indent === "number"
+      ? element.indent
+      : undefined;
+  const indentOffset = indent && indent > 0 ? indent * INDENT_OFFSET_PX : 0;
+
+  return {
+    width: "calc(100% + var(--article-editor-inline-padding, 0px) * 2)",
+    marginLeft: `calc(var(--article-editor-inline-padding, 0px) * -1 + ${indentOffset}px)`,
+    marginRight: "calc(var(--article-editor-inline-padding, 0px) * -1)",
+    paddingLeft: "var(--article-editor-inline-padding, 0px)",
+    paddingRight: "var(--article-editor-inline-padding, 0px)",
+  };
+}
 
 export const BlockDraggable: RenderNodeWrapper = (props) => {
   const { editor, element, path } = props;
@@ -321,11 +343,12 @@ function Draggable(props: PlateElementProps) {
         data-block-id={element.id ? String(element.id) : undefined}
         data-plate-selectable="true"
         className={cn(
-          "slate-blockWrapper relative isolate my-0.5 flow-root w-full rounded-md py-1 transition-colors",
+          "slate-blockWrapper relative isolate my-0.5 w-full rounded-md transition-colors",
           selectable.props.className,
           blockSelected &&
-            "before:pointer-events-none before:absolute before:inset-x-0 before:inset-y-0.5 before:-z-10 before:rounded-md before:bg-brand/8 before:ring-1 before:ring-brand/20 before:content-['']",
+            "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-md before:bg-brand/8 before:ring-1 before:ring-brand/20 before:content-['']",
         )}
+        style={getBlockWrapperStyle(element)}
         onContextMenu={(event) => {
           event.preventDefault();
           selectable.props.onContextMenu?.(event);
@@ -347,8 +370,12 @@ function Draggable(props: PlateElementProps) {
 function Gutter({ children, className, ...props }: React.ComponentProps<"div">) {
   const editor = useEditorRef();
   const element = useElement();
+  const hasExpandedSelection = useEditorSelector(
+    (currentEditor) => currentEditor.api.isExpanded(),
+    [],
+  );
+  const isSelecting = useIsSelecting();
   const isSelectionAreaVisible = usePluginOption(BlockSelectionPlugin, "isSelectionAreaVisible");
-  const selected = useSelected();
   const blockSelected = useBlockSelected();
 
   return (
@@ -360,8 +387,9 @@ function Gutter({ children, className, ...props }: React.ComponentProps<"div">) 
         getPluginByType(editor, element.type)?.node.isContainer
           ? "group-hover/container:opacity-100"
           : "group-hover:opacity-100",
-        isSelectionAreaVisible && "hidden",
-        (selected || blockSelected) && "opacity-100",
+        (isSelectionAreaVisible || (isSelecting && !blockSelected) || hasExpandedSelection) &&
+          "hidden",
+        blockSelected && "opacity-100",
         className,
       )}
       contentEditable={false}
@@ -527,10 +555,7 @@ const calculatePreviewTop = (
 };
 
 const calcDragButtonTop = (editor: PlateEditor, element: TElement): number => {
-  const child = editor.api.toDOMNode(element)!;
-
-  const currentMarginTopString = window.getComputedStyle(child).marginTop;
-  const currentMarginTop = Number(currentMarginTopString.replace("px", ""));
-
-  return currentMarginTop;
+  void editor;
+  void element;
+  return 0;
 };

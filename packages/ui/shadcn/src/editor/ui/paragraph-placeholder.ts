@@ -1,4 +1,4 @@
-import { KEYS, NodeApi, PathApi, type Path } from "platejs";
+import { KEYS, NodeApi, PathApi, type Path, type Range } from "platejs";
 import type { PlateEditor } from "platejs/react";
 
 function isElementLike(value: unknown): value is { children?: unknown[]; type?: string } {
@@ -17,10 +17,24 @@ function isTodoListStyle(value: unknown) {
   return value === "todo" || value === KEYS.listTodo;
 }
 
+function hasListStyle(value: unknown) {
+  return typeof value === "string" && value.length > 0;
+}
+
 export function hasSlashInputChild(element: unknown) {
   if (!isElementLike(element) || !Array.isArray(element.children)) return false;
 
   return element.children.some((child) => isElementLike(child) && child.type === "slash_input");
+}
+
+function isExpandedSelection(selection: Range | null | undefined) {
+  if (!selection) return false;
+
+  const { anchor, focus } = selection;
+  if (anchor.offset !== focus.offset) return true;
+  if (anchor.path.length !== focus.path.length) return true;
+
+  return anchor.path.some((segment, index) => segment !== focus.path[index]);
 }
 
 export function shouldShowParagraphPlaceholder(params: {
@@ -30,8 +44,26 @@ export function shouldShowParagraphPlaceholder(params: {
   path?: Path;
   selected: boolean;
 }) {
+  const hasExpandedSelection =
+    Boolean(params.editor?.api?.isExpanded?.()) || isExpandedSelection(params.editor?.selection);
+  const isSelectingBlocks =
+    params.editor && "getOption" in params.editor && typeof params.editor.getOption === "function"
+      ? Boolean(params.editor.getOption({ key: KEYS.blockSelection }, "isSelectingSome"))
+      : false;
+
   if (!params.focused || !params.selected) return false;
+  if (hasExpandedSelection || isSelectingBlocks) {
+    return false;
+  }
   if (hasSlashInputChild(params.element)) return false;
+  if (params.editor && params.path) {
+    const isOnlyRootParagraph =
+      params.path.length === 1 && params.path[0] === 0 && params.editor.children.length === 1;
+
+    if (!isOnlyRootParagraph) {
+      return false;
+    }
+  }
   if (params.editor && params.path) {
     let currentPath = params.path;
     while (currentPath.length > 0) {
@@ -42,7 +74,9 @@ export function shouldShowParagraphPlaceholder(params: {
       const [parentNode] = parentEntry;
       if (
         isTodoElement(parentNode) &&
-        (typeof parentNode.checked === "boolean" || isTodoListStyle(parentNode.listStyleType))
+        (typeof parentNode.checked === "boolean" ||
+          isTodoListStyle(parentNode.listStyleType) ||
+          hasListStyle(parentNode.listStyleType))
       ) {
         return false;
       }
@@ -52,7 +86,9 @@ export function shouldShowParagraphPlaceholder(params: {
   }
   if (
     isTodoElement(params.element) &&
-    (typeof params.element.checked === "boolean" || isTodoListStyle(params.element.listStyleType))
+    (typeof params.element.checked === "boolean" ||
+      isTodoListStyle(params.element.listStyleType) ||
+      hasListStyle(params.element.listStyleType))
   ) {
     return false;
   }

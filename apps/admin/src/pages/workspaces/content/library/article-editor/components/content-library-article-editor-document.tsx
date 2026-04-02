@@ -39,6 +39,7 @@ import {
 
 const DEFAULT_PLATE_VALUE: Value = normalizeNodeId([{ type: "p", children: [{ text: "" }] }]);
 const DEFAULT_MEDIA_WIDTH = 720;
+const TERMINAL_BLOCKS_REQUIRING_TRAILING_PARAGRAPH = new Set(["hr", "table"]);
 
 type MediaInsertKind = "audio" | "file" | "image" | "video";
 
@@ -80,9 +81,18 @@ function normalizeDocument(document: Record<string, unknown> | undefined): Recor
 function toPlateValue(document: Record<string, unknown> | undefined): Value {
   const normalizedDocument = normalizeDocument(document);
   const content = normalizedDocument.content;
-  return Array.isArray(content) && content.length > 0
-    ? normalizeNodeId(content as Value)
-    : DEFAULT_PLATE_VALUE;
+  if (!Array.isArray(content) || content.length === 0) {
+    return DEFAULT_PLATE_VALUE;
+  }
+
+  const normalizedValue = normalizeNodeId(content as Value);
+  const lastBlock = normalizedValue.at(-1) as { type?: string } | undefined;
+
+  if (!lastBlock?.type || !TERMINAL_BLOCKS_REQUIRING_TRAILING_PARAGRAPH.has(lastBlock.type)) {
+    return normalizedValue;
+  }
+
+  return normalizeNodeId([...normalizedValue, { type: "p", children: [{ text: "" }] }]);
 }
 
 function toStoredDocument(value: Value): Record<string, unknown> {

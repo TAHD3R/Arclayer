@@ -1,12 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import { KEYS } from "platejs";
 
+vi.mock("katex/dist/katex.min.css", () => ({}));
+vi.mock("@platejs/math", () => ({
+  insertEquation: vi.fn(),
+  insertInlineEquation: vi.fn(),
+}));
+
 import {
   ARTICLE_EDITOR_INSERT_LINK,
   ARTICLE_EDITOR_INSERT_TOGGLE,
   filterArticleEditorInsertGroups,
   getArticleEditorInsertGroups,
 } from "../../../../../../packages/ui/shadcn/src/editor/article-editor-insert-groups";
+import {
+  insertArticleEditorTable,
+  insertHorizontalRule,
+  insertToggleBlock,
+} from "../../../../../../packages/ui/shadcn/src/editor/article-editor-insert-items";
 import {
   isEditorDocumentHydrated,
   shouldApplyExternalDocumentSync,
@@ -17,6 +28,11 @@ import {
   shouldShowParagraphPlaceholder,
 } from "../../../../../../packages/ui/shadcn/src/editor/ui/paragraph-placeholder";
 import {
+  captureEditorSelection,
+  restoreEditorSelection,
+} from "../../../../../../packages/ui/shadcn/src/editor/transforms";
+import { toggleToolbarMark } from "../../../../../../packages/ui/shadcn/src/editor/mark-toolbar-utils";
+import {
   applyTurnInto,
   getTurnIntoValue,
 } from "../../../../../../packages/ui/shadcn/src/editor/turn-into-helpers";
@@ -25,6 +41,7 @@ import {
   isArticleEditorBlockSelectable,
 } from "../../../../../../packages/ui/shadcn/src/editor/block-menu-helpers";
 import { getContentLibraryArticleEditorBodyEditorClass } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body-layout";
+import { exitEmptyToggle } from "../../../../../../packages/ui/shadcn/src/editor/toggle-plugin-helpers";
 
 describe("content-library-editor-primitives", () => {
   it("does not treat a locally echoed document update as an external rehydrate", () => {
@@ -96,6 +113,49 @@ describe("content-library-editor-primitives", () => {
     ).toBe(false);
   });
 
+  it("suppresses the paragraph placeholder while an expanded text selection exists", () => {
+    const editor = {
+      getOption: () => false,
+      selection: {
+        anchor: { offset: 0, path: [0, 0] },
+        focus: { offset: 1, path: [0, 0] },
+      },
+    };
+
+    expect(
+      shouldShowParagraphPlaceholder({
+        editor: editor as never,
+        element: {
+          children: [{ text: "" }],
+          type: "p",
+        },
+        focused: true,
+        selected: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("suppresses the paragraph placeholder while block selection is active", () => {
+    const editor = {
+      api: {
+        isExpanded: () => false,
+      },
+      getOption: (_plugin: unknown, key: string) => key === "isSelectingSome",
+    };
+
+    expect(
+      shouldShowParagraphPlaceholder({
+        editor: editor as never,
+        element: {
+          children: [{ text: "" }],
+          type: "p",
+        },
+        focused: true,
+        selected: true,
+      }),
+    ).toBe(false);
+  });
+
   it("suppresses the paragraph placeholder inside todo list items", () => {
     const editor = {
       api: {
@@ -127,6 +187,56 @@ describe("content-library-editor-primitives", () => {
     expect(resolveLineHeightOptions([], "1.75")).toEqual(["1", "1.25", "1.5", "2", "1.75"]);
     expect(resolveLineHeightOptions(["1", "1.5", "1.5", "2"], "1.5")).toEqual(["1", "1.5", "2"]);
     expect(resolveLineHeightOptions(undefined, " 1.5 ")).toEqual(["1", "1.25", "1.5", "2"]);
+  });
+
+  it("captures and restores block selection ids alongside editor selection", () => {
+    const set = vi.fn();
+    const focus = vi.fn();
+    const select = vi.fn();
+    const editor = {
+      getApi: () => ({
+        blockSelection: {
+          focus,
+          set,
+        },
+      }),
+      getOption: (_plugin: unknown, key: string) =>
+        key === "selectedIds" ? new Set(["block-1", "block-2"]) : undefined,
+      selection: null,
+      tf: {
+        focus: vi.fn(),
+        select,
+      },
+    };
+
+    const snapshot = captureEditorSelection(editor as never);
+
+    expect(snapshot).toEqual({
+      blockSelectionIds: ["block-1", "block-2"],
+      selection: null,
+    });
+
+    restoreEditorSelection(editor as never, snapshot);
+
+    expect(set).toHaveBeenCalledWith(["block-1", "block-2"]);
+    expect(focus).toHaveBeenCalledOnce();
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it("toggles toolbar marks through the single-mark transform pipeline", () => {
+    const toggleMark = vi.fn();
+    const editor = {
+      tf: {
+        toggleMark,
+      },
+    };
+
+    toggleToolbarMark(editor as never, {
+      clear: [KEYS.italic],
+      nodeType: KEYS.bold,
+    });
+
+    expect(toggleMark).toHaveBeenCalledWith(KEYS.bold, { remove: [KEYS.italic] });
   });
 
   it("separates list inserts into their own group and exposes link in inline inserts", () => {
@@ -265,5 +375,125 @@ describe("content-library-editor-primitives", () => {
     expect(getBlockContextMenuActionIds(0)).toEqual([]);
     expect(getBlockContextMenuActionIds(1)).toEqual(["turn-into", "duplicate", "delete"]);
     expect(getBlockContextMenuActionIds(2)).toEqual(["duplicate", "delete"]);
+  });
+
+  it("inserts a trailing paragraph after a horizontal rule at the document end", () => {
+    const insertBlockMock = vi.fn();
+    const insertNodes = vi.fn();
+    const editor = {
+      api: {
+        block: vi.fn(() => [{ id: "hr-1", type: KEYS.hr }, [1]]),
+        create: {
+          block: vi.fn(() => ({ type: KEYS.p })),
+        },
+        node: vi.fn(() => null),
+      },
+      tf: {
+        insertNodes,
+      },
+    };
+
+    insertHorizontalRule(editor as never, { insertBlock: insertBlockMock as never });
+
+    expect(insertNodes).toHaveBeenCalledWith({ type: KEYS.p }, { at: [2], select: true });
+  });
+
+  it("inserts a trailing paragraph after a table at the document end", () => {
+    const insertNodes = vi.fn();
+    const editor = {
+      api: {
+        above: vi.fn(() => [{ id: "table-1", type: KEYS.table }, [3]]),
+        create: {
+          block: vi.fn(() => ({ type: KEYS.p })),
+        },
+        node: vi.fn(() => null),
+      },
+      getType: vi.fn((value: string) => value),
+      tf: {
+        insertNodes,
+      },
+    };
+
+    insertArticleEditorTable(editor as never, { insertTable: vi.fn() as never });
+
+    expect(insertNodes).toHaveBeenCalledWith({ type: KEYS.p }, { at: [4], select: true });
+  });
+
+  it("inserts a toggle block from the next empty paragraph when the current block has content", () => {
+    const select = vi.fn();
+    const insertNodes = vi.fn();
+    const toggleBlock = vi.fn();
+    const collapse = vi.fn();
+    const toggleIds = vi.fn();
+    const editor = {
+      api: {
+        block: vi
+          .fn()
+          .mockReturnValueOnce([{ id: "p-1", type: KEYS.p, children: [{ text: "hello" }] }, [0]])
+          .mockReturnValueOnce([{ id: "toggle-1", type: KEYS.toggle }, [1]]),
+        isEmpty: vi.fn(() => false),
+        start: vi.fn(() => ({ offset: 0, path: [1, 0] })),
+        create: {
+          block: vi.fn(() => ({ type: KEYS.p })),
+        },
+      },
+      getApi: vi.fn(() => ({
+        toggle: {
+          toggleIds,
+        },
+      })),
+      getType: vi.fn((value: string) => value),
+      tf: {
+        collapse,
+        insertNodes,
+        select,
+        toggleBlock,
+        withoutNormalizing: (fn: () => void) => fn(),
+      },
+    };
+
+    insertToggleBlock(editor as never, { openNextToggles: vi.fn() as never });
+
+    expect(insertNodes).toHaveBeenCalledWith({ type: KEYS.p }, { at: [1], select: true });
+    expect(select).toHaveBeenCalledWith({ offset: 0, path: [1, 0] });
+    expect(toggleBlock).toHaveBeenCalledWith(KEYS.toggle);
+    expect(collapse).toHaveBeenCalledOnce();
+    expect(toggleIds).toHaveBeenCalledWith(["toggle-1"], true);
+  });
+
+  it("exits an empty toggle by resetting it to a paragraph and reducing indent", () => {
+    const focus = vi.fn();
+    const collapse = vi.fn();
+    const setNodes = vi.fn();
+    const toggleIds = vi.fn();
+    const editor = {
+      api: {
+        block: vi.fn(() => [
+          { id: "toggle-1", indent: 2, type: KEYS.toggle, children: [{ text: "" }] },
+          [2],
+        ]),
+        isEmpty: vi.fn(() => true),
+      },
+      getApi: vi.fn(() => ({
+        toggle: {
+          toggleIds,
+        },
+      })),
+      getType: vi.fn((value: string) => value),
+      tf: {
+        collapse,
+        focus,
+        setNodes,
+        unsetNodes: vi.fn(),
+        withoutNormalizing: (fn: () => void) => fn(),
+      },
+    };
+
+    expect(exitEmptyToggle(editor as never)).toBe(true);
+    expect(setNodes).toHaveBeenNthCalledWith(1, { type: KEYS.p }, { at: [2] });
+    expect(setNodes).toHaveBeenNthCalledWith(2, { indent: 1 }, { at: [2] });
+    expect(toggleIds).toHaveBeenCalledWith(["toggle-1"], false);
+    expect(collapse).toHaveBeenCalledOnce();
+    expect(focus).toHaveBeenCalledOnce();
   });
 });

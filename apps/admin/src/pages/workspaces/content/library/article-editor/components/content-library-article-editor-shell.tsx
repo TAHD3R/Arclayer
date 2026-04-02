@@ -250,9 +250,10 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
           <div
             ref={scrollContainerRef}
             data-article-editor-scroll-root="true"
+            data-plate-selectable="true"
             className="relative flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain scroll-pb-32"
           >
-            <div className="flex min-h-full w-full flex-col">
+            <div data-plate-selectable="true" className="flex min-h-full w-full flex-col">
               {coverImageUrl ? (
                 <div className="w-full">
                   <div className="group/cover relative overflow-hidden border-b border-border/70 bg-muted/20">

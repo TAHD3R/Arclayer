@@ -3,6 +3,7 @@ import { insertEmptyCodeBlock } from "@platejs/code-block";
 import { insertDate } from "@platejs/date";
 import { insertColumnGroup } from "@platejs/layout";
 import { insertEquation, insertInlineEquation } from "@platejs/math";
+import { TogglePlugin, openNextToggles } from "@platejs/toggle/react";
 import { insertToc } from "@platejs/toc";
 import { indentTodo, outdentList, someTodoList, toggleList } from "@platejs/list";
 import { insertTable } from "@platejs/table";
@@ -80,6 +81,93 @@ export function insertTodoList(editor: PlateEditor, checked = false) {
   });
 }
 
+function ensureTrailingParagraph(
+  editor: PlateEditor,
+  path: number[],
+  options: {
+    select?: boolean;
+  } = {},
+) {
+  const nextPath = PathApi.next(path);
+  if (editor.api.node(nextPath)) return;
+
+  editor.tf.insertNodes(editor.api.create.block({ type: KEYS.p }), {
+    at: nextPath,
+    select: options.select,
+  });
+}
+
+export function insertHorizontalRule(
+  editor: PlateEditor,
+  deps: {
+    insertBlock?: typeof insertBlock;
+  } = {},
+) {
+  (deps.insertBlock ?? insertBlock)(editor, KEYS.hr);
+
+  const insertedBlock = editor.api.block();
+  if (!insertedBlock) return;
+
+  ensureTrailingParagraph(editor, insertedBlock[1], { select: true });
+}
+
+export function insertArticleEditorTable(
+  editor: PlateEditor,
+  deps: {
+    insertTable?: typeof insertTable;
+  } = {},
+) {
+  (deps.insertTable ?? insertTable)(editor, { colCount: 3, header: true, rowCount: 3 });
+
+  const tableEntry = editor.api.above({ match: { type: editor.getType(KEYS.table) } });
+  if (!tableEntry) return;
+
+  ensureTrailingParagraph(editor, tableEntry[1], { select: true });
+}
+
+export function insertToggleBlock(
+  editor: PlateEditor,
+  deps: {
+    openNextToggles?: typeof openNextToggles;
+  } = {},
+) {
+  const currentBlockEntry = editor.api.block();
+  if (!currentBlockEntry) return;
+
+  const [currentBlock, currentPath] = currentBlockEntry;
+
+  editor.tf.withoutNormalizing(() => {
+    let targetPath = currentPath;
+
+    if (!editor.api.isEmpty(currentBlock)) {
+      targetPath = PathApi.next(currentPath);
+      editor.tf.insertNodes(editor.api.create.block({ type: KEYS.p }), {
+        at: targetPath,
+        select: true,
+      });
+    }
+
+    const start = editor.api.start(targetPath);
+    if (start) {
+      editor.tf.select(start);
+    }
+
+    (deps.openNextToggles ?? openNextToggles)(editor);
+    editor.tf.toggleBlock(KEYS.toggle);
+    editor.tf.collapse();
+
+    const toggleEntry = editor.api.block();
+    const toggleId =
+      toggleEntry && toggleEntry[0].type === editor.getType(KEYS.toggle)
+        ? String(toggleEntry[0].id ?? "")
+        : "";
+
+    if (toggleId) {
+      editor.getApi(TogglePlugin).toggle.toggleIds([toggleId], true);
+    }
+  });
+}
+
 export function applyArticleEditorInsertItem(editor: PlateEditor, value: string) {
   if (value === KEYS.ul || value === KEYS.ol) {
     toggleList(editor, { listStyleType: value });
@@ -99,8 +187,18 @@ export function applyArticleEditorInsertItem(editor: PlateEditor, value: string)
     return;
   }
 
+  if (value === KEYS.hr) {
+    insertHorizontalRule(editor);
+    return;
+  }
+
+  if (value === KEYS.toggle) {
+    insertToggleBlock(editor);
+    return;
+  }
+
   if (value === ARTICLE_EDITOR_INSERT_TABLE) {
-    insertTable(editor, { colCount: 3, header: true, rowCount: 3 });
+    insertArticleEditorTable(editor);
     return;
   }
 

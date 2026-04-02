@@ -22,10 +22,7 @@ export function ParagraphElement(props: PlateElementProps) {
   });
 
   return (
-    <PlateElement
-      {...props}
-      className={cn("relative m-0 min-h-[1.5em] px-0 py-1", props.className)}
-    >
+    <PlateElement {...props} className={cn("relative m-0 min-h-[1.5em] px-0", props.className)}>
       {showPlaceholder ? (
         <span
           contentEditable={false}

@@ -20,9 +20,13 @@ export function ContentLibraryArticleEditorBody(props: {
   return (
     <div
       data-testid="content-library-article-editor-body"
+      data-plate-selectable="true"
+      data-article-editor-selection-surface="true"
       className={cn("flex w-full flex-col", props.className)}
     >
       <EditorContainer
+        data-plate-selectable="true"
+        data-article-editor-selection-surface="true"
         className={cn(
           "h-auto flex-none flex-col overflow-visible bg-transparent",
           getContentLibraryArticleEditorTextLaneClass(props.mode),
@@ -36,7 +40,7 @@ export function ContentLibraryArticleEditorBody(props: {
             getContentLibraryArticleEditorBodyEditorClass(props.mode),
           )}
           data-plate-selectable="true"
-          placeholder={props.placeholder}
+          data-article-editor-selection-surface="true"
           variant="none"
         />
       </EditorContainer>

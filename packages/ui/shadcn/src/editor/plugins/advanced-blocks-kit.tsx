@@ -36,6 +36,7 @@ import {
 } from "../ui/table-node";
 import { ToggleElement } from "../ui/toggle-node";
 import { TocElement } from "../ui/toc-node";
+import { exitEmptyToggle } from "../toggle-plugin-helpers";
 
 export const AdvancedBlocksKit = [
   LinkPlugin.configure({
@@ -52,7 +53,14 @@ export const AdvancedBlocksKit = [
   }),
   TogglePlugin.configure({
     node: { component: ToggleElement },
-  }),
+  }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
+    transforms: {
+      insertBreak() {
+        if (exitEmptyToggle(editor)) return;
+        insertBreak();
+      },
+    },
+  })),
   CodeBlockPlugin.configure({
     node: { component: CodeBlockElement },
   }),

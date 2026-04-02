@@ -21,7 +21,6 @@ import {
 } from "platejs/react";
 
 import { Button } from "@arclayer/ui/button";
-import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@arclayer/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { cn } from "@arclayer/lib/utils";
 
@@ -168,10 +167,10 @@ function EquationPopoverContent({
       className="w-[min(36rem,calc(100vw-2rem))] overflow-hidden rounded-md border border-border/70 bg-card p-0 shadow-2xl"
       contentEditable={false}
     >
-      <DialogHeader className="min-w-0 border-b px-6 py-4 text-left">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription className="mb-0">{description}</DialogDescription>
-      </DialogHeader>
+      <div className="min-w-0 border-b px-6 py-4 text-left">
+        <div className="text-title2 font-bold! mb-0!">{title}</div>
+        <div className="text-label-secondary mb-0!">{description}</div>
+      </div>
 
       <div className="px-6 py-4">
         <EquationInput
@@ -185,7 +184,7 @@ function EquationPopoverContent({
         />
       </div>
 
-      <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-4">
+      <div className="mt-0 flex min-w-0 flex-col-reverse gap-2 border-t bg-card px-6 py-4 sm:flex-row sm:justify-end">
         <Button type="button" variant="ghost" onClick={onClose}>
           {t("common:CANCEL")}
         </Button>
@@ -193,7 +192,7 @@ function EquationPopoverContent({
           {t("common:CONFIRM")}
           <CornerDownLeftIcon className="size-3.5" />
         </Button>
-      </DialogFooter>
+      </div>
     </PopoverContent>
   );
 }

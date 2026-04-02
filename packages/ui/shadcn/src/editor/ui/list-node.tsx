@@ -53,8 +53,9 @@ export function BlockList(props: { children: React.ReactNode; element: TodoListE
       start={typeof element.listStart === "number" ? element.listStart : undefined}
       style={{
         listStyleType: element.listStyleType,
+        listStylePosition: "outside",
         margin: 0,
-        padding: 0,
+        paddingInlineStart: "1.5rem",
         position: "relative",
       }}
     >
