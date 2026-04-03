@@ -1,13 +1,22 @@
 "use client";
 
+import emojiData from "@emoji-mart/data";
+import type { EmojiMartData } from "@emoji-mart/data";
 import { CalloutPlugin } from "@platejs/callout/react";
 import { CodeBlockPlugin, CodeLinePlugin } from "@platejs/code-block/react";
 import { DatePlugin } from "@platejs/date/react";
+import { EmojiInputPlugin, EmojiPlugin } from "@platejs/emoji/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
 import { LinkPlugin } from "@platejs/link/react";
 import { ListPlugin } from "@platejs/list/react";
 import { EquationPlugin, InlineEquationPlugin } from "@platejs/math/react";
-import { AudioPlugin, FilePlugin, ImagePlugin, VideoPlugin } from "@platejs/media/react";
+import {
+  AudioPlugin,
+  FilePlugin,
+  ImagePlugin,
+  PlaceholderPlugin,
+  VideoPlugin,
+} from "@platejs/media/react";
 import { TogglePlugin } from "@platejs/toggle/react";
 import {
   TableCellHeaderPlugin,
@@ -21,13 +30,16 @@ import { CalloutElement } from "../ui/callout-node";
 import { CodeBlockElement, CodeLineElement } from "../ui/code-block-node";
 import { ColumnElement, ColumnGroupElement } from "../ui/column-node";
 import { DateElement } from "../ui/date-node";
+import { EmojiInputElement } from "../ui/emoji-input-node";
 import { EquationElement, InlineEquationElement } from "../ui/equation-node";
 import { LinkElement } from "../ui/link-node";
 import { BlockList } from "../ui/list-node";
 import { AudioElement } from "../ui/media-audio-node";
 import { FileElement } from "../ui/media-file-node";
 import { MediaImageElement } from "../ui/media-image-node";
+import { MediaPlaceholderElement } from "../ui/media-placeholder-node";
 import { VideoElement } from "../ui/media-video-node";
+import { MediaUploadToast } from "../ui/media-upload-toast";
 import {
   TableCellElement,
   TableElement,
@@ -73,6 +85,12 @@ export const AdvancedBlocksKit = [
   DatePlugin.configure({
     node: { component: DateElement },
   }),
+  EmojiPlugin.configure({
+    options: { data: emojiData as unknown as EmojiMartData },
+  }),
+  EmojiInputPlugin.configure({
+    node: { component: EmojiInputElement },
+  }),
   EquationPlugin.configure({
     node: { component: EquationElement },
   }),
@@ -87,6 +105,15 @@ export const AdvancedBlocksKit = [
   }),
   AudioPlugin.configure({
     node: { component: AudioElement },
+  }),
+  PlaceholderPlugin.configure({
+    options: {
+      disableEmptyPlaceholder: true,
+    },
+    render: {
+      afterEditable: MediaUploadToast,
+      node: MediaPlaceholderElement,
+    },
   }),
   ImagePlugin.configure({
     node: { component: MediaImageElement },

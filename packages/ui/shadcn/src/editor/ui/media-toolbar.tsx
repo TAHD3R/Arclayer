@@ -5,7 +5,8 @@ import * as React from "react";
 import type { PlateEditor } from "platejs/react";
 
 import {
-  FloatingMedia as FloatingMediaPrimitive,
+  FloatingMediaStore,
+  submitFloatingMedia,
   useFloatingMediaValue,
   useImagePreviewValue,
 } from "@platejs/media/react";
@@ -13,18 +14,20 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  CheckIcon,
+  ChevronLeft,
   ExternalLink,
   Link2,
-  Trash2,
+  MoreHorizontal,
   Type,
 } from "lucide-react";
+import { BlockMenuPlugin, BlockSelectionPlugin } from "@platejs/selection/react";
 import {
   useEditorRef,
   useEditorSelector,
   useElement,
   useFocusedLast,
   useReadOnly,
-  useRemoveNodeButton,
   useSelected,
 } from "platejs/react";
 import { useTranslation } from "react-i18next";
@@ -88,7 +91,7 @@ export function MediaToolbar(props: {
   supportsCaption?: boolean;
   url: string;
 }) {
-  const { t } = useTranslation("content");
+  const { t } = useTranslation(["content", "common"]);
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
@@ -98,16 +101,26 @@ export function MediaToolbar(props: {
     [],
   );
   const isImagePreviewOpen = useImagePreviewValue("isOpen", editor.id);
-  const open = isFocusedLast && !readOnly && selected && selectionCollapsed && !isImagePreviewOpen;
-  const element = useElement();
+  const element = useElement() as {
+    align?: MediaAlign;
+    id?: string;
+    type: string;
+    url?: string;
+  };
   const isEditing = useFloatingMediaValue("isEditing");
-  const { props: buttonProps } = useRemoveNodeButton({ element });
-  const align = (element as { align?: MediaAlign }).align ?? "center";
+  const open =
+    !readOnly &&
+    !isImagePreviewOpen &&
+    ((isFocusedLast && selected && selectionCollapsed) || isEditing);
+  const align = element.align ?? "center";
   const selectionRef = React.useRef(captureEditorSelection(editor));
+  const [urlDraft, setUrlDraft] = React.useState(props.url);
 
   const compact = props.compact ?? false;
   const showAlignment = props.showAlignment ?? !compact;
   const showExternalLink = props.showExternalLink ?? !compact;
+  const canSubmitUrl = urlDraft.trim().length > 0;
+  const mediaPlugin = React.useMemo(() => ({ key: element.type }), [element.type]);
 
   const applyAlign = React.useCallback(
     (nextAlign: MediaAlign) => {
@@ -125,6 +138,55 @@ export function MediaToolbar(props: {
     [editor],
   );
 
+  const openBlockMenu = React.useCallback(
+    (target: HTMLElement) => {
+      if (!element.id) return;
+
+      editor.getApi(BlockSelectionPlugin).blockSelection.set([String(element.id)]);
+      editor.getApi(BlockSelectionPlugin).blockSelection.focus();
+
+      const rect = target.getBoundingClientRect();
+      editor.getApi(BlockMenuPlugin).blockMenu.show(String(element.id), {
+        x: rect.left,
+        y: rect.bottom + 8,
+      });
+    },
+    [editor, element.id],
+  );
+
+  const cancelEditing = React.useCallback(() => {
+    setUrlDraft(props.url);
+    FloatingMediaStore.actions.reset();
+    runEditorTransformPreservingSelection(editor, () => undefined, {
+      restoreSelection: false,
+      selection: selectionRef.current,
+    });
+  }, [editor, props.url]);
+
+  const submitEditing = React.useCallback(() => {
+    if (!canSubmitUrl) return;
+
+    FloatingMediaStore.set("url", urlDraft.trim());
+    submitFloatingMedia(editor, {
+      element: element as never,
+      plugin: mediaPlugin as never,
+    });
+  }, [canSubmitUrl, editor, element, mediaPlugin, urlDraft]);
+
+  React.useEffect(() => {
+    if (isEditing) {
+      setUrlDraft(props.url);
+      FloatingMediaStore.set("url", props.url);
+    }
+  }, [element.id, isEditing, props.url]);
+
+  React.useEffect(() => {
+    if (!open && isEditing) {
+      FloatingMediaStore.actions.reset();
+      setUrlDraft(props.url);
+    }
+  }, [isEditing, open, props.url]);
+
   return (
     <Popover open={open} modal={false}>
       <PopoverAnchor asChild>{props.children}</PopoverAnchor>
@@ -134,6 +196,8 @@ export function MediaToolbar(props: {
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
+          const activeElement = document.activeElement as HTMLElement | null;
+          if (activeElement?.dataset.plateFocus === "true") return;
           runEditorTransformPreservingSelection(editor, () => undefined, {
             restoreSelection: false,
             selection: selectionRef.current,
@@ -185,30 +249,29 @@ export function MediaToolbar(props: {
 
           {!isEditing ? (
             <>
-              <Tooltip>
-                <TooltipTrigger asChild focusTrigger={false}>
-                  <FloatingMediaPrimitive.EditButton
-                    className={cn(
-                      compact
-                        ? "inline-flex h-8 items-center gap-2 rounded-md px-3 text-footnote font-semibold text-label-secondary transition-colors hover:bg-accent hover:text-label-primary"
-                        : "inline-flex size-8 items-center justify-center rounded-md text-label-secondary transition-colors hover:bg-accent hover:text-label-primary",
-                    )}
-                    onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
-                      event.preventDefault();
-                      selectionRef.current = captureEditorSelection(editor);
-                    }}
-                  >
-                    <Link2 className="size-4" />
-                    {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_EDIT_LINK")}</span> : null}
-                  </FloatingMediaPrimitive.EditButton>
-                </TooltipTrigger>
-                <TooltipContent>{t("CONTENT_LIBRARY_EDITOR_MEDIA_EDIT_LINK")}</TooltipContent>
-              </Tooltip>
+              <MediaToolbarActionButton
+                compact={compact}
+                tooltip={t("CONTENT_LIBRARY_EDITOR_MEDIA_EDIT_LINK")}
+                data-plate-focus="true"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  selectionRef.current = captureEditorSelection(editor);
+                }}
+                onClick={() => {
+                  setUrlDraft(props.url);
+                  FloatingMediaStore.set("url", props.url);
+                  FloatingMediaStore.set("isEditing", true);
+                }}
+              >
+                <Link2 className="size-4" />
+                {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_EDIT_LINK")}</span> : null}
+              </MediaToolbarActionButton>
 
               {props.supportsCaption ? (
                 <MediaToolbarActionButton
                   compact={compact}
                   tooltip={t("CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION")}
+                  data-plate-focus="true"
                   onMouseDown={(event) => {
                     event.preventDefault();
                     selectionRef.current = captureEditorSelection(editor);
@@ -226,7 +289,7 @@ export function MediaToolbar(props: {
                   tooltip={t("CONTENT_LIBRARY_EDITOR_MEDIA_OPEN")}
                   asChild
                 >
-                  <a href={props.url} rel="noreferrer" target="_blank">
+                  <a href={props.url} rel="noreferrer" target="_blank" data-plate-focus="true">
                     <ExternalLink className="size-4" />
                     {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_OPEN")}</span> : null}
                   </a>
@@ -235,28 +298,71 @@ export function MediaToolbar(props: {
 
               <MediaToolbarActionButton
                 compact={compact}
-                tooltip={t("CONTENT_LIBRARY_EDITOR_MEDIA_DELETE")}
-                {...buttonProps}
+                tooltip={t("CONTENT_LIBRARY_EDITOR_MEDIA_BLOCK_MENU")}
+                data-plate-focus="true"
                 onMouseDown={(event) => {
                   event.preventDefault();
                   selectionRef.current = captureEditorSelection(editor);
-                  buttonProps.onMouseDown?.(event);
                 }}
+                onClick={(event) => openBlockMenu(event.currentTarget)}
               >
-                <Trash2 className="size-4" />
-                {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_DELETE")}</span> : null}
+                <MoreHorizontal className="size-4" />
+                {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_BLOCK_MENU")}</span> : null}
               </MediaToolbarActionButton>
             </>
           ) : null}
         </div>
 
         {isEditing ? (
-          <div className="px-1 pb-1 pt-2">
-            <FloatingMediaPrimitive.UrlInput
-              className="h-8 w-[18rem] rounded-md border border-border/70 bg-card px-3 text-footnote outline-none"
-              placeholder="https://"
-              options={{ plugin: { key: element.type } }}
-            />
+          <div className="flex items-center gap-1 px-1 pb-1 pt-2">
+            <MediaToolbarActionButton
+              compact
+              tooltip={t("common:BACK")}
+              data-plate-focus="true"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
+              onClick={cancelEditing}
+            >
+              <ChevronLeft className="size-4" />
+            </MediaToolbarActionButton>
+
+            <div className="flex min-w-[18rem] items-center gap-2 rounded-md border border-border/70 bg-card px-2.5">
+              <Link2 className="size-4 text-label-secondary" />
+              <input
+                data-plate-focus="true"
+                value={urlDraft}
+                onChange={(event) => setUrlDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitEditing();
+                    return;
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelEditing();
+                  }
+                }}
+                className="h-8 w-full bg-transparent text-footnote outline-none placeholder:text-label-tertiary"
+                placeholder="https://"
+              />
+            </div>
+
+            <MediaToolbarActionButton
+              compact
+              tooltip={t("common:CONFIRM")}
+              data-plate-focus="true"
+              disabled={!canSubmitUrl}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
+              onClick={submitEditing}
+            >
+              <CheckIcon className="size-4" />
+            </MediaToolbarActionButton>
           </div>
         ) : null}
       </PopoverContent>

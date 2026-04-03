@@ -209,6 +209,30 @@ function Draggable(props: PlateElementProps) {
   }, [isAboutToDrag]);
 
   const [dragButtonTop, setDragButtonTop] = React.useState(0);
+  const { t } = useTranslation("content");
+
+  const openBlockMenu = React.useCallback(
+    (target: HTMLElement) => {
+      if (!element.id) return;
+
+      const selectedBlocks = blockSelectionApi.getNodes({ sort: true });
+      const selectedIds = selectedBlocks.map(([node]) => String(node.id ?? ""));
+      const targetId = String(element.id);
+
+      if (!selectedIds.includes(targetId)) {
+        blockSelectionApi.set([targetId]);
+      }
+
+      blockSelectionApi.focus();
+
+      const rect = target.getBoundingClientRect();
+      editor.getApi(BlockMenuPlugin).blockMenu.show(targetId, {
+        x: rect.left,
+        y: rect.bottom + 8,
+      });
+    },
+    [blockSelectionApi, editor, element.id],
+  );
 
   return (
     <div
@@ -248,10 +272,8 @@ function Draggable(props: PlateElementProps) {
                       data-plate-prevent-deselect
                       onClick={(e) => {
                         e.preventDefault();
-                        editor
-                          .getApi(BlockSelectionPlugin)
-                          .blockSelection.set([element.id as string]);
-                        editor.getApi(BlockSelectionPlugin).blockSelection.focus();
+                        if (isDragging || isAboutToDrag) return;
+                        openBlockMenu(e.currentTarget);
                       }}
                       onMouseDown={(e) => {
                         resetPreview();
@@ -323,7 +345,7 @@ function Draggable(props: PlateElementProps) {
                       <GripVertical className="size-3 text-label-secondary" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Drag to move</TooltipContent>
+                  <TooltipContent>{t("CONTENT_LIBRARY_EDITOR_DRAG_TO_MOVE")}</TooltipContent>
                 </Tooltip>
               </div>
             </div>

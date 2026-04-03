@@ -4,6 +4,12 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("katex/dist/katex.min.css", () => ({}));
+
+vi.mock("@arclayer/ui/editor", () => ({
+  DateNodeLocalizationProvider: (props: { children?: ReactNode }) => <>{props.children}</>,
+}));
+
 import { ContentLibraryArticleEditorPage } from "@/pages/workspaces/content/library/article-editor/page";
 import { ContentLibraryArticleEditorShell } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-shell";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
@@ -89,6 +95,7 @@ vi.mock(
     ContentLibraryArticleEditorBody: () => (
       <div data-testid="content-library-article-editor-body" />
     ),
+    getContentLibraryArticleEditorTextLaneClass: () => "mock-text-lane",
   }),
 );
 
@@ -142,6 +149,15 @@ vi.mock(
           CONTENT_LIBRARY_ACTION_PUBLISH
         </button>
       </div>
+    ),
+  }),
+);
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-toc-sidebar",
+  () => ({
+    ContentLibraryArticleEditorTocSidebar: () => (
+      <div data-testid="content-library-article-editor-toc-sidebar" />
     ),
   }),
 );

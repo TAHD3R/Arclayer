@@ -222,6 +222,7 @@
     "@platejs/code-block": "^52.3.14",
     "@platejs/date": "^52.3.10",
     "@platejs/dnd": "^52.3.10",
+    "@platejs/emoji": "^52.3.10",
     "@platejs/floating": "^52.3.10",
     "@platejs/layout": "^52.3.10",
     "@platejs/link": "^52.3.10",
@@ -242,6 +243,7 @@
     "react-player": "3.3.1",
     "react-textarea-autosize": "8.5.9",
     "@ariakit/react": "^0.4.24",
+    "@emoji-mart/data": "^1.2.1",
     "@platejs/combobox": "^52.3.10"
   },
   "peerDependencies": {

@@ -72,10 +72,7 @@ function LinkFormRow(props: {
 }) {
   return (
     <div
-      className={cn(
-        "flex items-center gap-3 px-3 py-2.5",
-        props.bordered && "border-t border-border/70",
-      )}
+      className={cn("flex items-center gap-3 p-1", props.bordered && "border-t border-border/70")}
     >
       <span className="flex size-5 shrink-0 items-center justify-center text-label-secondary">
         {props.icon}

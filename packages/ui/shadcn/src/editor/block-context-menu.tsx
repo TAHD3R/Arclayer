@@ -11,18 +11,11 @@ import {
 import { toggleList } from "@platejs/list";
 import { openNextToggles } from "@platejs/toggle/react";
 import {
+  BaselineIcon,
   CheckIcon,
-  ChevronRightIcon,
-  Code2Icon,
   CopyIcon,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  ListIcon,
-  ListOrderedIcon,
-  ListTodoIcon,
+  PaintBucketIcon,
   PilcrowIcon,
-  QuoteIcon,
   Trash2Icon,
 } from "lucide-react";
 import { type Path, type TElement, KEYS, PathApi } from "platejs";
@@ -31,7 +24,14 @@ import { useTranslation } from "react-i18next";
 
 import { toggleTodoList } from "./article-editor-insert-items";
 import { getBlockContextMenuActionIds } from "./block-menu-helpers";
+import { ColorDropdownSubmenu } from "./color-dropdown-submenu";
+import {
+  clearEditorMarkColorForBlocks,
+  getEditorMarkValueForBlocks,
+  setEditorMarkColorForBlocks,
+} from "./mark-color-utils";
 import { applyTurnInto, getTurnIntoValue } from "./turn-into-helpers";
+import { TURN_INTO_MENU_ITEMS } from "./turn-into-menu-items";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,39 +43,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-
-const TURN_INTO_ITEMS = [
-  { icon: <PilcrowIcon />, value: KEYS.p, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_TEXT" },
-  { icon: <Heading1Icon />, value: KEYS.h1, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_HEADING_1" },
-  { icon: <Heading2Icon />, value: KEYS.h2, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_HEADING_2" },
-  { icon: <Heading3Icon />, value: KEYS.h3, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_HEADING_3" },
-  {
-    icon: <ListIcon />,
-    value: KEYS.ul,
-    labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_BULLETED_LIST",
-  },
-  {
-    icon: <ListOrderedIcon />,
-    value: KEYS.ol,
-    labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_NUMBERED_LIST",
-  },
-  {
-    icon: <ListTodoIcon />,
-    value: KEYS.listTodo,
-    labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_TODO_LIST",
-  },
-  {
-    icon: <ChevronRightIcon />,
-    value: KEYS.toggle,
-    labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_TOGGLE",
-  },
-  {
-    icon: <Code2Icon />,
-    value: KEYS.codeBlock,
-    labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_CODE_BLOCK",
-  },
-  { icon: <QuoteIcon />, value: KEYS.blockquote, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_QUOTE" },
-] as const;
 
 function removeSelectedBlocks(
   editor: ReturnType<typeof useEditorRef>,
@@ -118,6 +85,14 @@ export function BlockContextMenu(props: { children?: React.ReactNode }) {
   const actionIds = React.useMemo(
     () => getBlockContextMenuActionIds(selectedBlocks.length),
     [selectedBlocks.length],
+  );
+  const currentTextColor = React.useMemo(
+    () => getEditorMarkValueForBlocks(selectedBlocks, KEYS.color),
+    [selectedBlocks],
+  );
+  const currentBackgroundColor = React.useMemo(
+    () => getEditorMarkValueForBlocks(selectedBlocks, KEYS.backgroundColor),
+    [selectedBlocks],
   );
 
   const hideMenu = React.useCallback(() => {
@@ -165,6 +140,26 @@ export function BlockContextMenu(props: { children?: React.ReactNode }) {
     },
     [currentTurnIntoValue, editor, focusBlockSelection, hideMenu, selectedBlock],
   );
+  const handleApplyColor = React.useCallback(
+    (nodeType: string, color: string) => {
+      if (selectedBlocks.length === 0) return;
+
+      setEditorMarkColorForBlocks(editor, nodeType, color, selectedBlocks);
+      hideMenu();
+      focusBlockSelection();
+    },
+    [editor, focusBlockSelection, hideMenu, selectedBlocks],
+  );
+  const handleClearColor = React.useCallback(
+    (nodeType: string) => {
+      if (selectedBlocks.length === 0) return;
+
+      clearEditorMarkColorForBlocks(editor, nodeType, selectedBlocks);
+      hideMenu();
+      focusBlockSelection();
+    },
+    [editor, focusBlockSelection, hideMenu, selectedBlocks],
+  );
 
   return (
     <>
@@ -198,14 +193,16 @@ export function BlockContextMenu(props: { children?: React.ReactNode }) {
           }}
         >
           {actionIds.includes("turn-into") && selectedBlock ? (
-            <>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  <PilcrowIcon className="size-4" />
-                  {t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="min-w-[14rem]">
-                  {TURN_INTO_ITEMS.map((item) => (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="gap-2">
+                <PilcrowIcon className="size-4" />
+                {t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="min-w-[14rem]">
+                {TURN_INTO_MENU_ITEMS.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
                     <DropdownMenuItem
                       key={item.value}
                       className="pl-2 *:first:[span]:hidden"
@@ -221,12 +218,38 @@ export function BlockContextMenu(props: { children?: React.ReactNode }) {
                           </DropdownMenuItemIndicator>
                         </span>
                       ) : null}
-                      {item.icon}
+                      <Icon className="size-4" />
                       {t(item.labelKey)}
                     </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+                  );
+                })}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ) : null}
+
+          {selectedBlocks.length > 0 ? (
+            <>
+              {actionIds.includes("turn-into") || actionIds.includes("duplicate") ? (
+                <DropdownMenuSeparator />
+              ) : null}
+              <ColorDropdownSubmenu
+                icon={<BaselineIcon className="size-4" />}
+                label={t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
+                nodeType={KEYS.color}
+                currentColor={currentTextColor}
+                clearLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR")}
+                onSelectColor={(color) => handleApplyColor(KEYS.color, color)}
+                onClear={() => handleClearColor(KEYS.color)}
+              />
+              <ColorDropdownSubmenu
+                icon={<PaintBucketIcon className="size-4" />}
+                label={t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
+                nodeType={KEYS.backgroundColor}
+                currentColor={currentBackgroundColor}
+                clearLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR")}
+                onSelectColor={(color) => handleApplyColor(KEYS.backgroundColor, color)}
+                onClear={() => handleClearColor(KEYS.backgroundColor)}
+              />
               <DropdownMenuSeparator />
             </>
           ) : null}

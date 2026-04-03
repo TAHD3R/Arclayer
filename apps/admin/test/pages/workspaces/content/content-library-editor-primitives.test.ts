@@ -8,6 +8,7 @@ vi.mock("@platejs/math", () => ({
 }));
 
 import {
+  ARTICLE_EDITOR_INSERT_EMOJI,
   ARTICLE_EDITOR_INSERT_LINK,
   ARTICLE_EDITOR_INSERT_TOGGLE,
   filterArticleEditorInsertGroups,
@@ -41,8 +42,18 @@ import {
   getBlockContextMenuActionIds,
   isArticleEditorBlockSelectable,
 } from "../../../../../../packages/ui/shadcn/src/editor/block-menu-helpers";
+import {
+  clearEditorMarkColorForBlocks,
+  getEditorMarkColorValue,
+  getEditorMarkValueForBlocks,
+  setEditorMarkColorForBlocks,
+} from "../../../../../../packages/ui/shadcn/src/editor/mark-color-utils";
 import { getContentLibraryArticleEditorBodyEditorClass } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body-layout";
 import { exitEmptyToggle } from "../../../../../../packages/ui/shadcn/src/editor/toggle-plugin-helpers";
+import {
+  getDateKeyInTimeZone,
+  zonedDateKeyToIso,
+} from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-date-localization";
 
 describe("content-library-editor-primitives", () => {
   it("does not treat a locally echoed document update as an external rehydrate", () => {
@@ -305,6 +316,11 @@ describe("content-library-editor-primitives", () => {
         .find((group) => group.id === "inline")
         ?.items.some((item) => item.value === ARTICLE_EDITOR_INSERT_LINK),
     ).toBe(true);
+    expect(
+      groups
+        .find((group) => group.id === "inline")
+        ?.items.some((item) => item.value === ARTICLE_EDITOR_INSERT_EMOJI),
+    ).toBe(true);
   });
 
   it("filters insert groups by label, description, and keywords", () => {
@@ -440,6 +456,118 @@ describe("content-library-editor-primitives", () => {
     expect(getBlockContextMenuActionIds(0)).toEqual([]);
     expect(getBlockContextMenuActionIds(1)).toEqual(["turn-into", "duplicate", "delete"]);
     expect(getBlockContextMenuActionIds(2)).toEqual(["duplicate", "delete"]);
+  });
+
+  it("stores background mark colors as translucent highlight values", () => {
+    expect(getEditorMarkColorValue(KEYS.color, "#f1c232")).toBe("#f1c232");
+    expect(getEditorMarkColorValue(KEYS.backgroundColor, "#f1c232")).toBe(
+      "rgba(241, 194, 50, 0.24)",
+    );
+  });
+
+  it("reads a shared mark color only when all selected block text leaves agree", () => {
+    const sharedBlocks = [
+      [
+        {
+          children: [{ color: "#1155cc", text: "Alpha" }],
+          type: KEYS.p,
+        },
+        [0],
+      ],
+      [
+        {
+          children: [{ children: [{ color: "#1155cc", text: "Beta" }], type: KEYS.link }],
+          type: KEYS.p,
+        },
+        [1],
+      ],
+    ] as never;
+
+    expect(getEditorMarkValueForBlocks(sharedBlocks, KEYS.color)).toBe("#1155cc");
+
+    const mixedBlocks = [
+      sharedBlocks[0],
+      [
+        {
+          children: [{ color: "#cc0000", text: "Gamma" }],
+          type: KEYS.p,
+        },
+        [2],
+      ],
+    ] as never;
+
+    expect(getEditorMarkValueForBlocks(mixedBlocks, KEYS.color)).toBeNull();
+  });
+
+  it("applies and clears mark colors across every text leaf in selected blocks", () => {
+    const setNodes = vi.fn();
+    const unsetNodes = vi.fn();
+    const editor = {
+      tf: {
+        setNodes,
+        unsetNodes,
+        withoutNormalizing: (fn: () => void) => fn(),
+      },
+    };
+
+    const blocks = [
+      [
+        {
+          children: [
+            { text: "Alpha" },
+            {
+              children: [{ text: "Beta" }],
+              type: KEYS.link,
+            },
+          ],
+          type: KEYS.p,
+        },
+        [0],
+      ],
+      [
+        {
+          children: [{ text: "Gamma" }],
+          type: KEYS.blockquote,
+        },
+        [1],
+      ],
+    ] as never;
+
+    setEditorMarkColorForBlocks(editor as never, KEYS.backgroundColor, "#f1c232", blocks);
+
+    expect(setNodes).toHaveBeenNthCalledWith(
+      1,
+      { [KEYS.backgroundColor]: "rgba(241, 194, 50, 0.24)" },
+      { at: [0, 0] },
+    );
+    expect(setNodes).toHaveBeenNthCalledWith(
+      2,
+      { [KEYS.backgroundColor]: "rgba(241, 194, 50, 0.24)" },
+      { at: [0, 1, 0] },
+    );
+    expect(setNodes).toHaveBeenNthCalledWith(
+      3,
+      { [KEYS.backgroundColor]: "rgba(241, 194, 50, 0.24)" },
+      { at: [1, 0] },
+    );
+
+    clearEditorMarkColorForBlocks(editor as never, KEYS.backgroundColor, blocks);
+
+    expect(unsetNodes).toHaveBeenNthCalledWith(1, KEYS.backgroundColor, { at: [0, 0] });
+    expect(unsetNodes).toHaveBeenNthCalledWith(2, KEYS.backgroundColor, { at: [0, 1, 0] });
+    expect(unsetNodes).toHaveBeenNthCalledWith(3, KEYS.backgroundColor, { at: [1, 0] });
+  });
+
+  it("round-trips workspace date keys through timezone-aware ISO storage", () => {
+    const shanghaiIso = zonedDateKeyToIso("2026-02-03", "Asia/Shanghai");
+    const losAngelesIso = zonedDateKeyToIso("2026-02-03", "America/Los_Angeles");
+
+    expect(shanghaiIso).toBeTruthy();
+    expect(getDateKeyInTimeZone(new Date(String(shanghaiIso)), "Asia/Shanghai")).toBe("2026-02-03");
+    expect(losAngelesIso).toBeTruthy();
+    expect(getDateKeyInTimeZone(new Date(String(losAngelesIso)), "America/Los_Angeles")).toBe(
+      "2026-02-03",
+    );
   });
 
   it("inserts a trailing paragraph after a horizontal rule at the document end", () => {

@@ -1,0 +1,427 @@
+import * as React from "react";
+
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+let currentElement: Record<string, unknown> = {};
+let currentIsEditing = false;
+let currentSelected = true;
+let currentFocusedLast = true;
+let currentReadOnly = false;
+let currentSelectionCollapsed = true;
+let currentImagePreviewOpen = false;
+
+const submitFloatingMediaMock = vi.fn();
+const updateUploadHistoryMock = vi.fn();
+const floatingStoreSetMock = vi.fn((key: string, value: unknown) => {
+  if (key === "isEditing") currentIsEditing = Boolean(value);
+});
+const floatingStoreResetMock = vi.fn(() => {
+  currentIsEditing = false;
+});
+const toastErrorMock = vi.fn();
+
+const mockEditor = {
+  api: {
+    findPath: vi.fn(() => [0]),
+  },
+  getApi: vi.fn(() => ({
+    blockMenu: {
+      show: vi.fn(),
+    },
+    blockSelection: {
+      focus: vi.fn(),
+      set: vi.fn(),
+    },
+  })),
+  getOption: vi.fn(() => new Set<string>()),
+  history: {
+    redos: [],
+    undos: [],
+  },
+  id: "editor-1",
+  selection: null,
+  tf: {
+    focus: vi.fn(),
+    insertNodes: vi.fn(),
+    removeNodes: vi.fn(),
+    select: vi.fn(),
+    setNodes: vi.fn(),
+    withoutSaving: (fn: () => void) => fn(),
+  },
+};
+
+const plateAttributes = {
+  "data-slate-node": "element" as const,
+  ref: null,
+};
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock("react-textarea-autosize", () => ({
+  default: React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"textarea">>((props, ref) => (
+    <textarea ref={ref} {...props} />
+  )),
+}));
+
+vi.mock("@platejs/media/react", () => ({
+  FloatingMediaStore: {
+    actions: {
+      reset: () => floatingStoreResetMock(),
+    },
+    set: (key: string, value: unknown) => floatingStoreSetMock(key, value),
+  },
+  PlaceholderProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  submitFloatingMedia: (...args: unknown[]) => submitFloatingMediaMock(...args),
+  updateUploadHistory: (...args: unknown[]) => updateUploadHistoryMock(...args),
+  useFloatingMediaValue: (key: string) => (key === "isEditing" ? currentIsEditing : undefined),
+  useImagePreviewValue: () => currentImagePreviewOpen,
+}));
+
+vi.mock("@platejs/math/react", () => ({
+  useEquationElement: vi.fn(),
+  useEquationInput: () => ({}),
+}));
+
+vi.mock("@platejs/selection/react", () => ({
+  BlockMenuPlugin: { key: "blockMenu" },
+  BlockSelectionPlugin: { key: "blockSelection" },
+}));
+
+vi.mock("platejs/react", () => ({
+  PlateElement: ({
+    children,
+    className,
+    ...props
+  }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+    <div className={className} {...props}>
+      {children}
+    </div>
+  ),
+  createPrimitiveComponent:
+    (Component: React.ComponentType<Record<string, unknown>>) =>
+    ({
+      propsHook,
+    }: {
+      propsHook?: (props: Record<string, unknown>) => Record<string, unknown>;
+    }) => {
+      return React.forwardRef<HTMLElement, Record<string, unknown>>((props, ref) => {
+        const hookedProps = propsHook ? propsHook(props) : {};
+        return <Component ref={ref as never} {...hookedProps} {...props} />;
+      });
+    },
+  useEditorRef: () => mockEditor,
+  useEditorSelector: () => currentSelectionCollapsed,
+  useElement: () => currentElement,
+  useFocusedLast: () => currentFocusedLast,
+  useReadOnly: () => currentReadOnly,
+  useSelected: () => currentSelected,
+  withHOC: (_provider: unknown, component: React.ComponentType<unknown>) => component,
+}));
+
+vi.mock("@arclayer/ui/admin-toast", () => ({
+  message: {
+    error: (...args: unknown[]) => toastErrorMock(...args),
+  },
+}));
+
+vi.mock("@arclayer/ui/button", () => ({
+  Button: ({
+    asChild,
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    asChild?: boolean;
+    children?: React.ReactNode;
+  }) => {
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children, props);
+    }
+
+    return (
+      <button type="button" {...props}>
+        {children}
+      </button>
+    );
+  },
+}));
+
+vi.mock("@arclayer/ui/popover", () => ({
+  Popover: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  PopoverAnchor: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  PopoverContent: ({
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+    <div {...props}>{children}</div>
+  ),
+  PopoverTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@arclayer/ui/separator", () => ({
+  Separator: (props: React.HTMLAttributes<HTMLDivElement>) => <div {...props} />,
+}));
+
+vi.mock("@arclayer/ui/tooltip", () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@arclayer/lib/utils", () => ({
+  cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
+}));
+
+import { MediaUploadProvider } from "../../../../../../packages/ui/shadcn/src/editor/media-upload-context";
+import { EquationElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/equation-node";
+import { MediaCaption } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-caption";
+import { MediaPlaceholderElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-placeholder-node";
+import { MediaToolbar } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-toolbar";
+
+const MediaPlaceholderElementAny = MediaPlaceholderElement as React.ComponentType<any>;
+const EquationElementAny = EquationElement as React.ComponentType<any>;
+
+describe("content-library-editor-media-ui", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  beforeEach(() => {
+    currentElement = {};
+    currentIsEditing = false;
+    currentSelected = true;
+    currentFocusedLast = true;
+    currentReadOnly = false;
+    currentSelectionCollapsed = true;
+    currentImagePreviewOpen = false;
+    submitFloatingMediaMock.mockReset();
+    updateUploadHistoryMock.mockReset();
+    floatingStoreSetMock.mockClear();
+    floatingStoreResetMock.mockClear();
+    toastErrorMock.mockClear();
+    mockEditor.api.findPath.mockReset();
+    mockEditor.api.findPath.mockReturnValue([0]);
+    mockEditor.getApi.mockClear();
+    mockEditor.getOption.mockClear();
+    mockEditor.tf.focus.mockClear();
+    mockEditor.tf.insertNodes.mockClear();
+    mockEditor.tf.removeNodes.mockClear();
+    mockEditor.tf.select.mockClear();
+    mockEditor.tf.setNodes.mockClear();
+  });
+
+  it("resets the media link draft when editing moves to another media node", async () => {
+    const user = userEvent.setup();
+    currentElement = {
+      align: "center",
+      id: "image-1",
+      type: "img",
+      url: "https://cdn.example/image.png",
+    };
+
+    const { rerender } = render(
+      <MediaToolbar compact url="https://cdn.example/image.png">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_EDIT_LINK" }),
+    );
+    rerender(
+      <MediaToolbar compact url="https://cdn.example/image.png">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    const input = screen.getByPlaceholderText("https://");
+    expect(input).toHaveValue("https://cdn.example/image.png");
+
+    await user.clear(input);
+    await user.type(input, "https://edited.example/image.png");
+
+    currentSelected = false;
+    rerender(
+      <MediaToolbar compact url="https://cdn.example/image.png">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    expect(screen.getByPlaceholderText("https://")).toHaveValue("https://edited.example/image.png");
+
+    currentElement = {
+      align: "center",
+      id: "video-1",
+      type: "video",
+      url: "https://cdn.example/video.mp4",
+    };
+    rerender(
+      <MediaToolbar compact url="https://cdn.example/video.mp4">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("https://")).toHaveValue("https://cdn.example/video.mp4");
+    });
+
+    await user.type(screen.getByPlaceholderText("https://"), "{Escape}");
+    rerender(
+      <MediaToolbar compact url="https://cdn.example/video.mp4">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    expect(floatingStoreResetMock).toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText("https://")).not.toBeInTheDocument();
+  });
+
+  it("auto-opens the placeholder file picker when the placeholder requests it", async () => {
+    vi.useFakeTimers();
+    const clickSpy = vi
+      .spyOn(HTMLInputElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    const uploadFile = vi.fn();
+
+    currentElement = {
+      autoOpen: true,
+      children: [{ text: "" }],
+      id: "placeholder-1",
+      mediaType: "file",
+      type: "placeholder",
+    };
+    mockEditor.api.findPath.mockReturnValue([3]);
+
+    render(
+      <MediaUploadProvider value={{ uploadFile }}>
+        <MediaPlaceholderElementAny
+          attributes={plateAttributes}
+          children={null}
+          editor={mockEditor as never}
+          element={currentElement as never}
+        />
+      </MediaUploadProvider>,
+    );
+
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    expect(mockEditor.tf.setNodes).toHaveBeenCalledWith({ autoOpen: undefined }, { at: [3] });
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    clickSpy.mockRestore();
+  });
+
+  it("replaces the placeholder node after an upload succeeds", async () => {
+    const uploadFile = vi.fn(async () => ({
+      url: "https://cdn.example/spec.pdf",
+    }));
+
+    currentElement = {
+      autoOpen: false,
+      children: [{ text: "" }],
+      id: "placeholder-1",
+      mediaType: "file",
+      type: "placeholder",
+    };
+    mockEditor.api.findPath.mockReturnValue([3]);
+
+    const { container } = render(
+      <MediaUploadProvider value={{ uploadFile }}>
+        <MediaPlaceholderElementAny
+          attributes={plateAttributes}
+          children={null}
+          editor={mockEditor as never}
+          element={currentElement as never}
+        />
+      </MediaUploadProvider>,
+    );
+
+    const input = container.querySelector('input[type="file"]');
+    expect(input).not.toBeNull();
+
+    const file = new File(["demo"], "spec.pdf", { type: "application/pdf" });
+    fireEvent.change(input as HTMLInputElement, {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => {
+      expect(uploadFile).toHaveBeenCalled();
+    });
+
+    expect(mockEditor.tf.removeNodes).toHaveBeenCalledWith({ at: [3] });
+    expect(mockEditor.tf.insertNodes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isUpload: true,
+        name: "spec.pdf",
+        placeholderId: "placeholder-1",
+        type: "file",
+        url: "https://cdn.example/spec.pdf",
+        width: 720,
+      }),
+      { at: [3] },
+    );
+    expect(updateUploadHistoryMock).toHaveBeenCalled();
+  });
+
+  it("keeps the media caption input interactive while editing", async () => {
+    currentElement = {
+      caption: "",
+      children: [{ text: "" }],
+      id: "image-1",
+      type: "img",
+    };
+    mockEditor.api.findPath.mockReturnValue([1]);
+    const onEditingChange = vi.fn();
+
+    render(
+      <MediaCaption
+        editing
+        onEditingChange={onEditingChange}
+        placeholder="CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION_PLACEHOLDER"
+      />,
+    );
+
+    const input = screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION_PLACEHOLDER");
+    await waitFor(() => {
+      expect(input).toHaveFocus();
+    });
+
+    fireEvent.change(input, { target: { value: "Caption copy" } });
+
+    expect(mockEditor.tf.setNodes).toHaveBeenLastCalledWith(
+      { caption: "Caption copy" },
+      { at: [1] },
+    );
+
+    fireEvent.blur(input);
+    expect(onEditingChange).toHaveBeenCalledWith(false);
+  });
+
+  it("renders the compact equation editor popover for empty equations", () => {
+    currentElement = {
+      children: [{ text: "" }],
+      id: "equation-1",
+      texExpression: "",
+      type: "equation",
+    };
+
+    render(
+      <EquationElementAny
+        attributes={plateAttributes}
+        children={null}
+        editor={mockEditor as never}
+        element={currentElement as never}
+      />,
+    );
+
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_EQUATION_EMPTY")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("E = mc^2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "common:CONFIRM" })).toBeInTheDocument();
+  });
+});

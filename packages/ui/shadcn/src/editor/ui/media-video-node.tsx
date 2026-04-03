@@ -48,8 +48,8 @@ export const VideoElement = withHOC(
           compact
           supportsCaption
           url={unsafeUrl}
-          showAlignment={false}
-          showExternalLink={false}
+          showAlignment
+          showExternalLink
           onCaptionToggle={() => setEditingCaption((value) => !value)}
         >
           <figure

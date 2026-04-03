@@ -13,6 +13,7 @@ import type { PlateEditor } from "platejs/react";
 import {
   ARTICLE_EDITOR_INSERT_CALLOUT,
   ARTICLE_EDITOR_INSERT_DATE,
+  ARTICLE_EDITOR_INSERT_EMOJI,
   ARTICLE_EDITOR_INSERT_EQUATION,
   ARTICLE_EDITOR_INSERT_INLINE_EQUATION,
   ARTICLE_EDITOR_INSERT_TABLE,
@@ -214,6 +215,11 @@ export function applyArticleEditorInsertItem(editor: PlateEditor, value: string)
 
   if (value === ARTICLE_EDITOR_INSERT_DATE) {
     insertDate(editor);
+    return;
+  }
+
+  if (value === ARTICLE_EDITOR_INSERT_EMOJI) {
+    editor.tf.insertText(":");
     return;
   }
 

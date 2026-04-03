@@ -33,8 +33,8 @@ export const MediaImageElement = withHOC(
           compact
           supportsCaption
           url={url}
-          showAlignment={false}
-          showExternalLink={false}
+          showAlignment
+          showExternalLink
           onCaptionToggle={() => setEditingCaption((value) => !value)}
         >
           <figure

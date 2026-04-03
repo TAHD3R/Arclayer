@@ -20,6 +20,7 @@ import {
   PilcrowIcon,
   QuoteIcon,
   RadicalIcon,
+  SmilePlusIcon,
   Table2Icon,
   TextSearchIcon,
 } from "lucide-react";
@@ -39,6 +40,7 @@ export const ARTICLE_EDITOR_INSERT_DATE = "date";
 export const ARTICLE_EDITOR_INSERT_EQUATION = "equation";
 export const ARTICLE_EDITOR_INSERT_INLINE_EQUATION = "inline_equation";
 export const ARTICLE_EDITOR_INSERT_LINK = "article-link";
+export const ARTICLE_EDITOR_INSERT_EMOJI = "emoji";
 export const ARTICLE_EDITOR_INSERT_THREE_COLUMNS = "action_three_columns";
 
 export type ArticleEditorInsertItem = {
@@ -238,6 +240,13 @@ export function getArticleEditorInsertGroups(t: Translate): ArticleEditorInsertG
           description: t("CONTENT_LIBRARY_EDITOR_INSERT_LINK_DESC"),
           keywords: ["link", "url", "hyperlink"],
           icon: Link2Icon,
+        },
+        {
+          value: ARTICLE_EDITOR_INSERT_EMOJI,
+          label: t("CONTENT_LIBRARY_EDITOR_INSERT_EMOJI"),
+          description: t("CONTENT_LIBRARY_EDITOR_INSERT_EMOJI_DESC"),
+          keywords: ["emoji", "reaction", "emoticon", ":"],
+          icon: SmilePlusIcon,
         },
         {
           value: ARTICLE_EDITOR_INSERT_INLINE_EQUATION,

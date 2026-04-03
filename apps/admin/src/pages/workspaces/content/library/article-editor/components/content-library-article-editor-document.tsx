@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { DndPlugin } from "@platejs/dnd";
 import { LinkPlugin, triggerFloatingLinkInsert } from "@platejs/link/react";
+import { insertPlaceholder } from "@platejs/media";
 import { normalizeNodeId, type Value } from "platejs";
 import { Plate, usePlateEditor } from "platejs/react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +12,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
-import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
+import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
 import { SlashKit } from "@/components/editor/plugins/slash-kit";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@arclayer/ui/field";
@@ -28,6 +29,7 @@ import {
   ArticleEditorCommandProvider,
   AutoformatKit,
   BasicNodesKit,
+  MediaUploadProvider,
 } from "@arclayer/ui/editor";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
@@ -38,7 +40,6 @@ import {
 } from "./content-library-article-editor-document-sync";
 
 const DEFAULT_PLATE_VALUE: Value = normalizeNodeId([{ type: "p", children: [{ text: "" }] }]);
-const DEFAULT_MEDIA_WIDTH = 720;
 const TERMINAL_BLOCKS_REQUIRING_TRAILING_PARAGRAPH = new Set(["hr", "table"]);
 
 type MediaInsertKind = "audio" | "file" | "image" | "video";
@@ -100,10 +101,6 @@ function toStoredDocument(value: Value): Record<string, unknown> {
     type: "doc",
     content: value,
   };
-}
-
-function cloneSelection(selection: unknown) {
-  return selection ? JSON.parse(JSON.stringify(selection)) : null;
 }
 
 function resetEditorHistory(editor: NonNullable<ReturnType<typeof usePlateEditor>>) {
@@ -171,8 +168,18 @@ function buildMediaNode(params: { name?: string; type: string; url: string }) {
     name: params.name,
     type: params.type,
     url: params.url,
-    width: DEFAULT_MEDIA_WIDTH,
   };
+}
+
+function getMediaTypeKey(kind: MediaInsertKind) {
+  if (kind === "image") return "img";
+  if (kind === "audio") return "audio";
+  if (kind === "file") return "file";
+  return "video";
+}
+
+function getMediaUploadPurpose(kind: MediaInsertKind) {
+  return kind === "image" ? "content_image" : "library";
 }
 
 export function ContentLibraryArticleEditorDocumentProvider(
@@ -187,11 +194,6 @@ export function ContentLibraryArticleEditorDocumentProvider(
   const externalValue = React.useMemo(() => toPlateValue(externalDocument), [externalDocument]);
   const lastSyncedDocumentRef = React.useRef(externalSerialized);
   const [appliedDocumentKey, setAppliedDocumentKey] = React.useState(externalSerialized);
-  const pendingInsertSelectionRef = React.useRef<unknown>(null);
-  const [assetPickerState, setAssetPickerState] = React.useState<{
-    kind: MediaInsertKind;
-    open: boolean;
-  }>({ kind: "image", open: false });
   const [mediaUrlDialog, setMediaUrlDialog] = React.useState<{
     kind: MediaInsertKind;
     open: boolean;
@@ -242,95 +244,74 @@ export function ContentLibraryArticleEditorDocumentProvider(
     setAppliedDocumentKey(externalSerialized);
   }, [props.editorIdentity]);
 
-  const handleInsertItem = React.useCallback((activeEditor: typeof editor, value: string) => {
-    if (value === ARTICLE_EDITOR_INSERT_IMAGE) {
-      pendingInsertSelectionRef.current = cloneSelection(activeEditor.selection);
-      setAssetPickerState({ kind: "image", open: true });
-      return;
-    }
+  const insertMediaPlaceholder = React.useCallback(
+    (activeEditor: typeof editor, kind: MediaInsertKind, options: { autoOpen?: boolean } = {}) => {
+      insertPlaceholder(activeEditor, activeEditor.getType(getMediaTypeKey(kind)), {
+        select: true,
+      });
 
-    if (
-      value === ARTICLE_EDITOR_INSERT_VIDEO ||
-      value === ARTICLE_EDITOR_INSERT_AUDIO ||
-      value === ARTICLE_EDITOR_INSERT_FILE
-    ) {
-      pendingInsertSelectionRef.current = cloneSelection(activeEditor.selection);
-      setMediaUrlDialog({
-        kind:
+      const placeholderEntry = activeEditor.api.block();
+      if (!options.autoOpen || !placeholderEntry) return;
+
+      activeEditor.tf.setNodes({ autoOpen: true }, { at: placeholderEntry[1] });
+      activeEditor.tf.focus();
+    },
+    [],
+  );
+
+  const handleInsertItem = React.useCallback(
+    (activeEditor: typeof editor, value: string) => {
+      if (value === ARTICLE_EDITOR_INSERT_IMAGE) {
+        insertMediaPlaceholder(activeEditor, "image", { autoOpen: true });
+        return;
+      }
+
+      if (
+        value === ARTICLE_EDITOR_INSERT_VIDEO ||
+        value === ARTICLE_EDITOR_INSERT_AUDIO ||
+        value === ARTICLE_EDITOR_INSERT_FILE
+      ) {
+        insertMediaPlaceholder(
+          activeEditor,
           value === ARTICLE_EDITOR_INSERT_VIDEO
             ? "video"
             : value === ARTICLE_EDITOR_INSERT_AUDIO
               ? "audio"
               : "file",
-        open: true,
-        url: "",
-      });
-      return;
-    }
+          { autoOpen: true },
+        );
+        return;
+      }
 
-    if (value === ARTICLE_EDITOR_INSERT_LINK) {
-      activeEditor.tf.focus();
-      window.requestAnimationFrame(() => {
-        activeEditor.getApi(LinkPlugin).floatingLink.show("insert", activeEditor.id);
-        triggerFloatingLinkInsert(activeEditor, { focused: true });
-      });
-      return;
-    }
+      if (value === ARTICLE_EDITOR_INSERT_LINK) {
+        activeEditor.tf.focus();
+        window.requestAnimationFrame(() => {
+          activeEditor.getApi(LinkPlugin).floatingLink.show("insert", activeEditor.id);
+          triggerFloatingLinkInsert(activeEditor, { focused: true });
+        });
+        return;
+      }
 
-    applyArticleEditorInsertItem(activeEditor, value);
-  }, []);
+      applyArticleEditorInsertItem(activeEditor, value);
+    },
+    [insertMediaPlaceholder],
+  );
 
   const handleOpenMediaInsert = React.useCallback(
     (activeEditor: typeof editor, params: { kind: MediaInsertKind; source: "upload" | "url" }) => {
-      pendingInsertSelectionRef.current = cloneSelection(activeEditor.selection);
-
       if (params.source === "upload") {
-        setAssetPickerState({ kind: params.kind, open: true });
+        insertMediaPlaceholder(activeEditor, params.kind, { autoOpen: true });
         return;
       }
 
       setMediaUrlDialog({ kind: params.kind, open: true, url: "" });
     },
-    [],
-  );
-
-  const handleConfirmImage = React.useCallback(
-    (next: { assetIds: string[] }) => {
-      const assetId = next.assetIds[0];
-      if (!assetId) {
-        setAssetPickerState((current) => ({ ...current, open: false }));
-        return;
-      }
-
-      const nextUrl = resolveAssetRefToPublicUrlPath(assetId);
-      const selection = pendingInsertSelectionRef.current;
-
-      if (selection) {
-        editor.tf.select(selection as never);
-      }
-
-      if (!nextUrl) return;
-      editor.tf.focus();
-      editor.tf.insertNodes(
-        buildMediaNode({
-          type: editor.getType(getMediaInsertConfig(assetPickerState.kind, t).nodeType),
-          url: nextUrl,
-        }),
-      );
-      pendingInsertSelectionRef.current = null;
-      setAssetPickerState((current) => ({ ...current, open: false }));
-    },
-    [assetPickerState.kind, editor, t],
+    [insertMediaPlaceholder],
   );
 
   const handleConfirmMediaUrl = React.useCallback(() => {
     const nextUrl = mediaUrlDialog.url.trim();
     if (!isHttpUrl(nextUrl)) return;
-
-    const selection = pendingInsertSelectionRef.current;
-    if (selection) {
-      editor.tf.select(selection as never);
-    }
 
     editor.tf.focus();
     editor.tf.insertNodes(
@@ -341,9 +322,51 @@ export function ContentLibraryArticleEditorDocumentProvider(
       }),
     );
 
-    pendingInsertSelectionRef.current = null;
     setMediaUrlDialog((current) => ({ ...current, open: false, url: "" }));
   }, [editor, mediaUrlDialog.kind, mediaUrlDialog.url, t]);
+
+  const mediaUploadValue = React.useMemo(
+    () => ({
+      async uploadFile(params: {
+        file: File;
+        mediaType: string;
+        onProgress?: (payload: {
+          progress: number;
+          totalBytes: number;
+          uploadedBytes: number;
+        }) => void;
+        signal?: AbortSignal;
+      }) {
+        const kind = ((): MediaInsertKind => {
+          if (params.mediaType === editor.getType("img")) return "image";
+          if (params.mediaType === editor.getType("audio")) return "audio";
+          if (params.mediaType === editor.getType("file")) return "file";
+          return "video";
+        })();
+
+        const assetId = await uploadSingleAssetFromFile({
+          scope: { id: props.workspaceId, type: "workspace" },
+          purpose: getMediaUploadPurpose(kind),
+          file: params.file,
+          t,
+          onProgress: params.onProgress,
+          signal: params.signal,
+        });
+
+        const url = resolveAssetRefToPublicUrlPath(assetId);
+        if (!url) {
+          throw new Error(`Failed to resolve uploaded asset URL for ${assetId}`);
+        }
+
+        return {
+          isUpload: true,
+          name: params.file.name,
+          url,
+        };
+      },
+    }),
+    [editor, props.workspaceId, t],
+  );
 
   return (
     <ContentLibraryArticleEditorDocumentStateContext.Provider
@@ -379,80 +402,68 @@ export function ContentLibraryArticleEditorDocumentProvider(
                 ) => void,
               }}
             >
-              {props.children}
+              <MediaUploadProvider value={mediaUploadValue}>
+                {props.children}
 
-              <AssetPickerDialog
-                open={assetPickerState.open}
-                onOpenChange={(open) => setAssetPickerState((current) => ({ ...current, open }))}
-                scope={{ id: props.workspaceId, type: "workspace" }}
-                mode="single"
-                allowClear={false}
-                allowUpload
-                uploadPurpose="content_image"
-                mimePrefix={getMediaInsertConfig(assetPickerState.kind, t).mimePrefix}
-                title={getMediaInsertConfig(assetPickerState.kind, t).title}
-                description={getMediaInsertConfig(assetPickerState.kind, t).description}
-                onConfirm={handleConfirmImage}
-              />
-
-              <SettingDialog
-                open={mediaUrlDialog.open}
-                onOpenChange={(open) =>
-                  setMediaUrlDialog((current) => ({
-                    ...current,
-                    open,
-                    url: open ? current.url : "",
-                  }))
-                }
-                title={getMediaInsertConfig(mediaUrlDialog.kind, t).title}
-                description={getMediaInsertConfig(mediaUrlDialog.kind, t).description}
-                contentClassName="sm:max-w-xl"
-                footer={
-                  <>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() =>
-                        setMediaUrlDialog((current) => ({ ...current, open: false, url: "" }))
-                      }
-                    >
-                      {t("common:CANCEL")}
-                    </Button>
-                    <Button
-                      type="button"
-                      disabled={!isHttpUrl(mediaUrlDialog.url.trim())}
-                      onClick={handleConfirmMediaUrl}
-                    >
-                      {t("common:CONFIRM")}
-                    </Button>
-                  </>
-                }
-              >
-                <FieldGroup className="gap-5">
-                  <Field>
-                    <FieldLabel>{t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}</FieldLabel>
-                    <FieldDescription>
-                      {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_HINT")}
-                    </FieldDescription>
-                    <Input
-                      autoFocus
-                      type="url"
-                      value={mediaUrlDialog.url}
-                      onChange={(event) =>
-                        setMediaUrlDialog((current) => ({ ...current, url: event.target.value }))
-                      }
-                      placeholder="https://"
-                      className="h-10"
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" && isHttpUrl(mediaUrlDialog.url.trim())) {
-                          event.preventDefault();
-                          handleConfirmMediaUrl();
+                <SettingDialog
+                  open={mediaUrlDialog.open}
+                  onOpenChange={(open) =>
+                    setMediaUrlDialog((current) => ({
+                      ...current,
+                      open,
+                      url: open ? current.url : "",
+                    }))
+                  }
+                  title={getMediaInsertConfig(mediaUrlDialog.kind, t).title}
+                  description={getMediaInsertConfig(mediaUrlDialog.kind, t).description}
+                  contentClassName="sm:max-w-xl"
+                  footer={
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() =>
+                          setMediaUrlDialog((current) => ({ ...current, open: false, url: "" }))
                         }
-                      }}
-                    />
-                  </Field>
-                </FieldGroup>
-              </SettingDialog>
+                      >
+                        {t("common:CANCEL")}
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={!isHttpUrl(mediaUrlDialog.url.trim())}
+                        onClick={handleConfirmMediaUrl}
+                      >
+                        {t("common:CONFIRM")}
+                      </Button>
+                    </>
+                  }
+                >
+                  <FieldGroup className="gap-5">
+                    <Field>
+                      <FieldLabel>{t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}</FieldLabel>
+                      <FieldDescription>
+                        {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_HINT")}
+                      </FieldDescription>
+                      <Input
+                        autoFocus
+                        type="url"
+                        value={mediaUrlDialog.url}
+                        onChange={(event) =>
+                          setMediaUrlDialog((current) => ({ ...current, url: event.target.value }))
+                        }
+                        placeholder="https://"
+                        className="h-10"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && isHttpUrl(mediaUrlDialog.url.trim())) {
+                            event.preventDefault();
+                            handleConfirmMediaUrl();
+                          }
+                        }}
+                      />
+                    </Field>
+                  </FieldGroup>
+                </SettingDialog>
+              </MediaUploadProvider>
             </ArticleEditorCommandProvider>
           </Plate>
         </DndProvider>

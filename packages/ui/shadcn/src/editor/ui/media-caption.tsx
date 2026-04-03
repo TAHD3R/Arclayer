@@ -31,12 +31,14 @@ export function MediaCaption(props: {
     <figcaption className="mt-3" contentEditable={false}>
       <input
         ref={textareaRef}
+        data-plate-focus="true"
         value={caption}
         onChange={(event) => {
           const path = editor.api.findPath(element);
           if (!path) return;
           editor.tf.setNodes<typeof element>({ caption: event.target.value }, { at: path });
         }}
+        onMouseDown={(event) => event.stopPropagation()}
         onBlur={() => props.onEditingChange?.(false)}
         onKeyDown={(event) => {
           if (event.key === "Enter") {

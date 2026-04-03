@@ -1,57 +1,35 @@
 "use client";
 
+import { CalendarDaysIcon } from "lucide-react";
 import type { TDateElement } from "platejs";
 import type { PlateElementProps } from "platejs/react";
 
 import { PlateElement, useReadOnly } from "platejs/react";
 
-import { Input } from "@arclayer/ui/input";
+import { Button } from "@arclayer/ui/button";
+import { Calendar } from "@arclayer/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { cn } from "@arclayer/lib/utils";
 
-function formatDateLabel(value?: string) {
-  if (!value) return "Pick a date";
-
-  const today = new Date();
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  const sameDay = (left: Date, right: Date) =>
-    left.getDate() === right.getDate() &&
-    left.getMonth() === right.getMonth() &&
-    left.getFullYear() === right.getFullYear();
-
-  if (sameDay(date, today)) return "Today";
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  if (sameDay(date, yesterday)) return "Yesterday";
-
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  if (sameDay(date, tomorrow)) return "Tomorrow";
-
-  return date.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+import { useDateNodeLocalization } from "../date-node-localization-context";
 
 export function DateElement(props: PlateElementProps<TDateElement>) {
   const { editor, element } = props;
   const readOnly = useReadOnly();
+  const localization = useDateNodeLocalization();
+  const selectedDate = localization.toCalendarDate(element.date);
 
   const trigger = (
-    <span
+    <button
+      type="button"
       className={cn(
-        "inline-flex w-fit cursor-pointer rounded-sm bg-muted px-1.5 py-0.5 text-footnote text-label-secondary",
+        "inline-flex w-fit items-center gap-1.5 rounded-md border border-border/70 bg-muted/30 px-2 py-1 text-footnote font-medium text-label-secondary transition-colors hover:bg-accent/60 hover:text-label-primary",
       )}
       contentEditable={false}
-      draggable
     >
-      {formatDateLabel(element.date)}
-    </span>
+      <CalendarDaysIcon className="size-3.5" />
+      <span>{localization.formatLabel(element.date)}</span>
+    </button>
   );
 
   if (readOnly) {
@@ -73,22 +51,40 @@ export function DateElement(props: PlateElementProps<TDateElement>) {
         contentEditable: false,
       }}
     >
-      <Popover>
+      <Popover modal={false}>
         <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-        <PopoverContent align="start" className="w-56 p-3">
-          <Input
-            autoFocus
-            type="date"
-            value={element.date ? new Date(element.date).toISOString().slice(0, 10) : ""}
-            onChange={(event) => {
+        <PopoverContent align="start" className="w-auto p-0">
+          <Calendar
+            mode="single"
+            locale={localization.calendarLocale}
+            selected={selectedDate}
+            onSelect={(date) => {
               const path = editor.api.findPath(element);
               if (!path) return;
-              const value = event.target.value
-                ? new Date(event.target.value).toISOString()
-                : undefined;
-              editor.tf.setNodes({ date: value }, { at: path });
+
+              editor.tf.setNodes(
+                { date: localization.toStoredDate(date ?? undefined) },
+                { at: path },
+              );
             }}
           />
+
+          <div className="flex items-center justify-end border-t border-border/70 px-3 py-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-label-secondary hover:text-label-primary"
+              onClick={() => {
+                const path = editor.api.findPath(element);
+                if (!path) return;
+
+                editor.tf.setNodes({ date: undefined }, { at: path });
+              }}
+            >
+              {localization.clearLabel}
+            </Button>
+          </div>
         </PopoverContent>
       </Popover>
       {props.children}

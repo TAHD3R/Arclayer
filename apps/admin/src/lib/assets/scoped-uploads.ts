@@ -145,34 +145,57 @@ async function uploadAllParts(options: {
   api: ScopedUploadsApi;
   session: UploadSessionInit;
   file: File;
+  onProgress?: (payload: { progress: number; totalBytes: number; uploadedBytes: number }) => void;
   t: TranslateFn;
   signal?: AbortSignal;
 }): Promise<void> {
   const parts = Array.from({ length: options.session.totalParts }, (_, i) => i + 1);
-  return parts.reduce<Promise<void>>((p, partNumber) => {
-    return p.then(() => {
-      const start = (partNumber - 1) * options.session.chunkSize;
-      const end = Math.min(options.file.size, start + options.session.chunkSize);
-      const chunk = options.file.slice(start, end);
+  let uploadedBytes = 0;
 
-      if (options.session.method === "s3_multipart") {
-        return uploadPartToS3({
-          api: options.api,
+  options.onProgress?.({
+    progress: 0,
+    totalBytes: options.file.size,
+    uploadedBytes: 0,
+  });
+
+  return parts.reduce<Promise<void>>((p, partNumber) => {
+    return p
+      .then(() => {
+        const start = (partNumber - 1) * options.session.chunkSize;
+        const end = Math.min(options.file.size, start + options.session.chunkSize);
+        const chunk = options.file.slice(start, end);
+
+        if (options.session.method === "s3_multipart") {
+          return uploadPartToS3({
+            api: options.api,
+            uploadId: options.session.uploadId,
+            partNumber,
+            chunk,
+            signal: options.signal,
+            t: options.t,
+          });
+        }
+
+        return options.api.uploadPart({
           uploadId: options.session.uploadId,
           partNumber,
           chunk,
           signal: options.signal,
-          t: options.t,
         });
-      }
+      })
+      .then(() => {
+        const start = (partNumber - 1) * options.session.chunkSize;
+        const end = Math.min(options.file.size, start + options.session.chunkSize);
+        uploadedBytes += end - start;
+        const progress =
+          options.file.size > 0 ? Math.round((uploadedBytes / options.file.size) * 100) : 100;
 
-      return options.api.uploadPart({
-        uploadId: options.session.uploadId,
-        partNumber,
-        chunk,
-        signal: options.signal,
+        options.onProgress?.({
+          progress,
+          totalBytes: options.file.size,
+          uploadedBytes,
+        });
       });
-    });
   }, Promise.resolve());
 }
 
@@ -190,6 +213,7 @@ export async function uploadSingleAssetFromFile(options: {
   file: File;
   t: TranslateFn;
   folderId?: string | null;
+  onProgress?: (payload: { progress: number; totalBytes: number; uploadedBytes: number }) => void;
   signal?: AbortSignal;
 }): Promise<string> {
   const api = getScopedUploadsApi(options.scope);
@@ -205,6 +229,7 @@ export async function uploadSingleAssetFromFile(options: {
       api,
       session,
       file: options.file,
+      onProgress: options.onProgress,
       t: options.t,
       signal: options.signal,
     });

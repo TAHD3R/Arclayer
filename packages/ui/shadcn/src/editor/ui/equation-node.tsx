@@ -37,6 +37,7 @@ const equationOptions = {
 };
 
 export function EquationElement(props: PlateElementProps<TEquationElement>) {
+  const { t } = useTranslation("content");
   const selected = useSelected();
   const [open, setOpen] = React.useState(selected);
   const katexRef = React.useRef<HTMLDivElement | null>(null);
@@ -60,7 +61,7 @@ export function EquationElement(props: PlateElementProps<TEquationElement>) {
             ) : (
               <div className="flex items-center gap-2 text-footnote text-label-secondary">
                 <RadicalIcon className="size-5" />
-                <span>Add an equation</span>
+                <span>{t("CONTENT_LIBRARY_EDITOR_EQUATION_EMPTY")}</span>
               </div>
             )}
           </div>
@@ -78,6 +79,7 @@ export function EquationElement(props: PlateElementProps<TEquationElement>) {
 }
 
 export function InlineEquationElement(props: PlateElementProps<TEquationElement>) {
+  const { t } = useTranslation("content");
   const element = props.element;
   const katexRef = React.useRef<HTMLDivElement | null>(null);
   const selected = useSelected();
@@ -113,7 +115,7 @@ export function InlineEquationElement(props: PlateElementProps<TEquationElement>
             {!(element.texExpression?.length ?? 0) && (
               <span className="text-footnote text-label-secondary">
                 <RadicalIcon className="mr-1 inline-block size-4 align-text-bottom" />
-                New equation
+                {t("CONTENT_LIBRARY_EDITOR_INLINE_EQUATION_EMPTY")}
               </span>
             )}
           </div>
@@ -144,12 +146,6 @@ function EquationPopoverContent({
   const readOnly = useReadOnly();
   const element = useElement<TEquationElement>();
   const { t } = useTranslation(["content", "common"]);
-  const title = isInline
-    ? t("content:CONTENT_LIBRARY_EDITOR_INSERT_INLINE_EQUATION")
-    : t("content:CONTENT_LIBRARY_EDITOR_INSERT_EQUATION");
-  const description = isInline
-    ? t("content:CONTENT_LIBRARY_EDITOR_INSERT_INLINE_EQUATION_DESC")
-    : t("content:CONTENT_LIBRARY_EDITOR_INSERT_EQUATION_DESC");
 
   const onClose = React.useCallback(() => {
     setOpen(false);
@@ -164,35 +160,26 @@ function EquationPopoverContent({
 
   return (
     <PopoverContent
-      className="w-[min(36rem,calc(100vw-2rem))] overflow-hidden rounded-md border border-border/70 bg-card p-0 shadow-2xl"
+      className="flex w-[min(34rem,calc(100vw-2rem))] items-end gap-2 rounded-md border border-border/70 bg-card/96 p-2 shadow-xl backdrop-blur"
+      onEscapeKeyDown={(event) => {
+        event.preventDefault();
+      }}
       contentEditable={false}
     >
-      <div className="min-w-0 border-b px-6 py-4 text-left">
-        <div className="text-title2 font-bold! mb-0!">{title}</div>
-        <div className="text-label-secondary mb-0!">{description}</div>
-      </div>
+      <EquationInput
+        className={cn(
+          "max-h-[50vh] min-h-28 flex-1 resize-none rounded-md border border-border/70 bg-card px-3 py-2 text-footnote outline-none",
+          className,
+        )}
+        state={{ isInline, open, onClose }}
+        autoFocus
+        placeholder={placeholder}
+      />
 
-      <div className="px-6 py-4">
-        <EquationInput
-          className={cn(
-            "max-h-[40vh] min-h-32 w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-footnote outline-none",
-            className,
-          )}
-          state={{ isInline, open, onClose }}
-          autoFocus
-          placeholder={placeholder}
-        />
-      </div>
-
-      <div className="mt-0 flex min-w-0 flex-col-reverse gap-2 border-t bg-card px-6 py-4 sm:flex-row sm:justify-end">
-        <Button type="button" variant="ghost" onClick={onClose}>
-          {t("common:CANCEL")}
-        </Button>
-        <Button type="button" variant="accent" onClick={onClose}>
-          {t("common:CONFIRM")}
-          <CornerDownLeftIcon className="size-3.5" />
-        </Button>
-      </div>
+      <Button type="button" variant="secondary" className="px-3" onClick={onClose}>
+        {t("common:CONFIRM")}
+        <CornerDownLeftIcon className="size-3.5" />
+      </Button>
     </PopoverContent>
   );
 }

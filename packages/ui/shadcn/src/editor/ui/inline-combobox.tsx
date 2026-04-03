@@ -46,6 +46,10 @@ const InlineComboboxContext = React.createContext<InlineComboboxContextValue>(
   null as unknown as InlineComboboxContextValue,
 );
 
+function useInlineComboboxContext() {
+  return React.useContext(InlineComboboxContext);
+}
+
 const defaultFilter: FilterFn = ({ group, keywords = [], label, value }, search) => {
   const normalizedSearch = search.trim().toLowerCase();
   if (!normalizedSearch) return true;
@@ -407,4 +411,5 @@ export {
   InlineComboboxInput,
   InlineComboboxItem,
   InlineComboboxRow,
+  useInlineComboboxContext,
 };
