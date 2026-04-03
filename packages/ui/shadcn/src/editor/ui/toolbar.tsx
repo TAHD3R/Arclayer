@@ -203,21 +203,23 @@ export const ToolbarButton = React.forwardRef<
 });
 
 export function ToolbarSplitButton({
+  children,
   className,
+  pressed,
   ...props
-}: React.ComponentPropsWithoutRef<typeof ToolbarButton>) {
+}: React.ComponentPropsWithoutRef<"div"> & { pressed?: boolean }) {
   return (
-    <ToolbarButton
-      className={cn("group flex gap-0 px-0 hover:bg-transparent", className)}
+    <div
+      data-pressed={pressed ? "true" : undefined}
+      className={cn("group inline-flex items-center rounded-md", className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 }
 
-type ToolbarSplitButtonPrimaryProps = Omit<
-  React.ComponentPropsWithoutRef<typeof ToolbarToggleItem>,
-  "value"
-> &
+type ToolbarSplitButtonPrimaryProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof toolbarButtonVariants>;
 
 export function ToolbarSplitButtonPrimary({
@@ -228,20 +230,21 @@ export function ToolbarSplitButtonPrimary({
   ...props
 }: ToolbarSplitButtonPrimaryProps) {
   return (
-    <span
+    <button
+      type="button"
       className={cn(
         toolbarButtonVariants({
           size,
           variant,
         }),
-        "rounded-r-none",
+        "rounded-r-none border-r-0",
         "group-data-[pressed=true]:bg-accent group-data-[pressed=true]:text-accent-foreground",
         className,
       )}
       {...props}
     >
       {children}
-    </span>
+    </button>
   );
 }
 
@@ -249,24 +252,24 @@ export function ToolbarSplitButtonSecondary({
   className,
   size,
   variant,
+  children,
   ...props
-}: React.ComponentPropsWithoutRef<"span"> & VariantProps<typeof dropdownArrowVariants>) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof dropdownArrowVariants>) {
   return (
-    <span
+    <button
+      type="button"
       className={cn(
         dropdownArrowVariants({
           size,
           variant,
         }),
-        "group-data-[pressed=true]:bg-accent group-data-[pressed=true]:text-accent-foreground",
+        "rounded-l-none group-data-[pressed=true]:bg-accent group-data-[pressed=true]:text-accent-foreground",
         className,
       )}
-      onClick={(e) => e.stopPropagation()}
-      role="button"
       {...props}
     >
-      <ChevronDown className="size-3.5 text-label-secondary" data-icon />
-    </span>
+      {children ?? <ChevronDown className="size-3.5 text-label-secondary" data-icon />}
+    </button>
   );
 }
 

@@ -285,8 +285,14 @@ export function useContentLibraryArticleEditor(params: {
   );
 
   const latestDraftRef = useLatestValue(draft);
+  const liveBodyDocumentRef = React.useRef<Record<string, unknown>>(draft.bodyDocument);
   const currentVersionNumberRef = useLatestValue(currentVersionNumber);
   const currentVersionStateRef = useLatestValue(currentVersionState);
+  const saveStateRef = useLatestValue(saveState);
+  const isLoadingRef = useLatestValue(isLoading);
+  const errorRef = useLatestValue(error);
+  const isPublishingRef = useLatestValue(isPublishing);
+  const autosaveStrategyRef = useLatestValue(contentStrategy.autosave);
   const autosaveTimerRef = React.useRef<number | null>(null);
   const saveFeedbackTimerRef = React.useRef<number | null>(null);
   const isPersistingRef = React.useRef(false);
@@ -319,6 +325,21 @@ export function useContentLibraryArticleEditor(params: {
     }, SAVE_FEEDBACK_DURATION_MS);
   }, [clearSaveFeedbackTimer]);
 
+  const readCurrentDraft = React.useCallback(
+    (override?: Partial<ContentLibraryArticleEditorDraft>): ContentLibraryArticleEditorDraft => {
+      const baseDraft = latestDraftRef.current;
+      return cloneDraft({
+        ...baseDraft,
+        ...override,
+        bodyDocument:
+          override?.bodyDocument === undefined
+            ? normalizeDocument(liveBodyDocumentRef.current)
+            : normalizeDocument(override.bodyDocument),
+      });
+    },
+    [latestDraftRef],
+  );
+
   const applyPersistedVersion = React.useCallback(
     (
       version: AdminContentVersion,
@@ -328,6 +349,7 @@ export function useContentLibraryArticleEditor(params: {
       otherFieldsSnapshotRef.current = omitManagedFields(version.fieldsSnapshot ?? {});
       otherPresentationsRef.current = omitManagedPresentations(version.presentations ?? []);
       lastSavedDraftRef.current = cloneDraft(nextDraft);
+      liveBodyDocumentRef.current = normalizeDocument(nextDraft.bodyDocument);
       setDraft(cloneDraft(nextDraft));
       setCurrentVersionNumber(version.versionNumber);
       setCurrentVersionState(version.state);
@@ -341,7 +363,7 @@ export function useContentLibraryArticleEditor(params: {
     async (
       overrideDraft?: ContentLibraryArticleEditorDraft,
     ): Promise<AdminContentVersion | null> => {
-      const nextDraft = cloneDraft(overrideDraft ?? latestDraftRef.current);
+      const nextDraft = cloneDraft(overrideDraft ?? readCurrentDraft());
       const hasChanges = !areDraftsEqual(nextDraft, lastSavedDraftRef.current);
 
       if (!hasChanges) {
@@ -427,13 +449,38 @@ export function useContentLibraryArticleEditor(params: {
       clearSaveFeedbackTimer,
       currentVersionNumberRef,
       currentVersionStateRef,
-      latestDraftRef,
       params.itemId,
       params.workspaceId,
       publishedVersionNumber,
+      readCurrentDraft,
       showSavedFeedback,
     ],
   );
+
+  const scheduleAutosave = React.useCallback(() => {
+    const autosaveStrategy = autosaveStrategyRef.current;
+    if (!autosaveStrategy.enabled) return;
+    if (isLoadingRef.current || errorRef.current || isPublishingRef.current) return;
+    if (saveStateRef.current === "saving") return;
+
+    const nextDraft = readCurrentDraft();
+    if (areDraftsEqual(nextDraft, lastSavedDraftRef.current)) return;
+
+    clearAutosaveTimer();
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
+      void persistDraft(nextDraft);
+    }, autosaveStrategy.intervalSec * 1000);
+  }, [
+    autosaveStrategyRef,
+    clearAutosaveTimer,
+    errorRef,
+    isLoadingRef,
+    isPublishingRef,
+    persistDraft,
+    readCurrentDraft,
+    saveStateRef,
+  ]);
 
   React.useEffect(() => {
     let active = true;
@@ -462,6 +509,7 @@ export function useContentLibraryArticleEditor(params: {
           snapshot.draftVersion?.presentations ?? [],
         );
         lastSavedDraftRef.current = cloneDraft(nextDraft);
+        liveBodyDocumentRef.current = normalizeDocument(nextDraft.bodyDocument);
         setDraft(nextDraft);
         setCurrentVersionNumber(snapshot.draftVersion?.versionNumber ?? null);
         setCurrentVersionState(snapshot.draftVersion?.state ?? null);
@@ -488,24 +536,19 @@ export function useContentLibraryArticleEditor(params: {
   ]);
 
   React.useEffect(() => {
-    if (saveState === "saved" && !areDraftsEqual(draft, lastSavedDraftRef.current)) {
+    if (saveState === "saved" && !areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current)) {
       clearSaveFeedbackTimer();
       setSaveState("hidden");
     }
-  }, [clearSaveFeedbackTimer, draft, saveState]);
+  }, [clearSaveFeedbackTimer, draft, readCurrentDraft, saveState]);
 
   React.useEffect(() => {
     if (isLoading || error) return;
     if (saveState === "saving" || isPublishing) return;
-    if (areDraftsEqual(draft, lastSavedDraftRef.current)) return;
+    if (areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current)) return;
     if (!contentStrategy.autosave.enabled) return;
 
-    clearAutosaveTimer();
-
-    autosaveTimerRef.current = window.setTimeout(() => {
-      autosaveTimerRef.current = null;
-      void persistDraft();
-    }, contentStrategy.autosave.intervalSec * 1000);
+    scheduleAutosave();
 
     return () => {
       clearAutosaveTimer();
@@ -513,13 +556,13 @@ export function useContentLibraryArticleEditor(params: {
   }, [
     clearAutosaveTimer,
     contentStrategy.autosave.enabled,
-    contentStrategy.autosave.intervalSec,
     draft,
     error,
     isLoading,
     isPublishing,
-    persistDraft,
+    readCurrentDraft,
     saveState,
+    scheduleAutosave,
   ]);
 
   React.useEffect(
@@ -535,7 +578,7 @@ export function useContentLibraryArticleEditor(params: {
 
     const flushDraft = () => {
       if (isLoading || error || isPublishing || saveState === "saving") return;
-      if (areDraftsEqual(latestDraftRef.current, lastSavedDraftRef.current)) return;
+      if (areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current)) return;
       void persistDraft();
     };
 
@@ -556,14 +599,14 @@ export function useContentLibraryArticleEditor(params: {
     error,
     isLoading,
     isPublishing,
-    latestDraftRef,
     persistDraft,
+    readCurrentDraft,
     saveState,
   ]);
 
   const publish = React.useCallback(async () => {
     const nextDraft = cloneDraft({
-      ...latestDraftRef.current,
+      ...readCurrentDraft(),
       status: "published",
     });
 
@@ -592,10 +635,10 @@ export function useContentLibraryArticleEditor(params: {
   }, [
     applyPersistedVersion,
     currentVersionNumberRef,
-    latestDraftRef,
     params.itemId,
     params.workspaceId,
     persistDraft,
+    readCurrentDraft,
   ]);
 
   return {
@@ -628,12 +671,21 @@ export function useContentLibraryArticleEditor(params: {
         },
       })),
     bodyDocument: draft.bodyDocument,
-    setBodyDocument: (value: Record<string, unknown>) =>
-      setDraft((current) => ({ ...current, bodyDocument: value })),
+    setBodyDocument: (value: Record<string, unknown>) => {
+      liveBodyDocumentRef.current = normalizeDocument(value);
+      if (
+        saveStateRef.current === "saved" &&
+        !areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current)
+      ) {
+        clearSaveFeedbackTimer();
+        setSaveState("hidden");
+      }
+      scheduleAutosave();
+    },
     draftVersionNumber: currentVersionNumber,
     draftVersionState: currentVersionState,
     publishedVersionNumber,
-    hasUnsavedChanges: !areDraftsEqual(draft, lastSavedDraftRef.current),
+    hasUnsavedChanges: !areDraftsEqual(readCurrentDraft(), lastSavedDraftRef.current),
     autosaveStrategy: contentStrategy.autosave,
     publish,
   };

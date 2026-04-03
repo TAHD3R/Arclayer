@@ -19,7 +19,13 @@ import {
 import { toggleTodoList } from "./article-editor-insert-items";
 import { applyTurnInto, getTurnIntoValue } from "./turn-into-helpers";
 import { TURN_INTO_MENU_ITEMS } from "./turn-into-menu-items";
-import { ToolbarButton, ToolbarMenuGroup, ToolbarTooltip } from "./ui/toolbar";
+import {
+  ToolbarMenuGroup,
+  ToolbarSplitButton,
+  ToolbarSplitButtonPrimary,
+  ToolbarSplitButtonSecondary,
+  ToolbarTooltip,
+} from "./ui/toolbar";
 import {
   captureEditorSelection,
   runEditorTransformPreservingSelection,
@@ -55,20 +61,28 @@ export function TurnIntoToolbarButton() {
       modal={false}
     >
       <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}>
-        <DropdownMenuTrigger asChild>
-          <ToolbarButton
-            className="min-w-[7.5rem]"
-            pressed={open}
-            tooltip={undefined}
-            isDropdown
+        <ToolbarSplitButton pressed={open}>
+          <ToolbarSplitButtonPrimary
+            className="min-w-16 justify-center px-3"
+            aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
             onMouseDown={(event) => {
               event.preventDefault();
               selectionRef.current = captureEditorSelection(editor);
             }}
+            onClick={() => setOpen(true)}
           >
             {t(selectedItem.labelKey)}
-          </ToolbarButton>
-        </DropdownMenuTrigger>
+          </ToolbarSplitButtonPrimary>
+          <DropdownMenuTrigger asChild>
+            <ToolbarSplitButtonSecondary
+              aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
+            />
+          </DropdownMenuTrigger>
+        </ToolbarSplitButton>
       </ToolbarTooltip>
       <DropdownMenuContent
         align="start"

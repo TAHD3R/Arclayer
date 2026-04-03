@@ -30,7 +30,12 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
-import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
+import {
+  ToolbarSplitButton,
+  ToolbarSplitButtonPrimary,
+  ToolbarSplitButtonSecondary,
+  ToolbarTooltip,
+} from "./ui/toolbar";
 import { cn } from "@arclayer/lib/utils";
 
 export function TableToolbarButton() {
@@ -75,20 +80,29 @@ export function TableToolbarButton() {
       modal={false}
     >
       <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_TABLE")}>
-        <DropdownMenuTrigger asChild>
-          <ToolbarButton
-            pressed={open}
-            tooltip={undefined}
-            isDropdown
-            dropdownMode="icon"
+        <ToolbarSplitButton pressed={open}>
+          <ToolbarSplitButtonPrimary
+            aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_TABLE")}
             onMouseDown={(event) => {
               event.preventDefault();
               selectionRef.current = captureEditorSelection(editor);
             }}
+            onClick={() => {
+              runTableAction(() => tf.insert.table({ colCount: 3, rowCount: 3 }, { select: true }));
+            }}
           >
             <Table2Icon />
-          </ToolbarButton>
-        </DropdownMenuTrigger>
+          </ToolbarSplitButtonPrimary>
+          <DropdownMenuTrigger asChild>
+            <ToolbarSplitButtonSecondary
+              aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_TABLE")}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
+            />
+          </DropdownMenuTrigger>
+        </ToolbarSplitButton>
       </ToolbarTooltip>
 
       <DropdownMenuContent

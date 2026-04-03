@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { CheckIcon, EraserIcon, PlusIcon } from "lucide-react";
+import { CheckIcon, EraserIcon } from "lucide-react";
 import { useEditorRef, useEditorSelector } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +20,7 @@ import {
   isBrightColor,
   normalizeColor,
 } from "./mark-color-utils";
+import { EditorColorPicker } from "./ui/editor-color-picker";
 
 const STORAGE_KEY = "arclayer:editor:custom-colors";
 
@@ -91,7 +92,6 @@ export function FontColorToolbarButton({
   const { t } = useTranslation("content");
   const [open, setOpen] = React.useState(false);
   const selectionRef = React.useRef(captureEditorSelection(editor));
-  const colorInputRef = React.useRef<HTMLInputElement | null>(null);
   const [customColors, setCustomColors] = React.useState<string[]>(() =>
     readStoredCustomColors(nodeType),
   );
@@ -106,14 +106,16 @@ export function FontColorToolbarButton({
 
   const rememberCustomColor = React.useCallback(
     (value: string) => {
-      const next = [
-        value,
-        ...customColors.filter((item) => normalizeColor(item) !== normalizeColor(value)),
-      ].slice(0, 8);
-      setCustomColors(next);
-      writeStoredCustomColors(nodeType, next);
+      setCustomColors((currentColors) => {
+        const next = [
+          value,
+          ...currentColors.filter((item) => normalizeColor(item) !== normalizeColor(value)),
+        ].slice(0, 8);
+        writeStoredCustomColors(nodeType, next);
+        return next;
+      });
     },
-    [customColors, nodeType],
+    [nodeType],
   );
 
   const applyColor = React.useCallback(
@@ -134,6 +136,8 @@ export function FontColorToolbarButton({
       selection: selectionRef.current,
     });
   }, [editor, nodeType]);
+
+  const pickerValue = selectedColor ?? customColors[0] ?? DEFAULT_COLORS[0] ?? "#000000";
 
   return (
     <Popover
@@ -169,7 +173,7 @@ export function FontColorToolbarButton({
       </ToolbarTooltip>
       <PopoverContent
         align="start"
-        className="ignore-click-outside/toolbar w-[36rem] rounded-md border border-border/70 bg-card/96 p-0 shadow-xl backdrop-blur"
+        className="ignore-click-outside/toolbar w-[18rem] rounded-md border border-border/70 bg-card/96 p-3 shadow-xl backdrop-blur"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           runEditorTransformPreservingSelection(editor, () => undefined, {
@@ -178,46 +182,23 @@ export function FontColorToolbarButton({
         }}
       >
         <TooltipProvider>
-          <div className="space-y-0">
-            <div className="border-b border-border/70 px-5 py-4">
-              <div className="mb-3 text-footnote font-semibold text-label-secondary">
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="text-footnote font-semibold text-label-secondary">
                 {t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM")}
               </div>
-              <div className="flex items-center gap-3">
-                {customColors.map((color) => (
-                  <ColorSwatch
-                    key={color}
-                    active={doesEditorMarkColorMatch(nodeType, selectedColor, color)}
-                    color={color}
-                    onClick={() => applyColor(color)}
-                  />
-                ))}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-lg"
-                  className="ml-auto rounded-md text-label-secondary hover:text-label-primary"
-                  aria-label={t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM_ADD")}
-                  onClick={() => colorInputRef.current?.click()}
-                >
-                  <PlusIcon className="size-5" />
-                </Button>
-                <input
-                  ref={colorInputRef}
-                  type="color"
-                  className="sr-only"
-                  onChange={(event) => applyColor(event.target.value, { remember: true })}
-                />
-              </div>
+              <EditorColorPicker
+                value={pickerValue}
+                onChange={(value) => applyColor(value, { remember: true })}
+                customColors={customColors}
+                presets={DEFAULT_COLORS}
+                inputLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_VALUE")}
+              />
             </div>
 
-            <div className="px-5 py-4">
-              <div className="mb-3 text-footnote font-semibold text-label-secondary">
-                {t("CONTENT_LIBRARY_EDITOR_COLOR_DEFAULT")}
-              </div>
-              <div className="grid grid-cols-10 gap-3">
-                {DEFAULT_COLORS.map((color) => (
+            <div className="flex items-center justify-between border-t border-border/70 pt-3">
+              <div className="flex items-center gap-2">
+                {customColors.slice(0, 3).map((color) => (
                   <ColorSwatch
                     key={color}
                     active={doesEditorMarkColorMatch(nodeType, selectedColor, color)}
@@ -226,9 +207,6 @@ export function FontColorToolbarButton({
                   />
                 ))}
               </div>
-            </div>
-
-            <div className="flex items-center justify-end border-t border-border/70 px-4 py-3">
               <Button
                 type="button"
                 variant="ghost"

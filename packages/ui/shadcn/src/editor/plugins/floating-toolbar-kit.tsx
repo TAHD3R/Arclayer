@@ -112,8 +112,11 @@ function PlateLinkFloatingToolbar() {
   const { setOption, type } = useEditorPlugin(LinkPlugin);
   const selectionRef = React.useRef(captureEditorSelection(editor));
   const linkUrl = usePluginOption(LinkPlugin, "url") ?? "";
+  const insertTextInputRef = React.useRef<HTMLInputElement | null>(null);
   const editTextInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [insertTextValue, setInsertTextValue] = React.useState(floatingLinkDraftTextCache);
   const [editTextValue, setEditTextValue] = React.useState(floatingLinkDraftTextCache);
+  const wasInsertingRef = React.useRef(false);
   const wasEditingRef = React.useRef(false);
   const floatingOptions = React.useMemo(
     () => ({
@@ -138,9 +141,11 @@ function PlateLinkFloatingToolbar() {
   };
 
   const submitLink = React.useCallback(() => {
-    setOption("text", floatingLinkDraftTextCache);
+    const nextText = editState.isEditing ? editTextValue : insertTextValue;
+    floatingLinkDraftTextCache = nextText;
+    setOption("text", nextText);
     submitFloatingLink(editor);
-  }, [editor, setOption]);
+  }, [editState.isEditing, editTextValue, editor, insertTextValue, setOption]);
 
   const readCurrentLinkText = React.useCallback(() => {
     const entry = editor.api.above({ match: { type } });
@@ -160,6 +165,20 @@ function PlateLinkFloatingToolbar() {
   const currentLinkUrl = readCurrentLinkUrl() || linkUrl;
 
   React.useEffect(() => {
+    if (!insert.hidden && !wasInsertingRef.current) {
+      const nextText =
+        typeof insert.textInputProps?.value === "string" ? insert.textInputProps.value : "";
+      floatingLinkDraftTextCache = nextText;
+      setInsertTextValue(nextText);
+      setOption("text", nextText);
+    }
+    if (insert.hidden && wasInsertingRef.current) {
+      floatingLinkDraftTextCache = insertTextValue;
+    }
+    wasInsertingRef.current = !insert.hidden;
+  }, [insert.hidden, insert.textInputProps?.value, insertTextValue, setOption]);
+
+  React.useEffect(() => {
     if (editState.isEditing && !wasEditingRef.current) {
       const nextText = readCurrentLinkText();
       floatingLinkDraftTextCache = nextText;
@@ -173,6 +192,17 @@ function PlateLinkFloatingToolbar() {
     }
     wasEditingRef.current = editState.isEditing;
   }, [editState.isEditing, readCurrentLinkText, setOption]);
+
+  const handleInsertTextChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const nextValue = event.target.value;
+      floatingLinkDraftTextCache = nextValue;
+      setInsertTextValue(nextValue);
+      setOption("text", nextValue);
+      insert.textInputProps?.onChange?.(event);
+    },
+    [insert.textInputProps, setOption],
+  );
 
   const handleEditTextChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,9 +242,12 @@ function PlateLinkFloatingToolbar() {
           </LinkFormRow>
           <LinkFormRow icon={<Rows3 className="size-4" />} bordered>
             <LinkFormInput
+              ref={insertTextInputRef}
               placeholder={t("CONTENT_LIBRARY_EDITOR_LINK_TEXT")}
               data-plate-focus
               {...insert.textInputProps}
+              value={insertTextValue}
+              onChange={handleInsertTextChange}
               onSubmit={submitLink}
             />
           </LinkFormRow>

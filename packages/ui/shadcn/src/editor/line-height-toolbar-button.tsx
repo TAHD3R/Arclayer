@@ -15,7 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
-import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
+import {
+  ToolbarSplitButton,
+  ToolbarSplitButtonPrimary,
+  ToolbarSplitButtonSecondary,
+  ToolbarTooltip,
+} from "./ui/toolbar";
 
 const DEFAULT_LINE_HEIGHT = "1.5";
 const FALLBACK_LINE_HEIGHT_VALUES = ["1", "1.25", DEFAULT_LINE_HEIGHT, "2"] as const;
@@ -55,10 +60,20 @@ export function LineHeightToolbarButton() {
     () => resolveLineHeightOptions(undefined, defaultNodeValue),
     [defaultNodeValue],
   );
-  const value = useSelectionFragmentProp({
-    defaultValue: defaultNodeValue,
-    getProp: (node) => node.lineHeight,
-  });
+  const selectionValue = String(
+    useSelectionFragmentProp({
+      defaultValue: defaultNodeValue,
+      getProp: (node) => node.lineHeight,
+    }) ?? defaultNodeValue,
+  );
+  const [menuValue, setMenuValue] = React.useState(selectionValue);
+  const value = open ? menuValue : selectionValue;
+
+  React.useEffect(() => {
+    if (!open) {
+      setMenuValue(selectionValue);
+    }
+  }, [open, selectionValue]);
 
   return (
     <DropdownMenu
@@ -66,26 +81,34 @@ export function LineHeightToolbarButton() {
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           selectionRef.current = captureEditorSelection(editor);
+          setMenuValue(selectionValue);
         }
         setOpen(nextOpen);
       }}
       modal={false}
     >
       <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_LINE_HEIGHT")}>
-        <DropdownMenuTrigger asChild>
-          <ToolbarButton
-            pressed={open}
-            tooltip={undefined}
-            isDropdown
-            dropdownMode="icon"
+        <ToolbarSplitButton pressed={open}>
+          <ToolbarSplitButtonPrimary
+            aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_LINE_HEIGHT")}
             onMouseDown={(event) => {
               event.preventDefault();
               selectionRef.current = captureEditorSelection(editor);
             }}
+            onClick={() => setOpen(true)}
           >
             <WrapTextIcon />
-          </ToolbarButton>
-        </DropdownMenuTrigger>
+          </ToolbarSplitButtonPrimary>
+          <DropdownMenuTrigger asChild>
+            <ToolbarSplitButtonSecondary
+              aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_LINE_HEIGHT")}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
+            />
+          </DropdownMenuTrigger>
+        </ToolbarSplitButton>
       </ToolbarTooltip>
 
       <DropdownMenuContent
@@ -99,8 +122,9 @@ export function LineHeightToolbarButton() {
         }}
       >
         <DropdownMenuRadioGroup
-          value={String(value ?? defaultNodeValue)}
+          value={value}
           onValueChange={(nextValue) => {
+            setMenuValue(nextValue);
             runEditorTransformPreservingSelection(
               editor,
               () => {

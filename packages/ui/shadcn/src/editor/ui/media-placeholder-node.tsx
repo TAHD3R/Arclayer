@@ -12,6 +12,7 @@ import { message } from "@arclayer/ui/admin-toast";
 import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 
+import { useArticleEditorCommands } from "../article-editor-command-context";
 import { useMediaUploadContext } from "../media-upload-context";
 
 const DEFAULT_MEDIA_WIDTH = 720;
@@ -30,27 +31,32 @@ type MediaPlaceholderConfig = {
   accept: string;
   icon: React.ComponentType<{ className?: string }>;
   labelKey: string;
+  kind: "audio" | "file" | "image" | "video";
 };
 
 const MEDIA_PLACEHOLDER_CONFIG: Record<PlaceholderMediaType, MediaPlaceholderConfig> = {
   audio: {
     accept: "audio/*",
     icon: AudioLinesIcon,
+    kind: "audio",
     labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_AUDIO",
   },
   file: {
     accept: "*",
     icon: FileUpIcon,
+    kind: "file",
     labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_FILE",
   },
   img: {
     accept: "image/*",
     icon: ImageIcon,
+    kind: "image",
     labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_IMAGE",
   },
   video: {
     accept: "video/*",
     icon: FilmIcon,
+    kind: "video",
     labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_VIDEO",
   },
 };
@@ -78,6 +84,7 @@ export const MediaPlaceholderElement = withHOC(
   function MediaPlaceholderElement(props: PlateElementProps<MediaPlaceholderNodeElement>) {
     const { editor } = props;
     const { t } = useTranslation("content");
+    const commands = useArticleEditorCommands();
     const upload = useMediaUploadContext();
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     const autoOpenHandledRef = React.useRef(false);
@@ -100,6 +107,15 @@ export const MediaPlaceholderElement = withHOC(
     const openFilePicker = React.useCallback(() => {
       inputRef.current?.click();
     }, []);
+
+    const openLibraryPicker = React.useCallback(() => {
+      const replacePath = editor.api.findPath(element) ?? undefined;
+      commands?.openMediaInsert?.(editor, {
+        kind: config.kind,
+        replacePath,
+        source: "library",
+      });
+    }, [commands, config.kind, editor, element]);
 
     const clearPreviewUrl = React.useCallback(() => {
       if (objectUrlRef.current) {
@@ -255,15 +271,28 @@ export const MediaPlaceholderElement = withHOC(
                       })}
                 </div>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={isUploading}
-                onClick={openFilePicker}
-              >
-                {t("CONTENT_LIBRARY_EDITOR_UPLOAD_FROM_COMPUTER")}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={isUploading}
+                  onClick={openFilePicker}
+                >
+                  {t("CONTENT_LIBRARY_EDITOR_UPLOAD_FROM_COMPUTER")}
+                </Button>
+                {commands?.openMediaInsert ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={isUploading}
+                    onClick={openLibraryPicker}
+                  >
+                    {t("CONTENT_LIBRARY_EDITOR_SELECT_FROM_LIBRARY")}
+                  </Button>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

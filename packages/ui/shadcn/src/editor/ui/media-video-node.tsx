@@ -10,12 +10,10 @@ import type { PlateElementProps } from "platejs/react";
 
 import { parseVideoUrl } from "@platejs/media";
 import { useMediaState } from "@platejs/media/react";
-import { SlidersHorizontal } from "lucide-react";
 import { ResizableProvider, useResizableValue } from "@platejs/resizable";
-import { PlateElement, useEditorMounted, useEditorRef, withHOC } from "platejs/react";
+import { PlateElement, useEditorMounted, withHOC } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 
 import { MediaCaption } from "./media-caption";
@@ -26,7 +24,6 @@ export const VideoElement = withHOC(
   ResizableProvider,
   function VideoElement(props: PlateElementProps<TVideoElement>) {
     const { t } = useTranslation("content");
-    const editor = useEditorRef();
     const {
       align = "center",
       embed,
@@ -44,18 +41,14 @@ export const VideoElement = withHOC(
     const renderEmbedPlayer = mounted && !isUpload && !isYoutube && isVideo;
     const renderFileVideo = mounted && (isUpload || !isVideo);
     const [editingCaption, setEditingCaption] = React.useState(false);
-    const [toolbarOpen, setToolbarOpen] = React.useState(false);
-
-    const openToolbar = React.useCallback(() => {
-      const path = editor.api.findPath(props.element);
-      if (path) {
-        editor.tf.select(path);
-        editor.tf.focus();
-      }
-      setToolbarOpen(true);
-    }, [editor, props.element]);
+    const [hovering, setHovering] = React.useState(false);
 
     const stopPlayerSelection = React.useCallback((event: React.SyntheticEvent) => {
+      event.stopPropagation();
+    }, []);
+
+    const stopVideoSurfacePlayback = React.useCallback((event: React.SyntheticEvent) => {
+      event.preventDefault();
       event.stopPropagation();
     }, []);
 
@@ -63,8 +56,7 @@ export const VideoElement = withHOC(
       <PlateElement className="py-2.5" {...props}>
         <MediaToolbar
           compact
-          open={toolbarOpen}
-          onOpenChange={setToolbarOpen}
+          hovering={hovering}
           supportsCaption
           url={unsafeUrl}
           showAlignment
@@ -73,23 +65,9 @@ export const VideoElement = withHOC(
           <figure
             className="group/media relative m-0 w-full cursor-default"
             contentEditable={false}
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
           >
-            <div className="pointer-events-none absolute right-3 top-3 z-20 opacity-0 transition-opacity duration-150 group-hover/media:opacity-100 group-focus-within/media:opacity-100">
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon-sm"
-                className="pointer-events-auto size-8 rounded-full border border-border/70 bg-card/92 shadow-sm backdrop-blur"
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onClick={openToolbar}
-              >
-                <SlidersHorizontal className="size-4" />
-                <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_MEDIA_OPTIONS")}</span>
-              </Button>
-            </div>
             <Resizable
               align={align}
               options={{
@@ -125,13 +103,21 @@ export const VideoElement = withHOC(
                   </div>
                 ) : null}
                 {renderFileVideo ? (
-                  <video
-                    className="aspect-video w-full object-cover"
-                    src={unsafeUrl}
-                    controls
-                    onMouseDownCapture={stopPlayerSelection}
-                    onClickCapture={stopPlayerSelection}
-                  />
+                  <div className="relative">
+                    <video
+                      className="aspect-video w-full object-cover"
+                      src={unsafeUrl}
+                      controls
+                      onMouseDownCapture={stopPlayerSelection}
+                      onClickCapture={stopPlayerSelection}
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-0 inset-y-0 bottom-12 z-10"
+                      onMouseDown={stopVideoSurfacePlayback}
+                      onClick={stopVideoSurfacePlayback}
+                    />
+                  </div>
                 ) : null}
                 {renderEmbedPlayer ? (
                   <div

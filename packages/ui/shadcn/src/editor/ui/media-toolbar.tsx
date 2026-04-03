@@ -82,6 +82,7 @@ function updateMediaAlignment(editor: PlateEditor, align: MediaAlign) {
 export function MediaToolbar(props: {
   children: React.ReactNode;
   compact?: boolean;
+  hovering?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onCaptionToggle?: () => void;
@@ -105,7 +106,10 @@ export function MediaToolbar(props: {
   };
   const isEditing = useFloatingMediaValue("isEditing");
   const selectionOpen = (isFocusedLast && selected && selectionCollapsed) || isEditing;
-  const open = !readOnly && !isImagePreviewOpen && ((props.open ?? selectionOpen) || isEditing);
+  const open =
+    !readOnly &&
+    !isImagePreviewOpen &&
+    ((props.open ?? selectionOpen) || props.hovering || isEditing);
   const align = element.align ?? "center";
   const selectionRef = React.useRef(captureEditorSelection(editor));
   const [urlDraft, setUrlDraft] = React.useState(props.url);

@@ -6,7 +6,11 @@ type ArticleEditorCommandContextValue = {
   insertItem: (editor: unknown, value: string) => void;
   openMediaInsert?: (
     editor: unknown,
-    params: { kind: "image" | "video" | "audio" | "file"; source: "upload" | "url" },
+    params: {
+      kind: "image" | "video" | "audio" | "file";
+      source: "upload" | "url" | "library";
+      replacePath?: number[];
+    },
   ) => void;
 };
 

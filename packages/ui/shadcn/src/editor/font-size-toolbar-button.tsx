@@ -93,7 +93,7 @@ export function FontSizeToolbarButton(props: { tooltip?: string }) {
   );
 
   return (
-    <div className="flex h-8 items-center gap-1 rounded-md border border-border/70 bg-muted/25 px-1">
+    <div className="flex h-8 items-center gap-1 rounded-md border border-border/70 bg-muted px-1">
       <ToolbarTooltip tooltip={props.tooltip}>
         <ToolbarButton
           size="sm"

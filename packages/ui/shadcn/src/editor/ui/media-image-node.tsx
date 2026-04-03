@@ -26,11 +26,13 @@ export const MediaImageElement = withHOC(
     const element = props.element as TImageElement & { url?: string };
     const url = typeof element.url === "string" ? element.url : "";
     const [editingCaption, setEditingCaption] = React.useState(false);
+    const [hovering, setHovering] = React.useState(false);
 
     return (
       <PlateElement {...props} as="div" className="group/media py-2.5">
         <MediaToolbar
           compact
+          hovering={hovering}
           supportsCaption
           url={url}
           showAlignment
@@ -39,6 +41,8 @@ export const MediaImageElement = withHOC(
           <figure
             className="group/media relative m-0 w-full cursor-default"
             contentEditable={false}
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
           >
             <Resizable
               align={align}

@@ -18,7 +18,12 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { captureEditorSelection, runEditorTransformPreservingSelection } from "./transforms";
-import { ToolbarButton, ToolbarTooltip } from "./ui/toolbar";
+import {
+  ToolbarSplitButton,
+  ToolbarSplitButtonPrimary,
+  ToolbarSplitButtonSecondary,
+  ToolbarTooltip,
+} from "./ui/toolbar";
 
 const ALIGN_ITEMS = [
   { icon: AlignLeftIcon, labelKey: "CONTENT_LIBRARY_EDITOR_MARK_ALIGN_LEFT", value: "left" },
@@ -36,12 +41,20 @@ export function AlignToolbarButton() {
   const { editor, tf } = useEditorPlugin(TextAlignPlugin);
   const [open, setOpen] = React.useState(false);
   const selectionRef = React.useRef(captureEditorSelection(editor));
-  const value =
+  const selectionValue =
     useSelectionFragmentProp({
       defaultValue: "left",
       getProp: (node) => node.align,
     }) ?? "left";
+  const [menuValue, setMenuValue] = React.useState(selectionValue);
+  const value = open ? menuValue : selectionValue;
   const SelectedIcon = ALIGN_ITEMS.find((item) => item.value === value)?.icon ?? AlignLeftIcon;
+
+  React.useEffect(() => {
+    if (!open) {
+      setMenuValue(selectionValue);
+    }
+  }, [open, selectionValue]);
 
   return (
     <DropdownMenu
@@ -49,26 +62,34 @@ export function AlignToolbarButton() {
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
           selectionRef.current = captureEditorSelection(editor);
+          setMenuValue(selectionValue);
         }
         setOpen(nextOpen);
       }}
       modal={false}
     >
       <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_MARK_ALIGN")}>
-        <DropdownMenuTrigger asChild>
-          <ToolbarButton
-            pressed={open}
-            tooltip={undefined}
-            isDropdown
-            dropdownMode="icon"
+        <ToolbarSplitButton pressed={open}>
+          <ToolbarSplitButtonPrimary
+            aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_ALIGN")}
             onMouseDown={(event) => {
               event.preventDefault();
               selectionRef.current = captureEditorSelection(editor);
             }}
+            onClick={() => setOpen(true)}
           >
             <SelectedIcon />
-          </ToolbarButton>
-        </DropdownMenuTrigger>
+          </ToolbarSplitButtonPrimary>
+          <DropdownMenuTrigger asChild>
+            <ToolbarSplitButtonSecondary
+              aria-label={t("CONTENT_LIBRARY_EDITOR_MARK_ALIGN")}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                selectionRef.current = captureEditorSelection(editor);
+              }}
+            />
+          </DropdownMenuTrigger>
+        </ToolbarSplitButton>
       </ToolbarTooltip>
 
       <DropdownMenuContent
@@ -84,6 +105,7 @@ export function AlignToolbarButton() {
         <DropdownMenuRadioGroup
           value={value}
           onValueChange={(nextValue) => {
+            setMenuValue(nextValue as (typeof ALIGN_ITEMS)[number]["value"]);
             runEditorTransformPreservingSelection(
               editor,
               () => {

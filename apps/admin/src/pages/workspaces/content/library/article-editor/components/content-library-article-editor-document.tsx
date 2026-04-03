@@ -13,9 +13,9 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { uploadSingleAssetFromFile } from "@/lib/assets/scoped-uploads";
+import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
 import { SlashKit } from "@/components/editor/plugins/slash-kit";
 import { Button } from "@arclayer/ui/button";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import {
   ArticleEditorBlockMenuPlugin,
   AdvancedBlocksKit,
@@ -43,6 +43,14 @@ const DEFAULT_PLATE_VALUE: Value = normalizeNodeId([{ type: "p", children: [{ te
 const TERMINAL_BLOCKS_REQUIRING_TRAILING_PARAGRAPH = new Set(["hr", "table"]);
 
 type MediaInsertKind = "audio" | "file" | "image" | "video";
+type MediaInsertDialogState = {
+  kind: MediaInsertKind;
+  open: boolean;
+  replacePath?: number[];
+};
+type MediaUrlDialogState = MediaInsertDialogState & {
+  url: string;
+};
 
 type ContentLibraryArticleEditorDocumentProviderProps = {
   children: React.ReactNode;
@@ -171,6 +179,24 @@ function buildMediaNode(params: { name?: string; type: string; url: string }) {
   };
 }
 
+function insertOrReplaceMediaNode(params: {
+  editor: NonNullable<ReturnType<typeof usePlateEditor>>;
+  node: ReturnType<typeof buildMediaNode>;
+  replacePath?: number[];
+}) {
+  params.editor.tf.focus();
+
+  if (!params.replacePath) {
+    params.editor.tf.insertNodes(params.node);
+    return;
+  }
+
+  params.editor.tf.withoutSaving(() => {
+    params.editor.tf.removeNodes({ at: params.replacePath });
+    params.editor.tf.insertNodes(params.node, { at: params.replacePath });
+  });
+}
+
 function getMediaTypeKey(kind: MediaInsertKind) {
   if (kind === "image") return "img";
   if (kind === "audio") return "audio";
@@ -180,6 +206,13 @@ function getMediaTypeKey(kind: MediaInsertKind) {
 
 function getMediaUploadPurpose(kind: MediaInsertKind) {
   return kind === "image" ? "content_image" : "library";
+}
+
+function getAssetPickerMimePrefix(kind: MediaInsertKind) {
+  if (kind === "image") return "image/";
+  if (kind === "video") return "video/";
+  if (kind === "audio") return "audio/";
+  return "";
 }
 
 export function ContentLibraryArticleEditorDocumentProvider(
@@ -194,11 +227,18 @@ export function ContentLibraryArticleEditorDocumentProvider(
   const externalValue = React.useMemo(() => toPlateValue(externalDocument), [externalDocument]);
   const lastSyncedDocumentRef = React.useRef(externalSerialized);
   const [appliedDocumentKey, setAppliedDocumentKey] = React.useState(externalSerialized);
-  const [mediaUrlDialog, setMediaUrlDialog] = React.useState<{
-    kind: MediaInsertKind;
-    open: boolean;
-    url: string;
-  }>({ kind: "image", open: false, url: "" });
+  const [mediaUrlDialog, setMediaUrlDialog] = React.useState<MediaUrlDialogState>({
+    kind: "image",
+    open: false,
+    replacePath: undefined,
+    url: "",
+  });
+  const [mediaLibraryDialog, setMediaLibraryDialog] = React.useState<MediaInsertDialogState>({
+    kind: "image",
+    open: false,
+    replacePath: undefined,
+  });
+  const mediaUrlInputId = React.useId();
   const plugins = React.useMemo(
     () => [
       ArticleEditorBlockSelectionPlugin,
@@ -298,13 +338,34 @@ export function ContentLibraryArticleEditorDocumentProvider(
   );
 
   const handleOpenMediaInsert = React.useCallback(
-    (activeEditor: typeof editor, params: { kind: MediaInsertKind; source: "upload" | "url" }) => {
+    (
+      activeEditor: typeof editor,
+      params: {
+        kind: MediaInsertKind;
+        source: "upload" | "url" | "library";
+        replacePath?: number[];
+      },
+    ) => {
       if (params.source === "upload") {
         insertMediaPlaceholder(activeEditor, params.kind, { autoOpen: true });
         return;
       }
 
-      setMediaUrlDialog({ kind: params.kind, open: true, url: "" });
+      if (params.source === "library") {
+        setMediaLibraryDialog({
+          kind: params.kind,
+          open: true,
+          replacePath: params.replacePath,
+        });
+        return;
+      }
+
+      setMediaUrlDialog({
+        kind: params.kind,
+        open: true,
+        replacePath: params.replacePath,
+        url: "",
+      });
     },
     [insertMediaPlaceholder],
   );
@@ -313,17 +374,23 @@ export function ContentLibraryArticleEditorDocumentProvider(
     const nextUrl = mediaUrlDialog.url.trim();
     if (!isHttpUrl(nextUrl)) return;
 
-    editor.tf.focus();
-    editor.tf.insertNodes(
-      buildMediaNode({
+    insertOrReplaceMediaNode({
+      editor,
+      node: buildMediaNode({
         name: mediaUrlDialog.kind === "file" ? deriveFileNameFromUrl(nextUrl) : undefined,
         type: editor.getType(getMediaInsertConfig(mediaUrlDialog.kind, t).nodeType),
         url: nextUrl,
       }),
-    );
+      replacePath: mediaUrlDialog.replacePath,
+    });
 
-    setMediaUrlDialog((current) => ({ ...current, open: false, url: "" }));
-  }, [editor, mediaUrlDialog.kind, mediaUrlDialog.url, t]);
+    setMediaUrlDialog((current) => ({
+      ...current,
+      open: false,
+      replacePath: undefined,
+      url: "",
+    }));
+  }, [editor, mediaUrlDialog.kind, mediaUrlDialog.replacePath, mediaUrlDialog.url, t]);
 
   const mediaUploadValue = React.useMemo(
     () => ({
@@ -397,7 +464,8 @@ export function ContentLibraryArticleEditorDocumentProvider(
                   editor: unknown,
                   params: {
                     kind: "image" | "video" | "audio" | "file";
-                    source: "upload" | "url";
+                    source: "upload" | "url" | "library";
+                    replacePath?: number[];
                   },
                 ) => void,
               }}
@@ -411,6 +479,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
                     setMediaUrlDialog((current) => ({
                       ...current,
                       open,
+                      replacePath: open ? current.replacePath : undefined,
                       url: open ? current.url : "",
                     }))
                   }
@@ -438,13 +507,23 @@ export function ContentLibraryArticleEditorDocumentProvider(
                     </>
                   }
                 >
-                  <FieldGroup className="gap-5">
-                    <Field>
-                      <FieldLabel>{t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}</FieldLabel>
-                      <FieldDescription>
+                  <form
+                    className="grid gap-4 py-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!isHttpUrl(mediaUrlDialog.url.trim())) return;
+                      handleConfirmMediaUrl();
+                    }}
+                  >
+                    <div className="grid gap-1.5">
+                      <label className="font-semibold text-label-primary" htmlFor={mediaUrlInputId}>
+                        {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}
+                      </label>
+                      <div className="text-label-secondary">
                         {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_HINT")}
-                      </FieldDescription>
+                      </div>
                       <Input
+                        id={mediaUrlInputId}
                         autoFocus
                         type="url"
                         value={mediaUrlDialog.url}
@@ -460,9 +539,54 @@ export function ContentLibraryArticleEditorDocumentProvider(
                           }
                         }}
                       />
-                    </Field>
-                  </FieldGroup>
+                    </div>
+                  </form>
                 </SettingDialog>
+                <AssetPickerDialog
+                  open={mediaLibraryDialog.open}
+                  onOpenChange={(open) =>
+                    setMediaLibraryDialog((current) => ({
+                      ...current,
+                      open,
+                      replacePath: open ? current.replacePath : undefined,
+                    }))
+                  }
+                  scope={{ id: props.workspaceId, type: "workspace" }}
+                  mode="single"
+                  mimePrefix={getAssetPickerMimePrefix(mediaLibraryDialog.kind)}
+                  uploadPurpose={getMediaUploadPurpose(mediaLibraryDialog.kind)}
+                  title={t("CONTENT_LIBRARY_EDITOR_SELECT_FROM_LIBRARY")}
+                  onConfirm={({ assetIds }) => {
+                    const assetId = assetIds[0];
+                    if (!assetId) return;
+
+                    const url = resolveAssetRefToPublicUrlPath(assetId);
+                    if (!url) {
+                      throw new Error(`Failed to resolve library asset URL for ${assetId}`);
+                    }
+
+                    insertOrReplaceMediaNode({
+                      editor,
+                      node: buildMediaNode({
+                        name:
+                          mediaLibraryDialog.kind === "file"
+                            ? deriveFileNameFromUrl(url)
+                            : undefined,
+                        type: editor.getType(
+                          getMediaInsertConfig(mediaLibraryDialog.kind, t).nodeType,
+                        ),
+                        url,
+                      }),
+                      replacePath: mediaLibraryDialog.replacePath,
+                    });
+
+                    setMediaLibraryDialog((current) => ({
+                      ...current,
+                      open: false,
+                      replacePath: undefined,
+                    }));
+                  }}
+                />
               </MediaUploadProvider>
             </ArticleEditorCommandProvider>
           </Plate>

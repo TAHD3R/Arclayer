@@ -22,6 +22,11 @@ const mocked = vi.hoisted(() => ({
   publishContentItemVersion: vi.fn(),
 }));
 
+const renderStats = vi.hoisted(() => ({
+  providerDocuments: [] as Array<Record<string, unknown> | undefined>,
+  toolbarRenders: 0,
+}));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
@@ -79,9 +84,30 @@ vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
 vi.mock(
   "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document",
   () => ({
-    ContentLibraryArticleEditorDocumentProvider: (props: { children?: ReactNode }) => (
-      <>{props.children}</>
-    ),
+    ContentLibraryArticleEditorDocumentProvider: (props: {
+      children?: ReactNode;
+      document?: Record<string, unknown>;
+      onChange?: (value: Record<string, unknown>) => void;
+    }) => {
+      renderStats.providerDocuments.push(props.document);
+      return (
+        <>
+          <button
+            type="button"
+            data-testid="mock-body-change"
+            onClick={() =>
+              props.onChange?.({
+                type: "doc",
+                content: [{ type: "p", children: [{ text: "Updated body copy" }] }],
+              })
+            }
+          >
+            mock-body-change
+          </button>
+          {props.children}
+        </>
+      );
+    },
     useContentLibraryArticleEditorDocumentState: () => ({
       isHydrated: true,
       scrollContainerRef: { current: null },
@@ -111,45 +137,48 @@ vi.mock(
       onSlugChange: (value: string) => void;
       visibility: "public" | "private";
       onVisibilityChange: (value: "public" | "private") => void;
-    }) => (
-      <div data-testid="content-library-article-editor-page-toolbar">
-        <button type="button" aria-label="CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU">
-          CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU
-        </button>
-        <input
-          aria-label="CONTENT_LIBRARY_EDITOR_MENU_SLUG"
-          value={props.slug}
-          onChange={(event) => props.onSlugChange(event.target.value)}
-        />
-        <label>
+    }) => {
+      renderStats.toolbarRenders += 1;
+      return (
+        <div data-testid="content-library-article-editor-page-toolbar">
+          <button type="button" aria-label="CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU">
+            CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU
+          </button>
           <input
-            type="radio"
-            name="mock-visibility"
-            aria-label="CONTENT_LIBRARY_VISIBILITY_PUBLIC"
-            checked={props.visibility === "public"}
-            onChange={() => props.onVisibilityChange("public")}
+            aria-label="CONTENT_LIBRARY_EDITOR_MENU_SLUG"
+            value={props.slug}
+            onChange={(event) => props.onSlugChange(event.target.value)}
           />
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="mock-visibility"
-            aria-label="CONTENT_LIBRARY_VISIBILITY_PRIVATE"
-            checked={props.visibility === "private"}
-            onChange={() => props.onVisibilityChange("private")}
-          />
-        </label>
-        <button
-          type="button"
-          disabled={
-            !props.hasPublishableVersion || props.isPublishing || props.saveState === "saving"
-          }
-          onClick={props.onPublish}
-        >
-          CONTENT_LIBRARY_ACTION_PUBLISH
-        </button>
-      </div>
-    ),
+          <label>
+            <input
+              type="radio"
+              name="mock-visibility"
+              aria-label="CONTENT_LIBRARY_VISIBILITY_PUBLIC"
+              checked={props.visibility === "public"}
+              onChange={() => props.onVisibilityChange("public")}
+            />
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="mock-visibility"
+              aria-label="CONTENT_LIBRARY_VISIBILITY_PRIVATE"
+              checked={props.visibility === "private"}
+              onChange={() => props.onVisibilityChange("private")}
+            />
+          </label>
+          <button
+            type="button"
+            disabled={
+              !props.hasPublishableVersion || props.isPublishing || props.saveState === "saving"
+            }
+            onClick={props.onPublish}
+          >
+            CONTENT_LIBRARY_ACTION_PUBLISH
+          </button>
+        </div>
+      );
+    },
   }),
 );
 
@@ -234,6 +263,8 @@ describe("content-library-article-editor-page", () => {
     mocked.saveContentItemDraftVersion.mockReset();
     mocked.patchContentItemVersion.mockReset();
     mocked.publishContentItemVersion.mockReset();
+    renderStats.providerDocuments.length = 0;
+    renderStats.toolbarRenders = 0;
     mocked.getCoreSettings.mockResolvedValue({
       namespace: "core",
       value: {
@@ -421,6 +452,69 @@ describe("content-library-article-editor-page", () => {
           coverAssetId: null,
         },
         presentations: [{ kind: "rich_text_document", payload: { type: "doc", content: [] } }],
+      });
+    });
+  });
+
+  it("keeps the page toolbar stable during body document changes while autosave still persists the new body", async () => {
+    const user = userEvent.setup();
+    mocked.loadContentLibraryArticleEditorSnapshot.mockResolvedValueOnce(buildSnapshot());
+    mocked.patchContentItemVersion.mockResolvedValueOnce({
+      itemId: "content-1",
+      versionNumber: 3,
+      state: "draft",
+      createdAt: "2026-03-28T00:00:00Z",
+      fieldsSnapshot: {
+        title: "Launch memo",
+        summary: "Loaded summary",
+        slug: "launch-memo",
+        visibility: "public",
+      },
+      presentations: [
+        {
+          kind: "rich_text_document",
+          payload: {
+            type: "doc",
+            content: [{ type: "p", children: [{ text: "Updated body copy" }] }],
+          },
+        },
+      ],
+      changeSummary: null,
+    });
+
+    renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
+
+    await screen.findByDisplayValue("Launch memo");
+    const toolbarRendersBeforeBodyChange = renderStats.toolbarRenders;
+
+    await user.click(screen.getByTestId("mock-body-change"));
+
+    expect(renderStats.toolbarRenders).toBe(toolbarRendersBeforeBodyChange);
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 1100));
+    });
+
+    await waitFor(() => {
+      expect(mocked.patchContentItemVersion).toHaveBeenCalledWith("ws-1", "content-1", 3, {
+        changeSummary: "Update article draft",
+        fieldsSnapshot: {
+          title: "Launch memo",
+          summary: "Loaded summary",
+          slug: "launch-memo",
+          status: "draft",
+          visibility: "public",
+          coverAssetId: null,
+        },
+        presentations: [
+          {
+            kind: "rich_text_document",
+            payload: {
+              type: "doc",
+              content: [{ type: "p", children: [{ text: "Updated body copy" }] }],
+            },
+          },
+        ],
       });
     });
   });

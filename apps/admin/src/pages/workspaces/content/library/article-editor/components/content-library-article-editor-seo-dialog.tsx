@@ -2,7 +2,6 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
@@ -50,7 +49,7 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
       onOpenChange={props.onOpenChange}
       title={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_TITLE")}
       description={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_DESC")}
-      contentClassName="max-h-[calc(100dvh-2rem)] sm:max-w-2xl lg:max-w-3xl"
+      contentClassName="sm:max-w-xl"
       bodyClassName="min-h-0 overflow-y-auto"
       footer={
         <>
@@ -70,34 +69,36 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
           handleConfirm();
         }}
       >
-        <FieldGroup className="gap-5">
-          <Field>
-            <FieldLabel htmlFor={metaTitleId}>
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-label-primary" htmlFor={metaTitleId}>
               {t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}
-            </FieldLabel>
-            <FieldDescription>{t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}</FieldDescription>
+            </label>
+            <div className="text-label-secondary">
+              {t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}
+            </div>
             <Input
               id={metaTitleId}
               value={draft.metaTitle}
               onChange={(event) => handleFieldChange("metaTitle", event.target.value)}
             />
-          </Field>
+          </div>
 
-          <Field>
-            <FieldLabel htmlFor={metaDescriptionId}>
+          <div className="grid gap-1.5">
+            <label className="font-semibold text-label-primary" htmlFor={metaDescriptionId}>
               {t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
-            </FieldLabel>
-            <FieldDescription>
+            </label>
+            <div className="text-label-secondary">
               {t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION_HELP")}
-            </FieldDescription>
+            </div>
             <Textarea
               id={metaDescriptionId}
               rows={4}
               value={draft.metaDescription}
               onChange={(event) => handleFieldChange("metaDescription", event.target.value)}
             />
-          </Field>
-        </FieldGroup>
+          </div>
+        </div>
       </form>
     </SettingDialog>
   );

@@ -106,10 +106,10 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
 
   if (props.mode === "page") {
     return (
-      <aside className="sticky top-6 hidden w-[14.5rem] shrink-0 self-start xl:block">
+      <aside className="sticky top-6 hidden w-58 shrink-0 self-start xl:block">
         <nav {...navProps} className="space-y-3">
-          <div className="flex items-center gap-2 px-0.5 text-[11px] font-semibold tracking-[0.08em] text-label-tertiary">
-            <ListTree className="size-3.5" />
+          <div className="flex items-center gap-2 text-callout font-semibold">
+            <ListTree className="size-4" />
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
           </div>
           <TocList
@@ -128,10 +128,10 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
       <div className="pointer-events-none absolute right-11 top-0 z-20 translate-x-1 opacity-0 transition-all duration-150 group-hover/toc:pointer-events-auto group-hover/toc:translate-x-0 group-hover/toc:opacity-100 group-focus-within/toc:pointer-events-auto group-focus-within/toc:translate-x-0 group-focus-within/toc:opacity-100">
         <nav
           {...navProps}
-          className="w-[13rem] rounded-xl border border-border/70 bg-card/96 p-2 shadow-lg backdrop-blur"
+          className="w-52 rounded-xl border border-border/70 bg-card/96 p-2 shadow-lg backdrop-blur"
         >
-          <div className="mb-2 flex items-center gap-2 px-1.5 text-[11px] font-semibold tracking-[0.08em] text-label-tertiary">
-            <ListTree className="size-3.5" />
+          <div className="flex items-center gap-2 text-callout font-semibold">
+            <ListTree className="size-4" />
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
           </div>
           <TocList

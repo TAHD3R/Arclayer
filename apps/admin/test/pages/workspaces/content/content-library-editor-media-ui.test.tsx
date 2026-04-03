@@ -213,6 +213,7 @@ vi.mock("@arclayer/lib/utils", () => ({
 }));
 
 import { MediaUploadProvider } from "../../../../../../packages/ui/shadcn/src/editor/media-upload-context";
+import { ArticleEditorCommandProvider } from "../../../../../../packages/ui/shadcn/src/editor/article-editor-command-context";
 import { EquationElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/equation-node";
 import { MediaCaption } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-caption";
 import { MediaPlaceholderElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-placeholder-node";
@@ -435,6 +436,48 @@ describe("content-library-editor-media-ui", () => {
     expect(updateUploadHistoryMock).toHaveBeenCalled();
   });
 
+  it("dispatches the library picker command from the media placeholder", async () => {
+    const user = userEvent.setup();
+    const openMediaInsert = vi.fn();
+
+    currentElement = {
+      autoOpen: false,
+      children: [{ text: "" }],
+      id: "placeholder-1",
+      mediaType: "img",
+      type: "placeholder",
+    };
+    mockEditor.api.findPath.mockReturnValue([4, 1]);
+
+    render(
+      <ArticleEditorCommandProvider
+        value={{
+          insertItem: vi.fn(),
+          openMediaInsert,
+        }}
+      >
+        <MediaUploadProvider value={{ uploadFile: vi.fn() }}>
+          <MediaPlaceholderElementAny
+            attributes={plateAttributes}
+            children={null}
+            editor={mockEditor as never}
+            element={currentElement as never}
+          />
+        </MediaUploadProvider>
+      </ArticleEditorCommandProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_SELECT_FROM_LIBRARY" }),
+    );
+
+    expect(openMediaInsert).toHaveBeenCalledWith(mockEditor, {
+      kind: "image",
+      replacePath: [4, 1],
+      source: "library",
+    });
+  });
+
   it("keeps the media caption input interactive while editing", async () => {
     currentElement = {
       caption: "",
@@ -469,7 +512,7 @@ describe("content-library-editor-media-ui", () => {
     expect(onEditingChange).toHaveBeenCalledWith(false);
   });
 
-  it("isolates video playback clicks from toolbar activation and exposes an explicit video options trigger", async () => {
+  it("isolates video playback clicks from toolbar activation without a dedicated video options trigger", () => {
     const parentMouseDown = vi.fn();
     const parentClick = vi.fn();
 
@@ -511,13 +554,9 @@ describe("content-library-editor-media-ui", () => {
     expect(parentMouseDown).not.toHaveBeenCalled();
     expect(parentClick).not.toHaveBeenCalled();
     expect(mockEditor.tf.select).not.toHaveBeenCalled();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_OPTIONS" }),
-    );
-
-    expect(mockEditor.tf.select).toHaveBeenCalledWith([2]);
-    expect(mockEditor.tf.focus).toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_OPTIONS" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the compact equation editor popover for empty equations", () => {

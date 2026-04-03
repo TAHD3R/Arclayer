@@ -3,7 +3,7 @@
 import emojiData from "@emoji-mart/data";
 import type { EmojiMartData } from "@emoji-mart/data";
 import { CalloutPlugin } from "@platejs/callout/react";
-import { CodeBlockPlugin, CodeLinePlugin } from "@platejs/code-block/react";
+import { CodeBlockPlugin, CodeLinePlugin, CodeSyntaxPlugin } from "@platejs/code-block/react";
 import { DatePlugin } from "@platejs/date/react";
 import { EmojiInputPlugin, EmojiPlugin } from "@platejs/emoji/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
@@ -27,7 +27,7 @@ import {
 import { TocPlugin } from "@platejs/toc/react";
 
 import { CalloutElement } from "../ui/callout-node";
-import { CodeBlockElement, CodeLineElement } from "../ui/code-block-node";
+import { CodeBlockElement, CodeLineElement, CodeSyntaxLeaf } from "../ui/code-block-node";
 import { ColumnElement, ColumnGroupElement } from "../ui/column-node";
 import { DateElement } from "../ui/date-node";
 import { EmojiInputElement } from "../ui/emoji-input-node";
@@ -49,6 +49,7 @@ import {
 import { ToggleElement } from "../ui/toggle-node";
 import { TocElement } from "../ui/toc-node";
 import { exitEmptyToggle } from "../toggle-plugin-helpers";
+import { articleEditorCodeBlockLowlight } from "../code-block-highlighting";
 
 export const AdvancedBlocksKit = [
   LinkPlugin.configure({
@@ -75,9 +76,15 @@ export const AdvancedBlocksKit = [
   })),
   CodeBlockPlugin.configure({
     node: { component: CodeBlockElement },
+    options: {
+      lowlight: articleEditorCodeBlockLowlight,
+    },
   }),
   CodeLinePlugin.configure({
     node: { component: CodeLineElement },
+  }),
+  CodeSyntaxPlugin.configure({
+    node: { component: CodeSyntaxLeaf },
   }),
   CalloutPlugin.configure({
     node: { component: CalloutElement },

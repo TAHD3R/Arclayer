@@ -10,6 +10,7 @@ import {
   Code2,
   FileUpIcon,
   FilmIcon,
+  FolderOpen,
   ImageIcon,
   Link2Icon,
   ListIcon,
@@ -55,6 +56,9 @@ import {
   Toolbar,
   ToolbarButton,
   ToolbarGroup,
+  ToolbarSplitButton,
+  ToolbarSplitButtonPrimary,
+  ToolbarSplitButtonSecondary,
   ToolbarTooltip,
   TurnIntoToolbarButton,
   useArticleEditorCommands,
@@ -131,18 +135,21 @@ function ArticleEditorInsertToolbarButton() {
   return (
     <ActionDropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}>
-        <ActionDropdownMenuTrigger asChild>
-          <ToolbarButton
-            isDropdown
-            dropdownMode="icon"
-            pressed={open}
-            tooltip={undefined}
+        <ToolbarSplitButton pressed={open}>
+          <ToolbarSplitButtonPrimary
             aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
             onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setOpen(true)}
           >
             <PlusIcon />
-          </ToolbarButton>
-        </ActionDropdownMenuTrigger>
+          </ToolbarSplitButtonPrimary>
+          <ActionDropdownMenuTrigger asChild>
+            <ToolbarSplitButtonSecondary
+              aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
+              onMouseDown={(event) => event.preventDefault()}
+            />
+          </ActionDropdownMenuTrigger>
+        </ToolbarSplitButton>
       </ToolbarTooltip>
       <ArticleEditorInsertMenuContent
         groups={groups}
@@ -168,16 +175,23 @@ function MediaInsertToolbarButton(props: {
   return (
     <ActionDropdownMenu modal={false}>
       <ToolbarTooltip tooltip={props.tooltip}>
-        <ActionDropdownMenuTrigger asChild>
-          <ToolbarButton
-            isDropdown
-            dropdownMode="icon"
-            tooltip={undefined}
+        <ToolbarSplitButton>
+          <ToolbarSplitButtonPrimary
+            aria-label={props.tooltip}
             onMouseDown={(event) => event.preventDefault()}
+            onClick={() =>
+              commands.openMediaInsert?.(editor, { kind: props.kind, source: "upload" })
+            }
           >
             {props.icon}
-          </ToolbarButton>
-        </ActionDropdownMenuTrigger>
+          </ToolbarSplitButtonPrimary>
+          <ActionDropdownMenuTrigger asChild>
+            <ToolbarSplitButtonSecondary
+              aria-label={props.tooltip}
+              onMouseDown={(event) => event.preventDefault()}
+            />
+          </ActionDropdownMenuTrigger>
+        </ToolbarSplitButton>
       </ToolbarTooltip>
       <ActionDropdownMenuContent
         align="start"
@@ -190,6 +204,14 @@ function MediaInsertToolbarButton(props: {
         >
           <Upload className="size-4" />
           {t("CONTENT_LIBRARY_EDITOR_UPLOAD_FROM_COMPUTER")}
+        </ActionDropdownMenuItem>
+        <ActionDropdownMenuItem
+          onSelect={() =>
+            commands.openMediaInsert?.(editor, { kind: props.kind, source: "library" })
+          }
+        >
+          <FolderOpen className="size-4" />
+          {t("CONTENT_LIBRARY_EDITOR_SELECT_FROM_LIBRARY")}
         </ActionDropdownMenuItem>
         <ActionDropdownMenuItem
           onSelect={() => commands.openMediaInsert?.(editor, { kind: props.kind, source: "url" })}

@@ -4,7 +4,13 @@ import * as React from "react";
 
 import { CheckIcon, ChevronDownIcon, CopyIcon } from "lucide-react";
 import { type TCodeBlockElement, NodeApi } from "platejs";
-import { PlateElement, type PlateElementProps, useEditorRef } from "platejs/react";
+import {
+  PlateElement,
+  PlateLeaf,
+  type PlateElementProps,
+  type PlateLeafProps,
+  useEditorRef,
+} from "platejs/react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
@@ -74,6 +80,40 @@ const CODE_BLOCK_LANGUAGES = [
   { label: "XML", value: "xml" },
   { label: "YAML", value: "yaml" },
 ] as const;
+
+const CODE_BLOCK_SYNTAX_CLASSNAME = cn(
+  "[&_code]:text-slate-100",
+  "[&_.hljs-comment]:text-slate-400",
+  "[&_.hljs-quote]:text-slate-400",
+  "[&_.hljs-keyword]:text-[#ff7b72]",
+  "[&_.hljs-selector-tag]:text-[#ff7b72]",
+  "[&_.hljs-subst]:text-[#ff7b72]",
+  "[&_.hljs-literal]:text-[#79c0ff]",
+  "[&_.hljs-number]:text-[#79c0ff]",
+  "[&_.hljs-attribute]:text-[#79c0ff]",
+  "[&_.hljs-variable]:text-[#79c0ff]",
+  "[&_.hljs-template-variable]:text-[#79c0ff]",
+  "[&_.hljs-regexp]:text-[#79c0ff]",
+  "[&_.hljs-string]:text-[#a5d6ff]",
+  "[&_.hljs-char.escape_]:text-[#a5d6ff]",
+  "[&_.hljs-doctag]:text-[#a5d6ff]",
+  "[&_.hljs-type]:text-[#ffa657]",
+  "[&_.hljs-title]:text-[#d2a8ff]",
+  "[&_.hljs-section]:text-[#d2a8ff]",
+  "[&_.hljs-selector-id]:text-[#d2a8ff]",
+  "[&_.hljs-selector-class]:text-[#d2a8ff]",
+  "[&_.hljs-symbol]:text-[#f2cc60]",
+  "[&_.hljs-bullet]:text-[#f2cc60]",
+  "[&_.hljs-built_in]:text-[#f2cc60]",
+  "[&_.hljs-function]:text-[#c9d1d9]",
+  "[&_.hljs-params]:text-[#c9d1d9]",
+  "[&_.hljs-operator]:text-[#ff7b72]",
+  "[&_.hljs-punctuation]:text-slate-500",
+  "[&_.hljs-meta]:text-[#7ee787]",
+  "[&_.hljs-link]:text-[#79c0ff]",
+  "[&_.hljs-addition]:bg-emerald-500/10 [&_.hljs-addition]:text-emerald-300",
+  "[&_.hljs-deletion]:bg-rose-500/10 [&_.hljs-deletion]:text-rose-300",
+);
 
 export function CodeBlockElement(props: PlateElementProps<TCodeBlockElement>) {
   const { t } = useTranslation("content");
@@ -161,7 +201,12 @@ export function CodeBlockElement(props: PlateElementProps<TCodeBlockElement>) {
       </div>
 
       <div className="bg-[#171717]">
-        <pre className="overflow-x-auto px-5 py-5 text-[13px] leading-6 [tab-size:2]">
+        <pre
+          className={cn(
+            "overflow-x-auto px-5 py-5 text-[13px] leading-6 [tab-size:2]",
+            CODE_BLOCK_SYNTAX_CLASSNAME,
+          )}
+        >
           <code className={cn("block min-w-full font-mono text-slate-100")}>{props.children}</code>
         </pre>
       </div>
@@ -171,4 +216,17 @@ export function CodeBlockElement(props: PlateElementProps<TCodeBlockElement>) {
 
 export function CodeLineElement(props: PlateElementProps) {
   return <PlateElement {...props} className="font-mono" />;
+}
+
+export function CodeSyntaxLeaf(props: PlateLeafProps) {
+  const leafClassName =
+    typeof (props.leaf as { className?: unknown }).className === "string"
+      ? ((props.leaf as { className?: string }).className ?? "")
+      : "";
+
+  return (
+    <PlateLeaf {...props} as="span" className={cn(props.className, leafClassName)}>
+      {props.children}
+    </PlateLeaf>
+  );
 }

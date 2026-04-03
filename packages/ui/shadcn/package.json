@@ -206,6 +206,7 @@
     "lucide-react": "^0.525.0",
     "motion": "^12.29.0",
     "next-themes": "^0.4.6",
+    "lowlight": "^3.3.0",
     "radix-ui": "^1.4.3",
     "react-day-picker": "^9.14.0",
     "react-hook-form": "^7.71.2",
