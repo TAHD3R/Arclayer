@@ -295,24 +295,14 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                   showHeaderSkeleton
                   bodyClassName={props.mode === "page" ? "mt-8" : "mt-5"}
                 />
-              ) : (
+              ) : props.mode === "page" ? (
                 <div
                   className={cn(
-                    "w-full",
-                    props.mode === "page"
-                      ? "flex items-start gap-8 px-6 pb-10 pt-2"
-                      : "relative pb-8",
+                    "mx-auto flex w-full max-w-[90rem] items-start gap-8 px-6 pb-10 pt-2 xl:gap-10",
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <div
-                      className={cn(
-                        "group/header",
-                        textLaneClass,
-                        props.mode === "page" ? "pt-4" : props.coverAssetId ? "pt-4" : "pt-6",
-                        "space-y-3",
-                      )}
-                    >
+                    <div className={cn("group/header", textLaneClass, "pt-4", "space-y-3")}>
                       <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
                         {!props.coverAssetId ? (
                           <ContentLibraryCoverPickerPopover
@@ -360,12 +350,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                       />
                     </div>
 
-                    <div
-                      className={cn(
-                        "flex w-full flex-col",
-                        props.mode === "page" ? "mt-6" : "mt-4",
-                      )}
-                    >
+                    <div className="mt-6 flex w-full flex-col">
                       {showBodySkeleton ? (
                         <ContentLibraryArticleEditorLoadingSkeleton mode={props.mode} />
                       ) : (
@@ -377,13 +362,81 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                     </div>
                   </div>
 
-                  {props.mode === "page" ? (
-                    <ContentLibraryArticleEditorTocSidebar mode="page" />
-                  ) : (
-                    <div className="absolute right-3 top-3 z-20">
-                      <ContentLibraryArticleEditorTocSidebar mode="split" />
+                  <ContentLibraryArticleEditorTocSidebar mode="page" />
+                </div>
+              ) : (
+                <div className="relative pb-8">
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className={cn(
+                        "group/header",
+                        textLaneClass,
+                        props.coverAssetId ? "pt-4" : "pt-6",
+                        "space-y-3",
+                      )}
+                    >
+                      <div className="flex h-8 items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/header:opacity-100 group-focus-within/header:opacity-100">
+                        {!props.coverAssetId ? (
+                          <ContentLibraryCoverPickerPopover
+                            workspaceId={props.workspaceId}
+                            value={props.coverAssetId}
+                            open={coverPopoverOpen}
+                            onOpenChange={setCoverPopoverOpen}
+                            onChange={props.onCoverAssetIdChange}
+                          >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-3 text-label-secondary hover:text-label-primary"
+                            >
+                              <ImagePlus className="size-4" />
+                              {t("CONTENT_LIBRARY_EDITOR_ADD_COVER")}
+                            </Button>
+                          </ContentLibraryCoverPickerPopover>
+                        ) : null}
+                        <HeaderActionButton
+                          icon={<Search className="size-4" />}
+                          label={t("CONTENT_LIBRARY_EDITOR_OPEN_SEO_DIALOG")}
+                          onClick={() => setSeoDialogOpen(true)}
+                        />
+                      </div>
+
+                      <input
+                        type="text"
+                        value={props.title}
+                        onChange={(event) => props.onTitleChange(event.target.value)}
+                        placeholder={t("CONTENT_LIBRARY_EDITOR_TITLE_PLACEHOLDER")}
+                        className={cn(
+                          "w-full appearance-none border-none bg-transparent p-0 font-semibold text-label-primary outline-none placeholder:text-label-tertiary",
+                          "text-title",
+                        )}
+                      />
+
+                      <textarea
+                        value={props.summary}
+                        onChange={(event) => props.onSummaryChange(event.target.value)}
+                        placeholder={t("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER")}
+                        className="field-sizing-content min-h-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-body text-label-secondary outline-none placeholder:text-label-tertiary dark:bg-transparent"
+                        rows={2}
+                      />
                     </div>
-                  )}
+
+                    <div className="mt-4 flex w-full flex-col">
+                      {showBodySkeleton ? (
+                        <ContentLibraryArticleEditorLoadingSkeleton mode={props.mode} />
+                      ) : (
+                        <ContentLibraryArticleEditorBody
+                          placeholder={t("CONTENT_LIBRARY_EDITOR_BODY_PLACEHOLDER")}
+                          mode={props.mode}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="absolute right-4 top-4 z-20">
+                    <ContentLibraryArticleEditorTocSidebar mode="split" />
+                  </div>
                 </div>
               )}
             </div>

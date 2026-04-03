@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { BaselineIcon, CheckIcon, CopyIcon, PaintBucketIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, CopyIcon, Trash2Icon, type LucideIcon } from "lucide-react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
 import { toggleList } from "@platejs/list";
 import { openNextToggles } from "@platejs/toggle/react";
@@ -10,19 +10,6 @@ import { KEYS, type Path, type TComboboxInputElement, type TElement } from "plat
 import { PlateElement, type PlateElementProps } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuIconItem,
-  DropdownMenuItem,
-  DropdownMenuItemContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
 import { cn } from "@arclayer/lib/utils";
 
 import {
@@ -31,18 +18,100 @@ import {
   toggleTodoList,
 } from "../article-editor-insert-items";
 import { useArticleEditorCommands } from "../article-editor-command-context";
-import { ColorDropdownSubmenu } from "../color-dropdown-submenu";
 import {
   clearEditorMarkColorForBlocks,
+  doesEditorMarkColorMatch,
   getEditorMarkValueForBlocks,
+  MENU_COLORS,
   setEditorMarkColorForBlocks,
 } from "../mark-color-utils";
 import { applyTurnInto, getTurnIntoValue } from "../turn-into-helpers";
 import { TURN_INTO_MENU_ITEMS } from "../turn-into-menu-items";
 
-import { InlineCombobox, useInlineComboboxContext } from "./inline-combobox";
+import {
+  InlineCombobox,
+  InlineComboboxContent,
+  InlineComboboxEmpty,
+  InlineComboboxGroup,
+  InlineComboboxGroupLabel,
+  InlineComboboxInput,
+  InlineComboboxItem,
+} from "./inline-combobox";
 
 type BlockEntry = [TElement, Path];
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+type SlashCommandGroup = {
+  id: string;
+  label: string;
+  items: SlashCommandItem[];
+};
+
+type SlashCommandItem =
+  | {
+      description?: string;
+      focusEditor?: boolean;
+      group: string;
+      icon: LucideIcon;
+      kind: "insert";
+      keywords?: string[];
+      label: string;
+      value: string;
+    }
+  | {
+      active: boolean;
+      description?: string;
+      focusEditor?: boolean;
+      group: string;
+      icon: LucideIcon;
+      kind: "turn-into";
+      keywords?: string[];
+      label: string;
+      value: string;
+    }
+  | {
+      description?: string;
+      focusEditor?: boolean;
+      group: string;
+      icon: LucideIcon;
+      kind: "duplicate" | "delete";
+      keywords?: string[];
+      label: string;
+      value: string;
+    }
+  | {
+      active: boolean;
+      color?: string;
+      description?: string;
+      focusEditor?: boolean;
+      group: string;
+      kind: "apply-color" | "clear-color";
+      keywords?: string[];
+      label: string;
+      nodeType: string;
+      value: string;
+    };
+
+const SLASH_COLOR_OPTIONS = [
+  { color: "#000000", keywords: ["black", "dark", "neutral"] },
+  { color: "#666666", keywords: ["gray", "charcoal", "muted"] },
+  { color: "#999999", keywords: ["gray", "soft", "subtle"] },
+  { color: "#cc0000", keywords: ["red", "danger", "alert"] },
+  { color: "#e69138", keywords: ["orange", "amber", "warm"] },
+  { color: "#f1c232", keywords: ["yellow", "gold", "highlight"] },
+  { color: "#6aa84f", keywords: ["green", "success", "nature"] },
+  { color: "#45818e", keywords: ["teal", "cyan", "cool"] },
+  { color: "#3c78d8", keywords: ["blue", "link", "primary"] },
+  { color: "#674ea7", keywords: ["purple", "violet", "accent"] },
+  { color: "#a64d79", keywords: ["pink", "magenta", "rose"] },
+  { color: "#f4cccc", keywords: ["light red", "rose", "soft red"] },
+  { color: "#fce5cd", keywords: ["light orange", "peach", "soft orange"] },
+  { color: "#fff2cc", keywords: ["light yellow", "cream", "soft yellow"] },
+  { color: "#d9ead3", keywords: ["light green", "mint", "soft green"] },
+  { color: "#d0e0e3", keywords: ["light teal", "mist", "soft teal"] },
+  { color: "#c9daf8", keywords: ["light blue", "sky", "soft blue"] },
+  { color: "#ead1dc", keywords: ["light pink", "blush", "soft pink"] },
+] as const;
 
 function removeCurrentBlock(editor: PlateElementProps["editor"], blockEntry: BlockEntry) {
   const [, path] = blockEntry;
@@ -59,13 +128,178 @@ function removeCurrentBlock(editor: PlateElementProps["editor"], blockEntry: Blo
   });
 }
 
+function buildColorItems(props: {
+  currentColor: string | null;
+  group: string;
+  groupId: string;
+  nodeType: string;
+  t: Translate;
+}): SlashCommandItem[] {
+  const colorItems = SLASH_COLOR_OPTIONS.filter((option) =>
+    MENU_COLORS.includes(option.color as (typeof MENU_COLORS)[number]),
+  ).map((option) => ({
+    active: doesEditorMarkColorMatch(props.nodeType, props.currentColor, option.color),
+    color: option.color,
+    description: props.group,
+    focusEditor: true,
+    group: props.group,
+    kind: "apply-color" as const,
+    keywords: [...option.keywords, "color", props.groupId],
+    label: option.color.toUpperCase(),
+    nodeType: props.nodeType,
+    value: `${props.groupId}:${option.color}`,
+  }));
+
+  return [
+    {
+      active: !props.currentColor,
+      description: props.group,
+      focusEditor: true,
+      group: props.group,
+      kind: "clear-color" as const,
+      keywords: ["clear", "remove", "reset", "none", props.groupId, "color"],
+      label: props.t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR"),
+      nodeType: props.nodeType,
+      value: `${props.groupId}:clear`,
+    },
+    ...colorItems,
+  ];
+}
+
+export function buildSlashCommandGroups(props: {
+  currentBackgroundColor: string | null;
+  currentTextColor: string | null;
+  currentTurnIntoValue: string | null;
+  t: Translate;
+}): SlashCommandGroup[] {
+  const insertGroups = getArticleEditorInsertGroups(props.t);
+  const slashGroups: SlashCommandGroup[] = insertGroups.map((group) => ({
+    id: group.id,
+    label: group.label,
+    items: group.items.map((item) => ({
+      description: item.description,
+      focusEditor: true,
+      group: group.label,
+      icon: item.icon,
+      kind: "insert" as const,
+      keywords: item.keywords,
+      label: item.label,
+      value: item.value,
+    })),
+  }));
+
+  slashGroups.push({
+    id: "turn-into",
+    label: props.t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO"),
+    items: TURN_INTO_MENU_ITEMS.map((item) => ({
+      active: props.currentTurnIntoValue === item.value,
+      description: props.t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO"),
+      focusEditor: true,
+      group: props.t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO"),
+      icon: item.icon,
+      kind: "turn-into" as const,
+      keywords: ["turn into", "transform", "change block", item.value],
+      label: props.t(item.labelKey),
+      value: item.value,
+    })),
+  });
+
+  slashGroups.push({
+    id: "actions",
+    label: props.t("CONTENT_LIBRARY_EDITOR_ACTIONS"),
+    items: [
+      {
+        description: props.t("CONTENT_LIBRARY_EDITOR_ACTIONS"),
+        focusEditor: true,
+        group: props.t("CONTENT_LIBRARY_EDITOR_ACTIONS"),
+        icon: CopyIcon,
+        kind: "duplicate" as const,
+        keywords: ["duplicate", "copy", "clone"],
+        label: props.t("common:DUPLICATE"),
+        value: "duplicate",
+      },
+      {
+        description: props.t("CONTENT_LIBRARY_EDITOR_ACTIONS"),
+        focusEditor: false,
+        group: props.t("CONTENT_LIBRARY_EDITOR_ACTIONS"),
+        icon: Trash2Icon,
+        kind: "delete" as const,
+        keywords: ["delete", "remove", "trash"],
+        label: props.t("common:DELETE"),
+        value: "delete",
+      },
+    ],
+  });
+
+  slashGroups.push({
+    id: "text-color",
+    label: props.t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR"),
+    items: buildColorItems({
+      currentColor: props.currentTextColor,
+      group: props.t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR"),
+      groupId: "text",
+      nodeType: KEYS.color,
+      t: props.t,
+    }),
+  });
+
+  slashGroups.push({
+    id: "background-color",
+    label: props.t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR"),
+    items: buildColorItems({
+      currentColor: props.currentBackgroundColor,
+      group: props.t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR"),
+      groupId: "background",
+      nodeType: KEYS.backgroundColor,
+      t: props.t,
+    }),
+  });
+
+  return slashGroups;
+}
+
+function SlashCommandItemRow(props: { item: SlashCommandItem }) {
+  const leading =
+    "color" in props.item && props.item.color ? (
+      <span
+        className={cn(
+          "mt-0.5 flex size-4 shrink-0 rounded-sm border",
+          props.item.color === "#000000" ? "border-border/70" : "border-transparent",
+        )}
+        style={{ backgroundColor: props.item.color }}
+      />
+    ) : "icon" in props.item ? (
+      <props.item.icon className="mt-0.5 size-4 shrink-0 text-label-secondary" />
+    ) : null;
+
+  const destructive = props.item.kind === "delete";
+
+  return (
+    <div className="flex min-w-0 items-start gap-2">
+      <div className="flex min-h-4 shrink-0 items-center justify-center">{leading}</div>
+      <div className="min-w-0 flex-1">
+        <div
+          className={cn(
+            "truncate text-footnote font-medium",
+            destructive ? "text-destructive" : "text-label-primary",
+          )}
+        >
+          {props.item.label}
+        </div>
+        {props.item.description ? (
+          <div className="truncate text-caption text-label-secondary">{props.item.description}</div>
+        ) : null}
+      </div>
+      {"active" in props.item && props.item.active ? (
+        <CheckIcon className="mt-0.5 size-4 shrink-0 text-label-secondary" />
+      ) : null}
+    </div>
+  );
+}
+
 function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
   const { t } = useTranslation(["content", "common"]);
   const commands = useArticleEditorCommands();
-  const { removeInput } = useInlineComboboxContext();
-  const [open, setOpen] = React.useState(true);
-  const closingRef = React.useRef(false);
-  const groups = React.useMemo(() => getArticleEditorInsertGroups(t), [t]);
 
   const resolveCurrentBlock = React.useCallback(() => {
     return props.editor.api.block({
@@ -83,19 +317,34 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
     ? getEditorMarkValueForBlocks([currentBlock], KEYS.backgroundColor)
     : null;
 
-  const closeMenu = React.useCallback(
-    (focusEditor: boolean) => {
-      closingRef.current = true;
-      removeInput(focusEditor);
-      setOpen(false);
-    },
-    [removeInput],
-  );
+  const groups = React.useMemo(() => {
+    if (!currentBlock) {
+      return getArticleEditorInsertGroups(t).map((group) => ({
+        id: group.id,
+        label: group.label,
+        items: group.items.map((item) => ({
+          description: item.description,
+          focusEditor: true,
+          group: group.label,
+          icon: item.icon,
+          kind: "insert" as const,
+          keywords: item.keywords,
+          label: item.label,
+          value: item.value,
+        })),
+      }));
+    }
+
+    return buildSlashCommandGroups({
+      currentBackgroundColor,
+      currentTextColor,
+      currentTurnIntoValue,
+      t,
+    });
+  }, [currentBackgroundColor, currentBlock, currentTextColor, currentTurnIntoValue, t]);
 
   const insertItem = React.useCallback(
     (value: string) => {
-      closeMenu(true);
-
       if (commands?.insertItem) {
         commands.insertItem(props.editor, value);
         return;
@@ -103,7 +352,7 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
 
       applyArticleEditorInsertItem(props.editor, value);
     },
-    [closeMenu, commands, props.editor],
+    [commands, props.editor],
   );
 
   const handleTurnInto = React.useCallback(
@@ -112,7 +361,6 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
       if (!blockEntry) return;
 
       const [block, path] = blockEntry;
-      closeMenu(true);
       props.editor.tf.select(path);
       applyTurnInto(props.editor, nextType, getTurnIntoValue(block), {
         openNextToggles,
@@ -123,39 +371,36 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
         toggleTodoList,
       });
     },
-    [closeMenu, props.editor, resolveCurrentBlock],
+    [props.editor, resolveCurrentBlock],
   );
 
   const handleDuplicate = React.useCallback(() => {
     const blockEntry = resolveCurrentBlock();
     if (!blockEntry?.[0].id) return;
 
-    closeMenu(true);
     props.editor.getApi(BlockSelectionPlugin).blockSelection.set([String(blockEntry[0].id)]);
     props.editor.getTransforms(BlockSelectionPlugin).blockSelection.duplicate();
     props.editor.getApi(BlockSelectionPlugin).blockSelection.deselect();
     props.editor.tf.focus();
-  }, [closeMenu, props.editor, resolveCurrentBlock]);
+  }, [props.editor, resolveCurrentBlock]);
 
   const handleDelete = React.useCallback(() => {
     const blockEntry = resolveCurrentBlock();
     if (!blockEntry) return;
 
-    closeMenu(false);
     removeCurrentBlock(props.editor, blockEntry);
     props.editor.tf.focus();
-  }, [closeMenu, props.editor, resolveCurrentBlock]);
+  }, [props.editor, resolveCurrentBlock]);
 
   const handleApplyColor = React.useCallback(
     (nodeType: string, color: string) => {
       const blockEntry = resolveCurrentBlock();
       if (!blockEntry) return;
 
-      closeMenu(true);
       setEditorMarkColorForBlocks(props.editor, nodeType, color, [blockEntry]);
       props.editor.tf.focus();
     },
-    [closeMenu, props.editor, resolveCurrentBlock],
+    [props.editor, resolveCurrentBlock],
   );
 
   const handleClearColor = React.useCallback(
@@ -163,143 +408,69 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
       const blockEntry = resolveCurrentBlock();
       if (!blockEntry) return;
 
-      closeMenu(true);
       clearEditorMarkColorForBlocks(props.editor, nodeType, [blockEntry]);
       props.editor.tf.focus();
     },
-    [closeMenu, props.editor, resolveCurrentBlock],
+    [props.editor, resolveCurrentBlock],
+  );
+
+  const handleSelect = React.useCallback(
+    (item: SlashCommandItem) => {
+      switch (item.kind) {
+        case "insert":
+          insertItem(item.value);
+          return;
+        case "turn-into":
+          handleTurnInto(item.value);
+          return;
+        case "duplicate":
+          handleDuplicate();
+          return;
+        case "delete":
+          handleDelete();
+          return;
+        case "clear-color":
+          handleClearColor(item.nodeType);
+          return;
+        case "apply-color":
+          if (!item.color) return;
+          handleApplyColor(item.nodeType, item.color);
+      }
+    },
+    [handleApplyColor, handleClearColor, handleDelete, handleDuplicate, handleTurnInto, insertItem],
   );
 
   return (
-    <DropdownMenu
-      open={open}
-      modal={false}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen) {
-          if (closingRef.current) {
-            closingRef.current = false;
-            return;
-          }
-          removeInput(false);
-        }
-      }}
-    >
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex min-h-[1lh] items-center gap-1 rounded-sm px-1 text-footnote font-medium text-label-tertiary transition-colors hover:bg-accent/60 hover:text-label-primary"
-          onMouseDown={(event) => event.preventDefault()}
-        >
-          /
-        </button>
-      </DropdownMenuTrigger>
+    <>
+      <InlineComboboxInput className="text-footnote text-label-primary" />
 
-      <DropdownMenuContent
-        align="start"
-        side="bottom"
-        sideOffset={8}
-        className="w-[16rem] rounded-md border border-border/70 p-0"
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-        }}
-      >
-        <div className="max-h-[24rem] overflow-y-auto p-1">
-          {groups.map((group, index) => (
-            <React.Fragment key={group.id}>
-              {index > 0 ? <DropdownMenuSeparator /> : null}
-              <DropdownMenuLabel className="text-callout! text-label-secondary">
-                {group.label}
-              </DropdownMenuLabel>
-              {group.items.map((item) => {
-                const Icon = item.icon;
+      <InlineComboboxContent className="z-500 max-h-[24rem] w-[18rem] overflow-y-auto rounded-md border border-border/70 bg-popover p-0 shadow-lg">
+        <InlineComboboxEmpty className="py-2 text-label-secondary">
+          {t("CONTENT_LIBRARY_EDITOR_INSERT_EMPTY")}
+        </InlineComboboxEmpty>
 
-                return (
-                  <DropdownMenuItem key={item.value} onSelect={() => insertItem(item.value)}>
-                    <DropdownMenuItemContent icon={<Icon className="size-4" />}>
-                      {item.label}
-                    </DropdownMenuItemContent>
-                  </DropdownMenuItem>
-                );
-              })}
-            </React.Fragment>
-          ))}
+        {groups.map((group) => (
+          <InlineComboboxGroup key={group.id}>
+            <InlineComboboxGroupLabel>{group.label}</InlineComboboxGroupLabel>
 
-          {currentBlock ? (
-            <>
-              <DropdownMenuSeparator />
-
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  {t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="min-w-[14rem]">
-                  {TURN_INTO_MENU_ITEMS.map((item) => {
-                    const Icon = item.icon;
-
-                    return (
-                      <DropdownMenuItem
-                        key={item.value}
-                        onSelect={() => handleTurnInto(item.value)}
-                      >
-                        <DropdownMenuItemContent icon={<Icon className="size-4" />}>
-                          <span className="flex items-center justify-between gap-2">
-                            <span>{t(item.labelKey)}</span>
-                            {currentTurnIntoValue === item.value ? (
-                              <CheckIcon className="size-4 text-label-secondary" />
-                            ) : null}
-                          </span>
-                        </DropdownMenuItemContent>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  {t("CONTENT_LIBRARY_EDITOR_ACTIONS")}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="min-w-[12rem]">
-                  <DropdownMenuIconItem
-                    icon={<CopyIcon className="size-4" />}
-                    onSelect={handleDuplicate}
-                  >
-                    {t("common:DUPLICATE")}
-                  </DropdownMenuIconItem>
-                  <DropdownMenuIconItem
-                    icon={<Trash2Icon className="size-4" />}
-                    variant="destructive"
-                    onSelect={handleDelete}
-                  >
-                    {t("common:DELETE")}
-                  </DropdownMenuIconItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-
-              <ColorDropdownSubmenu
-                clearLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR")}
-                currentColor={currentTextColor}
-                icon={<BaselineIcon className="size-4" />}
-                label={t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
-                nodeType={KEYS.color}
-                onSelectColor={(color) => handleApplyColor(KEYS.color, color)}
-                onClear={() => handleClearColor(KEYS.color)}
-              />
-              <ColorDropdownSubmenu
-                clearLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR")}
-                currentColor={currentBackgroundColor}
-                icon={<PaintBucketIcon className="size-4" />}
-                label={t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
-                nodeType={KEYS.backgroundColor}
-                onSelectColor={(color) => handleApplyColor(KEYS.backgroundColor, color)}
-                onClear={() => handleClearColor(KEYS.backgroundColor)}
-              />
-            </>
-          ) : null}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            {group.items.map((item) => (
+              <InlineComboboxItem
+                key={item.value}
+                value={item.value}
+                label={item.label}
+                group={item.group}
+                keywords={item.keywords}
+                focusEditor={item.focusEditor}
+                className="mx-1 h-auto min-h-10 items-start py-2"
+                onClick={() => handleSelect(item)}
+              >
+                <SlashCommandItemRow item={item} />
+              </InlineComboboxItem>
+            ))}
+          </InlineComboboxGroup>
+        ))}
+      </InlineComboboxContent>
+    </>
   );
 }
 
@@ -307,7 +478,7 @@ export function SlashInputElement(props: PlateElementProps<TComboboxInputElement
   return (
     <PlateElement {...props} as="span">
       <InlineCombobox element={props.element} trigger="/">
-        <span contentEditable={false} className={cn("inline-flex items-center")}>
+        <span className="inline-flex items-center align-baseline">
           <SlashMenuContent {...props} />
         </span>
       </InlineCombobox>

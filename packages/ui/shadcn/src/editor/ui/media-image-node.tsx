@@ -34,7 +34,6 @@ export const MediaImageElement = withHOC(
           supportsCaption
           url={url}
           showAlignment
-          showExternalLink
           onCaptionToggle={() => setEditingCaption((value) => !value)}
         >
           <figure

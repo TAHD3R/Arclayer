@@ -28,6 +28,7 @@ import {
   hasSlashInputChild,
   shouldShowParagraphPlaceholder,
 } from "../../../../../../packages/ui/shadcn/src/editor/ui/paragraph-placeholder";
+import { buildSlashCommandGroups } from "../../../../../../packages/ui/shadcn/src/editor/ui/slash-node";
 import {
   captureEditorSelection,
   restoreEditorSelection,
@@ -321,6 +322,44 @@ describe("content-library-editor-primitives", () => {
         .find((group) => group.id === "inline")
         ?.items.some((item) => item.value === ARTICLE_EDITOR_INSERT_EMOJI),
     ).toBe(true);
+  });
+
+  it("builds slash commands with searchable top-level turn-into, action, and color groups", () => {
+    const groups = buildSlashCommandGroups({
+      currentBackgroundColor: "rgba(204, 0, 0, 0.24)",
+      currentTextColor: "#3c78d8",
+      currentTurnIntoValue: KEYS.h2,
+      t: (key) => key,
+    });
+
+    expect(groups.map((group) => group.id)).toEqual([
+      "basic",
+      "lists",
+      "media",
+      "advanced",
+      "inline",
+      "turn-into",
+      "actions",
+      "text-color",
+      "background-color",
+    ]);
+
+    expect(
+      groups
+        .find((group) => group.id === "turn-into")
+        ?.items.some((item) => item.value === KEYS.h2),
+    ).toBe(true);
+    expect(groups.find((group) => group.id === "actions")?.items.map((item) => item.value)).toEqual(
+      ["duplicate", "delete"],
+    );
+
+    const textColorItems = groups.find((group) => group.id === "text-color")?.items ?? [];
+    expect(textColorItems.some((item) => item.value === "text:#3c78d8")).toBe(true);
+    expect(textColorItems.some((item) => item.value === "text:clear")).toBe(true);
+
+    const backgroundItems = groups.find((group) => group.id === "background-color")?.items ?? [];
+    expect(backgroundItems.some((item) => item.value === "background:#cc0000")).toBe(true);
+    expect(backgroundItems.some((item) => item.value === "background:clear")).toBe(true);
   });
 
   it("filters insert groups by label, description, and keywords", () => {

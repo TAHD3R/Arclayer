@@ -16,12 +16,9 @@ import {
   AlignRight,
   CheckIcon,
   ChevronLeft,
-  ExternalLink,
   Link2,
-  MoreHorizontal,
   Type,
 } from "lucide-react";
-import { BlockMenuPlugin, BlockSelectionPlugin } from "@platejs/selection/react";
 import {
   useEditorRef,
   useEditorSelector,
@@ -85,9 +82,10 @@ function updateMediaAlignment(editor: PlateEditor, align: MediaAlign) {
 export function MediaToolbar(props: {
   children: React.ReactNode;
   compact?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onCaptionToggle?: () => void;
   showAlignment?: boolean;
-  showExternalLink?: boolean;
   supportsCaption?: boolean;
   url: string;
 }) {
@@ -103,22 +101,17 @@ export function MediaToolbar(props: {
   const isImagePreviewOpen = useImagePreviewValue("isOpen", editor.id);
   const element = useElement() as {
     align?: MediaAlign;
-    id?: string;
     type: string;
-    url?: string;
   };
   const isEditing = useFloatingMediaValue("isEditing");
-  const open =
-    !readOnly &&
-    !isImagePreviewOpen &&
-    ((isFocusedLast && selected && selectionCollapsed) || isEditing);
+  const selectionOpen = (isFocusedLast && selected && selectionCollapsed) || isEditing;
+  const open = !readOnly && !isImagePreviewOpen && ((props.open ?? selectionOpen) || isEditing);
   const align = element.align ?? "center";
   const selectionRef = React.useRef(captureEditorSelection(editor));
   const [urlDraft, setUrlDraft] = React.useState(props.url);
 
   const compact = props.compact ?? false;
   const showAlignment = props.showAlignment ?? !compact;
-  const showExternalLink = props.showExternalLink ?? !compact;
   const canSubmitUrl = urlDraft.trim().length > 0;
   const mediaPlugin = React.useMemo(() => ({ key: element.type }), [element.type]);
 
@@ -136,22 +129,6 @@ export function MediaToolbar(props: {
       );
     },
     [editor],
-  );
-
-  const openBlockMenu = React.useCallback(
-    (target: HTMLElement) => {
-      if (!element.id) return;
-
-      editor.getApi(BlockSelectionPlugin).blockSelection.set([String(element.id)]);
-      editor.getApi(BlockSelectionPlugin).blockSelection.focus();
-
-      const rect = target.getBoundingClientRect();
-      editor.getApi(BlockMenuPlugin).blockMenu.show(String(element.id), {
-        x: rect.left,
-        y: rect.bottom + 8,
-      });
-    },
-    [editor, element.id],
   );
 
   const cancelEditing = React.useCallback(() => {
@@ -178,7 +155,7 @@ export function MediaToolbar(props: {
       setUrlDraft(props.url);
       FloatingMediaStore.set("url", props.url);
     }
-  }, [element.id, isEditing, props.url]);
+  }, [element.type, isEditing, props.url]);
 
   React.useEffect(() => {
     if (!open && isEditing) {
@@ -188,7 +165,7 @@ export function MediaToolbar(props: {
   }, [isEditing, open, props.url]);
 
   return (
-    <Popover open={open} modal={false}>
+    <Popover open={open} modal={false} onOpenChange={props.onOpenChange}>
       <PopoverAnchor asChild>{props.children}</PopoverAnchor>
 
       <PopoverContent
@@ -282,33 +259,6 @@ export function MediaToolbar(props: {
                   {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION")}</span> : null}
                 </MediaToolbarActionButton>
               ) : null}
-
-              {showExternalLink ? (
-                <MediaToolbarActionButton
-                  compact={compact}
-                  tooltip={t("CONTENT_LIBRARY_EDITOR_MEDIA_OPEN")}
-                  asChild
-                >
-                  <a href={props.url} rel="noreferrer" target="_blank" data-plate-focus="true">
-                    <ExternalLink className="size-4" />
-                    {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_OPEN")}</span> : null}
-                  </a>
-                </MediaToolbarActionButton>
-              ) : null}
-
-              <MediaToolbarActionButton
-                compact={compact}
-                tooltip={t("CONTENT_LIBRARY_EDITOR_MEDIA_BLOCK_MENU")}
-                data-plate-focus="true"
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  selectionRef.current = captureEditorSelection(editor);
-                }}
-                onClick={(event) => openBlockMenu(event.currentTarget)}
-              >
-                <MoreHorizontal className="size-4" />
-                {compact ? <span>{t("CONTENT_LIBRARY_EDITOR_MEDIA_BLOCK_MENU")}</span> : null}
-              </MediaToolbarActionButton>
             </>
           ) : null}
         </div>

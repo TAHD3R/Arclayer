@@ -11,6 +11,7 @@ let currentFocusedLast = true;
 let currentReadOnly = false;
 let currentSelectionCollapsed = true;
 let currentImagePreviewOpen = false;
+let currentMediaState: Record<string, unknown> = {};
 
 const submitFloatingMediaMock = vi.fn();
 const updateUploadHistoryMock = vi.fn();
@@ -79,6 +80,7 @@ vi.mock("@platejs/media/react", () => ({
   PlaceholderProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   submitFloatingMedia: (...args: unknown[]) => submitFloatingMediaMock(...args),
   updateUploadHistory: (...args: unknown[]) => updateUploadHistoryMock(...args),
+  useMediaState: () => currentMediaState,
   useFloatingMediaValue: (key: string) => (key === "isEditing" ? currentIsEditing : undefined),
   useImagePreviewValue: () => currentImagePreviewOpen,
 }));
@@ -86,6 +88,20 @@ vi.mock("@platejs/media/react", () => ({
 vi.mock("@platejs/math/react", () => ({
   useEquationElement: vi.fn(),
   useEquationInput: () => ({}),
+}));
+
+vi.mock("@platejs/resizable", () => ({
+  ResizableProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  Resizable: ({ children, className }: React.HTMLAttributes<HTMLDivElement>) => (
+    <div className={className}>{children}</div>
+  ),
+  ResizeHandle: (props: React.HTMLAttributes<HTMLDivElement>) => <div {...props} />,
+  useResizableValue: () => undefined,
+  useResizeHandle: () => ({ props: {} }),
+  useResizeHandleState: () => ({
+    isResizing: false,
+    readOnly: true,
+  }),
 }));
 
 vi.mock("@platejs/selection/react", () => ({
@@ -116,12 +132,25 @@ vi.mock("platejs/react", () => ({
       });
     },
   useEditorRef: () => mockEditor,
+  useEditorMounted: () => true,
   useEditorSelector: () => currentSelectionCollapsed,
   useElement: () => currentElement,
   useFocusedLast: () => currentFocusedLast,
   useReadOnly: () => currentReadOnly,
   useSelected: () => currentSelected,
   withHOC: (_provider: unknown, component: React.ComponentType<unknown>) => component,
+}));
+
+vi.mock("react-player", () => ({
+  default: (props: React.HTMLAttributes<HTMLDivElement>) => (
+    <div data-testid="react-player" {...props} />
+  ),
+}));
+
+vi.mock("react-lite-youtube-embed", () => ({
+  default: (props: React.HTMLAttributes<HTMLDivElement>) => (
+    <div data-testid="youtube-embed" {...props} />
+  ),
 }));
 
 vi.mock("@arclayer/ui/admin-toast", () => ({
@@ -134,10 +163,16 @@ vi.mock("@arclayer/ui/button", () => ({
   Button: ({
     asChild,
     children,
+    pressed: _pressed,
+    size: _size,
+    variant: _variant,
     ...props
   }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
     asChild?: boolean;
     children?: React.ReactNode;
+    pressed?: boolean;
+    size?: string;
+    variant?: string;
   }) => {
     if (asChild && React.isValidElement(children)) {
       return React.cloneElement(children, props);
@@ -182,9 +217,11 @@ import { EquationElement } from "../../../../../../packages/ui/shadcn/src/editor
 import { MediaCaption } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-caption";
 import { MediaPlaceholderElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-placeholder-node";
 import { MediaToolbar } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-toolbar";
+import { VideoElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-video-node";
 
 const MediaPlaceholderElementAny = MediaPlaceholderElement as React.ComponentType<any>;
 const EquationElementAny = EquationElement as React.ComponentType<any>;
+const VideoElementAny = VideoElement as React.ComponentType<any>;
 
 describe("content-library-editor-media-ui", () => {
   afterEach(() => {
@@ -199,6 +236,7 @@ describe("content-library-editor-media-ui", () => {
     currentReadOnly = false;
     currentSelectionCollapsed = true;
     currentImagePreviewOpen = false;
+    currentMediaState = {};
     submitFloatingMediaMock.mockReset();
     updateUploadHistoryMock.mockReset();
     floatingStoreSetMock.mockClear();
@@ -279,6 +317,34 @@ describe("content-library-editor-media-ui", () => {
 
     expect(floatingStoreResetMock).toHaveBeenCalled();
     expect(screen.queryByPlaceholderText("https://")).not.toBeInTheDocument();
+  });
+
+  it("only shows the trimmed media toolbar actions", () => {
+    currentElement = {
+      align: "center",
+      id: "image-1",
+      type: "img",
+      url: "https://cdn.example/image.png",
+    };
+
+    render(
+      <MediaToolbar compact supportsCaption url="https://cdn.example/image.png">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_EDIT_LINK" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_OPEN" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_BLOCK_MENU" }),
+    ).not.toBeInTheDocument();
   });
 
   it("auto-opens the placeholder file picker when the placeholder requests it", async () => {
@@ -401,6 +467,57 @@ describe("content-library-editor-media-ui", () => {
 
     fireEvent.blur(input);
     expect(onEditingChange).toHaveBeenCalledWith(false);
+  });
+
+  it("isolates video playback clicks from toolbar activation and exposes an explicit video options trigger", async () => {
+    const parentMouseDown = vi.fn();
+    const parentClick = vi.fn();
+
+    currentElement = {
+      children: [{ text: "" }],
+      id: "video-1",
+      type: "video",
+      url: "https://cdn.example/video.mp4",
+    };
+    currentMediaState = {
+      align: "center",
+      embed: null,
+      focused: false,
+      isUpload: true,
+      isVideo: false,
+      isYoutube: false,
+      selected: false,
+      unsafeUrl: "https://cdn.example/video.mp4",
+    };
+    mockEditor.api.findPath.mockReturnValue([2]);
+
+    render(
+      <div onMouseDown={parentMouseDown} onClick={parentClick}>
+        <VideoElementAny
+          attributes={plateAttributes}
+          children={null}
+          editor={mockEditor as never}
+          element={currentElement as never}
+        />
+      </div>,
+    );
+
+    const video = document.querySelector("video");
+    expect(video).not.toBeNull();
+
+    fireEvent.mouseDown(video as HTMLVideoElement);
+    fireEvent.click(video as HTMLVideoElement);
+
+    expect(parentMouseDown).not.toHaveBeenCalled();
+    expect(parentClick).not.toHaveBeenCalled();
+    expect(mockEditor.tf.select).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_MEDIA_OPTIONS" }),
+    );
+
+    expect(mockEditor.tf.select).toHaveBeenCalledWith([2]);
+    expect(mockEditor.tf.focus).toHaveBeenCalled();
   });
 
   it("renders the compact equation editor popover for empty equations", () => {

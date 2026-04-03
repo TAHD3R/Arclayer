@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { ListTree, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { ListTree } from "lucide-react";
 import { useTocSideBar, useTocSideBarState } from "@platejs/toc/react";
 import { useTranslation } from "react-i18next";
 
@@ -17,10 +17,10 @@ type TocHeading = {
   type: string;
 };
 
-function getHeadingIndent(depth: number) {
-  if (depth >= 3) return "pl-5";
-  if (depth === 2) return "pl-3";
-  return "pl-2";
+function getHeadingIndent(depth: number, compact: boolean) {
+  if (depth >= 3) return compact ? "pl-4" : "pl-5";
+  if (depth === 2) return compact ? "pl-2.5" : "pl-3.5";
+  return "pl-0";
 }
 
 function TocList(props: {
@@ -32,47 +32,70 @@ function TocList(props: {
     item: TocHeading,
     behavior?: ScrollBehavior,
   ) => void;
+  variant: "page" | "split";
 }) {
   const { t } = useTranslation("content");
 
   if (props.headingList.length === 0) {
     return (
-      <div className="px-2 py-3 text-footnote text-label-secondary">
+      <div
+        className={cn(
+          props.variant === "page"
+            ? "py-2 text-footnote text-label-tertiary"
+            : "px-2 py-3 text-caption text-label-secondary",
+        )}
+      >
         {t("CONTENT_LIBRARY_EDITOR_TOC_EMPTY")}
       </div>
     );
   }
 
   return (
-    <div className={cn("space-y-1", props.compact && "space-y-0.5")}>
-      {props.headingList.map((item) => (
-        <Button
-          key={item.id}
-          type="button"
-          variant="ghost"
-          className={cn(
-            "h-auto w-full justify-start rounded-md px-2 py-1.5 text-left text-footnote font-medium text-label-secondary hover:bg-accent/60 hover:text-label-primary",
-            getHeadingIndent(item.depth),
-            props.compact && "py-1 text-caption",
-            props.activeContentId === item.id &&
-              "bg-accent/60 text-label-primary ring-1 ring-border/60",
-          )}
-          onClick={(event) => props.onContentClick(event, item, "smooth")}
-        >
-          <span className="block w-full truncate">{item.title}</span>
-        </Button>
-      ))}
+    <div className={cn("space-y-0.5", props.variant === "page" ? "space-y-1" : "space-y-0.5")}>
+      {props.headingList.map((item) => {
+        const active = props.activeContentId === item.id;
+
+        return (
+          <Button
+            key={item.id}
+            type="button"
+            variant="ghost"
+            className={cn(
+              "h-auto w-full justify-start text-left",
+              props.variant === "page"
+                ? "rounded-lg px-0 py-1.5 text-footnote font-medium text-label-secondary hover:bg-transparent hover:text-label-primary"
+                : "rounded-md px-2 py-1.5 text-caption font-medium text-label-secondary hover:bg-accent/60 hover:text-label-primary",
+              getHeadingIndent(item.depth, props.compact ?? false),
+            )}
+            onClick={(event) => props.onContentClick(event, item, "smooth")}
+          >
+            <span className="flex min-w-0 items-start gap-2">
+              <span
+                className={cn(
+                  "mt-[0.2rem] h-3.5 w-0.5 shrink-0 rounded-full transition-colors",
+                  active
+                    ? "bg-primary/80"
+                    : props.variant === "page"
+                      ? "bg-border/70"
+                      : "bg-transparent",
+                )}
+              />
+              <span className={cn("block min-w-0 truncate", active && "text-label-primary")}>
+                {item.title}
+              </span>
+            </span>
+          </Button>
+        );
+      })}
     </div>
   );
 }
 
 export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "split" }) {
   const { t } = useTranslation("content");
-  const [splitOpen, setSplitOpen] = React.useState(false);
-  const open = props.mode === "page" ? true : splitOpen;
   const sidebarState = useTocSideBarState({
-    open,
-    rootMargin: props.mode === "page" ? "-128px 0px -65% 0px" : "-88px 0px -65% 0px",
+    open: true,
+    rootMargin: props.mode === "page" ? "-132px 0px -65% 0px" : "-88px 0px -65% 0px",
     topOffset: props.mode === "page" ? 28 : 12,
   }) as {
     activeContentId: string;
@@ -83,19 +106,17 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
 
   if (props.mode === "page") {
     return (
-      <aside className="w-[16rem] shrink-0">
-        <nav
-          {...navProps}
-          className="sticky top-6 rounded-xl border border-border/70 bg-card/92 p-3 shadow-sm backdrop-blur"
-        >
-          <div className="mb-3 flex items-center gap-2 px-2 text-footnote font-semibold text-label-primary">
-            <ListTree className="size-4" />
+      <aside className="sticky top-6 hidden w-[14.5rem] shrink-0 self-start xl:block">
+        <nav {...navProps} className="space-y-3">
+          <div className="flex items-center gap-2 px-0.5 text-[11px] font-semibold tracking-[0.08em] text-label-tertiary">
+            <ListTree className="size-3.5" />
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
           </div>
           <TocList
             activeContentId={sidebarState.activeContentId}
             headingList={sidebarState.headingList}
             onContentClick={onContentClick}
+            variant="page"
           />
         </nav>
       </aside>
@@ -103,53 +124,35 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
   }
 
   return (
-    <div className="pointer-events-auto flex items-start justify-end">
-      <div className="flex items-start gap-2">
-        {splitOpen ? (
-          <nav
-            {...navProps}
-            className="w-[13rem] rounded-xl border border-border/70 bg-card/94 p-2.5 shadow-lg backdrop-blur"
-          >
-            <div className="mb-2 flex items-center justify-between gap-2 px-1.5">
-              <div className="flex items-center gap-2 text-caption font-semibold text-label-primary">
-                <ListTree className="size-3.5" />
-                {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="size-7"
-                onClick={() => setSplitOpen(false)}
-              >
-                <PanelRightClose className="size-4" />
-                <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_TOC_TOGGLE")}</span>
-              </Button>
-            </div>
-            <TocList
-              compact
-              activeContentId={sidebarState.activeContentId}
-              headingList={sidebarState.headingList}
-              onContentClick={onContentClick}
-            />
-          </nav>
-        ) : null}
-
-        <Button
-          type="button"
-          variant="secondary"
-          size="icon-sm"
-          className="size-8 rounded-full border border-border/70 bg-card/92 shadow-sm backdrop-blur"
-          onClick={() => setSplitOpen((current) => !current)}
+    <div className="group/toc pointer-events-auto relative flex items-start justify-end">
+      <div className="pointer-events-none absolute right-11 top-0 z-20 translate-x-1 opacity-0 transition-all duration-150 group-hover/toc:pointer-events-auto group-hover/toc:translate-x-0 group-hover/toc:opacity-100 group-focus-within/toc:pointer-events-auto group-focus-within/toc:translate-x-0 group-focus-within/toc:opacity-100">
+        <nav
+          {...navProps}
+          className="w-[13rem] rounded-xl border border-border/70 bg-card/96 p-2 shadow-lg backdrop-blur"
         >
-          {splitOpen ? (
-            <PanelRightClose className="size-4" />
-          ) : (
-            <PanelRightOpen className="size-4" />
-          )}
-          <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_TOC_TOGGLE")}</span>
-        </Button>
+          <div className="mb-2 flex items-center gap-2 px-1.5 text-[11px] font-semibold tracking-[0.08em] text-label-tertiary">
+            <ListTree className="size-3.5" />
+            {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
+          </div>
+          <TocList
+            compact
+            activeContentId={sidebarState.activeContentId}
+            headingList={sidebarState.headingList}
+            onContentClick={onContentClick}
+            variant="split"
+          />
+        </nav>
       </div>
+
+      <Button
+        type="button"
+        variant="secondary"
+        size="icon-sm"
+        className="size-8 rounded-full border border-border/70 bg-card/92 shadow-sm backdrop-blur"
+      >
+        <ListTree className="size-4" />
+        <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_TOC_TOGGLE")}</span>
+      </Button>
     </div>
   );
 }
