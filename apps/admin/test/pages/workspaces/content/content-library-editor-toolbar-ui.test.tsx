@@ -242,7 +242,11 @@ vi.mock("@arclayer/ui/editor", () => ({
 vi.mock(
   "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-menu",
   () => ({
-    ContentLibraryArticleEditorMenuBar: () => null,
+    ContentLibraryArticleEditorMenuBar: () => (
+      <button type="button" aria-label="CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU">
+        CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU
+      </button>
+    ),
   }),
 );
 
@@ -326,6 +330,33 @@ describe("content-library-editor-toolbar-ui", () => {
         source: "upload",
       }),
     );
+  });
+
+  it("renders the document menu after the publish button", () => {
+    render(
+      <ContentLibraryArticleEditorPageToolbar
+        hasPublishableVersion
+        itemTitle="Launch memo"
+        isPublishing={false}
+        onImportDocument={vi.fn()}
+        onPublish={vi.fn()}
+        onVisibilityChange={vi.fn()}
+        saveState="saved"
+        slug="launch-note"
+        status="draft"
+        visibility="public"
+        onSlugChange={vi.fn()}
+      />,
+    );
+
+    const publishButton = screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_PUBLISH" });
+    const documentMenuButton = screen.getByRole("button", {
+      name: "CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU",
+    });
+
+    expect(
+      publishButton.compareDocumentPosition(documentMenuButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("replaces the native color input with the compact custom picker", () => {

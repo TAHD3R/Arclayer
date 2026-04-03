@@ -188,3 +188,14 @@ body,
   --color-highlight: var(--highlight);
   --color-brand: var(--brand);
 }
+
+::highlight(article-editor-search-match) {
+  background-color: color-mix(in oklab, var(--color-highlight) 42%, transparent);
+  border-radius: 4px;
+}
+
+::highlight(article-editor-search-active-match) {
+  background-color: color-mix(in oklab, var(--color-brand) 30%, white 18%);
+  color: inherit;
+  border-radius: 4px;
+}

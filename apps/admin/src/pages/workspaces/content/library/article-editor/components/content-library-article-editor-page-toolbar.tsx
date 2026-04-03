@@ -415,22 +415,6 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
 
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-card px-4 md:px-5">
-      <ContentLibraryArticleEditorMenuBar
-        itemTitle={props.itemTitle}
-        mode="page"
-        onDelete={props.onDelete}
-        onDuplicate={props.onDuplicate}
-        onImportDocument={props.onImportDocument}
-        onOpenAllUpdates={props.onOpenAllUpdates}
-        status={props.status}
-        visibility={props.visibility}
-        onOpenVersionHistory={props.onOpenVersionHistory}
-        onVisibilityChange={props.onVisibilityChange}
-        slug={props.slug}
-        onSlugChange={props.onSlugChange}
-        onOpenSeo={props.onOpenSeo}
-      />
-
       <ToolbarScroller>
         <Toolbar className="min-w-max flex-nowrap gap-0.5 pr-3">
           <ToolbarGroup>
@@ -561,6 +545,21 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
           <Upload className="size-4" />
           {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
         </Button>
+        <ContentLibraryArticleEditorMenuBar
+          itemTitle={props.itemTitle}
+          mode="page"
+          onDelete={props.onDelete}
+          onDuplicate={props.onDuplicate}
+          onImportDocument={props.onImportDocument}
+          onOpenAllUpdates={props.onOpenAllUpdates}
+          status={props.status}
+          visibility={props.visibility}
+          onOpenVersionHistory={props.onOpenVersionHistory}
+          onVisibilityChange={props.onVisibilityChange}
+          slug={props.slug}
+          onSlugChange={props.onSlugChange}
+          onOpenSeo={props.onOpenSeo}
+        />
       </div>
     </div>
   );

@@ -626,6 +626,16 @@ describe("content-library-article-editor-page", () => {
     const maximizeButton = screen.getByRole("button", {
       name: "CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR",
     });
+    const publishButton = screen.getByRole("button", {
+      name: "CONTENT_LIBRARY_ACTION_PUBLISH",
+    });
+    const documentMenuButton = screen.getByRole("button", {
+      name: "CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU",
+    });
+
+    expect(
+      publishButton.compareDocumentPosition(documentMenuButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     await user.hover(closeButton);
     await waitFor(() => {

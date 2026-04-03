@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -23,6 +23,10 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+}));
+
+vi.mock("@arclayer/hooks/use-client-platform", () => ({
+  useClientPlatform: () => "mac",
 }));
 
 vi.mock("platejs/react", () => ({
@@ -117,6 +121,11 @@ vi.mock("@arclayer/ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
+vi.mock("@arclayer/ui/kbd", () => ({
+  Kbd: ({ children }: { children?: React.ReactNode }) => <kbd>{children}</kbd>,
+  KbdGroup: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+}));
+
 vi.mock(
   "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-import-dialog",
   () => ({
@@ -146,7 +155,7 @@ vi.mock(
 vi.mock(
   "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-search-dialog",
   () => ({
-    ContentLibraryArticleEditorSearchDialog: ({
+    ContentLibraryArticleEditorSearchOverlay: ({
       open,
     }: {
       open: boolean;
@@ -186,9 +195,25 @@ describe("content-library-editor-menubar", () => {
     );
 
     expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_SEARCH")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_COPY_MARKDOWN")).toBeInTheDocument();
+    const searchAction = screen.getByRole("button", {
+      name: /CONTENT_LIBRARY_EDITOR_MENU_SEARCH/i,
+    });
+    expect(within(searchAction).getByText("⌘")).toBeInTheDocument();
+    expect(within(searchAction).getByText("F")).toBeInTheDocument();
+    const undoAction = screen.getByRole("button", {
+      name: /CONTENT_LIBRARY_EDITOR_ACTION_UNDO/i,
+    });
+    expect(within(undoAction).getByText("⌘")).toBeInTheDocument();
+    expect(within(undoAction).getByText("Z")).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", {
+        name: "CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU_SEARCH_PLACEHOLDER",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_COPY_PAGE_CONTENT")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_IMPORT")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_EXPORT")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_DUPLICATE_PAGE")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_VERSION_HISTORY")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_ALL_UPDATES")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")).toBeInTheDocument();
@@ -237,7 +262,7 @@ describe("content-library-editor-menubar", () => {
       />,
     );
 
-    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_COPY_MARKDOWN"));
+    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_COPY_PAGE_CONTENT"));
 
     expect(mocked.editor.api.markdown.serialize).toHaveBeenCalled();
     expect(mocked.copyToClipboard).toHaveBeenCalledWith("# Launch memo");
@@ -272,6 +297,43 @@ describe("content-library-editor-menubar", () => {
     expect(screen.getByText("export-dialog-open")).toBeInTheDocument();
   });
 
+  it("filters menu items from the search input", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ContentLibraryArticleEditorMenuBar
+        itemTitle="Launch memo"
+        mode="page"
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onImportDocument={vi.fn()}
+        onOpenAllUpdates={vi.fn()}
+        onOpenSeo={vi.fn()}
+        onOpenVersionHistory={vi.fn()}
+        onSlugChange={vi.fn()}
+        onVisibilityChange={vi.fn()}
+        slug="launch-memo"
+        status="draft"
+        visibility="public"
+      />,
+    );
+
+    const input = screen.getByRole("textbox", {
+      name: "CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU_SEARCH_PLACEHOLDER",
+    });
+
+    await user.type(input, "export");
+
+    expect(screen.queryByText("CONTENT_LIBRARY_EDITOR_MENU_SEARCH")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("CONTENT_LIBRARY_EDITOR_MENU_COPY_PAGE_CONTENT"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_EXPORT")).toBeInTheDocument();
+    expect(
+      screen.queryByText("CONTENT_LIBRARY_EDITOR_MENU_DUPLICATE_PAGE"),
+    ).not.toBeInTheDocument();
+  });
+
   it("dispatches duplicate and delete through the provided action callbacks", async () => {
     const user = userEvent.setup();
     const onDuplicate = vi.fn();
@@ -293,7 +355,7 @@ describe("content-library-editor-menubar", () => {
       />,
     );
 
-    await user.click(screen.getByText("CONTENT_LIBRARY_ACTION_DUPLICATE"));
+    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_DUPLICATE_PAGE"));
     await user.click(screen.getByText("CONTENT_LIBRARY_ACTION_DELETE"));
 
     expect(onDuplicate).toHaveBeenCalledTimes(1);

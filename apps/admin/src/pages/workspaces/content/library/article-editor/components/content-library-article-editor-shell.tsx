@@ -247,26 +247,6 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                   <Maximize2 className="size-4" />
                 </ToolbarIconButton>
               ) : null}
-              <ContentLibraryArticleEditorMenuBar
-                itemTitle={props.title}
-                mode="split"
-                onDelete={() => deleteMutation.mutate()}
-                onDuplicate={() => duplicateMutation.mutate()}
-                onImportDocument={(value) => props.onBodyDocumentChange?.(value)}
-                onOpenAllUpdates={() => {
-                  void handleOpenUpdates();
-                }}
-                status={props.status}
-                visibility={props.visibility}
-                onOpenVersionHistory={() => setHistoryOpen(true)}
-                onVisibilityChange={props.onVisibilityChange}
-                slug={props.slug}
-                onSlugChange={props.onSlugChange}
-                onCloseSplit={props.onClose}
-                onOpenPageEditor={props.onOpenPage}
-                onOpenSeo={() => setSeoDialogOpen(true)}
-                className="ml-1"
-              />
             </div>
 
             <div className="flex items-center gap-2">
@@ -287,6 +267,25 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                 <Upload className="size-4" />
                 {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
               </Button>
+              <ContentLibraryArticleEditorMenuBar
+                itemTitle={props.title}
+                mode="split"
+                onDelete={() => deleteMutation.mutate()}
+                onDuplicate={() => duplicateMutation.mutate()}
+                onImportDocument={(value) => props.onBodyDocumentChange?.(value)}
+                onOpenAllUpdates={() => {
+                  void handleOpenUpdates();
+                }}
+                status={props.status}
+                visibility={props.visibility}
+                onOpenVersionHistory={() => setHistoryOpen(true)}
+                onVisibilityChange={props.onVisibilityChange}
+                slug={props.slug}
+                onSlugChange={props.onSlugChange}
+                onCloseSplit={props.onClose}
+                onOpenPageEditor={props.onOpenPage}
+                onOpenSeo={() => setSeoDialogOpen(true)}
+              />
             </div>
           </div>
         ) : null}
