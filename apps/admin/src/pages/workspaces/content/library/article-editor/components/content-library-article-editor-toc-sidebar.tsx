@@ -2,11 +2,9 @@
 
 import * as React from "react";
 
-import { ListTree } from "lucide-react";
 import { useTocSideBar, useTocSideBarState } from "@platejs/toc/react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
 
 type TocHeading = {
@@ -17,9 +15,9 @@ type TocHeading = {
   type: string;
 };
 
-function getHeadingIndent(depth: number, compact: boolean) {
-  if (depth >= 3) return compact ? "pl-4" : "pl-5";
-  if (depth === 2) return compact ? "pl-2.5" : "pl-3.5";
+function getHeadingIndent(depth: number, variant: "page" | "split") {
+  if (depth >= 3) return variant === "page" ? "pl-8" : "pl-6";
+  if (depth === 2) return variant === "page" ? "pl-5" : "pl-3";
   return "pl-0";
 }
 
@@ -69,19 +67,19 @@ function TocList(props: {
                 (props.variant === "page"
                   ? "bg-accent/65 text-label-primary"
                   : "bg-accent/70 text-label-primary"),
-              getHeadingIndent(item.depth, props.compact ?? false),
+              getHeadingIndent(item.depth, props.variant),
             )}
             onClick={(event) => props.onContentClick(event, item, "smooth")}
           >
-            <span className="flex min-w-0 flex-1 items-start gap-2">
+            <span className="flex min-w-0 flex-1 items-center gap-2">
               <span
                 className={cn(
-                  "mt-[0.2rem] h-3.5 w-0.5 shrink-0 rounded-full transition-colors",
+                  "size-1.5 shrink-0 rounded-full transition-colors",
                   active
                     ? "bg-primary/85"
                     : props.variant === "page"
                       ? "bg-border/80"
-                      : "bg-transparent",
+                      : "bg-border/60",
                 )}
               />
               <span className={cn("block min-w-0 truncate", active && "text-label-primary")}>
@@ -112,8 +110,7 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
     return (
       <aside className="sticky top-6 hidden w-58 shrink-0 self-start xl:block">
         <nav {...navProps} className="space-y-3">
-          <div className="flex items-center gap-2 px-2 text-callout font-semibold">
-            <ListTree className="size-4" />
+          <div className="px-2 text-callout font-semibold text-label-primary">
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
           </div>
           <TocList
@@ -128,37 +125,46 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
   }
 
   return (
-    <aside className="group/toc pointer-events-auto relative flex items-start justify-end">
-      <div className="pointer-events-none absolute right-0 top-0 z-20 translate-x-2 opacity-0 transition-all duration-150 group-hover/toc:pointer-events-auto group-hover/toc:translate-x-0 group-hover/toc:opacity-100 group-focus-within/toc:pointer-events-auto group-focus-within/toc:translate-x-0 group-focus-within/toc:opacity-100">
-        <nav
-          {...navProps}
-          className="w-56 rounded-2xl border border-border/70 bg-card/96 p-2 shadow-lg backdrop-blur"
-        >
-          <div className="flex items-center gap-2 px-1.5 py-1 text-callout font-semibold">
-            <ListTree className="size-4" />
-            {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
-          </div>
-          <TocList
-            compact
-            activeContentId={sidebarState.activeContentId}
-            headingList={sidebarState.headingList}
-            onContentClick={onContentClick}
-            variant="split"
-          />
-        </nav>
-      </div>
-
-      <Button
+    <aside className="group/toc pointer-events-auto relative z-10 mr-2.5 flex flex-col justify-center pr-2 pb-3">
+      <button
         type="button"
-        variant="secondary"
-        size="sm"
-        className="h-8 rounded-full border border-border/70 bg-card/92 px-3 text-label-secondary shadow-sm backdrop-blur hover:text-label-primary"
+        aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
+        className="flex flex-col gap-3 pb-3 pl-5"
       >
-        <ListTree className="size-4" />
-        <span className="pr-0.5 text-footnote font-medium">
-          {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
+        <span className="block">
+          <span className="block h-0.5 w-4 rounded-xs bg-primary" />
         </span>
-      </Button>
+        <span className="block">
+          <span className="ml-1 block h-0.5 w-3 rounded-xs bg-primary/20" />
+        </span>
+        <span className="block">
+          <span className="ml-2 block h-0.5 w-2 rounded-xs bg-primary/20" />
+        </span>
+        <span className="block">
+          <span className="ml-1 block h-0.5 w-3 rounded-xs bg-primary/20" />
+        </span>
+        <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}</span>
+      </button>
+
+      <nav
+        {...navProps}
+        className="-top-2.5 pointer-events-none absolute right-0 translate-x-[10px] px-2.5 opacity-0 transition-all duration-300 group-hover/toc:pointer-events-auto group-hover/toc:translate-x-0 group-hover/toc:opacity-100 group-focus-within/toc:pointer-events-auto group-focus-within/toc:translate-x-0 group-focus-within/toc:opacity-100"
+      >
+        <div className="-mr-2.5 max-h-96 w-[242px] overflow-auto rounded-2xl border border-border/70 bg-card/96 p-3 shadow-lg backdrop-blur">
+          <div className="relative z-10 p-1.5">
+            <div className="px-1 py-1 text-sm font-semibold text-label-primary">
+              {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
+            </div>
+            <TocList
+              compact
+              activeContentId={sidebarState.activeContentId}
+              headingList={sidebarState.headingList}
+              onContentClick={onContentClick}
+              variant="split"
+            />
+          </div>
+        </div>
+      </nav>
     </aside>
   );
 }

@@ -2,8 +2,10 @@
 
 import * as React from "react";
 
+import { CsvPlugin } from "@platejs/csv";
 import { DndPlugin } from "@platejs/dnd";
 import { LinkPlugin, triggerFloatingLinkInsert } from "@platejs/link/react";
+import { MarkdownPlugin } from "@platejs/markdown";
 import { insertPlaceholder } from "@platejs/media";
 import { normalizeNodeId, type Value } from "platejs";
 import { Plate, usePlateEditor } from "platejs/react";
@@ -244,6 +246,8 @@ export function ContentLibraryArticleEditorDocumentProvider(
       ArticleEditorBlockSelectionPlugin,
       ArticleEditorBlockMenuPlugin,
       DndPlugin,
+      CsvPlugin,
+      MarkdownPlugin,
       ...AdvancedBlocksKit,
       ...SlashKit,
       ...AutoformatKit,

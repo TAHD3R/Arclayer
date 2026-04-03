@@ -394,8 +394,14 @@ function ToolbarScroller(props: { children: React.ReactNode }) {
 
 export function ContentLibraryArticleEditorPageToolbar(props: {
   hasPublishableVersion?: boolean;
+  itemTitle: string;
   isPublishing?: boolean;
+  onDelete?: () => void | Promise<void>;
+  onDuplicate?: () => void | Promise<void>;
+  onImportDocument: (value: Record<string, unknown>) => void;
+  onOpenAllUpdates?: () => void;
   onOpenSeo?: () => void;
+  onOpenVersionHistory?: () => void;
   onPublish?: () => void;
   onVisibilityChange: (value: "public" | "private") => void;
   saveError?: unknown;
@@ -410,9 +416,15 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-card px-4 md:px-5">
       <ContentLibraryArticleEditorMenuBar
+        itemTitle={props.itemTitle}
         mode="page"
+        onDelete={props.onDelete}
+        onDuplicate={props.onDuplicate}
+        onImportDocument={props.onImportDocument}
+        onOpenAllUpdates={props.onOpenAllUpdates}
         status={props.status}
         visibility={props.visibility}
+        onOpenVersionHistory={props.onOpenVersionHistory}
         onVisibilityChange={props.onVisibilityChange}
         slug={props.slug}
         onSlugChange={props.onSlugChange}

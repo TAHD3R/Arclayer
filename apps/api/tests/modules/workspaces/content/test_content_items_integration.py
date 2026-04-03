@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
@@ -21,6 +22,28 @@ from apps.api.src.modules.auth.repository import UserRepository
 from apps.api.src.modules.organization.repository import OrganizationRepository
 
 pytestmark = pytest.mark.integration
+
+
+async def _wait_latest_workspace_audit_event(
+    *,
+    event_name: str,
+    workspace_id: UUID,
+    entity_id: UUID | None = None,
+    timeout_seconds: float = 3.0,
+):
+    from apps.api.src.models.analytics.audit_event import AuditEvent
+
+    deadline = asyncio.get_running_loop().time() + timeout_seconds
+    while True:
+        query = AuditEvent.filter(event_name=event_name, workspace_id=workspace_id)
+        if entity_id is not None:
+            query = query.filter(entity_id=entity_id)
+        row = await query.order_by("-occurred_at", "-id").first()
+        if row is not None:
+            return row
+        if asyncio.get_running_loop().time() >= deadline:
+            raise AssertionError(f"expected audit event not found: {event_name}")
+        await asyncio.sleep(0.1)
 
 
 @asynccontextmanager
@@ -432,6 +455,125 @@ async def test_content_items_return_version_detail_with_fields_snapshot_and_pres
             "rich_text_document",
             "visual_blueprint",
         }
+
+
+@pytest.mark.asyncio
+async def test_content_items_list_versions_endpoint_returns_latest_first(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
+
+        first_draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=_draft_payload(),
+        )
+        assert first_draft_res.status_code == 201, first_draft_res.text
+
+        publish_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            json={},
+        )
+        assert publish_res.status_code == 200, publish_res.text
+
+        second_draft_payload = _draft_payload()
+        second_draft_payload["expectedVersion"] = 1
+        second_draft_payload["changeSummary"] = "follow-up draft"
+        second_draft_payload["fieldsSnapshot"]["summary"] = "Next draft summary"
+        second_draft_payload["presentations"][0]["payload"]["summary"] = "Next draft summary"
+
+        second_draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=second_draft_payload,
+        )
+        assert second_draft_res.status_code == 201, second_draft_res.text
+
+        versions_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions")
+        assert versions_res.status_code == 200, versions_res.text
+        data = versions_res.json()["data"]
+        assert data["total"] == 2
+        assert [entry["versionNumber"] for entry in data["items"]] == [2, 1]
+        assert data["items"][0]["changeSummary"] == "follow-up draft"
+        assert data["items"][1]["state"] == "published"
+
+
+@pytest.mark.asyncio
+async def test_content_item_mutations_emit_workspace_activity_events(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        workspace_uuid = decode_public_id(workspace_id)
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+        item_uuid = decode_public_id(item_id)
+
+        await _wait_latest_workspace_audit_event(
+            event_name="workspace.content.item.created",
+            workspace_id=workspace_uuid,
+            entity_id=item_uuid,
+        )
+
+        shape_res = await client.patch(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+            json=_bootstrap_shape_payload(),
+        )
+        assert shape_res.status_code == 200, shape_res.text
+        await _wait_latest_workspace_audit_event(
+            event_name="workspace.content.item.bootstrap.applied",
+            workspace_id=workspace_uuid,
+            entity_id=item_uuid,
+        )
+
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=_draft_payload(),
+        )
+        assert draft_res.status_code == 201, draft_res.text
+        await _wait_latest_workspace_audit_event(
+            event_name="workspace.content.version.saved",
+            workspace_id=workspace_uuid,
+            entity_id=item_uuid,
+        )
+
+        publish_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            json={},
+        )
+        assert publish_res.status_code == 200, publish_res.text
+        await _wait_latest_workspace_audit_event(
+            event_name="workspace.content.version.published",
+            workspace_id=workspace_uuid,
+            entity_id=item_uuid,
+        )
+
+        activity_res = await client.get(
+            f"/api/v1/workspaces/{workspace_id}/activity?entityType=content_item&entityId={item_id}&page=1&size=10"
+        )
+        assert activity_res.status_code == 200, activity_res.text
+        items = activity_res.json()["data"]["items"]
+        assert [entry["eventName"] for entry in items[:4]] == [
+            "workspace.content.version.published",
+            "workspace.content.version.saved",
+            "workspace.content.item.bootstrap.applied",
+            "workspace.content.item.created",
+        ]
 
 
 @pytest.mark.asyncio

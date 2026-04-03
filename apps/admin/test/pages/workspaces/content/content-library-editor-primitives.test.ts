@@ -47,8 +47,10 @@ import {
   clearEditorMarkColorForBlocks,
   getEditorMarkColorValue,
   getEditorMarkValueForBlocks,
+  normalizeColorToHex,
   setEditorMarkColorForBlocks,
 } from "../../../../../../packages/ui/shadcn/src/editor/mark-color-utils";
+import { useEditorCustomColorsStore } from "../../../../../../packages/ui/shadcn/src/editor/use-editor-custom-colors-store";
 import { getContentLibraryArticleEditorBodyEditorClass } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body-layout";
 import { exitEmptyToggle } from "../../../../../../packages/ui/shadcn/src/editor/toggle-plugin-helpers";
 import {
@@ -57,6 +59,20 @@ import {
 } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-date-localization";
 
 describe("content-library-editor-primitives", () => {
+  it("normalizes custom colors to hex and keeps recent custom colors deduplicated", () => {
+    localStorage.removeItem("arclayer:editor:customColors");
+    useEditorCustomColorsStore.setState({ colors: [] });
+
+    expect(normalizeColorToHex("#ABC")).toBe("#aabbcc");
+    expect(normalizeColorToHex("rgb(51, 126, 169)")).toBe("#337ea9");
+
+    expect(useEditorCustomColorsStore.getState().addColor("#ABC")).toBe("#aabbcc");
+    expect(useEditorCustomColorsStore.getState().addColor("rgb(51, 126, 169)")).toBe("#337ea9");
+    expect(useEditorCustomColorsStore.getState().addColor("#abc")).toBe("#aabbcc");
+
+    expect(useEditorCustomColorsStore.getState().colors).toEqual(["#aabbcc", "#337ea9"]);
+  });
+
   it("does not treat a locally echoed document update as an external rehydrate", () => {
     expect(
       shouldApplyExternalDocumentSync({

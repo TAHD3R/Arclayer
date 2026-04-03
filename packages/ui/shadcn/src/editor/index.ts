@@ -60,6 +60,7 @@ export * from "./article-editor-insert-items";
 export * from "./article-editor-insert-menu";
 export * from "./mark-color-utils";
 export * from "./transforms";
+export * from "./use-editor-custom-colors-store";
 export * from "./plugins/basic-marks-kit";
 export * from "./plugins/basic-marks-base-kit";
 export * from "./plugins/basic-blocks-base-kit";

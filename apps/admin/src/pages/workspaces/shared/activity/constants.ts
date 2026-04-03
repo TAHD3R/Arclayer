@@ -96,6 +96,61 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
     descriptionKey: "ACTIVITY_EVENT_WORKSPACE_INVITE_ACCEPTED_DESC",
     level: "info",
   },
+  "workspace.content.item.created": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_CREATED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_CREATED_DESC",
+    level: "info",
+  },
+  "workspace.content.item.duplicated": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_DUPLICATED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_DUPLICATED_DESC",
+    level: "info",
+  },
+  "workspace.content.item.deleted": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_DELETED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_DELETED_DESC",
+    level: "warning",
+  },
+  "workspace.content.item.archived": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_ARCHIVED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_ARCHIVED_DESC",
+    level: "warning",
+  },
+  "workspace.content.item.unarchived": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_UNARCHIVED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_UNARCHIVED_DESC",
+    level: "info",
+  },
+  "workspace.content.item.bootstrap.applied": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_BOOTSTRAP_APPLIED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_ITEM_BOOTSTRAP_APPLIED_DESC",
+    level: "info",
+  },
+  "workspace.content.version.saved": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_SAVED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_SAVED_DESC",
+    level: "info",
+  },
+  "workspace.content.version.patched": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_PATCHED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_PATCHED_DESC",
+    level: "info",
+  },
+  "workspace.content.version.published": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_PUBLISHED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_PUBLISHED_DESC",
+    level: "info",
+  },
+  "workspace.content.version.scheduled": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_SCHEDULED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_SCHEDULED_DESC",
+    level: "info",
+  },
+  "workspace.content.version.archived": {
+    titleKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_ARCHIVED_TITLE",
+    descriptionKey: "ACTIVITY_EVENT_WORKSPACE_CONTENT_VERSION_ARCHIVED_DESC",
+    level: "warning",
+  },
 
   // RBAC
   "rbac.role.created": {

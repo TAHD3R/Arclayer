@@ -5,19 +5,18 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocked = vi.hoisted(() => ({
-  applyArticleEditorInsertItem: vi.fn(),
-  applyEditorMarkColor: vi.fn(),
-  applyTurnInto: vi.fn(),
-  clearEditorMarkColor: vi.fn(),
-  commands: {
-    insertItem: vi.fn(),
-    openMediaInsert: vi.fn(),
-  },
+  copyToClipboard: vi.fn(),
   editor: {
-    tf: {
-      toggleMark: vi.fn(),
+    api: {
+      markdown: {
+        serialize: vi.fn(() => "# Launch memo"),
+      },
     },
+    undo: vi.fn(),
   },
+  exportDialogOpen: false,
+  importDialogOpen: false,
+  searchDialogOpen: false,
 }));
 
 vi.mock("react-i18next", () => ({
@@ -28,21 +27,21 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("platejs/react", () => ({
   useEditorRef: () => mocked.editor,
-  useSelectionFragmentProp: () => "p",
 }));
 
-vi.mock("@platejs/list", () => ({
-  toggleList: vi.fn(),
+vi.mock("@/lib/clipboard", () => ({
+  copyToClipboard: (...args: unknown[]) => mocked.copyToClipboard(...args),
 }));
 
-vi.mock("@platejs/toggle/react", () => ({
-  openNextToggles: vi.fn(),
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
+  notifySuccessText: vi.fn(),
 }));
 
-vi.mock("@arclayer/ui/menubar", () => ({
-  Menubar: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarIconItem: ({
+vi.mock("@arclayer/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuIconItem: ({
     children,
     onSelect,
   }: {
@@ -53,115 +52,161 @@ vi.mock("@arclayer/ui/menubar", () => ({
       {children}
     </button>
   ),
-  MenubarItem: ({ children, onSelect }: { children?: React.ReactNode; onSelect?: () => void }) => (
+  DropdownMenuItem: ({
+    children,
+    onSelect,
+  }: {
+    children?: React.ReactNode;
+    onSelect?: () => void;
+  }) => (
     <button type="button" onClick={onSelect}>
       {children}
     </button>
   ),
-  MenubarLabel: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarMenu: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarRadioGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarRadioItem: ({
+  DropdownMenuLabel: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuRadioGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuRadioItem: ({
     children,
-    value,
     onClick,
   }: {
     children?: React.ReactNode;
-    value?: string;
     onClick?: () => void;
   }) => (
-    <button type="button" data-value={value} onClick={onClick}>
+    <button type="button" onClick={onClick}>
       {children}
     </button>
   ),
-  MenubarSeparator: () => <hr />,
-  MenubarShortcut: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
-  MenubarSub: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarSubContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarSubTrigger: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  MenubarTrigger: ({ children }: { children?: React.ReactNode }) => (
-    <button type="button">{children}</button>
-  ),
+  DropdownMenuSeparator: () => <hr />,
+  DropdownMenuShortcut: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  DropdownMenuSub: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuSubContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuSubTrigger: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({
+    asChild,
+    children,
+  }: {
+    asChild?: boolean;
+    children?: React.ReactNode;
+  }) => {
+    if (asChild && React.isValidElement(children)) return children;
+    return <button type="button">{children}</button>;
+  },
+}));
+
+vi.mock("@arclayer/ui/button", () => ({
+  Button: ({
+    asChild,
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    asChild?: boolean;
+    children?: React.ReactNode;
+  }) => {
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children, props);
+    }
+    return (
+      <button type="button" {...props}>
+        {children}
+      </button>
+    );
+  },
 }));
 
 vi.mock("@arclayer/ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
-vi.mock("@arclayer/ui/editor", () => ({
-  applyArticleEditorInsertItem: (...args: unknown[]) =>
-    mocked.applyArticleEditorInsertItem(...args),
-  applyEditorMarkColor: (...args: unknown[]) => mocked.applyEditorMarkColor(...args),
-  applyTurnInto: (...args: unknown[]) => mocked.applyTurnInto(...args),
-  ARTICLE_EDITOR_INSERT_AUDIO: "audio",
-  ARTICLE_EDITOR_INSERT_DIVIDER: "divider",
-  ARTICLE_EDITOR_INSERT_FILE: "file",
-  ARTICLE_EDITOR_INSERT_IMAGE: "image",
-  ARTICLE_EDITOR_INSERT_TOC: "toc",
-  ARTICLE_EDITOR_INSERT_VIDEO: "video",
-  captureEditorSelection: () => ({ blockSelectionIds: [], selection: null }),
-  clearEditorMarkColor: (...args: unknown[]) => mocked.clearEditorMarkColor(...args),
-  getEditorColorOptions: () => [
-    {
-      color: null,
-      labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_DEFAULT",
-      value: "default",
-    },
-    {
-      color: "#337ea9",
-      labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_BLUE",
-      value: "blue",
-    },
-  ],
-  getTurnIntoValue: () => "p",
-  runEditorTransformPreservingSelection: (_editor: unknown, fn: () => void) => fn(),
-  setBlockType: vi.fn(),
-  toggleTodoList: vi.fn(),
-  TURN_INTO_MENU_ITEMS: [
-    { icon: () => null, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_TEXT", value: "p" },
-    { icon: () => null, labelKey: "CONTENT_LIBRARY_EDITOR_INSERT_HEADING_1", value: "h1" },
-  ],
-  useArticleEditorCommands: () => mocked.commands,
-}));
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-import-dialog",
+  () => ({
+    ContentLibraryArticleEditorImportDialog: ({
+      open,
+    }: {
+      open: boolean;
+      onOpenChange: (open: boolean) => void;
+      onImportDocument: (value: Record<string, unknown>) => void;
+    }) => (open ? <div>import-dialog-open</div> : null),
+  }),
+);
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-export-dialog",
+  () => ({
+    ContentLibraryArticleEditorExportDialog: ({
+      open,
+    }: {
+      defaultFilename: string;
+      open: boolean;
+      onOpenChange: (open: boolean) => void;
+    }) => (open ? <div>export-dialog-open</div> : null),
+  }),
+);
+
+vi.mock(
+  "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-search-dialog",
+  () => ({
+    ContentLibraryArticleEditorSearchDialog: ({
+      open,
+    }: {
+      open: boolean;
+      onOpenChange: (open: boolean) => void;
+    }) => (open ? <div>search-dialog-open</div> : null),
+  }),
+);
 
 import { ContentLibraryArticleEditorMenuBar } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-menu";
 
 describe("content-library-editor-menubar", () => {
   beforeEach(() => {
-    mocked.applyArticleEditorInsertItem.mockReset();
-    mocked.applyEditorMarkColor.mockReset();
-    mocked.applyTurnInto.mockReset();
-    mocked.clearEditorMarkColor.mockReset();
-    mocked.commands.insertItem.mockReset();
-    mocked.commands.openMediaInsert.mockReset();
-    mocked.editor.tf.toggleMark.mockReset();
+    mocked.copyToClipboard.mockReset();
+    mocked.editor.api.markdown.serialize.mockClear();
+    mocked.editor.undo.mockReset();
   });
 
-  it("shows split-mode actions without leaking them into page mode", () => {
+  it("shows required document actions and split-only actions", () => {
     const { rerender } = render(
       <ContentLibraryArticleEditorMenuBar
+        itemTitle="Launch memo"
         mode="split"
         onCloseSplit={vi.fn()}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onImportDocument={vi.fn()}
+        onOpenAllUpdates={vi.fn()}
         onOpenPageEditor={vi.fn()}
         onOpenSeo={vi.fn()}
+        onOpenVersionHistory={vi.fn()}
         onSlugChange={vi.fn()}
         onVisibilityChange={vi.fn()}
-        slug="launch-note"
+        slug="launch-memo"
         status="draft"
         visibility="public"
       />,
     );
 
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_SEARCH")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_COPY_MARKDOWN")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_IMPORT")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_EXPORT")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_VERSION_HISTORY")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_ALL_UPDATES")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")).toBeInTheDocument();
 
     rerender(
       <ContentLibraryArticleEditorMenuBar
+        itemTitle="Launch memo"
         mode="page"
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onImportDocument={vi.fn()}
+        onOpenAllUpdates={vi.fn()}
         onOpenSeo={vi.fn()}
+        onOpenVersionHistory={vi.fn()}
         onSlugChange={vi.fn()}
         onVisibilityChange={vi.fn()}
-        slug="launch-note"
+        slug="launch-memo"
         status="draft"
         visibility="public"
       />,
@@ -173,44 +218,85 @@ describe("content-library-editor-menubar", () => {
     expect(screen.queryByText("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")).not.toBeInTheDocument();
   });
 
-  it("dispatches media insert actions through the shared editor command contract", async () => {
+  it("copies the current editor markdown through the clipboard helper", async () => {
     const user = userEvent.setup();
 
     render(
       <ContentLibraryArticleEditorMenuBar
+        itemTitle="Launch memo"
         mode="page"
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onImportDocument={vi.fn()}
         onOpenSeo={vi.fn()}
         onSlugChange={vi.fn()}
         onVisibilityChange={vi.fn()}
-        slug="launch-note"
+        slug="launch-memo"
         status="draft"
         visibility="public"
       />,
     );
 
-    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_INSERT_IMAGE"));
+    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_COPY_MARKDOWN"));
 
-    expect(mocked.commands.openMediaInsert).toHaveBeenCalledWith(mocked.editor, {
-      kind: "image",
-      source: "upload",
-    });
+    expect(mocked.editor.api.markdown.serialize).toHaveBeenCalled();
+    expect(mocked.copyToClipboard).toHaveBeenCalledWith("# Launch memo");
   });
 
-  it("shows shortcut labels for menu items that have real bindings", () => {
+  it("opens the search import and export dialogs from the document menu", async () => {
+    const user = userEvent.setup();
+
     render(
       <ContentLibraryArticleEditorMenuBar
+        itemTitle="Launch memo"
         mode="page"
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onImportDocument={vi.fn()}
         onOpenSeo={vi.fn()}
         onSlugChange={vi.fn()}
         onVisibilityChange={vi.fn()}
-        slug="launch-note"
+        slug="launch-memo"
         status="draft"
         visibility="public"
       />,
     );
 
-    expect(screen.getByText("Mod+B")).toBeInTheDocument();
-    expect(screen.getAllByText("Mod+Alt+1")).not.toHaveLength(0);
-    expect(screen.getByText("Mod+Alt+7")).toBeInTheDocument();
+    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_SEARCH"));
+    expect(screen.getByText("search-dialog-open")).toBeInTheDocument();
+
+    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_IMPORT"));
+    expect(screen.getByText("import-dialog-open")).toBeInTheDocument();
+
+    await user.click(screen.getByText("CONTENT_LIBRARY_EDITOR_MENU_EXPORT"));
+    expect(screen.getByText("export-dialog-open")).toBeInTheDocument();
+  });
+
+  it("dispatches duplicate and delete through the provided action callbacks", async () => {
+    const user = userEvent.setup();
+    const onDuplicate = vi.fn();
+    const onDelete = vi.fn();
+
+    render(
+      <ContentLibraryArticleEditorMenuBar
+        itemTitle="Launch memo"
+        mode="page"
+        onDelete={onDelete}
+        onDuplicate={onDuplicate}
+        onImportDocument={vi.fn()}
+        onOpenSeo={vi.fn()}
+        onSlugChange={vi.fn()}
+        onVisibilityChange={vi.fn()}
+        slug="launch-memo"
+        status="draft"
+        visibility="public"
+      />,
+    );
+
+    await user.click(screen.getByText("CONTENT_LIBRARY_ACTION_DUPLICATE"));
+    await user.click(screen.getByText("CONTENT_LIBRARY_ACTION_DELETE"));
+
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledTimes(1);
   });
 });

@@ -10,6 +10,14 @@ vi.mock("@arclayer/ui/editor", () => ({
   DateNodeLocalizationProvider: (props: { children?: ReactNode }) => <>{props.children}</>,
 }));
 
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+  };
+});
+
 import { ContentLibraryArticleEditorPage } from "@/pages/workspaces/content/library/article-editor/page";
 import { ContentLibraryArticleEditorShell } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-shell";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
@@ -37,6 +45,14 @@ vi.mock("platejs/react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("platejs/react")>();
   return {
     ...actual,
+    useEditorRef: () => ({
+      api: {
+        markdown: {
+          serialize: () => "# Launch memo",
+        },
+      },
+      undo: vi.fn(),
+    }),
     useEditorScrollRef: () => ({ current: null }),
   };
 });

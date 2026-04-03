@@ -160,6 +160,7 @@ export type {
   MoveAdminContentLibraryViewPayload,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
+  ListAdminContentVersionsParams,
 } from "./content";
 
 // Uploads

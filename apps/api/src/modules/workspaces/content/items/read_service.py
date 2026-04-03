@@ -173,6 +173,28 @@ class WorkspaceContentCanonicalItemReadService:
         )
         return await self.build_version_out(version=version)
 
+    async def list_versions_paginated(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        item_id: UUID,
+        params: PageParams,
+    ) -> PageData[ContentVersionOut]:
+        item = await self.repo.get_item_with_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            item_id=item_id,
+        )
+        if item is None:
+            raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
+
+        versions = await self.repo.list_versions_for_item(item_id=item.id)
+        rows: list[ContentVersionOut] = []
+        for version in versions:
+            rows.append(await self.build_version_out(version=version))
+        return paginate_items(rows, params=params)
+
     async def list_presentations(
         self,
         *,

@@ -103,18 +103,54 @@ vi.mock("@radix-ui/react-toolbar", () => ({
 
 vi.mock("@arclayer/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({
+    children,
+    className,
+  }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+    <div data-testid="dropdown-content" className={className}>
+      {children}
+    </div>
+  ),
+  DropdownMenuIconItem: ({
+    children,
+    onSelect,
+  }: {
+    children?: React.ReactNode;
+    onSelect?: (event: { preventDefault: () => void }) => void;
+  }) => (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={() =>
+        onSelect?.({
+          preventDefault: () => undefined,
+        })
+      }
+    >
+      {children}
+    </button>
+  ),
   DropdownMenuItem: ({
     children,
     onSelect,
   }: {
     children?: React.ReactNode;
-    onSelect?: () => void;
+    onSelect?: (event: { preventDefault: () => void }) => void;
   }) => (
-    <button type="button" role="menuitem" onClick={onSelect}>
+    <button
+      type="button"
+      role="menuitem"
+      onClick={() =>
+        onSelect?.({
+          preventDefault: () => undefined,
+        })
+      }
+    >
       {children}
     </button>
   ),
+  DropdownMenuLabel: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuSeparator: () => <hr />,
   DropdownMenuTrigger: ({
     asChild,
     children,
@@ -235,7 +271,9 @@ describe("content-library-editor-toolbar-ui", () => {
     render(
       <ContentLibraryArticleEditorPageToolbar
         hasPublishableVersion
+        itemTitle="Launch memo"
         isPublishing={false}
+        onImportDocument={vi.fn()}
         onPublish={vi.fn()}
         onVisibilityChange={vi.fn()}
         saveState="saved"
@@ -260,7 +298,9 @@ describe("content-library-editor-toolbar-ui", () => {
     render(
       <ContentLibraryArticleEditorPageToolbar
         hasPublishableVersion
+        itemTitle="Launch memo"
         isPublishing={false}
+        onImportDocument={vi.fn()}
         onPublish={vi.fn()}
         onVisibilityChange={vi.fn()}
         saveState="saved"
@@ -295,10 +335,14 @@ describe("content-library-editor-toolbar-ui", () => {
       </FontColorToolbarButton>,
     );
 
-    expect(screen.getByTestId("popover-content").className).toContain("w-[14.5rem]");
+    expect(screen.getByTestId("dropdown-content").className).toContain("min-w-[14rem]");
     expect(
-      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_GRAY" }),
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_GRAY" }),
     ).toBeInTheDocument();
-    expect(document.querySelector('input[type="color"]')).toBeNull();
+    expect(screen.getByText("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM")).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "CONTENT_LIBRARY_EDITOR_COLOR_VALUE" }),
+    ).toBeInTheDocument();
+    expect(document.querySelector('input[type="color"]')).not.toBeNull();
   });
 });

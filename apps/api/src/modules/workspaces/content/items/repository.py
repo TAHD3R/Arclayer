@@ -117,6 +117,15 @@ class WorkspaceContentItemsRepository(BaseRepository):
         )
         return list(await self.using_db(query, conn))
 
+    async def list_versions_for_item(
+        self,
+        *,
+        item_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ContentVersionRecord]:
+        query = ContentVersionRecord.filter(item_id=item_id).order_by("-version")
+        return list(await self.using_db(query, conn))
+
     async def create_version(
         self,
         *,

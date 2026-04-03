@@ -12,6 +12,7 @@ import type {
   CreateAdminContentItemPayload,
   ListAdminContentItemsParams,
   ListAdminContentModelsParams,
+  ListAdminContentVersionsParams,
   MoveAdminContentLibraryViewPayload,
   PatchAdminContentVersionPayload,
   PageData,
@@ -123,6 +124,20 @@ export async function getContentItemVersion(
 ): Promise<AdminContentVersion> {
   return api.get<AdminContentVersion>(
     workspacePath(workspaceId, `/content/items/${itemId}/versions/${versionNumber}`),
+  );
+}
+
+export async function listContentItemVersions(
+  workspaceId: string,
+  itemId: string,
+  params: ListAdminContentVersionsParams = {},
+): Promise<PageData<AdminContentVersion>> {
+  const query = toQueryString({
+    page: params.page ?? 1,
+    size: params.size ?? 20,
+  });
+  return api.get<PageData<AdminContentVersion>>(
+    workspacePath(workspaceId, `/content/items/${itemId}/versions${query}`),
   );
 }
 

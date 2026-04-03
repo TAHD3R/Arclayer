@@ -6,7 +6,7 @@ import { KEYS } from "platejs";
 import { useEditorRef, useEditorSelector } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@arclayer/ui/dropdown-menu";
 import {
   applyEditorMarkColor,
   clearEditorMarkColor,
@@ -58,6 +58,7 @@ export function FontColorToolbarButton({
       applyEditorMarkColor(editor, nodeType, value, {
         selection: selectionRef.current,
       });
+      setOpen(false);
     },
     [editor, nodeType],
   );
@@ -66,10 +67,11 @@ export function FontColorToolbarButton({
     clearEditorMarkColor(editor, nodeType, {
       selection: selectionRef.current,
     });
+    setOpen(false);
   }, [editor, nodeType]);
 
   return (
-    <Popover
+    <DropdownMenu
       open={open}
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
@@ -80,7 +82,7 @@ export function FontColorToolbarButton({
       modal={false}
     >
       <ToolbarTooltip tooltip={tooltip}>
-        <PopoverTrigger asChild>
+        <DropdownMenuTrigger asChild>
           <ToolbarButton
             pressed={open}
             tooltip={undefined}
@@ -98,11 +100,11 @@ export function FontColorToolbarButton({
               />
             </span>
           </ToolbarButton>
-        </PopoverTrigger>
+        </DropdownMenuTrigger>
       </ToolbarTooltip>
-      <PopoverContent
+      <DropdownMenuContent
         align="start"
-        className="ignore-click-outside/toolbar w-[14.5rem] rounded-md border border-border/70 bg-card/96 p-2.5 shadow-xl backdrop-blur"
+        className="ignore-click-outside/toolbar min-w-[14rem] p-1"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           runEditorTransformPreservingSelection(editor, () => undefined, {
@@ -112,11 +114,17 @@ export function FontColorToolbarButton({
       >
         <EditorColorPicker
           clearLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR")}
+          customAddLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM_ADD")}
+          customLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM")}
+          defaultLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_DEFAULT")}
+          nodeType={nodeType}
           onClear={clearColor}
           onSelect={applyColor}
           options={colorOptions}
+          selectedColor={selectedColor}
+          valueLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_VALUE")}
         />
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

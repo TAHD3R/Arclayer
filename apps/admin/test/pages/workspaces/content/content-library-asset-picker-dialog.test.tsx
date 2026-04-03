@@ -18,6 +18,13 @@ const mocked = vi.hoisted(() => ({
       visibility: "public",
     },
     focusedFolderId: null as string | null,
+    infiniteAssetsQuery: {
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isLoading: false,
+    },
     items: [
       {
         id: "asset-1",
@@ -163,23 +170,31 @@ vi.mock("@arclayer/ui/setting-dialog", () => ({
     ) : null,
 }));
 
+vi.mock("@arclayer/ui/chrome-tabs", () => ({
+  ChromeTabs: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  ChromeTabsContent: ({ children }: { children?: React.ReactNode; value?: string }) => (
+    <div>{children}</div>
+  ),
+  ChromeTabsList: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  ChromeTabsTrigger: ({ children, value }: { children?: React.ReactNode; value?: string }) => (
+    <button type="button">{children ?? value}</button>
+  ),
+}));
+
 import { AssetPickerDialog } from "@/pages/workspaces/assets/components/asset-picker-dialog";
 
 describe("content-library-asset-picker-dialog", () => {
   beforeEach(() => {
+    mocked.explorer.infiniteAssetsQuery.fetchNextPage.mockReset();
     mocked.explorer.setCurrentFolderId.mockReset();
     mocked.explorer.setFilters.mockReset();
     mocked.explorer.setFocusedFolderId.mockReset();
     mocked.explorer.setOrdering.mockReset();
-    mocked.explorer.setPage.mockReset();
-    mocked.explorer.setPageSize.mockReset();
     mocked.explorer.setSearchInput.mockReset();
     mocked.explorer.setSearchQuery.mockReset();
   });
 
-  it("shows the selected asset preview in the picker sidebar", async () => {
-    const user = userEvent.setup();
-
+  it("renders library and upload tabs with selectable assets", () => {
     render(
       <AssetPickerDialog
         open
@@ -190,11 +205,13 @@ describe("content-library-asset-picker-dialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "hero.png" }));
-
-    await waitFor(() => {
-      expect(screen.getByAltText("hero.png")).toBeInTheDocument();
-    });
+    expect(
+      screen.getByRole("button", { name: "assets:ASSET_PURPOSE_LIBRARY" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "hero.png" })).toBeInTheDocument();
   });
 
   it("confirms the selected asset using the picker contract", async () => {

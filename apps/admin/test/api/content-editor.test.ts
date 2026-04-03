@@ -12,6 +12,7 @@ import { api } from "@/lib/http";
 import {
   getContentItem,
   getContentItemVersion,
+  listContentItemVersions,
   patchContentItemVersion,
   publishContentItemVersion,
   saveContentItemDraftVersion,
@@ -82,12 +83,17 @@ describe("api/content editor version wrappers", () => {
 
     await getContentItem("ws-1", "item-1");
     await getContentItemVersion("ws-1", "item-1", 2);
+    await listContentItemVersions("ws-1", "item-1", { page: 2, size: 10 });
     await saveContentItemDraftVersion("ws-1", "item-1", savePayload);
     await patchContentItemVersion("ws-1", "item-1", 3, patchPayload);
     await publishContentItemVersion("ws-1", "item-1", 3);
 
     expect(api.get).toHaveBeenNthCalledWith(1, "/workspaces/ws-1/content/items/item-1");
     expect(api.get).toHaveBeenNthCalledWith(2, "/workspaces/ws-1/content/items/item-1/versions/2");
+    expect(api.get).toHaveBeenNthCalledWith(
+      3,
+      "/workspaces/ws-1/content/items/item-1/versions?page=2&size=10",
+    );
     expect(api.post).toHaveBeenNthCalledWith(
       1,
       "/workspaces/ws-1/content/items/item-1/versions/draft",

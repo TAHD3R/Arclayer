@@ -1,11 +1,17 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Masonry } from "masonic";
-import { ArrowRightIcon, ImageOff, Search, Sparkles, UploadCloud, X } from "lucide-react";
+import { ArrowRightIcon, ImageOff, Search, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
+import {
+  ChromeTabs,
+  ChromeTabsContent,
+  ChromeTabsList,
+  ChromeTabsTrigger,
+} from "@arclayer/ui/chrome-tabs";
 import { Input } from "@arclayer/ui/input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Spinner } from "@arclayer/ui/spinner";
@@ -27,24 +33,12 @@ import { AssetMasonryTile } from "./asset-masonry-card";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { AssetsFilterPopover, type AssetsFilters } from "./assets-filter-popover";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
-import { DataPaginationControls } from "@/components/common/data-pagination-controls";
-import { LazyAssetImage } from "./lazy-asset-image";
-import { getMimeLabel, getPurposeLabel, getVisibilityLabel } from "./asset-masonry-tile";
 
 export type AssetPickerDialogValue = {
   assetIds: string[];
 };
 
 type AssetPickerDialogMode = "single" | "multiple";
-
-function PickerMetaRow(props: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3 text-footnote">
-      <span className="text-label-secondary">{props.label}</span>
-      <span className="min-w-0 text-right text-label-primary">{props.value}</span>
-    </div>
-  );
-}
 
 export function AssetPickerDialog(props: {
   open: boolean;
@@ -109,13 +103,12 @@ export function AssetPickerDialog(props: {
 
   const explorer = useAssetsExplorerController({
     scope: props.scope,
-    pagination: "paged",
+    pagination: "infinite",
     // In picker scenarios we should NOT force purpose=library; allow callers to explicitly filter
     // (e.g. org logo picker uses purpose=site_logo).
     purpose: props.filterPurpose,
     defaultVisibility: "public",
     defaultOrdering: "-created_at",
-    initialPageSize: props.pageSize ?? 12,
     initialFilters: {
       mimePrefix: props.mimePrefix ?? "image/",
     },
@@ -136,18 +129,14 @@ export function AssetPickerDialog(props: {
     setOrdering,
     tagsQuery,
     assetsListQueryKey,
-    pagedAssetsQuery,
+    infiniteAssetsQuery,
     items,
     masonryEntries,
     folderById,
     folderPath,
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
-    total,
   } = explorer;
 
+  const [activeTab, setActiveTab] = useState<"library" | "upload">("library");
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const [selection, setSelection] = useState<AssetSelectionState>(() => ({
@@ -168,7 +157,7 @@ export function AssetPickerDialog(props: {
     setSearchQuery("");
     setCurrentFolderId(null);
     setFocusedFolderId(null);
-    setPage(1);
+    setActiveTab("library");
     // Ensure mime filter stays consistent with caller expectations when reopening.
     setFilters((prev: typeof filters) => ({
       ...prev,
@@ -182,7 +171,6 @@ export function AssetPickerDialog(props: {
     setCurrentFolderId,
     setFilters,
     setFocusedFolderId,
-    setPage,
     setSearchInput,
     setSearchQuery,
   ]);
@@ -204,14 +192,6 @@ export function AssetPickerDialog(props: {
   ]);
 
   const orderedAssetIds = useMemo(() => items.map((it) => it.id), [items]);
-  const selectedAssetId = useMemo(
-    () => orderSelectedIds(selectedIds, orderedAssetIds)[0],
-    [orderedAssetIds, selectedIds],
-  );
-  const selectedAsset = useMemo(
-    () => items.find((item) => item.id === selectedAssetId) ?? null,
-    [items, selectedAssetId],
-  );
   const selectedCountLabel = t("assets:ASSET_SELECTED_COUNT", { count: selectedIds.size });
 
   const confirmSelectionAndClose = (selectedOverride?: ReadonlySet<string>) => {
@@ -241,16 +221,37 @@ export function AssetPickerDialog(props: {
   };
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const libraryViewportRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!props.open) return;
+    if (!props.open || activeTab !== "library") return;
     // Focus search input for faster workflows (especially in editor insertion).
     window.setTimeout(() => {
       searchInputRef.current?.focus?.();
     }, 50);
-  }, [props.open]);
+  }, [activeTab, props.open]);
 
-  const isLoading = pagedAssetsQuery.isLoading && !pagedAssetsQuery.data;
-  const isFetching = pagedAssetsQuery.isFetching;
+  useEffect(() => {
+    const node = sentinelRef.current;
+    const root = libraryViewportRef.current;
+    if (!node || !root || activeTab !== "library" || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (infiniteAssetsQuery.isFetchingNextPage || !infiniteAssetsQuery.hasNextPage) return;
+        infiniteAssetsQuery.fetchNextPage().catch(() => undefined);
+      },
+      { root, rootMargin: "120px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [activeTab, infiniteAssetsQuery]);
+
+  const isLoading = infiniteAssetsQuery.isLoading && items.length === 0;
+  const isFetching = infiniteAssetsQuery.isFetching;
 
   type PickerMasonryEntry = (typeof masonryEntries)[number];
 
@@ -301,112 +302,104 @@ export function AssetPickerDialog(props: {
         }
       >
         <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
-          <div className="border-b border-border/70 bg-card/90 px-5 py-4 backdrop-blur">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-callout font-semibold text-label-primary">
-                  <Sparkles className="size-4 text-label-secondary" />
-                  {t("settings:SETTINGS_ASSET_PICKER_TITLE")}
-                </div>
-                <div className="text-footnote text-label-secondary">
-                  {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
-                </div>
-              </div>
-
-              <div className="rounded-full border border-border/70 bg-card px-3 py-1 text-caption text-label-secondary">
-                {selectedCountLabel}
+          <ChromeTabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as "library" | "upload")}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="border-b border-border/70 bg-card/90 px-5 py-4 backdrop-blur">
+              <div className="flex items-center justify-between gap-3">
+                <ChromeTabsList className="w-auto">
+                  <ChromeTabsTrigger value="library">
+                    {t("assets:ASSET_PURPOSE_LIBRARY")}
+                  </ChromeTabsTrigger>
+                  {allowUpload ? (
+                    <ChromeTabsTrigger value="upload">
+                      {t("assets:ASSET_ACTION_UPLOAD")}
+                    </ChromeTabsTrigger>
+                  ) : null}
+                </ChromeTabsList>
+                <div className="text-caption text-label-secondary">{selectedCountLabel}</div>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-              <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
-                <div className="grid min-w-[18rem] flex-1 gap-1.5">
-                  <label className="text-callout font-semibold text-label-primary">
-                    {t("assets:ASSET_PICKER_FIELD_SEARCH")}
-                  </label>
-                  <div className="relative w-full">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-secondary" />
-                    <Input
-                      className="w-full rounded-lg border-border/70 bg-card pl-9 pr-9"
-                      ref={searchInputRef}
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+            <ChromeTabsContent value="library" className="mt-0 flex min-h-0 flex-1 flex-col">
+              <div className="border-b border-border/70 bg-card/60 px-5 py-3">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+                    <div className="min-w-[18rem] flex-1">
+                      <div className="relative w-full">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-secondary" />
+                        <Input
+                          className="w-full rounded-lg border-border/70 bg-card pl-9 pr-9"
+                          ref={searchInputRef}
+                          value={searchInput}
+                          onChange={(e) => setSearchInput(e.target.value)}
+                          placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+                        />
+                        {searchInput ? (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                            onClick={() => setSearchInput("")}
+                            aria-label={t("common:CLEAR")}
+                          >
+                            <X size={14} />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <AssetsFilterPopover
+                      value={filters}
+                      onChange={(next: AssetsFilters) => {
+                        setFilters(next);
+                      }}
+                      ordering={ordering}
+                      onOrderingChange={(next) => {
+                        setOrdering(next);
+                      }}
+                      defaultOrdering="-created_at"
+                      tags={tagsQuery.data?.items ?? []}
+                      tagsLoading={tagsQuery.isLoading}
                     />
-                    {searchInput ? (
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-footnote">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-full px-3"
+                    onClick={() => {
+                      setCurrentFolderId(null);
+                      setFocusedFolderId(null);
+                    }}
+                  >
+                    {t("assets:ASSET_BREADCRUMB_ROOT")}
+                  </Button>
+                  {folderPath.map((f) => (
+                    <div key={String(f.id)} className="flex items-center gap-1.5">
+                      <ArrowRightIcon className="size-3.5 text-label-secondary" />
                       <Button
                         variant="ghost"
-                        size="icon-xs"
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2"
-                        onClick={() => setSearchInput("")}
-                        aria-label={t("common:CLEAR")}
+                        size="sm"
+                        className="h-8 rounded-full px-3"
+                        onClick={() => {
+                          setCurrentFolderId(String(f.id));
+                          setFocusedFolderId(null);
+                        }}
                       >
-                        <X size={14} />
+                        {f.name}
                       </Button>
-                    ) : null}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <AssetsFilterPopover
-                    value={filters}
-                    onChange={(next: AssetsFilters) => {
-                      setFilters(next);
-                    }}
-                    ordering={ordering}
-                    onOrderingChange={(next) => {
-                      setOrdering(next);
-                      setPage(1);
-                    }}
-                    defaultOrdering="-created_at"
-                    tags={tagsQuery.data?.items ?? []}
-                    tagsLoading={tagsQuery.isLoading}
-                  />
-                </div>
-              </div>
-
-              {allowUpload ? (
-                <Button variant="default" onClick={() => setUploadOpen(true)} disabled={isFetching}>
-                  <UploadCloud size={16} />
-                  {t("assets:ASSET_ACTION_UPLOAD")}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="min-h-0 flex flex-1">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <div className="flex flex-wrap items-center gap-1.5 border-b border-border/70 bg-card/60 px-5 py-3 text-footnote">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 rounded-full px-3"
-                  onClick={() => {
-                    setCurrentFolderId(null);
-                    setFocusedFolderId(null);
-                  }}
-                >
-                  {t("assets:ASSET_BREADCRUMB_ROOT")}
-                </Button>
-                {folderPath.map((f) => (
-                  <div key={String(f.id)} className="flex items-center gap-1.5">
-                    <ArrowRightIcon className="size-3.5 text-label-secondary" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 rounded-full px-3"
-                      onClick={() => {
-                        setCurrentFolderId(String(f.id));
-                        setFocusedFolderId(null);
-                      }}
-                    >
-                      {f.name}
-                    </Button>
-                  </div>
-                ))}
               </div>
 
               <div
+                ref={libraryViewportRef}
                 className="min-h-0 flex-1 overflow-auto px-5 py-5 select-none"
                 onMouseDown={(e) => {
                   const target = e.target as HTMLElement | null;
@@ -431,7 +424,7 @@ export function AssetPickerDialog(props: {
                         {t("assets:ASSET_EMPTY_SEARCH_DESC")}
                       </div>
                       {allowUpload ? (
-                        <Button variant="outline" onClick={() => setUploadOpen(true)}>
+                        <Button variant="outline" onClick={() => setActiveTab("upload")}>
                           <UploadCloud className="size-4" />
                           {t("assets:ASSET_ACTION_UPLOAD")}
                         </Button>
@@ -439,194 +432,143 @@ export function AssetPickerDialog(props: {
                     </div>
                   </div>
                 ) : (
-                  <Masonry
-                    items={masonryEntries.map((it) => ({
-                      key:
-                        it.kind === "asset"
-                          ? it.asset.id
-                          : it.kind === "folder"
-                            ? `folder:${it.folder.id}`
-                            : "folder:__up__",
-                      data: it,
-                    }))}
-                    itemKey={(item) => item.key}
-                    columnWidth={220}
-                    columnGutter={16}
-                    rowGutter={16}
-                    maxColumnCount={5}
-                    itemHeightEstimate={320}
-                    overscanBy={1}
-                    render={({ data }) => {
-                      const info = data;
-                      const entry = info.data as PickerMasonryEntry;
-                      if (entry.kind === "folderUp") {
+                  <>
+                    <Masonry
+                      items={masonryEntries.map((it) => ({
+                        key:
+                          it.kind === "asset"
+                            ? it.asset.id
+                            : it.kind === "folder"
+                              ? `folder:${it.folder.id}`
+                              : "folder:__up__",
+                        data: it,
+                      }))}
+                      itemKey={(item) => item.key}
+                      columnWidth={220}
+                      columnGutter={16}
+                      rowGutter={16}
+                      maxColumnCount={5}
+                      itemHeightEstimate={320}
+                      overscanBy={1}
+                      render={({ data }) => {
+                        const info = data;
+                        const entry = info.data as PickerMasonryEntry;
+                        if (entry.kind === "folderUp") {
+                          return (
+                            <AssetsExplorerFolderUpTile
+                              label={t("assets:ASSET_FOLDER_UP")}
+                              onClick={() => {
+                                setFocusedFolderId("__up__");
+                                setSelection((prev) => clearSelection(prev));
+                              }}
+                              onDoubleClick={() => {
+                                setCurrentFolderId(parentIdForUp);
+                                setFocusedFolderId(null);
+                              }}
+                            />
+                          );
+                        }
+
+                        if (entry.kind === "folder") {
+                          return (
+                            <AssetsExplorerFolderTile
+                              folder={entry.folder}
+                              folderLabel={t("assets:ASSET_FOLDER")}
+                              focused={focusedFolderId === entry.folder.id}
+                              onClick={() => {
+                                setFocusedFolderId(entry.folder.id);
+                                setSelection((prev) => clearSelection(prev));
+                              }}
+                              onDoubleClick={() => {
+                                setCurrentFolderId(String(entry.folder.id));
+                                setFocusedFolderId(null);
+                              }}
+                            />
+                          );
+                        }
+
+                        const asset = entry.asset as AssetMasonryItem;
+                        const isSelected = selectedIds.has(asset.id);
+
                         return (
-                          <AssetsExplorerFolderUpTile
-                            label={t("assets:ASSET_FOLDER_UP")}
-                            onClick={() => {
-                              setFocusedFolderId("__up__");
-                              setSelection((prev) => clearSelection(prev));
-                            }}
-                            onDoubleClick={() => {
-                              setCurrentFolderId(parentIdForUp);
+                          <AssetMasonryTile
+                            asset={asset}
+                            selected={isSelected}
+                            onSelect={(e) => {
+                              if (mode === "single") {
+                                setSelection((prev) =>
+                                  selectOrClearOnPlainClick(prev, asset.id, e.detail),
+                                );
+                                setFocusedFolderId(null);
+                                return;
+                              }
+
                               setFocusedFolderId(null);
-                            }}
-                          />
-                        );
-                      }
-
-                      if (entry.kind === "folder") {
-                        return (
-                          <AssetsExplorerFolderTile
-                            folder={entry.folder}
-                            folderLabel={t("assets:ASSET_FOLDER")}
-                            focused={focusedFolderId === entry.folder.id}
-                            onClick={() => {
-                              setFocusedFolderId(entry.folder.id);
-                              setSelection((prev) => clearSelection(prev));
-                            }}
-                            onDoubleClick={() => {
-                              setCurrentFolderId(String(entry.folder.id));
-                              setFocusedFolderId(null);
-                            }}
-                          />
-                        );
-                      }
-
-                      const asset = entry.asset as AssetMasonryItem;
-                      const isSelected = selectedIds.has(asset.id);
-
-                      return (
-                        <AssetMasonryTile
-                          asset={asset}
-                          selected={isSelected}
-                          onSelect={(e) => {
-                            if (mode === "single") {
+                              if (e.shiftKey) {
+                                setSelection((prev) =>
+                                  rangeSelect(prev, asset.id, orderedAssetIds),
+                                );
+                                return;
+                              }
+                              if (e.metaKey || e.ctrlKey) {
+                                setSelection((prev) => toggleSelect(prev, asset.id));
+                                return;
+                              }
                               setSelection((prev) =>
                                 selectOrClearOnPlainClick(prev, asset.id, e.detail),
                               );
+                            }}
+                            onToggleSelected={() => {
                               setFocusedFolderId(null);
-                              return;
-                            }
-
-                            setFocusedFolderId(null);
-                            if (e.shiftKey) {
-                              setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIds));
-                              return;
-                            }
-                            if (e.metaKey || e.ctrlKey) {
+                              if (mode === "single") {
+                                setSelection((prev) =>
+                                  selectOrClearOnPlainClick(prev, asset.id, 1),
+                                );
+                                return;
+                              }
                               setSelection((prev) => toggleSelect(prev, asset.id));
-                              return;
-                            }
-                            setSelection((prev) =>
-                              selectOrClearOnPlainClick(prev, asset.id, e.detail),
-                            );
-                          }}
-                          onToggleSelected={() => {
-                            setFocusedFolderId(null);
-                            if (mode === "single") {
-                              setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, 1));
-                              return;
-                            }
-                            setSelection((prev) => toggleSelect(prev, asset.id));
-                          }}
-                          onOpen={handleAssetDoubleClick}
-                        />
-                      );
-                    }}
-                  />
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-3 border-t border-border/70 bg-card/60 px-5 py-3">
-                <div className="text-caption text-label-secondary">
-                  {isFetching ? t("common:LOADING") : selectedCountLabel}
-                </div>
-                <DataPaginationControls
-                  page={page}
-                  size={pageSize}
-                  total={total}
-                  t={t}
-                  pageSizeOptions={[12, 24, 48, 96]}
-                  onChange={(nextPage, nextSize) => {
-                    if (nextSize !== pageSize) {
-                      setPageSize(nextSize);
-                      setPage(1);
-                      return;
-                    }
-                    setPage(nextPage);
-                  }}
-                />
-              </div>
-            </div>
-
-            <aside className="hidden w-[18rem] shrink-0 border-l border-border/70 bg-card/75 lg:flex lg:flex-col">
-              <div className="border-b border-border/70 px-4 py-3">
-                <div className="text-callout font-semibold text-label-primary">
-                  {t("settings:SETTINGS_ASSET_PICKER_CURRENT")}
-                </div>
-                <div className="mt-1 text-caption text-label-secondary">
-                  {selectedAsset ? selectedAsset.name : selectedCountLabel}
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-auto px-4 py-4">
-                {selectedAsset ? (
-                  <div className="space-y-4">
-                    <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
-                      <div className="relative aspect-[4/3]">
-                        {selectedAsset.previewUrl ? (
-                          <LazyAssetImage
-                            eager
-                            src={selectedAsset.previewUrl}
-                            alt={selectedAsset.name}
-                            rootClassName="absolute inset-0"
-                            className="object-cover"
-                            showErrorOverlay
+                            }}
+                            onOpen={handleAssetDoubleClick}
                           />
-                        ) : (
-                          <div className="absolute inset-0 grid place-items-center text-label-secondary">
-                            <ImageOff className="size-5" />
-                          </div>
-                        )}
-                      </div>
+                        );
+                      }}
+                    />
+                    <div ref={sentinelRef} className="flex h-12 items-center justify-center">
+                      {infiniteAssetsQuery.isFetchingNextPage ? (
+                        <Spinner className="size-4 text-label-secondary" />
+                      ) : null}
                     </div>
-
-                    <div className="space-y-2 rounded-xl border border-border/70 bg-card px-3 py-3">
-                      <div className="line-clamp-2 text-callout font-semibold text-label-primary">
-                        {selectedAsset.name}
-                      </div>
-                      <PickerMetaRow
-                        label={t("assets:ASSET_FILTER_FIELD_TYPE")}
-                        value={getMimeLabel(selectedAsset.mimeType, t)}
-                      />
-                      <PickerMetaRow
-                        label={t("assets:ASSET_FILTER_FIELD_VISIBILITY")}
-                        value={getVisibilityLabel(selectedAsset.visibility, t)}
-                      />
-                      <PickerMetaRow
-                        label={t("assets:ASSET_PURPOSE_LIBRARY")}
-                        value={getPurposeLabel(selectedAsset.purpose, t)}
-                      />
-                      <PickerMetaRow
-                        label={t("assets:ASSET_ACTION_UPLOAD")}
-                        value={selectedAsset.sizeText || "-"}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-card/60 px-4 text-center">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-muted text-label-secondary">
-                      <Sparkles className="size-4" />
-                    </div>
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_ASSET_PICKER_DESC")}
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
-            </aside>
-          </div>
+            </ChromeTabsContent>
+
+            {allowUpload ? (
+              <ChromeTabsContent value="upload" className="mt-0 flex min-h-0 flex-1 flex-col">
+                <div className="flex flex-1 items-center justify-center px-6 py-8">
+                  <div className="w-full max-w-lg rounded-3xl border border-dashed border-border/80 bg-card/80 p-8 text-center">
+                    <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-label-secondary">
+                      <UploadCloud className="size-5" />
+                    </div>
+                    <div className="mt-4 text-callout font-semibold text-label-primary">
+                      {t("assets:ASSET_ACTION_UPLOAD")}
+                    </div>
+                    <div className="mt-2 text-footnote text-label-secondary">
+                      {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
+                    </div>
+                    <Button
+                      className="mt-6"
+                      onClick={() => setUploadOpen(true)}
+                      disabled={isFetching}
+                    >
+                      <UploadCloud className="size-4" />
+                      {t("assets:ASSET_ACTION_UPLOAD")}
+                    </Button>
+                  </div>
+                </div>
+              </ChromeTabsContent>
+            ) : null}
+          </ChromeTabs>
         </div>
       </SettingDialog>
 
@@ -639,8 +581,10 @@ export function AssetPickerDialog(props: {
           void queryClient.invalidateQueries({ queryKey: ["assets", "folders"] });
           void queryClient.invalidateQueries({ queryKey: ["assets", "tags"] });
           void queryClient.invalidateQueries({ queryKey: ["assets", "paged"] });
+          void queryClient.invalidateQueries({ queryKey: ["assets", "list"] });
           void queryClient.invalidateQueries({ queryKey: ["assets", "folderHasMatch"] });
           void queryClient.invalidateQueries({ queryKey: assetsListQueryKey });
+          setActiveTab("library");
           setUploadOpen(false);
         }}
       />

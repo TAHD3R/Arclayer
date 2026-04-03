@@ -1,437 +1,308 @@
 import * as React from "react";
 
 import {
-  BaselineIcon,
-  Code2,
+  ActivityIcon,
+  CopyIcon,
+  EllipsisIcon,
+  FileDownIcon,
+  FilePlus2Icon,
   FileUpIcon,
-  FilmIcon,
-  FolderOpen,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  ImageIcon,
-  ItalicIcon,
+  HistoryIcon,
   Link2Icon,
   Maximize2,
-  PaintBucketIcon,
   PanelRightClose,
-  PilcrowIcon,
-  QuoteIcon,
-  SquareDashedBottomCodeIcon,
-  ToggleRight,
-  UnderlineIcon,
+  SearchIcon,
+  Settings2Icon,
+  Trash2Icon,
+  Undo2Icon,
 } from "lucide-react";
-import { toggleList } from "@platejs/list";
-import { openNextToggles } from "@platejs/toggle/react";
-import { KEYS, type TElement } from "platejs";
-import { useEditorRef, useSelectionFragmentProp } from "platejs/react";
+import { useEditorRef } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
-import { Input } from "@arclayer/ui/input";
-import {
-  Menubar,
-  MenubarContent,
-  MenubarIconItem,
-  MenubarItem,
-  MenubarLabel,
-  MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-  MenubarSeparator,
-  MenubarShortcut,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
-  MenubarTrigger,
-} from "@arclayer/ui/menubar";
-import {
-  applyArticleEditorInsertItem,
-  applyEditorMarkColor,
-  applyTurnInto,
-  ARTICLE_EDITOR_INSERT_IMAGE,
-  ARTICLE_EDITOR_INSERT_VIDEO,
-  ARTICLE_EDITOR_INSERT_AUDIO,
-  ARTICLE_EDITOR_INSERT_FILE,
-  ARTICLE_EDITOR_INSERT_TOC,
-  captureEditorSelection,
-  clearEditorMarkColor,
-  getEditorColorOptions,
-  getTurnIntoValue,
-  runEditorTransformPreservingSelection,
-  setBlockType,
-  toggleTodoList,
-  TURN_INTO_MENU_ITEMS,
-  useArticleEditorCommands,
-} from "@arclayer/ui/editor";
+import { copyToClipboard } from "@/lib/clipboard";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { cn } from "@arclayer/lib/utils";
+import { Button } from "@arclayer/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIconItem,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@arclayer/ui/dropdown-menu";
+import { Input } from "@arclayer/ui/input";
 
-const MENUBAR_SHORTCUTS: Partial<Record<string, string>> = {
-  [KEYS.bold]: "Mod+B",
-  [KEYS.italic]: "Mod+I",
-  [KEYS.underline]: "Mod+U",
-  [KEYS.code]: "Mod+E",
-  [KEYS.h1]: "Mod+Alt+1",
-  [KEYS.h2]: "Mod+Alt+2",
-  [KEYS.h3]: "Mod+Alt+3",
-  [KEYS.blockquote]: "Mod+Shift+.",
-  [KEYS.toggle]: "Mod+Alt+T",
-  [KEYS.codeBlock]: "Mod+Alt+7",
-};
+import { ContentLibraryArticleEditorExportDialog } from "./content-library-article-editor-export-dialog";
+import { ContentLibraryArticleEditorImportDialog } from "./content-library-article-editor-import-dialog";
+import { ContentLibraryArticleEditorSearchDialog } from "./content-library-article-editor-search-dialog";
+import { serializeArticleEditorToMarkdown } from "../lib/content-library-article-editor-io";
 
-const MENUBAR_INSERT_ITEMS = [
-  { icon: PilcrowIcon, value: KEYS.p },
-  { icon: Heading1Icon, value: KEYS.h1 },
-  { icon: Heading2Icon, value: KEYS.h2 },
-  { icon: Heading3Icon, value: KEYS.h3 },
-  { icon: QuoteIcon, value: KEYS.blockquote },
-  { icon: ToggleRight, value: KEYS.toggle },
-  { icon: Code2, value: KEYS.codeBlock },
-  { icon: SquareDashedBottomCodeIcon, value: KEYS.hr },
-  { icon: ImageIcon, value: ARTICLE_EDITOR_INSERT_IMAGE },
-  { icon: FilmIcon, value: ARTICLE_EDITOR_INSERT_VIDEO },
-  { icon: FileUpIcon, value: ARTICLE_EDITOR_INSERT_FILE },
-  { icon: FolderOpen, value: ARTICLE_EDITOR_INSERT_TOC },
-] as const;
-
-function MenuSection(props: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2 px-1 py-1">
-      <div className="text-caption font-medium text-label-secondary">{props.label}</div>
-      {props.children}
-    </div>
-  );
-}
-
-function MenuValue(props: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-footnote text-label-primary">
-      {props.children}
-    </div>
-  );
-}
-
-function MenuItemWithShortcut(props: {
-  icon: React.ReactNode;
-  label: string;
-  onSelect: () => void;
-  shortcut?: string;
-}) {
-  return (
-    <MenubarIconItem icon={props.icon} onSelect={props.onSelect}>
-      {props.label}
-      {props.shortcut ? <MenubarShortcut>{props.shortcut}</MenubarShortcut> : null}
-    </MenubarIconItem>
-  );
+function slugifyFilename(value: string) {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return "article";
+  return trimmed
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/g, "")
+    .replace(/-+$/g, "");
 }
 
 export function ContentLibraryArticleEditorMenuBar(props: {
+  className?: string;
+  itemTitle: string;
   mode: "page" | "split";
-  status: "draft" | "published" | "archived";
-  visibility: "public" | "private";
-  onVisibilityChange: (value: "public" | "private") => void;
-  slug: string;
-  onSlugChange: (value: string) => void;
-  onCloseSplit?: () => void;
+  onDelete?: () => void | Promise<void>;
+  onDuplicate?: () => void | Promise<void>;
+  onImportDocument: (value: Record<string, unknown>) => void;
+  onOpenAllUpdates?: () => void;
   onOpenPageEditor?: () => void;
   onOpenSeo?: () => void;
-  className?: string;
+  onOpenVersionHistory?: () => void;
+  onCloseSplit?: () => void;
+  onVisibilityChange: (value: "public" | "private") => void;
+  slug: string;
+  status: "draft" | "published" | "archived";
+  visibility: "public" | "private";
+  onSlugChange: (value: string) => void;
 }) {
-  const { t } = useTranslation("content");
+  const { t } = useTranslation(["content", "common"]);
   const editor = useEditorRef();
-  const commands = useArticleEditorCommands();
-  const currentTurnIntoValue = useSelectionFragmentProp({
-    defaultValue: KEYS.p,
-    getProp: (node) => getTurnIntoValue(node as TElement),
-  });
-  const selectionRef = React.useRef(captureEditorSelection(editor));
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
+  const [exportOpen, setExportOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const statusKey = `CONTENT_LIBRARY_STATUS_${props.status.toUpperCase()}`;
-
-  const withSelection = React.useCallback(
-    (action: () => void) => {
-      selectionRef.current = captureEditorSelection(editor);
-      runEditorTransformPreservingSelection(
-        editor,
-        () => {
-          action();
-        },
-        { selection: selectionRef.current },
-      );
-    },
-    [editor],
+  const exportFilename = React.useMemo(
+    () => slugifyFilename(props.slug || props.itemTitle),
+    [props.itemTitle, props.slug],
   );
 
-  const handleInsert = React.useCallback(
-    (value: string) => {
-      if (
-        value === ARTICLE_EDITOR_INSERT_IMAGE ||
-        value === ARTICLE_EDITOR_INSERT_VIDEO ||
-        value === ARTICLE_EDITOR_INSERT_AUDIO ||
-        value === ARTICLE_EDITOR_INSERT_FILE
-      ) {
-        const kind =
-          value === ARTICLE_EDITOR_INSERT_IMAGE
-            ? "image"
-            : value === ARTICLE_EDITOR_INSERT_VIDEO
-              ? "video"
-              : value === ARTICLE_EDITOR_INSERT_AUDIO
-                ? "audio"
-                : "file";
-        commands?.openMediaInsert?.(editor, { kind, source: "upload" });
-        return;
-      }
-
-      if (commands?.insertItem) {
-        commands.insertItem(editor, value);
-        return;
-      }
-
-      applyArticleEditorInsertItem(editor, value);
-    },
-    [commands, editor],
-  );
-
-  const handleToggleMark = React.useCallback(
-    (nodeType: string, remove?: string | string[]) => {
-      withSelection(() => {
-        editor.tf.toggleMark(nodeType, remove ? { remove } : undefined);
-      });
-    },
-    [editor, withSelection],
-  );
-
-  const applyMenuColor = React.useCallback(
-    (nodeType: string, color: string | null) => {
-      selectionRef.current = captureEditorSelection(editor);
-      if (color === null) {
-        clearEditorMarkColor(editor, nodeType, { selection: selectionRef.current });
-        return;
-      }
-
-      applyEditorMarkColor(editor, nodeType, color, { selection: selectionRef.current });
-    },
-    [editor],
-  );
+  const handleCopyMarkdown = React.useCallback(async () => {
+    try {
+      const markdown = serializeArticleEditorToMarkdown(editor);
+      await copyToClipboard(markdown);
+      notifySuccessText(t("CONTENT_LIBRARY_EDITOR_COPY_MARKDOWN_SUCCESS"));
+      setMenuOpen(false);
+    } catch (error) {
+      notifyError(error);
+    }
+  }, [editor, t]);
 
   return (
-    <Menubar className={cn("h-8 border-none bg-transparent p-0", props.className)}>
-      <MenubarMenu>
-        <MenubarTrigger>{t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}</MenubarTrigger>
-        <MenubarContent className="w-[18rem] p-2">
-          <MenuSection label={t("CONTENT_LIBRARY_EDITOR_MENU_STATUS")}>
-            <MenuValue>{t(statusKey)}</MenuValue>
-          </MenuSection>
+    <>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
+            className={cn("text-label-secondary hover:text-label-primary", props.className)}
+          >
+            <EllipsisIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-[19rem]">
+          <DropdownMenuLabel>{t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}</DropdownMenuLabel>
+          <DropdownMenuIconItem
+            icon={<SearchIcon className="size-4" />}
+            onSelect={() => {
+              setSearchOpen(true);
+              setMenuOpen(false);
+            }}
+          >
+            {t("CONTENT_LIBRARY_EDITOR_MENU_SEARCH")}
+            <DropdownMenuShortcut>Mod+F</DropdownMenuShortcut>
+          </DropdownMenuIconItem>
+          <DropdownMenuIconItem
+            icon={<Undo2Icon className="size-4" />}
+            onSelect={() => {
+              editor.undo();
+              setMenuOpen(false);
+            }}
+          >
+            {t("CONTENT_LIBRARY_EDITOR_ACTION_UNDO")}
+            <DropdownMenuShortcut>Mod+Z</DropdownMenuShortcut>
+          </DropdownMenuIconItem>
 
-          <MenuSection label={t("CONTENT_LIBRARY_EDITOR_MENU_VISIBILITY")}>
-            <MenubarRadioGroup
-              value={props.visibility}
-              onValueChange={(nextValue) =>
-                props.onVisibilityChange(nextValue as "public" | "private")
-              }
+          <DropdownMenuSeparator />
+
+          <DropdownMenuIconItem
+            icon={<CopyIcon className="size-4" />}
+            onSelect={() => {
+              void handleCopyMarkdown();
+            }}
+          >
+            {t("CONTENT_LIBRARY_EDITOR_MENU_COPY_MARKDOWN")}
+          </DropdownMenuIconItem>
+          <DropdownMenuIconItem
+            icon={<FileUpIcon className="size-4" />}
+            onSelect={() => {
+              setImportOpen(true);
+              setMenuOpen(false);
+            }}
+          >
+            {t("CONTENT_LIBRARY_EDITOR_MENU_IMPORT")}
+          </DropdownMenuIconItem>
+          <DropdownMenuIconItem
+            icon={<FileDownIcon className="size-4" />}
+            onSelect={() => {
+              setExportOpen(true);
+              setMenuOpen(false);
+            }}
+          >
+            {t("CONTENT_LIBRARY_EDITOR_MENU_EXPORT")}
+          </DropdownMenuIconItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuIconItem
+            icon={<FilePlus2Icon className="size-4" />}
+            disabled={!props.onDuplicate}
+            onSelect={() => {
+              props.onDuplicate?.();
+              setMenuOpen(false);
+            }}
+          >
+            {t("CONTENT_LIBRARY_ACTION_DUPLICATE")}
+          </DropdownMenuIconItem>
+          <DropdownMenuIconItem
+            icon={<Trash2Icon className="size-4" />}
+            variant="destructive"
+            disabled={!props.onDelete}
+            onSelect={() => {
+              props.onDelete?.();
+              setMenuOpen(false);
+            }}
+          >
+            {t("CONTENT_LIBRARY_ACTION_DELETE")}
+          </DropdownMenuIconItem>
+
+          <DropdownMenuSeparator />
+
+          {props.onOpenVersionHistory ? (
+            <DropdownMenuIconItem
+              icon={<HistoryIcon className="size-4" />}
+              onSelect={() => {
+                props.onOpenVersionHistory?.();
+                setMenuOpen(false);
+              }}
             >
-              <MenubarRadioItem value="public">
-                {t("CONTENT_LIBRARY_VISIBILITY_PUBLIC")}
-              </MenubarRadioItem>
-              <MenubarRadioItem value="private">
-                {t("CONTENT_LIBRARY_VISIBILITY_PRIVATE")}
-              </MenubarRadioItem>
-            </MenubarRadioGroup>
-          </MenuSection>
-
-          <MenubarSeparator />
-
-          <MenuSection label={t("CONTENT_LIBRARY_EDITOR_MENU_SLUG")}>
-            <Input
-              aria-label={t("CONTENT_LIBRARY_EDITOR_MENU_SLUG")}
-              value={props.slug}
-              onChange={(event) => props.onSlugChange(event.target.value)}
-              className="h-8"
-            />
-          </MenuSection>
-
-          {props.onOpenSeo ? (
-            <>
-              <MenubarSeparator />
-              <MenuItemWithShortcut
-                icon={<Link2Icon className="size-4" />}
-                label={t("CONTENT_LIBRARY_EDITOR_MENU_SEO")}
-                onSelect={props.onOpenSeo}
-              />
-            </>
+              {t("CONTENT_LIBRARY_EDITOR_MENU_VERSION_HISTORY")}
+            </DropdownMenuIconItem>
           ) : null}
+          {props.onOpenAllUpdates ? (
+            <DropdownMenuIconItem
+              icon={<ActivityIcon className="size-4" />}
+              onSelect={() => {
+                props.onOpenAllUpdates?.();
+                setMenuOpen(false);
+              }}
+            >
+              {t("CONTENT_LIBRARY_EDITOR_MENU_ALL_UPDATES")}
+            </DropdownMenuIconItem>
+          ) : null}
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Settings2Icon className="size-4" />
+              {t("CONTENT_LIBRARY_EDITOR_MENU_SETTINGS")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-[18rem]">
+              <DropdownMenuLabel>{t(statusKey)}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>{t("CONTENT_LIBRARY_EDITOR_MENU_VISIBILITY")}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={props.visibility}
+                onValueChange={(value) => props.onVisibilityChange(value as "public" | "private")}
+              >
+                <DropdownMenuRadioItem value="public">
+                  {t("CONTENT_LIBRARY_VISIBILITY_PUBLIC")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="private">
+                  {t("CONTENT_LIBRARY_VISIBILITY_PRIVATE")}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <div className="space-y-1 px-2 py-1.5">
+                <div className="text-caption text-label-secondary">
+                  {t("CONTENT_LIBRARY_EDITOR_MENU_SLUG")}
+                </div>
+                <Input
+                  aria-label={t("CONTENT_LIBRARY_EDITOR_MENU_SLUG")}
+                  value={props.slug}
+                  onChange={(event) => props.onSlugChange(event.target.value)}
+                  className="h-8"
+                  onKeyDown={(event) => event.stopPropagation()}
+                />
+              </div>
+              {props.onOpenSeo ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      props.onOpenSeo?.();
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <Link2Icon className="size-4" />
+                    {t("CONTENT_LIBRARY_EDITOR_MENU_SEO")}
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
 
           {props.mode === "split" && (props.onCloseSplit || props.onOpenPageEditor) ? (
             <>
-              <MenubarSeparator />
+              <DropdownMenuSeparator />
               {props.onCloseSplit ? (
-                <MenuItemWithShortcut
+                <DropdownMenuIconItem
                   icon={<PanelRightClose className="size-4" />}
-                  label={t("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")}
-                  onSelect={props.onCloseSplit}
-                />
+                  onSelect={() => {
+                    props.onCloseSplit?.();
+                    setMenuOpen(false);
+                  }}
+                >
+                  {t("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")}
+                </DropdownMenuIconItem>
               ) : null}
               {props.onOpenPageEditor ? (
-                <MenuItemWithShortcut
+                <DropdownMenuIconItem
                   icon={<Maximize2 className="size-4" />}
-                  label={t("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")}
-                  onSelect={props.onOpenPageEditor}
-                />
+                  onSelect={() => {
+                    props.onOpenPageEditor?.();
+                    setMenuOpen(false);
+                  }}
+                >
+                  {t("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")}
+                </DropdownMenuIconItem>
               ) : null}
             </>
           ) : null}
-        </MenubarContent>
-      </MenubarMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      <MenubarMenu>
-        <MenubarTrigger>{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</MenubarTrigger>
-        <MenubarContent className="w-[16rem]">
-          <MenubarLabel>{t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}</MenubarLabel>
-          <MenubarSeparator />
-          {MENUBAR_INSERT_ITEMS.map((item) => (
-            <MenuItemWithShortcut
-              key={item.value}
-              icon={<item.icon className="size-4" />}
-              label={
-                item.value === KEYS.hr
-                  ? t("CONTENT_LIBRARY_EDITOR_INSERT_DIVIDER")
-                  : item.value === KEYS.blockquote
-                    ? t("CONTENT_LIBRARY_EDITOR_INSERT_QUOTE")
-                    : item.value === ARTICLE_EDITOR_INSERT_TOC
-                      ? t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")
-                      : t(
-                          item.value === KEYS.codeBlock
-                            ? "CONTENT_LIBRARY_EDITOR_INSERT_CODE_BLOCK"
-                            : item.value === KEYS.toggle
-                              ? "CONTENT_LIBRARY_EDITOR_INSERT_TOGGLE"
-                              : item.value === ARTICLE_EDITOR_INSERT_IMAGE
-                                ? "CONTENT_LIBRARY_EDITOR_INSERT_IMAGE"
-                                : item.value === ARTICLE_EDITOR_INSERT_VIDEO
-                                  ? "CONTENT_LIBRARY_EDITOR_INSERT_VIDEO"
-                                  : item.value === ARTICLE_EDITOR_INSERT_FILE
-                                    ? "CONTENT_LIBRARY_EDITOR_INSERT_FILE"
-                                    : item.value === KEYS.p
-                                      ? "CONTENT_LIBRARY_EDITOR_INSERT_TEXT"
-                                      : item.value === KEYS.h1
-                                        ? "CONTENT_LIBRARY_EDITOR_INSERT_HEADING_1"
-                                        : item.value === KEYS.h2
-                                          ? "CONTENT_LIBRARY_EDITOR_INSERT_HEADING_2"
-                                          : "CONTENT_LIBRARY_EDITOR_INSERT_HEADING_3",
-                        )
-              }
-              onSelect={() => handleInsert(item.value)}
-              shortcut={MENUBAR_SHORTCUTS[item.value]}
-            />
-          ))}
-        </MenubarContent>
-      </MenubarMenu>
-
-      <MenubarMenu>
-        <MenubarTrigger>{t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}</MenubarTrigger>
-        <MenubarContent className="w-[16rem]">
-          <MenubarLabel>{t("CONTENT_LIBRARY_EDITOR_MARK_TURN_INTO")}</MenubarLabel>
-          <MenubarSeparator />
-          {TURN_INTO_MENU_ITEMS.map((item) => (
-            <MenuItemWithShortcut
-              key={item.value}
-              icon={<item.icon className="size-4" />}
-              label={t(item.labelKey)}
-              onSelect={() => {
-                withSelection(() => {
-                  applyTurnInto(editor, item.value, currentTurnIntoValue ?? KEYS.p, {
-                    openNextToggles,
-                    setBlockType,
-                    toggleList,
-                    toggleTodoList,
-                  });
-                });
-              }}
-              shortcut={MENUBAR_SHORTCUTS[item.value]}
-            />
-          ))}
-
-          <MenubarSeparator />
-
-          <MenuItemWithShortcut
-            icon={<BaselineIcon className="size-4" />}
-            label={t("CONTENT_LIBRARY_EDITOR_MARK_BOLD")}
-            onSelect={() => handleToggleMark(KEYS.bold)}
-            shortcut={MENUBAR_SHORTCUTS[KEYS.bold]}
-          />
-          <MenuItemWithShortcut
-            icon={<ItalicIcon className="size-4" />}
-            label={t("CONTENT_LIBRARY_EDITOR_MARK_ITALIC")}
-            onSelect={() => handleToggleMark(KEYS.italic)}
-            shortcut={MENUBAR_SHORTCUTS[KEYS.italic]}
-          />
-          <MenuItemWithShortcut
-            icon={<UnderlineIcon className="size-4" />}
-            label={t("CONTENT_LIBRARY_EDITOR_MARK_UNDERLINE")}
-            onSelect={() => handleToggleMark(KEYS.underline)}
-            shortcut={MENUBAR_SHORTCUTS[KEYS.underline]}
-          />
-          <MenuItemWithShortcut
-            icon={<Code2 className="size-4" />}
-            label={t("CONTENT_LIBRARY_EDITOR_MARK_CODE")}
-            onSelect={() => handleToggleMark(KEYS.code)}
-            shortcut={MENUBAR_SHORTCUTS[KEYS.code]}
-          />
-
-          <MenubarSeparator />
-
-          <MenubarSub>
-            <MenubarSubTrigger>
-              <BaselineIcon className="size-4" />
-              {t("CONTENT_LIBRARY_EDITOR_MARK_TEXT_COLOR")}
-            </MenubarSubTrigger>
-            <MenubarSubContent className="w-[15rem]">
-              {getEditorColorOptions().map((option) => (
-                <MenubarItem
-                  key={`text:${option.value}`}
-                  onSelect={() => applyMenuColor(KEYS.color, option.color)}
-                >
-                  <span
-                    className={cn(
-                      "flex size-4 shrink-0 items-center justify-center rounded-sm border",
-                      option.color ? "border-transparent" : "border-border/70 bg-card",
-                    )}
-                    style={option.color ? { backgroundColor: option.color } : undefined}
-                  />
-                  {t(option.labelKey)}
-                </MenubarItem>
-              ))}
-            </MenubarSubContent>
-          </MenubarSub>
-
-          <MenubarSub>
-            <MenubarSubTrigger>
-              <PaintBucketIcon className="size-4" />
-              {t("CONTENT_LIBRARY_EDITOR_MARK_BACKGROUND_COLOR")}
-            </MenubarSubTrigger>
-            <MenubarSubContent className="w-[15rem]">
-              {getEditorColorOptions().map((option) => (
-                <MenubarItem
-                  key={`background:${option.value}`}
-                  onSelect={() => applyMenuColor(KEYS.backgroundColor, option.color)}
-                >
-                  <span
-                    className={cn(
-                      "flex size-4 shrink-0 items-center justify-center rounded-sm border",
-                      option.color ? "border-transparent" : "border-border/70 bg-card",
-                    )}
-                    style={
-                      option.color
-                        ? { backgroundColor: `color-mix(in srgb, ${option.color} 28%, white)` }
-                        : undefined
-                    }
-                  />
-                  {option.color
-                    ? `${t(option.labelKey)} ${t("CONTENT_LIBRARY_EDITOR_COLOR_BACKGROUND_SUFFIX")}`
-                    : `${t(option.labelKey)} ${t("CONTENT_LIBRARY_EDITOR_COLOR_BACKGROUND_SUFFIX")}`}
-                </MenubarItem>
-              ))}
-            </MenubarSubContent>
-          </MenubarSub>
-        </MenubarContent>
-      </MenubarMenu>
-    </Menubar>
+      <ContentLibraryArticleEditorSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+      <ContentLibraryArticleEditorImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImportDocument={props.onImportDocument}
+      />
+      <ContentLibraryArticleEditorExportDialog
+        defaultFilename={exportFilename}
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+      />
+    </>
   );
 }

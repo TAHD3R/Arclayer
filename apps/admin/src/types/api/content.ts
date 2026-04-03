@@ -129,6 +129,11 @@ export type ListAdminContentItemsParams = {
   modelKey?: string;
 };
 
+export type ListAdminContentVersionsParams = {
+  page?: number;
+  size?: number;
+};
+
 export type AdminContentLibraryViewStatus = "published" | "changed" | "draft" | "archived";
 export type AdminContentLibraryViewRole =
   | "page"

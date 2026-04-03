@@ -1,8 +1,13 @@
 import * as React from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { ImagePlus, Maximize2, PanelRightClose, Search, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useEditorScrollRef } from "platejs/react";
 
+import { deleteContentItem, duplicateContentItem } from "@/api/content";
+import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { buildContentItemsQueryKey } from "@/pages/workspaces/content/library/utils";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
 import { Button } from "@arclayer/ui/button";
@@ -23,6 +28,10 @@ import { ContentLibraryArticleEditorSaveIndicator } from "./content-library-arti
 import { ContentLibraryArticleEditorSeoDialog } from "./content-library-article-editor-seo-dialog";
 import { ContentLibraryArticleEditorTocSidebar } from "./content-library-article-editor-toc-sidebar";
 import { ContentLibraryArticleEditorDateLocalizationProvider } from "./content-library-article-editor-date-localization-provider";
+import { ContentLibraryArticleEditorUpdatesPanel } from "./content-library-article-editor-updates-panel";
+import { ContentLibraryArticleEditorVersionHistorySurface } from "./content-library-article-editor-version-history-surface";
+
+const ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY = "content-library-article-editor:pending-panel";
 
 type ContentLibraryArticleEditorShellProps = {
   workspaceId: string;
@@ -138,10 +147,14 @@ function HeaderActionButton(props: { icon: React.ReactNode; label: string; onCli
 
 function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEditorShellProps) {
   const { t } = useTranslation(["content", "common"]);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isHydrated } = useContentLibraryArticleEditorDocumentState();
   const scrollContainerRef = useEditorScrollRef();
   const [coverPopoverOpen, setCoverPopoverOpen] = React.useState(false);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
   const [seoDialogOpen, setSeoDialogOpen] = React.useState(false);
+  const [updatesOpen, setUpdatesOpen] = React.useState(false);
   const showShellSkeleton = Boolean(props.isLoading);
   const showBodySkeleton = Boolean(props.isLoading) || !isHydrated;
   const textLaneClass = getContentLibraryArticleEditorTextLaneClass(props.mode);
@@ -149,6 +162,63 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
     () => resolveAssetRefToPublicUrlPath(props.coverAssetId),
     [props.coverAssetId],
   );
+  React.useEffect(() => {
+    if (props.mode !== "page" || typeof window === "undefined") return;
+    const pendingPanel = window.sessionStorage.getItem(ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY);
+    if (pendingPanel !== `${props.workspaceId}:${props.itemId}:updates`) return;
+    window.sessionStorage.removeItem(ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY);
+    setUpdatesOpen(true);
+  }, [props.itemId, props.mode, props.workspaceId]);
+  const duplicateMutation = useMutation({
+    mutationFn: async () => duplicateContentItem(props.workspaceId, props.itemId),
+    onSuccess: async (nextItem) => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_DUPLICATE_SUCCESS"));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentItemsQueryKey(props.workspaceId),
+      });
+      await navigate({
+        to: "/w/$workspaceId/content/library/$itemId",
+        params: { workspaceId: props.workspaceId, itemId: nextItem.id },
+      });
+    },
+    onError: (error) => notifyError(error),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await deleteContentItem(props.workspaceId, props.itemId);
+    },
+    onSuccess: async () => {
+      notifySuccessText(t("content:CONTENT_LIBRARY_DELETE_SUCCESS"));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentItemsQueryKey(props.workspaceId),
+      });
+      if (props.mode === "split") {
+        props.onClose?.();
+        return;
+      }
+      await navigate({
+        to: "/w/$workspaceId/content/library",
+        params: { workspaceId: props.workspaceId },
+      } as never);
+    },
+    onError: (error) => notifyError(error),
+  });
+  const handleOpenUpdates = React.useCallback(async () => {
+    if (props.mode === "page") {
+      setUpdatesOpen(true);
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(
+        ARTICLE_EDITOR_PENDING_PANEL_STORAGE_KEY,
+        `${props.workspaceId}:${props.itemId}:updates`,
+      );
+    }
+    await navigate({
+      to: "/w/$workspaceId/content/library/$itemId",
+      params: { workspaceId: props.workspaceId, itemId: props.itemId },
+    });
+  }, [navigate, props.itemId, props.mode, props.workspaceId]);
 
   return (
     <>
@@ -178,9 +248,17 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                 </ToolbarIconButton>
               ) : null}
               <ContentLibraryArticleEditorMenuBar
+                itemTitle={props.title}
                 mode="split"
+                onDelete={() => deleteMutation.mutate()}
+                onDuplicate={() => duplicateMutation.mutate()}
+                onImportDocument={(value) => props.onBodyDocumentChange?.(value)}
+                onOpenAllUpdates={() => {
+                  void handleOpenUpdates();
+                }}
                 status={props.status}
                 visibility={props.visibility}
+                onOpenVersionHistory={() => setHistoryOpen(true)}
                 onVisibilityChange={props.onVisibilityChange}
                 slug={props.slug}
                 onSlugChange={props.onSlugChange}
@@ -215,13 +293,21 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
 
         {props.mode === "page" ? (
           <ContentLibraryArticleEditorPageToolbar
+            itemTitle={props.title}
             saveState={props.saveState}
             saveError={props.saveError}
             isPublishing={props.isPublishing}
             hasPublishableVersion={props.hasPublishableVersion}
+            onDelete={() => deleteMutation.mutate()}
+            onDuplicate={() => duplicateMutation.mutate()}
+            onImportDocument={(value) => props.onBodyDocumentChange?.(value)}
+            onOpenAllUpdates={() => {
+              void handleOpenUpdates();
+            }}
             onPublish={props.onPublish}
             status={props.status}
             visibility={props.visibility}
+            onOpenVersionHistory={() => setHistoryOpen(true)}
             onVisibilityChange={props.onVisibilityChange}
             slug={props.slug}
             onSlugChange={props.onSlugChange}
@@ -431,6 +517,21 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
         onOpenChange={setSeoDialogOpen}
         onSeoChange={props.onSeoChange}
       />
+      <ContentLibraryArticleEditorVersionHistorySurface
+        itemId={props.itemId}
+        mode={props.mode}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        workspaceId={props.workspaceId}
+      />
+      {props.mode === "page" ? (
+        <ContentLibraryArticleEditorUpdatesPanel
+          itemId={props.itemId}
+          open={updatesOpen}
+          onOpenChange={setUpdatesOpen}
+          workspaceId={props.workspaceId}
+        />
+      ) : null}
     </>
   );
 }

@@ -27,6 +27,9 @@ import { getBlockContextMenuActionIds } from "./block-menu-helpers";
 import { ColorDropdownSubmenu } from "./color-dropdown-submenu";
 import {
   clearEditorMarkColorForBlocks,
+  doesEditorMarkColorMatch,
+  getEditorColorOptions,
+  getEditorMarkColorValue,
   getEditorMarkValueForBlocks,
   setEditorMarkColorForBlocks,
 } from "./mark-color-utils";
@@ -93,6 +96,39 @@ export function BlockContextMenu(props: { children?: React.ReactNode }) {
   const currentBackgroundColor = React.useMemo(
     () => getEditorMarkValueForBlocks(selectedBlocks, KEYS.backgroundColor),
     [selectedBlocks],
+  );
+  const textColorOptions = React.useMemo(
+    () =>
+      getEditorColorOptions().map((option) => ({
+        active:
+          option.color === null
+            ? !currentTextColor
+            : doesEditorMarkColorMatch(KEYS.color, currentTextColor, option.color),
+        label: t(option.labelKey),
+        swatchColor:
+          option.color === null ? undefined : getEditorMarkColorValue(KEYS.color, option.color),
+        value: option.color,
+      })),
+    [currentTextColor, t],
+  );
+  const backgroundColorOptions = React.useMemo(
+    () =>
+      getEditorColorOptions().map((option) => ({
+        active:
+          option.color === null
+            ? !currentBackgroundColor
+            : doesEditorMarkColorMatch(KEYS.backgroundColor, currentBackgroundColor, option.color),
+        label:
+          option.color === null
+            ? t(option.labelKey)
+            : `${t(option.labelKey)} ${t("CONTENT_LIBRARY_EDITOR_COLOR_BACKGROUND_SUFFIX")}`,
+        swatchColor:
+          option.color === null
+            ? undefined
+            : getEditorMarkColorValue(KEYS.backgroundColor, option.color),
+        value: option.color,
+      })),
+    [currentBackgroundColor, t],
   );
 
   const hideMenu = React.useCallback(() => {
@@ -238,8 +274,13 @@ export function BlockContextMenu(props: { children?: React.ReactNode }) {
                 nodeType={KEYS.color}
                 currentColor={currentTextColor}
                 clearLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR")}
+                customAddLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM_ADD")}
+                customLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM")}
+                defaultLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_DEFAULT")}
                 onSelectColor={(color) => handleApplyColor(KEYS.color, color)}
                 onClear={() => handleClearColor(KEYS.color)}
+                options={textColorOptions}
+                valueLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_VALUE")}
               />
               <ColorDropdownSubmenu
                 icon={<PaintBucketIcon className="size-4" />}
@@ -247,8 +288,13 @@ export function BlockContextMenu(props: { children?: React.ReactNode }) {
                 nodeType={KEYS.backgroundColor}
                 currentColor={currentBackgroundColor}
                 clearLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR")}
+                customAddLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM_ADD")}
+                customLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_CUSTOM")}
+                defaultLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_DEFAULT")}
                 onSelectColor={(color) => handleApplyColor(KEYS.backgroundColor, color)}
                 onClear={() => handleClearColor(KEYS.backgroundColor)}
+                options={backgroundColorOptions}
+                valueLabel={t("CONTENT_LIBRARY_EDITOR_COLOR_VALUE")}
               />
               <DropdownMenuSeparator />
             </>

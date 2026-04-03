@@ -185,6 +185,18 @@ export function normalizeColor(value?: string | null) {
   return (value ?? "").trim().toLowerCase();
 }
 
+export function normalizeColorToHex(value?: string | null) {
+  if (!value) return null;
+
+  const hex = normalizeHex(value);
+  if (hex) return hex;
+
+  const rgb = parseRgbLike(value);
+  if (!rgb) return null;
+
+  return `#${rgb.map((component) => component.toString(16).padStart(2, "0")).join("")}`;
+}
+
 export function isBrightColor(color: string) {
   const rgb = parseRgb(color);
   if (!rgb) return false;

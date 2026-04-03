@@ -21,14 +21,23 @@ import {
 import { notifyError } from "@/lib/notifications";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
+import {
+  AssetsFilterPopover,
+  type AssetsFilters,
+} from "@/pages/workspaces/assets/components/assets-filter-popover";
 import { useAssetsExplorerController } from "@/pages/workspaces/assets/components/explorer/use-assets-explorer-controller";
 import { FileUploadDropZone } from "@/pages/workspaces/assets/components/file-upload/file-upload";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
 import { Button } from "@arclayer/ui/button";
+import {
+  ChromeTabs,
+  ChromeTabsContent,
+  ChromeTabsList,
+  ChromeTabsTrigger,
+} from "@arclayer/ui/chrome-tabs";
 import { Input } from "@arclayer/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { Spinner } from "@arclayer/ui/spinner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@arclayer/ui/tabs";
 import { cn } from "@arclayer/lib/utils";
 
 type ScopedUploadsApi = {
@@ -188,6 +197,8 @@ function ContentLibraryCoverPickerPopoverContent(props: {
   const [activeTab, setActiveTab] = React.useState("library");
   const [uploading, setUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const libraryViewportRef = React.useRef<HTMLDivElement | null>(null);
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
 
   const scope = React.useMemo<AssetScopeRef>(
     () => ({ type: "workspace", id: String(props.workspaceId) }),
@@ -196,11 +207,9 @@ function ContentLibraryCoverPickerPopoverContent(props: {
 
   const explorer = useAssetsExplorerController({
     scope,
-    pagination: "paged",
-    purpose: "article_cover",
+    pagination: "infinite",
     defaultVisibility: "public",
     defaultOrdering: "-created_at",
-    initialPageSize: 9,
     initialFilters: { mimePrefix: "image/" },
   });
 
@@ -240,26 +249,50 @@ function ContentLibraryCoverPickerPopoverContent(props: {
     [handleSelectAsset, queryClient, scope, t],
   );
 
-  const items = explorer.items.slice(0, 9);
-  const isLoading = explorer.pagedAssetsQuery.isLoading && items.length === 0;
+  React.useEffect(() => {
+    const node = sentinelRef.current;
+    const root = libraryViewportRef.current;
+    if (!node || !root || activeTab !== "library" || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (
+          explorer.infiniteAssetsQuery.isFetchingNextPage ||
+          !explorer.infiniteAssetsQuery.hasNextPage
+        ) {
+          return;
+        }
+        explorer.infiniteAssetsQuery.fetchNextPage().catch(() => undefined);
+      },
+      { root, rootMargin: "120px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [activeTab, explorer.infiniteAssetsQuery]);
+
+  const items = explorer.items;
+  const isLoading = explorer.infiniteAssetsQuery.isLoading && items.length === 0;
 
   return (
     <PopoverContent
       align="end"
       side="bottom"
       sideOffset={10}
-      className="w-[30rem] border border-border/70 p-0"
+      className="w-[32rem] border border-border/70 p-0"
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between border-b border-border/70 px-4 pt-4">
-          <TabsList className="h-9 rounded-md bg-muted/40 p-1">
-            <TabsTrigger value="library" className="rounded-md px-3">
+      <ChromeTabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-col">
+        <div className="flex items-center justify-between border-b border-border/70 px-4 py-4">
+          <ChromeTabsList className="w-auto">
+            <ChromeTabsTrigger value="library">
               {t("CONTENT_LIBRARY_EDITOR_COVER_TAB_LIBRARY")}
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="rounded-md px-3">
+            </ChromeTabsTrigger>
+            <ChromeTabsTrigger value="upload">
               {t("CONTENT_LIBRARY_EDITOR_COVER_TAB_UPLOAD")}
-            </TabsTrigger>
-          </TabsList>
+            </ChromeTabsTrigger>
+          </ChromeTabsList>
           {props.value ? (
             <Button
               type="button"
@@ -277,68 +310,92 @@ function ContentLibraryCoverPickerPopoverContent(props: {
           ) : null}
         </div>
 
-        <TabsContent value="library" className="mt-0 space-y-4 p-4">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
-            <Input
-              value={explorer.searchInput}
-              onChange={(event) => explorer.setSearchInput(event.target.value)}
-              placeholder={t("CONTENT_LIBRARY_EDITOR_COVER_LIBRARY_SEARCH")}
-              className="h-9 pl-9"
-            />
+        <ChromeTabsContent value="library" className="mt-0 flex min-h-0 flex-col">
+          <div className="border-b border-border/70 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative min-w-[14rem] flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-tertiary" />
+                <Input
+                  value={explorer.searchInput}
+                  onChange={(event) => explorer.setSearchInput(event.target.value)}
+                  placeholder={t("CONTENT_LIBRARY_EDITOR_COVER_LIBRARY_SEARCH")}
+                  className="h-9 pl-9"
+                />
+              </div>
+              <AssetsFilterPopover
+                value={explorer.filters}
+                onChange={(next: AssetsFilters) => {
+                  explorer.setFilters(next);
+                }}
+                ordering={explorer.ordering}
+                onOrderingChange={(next) => explorer.setOrdering(next)}
+                defaultOrdering="-created_at"
+                tags={explorer.tagsQuery.data?.items ?? []}
+                tagsLoading={explorer.tagsQuery.isLoading}
+              />
+            </div>
           </div>
 
-          {isLoading ? (
-            <div className="flex h-48 items-center justify-center">
-              <Spinner className="size-5" />
-            </div>
-          ) : items.length === 0 ? (
-            <div className="flex h-48 items-center justify-center rounded-md border border-dashed border-border/70 bg-muted/20 px-6 text-center text-footnote text-label-secondary">
-              {t("CONTENT_LIBRARY_EDITOR_COVER_LIBRARY_EMPTY")}
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-3">
-              {items.map((asset) => {
-                const src = resolveAssetPreviewUrl(asset);
-                return (
-                  <button
-                    key={asset.id}
-                    type="button"
-                    className={cn(
-                      "group overflow-hidden rounded-md border border-border/70 bg-card text-left transition-colors hover:border-border hover:bg-accent/20",
-                      props.value === asset.id ? "ring-2 ring-primary/45" : undefined,
-                    )}
-                    onClick={() => handleSelectAsset(asset.id)}
-                  >
-                    <div className="relative aspect-[1.45/1] overflow-hidden bg-muted/30">
-                      {src ? (
-                        <LazyAssetImage
-                          eager
-                          src={src}
-                          alt={asset.altName || asset.name}
-                          rootClassName="absolute inset-0"
-                          className="transition-transform duration-200 group-hover:scale-[1.03]"
-                          showErrorOverlay
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-footnote text-label-secondary">
-                          {t("assets:ASSET_PREVIEW_LOAD_FAILED")}
+          <div ref={libraryViewportRef} className="max-h-[26rem] overflow-auto px-4 py-4">
+            {isLoading ? (
+              <div className="flex h-48 items-center justify-center">
+                <Spinner className="size-5" />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex h-48 items-center justify-center rounded-md border border-dashed border-border/70 bg-muted/20 px-6 text-center text-footnote text-label-secondary">
+                {t("CONTENT_LIBRARY_EDITOR_COVER_LIBRARY_EMPTY")}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  {items.map((asset) => {
+                    const src = resolveAssetPreviewUrl(asset);
+                    return (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        className={cn(
+                          "group overflow-hidden rounded-xl border border-border/70 bg-card text-left transition-colors hover:border-border hover:bg-accent/20",
+                          props.value === asset.id ? "ring-2 ring-primary/45" : undefined,
+                        )}
+                        onClick={() => handleSelectAsset(asset.id)}
+                      >
+                        <div className="relative aspect-[1.45/1] overflow-hidden bg-muted/30">
+                          {src ? (
+                            <LazyAssetImage
+                              eager
+                              src={src}
+                              alt={asset.altName || asset.name}
+                              rootClassName="absolute inset-0"
+                              className="transition-transform duration-200 group-hover:scale-[1.03]"
+                              showErrorOverlay
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-footnote text-label-secondary">
+                              {t("assets:ASSET_PREVIEW_LOAD_FAILED")}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="px-3 py-2">
-                      <div className="truncate text-footnote font-semibold text-label-primary">
-                        {asset.altName || asset.name}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
+                        <div className="px-3 py-2">
+                          <div className="truncate text-footnote font-semibold text-label-primary">
+                            {asset.altName || asset.name}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div ref={sentinelRef} className="flex h-12 items-center justify-center">
+                  {explorer.infiniteAssetsQuery.isFetchingNextPage ? (
+                    <Spinner className="size-4 text-label-secondary" />
+                  ) : null}
+                </div>
+              </>
+            )}
+          </div>
+        </ChromeTabsContent>
 
-        <TabsContent value="upload" className="mt-0 space-y-3 p-4">
+        <ChromeTabsContent value="upload" className="mt-0 space-y-3 p-4">
           <FileUploadDropZone
             allowsMultiple={false}
             accept="image/*"
@@ -361,8 +418,8 @@ function ContentLibraryCoverPickerPopoverContent(props: {
               </span>
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        </ChromeTabsContent>
+      </ChromeTabs>
     </PopoverContent>
   );
 }

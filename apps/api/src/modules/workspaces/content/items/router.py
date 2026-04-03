@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Query, status
+from asgi_correlation_id import correlation_id
+from fastapi import APIRouter, Body, Depends, Query, Request, status
 
 from apps.api.src.common.types.public_uuid import PublicUUID
+from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.models.content._enums import ContentVersionState
@@ -28,6 +31,7 @@ from apps.api.src.modules.workspaces.content.items.repository import WorkspaceCo
 from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from apps.api.src.plugin.event_bus import Event, EventBus
 
 canonical_items_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
@@ -36,12 +40,54 @@ canonical_items_router = APIRouter(
 )
 
 
+def get_event_bus(request: Request) -> EventBus:
+    bus = getattr(request.app.state, "event_bus", None)
+    if bus is None:
+        raise ServiceUnavailable(
+            message="事件总线不可用",
+            error="EVENT_BUS_UNAVAILABLE",
+        )
+    return bus
+
+
 def get_workspace_content_canonical_items_service() -> WorkspaceContentCanonicalItemsService:
     return WorkspaceContentCanonicalItemsService(repo=WorkspaceContentItemsRepository())
 
 
 def get_workspace_content_canonical_item_reads() -> WorkspaceContentCanonicalItemReadService:
     return WorkspaceContentCanonicalItemReadService(repo=WorkspaceContentItemsRepository())
+
+
+async def _publish_content_activity_event(
+    *,
+    actor_user_id: UUID | None,
+    ctx: WorkspaceContext,
+    entity_id: UUID,
+    entity_type: str,
+    event_bus: EventBus,
+    event_name: str,
+    properties: dict[str, object | None] | None = None,
+) -> None:
+    try:
+        await event_bus.publish(
+            Event(
+                name=event_name,
+                payload={
+                    "organization_id": str(ctx.organization_id),
+                    "workspace_id": str(ctx.workspace_id),
+                    "entity_type": entity_type,
+                    "entity_id": str(entity_id),
+                    **(properties or {}),
+                },
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(actor_user_id) if actor_user_id is not None else None,
+            )
+        )
+    except (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException:
+        return
 
 
 @canonical_items_router.get(
@@ -105,6 +151,7 @@ async def create_workspace_content_item_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -115,6 +162,19 @@ async def create_workspace_content_item_canonical(
         site_id=site_id,
         actor_user_id=actor_user_id,
         payload=payload,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=data.id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.item.created",
+        properties={
+            "item_title": data.title,
+            "item_slug": data.slug,
+            "item_status": str(data.status),
+        },
     )
     return Response.success(data=data)
 
@@ -131,6 +191,7 @@ async def duplicate_workspace_content_item_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -141,6 +202,19 @@ async def duplicate_workspace_content_item_canonical(
         site_id=site_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.item.duplicated",
+        properties={
+            "duplicated_item_id": str(data.id),
+            "duplicated_item_title": data.title,
+            "duplicated_item_slug": data.slug,
+        },
     )
     return Response.success(data=data)
 
@@ -155,6 +229,8 @@ async def delete_workspace_content_item_canonical(
     item_id: PublicUUID,
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -164,6 +240,14 @@ async def delete_workspace_content_item_canonical(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
         item_id=item_id,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.item.deleted",
     )
     return Response.success()
 
@@ -180,6 +264,7 @@ async def archive_workspace_content_item_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -190,6 +275,15 @@ async def archive_workspace_content_item_canonical(
         site_id=site_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=data.id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.item.archived",
+        properties={"item_status": str(data.status)},
     )
     return Response.success(data=data)
 
@@ -206,6 +300,7 @@ async def unarchive_workspace_content_item_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -216,6 +311,15 @@ async def unarchive_workspace_content_item_canonical(
         site_id=site_id,
         item_id=item_id,
         actor_user_id=actor_user_id,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=data.id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.item.unarchived",
+        properties={"item_status": str(data.status)},
     )
     return Response.success(data=data)
 
@@ -236,6 +340,7 @@ async def apply_workspace_content_item_bootstrap_shape(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -247,6 +352,18 @@ async def apply_workspace_content_item_bootstrap_shape(
         item_id=item_id,
         actor_user_id=actor_user_id,
         payload=payload,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=data.id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.item.bootstrap.applied",
+        properties={
+            "bootstrap_preset_key": data.bootstrap_preset_key,
+            "bootstrap_preset_state": str(data.bootstrap_preset_state),
+        },
     )
     return Response.success(data=data)
 
@@ -265,6 +382,7 @@ async def save_workspace_content_item_draft_version_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -276,6 +394,44 @@ async def save_workspace_content_item_draft_version_canonical(
         item_id=item_id,
         actor_user_id=actor_user_id,
         payload=payload,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.version.saved",
+        properties={
+            "version_number": data.version_number,
+            "version_state": str(data.state),
+            "change_summary": data.change_summary,
+        },
+    )
+    return Response.success(data=data)
+
+
+@canonical_items_router.get(
+    "/items/{item_id}/versions",
+    response_model=ResponseModel[PageData[ContentVersionOut]],
+    response_model_exclude_none=True,
+    summary="List rebuilt content versions (workspace RBAC protected)",
+)
+async def list_workspace_content_item_versions_canonical(
+    item_id: PublicUUID,
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[
+        WorkspaceContentCanonicalItemReadService,
+        Depends(get_workspace_content_canonical_item_reads),
+    ],
+    params: PageParams = Depends(get_page_params),
+) -> ResponseModel[PageData[ContentVersionOut]]:
+    data = await service.list_versions_paginated(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        item_id=item_id,
+        params=params,
     )
     return Response.success(data=data)
 
@@ -318,6 +474,7 @@ async def publish_workspace_content_item_version_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -330,6 +487,19 @@ async def publish_workspace_content_item_version_canonical(
         version_number=version_number,
         target_state=ContentVersionState.PUBLISHED,
         actor_user_id=actor_user_id,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.version.published",
+        properties={
+            "version_number": data.version_number,
+            "version_state": str(data.state),
+            "change_summary": data.change_summary,
+        },
     )
     return Response.success(data=data)
 
@@ -347,6 +517,7 @@ async def schedule_workspace_content_item_version_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -359,6 +530,19 @@ async def schedule_workspace_content_item_version_canonical(
         version_number=version_number,
         target_state=ContentVersionState.SCHEDULED,
         actor_user_id=actor_user_id,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.version.scheduled",
+        properties={
+            "version_number": data.version_number,
+            "version_state": str(data.state),
+            "change_summary": data.change_summary,
+        },
     )
     return Response.success(data=data)
 
@@ -376,6 +560,7 @@ async def archive_workspace_content_item_version_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -388,6 +573,19 @@ async def archive_workspace_content_item_version_canonical(
         version_number=version_number,
         target_state=ContentVersionState.ARCHIVED,
         actor_user_id=actor_user_id,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.version.archived",
+        properties={
+            "version_number": data.version_number,
+            "version_state": str(data.state),
+            "change_summary": data.change_summary,
+        },
     )
     return Response.success(data=data)
 
@@ -406,6 +604,7 @@ async def patch_workspace_content_item_version_canonical(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     actor_user_id: Annotated[UUID, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalItemsService,
         Depends(get_workspace_content_canonical_items_service),
@@ -418,5 +617,18 @@ async def patch_workspace_content_item_version_canonical(
         version_number=version_number,
         actor_user_id=actor_user_id,
         payload=payload,
+    )
+    await _publish_content_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=item_id,
+        entity_type="content_item",
+        event_bus=event_bus,
+        event_name="workspace.content.version.patched",
+        properties={
+            "version_number": data.version_number,
+            "version_state": str(data.state),
+            "change_summary": data.change_summary,
+        },
     )
     return Response.success(data=data)
