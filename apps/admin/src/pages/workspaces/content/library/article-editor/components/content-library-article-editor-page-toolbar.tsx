@@ -15,7 +15,6 @@ import {
   Link2Icon,
   ListIcon,
   ListOrderedIcon,
-  MoreHorizontal,
   PaintBucketIcon,
   PlusIcon,
   Redo2Icon,
@@ -65,7 +64,7 @@ import {
 } from "@arclayer/ui/editor";
 import { cn } from "@arclayer/lib/utils";
 
-import { ContentLibraryArticleEditorMenu } from "./content-library-article-editor-menu";
+import { ContentLibraryArticleEditorMenuBar } from "./content-library-article-editor-menu";
 import { ContentLibraryArticleEditorSaveIndicator } from "./content-library-article-editor-save-indicator";
 
 function UndoToolbarButton() {
@@ -135,21 +134,17 @@ function ArticleEditorInsertToolbarButton() {
   return (
     <ActionDropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}>
-        <ToolbarSplitButton pressed={open}>
-          <ToolbarSplitButtonPrimary
+        <ActionDropdownMenuTrigger asChild>
+          <ToolbarButton
+            pressed={open}
+            isDropdown
+            dropdownMode="icon"
             aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => setOpen(true)}
           >
             <PlusIcon />
-          </ToolbarSplitButtonPrimary>
-          <ActionDropdownMenuTrigger asChild>
-            <ToolbarSplitButtonSecondary
-              aria-label={t("CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER")}
-              onMouseDown={(event) => event.preventDefault()}
-            />
-          </ActionDropdownMenuTrigger>
-        </ToolbarSplitButton>
+          </ToolbarButton>
+        </ActionDropdownMenuTrigger>
       </ToolbarTooltip>
       <ArticleEditorInsertMenuContent
         groups={groups}
@@ -400,6 +395,7 @@ function ToolbarScroller(props: { children: React.ReactNode }) {
 export function ContentLibraryArticleEditorPageToolbar(props: {
   hasPublishableVersion?: boolean;
   isPublishing?: boolean;
+  onOpenSeo?: () => void;
   onPublish?: () => void;
   onVisibilityChange: (value: "public" | "private") => void;
   saveError?: unknown;
@@ -413,6 +409,16 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
 
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-card px-4 md:px-5">
+      <ContentLibraryArticleEditorMenuBar
+        mode="page"
+        status={props.status}
+        visibility={props.visibility}
+        onVisibilityChange={props.onVisibilityChange}
+        slug={props.slug}
+        onSlugChange={props.onSlugChange}
+        onOpenSeo={props.onOpenSeo}
+      />
+
       <ToolbarScroller>
         <Toolbar className="min-w-max flex-nowrap gap-0.5 pr-3">
           <ToolbarGroup>
@@ -543,27 +549,6 @@ export function ContentLibraryArticleEditorPageToolbar(props: {
           <Upload className="size-4" />
           {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
         </Button>
-        <ActionDropdownMenu>
-          <ToolbarTooltip tooltip={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}>
-            <ActionDropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
-              >
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </ActionDropdownMenuTrigger>
-          </ToolbarTooltip>
-          <ContentLibraryArticleEditorMenu
-            status={props.status}
-            visibility={props.visibility}
-            onVisibilityChange={props.onVisibilityChange}
-            slug={props.slug}
-            onSlugChange={props.onSlugChange}
-          />
-        </ActionDropdownMenu>
       </div>
     </div>
   );

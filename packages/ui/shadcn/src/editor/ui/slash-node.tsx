@@ -21,8 +21,8 @@ import { useArticleEditorCommands } from "../article-editor-command-context";
 import {
   clearEditorMarkColorForBlocks,
   doesEditorMarkColorMatch,
+  getEditorColorOptions,
   getEditorMarkValueForBlocks,
-  MENU_COLORS,
   setEditorMarkColorForBlocks,
 } from "../mark-color-utils";
 import { applyTurnInto, getTurnIntoValue } from "../turn-into-helpers";
@@ -92,27 +92,6 @@ type SlashCommandItem =
       value: string;
     };
 
-const SLASH_COLOR_OPTIONS = [
-  { color: "#000000", keywords: ["black", "dark", "neutral"] },
-  { color: "#666666", keywords: ["gray", "charcoal", "muted"] },
-  { color: "#999999", keywords: ["gray", "soft", "subtle"] },
-  { color: "#cc0000", keywords: ["red", "danger", "alert"] },
-  { color: "#e69138", keywords: ["orange", "amber", "warm"] },
-  { color: "#f1c232", keywords: ["yellow", "gold", "highlight"] },
-  { color: "#6aa84f", keywords: ["green", "success", "nature"] },
-  { color: "#45818e", keywords: ["teal", "cyan", "cool"] },
-  { color: "#3c78d8", keywords: ["blue", "link", "primary"] },
-  { color: "#674ea7", keywords: ["purple", "violet", "accent"] },
-  { color: "#a64d79", keywords: ["pink", "magenta", "rose"] },
-  { color: "#f4cccc", keywords: ["light red", "rose", "soft red"] },
-  { color: "#fce5cd", keywords: ["light orange", "peach", "soft orange"] },
-  { color: "#fff2cc", keywords: ["light yellow", "cream", "soft yellow"] },
-  { color: "#d9ead3", keywords: ["light green", "mint", "soft green"] },
-  { color: "#d0e0e3", keywords: ["light teal", "mist", "soft teal"] },
-  { color: "#c9daf8", keywords: ["light blue", "sky", "soft blue"] },
-  { color: "#ead1dc", keywords: ["light pink", "blush", "soft pink"] },
-] as const;
-
 function removeCurrentBlock(editor: PlateElementProps["editor"], blockEntry: BlockEntry) {
   const [, path] = blockEntry;
 
@@ -135,20 +114,23 @@ function buildColorItems(props: {
   nodeType: string;
   t: Translate;
 }): SlashCommandItem[] {
-  const colorItems = SLASH_COLOR_OPTIONS.filter((option) =>
-    MENU_COLORS.includes(option.color as (typeof MENU_COLORS)[number]),
-  ).map((option) => ({
-    active: doesEditorMarkColorMatch(props.nodeType, props.currentColor, option.color),
-    color: option.color,
-    description: props.group,
-    focusEditor: true,
-    group: props.group,
-    kind: "apply-color" as const,
-    keywords: [...option.keywords, "color", props.groupId],
-    label: option.color.toUpperCase(),
-    nodeType: props.nodeType,
-    value: `${props.groupId}:${option.color}`,
-  }));
+  const colorItems = getEditorColorOptions()
+    .filter((option) => option.color !== null)
+    .map((option) => ({
+      active: doesEditorMarkColorMatch(props.nodeType, props.currentColor, String(option.color)),
+      color: String(option.color),
+      description: props.group,
+      focusEditor: true,
+      group: props.group,
+      kind: "apply-color" as const,
+      keywords: [...option.keywords, "color", props.groupId],
+      label:
+        props.nodeType === KEYS.backgroundColor
+          ? `${props.t(option.labelKey)} ${props.t("CONTENT_LIBRARY_EDITOR_COLOR_BACKGROUND_SUFFIX")}`
+          : props.t(option.labelKey),
+      nodeType: props.nodeType,
+      value: `${props.groupId}:${option.color}`,
+    }));
 
   return [
     {
@@ -158,7 +140,10 @@ function buildColorItems(props: {
       group: props.group,
       kind: "clear-color" as const,
       keywords: ["clear", "remove", "reset", "none", props.groupId, "color"],
-      label: props.t("CONTENT_LIBRARY_EDITOR_COLOR_CLEAR"),
+      label:
+        props.nodeType === KEYS.backgroundColor
+          ? `${props.t("CONTENT_LIBRARY_EDITOR_COLOR_NAME_DEFAULT")} ${props.t("CONTENT_LIBRARY_EDITOR_COLOR_BACKGROUND_SUFFIX")}`
+          : props.t("CONTENT_LIBRARY_EDITOR_COLOR_NAME_DEFAULT"),
       nodeType: props.nodeType,
       value: `${props.groupId}:clear`,
     },

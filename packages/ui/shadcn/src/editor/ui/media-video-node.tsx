@@ -11,7 +11,7 @@ import type { PlateElementProps } from "platejs/react";
 import { parseVideoUrl } from "@platejs/media";
 import { useMediaState } from "@platejs/media/react";
 import { ResizableProvider, useResizableValue } from "@platejs/resizable";
-import { PlateElement, useEditorMounted, withHOC } from "platejs/react";
+import { PlateElement, useEditorMounted, useEditorRef, withHOC } from "platejs/react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@arclayer/lib/utils";
@@ -24,6 +24,7 @@ export const VideoElement = withHOC(
   ResizableProvider,
   function VideoElement(props: PlateElementProps<TVideoElement>) {
     const { t } = useTranslation("content");
+    const editor = useEditorRef();
     const {
       align = "center",
       embed,
@@ -51,6 +52,18 @@ export const VideoElement = withHOC(
       event.preventDefault();
       event.stopPropagation();
     }, []);
+
+    const selectVideoNode = React.useCallback(
+      (event: React.SyntheticEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const path = editor.api.findPath(props.element);
+        if (!path) return;
+        editor.tf.select(path);
+        editor.tf.focus();
+      },
+      [editor, props.element],
+    );
 
     return (
       <PlateElement className="py-2.5" {...props}>
@@ -114,8 +127,14 @@ export const VideoElement = withHOC(
                     <div
                       aria-hidden="true"
                       className="absolute inset-x-0 inset-y-0 bottom-12 z-10"
-                      onMouseDown={stopVideoSurfacePlayback}
-                      onClick={stopVideoSurfacePlayback}
+                      onMouseDown={(event) => {
+                        stopVideoSurfacePlayback(event);
+                        selectVideoNode(event);
+                      }}
+                      onClick={(event) => {
+                        stopVideoSurfacePlayback(event);
+                        selectVideoNode(event);
+                      }}
                     />
                   </div>
                 ) : null}

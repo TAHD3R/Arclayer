@@ -42,7 +42,10 @@ const mockEditor = {
     undos: [],
   },
   id: "editor-1",
-  selection: null,
+  selection: null as {
+    anchor: { offset: number; path: number[] };
+    focus: { offset: number; path: number[] };
+  } | null,
   tf: {
     focus: vi.fn(),
     insertNodes: vi.fn(),
@@ -187,13 +190,30 @@ vi.mock("@arclayer/ui/button", () => ({
 }));
 
 vi.mock("@arclayer/ui/popover", () => ({
-  Popover: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  Popover: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (
+    <div data-testid="popover-root" data-open={open ? "true" : "false"}>
+      {children}
+    </div>
+  ),
   PopoverAnchor: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   PopoverContent: ({
     children,
+    onCloseAutoFocus,
     ...props
-  }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-    <div {...props}>{children}</div>
+  }: React.HTMLAttributes<HTMLDivElement> & {
+    children?: React.ReactNode;
+    onCloseAutoFocus?: (event: { preventDefault: () => void }) => void;
+  }) => (
+    <div {...props}>
+      {children}
+      {onCloseAutoFocus ? (
+        <button
+          type="button"
+          aria-label="trigger-popover-close"
+          onClick={() => onCloseAutoFocus({ preventDefault: () => undefined })}
+        />
+      ) : null}
+    </div>
   ),
   PopoverTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -510,6 +530,83 @@ describe("content-library-editor-media-ui", () => {
 
     fireEvent.blur(input);
     expect(onEditingChange).toHaveBeenCalledWith(false);
+  });
+
+  it("defers media caption node updates until IME composition commits", () => {
+    currentElement = {
+      caption: "",
+      children: [{ text: "" }],
+      id: "image-1",
+      type: "img",
+    };
+    mockEditor.api.findPath.mockReturnValue([1]);
+
+    render(
+      <MediaCaption
+        editing
+        onEditingChange={vi.fn()}
+        placeholder="CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION_PLACEHOLDER"
+      />,
+    );
+
+    const input = screen.getByPlaceholderText("CONTENT_LIBRARY_EDITOR_MEDIA_CAPTION_PLACEHOLDER");
+
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "ni" } });
+
+    expect(mockEditor.tf.setNodes).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "你好" } });
+    fireEvent.compositionEnd(input);
+
+    expect(mockEditor.tf.setNodes).toHaveBeenLastCalledWith({ caption: "你好" }, { at: [1] });
+  });
+
+  it("does not restore the previous media selection after focus has moved to another block", async () => {
+    const user = userEvent.setup();
+    mockEditor.selection = {
+      anchor: { offset: 0, path: [1] },
+      focus: { offset: 0, path: [1] },
+    };
+    currentElement = {
+      align: "center",
+      id: "image-1",
+      type: "img",
+      url: "https://cdn.example/image.png",
+    };
+
+    render(
+      <MediaToolbar compact supportsCaption url="https://cdn.example/image.png">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    mockEditor.selection = {
+      anchor: { offset: 0, path: [3] },
+      focus: { offset: 0, path: [3] },
+    };
+
+    await user.click(screen.getByLabelText("trigger-popover-close"));
+
+    expect(mockEditor.tf.select).not.toHaveBeenCalled();
+  });
+
+  it("keeps the media overlay open for a selected video even when focus-last is false", () => {
+    currentFocusedLast = false;
+    currentElement = {
+      align: "center",
+      id: "video-1",
+      type: "video",
+      url: "https://cdn.example/video.mp4",
+    };
+
+    render(
+      <MediaToolbar compact supportsCaption url="https://cdn.example/video.mp4">
+        <div>anchor</div>
+      </MediaToolbar>,
+    );
+
+    expect(screen.getByTestId("popover-root")).toHaveAttribute("data-open", "true");
   });
 
   it("isolates video playback clicks from toolbar activation without a dedicated video options trigger", () => {

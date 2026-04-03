@@ -66,6 +66,7 @@ export const AdvancedBlocksKit = [
   }),
   TogglePlugin.configure({
     node: { component: ToggleElement },
+    shortcuts: { toggle: { keys: "mod+alt+t" } },
   }).overrideEditor(({ editor, tf: { insertBreak } }) => ({
     transforms: {
       insertBreak() {
@@ -79,6 +80,7 @@ export const AdvancedBlocksKit = [
     options: {
       lowlight: articleEditorCodeBlockLowlight,
     },
+    shortcuts: { toggle: { keys: "mod+alt+7" } },
   }),
   CodeLinePlugin.configure({
     node: { component: CodeLineElement },

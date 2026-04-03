@@ -172,8 +172,12 @@ vi.mock("@arclayer/ui/editor", () => ({
   Toolbar: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   ToolbarButton: ({
     children,
+    pressed: _pressed,
     ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children?: React.ReactNode }) => (
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    children?: React.ReactNode;
+    pressed?: boolean;
+  }) => (
     <button type="button" {...props}>
       {children}
     </button>
@@ -202,7 +206,7 @@ vi.mock("@arclayer/ui/editor", () => ({
 vi.mock(
   "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-menu",
   () => ({
-    ContentLibraryArticleEditorMenu: () => null,
+    ContentLibraryArticleEditorMenuBar: () => null,
   }),
 );
 
@@ -225,6 +229,29 @@ import { FontColorToolbarButton } from "../../../../../../packages/ui/shadcn/src
 describe("content-library-editor-toolbar-ui", () => {
   beforeEach(() => {
     mocks.openMediaInsert.mockReset();
+  });
+
+  it("renders add block as a single dropdown trigger while keeping media insertion as split buttons", async () => {
+    render(
+      <ContentLibraryArticleEditorPageToolbar
+        hasPublishableVersion
+        isPublishing={false}
+        onPublish={vi.fn()}
+        onVisibilityChange={vi.fn()}
+        saveState="saved"
+        slug="launch-note"
+        status="draft"
+        visibility="public"
+        onSlugChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getAllByRole("button", { name: "CONTENT_LIBRARY_EDITOR_INSERT_TRIGGER" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "CONTENT_LIBRARY_EDITOR_INSERT_IMAGE" }),
+    ).toHaveLength(2);
   });
 
   it("uses a split button for media insertion so the primary button uploads immediately", async () => {
@@ -268,8 +295,10 @@ describe("content-library-editor-toolbar-ui", () => {
       </FontColorToolbarButton>,
     );
 
-    expect(screen.getByTestId("popover-content").className).toContain("w-[18rem]");
-    expect(screen.getByLabelText("CONTENT_LIBRARY_EDITOR_COLOR_VALUE")).toBeInTheDocument();
+    expect(screen.getByTestId("popover-content").className).toContain("w-[14.5rem]");
+    expect(
+      screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_GRAY" }),
+    ).toBeInTheDocument();
     expect(document.querySelector('input[type="color"]')).toBeNull();
   });
 });

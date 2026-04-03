@@ -56,27 +56,31 @@ function TocList(props: {
         const active = props.activeContentId === item.id;
 
         return (
-          <Button
+          <button
             key={item.id}
             type="button"
-            variant="ghost"
+            aria-current={active ? "location" : undefined}
             className={cn(
-              "h-auto w-full justify-start text-left",
+              "flex h-auto w-full items-start justify-start rounded-lg text-left transition-colors",
               props.variant === "page"
-                ? "rounded-lg px-0 py-1.5 text-footnote font-medium text-label-secondary hover:bg-transparent hover:text-label-primary"
+                ? "gap-2 px-2 py-1.5 text-footnote font-medium text-label-secondary hover:bg-accent/50 hover:text-label-primary"
                 : "rounded-md px-2 py-1.5 text-caption font-medium text-label-secondary hover:bg-accent/60 hover:text-label-primary",
+              active &&
+                (props.variant === "page"
+                  ? "bg-accent/65 text-label-primary"
+                  : "bg-accent/70 text-label-primary"),
               getHeadingIndent(item.depth, props.compact ?? false),
             )}
             onClick={(event) => props.onContentClick(event, item, "smooth")}
           >
-            <span className="flex min-w-0 items-start gap-2">
+            <span className="flex min-w-0 flex-1 items-start gap-2">
               <span
                 className={cn(
                   "mt-[0.2rem] h-3.5 w-0.5 shrink-0 rounded-full transition-colors",
                   active
-                    ? "bg-primary/80"
+                    ? "bg-primary/85"
                     : props.variant === "page"
-                      ? "bg-border/70"
+                      ? "bg-border/80"
                       : "bg-transparent",
                 )}
               />
@@ -84,7 +88,7 @@ function TocList(props: {
                 {item.title}
               </span>
             </span>
-          </Button>
+          </button>
         );
       })}
     </div>
@@ -108,7 +112,7 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
     return (
       <aside className="sticky top-6 hidden w-58 shrink-0 self-start xl:block">
         <nav {...navProps} className="space-y-3">
-          <div className="flex items-center gap-2 text-callout font-semibold">
+          <div className="flex items-center gap-2 px-2 text-callout font-semibold">
             <ListTree className="size-4" />
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
           </div>
@@ -124,13 +128,13 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
   }
 
   return (
-    <div className="group/toc pointer-events-auto relative flex items-start justify-end">
-      <div className="pointer-events-none absolute right-11 top-0 z-20 translate-x-1 opacity-0 transition-all duration-150 group-hover/toc:pointer-events-auto group-hover/toc:translate-x-0 group-hover/toc:opacity-100 group-focus-within/toc:pointer-events-auto group-focus-within/toc:translate-x-0 group-focus-within/toc:opacity-100">
+    <aside className="group/toc pointer-events-auto relative flex items-start justify-end">
+      <div className="pointer-events-none absolute right-0 top-0 z-20 translate-x-2 opacity-0 transition-all duration-150 group-hover/toc:pointer-events-auto group-hover/toc:translate-x-0 group-hover/toc:opacity-100 group-focus-within/toc:pointer-events-auto group-focus-within/toc:translate-x-0 group-focus-within/toc:opacity-100">
         <nav
           {...navProps}
-          className="w-52 rounded-xl border border-border/70 bg-card/96 p-2 shadow-lg backdrop-blur"
+          className="w-56 rounded-2xl border border-border/70 bg-card/96 p-2 shadow-lg backdrop-blur"
         >
-          <div className="flex items-center gap-2 text-callout font-semibold">
+          <div className="flex items-center gap-2 px-1.5 py-1 text-callout font-semibold">
             <ListTree className="size-4" />
             {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
           </div>
@@ -147,12 +151,14 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
       <Button
         type="button"
         variant="secondary"
-        size="icon-sm"
-        className="size-8 rounded-full border border-border/70 bg-card/92 shadow-sm backdrop-blur"
+        size="sm"
+        className="h-8 rounded-full border border-border/70 bg-card/92 px-3 text-label-secondary shadow-sm backdrop-blur hover:text-label-primary"
       >
         <ListTree className="size-4" />
-        <span className="sr-only">{t("CONTENT_LIBRARY_EDITOR_TOC_TOGGLE")}</span>
+        <span className="pr-0.5 text-footnote font-medium">
+          {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
+        </span>
       </Button>
-    </div>
+    </aside>
   );
 }

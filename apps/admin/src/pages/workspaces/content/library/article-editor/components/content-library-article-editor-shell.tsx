@@ -1,19 +1,11 @@
 import * as React from "react";
-import {
-  ImagePlus,
-  Maximize2,
-  MoreHorizontal,
-  PanelRightClose,
-  Search,
-  Upload,
-} from "lucide-react";
+import { ImagePlus, Maximize2, PanelRightClose, Search, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useEditorScrollRef } from "platejs/react";
 
 import { resolveAssetRefToPublicUrlPath } from "@/lib/assets/asset-urls";
 import { LazyAssetImage } from "@/pages/workspaces/assets/components/lazy-asset-image";
 import { Button } from "@arclayer/ui/button";
-import { DropdownMenu, DropdownMenuTrigger } from "@arclayer/ui/dropdown-menu";
 import { Skeleton } from "@arclayer/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import { cn } from "@arclayer/lib/utils";
@@ -25,7 +17,7 @@ import {
   useContentLibraryArticleEditorDocumentState,
 } from "./content-library-article-editor-document";
 import { ContentLibraryCoverPickerPopover } from "./content-library-cover-picker-popover";
-import { ContentLibraryArticleEditorMenu } from "./content-library-article-editor-menu";
+import { ContentLibraryArticleEditorMenuBar } from "./content-library-article-editor-menu";
 import { ContentLibraryArticleEditorPageToolbar } from "./content-library-article-editor-page-toolbar";
 import { ContentLibraryArticleEditorSaveIndicator } from "./content-library-article-editor-save-indicator";
 import { ContentLibraryArticleEditorSeoDialog } from "./content-library-article-editor-seo-dialog";
@@ -185,6 +177,18 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                   <Maximize2 className="size-4" />
                 </ToolbarIconButton>
               ) : null}
+              <ContentLibraryArticleEditorMenuBar
+                mode="split"
+                status={props.status}
+                visibility={props.visibility}
+                onVisibilityChange={props.onVisibilityChange}
+                slug={props.slug}
+                onSlugChange={props.onSlugChange}
+                onCloseSplit={props.onClose}
+                onOpenPageEditor={props.onOpenPage}
+                onOpenSeo={() => setSeoDialogOpen(true)}
+                className="ml-1"
+              />
             </div>
 
             <div className="flex items-center gap-2">
@@ -205,30 +209,6 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
                 <Upload className="size-4" />
                 {t("CONTENT_LIBRARY_ACTION_PUBLISH")}
               </Button>
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild focusTrigger={false}>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}
-                      >
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>{t("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU")}</TooltipContent>
-                </Tooltip>
-                <ContentLibraryArticleEditorMenu
-                  status={props.status}
-                  visibility={props.visibility}
-                  onVisibilityChange={props.onVisibilityChange}
-                  slug={props.slug}
-                  onSlugChange={props.onSlugChange}
-                />
-              </DropdownMenu>
             </div>
           </div>
         ) : null}
@@ -245,6 +225,7 @@ function ContentLibraryArticleEditorShellInner(props: ContentLibraryArticleEdito
             onVisibilityChange={props.onVisibilityChange}
             slug={props.slug}
             onSlugChange={props.onSlugChange}
+            onOpenSeo={() => setSeoDialogOpen(true)}
           />
         ) : null}
 

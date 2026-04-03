@@ -10,99 +10,75 @@ import {
   type EditorSelectionSnapshot,
 } from "./transforms";
 
-export const MENU_COLORS = [
-  "#000000",
-  "#666666",
-  "#999999",
-  "#cc0000",
-  "#e69138",
-  "#f1c232",
-  "#6aa84f",
-  "#45818e",
-  "#3c78d8",
-  "#674ea7",
-  "#a64d79",
-  "#f4cccc",
-  "#fce5cd",
-  "#fff2cc",
-  "#d9ead3",
-  "#d0e0e3",
-  "#c9daf8",
-  "#ead1dc",
-] as const;
+export type EditorColorOption = {
+  color: string | null;
+  keywords: string[];
+  labelKey: string;
+  value: string;
+};
 
-export const DEFAULT_COLORS = [
-  "#000000",
-  "#434343",
-  "#666666",
-  "#999999",
-  "#b7b7b7",
-  "#cccccc",
-  "#d9d9d9",
-  "#efefef",
-  "#f3f3f3",
-  "#ffffff",
-  "#980100",
-  "#ff0000",
-  "#ff9900",
-  "#ffff00",
-  "#00ff00",
-  "#00ffff",
-  "#4a86e8",
-  "#1300ff",
-  "#9900ff",
-  "#ff00ff",
-  "#e6b8af",
-  "#f4cccc",
-  "#fce5cd",
-  "#fff2cc",
-  "#d9ead3",
-  "#d0e0e3",
-  "#c9daf8",
-  "#cfe2f3",
-  "#d9d2e9",
-  "#ead1dc",
-  "#dd7e6b",
-  "#ea9999",
-  "#f9cb9c",
-  "#ffe599",
-  "#b6d7a8",
-  "#a2c4c9",
-  "#a4c2f4",
-  "#9fc5e8",
-  "#b4a7d6",
-  "#d5a6bd",
-  "#cc4125",
-  "#e06666",
-  "#f6b26b",
-  "#ffd966",
-  "#93c47d",
-  "#76a5af",
-  "#6d9eeb",
-  "#6fa8dc",
-  "#8e7cc3",
-  "#c27ba0",
-  "#a61c00",
-  "#cc0000",
-  "#e69138",
-  "#f1c232",
-  "#6aa84f",
-  "#45818e",
-  "#3c78d8",
-  "#3d85c6",
-  "#674ea7",
-  "#a64d79",
-  "#85200c",
-  "#990000",
-  "#b45f06",
-  "#bf9000",
-  "#38761d",
-  "#134f5c",
-  "#1155cc",
-  "#0b5394",
-  "#351c75",
-  "#741b47",
-] as const;
+export const EDITOR_COLOR_OPTIONS = [
+  {
+    color: null,
+    keywords: ["default", "reset", "clear", "remove"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_DEFAULT",
+    value: "default",
+  },
+  {
+    color: "#5f6368",
+    keywords: ["gray", "grey", "neutral", "muted"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_GRAY",
+    value: "gray",
+  },
+  {
+    color: "#8b5e3c",
+    keywords: ["brown", "earth", "warm"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_BROWN",
+    value: "brown",
+  },
+  {
+    color: "#d9730d",
+    keywords: ["orange", "amber", "warm"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_ORANGE",
+    value: "orange",
+  },
+  {
+    color: "#cb912f",
+    keywords: ["yellow", "gold", "highlight"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_YELLOW",
+    value: "yellow",
+  },
+  {
+    color: "#448361",
+    keywords: ["green", "success", "nature"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_GREEN",
+    value: "green",
+  },
+  {
+    color: "#337ea9",
+    keywords: ["blue", "link", "info"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_BLUE",
+    value: "blue",
+  },
+  {
+    color: "#9065b0",
+    keywords: ["purple", "violet", "accent"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_PURPLE",
+    value: "purple",
+  },
+  {
+    color: "#c14c8a",
+    keywords: ["pink", "magenta", "rose"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_PINK",
+    value: "pink",
+  },
+  {
+    color: "#d44c47",
+    keywords: ["red", "danger", "alert"],
+    labelKey: "CONTENT_LIBRARY_EDITOR_COLOR_NAME_RED",
+    value: "red",
+  },
+] as const satisfies readonly EditorColorOption[];
 
 const BACKGROUND_COLOR_ALPHA = 0.24;
 
@@ -220,6 +196,14 @@ export function getEditorMarkColorValue(nodeType: string, color: string) {
   if (nodeType !== KEYS.backgroundColor) return color;
 
   return toRgbaString(color, BACKGROUND_COLOR_ALPHA);
+}
+
+export function getEditorColorOptions() {
+  return EDITOR_COLOR_OPTIONS;
+}
+
+export function getEditorColorOptionByValue(value: string) {
+  return EDITOR_COLOR_OPTIONS.find((option) => option.value === value) ?? null;
 }
 
 export function doesEditorMarkColorMatch(

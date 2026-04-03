@@ -24,9 +24,15 @@ import { HighlightLeaf } from "../ui/highlight-node";
 import { KbdLeaf } from "../ui/kbd-node";
 
 export const BasicMarksKit = [
-  BoldPlugin,
-  ItalicPlugin,
-  UnderlinePlugin,
+  BoldPlugin.configure({
+    shortcuts: { toggle: { keys: "mod+b" } },
+  }),
+  ItalicPlugin.configure({
+    shortcuts: { toggle: { keys: "mod+i" } },
+  }),
+  UnderlinePlugin.configure({
+    shortcuts: { toggle: { keys: "mod+u" } },
+  }),
   CodePlugin.configure({
     node: { component: CodeLeaf },
     shortcuts: { toggle: { keys: "mod+e" } },

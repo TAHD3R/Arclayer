@@ -23,7 +23,6 @@ import {
   useEditorRef,
   useEditorSelector,
   useElement,
-  useFocusedLast,
   useReadOnly,
   useSelected,
 } from "platejs/react";
@@ -94,7 +93,6 @@ export function MediaToolbar(props: {
   const editor = useEditorRef();
   const readOnly = useReadOnly();
   const selected = useSelected();
-  const isFocusedLast = useFocusedLast();
   const selectionCollapsed = useEditorSelector(
     (currentEditor) => !currentEditor.api.isExpanded(),
     [],
@@ -105,7 +103,7 @@ export function MediaToolbar(props: {
     type: string;
   };
   const isEditing = useFloatingMediaValue("isEditing");
-  const selectionOpen = (isFocusedLast && selected && selectionCollapsed) || isEditing;
+  const selectionOpen = (selected && selectionCollapsed) || isEditing;
   const open =
     !readOnly &&
     !isImagePreviewOpen &&
@@ -139,6 +137,7 @@ export function MediaToolbar(props: {
     setUrlDraft(props.url);
     FloatingMediaStore.actions.reset();
     runEditorTransformPreservingSelection(editor, () => undefined, {
+      preserveIfSelectionChanged: true,
       restoreSelection: false,
       selection: selectionRef.current,
     });
@@ -180,6 +179,7 @@ export function MediaToolbar(props: {
           const activeElement = document.activeElement as HTMLElement | null;
           if (activeElement?.dataset.plateFocus === "true") return;
           runEditorTransformPreservingSelection(editor, () => undefined, {
+            preserveIfSelectionChanged: true,
             restoreSelection: false,
             selection: selectionRef.current,
           });

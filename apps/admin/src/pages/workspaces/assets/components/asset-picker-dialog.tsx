@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Masonry } from "masonic";
-import { Search, UploadCloud, X } from "lucide-react";
+import { ArrowRightIcon, ImageOff, Search, Sparkles, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -28,12 +28,23 @@ import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { AssetsFilterPopover, type AssetsFilters } from "./assets-filter-popover";
 import type { AssetScopeRef } from "@/lib/assets/asset-scope";
 import { DataPaginationControls } from "@/components/common/data-pagination-controls";
+import { LazyAssetImage } from "./lazy-asset-image";
+import { getMimeLabel, getPurposeLabel, getVisibilityLabel } from "./asset-masonry-tile";
 
 export type AssetPickerDialogValue = {
   assetIds: string[];
 };
 
 type AssetPickerDialogMode = "single" | "multiple";
+
+function PickerMetaRow(props: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3 text-footnote">
+      <span className="text-label-secondary">{props.label}</span>
+      <span className="min-w-0 text-right text-label-primary">{props.value}</span>
+    </div>
+  );
+}
 
 export function AssetPickerDialog(props: {
   open: boolean;
@@ -193,6 +204,15 @@ export function AssetPickerDialog(props: {
   ]);
 
   const orderedAssetIds = useMemo(() => items.map((it) => it.id), [items]);
+  const selectedAssetId = useMemo(
+    () => orderSelectedIds(selectedIds, orderedAssetIds)[0],
+    [orderedAssetIds, selectedIds],
+  );
+  const selectedAsset = useMemo(
+    () => items.find((item) => item.id === selectedAssetId) ?? null,
+    [items, selectedAssetId],
+  );
+  const selectedCountLabel = t("assets:ASSET_SELECTED_COUNT", { count: selectedIds.size });
 
   const confirmSelectionAndClose = (selectedOverride?: ReadonlySet<string>) => {
     const picked = selectedOverride ?? selectedIds;
@@ -280,59 +300,71 @@ export function AssetPickerDialog(props: {
           </>
         }
       >
-        <div className="flex-1 min-h-0 flex flex-col">
-          {/* Toolbar: search + filters + upload */}
-          <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="grid min-w-70 flex-1 gap-1.5">
-                <label className="text-callout font-semibold text-label-primary">
-                  {t("assets:ASSET_PICKER_FIELD_SEARCH")}
-                </label>
+        <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
+          <div className="border-b border-border/70 bg-card/90 px-5 py-4 backdrop-blur">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-callout font-semibold text-label-primary">
+                  <Sparkles className="size-4 text-label-secondary" />
+                  {t("settings:SETTINGS_ASSET_PICKER_TITLE")}
+                </div>
                 <div className="text-footnote text-label-secondary">
                   {t("assets:ASSET_PICKER_FIELD_SEARCH_HELP")}
                 </div>
-                <div className="relative w-full max-w-80">
-                  <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-label-secondary" />
-                  <Input
-                    className="w-full pl-9 pr-9"
-                    ref={searchInputRef}
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
-                  />
-                  {searchInput ? (
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      className="absolute top-1/2 right-1.5 -translate-y-1/2"
-                      onClick={() => setSearchInput("")}
-                      aria-label={t("common:CLEAR")}
-                    >
-                      <X size={14} />
-                    </Button>
-                  ) : null}
-                </div>
               </div>
 
-              <div className="flex items-center gap-2 self-end">
-                <AssetsFilterPopover
-                  value={filters}
-                  onChange={(next: AssetsFilters) => {
-                    setFilters(next);
-                  }}
-                  ordering={ordering}
-                  onOrderingChange={(next) => {
-                    setOrdering(next);
-                    setPage(1);
-                  }}
-                  defaultOrdering="-created_at"
-                  tags={tagsQuery.data?.items ?? []}
-                  tagsLoading={tagsQuery.isLoading}
-                />
+              <div className="rounded-full border border-border/70 bg-card px-3 py-1 text-caption text-label-secondary">
+                {selectedCountLabel}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+              <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+                <div className="grid min-w-[18rem] flex-1 gap-1.5">
+                  <label className="text-callout font-semibold text-label-primary">
+                    {t("assets:ASSET_PICKER_FIELD_SEARCH")}
+                  </label>
+                  <div className="relative w-full">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-label-secondary" />
+                    <Input
+                      className="w-full rounded-lg border-border/70 bg-card pl-9 pr-9"
+                      ref={searchInputRef}
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder={t("settings:SETTINGS_ASSET_PICKER_SEARCH_PLACEHOLDER")}
+                    />
+                    {searchInput ? (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                        onClick={() => setSearchInput("")}
+                        aria-label={t("common:CLEAR")}
+                      >
+                        <X size={14} />
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <AssetsFilterPopover
+                    value={filters}
+                    onChange={(next: AssetsFilters) => {
+                      setFilters(next);
+                    }}
+                    ordering={ordering}
+                    onOrderingChange={(next) => {
+                      setOrdering(next);
+                      setPage(1);
+                    }}
+                    defaultOrdering="-created_at"
+                    tags={tagsQuery.data?.items ?? []}
+                    tagsLoading={tagsQuery.isLoading}
+                  />
+                </div>
+              </div>
+
               {allowUpload ? (
                 <Button variant="default" onClick={() => setUploadOpen(true)} disabled={isFetching}>
                   <UploadCloud size={16} />
@@ -342,174 +374,258 @@ export function AssetPickerDialog(props: {
             </div>
           </div>
 
-          {/* Breadcrumbs */}
-          <div className="px-6 flex items-center gap-2 text-footnote">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCurrentFolderId(null);
-                setFocusedFolderId(null);
-              }}
-            >
-              {t("assets:ASSET_BREADCRUMB_ROOT")}
-            </Button>
-            {folderPath.map((f) => (
-              <div key={String(f.id)} className="flex items-center gap-2">
-                <span className="text-label-secondary">/</span>
+          <div className="min-h-0 flex flex-1">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex flex-wrap items-center gap-1.5 border-b border-border/70 bg-card/60 px-5 py-3 text-footnote">
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-8 rounded-full px-3"
                   onClick={() => {
-                    setCurrentFolderId(String(f.id));
+                    setCurrentFolderId(null);
                     setFocusedFolderId(null);
                   }}
                 >
-                  {f.name}
+                  {t("assets:ASSET_BREADCRUMB_ROOT")}
                 </Button>
-              </div>
-            ))}
-          </div>
-
-          {/* Content */}
-          <div
-            className="flex-1 min-h-0 overflow-auto px-6 py-5 select-none"
-            onMouseDown={(e) => {
-              const target = e.target as HTMLElement | null;
-              if (!target) return;
-              // Click blank area => clear selection & folder focus (file-manager-like UX).
-              if (target.closest("[data-asset-tile='true']")) return;
-              if (target.closest("[data-folder-tile='true']")) return;
-              setSelection((prev) => clearSelection(prev));
-              setFocusedFolderId(null);
-            }}
-          >
-            {isLoading ? (
-              <div className="grid min-h-40 place-items-center">
-                <Spinner className="size-5 text-label-secondary" />
-              </div>
-            ) : masonryEntries.length === 0 ? (
-              <div className="py-10 text-footnote text-label-secondary">
-                {t("assets:ASSET_EMPTY_SEARCH_DESC")}
-              </div>
-            ) : (
-              <Masonry
-                items={masonryEntries.map((it) => ({
-                  key:
-                    it.kind === "asset"
-                      ? it.asset.id
-                      : it.kind === "folder"
-                        ? `folder:${it.folder.id}`
-                        : "folder:__up__",
-                  data: it,
-                }))}
-                itemKey={(item) => item.key}
-                columnWidth={220}
-                columnGutter={16}
-                rowGutter={16}
-                maxColumnCount={5}
-                itemHeightEstimate={320}
-                overscanBy={1}
-                render={({ data }) => {
-                  const info = data;
-                  const entry = info.data as PickerMasonryEntry;
-                  if (entry.kind === "folderUp") {
-                    return (
-                      <AssetsExplorerFolderUpTile
-                        label={t("assets:ASSET_FOLDER_UP")}
-                        onClick={() => {
-                          setFocusedFolderId("__up__");
-                          setSelection((prev) => clearSelection(prev));
-                        }}
-                        onDoubleClick={() => {
-                          setCurrentFolderId(parentIdForUp);
-                          setFocusedFolderId(null);
-                        }}
-                      />
-                    );
-                  }
-
-                  if (entry.kind === "folder") {
-                    return (
-                      <AssetsExplorerFolderTile
-                        folder={entry.folder}
-                        folderLabel={t("assets:ASSET_FOLDER")}
-                        focused={focusedFolderId === entry.folder.id}
-                        onClick={() => {
-                          setFocusedFolderId(entry.folder.id);
-                          setSelection((prev) => clearSelection(prev));
-                        }}
-                        onDoubleClick={() => {
-                          setCurrentFolderId(String(entry.folder.id));
-                          setFocusedFolderId(null);
-                        }}
-                      />
-                    );
-                  }
-
-                  const asset = entry.asset as AssetMasonryItem;
-                  const isSelected = selectedIds.has(asset.id);
-
-                  return (
-                    <AssetMasonryTile
-                      asset={asset}
-                      selected={isSelected}
-                      onSelect={(e) => {
-                        if (mode === "single") {
-                          setSelection((prev) =>
-                            selectOrClearOnPlainClick(prev, asset.id, e.detail),
-                          );
-                          setFocusedFolderId(null);
-                          return;
-                        }
-
+                {folderPath.map((f) => (
+                  <div key={String(f.id)} className="flex items-center gap-1.5">
+                    <ArrowRightIcon className="size-3.5 text-label-secondary" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-full px-3"
+                      onClick={() => {
+                        setCurrentFolderId(String(f.id));
                         setFocusedFolderId(null);
-                        if (e.shiftKey) {
-                          setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIds));
-                          return;
-                        }
-                        if (e.metaKey || e.ctrlKey) {
-                          setSelection((prev) => toggleSelect(prev, asset.id));
-                          return;
-                        }
-                        setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, e.detail));
                       }}
-                      onToggleSelected={() => {
-                        setFocusedFolderId(null);
-                        if (mode === "single") {
-                          setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, 1));
-                          return;
-                        }
-                        setSelection((prev) => toggleSelect(prev, asset.id));
-                      }}
-                      onOpen={handleAssetDoubleClick}
-                    />
-                  );
+                    >
+                      {f.name}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="min-h-0 flex-1 overflow-auto px-5 py-5 select-none"
+                onMouseDown={(e) => {
+                  const target = e.target as HTMLElement | null;
+                  if (!target) return;
+                  if (target.closest("[data-asset-tile='true']")) return;
+                  if (target.closest("[data-folder-tile='true']")) return;
+                  setSelection((prev) => clearSelection(prev));
+                  setFocusedFolderId(null);
                 }}
-              />
-            )}
-          </div>
+              >
+                {isLoading ? (
+                  <div className="grid min-h-48 place-items-center rounded-2xl border border-border/70 bg-card/70">
+                    <Spinner className="size-5 text-label-secondary" />
+                  </div>
+                ) : masonryEntries.length === 0 ? (
+                  <div className="grid min-h-72 place-items-center rounded-2xl border border-dashed border-border/80 bg-card/70 px-6 text-center">
+                    <div className="max-w-sm space-y-3">
+                      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-label-secondary">
+                        <ImageOff className="size-5" />
+                      </div>
+                      <div className="text-callout font-semibold text-label-primary">
+                        {t("assets:ASSET_EMPTY_SEARCH_DESC")}
+                      </div>
+                      {allowUpload ? (
+                        <Button variant="outline" onClick={() => setUploadOpen(true)}>
+                          <UploadCloud className="size-4" />
+                          {t("assets:ASSET_ACTION_UPLOAD")}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <Masonry
+                    items={masonryEntries.map((it) => ({
+                      key:
+                        it.kind === "asset"
+                          ? it.asset.id
+                          : it.kind === "folder"
+                            ? `folder:${it.folder.id}`
+                            : "folder:__up__",
+                      data: it,
+                    }))}
+                    itemKey={(item) => item.key}
+                    columnWidth={220}
+                    columnGutter={16}
+                    rowGutter={16}
+                    maxColumnCount={5}
+                    itemHeightEstimate={320}
+                    overscanBy={1}
+                    render={({ data }) => {
+                      const info = data;
+                      const entry = info.data as PickerMasonryEntry;
+                      if (entry.kind === "folderUp") {
+                        return (
+                          <AssetsExplorerFolderUpTile
+                            label={t("assets:ASSET_FOLDER_UP")}
+                            onClick={() => {
+                              setFocusedFolderId("__up__");
+                              setSelection((prev) => clearSelection(prev));
+                            }}
+                            onDoubleClick={() => {
+                              setCurrentFolderId(parentIdForUp);
+                              setFocusedFolderId(null);
+                            }}
+                          />
+                        );
+                      }
 
-          {/* Pagination */}
-          <div className="px-6 py-3 border-t flex items-center justify-between gap-3">
-            <div className="text-caption text-label-secondary">
-              {isFetching ? t("common:LOADING") : null}
+                      if (entry.kind === "folder") {
+                        return (
+                          <AssetsExplorerFolderTile
+                            folder={entry.folder}
+                            folderLabel={t("assets:ASSET_FOLDER")}
+                            focused={focusedFolderId === entry.folder.id}
+                            onClick={() => {
+                              setFocusedFolderId(entry.folder.id);
+                              setSelection((prev) => clearSelection(prev));
+                            }}
+                            onDoubleClick={() => {
+                              setCurrentFolderId(String(entry.folder.id));
+                              setFocusedFolderId(null);
+                            }}
+                          />
+                        );
+                      }
+
+                      const asset = entry.asset as AssetMasonryItem;
+                      const isSelected = selectedIds.has(asset.id);
+
+                      return (
+                        <AssetMasonryTile
+                          asset={asset}
+                          selected={isSelected}
+                          onSelect={(e) => {
+                            if (mode === "single") {
+                              setSelection((prev) =>
+                                selectOrClearOnPlainClick(prev, asset.id, e.detail),
+                              );
+                              setFocusedFolderId(null);
+                              return;
+                            }
+
+                            setFocusedFolderId(null);
+                            if (e.shiftKey) {
+                              setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIds));
+                              return;
+                            }
+                            if (e.metaKey || e.ctrlKey) {
+                              setSelection((prev) => toggleSelect(prev, asset.id));
+                              return;
+                            }
+                            setSelection((prev) =>
+                              selectOrClearOnPlainClick(prev, asset.id, e.detail),
+                            );
+                          }}
+                          onToggleSelected={() => {
+                            setFocusedFolderId(null);
+                            if (mode === "single") {
+                              setSelection((prev) => selectOrClearOnPlainClick(prev, asset.id, 1));
+                              return;
+                            }
+                            setSelection((prev) => toggleSelect(prev, asset.id));
+                          }}
+                          onOpen={handleAssetDoubleClick}
+                        />
+                      );
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="flex items-center justify-between gap-3 border-t border-border/70 bg-card/60 px-5 py-3">
+                <div className="text-caption text-label-secondary">
+                  {isFetching ? t("common:LOADING") : selectedCountLabel}
+                </div>
+                <DataPaginationControls
+                  page={page}
+                  size={pageSize}
+                  total={total}
+                  t={t}
+                  pageSizeOptions={[12, 24, 48, 96]}
+                  onChange={(nextPage, nextSize) => {
+                    if (nextSize !== pageSize) {
+                      setPageSize(nextSize);
+                      setPage(1);
+                      return;
+                    }
+                    setPage(nextPage);
+                  }}
+                />
+              </div>
             </div>
-            <DataPaginationControls
-              page={page}
-              size={pageSize}
-              total={total}
-              t={t}
-              pageSizeOptions={[12, 24, 48, 96]}
-              onChange={(nextPage, nextSize) => {
-                if (nextSize !== pageSize) {
-                  setPageSize(nextSize);
-                  setPage(1);
-                  return;
-                }
-                setPage(nextPage);
-              }}
-            />
+
+            <aside className="hidden w-[18rem] shrink-0 border-l border-border/70 bg-card/75 lg:flex lg:flex-col">
+              <div className="border-b border-border/70 px-4 py-3">
+                <div className="text-callout font-semibold text-label-primary">
+                  {t("settings:SETTINGS_ASSET_PICKER_CURRENT")}
+                </div>
+                <div className="mt-1 text-caption text-label-secondary">
+                  {selectedAsset ? selectedAsset.name : selectedCountLabel}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-auto px-4 py-4">
+                {selectedAsset ? (
+                  <div className="space-y-4">
+                    <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
+                      <div className="relative aspect-[4/3]">
+                        {selectedAsset.previewUrl ? (
+                          <LazyAssetImage
+                            eager
+                            src={selectedAsset.previewUrl}
+                            alt={selectedAsset.name}
+                            rootClassName="absolute inset-0"
+                            className="object-cover"
+                            showErrorOverlay
+                          />
+                        ) : (
+                          <div className="absolute inset-0 grid place-items-center text-label-secondary">
+                            <ImageOff className="size-5" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-xl border border-border/70 bg-card px-3 py-3">
+                      <div className="line-clamp-2 text-callout font-semibold text-label-primary">
+                        {selectedAsset.name}
+                      </div>
+                      <PickerMetaRow
+                        label={t("assets:ASSET_FILTER_FIELD_TYPE")}
+                        value={getMimeLabel(selectedAsset.mimeType, t)}
+                      />
+                      <PickerMetaRow
+                        label={t("assets:ASSET_FILTER_FIELD_VISIBILITY")}
+                        value={getVisibilityLabel(selectedAsset.visibility, t)}
+                      />
+                      <PickerMetaRow
+                        label={t("assets:ASSET_PURPOSE_LIBRARY")}
+                        value={getPurposeLabel(selectedAsset.purpose, t)}
+                      />
+                      <PickerMetaRow
+                        label={t("assets:ASSET_ACTION_UPLOAD")}
+                        value={selectedAsset.sizeText || "-"}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-card/60 px-4 text-center">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-muted text-label-secondary">
+                      <Sparkles className="size-4" />
+                    </div>
+                    <div className="text-footnote text-label-secondary">
+                      {t("settings:SETTINGS_ASSET_PICKER_DESC")}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
         </div>
       </SettingDialog>

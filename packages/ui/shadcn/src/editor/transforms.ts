@@ -59,6 +59,19 @@ function cloneSelectionSnapshot(selection: EditorSelectionSnapshot | null | unde
   } satisfies EditorSelectionSnapshot;
 }
 
+function isSelectionSnapshotEqual(
+  left: EditorSelectionSnapshot | null | undefined,
+  right: EditorSelectionSnapshot | null | undefined,
+) {
+  if (!left && !right) return true;
+  if (!left || !right) return false;
+
+  return (
+    JSON.stringify(left.blockSelectionIds) === JSON.stringify(right.blockSelectionIds) &&
+    JSON.stringify(left.selection) === JSON.stringify(right.selection)
+  );
+}
+
 export function captureEditorSelection(editor: PlateEditor) {
   const selectedIds = editor.getOption(BlockSelectionPlugin, "selectedIds") as
     | Set<string>
@@ -75,13 +88,25 @@ export function restoreEditorSelection(
   selection: EditorSelectionSnapshot | null | undefined,
   options: {
     focus?: boolean;
+    preserveIfSelectionChanged?: boolean;
     restoreSelection?: boolean;
   } = {},
 ) {
-  const { focus = true, restoreSelection = true } = options;
+  const { focus = true, preserveIfSelectionChanged = false, restoreSelection = true } = options;
   const nextSelection = cloneSelectionSnapshot(selection);
+  const currentSelection = captureEditorSelection(editor);
   const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
   const hasBlockSelection = (nextSelection?.blockSelectionIds.length ?? 0) > 0;
+  const hasCurrentSelection =
+    (currentSelection.blockSelectionIds.length ?? 0) > 0 || currentSelection.selection !== null;
+
+  if (
+    preserveIfSelectionChanged &&
+    hasCurrentSelection &&
+    !isSelectionSnapshotEqual(currentSelection, nextSelection)
+  ) {
+    return currentSelection;
+  }
 
   if (restoreSelection && nextSelection) {
     if (hasBlockSelection) {
@@ -107,11 +132,24 @@ export function runEditorTransformPreservingSelection(
   transform: (selection: EditorSelectionSnapshot | null) => void,
   options: {
     focus?: boolean;
+    preserveIfSelectionChanged?: boolean;
     restoreSelection?: boolean;
     selection?: EditorSelectionSnapshot | null;
   } = {},
 ) {
   const selection = cloneSelectionSnapshot(options.selection ?? captureEditorSelection(editor));
+  const currentSelection = captureEditorSelection(editor);
+  const hasCurrentSelection =
+    currentSelection.blockSelectionIds.length > 0 || currentSelection.selection !== null;
+
+  if (
+    options.preserveIfSelectionChanged &&
+    hasCurrentSelection &&
+    !isSelectionSnapshotEqual(currentSelection, selection)
+  ) {
+    transform(currentSelection);
+    return currentSelection;
+  }
 
   if (selection?.blockSelectionIds.length) {
     editor.getApi(BlockSelectionPlugin).blockSelection.set(selection.blockSelectionIds);
@@ -123,6 +161,7 @@ export function runEditorTransformPreservingSelection(
 
   return restoreEditorSelection(editor, selection, {
     focus: options.focus,
+    preserveIfSelectionChanged: options.preserveIfSelectionChanged,
     restoreSelection: options.restoreSelection,
   });
 }

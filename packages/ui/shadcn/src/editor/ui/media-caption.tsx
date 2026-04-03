@@ -15,13 +15,30 @@ export function MediaCaption(props: {
   const editor = useEditorRef();
   const element = useElement() as TElement & { caption?: string };
   const textareaRef = React.useRef<HTMLInputElement | null>(null);
+  const isComposingRef = React.useRef(false);
+  const pendingCloseRef = React.useRef(false);
   const caption = typeof element.caption === "string" ? element.caption : "";
+  const [draftCaption, setDraftCaption] = React.useState(caption);
+
+  const commitCaption = React.useCallback(
+    (nextCaption: string) => {
+      const path = editor.api.findPath(element);
+      if (!path || nextCaption === caption) return;
+      editor.tf.setNodes<typeof element>({ caption: nextCaption }, { at: path });
+    },
+    [caption, editor, element],
+  );
 
   React.useEffect(() => {
     if (!props.editing) return;
     textareaRef.current?.focus();
     textareaRef.current?.select();
   }, [props.editing]);
+
+  React.useEffect(() => {
+    if (isComposingRef.current) return;
+    setDraftCaption(caption);
+  }, [caption]);
 
   if (!props.editing && !caption) {
     return null;
@@ -32,17 +49,42 @@ export function MediaCaption(props: {
       <input
         ref={textareaRef}
         data-plate-focus="true"
-        value={caption}
+        value={draftCaption}
         onChange={(event) => {
-          const path = editor.api.findPath(element);
-          if (!path) return;
-          editor.tf.setNodes<typeof element>({ caption: event.target.value }, { at: path });
+          const nextCaption = event.target.value;
+          setDraftCaption(nextCaption);
+          if (!isComposingRef.current) {
+            commitCaption(nextCaption);
+          }
+        }}
+        onCompositionStart={() => {
+          isComposingRef.current = true;
+        }}
+        onCompositionEnd={(event) => {
+          isComposingRef.current = false;
+          const nextCaption = event.currentTarget.value;
+          setDraftCaption(nextCaption);
+          commitCaption(nextCaption);
+          if (pendingCloseRef.current) {
+            pendingCloseRef.current = false;
+            props.onEditingChange?.(false);
+          }
         }}
         onMouseDown={(event) => event.stopPropagation()}
-        onBlur={() => props.onEditingChange?.(false)}
+        onBlur={(event) => {
+          const nextCaption = event.currentTarget.value;
+          setDraftCaption(nextCaption);
+          if (isComposingRef.current) {
+            pendingCloseRef.current = true;
+            return;
+          }
+          commitCaption(nextCaption);
+          props.onEditingChange?.(false);
+        }}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
             event.preventDefault();
+            commitCaption(event.currentTarget.value);
             props.onEditingChange?.(false);
           }
         }}

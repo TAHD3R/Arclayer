@@ -326,8 +326,8 @@ describe("content-library-editor-primitives", () => {
 
   it("builds slash commands with searchable top-level turn-into, action, and color groups", () => {
     const groups = buildSlashCommandGroups({
-      currentBackgroundColor: "rgba(204, 0, 0, 0.24)",
-      currentTextColor: "#3c78d8",
+      currentBackgroundColor: "rgba(212, 76, 71, 0.24)",
+      currentTextColor: "#337ea9",
       currentTurnIntoValue: KEYS.h2,
       t: (key) => key,
     });
@@ -354,12 +354,19 @@ describe("content-library-editor-primitives", () => {
     );
 
     const textColorItems = groups.find((group) => group.id === "text-color")?.items ?? [];
-    expect(textColorItems.some((item) => item.value === "text:#3c78d8")).toBe(true);
+    expect(textColorItems.some((item) => item.value === "text:#337ea9")).toBe(true);
     expect(textColorItems.some((item) => item.value === "text:clear")).toBe(true);
 
     const backgroundItems = groups.find((group) => group.id === "background-color")?.items ?? [];
-    expect(backgroundItems.some((item) => item.value === "background:#cc0000")).toBe(true);
+    expect(backgroundItems.some((item) => item.value === "background:#d44c47")).toBe(true);
     expect(backgroundItems.some((item) => item.value === "background:clear")).toBe(true);
+    expect(
+      backgroundItems.some(
+        (item) =>
+          item.label ===
+          "CONTENT_LIBRARY_EDITOR_COLOR_NAME_RED CONTENT_LIBRARY_EDITOR_COLOR_BACKGROUND_SUFFIX",
+      ),
+    ).toBe(true);
   });
 
   it("filters insert groups by label, description, and keywords", () => {
