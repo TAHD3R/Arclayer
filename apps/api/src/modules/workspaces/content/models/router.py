@@ -1,23 +1,29 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, status
+from asgi_correlation_id import correlation_id
+from fastapi import APIRouter, Body, Depends, Request, status
 
 from apps.api.src.common.schemas import BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.core.exceptions import NotFound
+from apps.api.src.config import get_settings
+from apps.api.src.core.exceptions import NotFound, ServiceUnavailable
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
+from apps.api.src.modules.auth.http.service import get_current_user_id
 from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
 from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentModelDefinitionContract,
     ContentModelImpactOut,
+    ContentModelImpactPreviewOut,
     ContentModelOut,
 )
 from apps.api.src.modules.workspaces.content.models.canonical_service import (
     ContentModelDefinitionPatchContract,
+    ContentModelImpactPreviewResult,
     ContentModelMutationResult,
     WorkspaceContentCanonicalModelsService,
 )
@@ -25,6 +31,7 @@ from apps.api.src.modules.workspaces.content.models.repository import WorkspaceC
 from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from apps.api.src.plugin.event_bus import Event, EventBus
 
 canonical_models_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
@@ -48,6 +55,39 @@ class ContentModelMutationOut(BaseSchema):
     impact: ContentModelImpactOut
 
 
+def _flatten_audit_value(value: object | None, *, prefix: str = "") -> object | None:
+    if not isinstance(value, dict):
+        return value
+    flattened: dict[str, object | None] = {}
+    for key, nested_value in value.items():
+        if not isinstance(key, str):
+            continue
+        next_prefix = f"{prefix}.{key}" if prefix else key
+        if isinstance(nested_value, dict):
+            nested_flat = _flatten_audit_value(nested_value, prefix=next_prefix)
+            if isinstance(nested_flat, dict):
+                flattened.update(nested_flat)
+            else:
+                flattened[next_prefix] = nested_flat
+            continue
+        flattened[next_prefix] = nested_value
+    return flattened
+
+
+def _normalize_default_changes_for_audit(
+    changes: dict[str, dict[str, object | None]] | None,
+) -> dict[str, dict[str, object | None]]:
+    if not changes:
+        return {}
+    normalized: dict[str, dict[str, object | None]] = {}
+    for field_name, diff in changes.items():
+        normalized[field_name] = {
+            "before": _flatten_audit_value(diff.get("before")),
+            "after": _flatten_audit_value(diff.get("after")),
+        }
+    return normalized
+
+
 def _to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutationOut:
     record = result.record
     return ContentModelMutationOut(
@@ -66,8 +106,82 @@ def _to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutation
     )
 
 
+def _to_preview_out(result: ContentModelImpactPreviewResult) -> ContentModelImpactPreviewOut:
+    return ContentModelImpactPreviewOut(
+        affected_items_count=result.affected_items_count,
+        recovery_items_count=result.recovery_items_count,
+        reshape_items_count=result.reshape_items_count,
+        has_blocking_changes=result.has_blocking_changes,
+        preview_token=result.preview_token,
+        impact=result.impact,
+    )
+
+
+def get_event_bus(request: Request) -> EventBus:
+    bus = getattr(request.app.state, "event_bus", None)
+    if bus is None:
+        raise ServiceUnavailable(
+            message="事件总线不可用",
+            error="EVENT_BUS_UNAVAILABLE",
+        )
+    return bus
+
+
+async def _publish_content_model_activity_event(
+    *,
+    actor_user_id: UUID | None,
+    ctx: WorkspaceContext,
+    entity_id: UUID,
+    event_bus: EventBus,
+    result: ContentModelMutationResult,
+) -> None:
+    properties = {
+        "model_key": str(result.record.key),
+        "model_name": str(result.record.name),
+        "default_changes": _normalize_default_changes_for_audit(result.default_changes),
+        "impact_preview": (
+            {
+                "affected_items_count": result.preview.affected_items_count,
+                "recovery_items_count": result.preview.recovery_items_count,
+                "reshape_items_count": result.preview.reshape_items_count,
+                "has_blocking_changes": result.preview.has_blocking_changes,
+            }
+            if result.preview is not None
+            else None
+        ),
+        "impact": {
+            "has_breaking_changes": result.impact.has_breaking_changes,
+            "breaking_changes": [change.model_dump(mode="json") for change in result.impact.breaking_changes],
+            "warnings": list(result.impact.warnings),
+        },
+    }
+    try:
+        await event_bus.publish(
+            Event(
+                name="workspace.content.model.updated",
+                payload={
+                    "organization_id": str(ctx.organization_id),
+                    "workspace_id": str(ctx.workspace_id),
+                    "entity_type": "content_model",
+                    "entity_id": str(entity_id),
+                    **properties,
+                },
+                source="api",
+                trace_id=correlation_id.get(None),
+                actor_user_id=str(actor_user_id) if actor_user_id is not None else None,
+            )
+        )
+    except (asyncio.CancelledError, GeneratorExit, KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException:
+        return
+
+
 def get_workspace_content_canonical_models_service() -> WorkspaceContentCanonicalModelsService:
-    return WorkspaceContentCanonicalModelsService(repo=WorkspaceContentModelsRepository())
+    return WorkspaceContentCanonicalModelsService(
+        repo=WorkspaceContentModelsRepository(),
+        settings=get_settings(),
+    )
 
 
 @canonical_models_router.post(
@@ -118,6 +232,34 @@ async def list_workspace_content_models_canonical(
     return Response.success(data=data)
 
 
+@canonical_models_router.post(
+    "/models/{model_id}/impact-preview",
+    response_model=ResponseModel[ContentModelImpactPreviewOut],
+    response_model_exclude_none=True,
+    summary="Preview rebuilt content model mutation impact (workspace RBAC protected)",
+    dependencies=[require_workspace_permission("system:content:manage")],
+)
+async def preview_workspace_content_model_update(
+    model_id: PublicUUID,
+    payload: Annotated[ContentModelDefinitionPatchContract, Body(description="Patch model contract payload.")],
+    site_id: Annotated[UUID, Depends(_resolve_site_id)],
+    ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    service: Annotated[
+        WorkspaceContentCanonicalModelsService,
+        Depends(get_workspace_content_canonical_models_service),
+    ],
+) -> ResponseModel[ContentModelImpactPreviewOut]:
+    result = await service.preview_model_update(
+        workspace_id=ctx.workspace_id,
+        site_id=site_id,
+        model_id=model_id,
+        payload=payload,
+    )
+    if result is None:
+        raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    return Response.success(data=_to_preview_out(result))
+
+
 @canonical_models_router.patch(
     "/models/{model_id}",
     response_model=ResponseModel[ContentModelMutationOut],
@@ -130,6 +272,8 @@ async def update_workspace_content_model(
     payload: Annotated[ContentModelDefinitionPatchContract, Body(description="Patch model contract payload.")],
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
+    actor_user_id: Annotated[UUID | None, Depends(get_current_user_id)],
+    event_bus: Annotated[EventBus, Depends(get_event_bus)],
     service: Annotated[
         WorkspaceContentCanonicalModelsService,
         Depends(get_workspace_content_canonical_models_service),
@@ -143,4 +287,11 @@ async def update_workspace_content_model(
     )
     if record is None:
         raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+    await _publish_content_model_activity_event(
+        actor_user_id=actor_user_id,
+        ctx=ctx,
+        entity_id=UUID(str(record.record.id)),
+        event_bus=event_bus,
+        result=record,
+    )
     return Response.success(data=_to_mutation_out(record))

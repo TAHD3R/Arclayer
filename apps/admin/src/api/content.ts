@@ -4,6 +4,7 @@ import type {
   AdminContentItem,
   AdminContentLibraryViewsState,
   AdminContentModel,
+  AdminContentModelImpactPreview,
   AdminContentSeoProfile,
   AdminContentVersion,
   AdminPublishImpact,
@@ -14,6 +15,7 @@ import type {
   ListAdminContentModelsParams,
   ListAdminContentVersionsParams,
   MoveAdminContentLibraryViewPayload,
+  PatchAdminContentModelPayload,
   PatchAdminContentVersionPayload,
   PageData,
   PatchAdminContentLibraryViewPayload,
@@ -50,6 +52,28 @@ export async function listContentModels(
 export async function listAllContentModels(workspaceId: string): Promise<AdminContentModel[]> {
   return collectAllPages((page) =>
     listContentModels(workspaceId, { page, size: CONTENT_LIST_PAGE_SIZE }),
+  );
+}
+
+export async function getContentModelImpactPreview(
+  workspaceId: string,
+  modelId: string,
+  payload: PatchAdminContentModelPayload,
+): Promise<AdminContentModelImpactPreview> {
+  return api.post<AdminContentModelImpactPreview>(
+    workspacePath(workspaceId, `/content/models/${modelId}/impact-preview`),
+    payload,
+  );
+}
+
+export async function patchContentModel(
+  workspaceId: string,
+  modelId: string,
+  payload: PatchAdminContentModelPayload,
+): Promise<AdminContentModel> {
+  return api.patch<AdminContentModel>(
+    workspacePath(workspaceId, `/content/models/${modelId}`),
+    payload,
   );
 }
 

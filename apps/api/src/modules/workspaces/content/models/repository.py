@@ -12,6 +12,7 @@ from apps.api.src.models.content._enums import (
     ContentModelRelationType,
     ContentModelViewType,
 )
+from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
 from apps.api.src.models.content.model_field import ContentModelFieldRecord
 from apps.api.src.models.content.model_relation import ContentModelRelationRecord
@@ -174,6 +175,21 @@ class WorkspaceContentModelsRepository(BaseRepository):
                 model_id=model_id,
                 conn=conn,
             )
+
+    async def list_items_for_model(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        conn: BaseDBAsyncClient | None = None,
+    ) -> list[ContentItemRecord]:
+        qs = ContentItemRecord.filter(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_definition_id=model_id,
+        ).order_by("id")
+        return list(await self.using_db(qs, conn))
 
     async def _replace_fields(
         self,

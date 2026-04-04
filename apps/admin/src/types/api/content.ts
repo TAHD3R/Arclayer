@@ -78,6 +78,35 @@ export type AdminContentModel = {
   surfacePolicy?: Record<string, unknown> | null;
 };
 
+export type AdminContentModelImpactChange = {
+  code: string;
+  target: string;
+  message: string;
+};
+
+export type AdminContentModelImpact = {
+  hasBreakingChanges: boolean;
+  breakingChanges: AdminContentModelImpactChange[];
+  warnings: string[];
+};
+
+export type AdminContentModelImpactPreview = {
+  affectedItemsCount: number;
+  recoveryItemsCount: number;
+  reshapeItemsCount: number;
+  hasBlockingChanges: boolean;
+  previewToken: string;
+  impact: AdminContentModelImpact;
+};
+
+export type PatchAdminContentModelPayload = {
+  defaultRole?: AdminContentContinuationRole | null;
+  defaultPosture?: AdminContentContinuationPosture | null;
+  defaultSurface?: AdminContentContinuationSurface | null;
+  starterPackPolicy?: Record<string, unknown> | null;
+  impactPreviewToken?: string | null;
+};
+
 export type AdminContentItemStatus = "draft" | "published" | "archived";
 export type AdminContentItemVisibility = "public" | "private";
 export type AdminContentBootstrapPresetState = "selected" | "customized" | "none";

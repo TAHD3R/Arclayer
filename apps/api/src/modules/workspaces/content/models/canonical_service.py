@@ -1,19 +1,31 @@
 from __future__ import annotations
 
+import base64
+import binascii
+import hmac
+import json
 from collections.abc import Iterable
 from dataclasses import dataclass
+from hashlib import sha256
 from typing import Any
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
 
 from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.core.exceptions import Conflict
+from apps.api.src.config import Settings
+from apps.api.src.core.exceptions import Conflict, ServiceUnavailable
 from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
+from apps.api.src.models.content._enums import ContentShapeState
+from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
 from apps.api.src.models.content.model_field import ContentModelFieldRecord
 from apps.api.src.models.content.model_relation import ContentModelRelationRecord
-from apps.api.src.modules.workspaces.content.continuation import resolve_model_continuation_defaults
+from apps.api.src.modules.workspaces.content.continuation import (
+    MODEL_DEFAULT_INVALID_REASON_CODE,
+    ContentItemContinuationTruth,
+    resolve_model_continuation_defaults,
+)
 from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentContinuationPosture,
     ContentContinuationRole,
@@ -61,6 +73,7 @@ class ContentModelDefinitionPatchContract(BaseSchema):
     seo: dict[str, Any] | None = None
     starter_pack_policy: dict[str, Any] | None = None
     surface_policy: dict[str, Any] | None = None
+    impact_preview_token: str | None = None
 
 
 def _normalize_required_text(value: str, *, error: str) -> str:
@@ -78,20 +91,68 @@ def _capabilities(values: list[ContentModelCapability]) -> list[str]:
 class ContentModelMutationResult:
     record: ContentModelDefinitionRecord
     impact: ContentModelImpactOut
+    preview: ContentModelImpactPreviewResult | None = None
+    default_changes: dict[str, dict[str, Any | None]] | None = None
+
+
+@dataclass(frozen=True)
+class ContentModelImpactPreviewResult:
+    affected_items_count: int
+    recovery_items_count: int
+    reshape_items_count: int
+    has_blocking_changes: bool
+    preview_token: str
+    impact: ContentModelImpactOut
+
+
+@dataclass(frozen=True)
+class _PreviewFieldRow:
+    key: str
+    field_type: str
+    is_required: bool
+
+
+@dataclass(frozen=True)
+class _PreviewRelationRow:
+    key: str
+    relation_type: str
+    target_model_key: str
+    is_required: bool
+
+
+@dataclass(frozen=True)
+class _PreviewModelRecord:
+    fields: tuple[ContentModelFieldRecord | _PreviewFieldRow, ...]
+    relations: tuple[ContentModelRelationRecord | _PreviewRelationRow, ...]
+
+
+@dataclass(frozen=True)
+class _ModelUpdateContext:
+    fields_to_update: dict[str, Any]
+    preview: ContentModelImpactPreviewResult
+    default_changes: dict[str, dict[str, Any | None]]
 
 
 def _breaking_change(*, code: str, target: str, message: str) -> ContentModelImpactChangeOut:
     return ContentModelImpactChangeOut(code=code, target=target, message=message)
 
 
-def _field_rows(record: ContentModelDefinitionRecord) -> dict[str, ContentModelFieldRecord]:
+def _field_rows(
+    record: ContentModelDefinitionRecord | _PreviewModelRecord,
+) -> dict[str, ContentModelFieldRecord | _PreviewFieldRow]:
     fields = getattr(record, "fields", ())
-    return {field.key: field for field in fields if isinstance(field, ContentModelFieldRecord)}
+    return {field.key: field for field in fields if isinstance(field, ContentModelFieldRecord | _PreviewFieldRow)}
 
 
-def _relation_rows(record: ContentModelDefinitionRecord) -> dict[str, ContentModelRelationRecord]:
+def _relation_rows(
+    record: ContentModelDefinitionRecord | _PreviewModelRecord,
+) -> dict[str, ContentModelRelationRecord | _PreviewRelationRow]:
     relations = getattr(record, "relations", ())
-    return {relation.key: relation for relation in relations if isinstance(relation, ContentModelRelationRecord)}
+    return {
+        relation.key: relation
+        for relation in relations
+        if isinstance(relation, ContentModelRelationRecord | _PreviewRelationRow)
+    }
 
 
 def _compare_field_changes(
@@ -182,7 +243,7 @@ def _compare_relation_changes(
 
 def _build_mutation_impact(
     before: ContentModelDefinitionRecord | None,
-    after: ContentModelDefinitionRecord,
+    after: ContentModelDefinitionRecord | _PreviewModelRecord,
 ) -> ContentModelImpactOut:
     if before is None:
         return ContentModelImpactOut()
@@ -193,6 +254,245 @@ def _build_mutation_impact(
         breaking_changes=breaking_changes,
         warnings=[],
     )
+
+
+def _preview_field_rows(
+    payload: ContentModelDefinitionPatchContract, record: ContentModelDefinitionRecord
+) -> tuple[Any, ...]:
+    if "fields" not in payload.model_fields_set:
+        return tuple(_field_rows(record).values())
+    return tuple(
+        _PreviewFieldRow(
+            key=item.key,
+            field_type=item.scalar,
+            is_required=item.required,
+        )
+        for item in (payload.fields or [])
+    )
+
+
+def _preview_relation_rows(
+    payload: ContentModelDefinitionPatchContract, record: ContentModelDefinitionRecord
+) -> tuple[Any, ...]:
+    if "relations" not in payload.model_fields_set:
+        return tuple(_relation_rows(record).values())
+    return tuple(
+        _PreviewRelationRow(
+            key=item.key,
+            relation_type=item.relation,
+            target_model_key=item.target_model_key,
+            is_required=item.required,
+        )
+        for item in (payload.relations or [])
+    )
+
+
+def _build_preview_model_record(
+    *,
+    record: ContentModelDefinitionRecord,
+    payload: ContentModelDefinitionPatchContract,
+) -> _PreviewModelRecord:
+    return _PreviewModelRecord(
+        fields=_preview_field_rows(payload, record),
+        relations=_preview_relation_rows(payload, record),
+    )
+
+
+def _preview_payload_fingerprint(payload: ContentModelDefinitionPatchContract) -> dict[str, Any]:
+    explicit_fields = sorted(name for name in payload.model_fields_set if name != "impact_preview_token")
+    explicit_values = payload.model_dump(
+        mode="json",
+        exclude={"impact_preview_token"},
+        exclude_unset=True,
+    )
+    return {
+        "fields_set": explicit_fields,
+        "values": explicit_values,
+    }
+
+
+def _get_preview_signing_secret(settings: Settings) -> bytes:
+    secret = (settings.auth.jwt_secret.get_secret_value() or "").strip()
+    if not secret:
+        raise ServiceUnavailable(
+            message="Preview signing secret unavailable",
+            error="CONTENT_MODEL_PREVIEW_SECRET_MISSING",
+        )
+    return secret.encode("utf-8")
+
+
+def _serialize_preview_claims(claims: dict[str, Any]) -> str:
+    return json.dumps(claims, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def _build_preview_claims(
+    *,
+    workspace_id: UUID,
+    site_id: UUID,
+    model_id: UUID,
+    updated_at: Any,
+    payload: ContentModelDefinitionPatchContract,
+) -> dict[str, Any]:
+    return {
+        "workspace_id": str(workspace_id),
+        "site_id": str(site_id),
+        "model_id": str(model_id),
+        "updated_at": updated_at.isoformat(),
+        "payload": _preview_payload_fingerprint(payload),
+    }
+
+
+def _build_impact_preview_token(settings: Settings, *, claims: dict[str, Any]) -> str:
+    raw = _serialize_preview_claims(claims)
+    body = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
+    sig = hmac.new(_get_preview_signing_secret(settings), raw.encode("utf-8"), sha256).digest()
+    sig_b64 = base64.urlsafe_b64encode(sig).decode("ascii").rstrip("=")
+    return f"{body}.{sig_b64}"
+
+
+def _verify_impact_preview_token(
+    settings: Settings,
+    *,
+    token: str,
+    claims: dict[str, Any],
+) -> bool:
+    raw = (token or "").strip()
+    if not raw or "." not in raw:
+        return False
+    body, sig_b64 = raw.split(".", 1)
+    if not body or not sig_b64:
+        return False
+
+    padding = "=" * (-len(body) % 4)
+    try:
+        payload_raw = base64.urlsafe_b64decode((body + padding).encode("ascii")).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError, ValueError):
+        return False
+
+    expected_raw = _serialize_preview_claims(claims)
+    if payload_raw != expected_raw:
+        return False
+
+    sig_padding = "=" * (-len(sig_b64) % 4)
+    try:
+        sig = base64.urlsafe_b64decode((sig_b64 + sig_padding).encode("ascii"))
+    except (binascii.Error, ValueError):
+        return False
+
+    expected_sig = hmac.new(_get_preview_signing_secret(settings), expected_raw.encode("utf-8"), sha256).digest()
+    return hmac.compare_digest(sig, expected_sig)
+
+
+def _read_existing_default_value(record: ContentModelDefinitionRecord, field_name: str) -> Any:
+    value = getattr(record, field_name)
+    if field_name in {"default_role", "default_posture", "default_surface"}:
+        return str(value) if value is not None else None
+    return value
+
+
+def _continuation_controls_touched(fields_set: set[str]) -> bool:
+    return bool({"default_role", "default_posture", "default_surface"} & fields_set)
+
+
+def _resolved_next_defaults(
+    *,
+    record: ContentModelDefinitionRecord,
+    fields_to_update: dict[str, Any],
+    fields_set: set[str],
+) -> tuple[str | None, str | None, str | None]:
+    if not _continuation_controls_touched(fields_set):
+        return (
+            str(record.default_role) if record.default_role is not None else None,
+            str(record.default_posture) if record.default_posture is not None else None,
+            str(record.default_surface) if record.default_surface is not None else None,
+        )
+    return (
+        fields_to_update.get("default_role", str(record.default_role) if record.default_role is not None else None),
+        fields_to_update.get(
+            "default_posture",
+            str(record.default_posture) if record.default_posture is not None else None,
+        ),
+        fields_to_update.get(
+            "default_surface",
+            str(record.default_surface) if record.default_surface is not None else None,
+        ),
+    )
+
+
+def _build_preview_truth(
+    *,
+    model_key: str,
+    default_role: str | None,
+    default_posture: str | None,
+    default_surface: str | None,
+) -> ContentItemContinuationTruth:
+    if default_role is None or default_posture is None or default_surface is None:
+        return ContentItemContinuationTruth(
+            resolved_role=None,
+            resolved_posture=None,
+            resolved_surface=None,
+            shape_state=str(ContentShapeState.UNSHAPED),
+            shape_reason_code=MODEL_DEFAULT_INVALID_REASON_CODE,
+            shape_reason_meta={"modelKey": model_key},
+        )
+    return ContentItemContinuationTruth(
+        resolved_role=default_role,
+        resolved_posture=default_posture,
+        resolved_surface=default_surface,
+        shape_state=str(ContentShapeState.READY),
+        shape_reason_code=None,
+        shape_reason_meta=None,
+    )
+
+
+def _truth_signature_from_item(item: ContentItemRecord) -> tuple[Any, ...]:
+    return (
+        str(item.resolved_role) if item.resolved_role is not None else None,
+        str(item.resolved_posture) if item.resolved_posture is not None else None,
+        str(item.resolved_surface) if item.resolved_surface is not None else None,
+        str(item.shape_state),
+        item.shape_reason_code,
+    )
+
+
+def _truth_signature_from_preview(truth: ContentItemContinuationTruth) -> tuple[Any, ...]:
+    return (
+        truth.resolved_role,
+        truth.resolved_posture,
+        truth.resolved_surface,
+        truth.shape_state,
+        truth.shape_reason_code,
+    )
+
+
+def _build_default_changes(
+    *,
+    record: ContentModelDefinitionRecord,
+    fields_to_update: dict[str, Any],
+    fields_set: set[str],
+) -> dict[str, dict[str, Any | None]]:
+    next_default_role, next_default_posture, next_default_surface = _resolved_next_defaults(
+        record=record,
+        fields_to_update=fields_to_update,
+        fields_set=fields_set,
+    )
+    after_values = {
+        "default_role": next_default_role,
+        "default_posture": next_default_posture,
+        "default_surface": next_default_surface,
+        "starter_pack_policy": fields_to_update.get("starter_pack_policy", record.starter_pack_policy),
+        "surface_policy": fields_to_update.get("surface_policy", record.surface_policy),
+    }
+    changes: dict[str, dict[str, Any | None]] = {}
+    for field_name, after_value in after_values.items():
+        before_value = _read_existing_default_value(record, field_name)
+        if before_value == after_value:
+            continue
+        changes[field_name] = {
+            "before": before_value,
+            "after": after_value,
+        }
+    return changes
 
 
 def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[str, Any]:
@@ -236,8 +536,9 @@ def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[s
 
 
 class WorkspaceContentCanonicalModelsService:
-    def __init__(self, repo: WorkspaceContentModelsRepository) -> None:
+    def __init__(self, repo: WorkspaceContentModelsRepository, settings: Settings) -> None:
         self.repo = repo
+        self.settings = settings
 
     async def list_models_paginated(
         self,
@@ -293,6 +594,97 @@ class WorkspaceContentCanonicalModelsService:
         )
         return ContentModelMutationResult(record=record, impact=ContentModelImpactOut())
 
+    async def _build_update_context(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        record: ContentModelDefinitionRecord,
+        payload: ContentModelDefinitionPatchContract,
+    ) -> _ModelUpdateContext:
+        fields_set = set(payload.model_fields_set)
+        fields_to_update = _build_patch_updates(payload)
+        next_default_role, next_default_posture, next_default_surface = _resolved_next_defaults(
+            record=record,
+            fields_to_update=fields_to_update,
+            fields_set=fields_set,
+        )
+        next_truth = _build_preview_truth(
+            model_key=str(record.key),
+            default_role=next_default_role,
+            default_posture=next_default_posture,
+            default_surface=next_default_surface,
+        )
+        items = await self.repo.list_items_for_model(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        next_signature = _truth_signature_from_preview(next_truth)
+        affected_items_count = 0
+        recovery_items_count = 0
+        reshape_items_count = 0
+        for item in items:
+            if _truth_signature_from_item(item) == next_signature:
+                continue
+            affected_items_count += 1
+            if next_truth.shape_state != str(ContentShapeState.READY):
+                recovery_items_count += 1
+            else:
+                reshape_items_count += 1
+        claims = _build_preview_claims(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            updated_at=record.updated_at,
+            payload=payload,
+        )
+        preview = ContentModelImpactPreviewResult(
+            affected_items_count=affected_items_count,
+            recovery_items_count=recovery_items_count,
+            reshape_items_count=reshape_items_count,
+            has_blocking_changes=recovery_items_count > 0,
+            preview_token=_build_impact_preview_token(self.settings, claims=claims),
+            impact=_build_mutation_impact(
+                record,
+                _build_preview_model_record(record=record, payload=payload),
+            ),
+        )
+        return _ModelUpdateContext(
+            fields_to_update=fields_to_update,
+            preview=preview,
+            default_changes=_build_default_changes(
+                record=record,
+                fields_to_update=fields_to_update,
+                fields_set=fields_set,
+            ),
+        )
+
+    async def preview_model_update(
+        self,
+        *,
+        workspace_id: UUID,
+        site_id: UUID,
+        model_id: UUID,
+        payload: ContentModelDefinitionPatchContract,
+    ) -> ContentModelImpactPreviewResult | None:
+        existing = await self.repo.get_model_definition(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+        )
+        if existing is None:
+            return None
+        context = await self._build_update_context(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            record=existing,
+            payload=payload,
+        )
+        return context.preview
+
     async def update_model(
         self,
         *,
@@ -301,7 +693,6 @@ class WorkspaceContentCanonicalModelsService:
         model_id: UUID,
         payload: ContentModelDefinitionPatchContract,
     ) -> ContentModelMutationResult | None:
-        fields_set = payload.model_fields_set
         existing = await self.repo.get_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -309,54 +700,51 @@ class WorkspaceContentCanonicalModelsService:
         )
         if existing is None:
             return None
-        fields_to_update = _build_patch_updates(payload)
-        merged_key = fields_to_update.get("key", existing.key)
-        merged_name = fields_to_update.get("name", existing.name)
-        merged_category = fields_to_update.get("category", str(existing.category or "custom"))
-        merged_default_editor = fields_to_update.get("default_editor", str(existing.default_editor or "form"))
-        merged_capabilities = fields_to_update.get("capabilities", list(existing.capabilities or []))
-        merged_default_role = fields_to_update.get(
-            "default_role",
-            str(existing.default_role) if existing.default_role is not None else None,
+        preview_token = (payload.impact_preview_token or "").strip()
+        if not preview_token:
+            raise Conflict(
+                "Impact preview required before saving model changes", error="CONTENT_MODEL_IMPACT_PREVIEW_REQUIRED"
+            )
+        context = await self._build_update_context(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            record=existing,
+            payload=payload,
         )
-        merged_default_posture = fields_to_update.get(
-            "default_posture",
-            str(existing.default_posture) if existing.default_posture is not None else None,
+        claims = _build_preview_claims(
+            workspace_id=workspace_id,
+            site_id=site_id,
+            model_id=model_id,
+            updated_at=existing.updated_at,
+            payload=payload,
         )
-        merged_default_surface = fields_to_update.get(
-            "default_surface",
-            str(existing.default_surface) if existing.default_surface is not None else None,
-        )
-        merged_starter_pack_policy = fields_to_update.get("starter_pack_policy", existing.starter_pack_policy)
-        merged_surface_policy = fields_to_update.get("surface_policy", existing.surface_policy)
-        defaults = resolve_model_continuation_defaults(
-            key=merged_key,
-            name=merged_name,
-            category=merged_category,
-            default_editor=merged_default_editor,
-            capabilities=merged_capabilities,
-            default_role=merged_default_role,
-            default_posture=merged_default_posture,
-            default_surface=merged_default_surface,
-            starter_pack_policy=merged_starter_pack_policy,
-            surface_policy=merged_surface_policy,
-        )
-        fields_to_update.update({
-            "default_role": defaults.default_role,
-            "default_posture": defaults.default_posture,
-            "default_surface": defaults.default_surface,
-            "starter_pack_policy": defaults.starter_pack_policy,
-            "surface_policy": defaults.surface_policy,
-        })
+        if not _verify_impact_preview_token(
+            self.settings,
+            token=preview_token,
+            claims=claims,
+        ):
+            raise Conflict("Invalid impact preview token", error="CONTENT_MODEL_IMPACT_PREVIEW_TOKEN_INVALID")
+        if context.preview.has_blocking_changes:
+            raise Conflict(
+                "Impact preview contains blocking continuation changes",
+                error="CONTENT_MODEL_IMPACT_PREVIEW_BLOCKING",
+            )
+        fields_set = payload.model_fields_set
         updated = await self.repo.update_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
             model_id=model_id,
-            fields_to_update=fields_to_update,
+            fields_to_update=context.fields_to_update,
             fields=(payload.fields if "fields" in fields_set else None),
             relations=(payload.relations if "relations" in fields_set else None),
             views=(payload.views if "views" in fields_set else None),
         )
         if updated is None:
             return None
-        return ContentModelMutationResult(record=updated, impact=_build_mutation_impact(existing, updated))
+        return ContentModelMutationResult(
+            record=updated,
+            impact=context.preview.impact,
+            preview=context.preview,
+            default_changes=context.default_changes,
+        )

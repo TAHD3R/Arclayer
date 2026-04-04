@@ -1,16 +1,12 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { PlaceholderPage } from "@/pages/placeholder/page";
+import { ContentModelsControlCenterPage } from "@/pages/workspaces/content/models/page";
 
 export const Route = createLazyFileRoute("/w/$workspaceId/content/models/")({
-  component: ContentModelsPlaceholder,
+  component: ContentModelsRouteComponent,
 });
 
-function ContentModelsPlaceholder() {
-  return (
-    <PlaceholderPage
-      titleKey="nav:NAV_CONTENT_MODELS"
-      descriptionKey="common:WORKSPACE_CONTENT_MODELS_DESC"
-    />
-  );
+function ContentModelsRouteComponent() {
+  const { workspaceId } = Route.useParams();
+  return <ContentModelsControlCenterPage workspaceId={workspaceId} />;
 }

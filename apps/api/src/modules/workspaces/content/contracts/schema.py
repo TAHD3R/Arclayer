@@ -95,6 +95,27 @@ class ContentModelImpactOut(BaseSchema):
     warnings: list[str] = Field(default_factory=list, description="Non-blocking schema warnings.")
 
 
+class ContentModelImpactPreviewOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    affected_items_count: int = Field(
+        default=0, ge=0, description="Items whose persisted continuation truth would change."
+    )
+    recovery_items_count: int = Field(
+        default=0, ge=0, description="Items that would move into a non-ready recovery state."
+    )
+    reshape_items_count: int = Field(default=0, ge=0, description="Items that would stay ready but require reshaping.")
+    has_blocking_changes: bool = Field(
+        default=False, description="Whether the preview contains blocking continuation changes."
+    )
+    preview_token: str = Field(
+        ..., min_length=1, description="Signed preview token required to commit the same mutation."
+    )
+    impact: ContentModelImpactOut = Field(
+        default_factory=ContentModelImpactOut, description="Schema mutation impact summary."
+    )
+
+
 class ContentModelOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 

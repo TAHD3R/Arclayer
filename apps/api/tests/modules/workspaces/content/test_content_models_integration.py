@@ -77,6 +77,44 @@ def _explicit_update_payload() -> dict:
     }
 
 
+async def _preview_model_update(
+    client: AsyncClient,
+    *,
+    workspace_id: str,
+    model_id: str,
+    payload: dict,
+):
+    response = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}/impact-preview",
+        json=payload,
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["data"]
+
+
+async def _patch_model_with_preview(
+    client: AsyncClient,
+    *,
+    workspace_id: str,
+    model_id: str,
+    payload: dict,
+):
+    preview = await _preview_model_update(
+        client,
+        workspace_id=workspace_id,
+        model_id=model_id,
+        payload=payload,
+    )
+    response = await client.patch(
+        f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+        json={
+            **payload,
+            "impactPreviewToken": preview["previewToken"],
+        },
+    )
+    return response
+
+
 @asynccontextmanager
 async def _workspace_client(prepared_db, integration_valkey_settings):
     _ = prepared_db
@@ -175,9 +213,11 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         assert create_response.status_code == 201, create_response.text
         model_id = create_response.json()["data"]["id"]
 
-        patch_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
-            json=_explicit_update_payload(),
+        patch_response = await _patch_model_with_preview(
+            client,
+            workspace_id=workspace_id,
+            model_id=model_id,
+            payload=_explicit_update_payload(),
         )
         assert patch_response.status_code == 200, patch_response.text
         patched_payload = patch_response.json()["data"]
@@ -276,15 +316,19 @@ async def test_content_models_patch_returns_breaking_impact_for_destructive_sche
         assert create_response.status_code == 201, create_response.text
         model_id = create_response.json()["data"]["id"]
 
-        seed_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
-            json=_explicit_update_payload(),
+        seed_response = await _patch_model_with_preview(
+            client,
+            workspace_id=workspace_id,
+            model_id=model_id,
+            payload=_explicit_update_payload(),
         )
         assert seed_response.status_code == 200, seed_response.text
 
-        destructive_response = await client.patch(
-            f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
-            json={
+        destructive_response = await _patch_model_with_preview(
+            client,
+            workspace_id=workspace_id,
+            model_id=model_id,
+            payload={
                 "fields": [],
                 "relations": [],
             },
