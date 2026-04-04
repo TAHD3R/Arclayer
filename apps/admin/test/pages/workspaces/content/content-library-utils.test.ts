@@ -174,6 +174,12 @@ describe("content-library-utils", () => {
           locale: "en-US",
           bootstrapPresetState: "none",
           capabilityPackIds: [],
+          derivedStatus: "draft",
+          runtime: "unknown",
+          context: "standalone",
+          libraryGroup: "general-content",
+          editWith: "structured",
+          role: "general",
           draftVersion: 1,
           updatedAt: "2026-03-19T00:00:00Z",
         },
@@ -188,10 +194,11 @@ describe("content-library-utils", () => {
       derivedStatus: "draft",
       libraryGroup: "general-content",
       editWith: "structured",
+      role: "general",
     });
   });
 
-  test("derives libraryGroup and editWith from model metadata", () => {
+  test("preserves backend workbench classifications while enriching model display metadata", () => {
     const rows = buildContentLibraryRows(
       [
         {
@@ -208,6 +215,12 @@ describe("content-library-utils", () => {
           bootstrapPresetKey: "page",
           bootstrapPresetState: "selected",
           capabilityPackIds: ["publishable", "layout_bound"],
+          derivedStatus: "published",
+          runtime: "visual",
+          context: "site_builder",
+          libraryGroup: "site-content",
+          editWith: "canvas",
+          role: "page",
           draftVersion: 2,
           publishedVersion: 2,
           updatedAt: "2026-03-19T00:00:00Z",
@@ -226,6 +239,12 @@ describe("content-library-utils", () => {
           bootstrapPresetKey: "post",
           bootstrapPresetState: "selected",
           capabilityPackIds: ["publishable"],
+          derivedStatus: "draft",
+          runtime: "text",
+          context: "content_library",
+          libraryGroup: "general-content",
+          editWith: "writing",
+          role: "article",
           draftVersion: 1,
           updatedAt: "2026-03-20T00:00:00Z",
         },
@@ -242,6 +261,12 @@ describe("content-library-utils", () => {
           locale: "en-US",
           bootstrapPresetState: "none",
           capabilityPackIds: ["has_relations"],
+          derivedStatus: "draft",
+          runtime: "data",
+          context: "custom",
+          libraryGroup: "structured-content",
+          editWith: "structured",
+          role: "person",
           draftVersion: 1,
           updatedAt: "2026-03-21T00:00:00Z",
         },

@@ -7,9 +7,10 @@ import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { DEFAULT_LOCALE, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import {
-  buildWorkspaceContentLibraryFocusSearch,
+  resolveContentItemContinuationRoute,
   workspaceContentLibraryPath,
 } from "@/lib/routing/workspace-content-routing";
+import type { AdminContentItem } from "@/types/api";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 import { buildContentItemsQueryKey } from "../../library/utils";
@@ -61,7 +62,7 @@ function useContinueWithStarterMutation(params: {
   locale: AppLocale;
   presetKey: ContentBootstrapPresetKey | null;
   invalidateItems: () => Promise<void>;
-  onSuccess: (itemId: string) => void;
+  onSuccess: (item: AdminContentItem) => void;
 }) {
   return useMutation({
     mutationFn: async () => {
@@ -73,17 +74,19 @@ function useContinueWithStarterMutation(params: {
         locale: params.locale,
       });
       if (params.presetKey) {
-        await applyContentBootstrapShape(
+        const shapedItem = await applyContentBootstrapShape(
           params.workspaceId,
           draftItem.id,
           buildStarterPresetPayload(params.presetKey),
         );
+        await params.invalidateItems();
+        return shapedItem;
       }
       await params.invalidateItems();
       return draftItem;
     },
-    onSuccess: (draftItem) => {
-      params.onSuccess(draftItem.id);
+    onSuccess: (item) => {
+      params.onSuccess(item);
     },
     onError: (error) => notifyError(error),
   });
@@ -109,12 +112,13 @@ export function useContentBootstrapController(workspaceId: string) {
     void navigate({ to: workspaceContentLibraryPath(workspaceId) });
   }, [navigate, workspaceId]);
 
-  const navigateToFocusedDraft = React.useCallback(
-    (itemId: string) => {
-      void navigate({
-        to: workspaceContentLibraryPath(workspaceId),
-        search: buildWorkspaceContentLibraryFocusSearch(itemId),
-      });
+  const navigateToContinuation = React.useCallback(
+    (item: AdminContentItem) => {
+      const route = resolveContentItemContinuationRoute(item);
+      if (!route) {
+        throw new Error("CONTENT_BOOTSTRAP_CONTINUATION_TARGET_MISSING");
+      }
+      void navigate({ to: route as never });
     },
     [navigate, workspaceId],
   );
@@ -125,7 +129,7 @@ export function useContentBootstrapController(workspaceId: string) {
     locale,
     presetKey: selectedPresetKey,
     invalidateItems,
-    onSuccess: navigateToFocusedDraft,
+    onSuccess: navigateToContinuation,
   });
 
   return {

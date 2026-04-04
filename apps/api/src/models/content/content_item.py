@@ -8,8 +8,12 @@ from tortoise import fields
 from apps.api.src.common.models.base import BaseModel
 from apps.api.src.models.content._enums import (
     ContentBootstrapPresetState,
+    ContentContinuationPosture,
+    ContentContinuationRole,
+    ContentContinuationSurface,
     ContentItemStatus,
     ContentItemVisibility,
+    ContentShapeState,
 )
 
 
@@ -56,6 +60,32 @@ class ContentItemRecord(BaseModel):
         db_index=True,
     )
     capability_pack_ids = fields.JSONField(default=list)
+    resolved_role = fields.CharEnumField(
+        ContentContinuationRole,
+        max_length=32,
+        null=True,
+        db_index=True,
+    )
+    resolved_posture = fields.CharEnumField(
+        ContentContinuationPosture,
+        max_length=32,
+        null=True,
+        db_index=True,
+    )
+    resolved_surface = fields.CharEnumField(
+        ContentContinuationSurface,
+        max_length=32,
+        null=True,
+        db_index=True,
+    )
+    shape_state = fields.CharEnumField(
+        ContentShapeState,
+        max_length=16,
+        default=ContentShapeState.UNSHAPED,
+        db_index=True,
+    )
+    shape_reason_code = fields.CharField(max_length=64, null=True, db_index=True)
+    shape_reason_meta = fields.JSONField(null=True)
 
     draft_version = fields.IntField(default=0)
     published_version = fields.IntField(null=True)

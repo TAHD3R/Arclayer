@@ -27,6 +27,11 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         category="site_builder",
         capabilities=["versioned", "routable", "treeable", "visual_editable", "publishable"],
         default_editor="visual",
+        default_role="page",
+        default_posture="page",
+        default_surface="canvas",
+        starter_pack_policy={"preset": "page"},
+        surface_policy={"allowedSurfaces": ["canvas"]},
         field_schema={"title": {"type": "text"}},
         relation_schema={"layout": {"target": "layout", "kind": "one"}},
         routing_schema={"mode": "static_or_dynamic"},
@@ -40,6 +45,9 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
     assert payload["category"] == "site_builder"
     assert payload["description"] == "Reusable routed pages for the site builder."
     assert payload["default_editor"] == "visual"
+    assert payload["default_role"] == "page"
+    assert payload["default_posture"] == "page"
+    assert payload["default_surface"] == "canvas"
     assert payload["capabilities"] == [
         "versioned",
         "routable",
@@ -79,6 +87,14 @@ def test_content_item_out_is_identity_shell_without_page_specific_fields() -> No
         "bootstrap_preset_key",
         "bootstrap_preset_state",
         "capability_pack_ids",
+        "resolved_role",
+        "resolved_posture",
+        "resolved_surface",
+        "shape_state",
+        "shape_reason_code",
+        "shape_reason_meta",
+        "open_intent",
+        "continuation_target",
         "draft_version",
         "published_version",
         "updated_at",

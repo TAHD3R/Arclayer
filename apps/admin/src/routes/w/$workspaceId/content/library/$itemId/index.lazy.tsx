@@ -1,13 +1,13 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { ContentLibraryArticleEditorPage } from "@/pages/workspaces/content/library/article-editor/page";
+import { ContentLibraryItemResolverPage } from "@/pages/workspaces/content/library/item-resolver/page";
 
 export const Route = createLazyFileRoute("/w/$workspaceId/content/library/$itemId/")({
-  component: ContentLibraryArticleEditorRoute,
+  component: ContentLibraryItemResolverRoute,
 });
 
-function ContentLibraryArticleEditorRoute() {
+function ContentLibraryItemResolverRoute() {
   const { workspaceId, itemId } = Route.useParams();
 
-  return <ContentLibraryArticleEditorPage workspaceId={workspaceId} itemId={itemId} />;
+  return <ContentLibraryItemResolverPage workspaceId={workspaceId} itemId={itemId} />;
 }

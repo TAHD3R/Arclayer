@@ -8,6 +8,7 @@ from apps.api.src.models.content.model_definition import ContentModelDefinitionR
 from apps.api.src.models.content.model_field import ContentModelFieldRecord
 from apps.api.src.models.content.model_relation import ContentModelRelationRecord
 from apps.api.src.models.content.model_view import ContentModelViewRecord
+from apps.api.src.modules.workspaces.content.continuation import read_record_continuation_defaults
 from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentDefaultEditor,
     ContentModelCategory,
@@ -75,6 +76,7 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
     fields = cast(Iterable[ContentModelFieldRecord], getattr(record, "fields", []))
     relations = cast(Iterable[ContentModelRelationRecord], getattr(record, "relations", []))
     views = cast(Iterable[ContentModelViewRecord], getattr(record, "views", []))
+    defaults = read_record_continuation_defaults(record)
 
     return ContentModelOut(
         id=record.id,
@@ -86,6 +88,11 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
         category=cast(ContentModelCategory, str(record.category or "custom")),
         capabilities=[str(value) for value in (record.capabilities or [])],
         default_editor=cast(ContentDefaultEditor, str(record.default_editor or "form")),
+        default_role=cast(Any, defaults.default_role),
+        default_posture=cast(Any, defaults.default_posture),
+        default_surface=cast(Any, defaults.default_surface),
+        starter_pack_policy=defaults.starter_pack_policy,
+        surface_policy=defaults.surface_policy,
         field_schema=_field_schema(fields),
         relation_schema=_relation_schema(relations),
         routing_schema=record.routing_policy,

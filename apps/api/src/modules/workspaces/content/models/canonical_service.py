@@ -13,7 +13,11 @@ from apps.api.src.core.http.pagination import PageData, PageParams, paginate_ite
 from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
 from apps.api.src.models.content.model_field import ContentModelFieldRecord
 from apps.api.src.models.content.model_relation import ContentModelRelationRecord
+from apps.api.src.modules.workspaces.content.continuation import resolve_model_continuation_defaults
 from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentContinuationPosture,
+    ContentContinuationRole,
+    ContentContinuationSurface,
     ContentDefaultEditor,
     ContentModelCapability,
     ContentModelCategory,
@@ -44,6 +48,9 @@ class ContentModelDefinitionPatchContract(BaseSchema):
     description: str | None = Field(default=None, max_length=512)
     category: ContentModelCategory | None = None
     default_editor: ContentDefaultEditor | None = None
+    default_role: ContentContinuationRole | None = None
+    default_posture: ContentContinuationPosture | None = None
+    default_surface: ContentContinuationSurface | None = None
     fields: list[ContentModelFieldContract] | None = None
     relations: list[ContentModelRelationContract] | None = None
     capabilities: list[ContentModelCapability] | None = None
@@ -52,6 +59,8 @@ class ContentModelDefinitionPatchContract(BaseSchema):
     views: list[ContentModelViewContract] | None = None
     presentation: dict[str, Any] | None = None
     seo: dict[str, Any] | None = None
+    starter_pack_policy: dict[str, Any] | None = None
+    surface_policy: dict[str, Any] | None = None
 
 
 def _normalize_required_text(value: str, *, error: str) -> str:
@@ -203,6 +212,12 @@ def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[s
         updates["category"] = normalize_model_category(payload.category)
     if "default_editor" in fields_set:
         updates["default_editor"] = normalize_default_editor(payload.default_editor)
+    if "default_role" in fields_set:
+        updates["default_role"] = payload.default_role
+    if "default_posture" in fields_set:
+        updates["default_posture"] = payload.default_posture
+    if "default_surface" in fields_set:
+        updates["default_surface"] = payload.default_surface
     if "capabilities" in fields_set:
         updates["capabilities"] = _capabilities(payload.capabilities or [])
     if "routing" in fields_set:
@@ -211,6 +226,10 @@ def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[s
         updates["presentation_policy"] = dump_contract(payload.presentation)
     if "seo" in fields_set:
         updates["seo_policy"] = dump_contract(payload.seo)
+    if "starter_pack_policy" in fields_set:
+        updates["starter_pack_policy"] = dump_contract(payload.starter_pack_policy)
+    if "surface_policy" in fields_set:
+        updates["surface_policy"] = dump_contract(payload.surface_policy)
     if "workflow" in fields_set:
         updates["workflow_policy"] = dump_contract(payload.workflow)
     return updates
@@ -238,6 +257,18 @@ class WorkspaceContentCanonicalModelsService:
         site_id: UUID,
         payload: ContentModelDefinitionContract,
     ) -> ContentModelMutationResult:
+        defaults = resolve_model_continuation_defaults(
+            key=payload.key,
+            name=payload.name,
+            category=payload.category,
+            default_editor=payload.default_editor,
+            capabilities=_capabilities(payload.capabilities),
+            default_role=payload.default_role,
+            default_posture=payload.default_posture,
+            default_surface=payload.default_surface,
+            starter_pack_policy=payload.starter_pack_policy,
+            surface_policy=payload.surface_policy,
+        )
         record = await self.repo.create_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
@@ -246,10 +277,15 @@ class WorkspaceContentCanonicalModelsService:
             description=payload.description,
             category=normalize_model_category(payload.category),
             default_editor=normalize_default_editor(payload.default_editor),
+            default_role=defaults.default_role,
+            default_posture=defaults.default_posture,
+            default_surface=defaults.default_surface,
             capabilities=_capabilities(payload.capabilities),
             routing_policy=dump_contract(payload.routing),
             presentation_policy=dump_contract(payload.presentation),
             seo_policy=dump_contract(payload.seo),
+            starter_pack_policy=defaults.starter_pack_policy,
+            surface_policy=defaults.surface_policy,
             workflow_policy=dump_contract(payload.workflow),
             fields=payload.fields,
             relations=payload.relations,
@@ -273,11 +309,50 @@ class WorkspaceContentCanonicalModelsService:
         )
         if existing is None:
             return None
+        fields_to_update = _build_patch_updates(payload)
+        merged_key = fields_to_update.get("key", existing.key)
+        merged_name = fields_to_update.get("name", existing.name)
+        merged_category = fields_to_update.get("category", str(existing.category or "custom"))
+        merged_default_editor = fields_to_update.get("default_editor", str(existing.default_editor or "form"))
+        merged_capabilities = fields_to_update.get("capabilities", list(existing.capabilities or []))
+        merged_default_role = fields_to_update.get(
+            "default_role",
+            str(existing.default_role) if existing.default_role is not None else None,
+        )
+        merged_default_posture = fields_to_update.get(
+            "default_posture",
+            str(existing.default_posture) if existing.default_posture is not None else None,
+        )
+        merged_default_surface = fields_to_update.get(
+            "default_surface",
+            str(existing.default_surface) if existing.default_surface is not None else None,
+        )
+        merged_starter_pack_policy = fields_to_update.get("starter_pack_policy", existing.starter_pack_policy)
+        merged_surface_policy = fields_to_update.get("surface_policy", existing.surface_policy)
+        defaults = resolve_model_continuation_defaults(
+            key=merged_key,
+            name=merged_name,
+            category=merged_category,
+            default_editor=merged_default_editor,
+            capabilities=merged_capabilities,
+            default_role=merged_default_role,
+            default_posture=merged_default_posture,
+            default_surface=merged_default_surface,
+            starter_pack_policy=merged_starter_pack_policy,
+            surface_policy=merged_surface_policy,
+        )
+        fields_to_update.update({
+            "default_role": defaults.default_role,
+            "default_posture": defaults.default_posture,
+            "default_surface": defaults.default_surface,
+            "starter_pack_policy": defaults.starter_pack_policy,
+            "surface_policy": defaults.surface_policy,
+        })
         updated = await self.repo.update_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
             model_id=model_id,
-            fields_to_update=_build_patch_updates(payload),
+            fields_to_update=fields_to_update,
             fields=(payload.fields if "fields" in fields_set else None),
             relations=(payload.relations if "relations" in fields_set else None),
             views=(payload.views if "views" in fields_set else None),

@@ -1,18 +1,24 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from apps.api.src.common.text.slug.service import slugify
+from apps.api.src.common.utils.public_ids import encode_uuid
 from apps.api.src.core.exceptions import Conflict
 from apps.api.src.models.content._enums import ContentItemStatus, ContentItemVisibility, ContentVersionState
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
+from apps.api.src.modules.workspaces.content.continuation import (
+    CONTINUATION_TRUTH_MISSING_REASON_CODE,
+)
 from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentItemOut,
+    ContentOpenIntentOut,
     ContentPresentationKind,
     ContentPresentationOut,
+    ContentRecoveryActionOut,
     ContentVersionOut,
 )
 from apps.api.src.modules.workspaces.content.items.input_schema import (
@@ -27,6 +33,12 @@ DEFAULT_FORMLESS_SLUG = "draft"
 DEFAULT_DUPLICATE_TITLE = "Copy"
 MAX_SLUG_LENGTH = 256
 SLUG_SUFFIX_LENGTH = 8
+WORKBENCH_ROLE_PRESET_MAP = {
+    "page": "page",
+    "post": "article",
+    "reusable-block": "reusable-section",
+    "taxonomy-item": "taxonomy",
+}
 
 VERSION_TRANSITIONS: dict[ContentVersionState, tuple[ContentVersionState, ...]] = {
     ContentVersionState.PUBLISHED: (ContentVersionState.DRAFT, ContentVersionState.SCHEDULED),
@@ -116,12 +128,183 @@ def read_summary_field(fields_snapshot: dict[str, Any] | None) -> str | None:
     return normalized or None
 
 
+def _model_capabilities(model: ContentModelDefinitionRecord | None) -> set[str]:
+    if model is None or not isinstance(model.capabilities, list):
+        return set()
+    return {str(value).strip() for value in model.capabilities if isinstance(value, str)}
+
+
+def _normalized_model_tokens(model: ContentModelDefinitionRecord | None) -> list[str]:
+    if model is None:
+        return []
+    return [token for token in [str(model.key or "").strip().lower(), str(model.name or "").strip().lower()] if token]
+
+
+def _model_matches_any_token(model: ContentModelDefinitionRecord | None, candidates: list[str]) -> bool:
+    tokens = _normalized_model_tokens(model)
+    return any(candidate in token for token in tokens for candidate in candidates)
+
+
+def _is_site_content_model(model: ContentModelDefinitionRecord | None) -> bool:
+    if model is None:
+        return False
+    capabilities = _model_capabilities(model)
+    if str(model.category) == "site_builder":
+        return True
+    if str(model.default_editor or "") == "visual":
+        return True
+    return any(capability in capabilities for capability in {"visual_editable", "routable", "has_slots"})
+
+
+def _is_structured_model(model: ContentModelDefinitionRecord | None) -> bool:
+    if model is None:
+        return False
+    capabilities = _model_capabilities(model)
+    if str(model.default_editor or "") in {"form", "table"}:
+        return True
+    return any(capability in capabilities for capability in {"queryable", "has_relations"})
+
+
+def derive_item_workbench_status(item: ContentItemRecord) -> str:
+    if item.status == ContentItemStatus.ARCHIVED:
+        return "archived"
+    if item.published_version is not None and item.draft_version > item.published_version:
+        return "changed"
+    if item.status == ContentItemStatus.PUBLISHED:
+        return "published"
+    return "draft"
+
+
+def derive_item_workbench_runtime(
+    item: ContentItemRecord,
+    model: ContentModelDefinitionRecord | None,
+) -> str:
+    surface = str(item.resolved_surface) if item.resolved_surface is not None else None
+    if surface == "canvas":
+        return "visual"
+    if surface == "writing":
+        return "text"
+    if surface == "structured":
+        return "data"
+
+    capabilities = _model_capabilities(model)
+    default_editor = str(model.default_editor or "") if model is not None else ""
+    if default_editor == "visual":
+        return "visual"
+    if default_editor == "rich_text":
+        return "text"
+    if default_editor in {"form", "table"}:
+        return "data"
+    if "visual_editable" in capabilities:
+        return "visual"
+    if "rich_text_editable" in capabilities:
+        return "text"
+    if "queryable" in capabilities or "has_relations" in capabilities:
+        return "data"
+    return "unknown"
+
+
+def derive_item_workbench_context(model: ContentModelDefinitionRecord | None) -> str:
+    if model is None:
+        return "standalone"
+    return str(model.category)
+
+
+def derive_item_workbench_library_group(
+    item: ContentItemRecord,
+    model: ContentModelDefinitionRecord | None,
+) -> str:
+    surface = str(item.resolved_surface) if item.resolved_surface is not None else None
+    if surface == "canvas":
+        return "site-content"
+    if surface == "structured":
+        return "structured-content"
+    if _is_site_content_model(model):
+        return "site-content"
+    if _is_structured_model(model):
+        return "structured-content"
+    return "general-content"
+
+
+def derive_item_workbench_edit_with(
+    item: ContentItemRecord,
+    model: ContentModelDefinitionRecord | None,
+) -> str:
+    if item.resolved_surface is not None:
+        return str(item.resolved_surface)
+
+    capabilities = _model_capabilities(model)
+    default_editor = str(model.default_editor or "") if model is not None else ""
+    if default_editor == "visual" or "visual_editable" in capabilities:
+        return "canvas"
+    if default_editor == "rich_text" or "rich_text_editable" in capabilities:
+        return "writing"
+    return "structured"
+
+
+def derive_item_workbench_role(
+    item: ContentItemRecord,
+    model: ContentModelDefinitionRecord | None,
+) -> str:
+    if item.resolved_role is not None:
+        return str(item.resolved_role)
+
+    preset_role = WORKBENCH_ROLE_PRESET_MAP.get(str(item.bootstrap_preset_key or "").strip())
+    if preset_role is not None:
+        return preset_role
+
+    if _model_matches_any_token(model, ["section", "block", "component", "reusable"]):
+        return "reusable-section"
+    if _model_matches_any_token(model, ["taxonomy", "tag", "category", "topic"]):
+        return "taxonomy"
+    if _model_matches_any_token(model, ["person", "people", "author", "profile", "member", "team"]):
+        return "person"
+    if _model_matches_any_token(model, ["setting", "settings", "config", "configuration", "preference"]):
+        return "settings"
+    if _model_matches_any_token(model, ["article", "post", "story", "blog", "news"]):
+        return "article"
+    capability_pack_ids = {str(value).strip() for value in item.capability_pack_ids or [] if isinstance(value, str)}
+    if (
+        _model_matches_any_token(model, ["page", "landing", "screen"])
+        or (model is not None and str(model.category) == "site_builder")
+        or "layout_bound" in capability_pack_ids
+    ):
+        return "page"
+    if _is_structured_model(model):
+        return "data"
+    if derive_item_workbench_runtime(item, model) == "text":
+        return "article"
+    return "general"
+
+
 def to_item_out(
     item: ContentItemRecord,
     model: ContentModelDefinitionRecord | None,
     *,
     summary: str | None = None,
 ) -> ContentItemOut:
+    route = f"/w/{encode_uuid(item.workspace_id)}/content/library/{encode_uuid(item.id)}"
+    shape_reason_code = item.shape_reason_code or None
+    shape_reason_meta = item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None
+    blocked = str(item.shape_state or "unshaped") != "ready"
+    open_intent = ContentOpenIntentOut(
+        surface=(str(item.resolved_surface) if item.resolved_surface is not None else None),
+        route=route,
+        blocked=blocked,
+        reason_code=(shape_reason_code or CONTINUATION_TRUTH_MISSING_REASON_CODE) if blocked else None,
+        reason_meta=shape_reason_meta if blocked else None,
+        recovery_actions=(
+            [
+                ContentRecoveryActionOut(
+                    kind="open-recovery",
+                    label="Open recovery surface",
+                    route=route,
+                )
+            ]
+            if blocked
+            else []
+        ),
+    )
     return ContentItemOut(
         id=item.id,
         workspace_id=item.workspace_id,
@@ -137,6 +320,20 @@ def to_item_out(
         bootstrap_preset_key=item.bootstrap_preset_key,
         bootstrap_preset_state=str(item.bootstrap_preset_state),
         capability_pack_ids=normalize_capability_pack_ids(item.capability_pack_ids or []),
+        resolved_role=(str(item.resolved_role) if item.resolved_role is not None else None),
+        resolved_posture=(str(item.resolved_posture) if item.resolved_posture is not None else None),
+        resolved_surface=(str(item.resolved_surface) if item.resolved_surface is not None else None),
+        derived_status=cast(Any, derive_item_workbench_status(item)),
+        runtime=cast(Any, derive_item_workbench_runtime(item, model)),
+        context=cast(Any, derive_item_workbench_context(model)),
+        library_group=cast(Any, derive_item_workbench_library_group(item, model)),
+        edit_with=cast(Any, derive_item_workbench_edit_with(item, model)),
+        role=cast(Any, derive_item_workbench_role(item, model)),
+        shape_state=str(item.shape_state or "unshaped"),
+        shape_reason_code=shape_reason_code,
+        shape_reason_meta=shape_reason_meta,
+        open_intent=open_intent,
+        continuation_target=open_intent,
         draft_version=item.draft_version,
         published_version=item.published_version,
         updated_at=item.updated_at,

@@ -13,6 +13,53 @@ export type AdminContentModelCapability =
   | "publishable"
   | "schedulable"
   | "seo_managed";
+export type AdminContentContinuationRole =
+  | "page"
+  | "article"
+  | "reusable-section"
+  | "taxonomy"
+  | "person"
+  | "settings"
+  | "data"
+  | "general";
+export type AdminContentContinuationPosture = "page" | "entry" | "composition" | "structured";
+export type AdminContentContinuationSurface = "writing" | "canvas" | "structured";
+export type AdminContentShapeState = "ready" | "blocked" | "unshaped";
+export type AdminContentWorkbenchDerivedStatus = "published" | "changed" | "draft" | "archived";
+export type AdminContentWorkbenchRuntime = "text" | "visual" | "data" | "unknown";
+export type AdminContentWorkbenchContext =
+  | "site_builder"
+  | "content_library"
+  | "system"
+  | "custom"
+  | "standalone";
+export type AdminContentWorkbenchLibraryGroup =
+  | "site-content"
+  | "general-content"
+  | "structured-content";
+export type AdminContentShapeReasonCode =
+  | "UNSHAPED_ITEM"
+  | "MODEL_DEFAULT_INVALID"
+  | "CONTINUATION_TRUTH_MISSING"
+  | "SURFACE_UNAVAILABLE"
+  | "MISSING_ROUTE"
+  | "PARENT_UNPUBLISHED"
+  | "RECOVERY_REQUIRED";
+
+export type AdminContentRecoveryAction = {
+  kind: string;
+  label: string;
+  route?: string | null;
+};
+
+export type AdminContentOpenIntent = {
+  surface?: AdminContentContinuationSurface | null;
+  route?: string | null;
+  blocked: boolean;
+  reasonCode?: AdminContentShapeReasonCode | null;
+  reasonMeta?: Record<string, unknown> | null;
+  recoveryActions: AdminContentRecoveryAction[];
+};
 
 export type AdminContentModel = {
   id: string;
@@ -24,6 +71,11 @@ export type AdminContentModel = {
   category: AdminContentModelCategory;
   capabilities: AdminContentModelCapability[];
   defaultEditor?: "form" | "visual" | "rich_text" | "table";
+  defaultRole?: AdminContentContinuationRole | null;
+  defaultPosture?: AdminContentContinuationPosture | null;
+  defaultSurface?: AdminContentContinuationSurface | null;
+  starterPackPolicy?: Record<string, unknown> | null;
+  surfacePolicy?: Record<string, unknown> | null;
 };
 
 export type AdminContentItemStatus = "draft" | "published" | "archived";
@@ -58,6 +110,20 @@ export type AdminContentItem = {
   bootstrapPresetKey?: string | null;
   bootstrapPresetState: AdminContentBootstrapPresetState;
   capabilityPackIds: AdminContentCapabilityPackId[];
+  resolvedRole?: AdminContentContinuationRole | null;
+  resolvedPosture?: AdminContentContinuationPosture | null;
+  resolvedSurface?: AdminContentContinuationSurface | null;
+  derivedStatus: AdminContentWorkbenchDerivedStatus;
+  runtime: AdminContentWorkbenchRuntime;
+  context: AdminContentWorkbenchContext;
+  libraryGroup: AdminContentWorkbenchLibraryGroup;
+  editWith: AdminContentContinuationSurface;
+  role: AdminContentContinuationRole;
+  shapeState?: AdminContentShapeState;
+  shapeReasonCode?: AdminContentShapeReasonCode | null;
+  shapeReasonMeta?: Record<string, unknown> | null;
+  openIntent?: AdminContentOpenIntent | null;
+  continuationTarget?: AdminContentOpenIntent | null;
   draftVersion: number;
   publishedVersion?: number | null;
   updatedAt: string;

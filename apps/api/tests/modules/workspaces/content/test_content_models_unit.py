@@ -33,6 +33,7 @@ MIGRATION_0011 = REPO_ROOT / "apps/api/src/migrations/0011_content_kernel_initia
 MIGRATION_0013 = REPO_ROOT / "apps/api/src/migrations/0013_content_platform_rebuild.py"
 MIGRATION_0014 = REPO_ROOT / "apps/api/src/migrations/0014_drop_legacy_content_models.py"
 MIGRATION_0015 = REPO_ROOT / "apps/api/src/migrations/0015_content_bootstrap_shape.py"
+MIGRATION_0016 = REPO_ROOT / "apps/api/src/migrations/0016_content_continuation_truth.py"
 SEO_PROFILE_MODEL = REPO_ROOT / "apps/api/src/models/content/seo_profile.py"
 COMPONENT_BINDING_MODEL = REPO_ROOT / "apps/api/src/models/content/component_binding.py"
 PUBLISH_ARTIFACT_MODEL = REPO_ROOT / "apps/api/src/models/content/publish_artifact.py"
@@ -79,6 +80,17 @@ def test_model_impact_contract_surfaces_breaking_changes_and_warnings() -> None:
     assert "code" in change_fields
     assert "target" in change_fields
     assert "message" in change_fields
+
+
+def test_content_item_contract_exposes_flattened_workbench_fields() -> None:
+    item_fields = set(contracts_schema.ContentItemOut.model_fields.keys())
+
+    assert "derived_status" in item_fields
+    assert "runtime" in item_fields
+    assert "context" in item_fields
+    assert "library_group" in item_fields
+    assert "edit_with" in item_fields
+    assert "role" in item_fields
 
 
 def test_content_item_record_does_not_persist_route_or_page_blueprint_state() -> None:
@@ -240,12 +252,16 @@ def test_migration_0014_removes_direct_relations_before_deleting_legacy_models()
         'DeleteModel(name="ContentTreeNodeRecord")'
     )
 
-    assert 'RemoveField(model_name="ContentEntryRecord", name="workspace")' in migration
-    assert 'RemoveField(model_name="ContentEntryRecord", name="site")' in migration
-    assert 'RemoveField(model_name="ContentEntryRecord", name="type")' in migration
-    assert migration.index('RemoveField(model_name="ContentEntryRecord", name="workspace")') < migration.index(
-        'DeleteModel(name="ContentEntryRecord")'
-    )
+
+def test_migration_0016_backfills_shape_state_before_enforcing_not_null() -> None:
+    migration = MIGRATION_0016.read_text(encoding="utf-8")
+
+    assert 'name="shape_state"' in migration
+    assert "null=True" in migration
+    assert "UPDATE content_items" in migration
+    assert "SET shape_state = 'unshaped'" in migration
+    assert "ops.AlterField(" in migration
+    assert migration.index("SET shape_state = 'unshaped'") < migration.rindex("ops.AlterField(")
 
 
 def test_migration_0013_adds_rebuild_kernel_records() -> None:

@@ -56,7 +56,7 @@ describe("useContentBootstrapController", () => {
     applyContentBootstrapShapeMock.mockReset();
   });
 
-  test("continue creates a draft with the selected starter and returns to content library", async () => {
+  test("continue creates a draft with the selected starter and hands off to the continuation target", async () => {
     createContentItemMock.mockResolvedValue({
       id: "item-1",
       workspaceId: "ws-1",
@@ -68,6 +68,24 @@ describe("useContentBootstrapController", () => {
       locale: "en-US",
       bootstrapPresetState: "none",
       capabilityPackIds: [],
+      shapeState: "unshaped",
+      shapeReasonCode: "UNSHAPED_ITEM",
+      openIntent: {
+        surface: null,
+        route: "/w/ws-1/content/library/item-1",
+        blocked: true,
+        reasonCode: "UNSHAPED_ITEM",
+        reasonMeta: null,
+        recoveryActions: [],
+      },
+      continuationTarget: {
+        surface: null,
+        route: "/w/ws-1/content/library/item-1",
+        blocked: true,
+        reasonCode: "UNSHAPED_ITEM",
+        reasonMeta: null,
+        recoveryActions: [],
+      },
       draftVersion: 1,
       updatedAt: "2026-03-19T00:00:00Z",
     });
@@ -83,6 +101,27 @@ describe("useContentBootstrapController", () => {
       bootstrapPresetKey: "page",
       bootstrapPresetState: "selected",
       capabilityPackIds: ["routable", "publishable", "seo_managed", "layout_bound"],
+      resolvedRole: "page",
+      resolvedPosture: "page",
+      resolvedSurface: "canvas",
+      shapeState: "ready",
+      shapeReasonCode: null,
+      openIntent: {
+        surface: "canvas",
+        route: "/w/ws-1/content/library/item-1",
+        blocked: false,
+        reasonCode: null,
+        reasonMeta: null,
+        recoveryActions: [],
+      },
+      continuationTarget: {
+        surface: "canvas",
+        route: "/w/ws-1/content/library/item-1",
+        blocked: false,
+        reasonCode: null,
+        reasonMeta: null,
+        recoveryActions: [],
+      },
       draftVersion: 1,
       updatedAt: "2026-03-19T00:00:00Z",
     });
@@ -113,12 +152,11 @@ describe("useContentBootstrapController", () => {
       capabilityPackIds: ["routable", "publishable", "seo_managed", "layout_bound"],
     });
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/w/ws-1/content/library",
-      search: { view: "draft", focusItemId: "item-1" },
+      to: "/w/ws-1/content/library/item-1",
     });
   });
 
-  test("continue can create a blank draft without a selected template", async () => {
+  test("continue can create a blank draft without a selected template and still uses continuation routing", async () => {
     createContentItemMock.mockResolvedValue({
       id: "item-2",
       workspaceId: "ws-1",
@@ -130,6 +168,24 @@ describe("useContentBootstrapController", () => {
       locale: "en-US",
       bootstrapPresetState: "none",
       capabilityPackIds: [],
+      shapeState: "unshaped",
+      shapeReasonCode: "UNSHAPED_ITEM",
+      openIntent: {
+        surface: null,
+        route: "/w/ws-1/content/library/item-2",
+        blocked: true,
+        reasonCode: "UNSHAPED_ITEM",
+        reasonMeta: null,
+        recoveryActions: [],
+      },
+      continuationTarget: {
+        surface: null,
+        route: "/w/ws-1/content/library/item-2",
+        blocked: true,
+        reasonCode: "UNSHAPED_ITEM",
+        reasonMeta: null,
+        recoveryActions: [],
+      },
       draftVersion: 1,
       updatedAt: "2026-03-19T00:00:00Z",
     });
@@ -155,8 +211,7 @@ describe("useContentBootstrapController", () => {
 
     expect(applyContentBootstrapShapeMock).not.toHaveBeenCalled();
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/w/ws-1/content/library",
-      search: { view: "draft", focusItemId: "item-2" },
+      to: "/w/ws-1/content/library/item-2",
     });
   });
 });

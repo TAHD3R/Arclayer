@@ -1,4 +1,6 @@
 import type {
+  AdminContentContinuationRole,
+  AdminContentContinuationSurface,
   AdminContentItem,
   AdminContentLibraryView,
   AdminContentModel,
@@ -7,22 +9,18 @@ import type {
   AdminContentSeoProfile,
   AdminContentVersion,
   AdminPublishImpact,
+  AdminContentWorkbenchContext,
+  AdminContentWorkbenchDerivedStatus,
+  AdminContentWorkbenchLibraryGroup,
+  AdminContentWorkbenchRuntime,
 } from "@/types/api";
 
-export type ContentLibraryDerivedStatus = "published" | "changed" | "draft" | "archived";
-export type ContentLibraryRuntime = "text" | "visual" | "data" | "unknown";
-export type ContentLibraryContext = AdminContentModelCategory | "standalone";
-export type ContentLibraryRole =
-  | "page"
-  | "article"
-  | "reusable-section"
-  | "taxonomy"
-  | "person"
-  | "settings"
-  | "data"
-  | "general";
-export type ContentLibraryLibraryGroup = "site-content" | "general-content" | "structured-content";
-export type ContentLibraryEditWith = "canvas" | "writing" | "structured";
+export type ContentLibraryDerivedStatus = AdminContentWorkbenchDerivedStatus;
+export type ContentLibraryRuntime = AdminContentWorkbenchRuntime;
+export type ContentLibraryContext = AdminContentWorkbenchContext;
+export type ContentLibraryRole = AdminContentContinuationRole;
+export type ContentLibraryLibraryGroup = AdminContentWorkbenchLibraryGroup;
+export type ContentLibraryEditWith = AdminContentContinuationSurface;
 export type ContentLibrarySystemViewId =
   | "all"
   | "site-content"
@@ -75,12 +73,6 @@ export type ContentLibraryTableRow = AdminContentItem & {
   modelDescription?: string | null;
   modelCategory?: AdminContentModelCategory | null;
   modelCapabilities: AdminContentModelCapability[];
-  derivedStatus: ContentLibraryDerivedStatus;
-  runtime: ContentLibraryRuntime;
-  context: ContentLibraryContext;
-  libraryGroup: ContentLibraryLibraryGroup;
-  editWith: ContentLibraryEditWith;
-  role: ContentLibraryRole;
 };
 
 export type ContentLibrarySidebarCounts = {

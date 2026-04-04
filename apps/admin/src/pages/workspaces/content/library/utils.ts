@@ -2,13 +2,10 @@ import type { PageData } from "@arclayer/ui/data-table";
 
 import type { AdminContentItem, AdminContentModel } from "@/types/api";
 import type {
-  ContentLibraryContext,
   ContentLibraryDerivedStatus,
   ContentLibraryEditWith,
   ContentLibraryFacetOption,
-  ContentLibraryLibraryGroup,
   ContentLibraryRole,
-  ContentLibraryRuntime,
   ContentLibrarySavedView,
   ContentLibraryScopeId,
   ContentLibrarySidebarCounts,
@@ -97,49 +94,6 @@ function compareStatus(
   return compareNumbers(rank[left], rank[right]);
 }
 
-function isSiteContentModel(
-  model: Pick<AdminContentModel, "category" | "capabilities" | "defaultEditor"> | null | undefined,
-): boolean {
-  if (!model) return false;
-  if (model.category === "site_builder") return true;
-  if (model.defaultEditor === "visual") return true;
-  return (
-    model.capabilities.includes("visual_editable") ||
-    model.capabilities.includes("routable") ||
-    model.capabilities.includes("has_slots")
-  );
-}
-
-function isStructuredModel(
-  model: Pick<AdminContentModel, "capabilities" | "defaultEditor"> | null | undefined,
-): boolean {
-  if (!model) return false;
-  if (model.defaultEditor === "form" || model.defaultEditor === "table") return true;
-  return model.capabilities.includes("queryable") || model.capabilities.includes("has_relations");
-}
-
-function normalizeModelIdentityValue(value: string | null | undefined): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
-function modelIdentityTokens(
-  model: Pick<AdminContentModel, "key" | "name"> | null | undefined,
-): string[] {
-  return [normalizeModelIdentityValue(model?.key), normalizeModelIdentityValue(model?.name)].filter(
-    Boolean,
-  );
-}
-
-function modelMatchesAnyToken(
-  model: Pick<AdminContentModel, "key" | "name"> | null | undefined,
-  candidates: string[],
-): boolean {
-  const tokens = modelIdentityTokens(model);
-  return tokens.some((token) => candidates.some((candidate) => token.includes(candidate)));
-}
-
 function isContentLibraryRole(value: unknown): value is ContentLibraryRole {
   return typeof value === "string" && CONTENT_LIBRARY_ROLE_SET.has(value as ContentLibraryRole);
 }
@@ -188,95 +142,6 @@ function normalizeContentLibraryViewColumns(
     ...(visibility && Object.keys(visibility).length ? { visibility } : {}),
     ...(order?.length ? { order } : {}),
   };
-}
-
-export function deriveContentRuntime(
-  model: Pick<AdminContentModel, "capabilities" | "defaultEditor"> | null | undefined,
-): ContentLibraryRuntime {
-  if (model?.defaultEditor === "visual") return "visual";
-  if (model?.defaultEditor === "rich_text") return "text";
-  if (model?.defaultEditor === "table" || model?.defaultEditor === "form") return "data";
-  if (model?.capabilities.includes("visual_editable")) return "visual";
-  if (model?.capabilities.includes("rich_text_editable")) return "text";
-  if (model?.capabilities.includes("queryable") || model?.capabilities.includes("has_relations")) {
-    return "data";
-  }
-  return "unknown";
-}
-
-export function deriveContentContext(
-  model: Pick<AdminContentModel, "category"> | null | undefined,
-): ContentLibraryContext {
-  return model?.category ?? "standalone";
-}
-
-export function deriveContentLibraryGroup(
-  model: Pick<AdminContentModel, "category" | "capabilities" | "defaultEditor"> | null | undefined,
-): ContentLibraryLibraryGroup {
-  if (isSiteContentModel(model)) return "site-content";
-  if (isStructuredModel(model)) return "structured-content";
-  return "general-content";
-}
-
-export function deriveContentEditWith(
-  model: Pick<AdminContentModel, "capabilities" | "defaultEditor"> | null | undefined,
-): ContentLibraryEditWith {
-  if (model?.defaultEditor === "visual" || model?.capabilities.includes("visual_editable")) {
-    return "canvas";
-  }
-  if (model?.defaultEditor === "rich_text" || model?.capabilities.includes("rich_text_editable")) {
-    return "writing";
-  }
-  return "structured";
-}
-
-export function deriveContentRole(
-  item: Pick<AdminContentItem, "bootstrapPresetKey" | "capabilityPackIds">,
-  model:
-    | Pick<AdminContentModel, "key" | "name" | "category" | "capabilities" | "defaultEditor">
-    | null
-    | undefined,
-): ContentLibraryRole {
-  switch (item.bootstrapPresetKey) {
-    case "page":
-      return "page";
-    case "post":
-      return "article";
-    case "reusable-block":
-      return "reusable-section";
-    case "taxonomy-item":
-      return "taxonomy";
-    default:
-      break;
-  }
-
-  if (modelMatchesAnyToken(model, ["section", "block", "component", "reusable"])) {
-    return "reusable-section";
-  }
-  if (modelMatchesAnyToken(model, ["taxonomy", "tag", "category", "topic"])) {
-    return "taxonomy";
-  }
-  if (modelMatchesAnyToken(model, ["person", "people", "author", "profile", "member", "team"])) {
-    return "person";
-  }
-  if (
-    modelMatchesAnyToken(model, ["setting", "settings", "config", "configuration", "preference"])
-  ) {
-    return "settings";
-  }
-  if (modelMatchesAnyToken(model, ["article", "post", "story", "blog", "news"])) {
-    return "article";
-  }
-  if (
-    modelMatchesAnyToken(model, ["page", "landing", "screen"]) ||
-    model?.category === "site_builder" ||
-    item.capabilityPackIds.includes("layout_bound")
-  ) {
-    return "page";
-  }
-  if (isStructuredModel(model)) return "data";
-  if (deriveContentRuntime(model) === "text") return "article";
-  return "general";
 }
 
 export function buildContentLibrarySystemViews(): ContentLibraryViewDefinition[] {
@@ -660,13 +525,6 @@ function sortRows(rows: ContentLibraryTableRow[], ordering?: string): ContentLib
   return sorted;
 }
 
-export function deriveContentStatus(item: AdminContentItem): ContentLibraryDerivedStatus {
-  if (item.status === "archived") return "archived";
-  if (item.publishedVersion && item.draftVersion > item.publishedVersion) return "changed";
-  if (item.status === "published") return "published";
-  return "draft";
-}
-
 export function buildContentLibraryRows(
   items: AdminContentItem[],
   models: AdminContentModel[],
@@ -682,12 +540,6 @@ export function buildContentLibraryRows(
       modelDescription: model?.description ?? null,
       modelCategory: model?.category ?? null,
       modelCapabilities: model?.capabilities ?? [],
-      derivedStatus: deriveContentStatus(item),
-      runtime: deriveContentRuntime(model),
-      context: deriveContentContext(model),
-      libraryGroup: deriveContentLibraryGroup(model),
-      editWith: deriveContentEditWith(model),
-      role: deriveContentRole(item, model),
     };
   });
 }

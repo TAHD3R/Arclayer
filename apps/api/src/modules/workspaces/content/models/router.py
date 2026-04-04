@@ -40,6 +40,11 @@ class ContentModelMutationOut(BaseSchema):
     key: str
     name: str
     description: str | None = None
+    default_role: str | None = None
+    default_posture: str | None = None
+    default_surface: str | None = None
+    starter_pack_policy: dict | None = None
+    surface_policy: dict | None = None
     impact: ContentModelImpactOut
 
 
@@ -52,6 +57,11 @@ def _to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutation
         key=str(record.key),
         name=str(record.name),
         description=record.description,
+        default_role=(str(record.default_role) if record.default_role is not None else None),
+        default_posture=(str(record.default_posture) if record.default_posture is not None else None),
+        default_surface=(str(record.default_surface) if record.default_surface is not None else None),
+        starter_pack_policy=(record.starter_pack_policy if isinstance(record.starter_pack_policy, dict) else None),
+        surface_policy=(record.surface_policy if isinstance(record.surface_policy, dict) else None),
         impact=result.impact,
     )
 

@@ -15,6 +15,7 @@ from apps.api.src.models.content._enums import (
 )
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
+from apps.api.src.modules.workspaces.content.continuation import resolve_item_continuation_truth
 from apps.api.src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
 from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     VERSION_TRANSITIONS,
@@ -119,6 +120,11 @@ class WorkspaceContentCanonicalItemsService:
         payload: ContentItemCreateIn,
     ) -> ContentItemOut:
         try:
+            continuation = resolve_item_continuation_truth(
+                model=None,
+                preset_key=None,
+                capability_pack_ids=[],
+            )
             item = await self.repo.create_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -131,6 +137,12 @@ class WorkspaceContentCanonicalItemsService:
                 bootstrap_preset_key=None,
                 bootstrap_preset_state=str(ContentBootstrapPresetState.NONE),
                 capability_pack_ids=[],
+                resolved_role=continuation.resolved_role,
+                resolved_posture=continuation.resolved_posture,
+                resolved_surface=continuation.resolved_surface,
+                shape_state=continuation.shape_state,
+                shape_reason_code=continuation.shape_reason_code,
+                shape_reason_meta=continuation.shape_reason_meta,
                 actor_user_id=actor_user_id,
             )
         except IntegrityError as exc:
@@ -163,12 +175,23 @@ class WorkspaceContentCanonicalItemsService:
                 preset_state=payload.preset_state,
                 capability_pack_ids=payload.capability_pack_ids,
             )
+            continuation = resolve_item_continuation_truth(
+                model=item.model_definition,
+                preset_key=preset_key,
+                capability_pack_ids=capability_pack_ids,
+            )
             item = await self.repo.update_item_fields(
                 item,
                 fields={
                     "bootstrap_preset_key": preset_key,
                     "bootstrap_preset_state": preset_state,
                     "capability_pack_ids": capability_pack_ids,
+                    "resolved_role": continuation.resolved_role,
+                    "resolved_posture": continuation.resolved_posture,
+                    "resolved_surface": continuation.resolved_surface,
+                    "shape_state": continuation.shape_state,
+                    "shape_reason_code": continuation.shape_reason_code,
+                    "shape_reason_meta": continuation.shape_reason_meta,
                     "updated_by_user_id": actor_user_id,
                 },
                 conn=conn,
@@ -191,6 +214,11 @@ class WorkspaceContentCanonicalItemsService:
                 conn=conn,
             )
             duplicate_title = build_duplicate_item_title(source_item.title or source_item.slug)
+            continuation = resolve_item_continuation_truth(
+                model=source_item.model_definition,
+                preset_key=source_item.bootstrap_preset_key,
+                capability_pack_ids=normalize_capability_pack_ids(source_item.capability_pack_ids or []),
+            )
             duplicated_item = await self.repo.create_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
@@ -203,6 +231,12 @@ class WorkspaceContentCanonicalItemsService:
                 bootstrap_preset_key=source_item.bootstrap_preset_key,
                 bootstrap_preset_state=str(source_item.bootstrap_preset_state),
                 capability_pack_ids=normalize_capability_pack_ids(source_item.capability_pack_ids or []),
+                resolved_role=continuation.resolved_role,
+                resolved_posture=continuation.resolved_posture,
+                resolved_surface=continuation.resolved_surface,
+                shape_state=continuation.shape_state,
+                shape_reason_code=continuation.shape_reason_code,
+                shape_reason_meta=continuation.shape_reason_meta,
                 actor_user_id=actor_user_id,
             )
 

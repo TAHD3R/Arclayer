@@ -6,6 +6,11 @@ from uuid import UUID
 from tortoise import fields
 
 from apps.api.src.common.models.base import BaseModel
+from apps.api.src.models.content._enums import (
+    ContentContinuationPosture,
+    ContentContinuationRole,
+    ContentContinuationSurface,
+)
 
 
 class ContentModelDefinitionRecord(BaseModel):
@@ -27,6 +32,26 @@ class ContentModelDefinitionRecord(BaseModel):
     description = fields.CharField(max_length=512, null=True)
     category = fields.CharField(max_length=32, default="custom", db_index=True)
     default_editor = fields.CharField(max_length=32, default="form", db_index=True)
+    default_role = fields.CharEnumField(
+        ContentContinuationRole,
+        max_length=32,
+        null=True,
+        db_index=True,
+    )
+    default_posture = fields.CharEnumField(
+        ContentContinuationPosture,
+        max_length=32,
+        null=True,
+        db_index=True,
+    )
+    default_surface = fields.CharEnumField(
+        ContentContinuationSurface,
+        max_length=32,
+        null=True,
+        db_index=True,
+    )
+    starter_pack_policy = fields.JSONField(null=True)
+    surface_policy = fields.JSONField(null=True)
     kind = fields.CharField(max_length=64, null=True, db_index=True)
 
     capabilities = fields.JSONField(null=True)

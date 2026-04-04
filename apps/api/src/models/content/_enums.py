@@ -44,6 +44,36 @@ class ContentBootstrapPresetState(StrEnum):
     NONE = "none"
 
 
+class ContentContinuationRole(StrEnum):
+    PAGE = "page"
+    ARTICLE = "article"
+    REUSABLE_SECTION = "reusable-section"
+    TAXONOMY = "taxonomy"
+    PERSON = "person"
+    SETTINGS = "settings"
+    DATA = "data"
+    GENERAL = "general"
+
+
+class ContentContinuationPosture(StrEnum):
+    PAGE = "page"
+    ENTRY = "entry"
+    COMPOSITION = "composition"
+    STRUCTURED = "structured"
+
+
+class ContentContinuationSurface(StrEnum):
+    WRITING = "writing"
+    CANVAS = "canvas"
+    STRUCTURED = "structured"
+
+
+class ContentShapeState(StrEnum):
+    READY = "ready"
+    BLOCKED = "blocked"
+    UNSHAPED = "unshaped"
+
+
 class ContentVersionState(StrEnum):
     DRAFT = "draft"
     PUBLISHED = "published"

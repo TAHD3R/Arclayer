@@ -1,3 +1,5 @@
+import type { AdminContentItem, AdminContentOpenIntent } from "@/types/api";
+
 function safeReturnTo(value: string | null | undefined): string | null {
   const raw = (value || "").trim();
   if (!raw.startsWith("/") || raw.startsWith("//")) return null;
@@ -31,6 +33,18 @@ export function buildWorkspaceContentLibraryFocusSearch(itemId: string): {
     view: "draft",
     focusItemId: itemId,
   };
+}
+
+export function resolveContentItemContinuationTarget(
+  item: Pick<AdminContentItem, "continuationTarget" | "openIntent">,
+): AdminContentOpenIntent | null {
+  return item.continuationTarget ?? item.openIntent ?? null;
+}
+
+export function resolveContentItemContinuationRoute(
+  item: Pick<AdminContentItem, "continuationTarget" | "openIntent">,
+): string | null {
+  return safeReturnTo(resolveContentItemContinuationTarget(item)?.route);
 }
 
 export function buildWorkspaceContentEditorUrl(params: {
