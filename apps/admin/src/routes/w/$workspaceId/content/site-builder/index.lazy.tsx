@@ -1,16 +1,12 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import { PlaceholderPage } from "@/pages/placeholder/page";
+import { ContentSiteBuilderPage } from "@/pages/workspaces/content/site-builder/page";
 
 export const Route = createLazyFileRoute("/w/$workspaceId/content/site-builder/")({
-  component: SiteBuilderPlaceholder,
+  component: SiteBuilderRouteComponent,
 });
 
-function SiteBuilderPlaceholder() {
-  return (
-    <PlaceholderPage
-      titleKey="nav:NAV_CONTENT_SITE_BUILDER"
-      descriptionKey="common:WORKSPACE_SITE_BUILDER_DESC"
-    />
-  );
+function SiteBuilderRouteComponent() {
+  const { workspaceId } = Route.useParams();
+  return <ContentSiteBuilderPage workspaceId={workspaceId} />;
 }

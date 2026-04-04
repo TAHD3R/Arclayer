@@ -8,6 +8,19 @@ from apps.api.src.common.schemas import BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
 
 
+class PublishBlockedItemOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    item_id: PublicUUID = Field(..., description="Blocked published item id.")
+    reason_code: str = Field(..., min_length=1, description="Machine-readable continuation blocker reason.")
+    shape_state: str = Field(..., min_length=1, description="Continuation shape state at publish time.")
+    surface: str | None = Field(default=None, description="Resolved continuation surface seen by publish.")
+    reason_meta: dict[str, Any] | None = Field(
+        default=None,
+        description="Structured blocker metadata propagated from continuation truth or publish validation.",
+    )
+
+
 class PublishImpactOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
@@ -15,6 +28,10 @@ class PublishImpactOut(BaseSchema):
     unresolved_relations: list[PublicUUID] = Field(default_factory=list, description="Items with unresolved relations.")
     unpublished_dependencies: list[PublicUUID] = Field(
         default_factory=list, description="Items depending on unpublished parents."
+    )
+    blocked_items: list[PublishBlockedItemOut] = Field(
+        default_factory=list,
+        description="Published items blocked by resolved continuation truth or publish validation.",
     )
 
 

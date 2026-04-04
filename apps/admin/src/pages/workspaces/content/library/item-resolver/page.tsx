@@ -24,6 +24,8 @@ import {
 } from "@arclayer/ui/card";
 
 import { ContentLibraryArticleEditorPage } from "../article-editor/page";
+import { ContentSiteBuilderPage } from "../../site-builder/page";
+import { ContentStructuredSurfacePage } from "../../structured/page";
 
 function getContinuationSurfaceLabel(
   item: Pick<AdminContentItem, "resolvedSurface">,
@@ -242,6 +244,14 @@ export function ContentLibraryItemResolverPage(props: { workspaceId: string; ite
     return (
       <ContentLibraryArticleEditorPage workspaceId={props.workspaceId} itemId={props.itemId} />
     );
+  }
+
+  if (intent?.surface === "structured") {
+    return <ContentStructuredSurfacePage workspaceId={props.workspaceId} item={item} />;
+  }
+
+  if (intent?.surface === "canvas") {
+    return <ContentSiteBuilderPage workspaceId={props.workspaceId} item={item} />;
   }
 
   return <ContinuationStatePage item={item} intent={intent} mode="boundary" />;

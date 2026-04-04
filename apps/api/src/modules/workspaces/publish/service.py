@@ -5,7 +5,7 @@ from uuid import UUID
 from tortoise.transactions import in_transaction
 
 from apps.api.src.core.exceptions import Conflict
-from apps.api.src.models.content._enums import PublishArtifactKind
+from apps.api.src.models.content._enums import ContentShapeState, PublishArtifactKind
 from apps.api.src.models.content.component_binding import ComponentBindingRecord
 from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.content_version import ContentVersionRecord
@@ -15,18 +15,39 @@ from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
 from apps.api.src.models.content.published_graph import PublishedGraphRecord
 from apps.api.src.models.content.route_binding import RouteBindingRecord
 from apps.api.src.models.content.seo_profile import SEOProfileRecord
+from apps.api.src.modules.workspaces.content.continuation import CONTINUATION_TRUTH_MISSING_REASON_CODE
 from apps.api.src.modules.workspaces.content.items.domain_helpers import item_has_capability
-from apps.api.src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishImpactOut
+from apps.api.src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishBlockedItemOut, PublishImpactOut
 
 _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST = frozenset({"seo", "slot_mapping"})
 
 
 def _empty_impact() -> PublishImpactOut:
-    return PublishImpactOut(missing_routes=[], unresolved_relations=[], unpublished_dependencies=[])
+    return PublishImpactOut(missing_routes=[], unresolved_relations=[], unpublished_dependencies=[], blocked_items=[])
 
 
 def _has_blockers(impact: PublishImpactOut) -> bool:
-    return bool(impact.missing_routes or impact.unresolved_relations or impact.unpublished_dependencies)
+    return bool(
+        impact.missing_routes or impact.unresolved_relations or impact.unpublished_dependencies or impact.blocked_items
+    )
+
+
+def _append_blocked_item(
+    impact: PublishImpactOut,
+    *,
+    item: ContentItemRecord,
+    reason_code: str,
+    reason_meta: dict[str, object] | None = None,
+) -> None:
+    impact.blocked_items.append(
+        PublishBlockedItemOut(
+            item_id=item.id,
+            reason_code=reason_code,
+            shape_state=str(item.shape_state),
+            surface=str(item.resolved_surface) if item.resolved_surface is not None else None,
+            reason_meta=reason_meta,
+        )
+    )
 
 
 async def _load_publishable_items(*, workspace_id: UUID, site_id: UUID) -> list[ContentItemRecord]:
@@ -101,13 +122,38 @@ class WorkspacePublishService:
         hierarchy_map = await _load_hierarchy_map(site_id=site_id)
         impact = _empty_impact()
         for item in items:
+            if (
+                item.shape_state != ContentShapeState.READY
+                or item.resolved_surface is None
+                or item.resolved_role is None
+                or item.resolved_posture is None
+            ):
+                _append_blocked_item(
+                    impact,
+                    item=item,
+                    reason_code=item.shape_reason_code or CONTINUATION_TRUTH_MISSING_REASON_CODE,
+                    reason_meta=item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None,
+                )
+                continue
             route_key = (item.id, item.locale)
             if route_map.get(route_key) is None:
                 impact.missing_routes.append(item.id)
+                _append_blocked_item(
+                    impact,
+                    item=item,
+                    reason_code="MISSING_ROUTE",
+                    reason_meta={"locale": item.locale},
+                )
             node = hierarchy_map.get(item.id)
             parent_item_id = node.parent_item_id if node is not None else None
             if parent_item_id is not None and parent_item_id not in published_item_ids:
                 impact.unpublished_dependencies.append(item.id)
+                _append_blocked_item(
+                    impact,
+                    item=item,
+                    reason_code="PARENT_UNPUBLISHED",
+                    reason_meta={"parentItemId": str(parent_item_id)},
+                )
         return impact
 
     async def build_artifacts(self, *, workspace_id: UUID, site_id: UUID) -> PublishArtifactsOut:
@@ -172,8 +218,12 @@ class WorkspacePublishService:
                     artifact_kind=PublishArtifactKind.RENDER_HINTS,
                     locale=route.locale,
                     payload={
-                        "modelKey": item.bootstrap_preset_key,
-                        "capabilities": item.capability_pack_ids or [],
+                        "role": str(item.resolved_role) if item.resolved_role is not None else None,
+                        "posture": str(item.resolved_posture) if item.resolved_posture is not None else None,
+                        "surface": str(item.resolved_surface) if item.resolved_surface is not None else None,
+                        "shapeState": str(item.shape_state),
+                        "reasonCode": item.shape_reason_code,
+                        "reasonMeta": item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None,
                     },
                 )
             )

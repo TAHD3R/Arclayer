@@ -120,7 +120,7 @@ describe("ContentLibraryItemResolverPage", () => {
     expect(screen.queryByTestId("content-library-article-editor-page")).not.toBeInTheDocument();
   });
 
-  test("renders explicit boundary UI for non-writing surfaces", async () => {
+  test("renders the site builder shell for canvas continuation surfaces", async () => {
     getContentItemMock.mockResolvedValue({
       id: "item-3",
       workspaceId: "ws-1",
@@ -153,11 +153,10 @@ describe("ContentLibraryItemResolverPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("content-item-continuation-state")).toBeInTheDocument();
+      expect(screen.getByTestId("content-site-builder-shell")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText("content:CONTENT_ITEM_CONTINUATION_SURFACE_UNAVAILABLE_DESC:canvas"),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("content-site-builder-canvas")).toBeInTheDocument();
     expect(screen.queryByTestId("content-library-article-editor-page")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("content-item-continuation-state")).not.toBeInTheDocument();
   });
 });
