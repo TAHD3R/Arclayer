@@ -156,8 +156,8 @@ def _relation_rows(
 
 
 def _compare_field_changes(
-    before: Iterable[ContentModelFieldRecord],
-    after: Iterable[ContentModelFieldRecord],
+    before: Iterable[ContentModelFieldRecord | _PreviewFieldRow],
+    after: Iterable[ContentModelFieldRecord | _PreviewFieldRow],
 ) -> list[ContentModelImpactChangeOut]:
     before_map = {field.key: field for field in before}
     after_map = {field.key: field for field in after}
@@ -192,8 +192,8 @@ def _compare_field_changes(
 
 
 def _compare_relation_changes(
-    before: Iterable[ContentModelRelationRecord],
-    after: Iterable[ContentModelRelationRecord],
+    before: Iterable[ContentModelRelationRecord | _PreviewRelationRow],
+    after: Iterable[ContentModelRelationRecord | _PreviewRelationRow],
 ) -> list[ContentModelImpactChangeOut]:
     before_map = {relation.key: relation for relation in before}
     after_map = {relation.key: relation for relation in after}
@@ -570,6 +570,8 @@ class WorkspaceContentCanonicalModelsService:
             starter_pack_policy=payload.starter_pack_policy,
             surface_policy=payload.surface_policy,
         )
+        if defaults.default_role is None or defaults.default_posture is None or defaults.default_surface is None:
+            raise ValueError("Content model continuation defaults must resolve before create_model_definition")
         record = await self.repo.create_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,

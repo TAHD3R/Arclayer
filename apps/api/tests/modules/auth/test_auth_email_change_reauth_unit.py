@@ -141,7 +141,10 @@ def _build_service(*, user: _FakeUser, two_factor_enabled: bool) -> AuthService:
         user_repo=_FakeUserRepo(user),
         two_factor=_FakeTwoFactor(enabled=two_factor_enabled),
     )
-    service.email_change_store = _FakeEmailChangeStore(new_email="new@example.com", verification_code="654321")
+    service.email_change_store = cast(
+        Any,
+        _FakeEmailChangeStore(new_email="new@example.com", verification_code="654321"),
+    )
     return service
 
 
@@ -156,7 +159,7 @@ async def test_confirm_email_change_password_account_uses_password_reauth() -> N
     service = _build_service(user=user, two_factor_enabled=True)
 
     profile = await service.confirm_email_change(
-        user=user,
+        user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
         password="oldpass1",
@@ -174,7 +177,7 @@ async def test_confirm_email_change_sso_with_2fa_requires_2fa_reauth() -> None:
 
     with pytest.raises(Unauthorized) as exc:
         await service.confirm_email_change(
-            user=user,
+            user=cast(Any, user),
             new_email="new@example.com",
             code="654321",
             password=None,
@@ -193,7 +196,7 @@ async def test_confirm_email_change_sso_with_2fa_accepts_totp_code() -> None:
     service = _build_service(user=user, two_factor_enabled=True)
 
     profile = await service.confirm_email_change(
-        user=user,
+        user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
         password=None,
@@ -210,7 +213,7 @@ async def test_confirm_email_change_sso_without_2fa_accepts_recent_login() -> No
     service = _build_service(user=user, two_factor_enabled=False)
 
     profile = await service.confirm_email_change(
-        user=user,
+        user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
         password=None,
@@ -228,7 +231,7 @@ async def test_confirm_email_change_sso_without_2fa_requires_recent_login() -> N
 
     with pytest.raises(Unauthorized) as exc:
         await service.confirm_email_change(
-            user=user,
+            user=cast(Any, user),
             new_email="new@example.com",
             code="654321",
             password=None,

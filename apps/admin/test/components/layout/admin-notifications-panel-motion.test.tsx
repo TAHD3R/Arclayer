@@ -68,6 +68,11 @@ vi.mock("motion/react", async (importOriginal) => {
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn().mockResolvedValue(undefined),
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string } }) => unknown;
+  }) => select({ location: { pathname: "/" } }),
 }));
 
 vi.mock("react-i18next", () => ({

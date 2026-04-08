@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pytest
 
 from apps.api.src.common.utils.public_ids import decode_public_id
@@ -39,7 +41,7 @@ async def test_publish_impact_blocks_unshaped_items_from_resolved_truth(
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
         root_item_id = await _prepare_published_root_item(client, workspace_id)
         root_item = await ContentItemRecord.get(id=decode_public_id(root_item_id))
-        root_item.resolved_surface = None
+        cast(Any, root_item).resolved_surface = None
         root_item.shape_state = ContentShapeState.UNSHAPED
         root_item.shape_reason_code = "CONTINUATION_TRUTH_MISSING"
         root_item.shape_reason_meta = {"source": "test"}

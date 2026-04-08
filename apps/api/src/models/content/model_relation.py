@@ -34,7 +34,6 @@ class ContentModelRelationRecord(BaseModel):
     if TYPE_CHECKING:
         model_definition_id: UUID
         target_model_definition_id: UUID | None
-        target_model_key: str
 
     class Meta(BaseModel.Meta):
         table = "content_model_relations"

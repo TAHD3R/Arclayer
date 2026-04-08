@@ -1,7 +1,4 @@
-import { format } from "date-fns";
-
 import { FULL_DATE_TIME_FORMAT } from "@/lib/time/datetime-config";
-import { resolveDateFnsLocale } from "@/lib/time/date-fns-locale";
 
 export type DateFormatPattern =
   | "YYYY-MM-DD"
@@ -29,42 +26,63 @@ function normalizePattern(input: string | undefined): string {
   return LEGACY_PATTERN_MAP[input as keyof typeof LEGACY_PATTERN_MAP] ?? input;
 }
 
-function buildZonedDate(params: { date: Date; locale: string; timeZone: string }): Date | null {
+function resolveZonedParts(params: {
+  date: Date;
+  locale: string;
+  timeZone: string;
+  includeTime: boolean;
+}): Record<(typeof DATE_PART_TYPES)[number], string | null> | null {
   const formatter = new Intl.DateTimeFormat(params.locale || undefined, {
     timeZone: params.timeZone || undefined,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
+    ...(params.includeTime
+      ? {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }
+      : null),
   });
   const parts = formatter.formatToParts(params.date);
   const values = Object.fromEntries(
     DATE_PART_TYPES.map((type) => [type, pickPart(parts, type)]),
   ) as Record<(typeof DATE_PART_TYPES)[number], string | null>;
 
-  if (!values.year || !values.month || !values.day || !values.hour || !values.minute) {
+  if (!values.year || !values.month || !values.day) {
     return null;
   }
 
-  return new Date(
-    Date.UTC(
-      Number(values.year),
-      Number(values.month) - 1,
-      Number(values.day),
-      Number(values.hour),
-      Number(values.minute),
-    ),
-  );
+  if (params.includeTime && (!values.hour || !values.minute)) {
+    return null;
+  }
+
+  return values;
 }
 
-function resolveDateTimePattern(pattern: string, includeTime: boolean): string {
-  if (pattern === FULL_DATE_TIME_FORMAT) {
-    return includeTime ? "PPpp" : "PP";
-  }
-  if (!includeTime) return pattern;
-  return `${pattern} HH:mm`;
+function formatLegacyPattern(params: {
+  pattern: string;
+  parts: Record<(typeof DATE_PART_TYPES)[number], string | null>;
+  includeTime: boolean;
+}): string {
+  const { pattern, parts, includeTime } = params;
+  const year = parts.year ?? "0000";
+  const month = parts.month ?? "00";
+  const day = parts.day ?? "00";
+  const hour = parts.hour ?? "00";
+  const minute = parts.minute ?? "00";
+
+  const dateText =
+    pattern === "MM/dd/yyyy"
+      ? `${month}/${day}/${year}`
+      : pattern === "dd/MM/yyyy"
+        ? `${day}/${month}/${year}`
+        : pattern === "yyyy/MM/dd"
+          ? `${year}/${month}/${day}`
+          : `${year}-${month}-${day}`;
+
+  return includeTime ? `${dateText} ${hour}:${minute}` : dateText;
 }
 
 export function formatDateTimeWithPattern(params: {
@@ -76,8 +94,8 @@ export function formatDateTimeWithPattern(params: {
 }): string {
   const pattern = normalizePattern(params.dateFormat);
   const includeTime = params.includeTime ?? true;
-  const zonedDate = buildZonedDate(params);
-  if (!zonedDate) {
+  const parts = resolveZonedParts({ ...params, includeTime });
+  if (!parts) {
     return new Intl.DateTimeFormat(params.locale || undefined, {
       timeZone: params.timeZone || undefined,
       year: "numeric",
@@ -93,7 +111,21 @@ export function formatDateTimeWithPattern(params: {
     }).format(params.date);
   }
 
-  return format(zonedDate, resolveDateTimePattern(pattern, includeTime), {
-    locale: resolveDateFnsLocale(params.locale),
-  });
+  if (pattern === FULL_DATE_TIME_FORMAT) {
+    return new Intl.DateTimeFormat(params.locale || undefined, {
+      timeZone: params.timeZone || undefined,
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      ...(includeTime
+        ? {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }
+        : null),
+    }).format(params.date);
+  }
+
+  return formatLegacyPattern({ pattern, parts, includeTime });
 }

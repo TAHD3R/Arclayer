@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import SimpleNamespace
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -116,8 +117,8 @@ async def test_unlink_last_signin_method_returns_last_signin_method_error(monkey
 
     out = await sso_router.unlink_my_oauth_identity(  # type: ignore[arg-type]
         provider="google",
-        user=user,
-        service=service,
+        user=cast(Any, user),
+        service=cast(Any, service),
     )
 
     assert out.error == "LAST_SIGNIN_METHOD"
@@ -142,8 +143,8 @@ async def test_unlink_identity_calls_service_when_password_exists(monkeypatch: p
 
     out = await sso_router.unlink_my_oauth_identity(  # type: ignore[arg-type]
         provider="google",
-        user=user,
-        service=service,
+        user=cast(Any, user),
+        service=cast(Any, service),
     )
 
     assert out.error is None

@@ -34,6 +34,7 @@ describe("bootstrap-routing", () => {
       nextPath: "/w/w1",
       reason: null,
     });
+    mocked.listMyWorkspaces.mockResolvedValue({ items: [] });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null, attemptRepair: true });
     expect(decision.path).toBe("/");
@@ -67,6 +68,7 @@ describe("bootstrap-routing", () => {
       ready: true,
       actions: ["workspace_created"],
     });
+    mocked.listMyWorkspaces.mockResolvedValue({ items: [] });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null, attemptRepair: true });
     expect(mocked.repairBootstrapState).toHaveBeenCalledTimes(1);
@@ -83,7 +85,7 @@ describe("bootstrap-routing", () => {
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-a", attemptRepair: true });
     expect(decision.path).toBe("/");
-    expect(decision.workspaceId).toBeNull();
+    expect(decision.workspaceId).toBe("w-a");
     expect(decision.repaired).toBe(false);
   });
 

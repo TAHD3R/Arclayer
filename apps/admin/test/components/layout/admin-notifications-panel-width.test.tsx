@@ -9,6 +9,11 @@ const navigateMock = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string } }) => unknown;
+  }) => select({ location: { pathname: "/" } }),
 }));
 
 vi.mock("react-i18next", () => ({

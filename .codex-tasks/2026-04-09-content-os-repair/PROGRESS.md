@@ -7,16 +7,21 @@
 - Subtasks 1-4 are complete: typed creation, bootstrap, library entry posture, resolver/surfaces, and models/publish alignment are covered by targeted validation.
 - Subtask 5 is now complete: the repo has an explicit development-only destructive reset path through `pnpm -C apps/api content:reset-dev-baseline --workspace-id <id>`, backed by integration coverage.
 - Subtask 6 is now complete: full checks were rerun and browser/manual verification covered create, library, writing, structured, canvas, and recovery paths.
+- User requested continued execution according to the implementation plan, so the epic is reopened against the plan's original complete checkpoint.
+- New follow-up subtasks 7-9 now track the remaining blocker cleanup required to make `pnpm api:check` and `pnpm admin:check` actually pass.
+- Subtask 7 is now complete: `pnpm api:check` is green again after fixing content typing, repository generics, and the remaining auth/publish typing blockers.
+- Subtask 8 is now complete: `pnpm admin:check` is green again after shared/Admin test alignment, timezone-correct date formatting, and content-library/editor fixture stabilization.
+- Subtask 9 is now complete: the original implementation plan complete checkpoint has been revalidated with a passing `pnpm api:check && pnpm admin:check`.
 - Epic status: complete.
 
 ## Recovery Block
 
 任务: 修复 ContentOS 的 canonical typed creation、library truth、resolver、surface UX、publish alignment，并完成剩余 reset 与全量验证收尾
 形态: epic
-进度: 6/6 subtasks done
-当前: 全部子任务完成
+进度: 9/9 subtasks done
+当前: 完成
 文件: `.codex-tasks/2026-04-09-content-os-repair/SUBTASKS.csv`
-下一步: 无；implementation plan 对应的 epic 已闭环，剩余的是 repo 基线债务，不属于本次 ContentOS repair 变更本身
+下一步: 无，epic 已按原计划完成检查点关闭
 
 ## Recent Validation
 
@@ -40,6 +45,15 @@
 - Full-check blocker rerun:
   - `pnpm api:check`
   - `pnpm admin:check`
+- API full-check cleanup:
+  - `pnpm -C apps/api typecheck`
+  - `pnpm api:check`
+- Admin full-check cleanup:
+  - `pnpm -C apps/admin exec vitest run test/lib/bootstrap-routing.test.ts test/components/layout/admin-notifications-panel-motion.test.tsx test/components/layout/admin-notifications-panel-width.test.tsx test/lib/time/date-time.test.ts test/pages/workspaces/assets/assets-folder-rail-recent-section.test.tsx`
+  - `pnpm -C apps/admin exec vitest run test/pages/workspaces/content/content-library-page.test.tsx test/pages/workspaces/content/content-library-article-editor-page.test.tsx`
+  - `pnpm admin:check`
+- Final plan-complete verification:
+  - `pnpm api:check && pnpm admin:check`
 - Browser/manual verification:
   - reset local workspace baseline via `pnpm -C apps/api content:reset-dev-baseline --workspace-id GmM1V0Wl6c25eMFS4cLQQQ`
   - verified `/content/create` exposes `Article`, `Landing Page`, and `Structured Entry`
@@ -47,28 +61,15 @@
   - verified Content Library cards show canonical posture/model copy and reopen the correct continuation surface
   - verified recovery UI by forcing one local smoke item into `unshaped` state, then resetting the workspace back to the clean typed baseline
 
-## Known Test Debt
+## Closure Notes
 
-- `pnpm api:check` is still blocked by existing Pyright debt in content typing and unrelated auth/publish test files:
-  - `apps/api/src/models/content/model_relation.py`
-  - `apps/api/src/modules/workspaces/content/items/domain_helpers.py`
-  - `apps/api/src/modules/workspaces/content/items/read_service.py`
-  - `apps/api/src/modules/workspaces/content/items/repository.py`
-  - `apps/api/src/modules/workspaces/content/models/canonical_service.py`
-  - `apps/api/src/modules/workspaces/content/models/domain_helpers.py`
-  - `apps/api/src/modules/workspaces/content/models/repository.py`
-  - `apps/api/tests/modules/auth/test_auth_email_change_reauth_unit.py`
-  - `apps/api/tests/modules/auth/test_auth_sso_linked_identities_contract_unit.py`
-  - `apps/api/tests/modules/workspaces/publish/test_publish_continuation_truth_integration.py`
-- `pnpm admin:check` is still blocked by existing red suites outside this task slice:
-  - `test/lib/bootstrap-routing.test.ts`
-  - `test/pages/workspaces/assets/assets-folder-rail-recent-section.test.tsx`
-  - `test/lib/time/date-time.test.ts`
-  - `test/components/layout/admin-notifications-panel-width.test.tsx`
-  - `test/components/layout/admin-notifications-panel-motion.test.tsx`
-  - `test/pages/workspaces/content/content-library-page.test.tsx`
-  - unhandled autosave rejection surfaced during `test/pages/workspaces/content/content-library-article-editor-page.test.tsx`
-- A full run of `test/pages/workspaces/content/content-library-page.test.tsx` is still red outside this task slice:
-  - saved-view/filter/card-mode assertions do not currently hydrate mocked rows as expected
-  - `ContentLibraryRoleTag` can crash on missing presentation data in that suite
-- This debt was exposed while validating Subtask 2 but was not introduced by the current row-action/open-route changes.
+- The implementation plan's `Checkpoint: Complete` is now materially true in the repo:
+  - `pnpm api:check` passes
+  - `pnpm admin:check` passes
+- Shared/Admin cleanup resolved the reopened blocker set without adding runtime fallbacks:
+  - bootstrap-routing tests now reflect current workspace-preserving post-auth behavior
+  - notifications panel test mocks now include `useRouterState`
+  - `apps/admin/src/lib/time/date-time.ts` now formats absolute date-time values against the requested timezone instead of the process-local timezone
+  - content-library page test fixtures now match the current `AdminContentItem` contract
+  - article-editor autosave coverage now uses a repeated patch mock and a bounded timeout instead of relying on a single mocked Promise
+- The epic remains browser-verified for create/library/writing/structured/canvas/recovery flows and now also closes with passing full checks.

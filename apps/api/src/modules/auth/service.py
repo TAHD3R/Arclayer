@@ -321,7 +321,8 @@ class AuthService(BaseService):
                 await store.delete(user_id=user_id)
             raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
 
-        if user_with_cred.email and new_email == user_with_cred.email.strip().lower():
+        current_email = user_with_cred.email.strip().lower() if isinstance(user_with_cred.email, str) else None
+        if current_email and new_email == current_email:
             await store.delete(user_id=user_id)
             raise BadRequest(message=self._ta("EMAIL_SAME", "新邮箱不能与当前邮箱相同"), error="EMAIL_SAME")
 

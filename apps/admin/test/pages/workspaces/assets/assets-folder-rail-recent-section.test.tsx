@@ -51,7 +51,7 @@ describe("AssetsFolderRailRecentSection", () => {
 
     expect(clearRecentAction).toBeInTheDocument();
     expect(clearRecentAction).toHaveClass("data-[highlighted]:text-destructive");
-    expect(clearRecentAction).not.toHaveClass("data-[highlighted]:bg-destructive/10");
+    expect(clearRecentAction).toHaveClass("data-[highlighted]:bg-destructive/10");
   });
 
   it("renders the empty recent-files guard without illustration media", () => {

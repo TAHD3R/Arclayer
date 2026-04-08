@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any, cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -12,6 +13,7 @@ from apps.api.src.models.content.seo_profile import SEOProfileRecord
 from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentComponentBindingOut,
     ContentItemOut,
+    ContentPresentationKind,
     ContentPresentationOut,
     ContentSeoProfileOut,
     ContentVersionOut,
@@ -103,7 +105,9 @@ class WorkspaceContentCanonicalItemReadService:
         return to_item_out(item, item.model_definition, summary=summaries.get(item.id))
 
     @staticmethod
-    def _to_presentation_outs(presentations: list[tuple[str, dict | None]]) -> list[ContentPresentationOut]:
+    def _to_presentation_outs(
+        presentations: list[tuple[ContentPresentationKind, dict[str, object] | None]],
+    ) -> list[ContentPresentationOut]:
         return [ContentPresentationOut(kind=kind, payload=payload) for kind, payload in presentations]
 
     @staticmethod
@@ -134,7 +138,16 @@ class WorkspaceContentCanonicalItemReadService:
         conn: BaseDBAsyncClient | None = None,
     ) -> ContentVersionOut:
         presentations = await self.repo.list_presentations(version_id=version.id, conn=conn)
-        normalized = [(presentation.kind, presentation.payload) for presentation in presentations]
+        normalized = cast(
+            list[tuple[ContentPresentationKind, dict[str, Any] | None]],
+            [
+                (
+                    presentation.kind,
+                    presentation.payload if isinstance(presentation.payload, dict) else None,
+                )
+                for presentation in presentations
+            ],
+        )
         return to_version_out(version, normalized)
 
     async def _get_item_version(
@@ -210,7 +223,16 @@ class WorkspaceContentCanonicalItemReadService:
             version_number=version_number,
         )
         presentations = await self.repo.list_presentations(version_id=version.id)
-        normalized = [(presentation.kind, presentation.payload) for presentation in presentations]
+        normalized = cast(
+            list[tuple[ContentPresentationKind, dict[str, Any] | None]],
+            [
+                (
+                    presentation.kind,
+                    presentation.payload if isinstance(presentation.payload, dict) else None,
+                )
+                for presentation in presentations
+            ],
+        )
         return self._to_presentation_outs(normalized)
 
     async def get_seo_profile(

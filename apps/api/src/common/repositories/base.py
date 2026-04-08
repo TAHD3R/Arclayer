@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypeVar, cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.models import Model
-from tortoise.queryset import QuerySet
 
 from apps.api.src.core.logging import get_logger
+
+_QueryT = TypeVar("_QueryT")
+_ModelT = TypeVar("_ModelT", bound=Model)
 
 
 class BaseRepository:
@@ -19,33 +21,39 @@ class BaseRepository:
             return {}
         return {"using_db": conn}
 
-    def using_db(self, qs: QuerySet, conn: BaseDBAsyncClient | None) -> QuerySet:
+    def using_db(self, qs: _QueryT, conn: BaseDBAsyncClient | None) -> _QueryT:
         if conn is None:
             return qs
-        return qs.using_db(conn)
+        return cast(_QueryT, cast(Any, qs).using_db(conn))
 
     async def get_record_by_id(
         self,
-        model: type[Model],
+        model: type[_ModelT],
         obj_id: UUID,
         *,
         conn: BaseDBAsyncClient | None = None,
-    ) -> Model | None:
+    ) -> _ModelT | None:
         qs = model.filter(id=obj_id)
         return await self.using_db(qs, conn).first()
 
-    async def create(self, model: type[Model], *, conn: BaseDBAsyncClient | None = None, **data: Any) -> Model:
+    async def create(
+        self,
+        model: type[_ModelT],
+        *,
+        conn: BaseDBAsyncClient | None = None,
+        **data: Any,
+    ) -> _ModelT:
         if conn is None:
             return await model.create(**data)
         return await model.create(using_db=conn, **data)
 
     async def update_fields(
         self,
-        instance: Model,
+        instance: _ModelT,
         *,
         fields: dict[str, Any],
         conn: BaseDBAsyncClient | None = None,
-    ) -> Model:
+    ) -> _ModelT:
         if not fields:
             return instance
         for key, value in fields.items():
@@ -58,7 +66,7 @@ class BaseRepository:
 
     async def delete_by_id(
         self,
-        model: type[Model],
+        model: type[_ModelT],
         obj_id: UUID,
         *,
         conn: BaseDBAsyncClient | None = None,

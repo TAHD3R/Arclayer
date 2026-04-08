@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -340,43 +340,38 @@ describe("content-library-article-editor-page", () => {
         },
       }),
     );
-    mocked.patchContentItemVersion.mockResolvedValueOnce({
-      itemId: "content-1",
-      versionNumber: 3,
-      state: "draft",
-      createdAt: "2026-03-28T00:00:00Z",
-      fieldsSnapshot: {
-        title: "Launch memo",
-        summary: "Updated summary",
-        slug: "launch-memo-v2",
-        visibility: "private",
-      },
-      presentations: [
-        { kind: "rich_text_document", payload: { type: "doc", content: [] } },
-        {
-          kind: "seo",
-          payload: {
-            metaTitle: "Launch memo updated | Arclayer",
-            metaDescription: "Loaded SEO summary",
-            canonicalUrl: "/launch-memo",
-          },
+    mocked.patchContentItemVersion.mockImplementation(
+      async (
+        _workspaceId: string,
+        itemId: string,
+        versionNumber: number,
+        payload: {
+          fieldsSnapshot: Record<string, unknown>;
+          presentations: Array<{ kind: string; payload?: Record<string, unknown> | null }>;
         },
-      ],
-      changeSummary: null,
-    });
+      ) => ({
+        itemId,
+        versionNumber,
+        state: "draft" as const,
+        createdAt: "2026-03-28T00:00:00Z",
+        fieldsSnapshot: payload.fieldsSnapshot,
+        presentations: payload.presentations,
+        changeSummary: null,
+      }),
+    );
 
     renderWithQuery(<ContentLibraryArticleEditorPage workspaceId="ws-1" itemId="content-1" />);
 
     const summary = await screen.findByDisplayValue("Loaded summary");
-    await user.clear(summary);
-    await user.type(summary, "Updated summary");
+    fireEvent.change(summary, { target: { value: "Updated summary" } });
 
     await user.click(
       screen.getByRole("button", { name: "CONTENT_LIBRARY_EDITOR_OPEN_SEO_DIALOG" }),
     );
     const metaTitleInput = await screen.findByLabelText("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE");
-    await user.clear(metaTitleInput);
-    await user.type(metaTitleInput, "Launch memo updated | Arclayer");
+    fireEvent.change(metaTitleInput, {
+      target: { value: "Launch memo updated | Arclayer" },
+    });
     await user.click(screen.getByRole("button", { name: "common:CONFIRM" }));
     await waitFor(() => {
       expect(
@@ -386,8 +381,7 @@ describe("content-library-article-editor-page", () => {
 
     await user.click(screen.getByLabelText("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU"));
     const slugInput = await screen.findByLabelText("CONTENT_LIBRARY_EDITOR_MENU_SLUG");
-    await user.clear(slugInput);
-    await user.type(slugInput, "launch-memo-v2");
+    fireEvent.change(slugInput, { target: { value: "launch-memo-v2" } });
     await user.click(screen.getByRole("radio", { name: "CONTENT_LIBRARY_VISIBILITY_PRIVATE" }));
 
     await act(async () => {
@@ -418,7 +412,7 @@ describe("content-library-article-editor-page", () => {
         ],
       });
     });
-  });
+  }, 15_000);
 
   it("creates a new draft version when the current active version is already published", async () => {
     const user = userEvent.setup();

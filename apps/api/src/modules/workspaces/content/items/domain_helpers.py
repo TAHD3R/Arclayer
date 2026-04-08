@@ -14,12 +14,26 @@ from apps.api.src.modules.workspaces.content.continuation import (
     CONTINUATION_TRUTH_MISSING_REASON_CODE,
 )
 from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentBootstrapPresetState,
+    ContentContinuationPosture,
+    ContentContinuationRole,
+    ContentContinuationSurface,
     ContentItemOut,
     ContentOpenIntentOut,
     ContentPresentationKind,
     ContentPresentationOut,
     ContentRecoveryActionOut,
+    ContentShapeState,
     ContentVersionOut,
+)
+from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentItemStatus as ContentItemStatusLiteral,
+)
+from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentItemVisibility as ContentItemVisibilityLiteral,
+)
+from apps.api.src.modules.workspaces.content.contracts.schema import (
+    ContentVersionState as ContentVersionStateLiteral,
 )
 from apps.api.src.modules.workspaces.content.items.input_schema import (
     ContentPresentationIn,
@@ -288,7 +302,10 @@ def to_item_out(
     shape_reason_meta = item.shape_reason_meta if isinstance(item.shape_reason_meta, dict) else None
     blocked = str(item.shape_state or "unshaped") != "ready"
     open_intent = ContentOpenIntentOut(
-        surface=(str(item.resolved_surface) if item.resolved_surface is not None else None),
+        surface=cast(
+            ContentContinuationSurface | None,
+            str(item.resolved_surface) if item.resolved_surface is not None else None,
+        ),
         route=route,
         blocked=blocked,
         reason_code=(shape_reason_code or CONTINUATION_TRUTH_MISSING_REASON_CODE) if blocked else None,
@@ -314,22 +331,31 @@ def to_item_out(
         slug=item.slug,
         title=item.title,
         summary=summary,
-        status=str(item.status),
-        visibility=str(item.visibility),
+        status=cast(ContentItemStatusLiteral, str(item.status)),
+        visibility=cast(ContentItemVisibilityLiteral, str(item.visibility)),
         locale=item.locale,
         bootstrap_preset_key=item.bootstrap_preset_key,
-        bootstrap_preset_state=str(item.bootstrap_preset_state),
+        bootstrap_preset_state=cast(ContentBootstrapPresetState, str(item.bootstrap_preset_state)),
         capability_pack_ids=normalize_capability_pack_ids(item.capability_pack_ids or []),
-        resolved_role=(str(item.resolved_role) if item.resolved_role is not None else None),
-        resolved_posture=(str(item.resolved_posture) if item.resolved_posture is not None else None),
-        resolved_surface=(str(item.resolved_surface) if item.resolved_surface is not None else None),
+        resolved_role=cast(
+            ContentContinuationRole | None,
+            str(item.resolved_role) if item.resolved_role is not None else None,
+        ),
+        resolved_posture=cast(
+            ContentContinuationPosture | None,
+            str(item.resolved_posture) if item.resolved_posture is not None else None,
+        ),
+        resolved_surface=cast(
+            ContentContinuationSurface | None,
+            str(item.resolved_surface) if item.resolved_surface is not None else None,
+        ),
         derived_status=cast(Any, derive_item_workbench_status(item)),
         runtime=cast(Any, derive_item_workbench_runtime(item, model)),
         context=cast(Any, derive_item_workbench_context(model)),
         library_group=cast(Any, derive_item_workbench_library_group(item, model)),
         edit_with=cast(Any, derive_item_workbench_edit_with(item, model)),
         role=cast(Any, derive_item_workbench_role(item, model)),
-        shape_state=str(item.shape_state or "unshaped"),
+        shape_state=cast(ContentShapeState, str(item.shape_state or "unshaped")),
         shape_reason_code=shape_reason_code,
         shape_reason_meta=shape_reason_meta,
         open_intent=open_intent,
@@ -392,7 +418,7 @@ def to_version_out(version: ContentVersionRecord, payloads: PresentationPayload)
     return ContentVersionOut(
         item_id=version.item_id,
         version_number=version.version,
-        state=str(version.state),
+        state=cast(ContentVersionStateLiteral, str(version.state)),
         created_at=version.created_at,
         created_by_user_id=version.created_by_user_id,
         last_transition_by_user_id=version.last_transition_by_user_id,

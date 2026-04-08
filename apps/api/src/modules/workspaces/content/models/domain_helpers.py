@@ -86,7 +86,7 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
         name=record.name,
         description=record.description,
         category=cast(ContentModelCategory, str(record.category or "custom")),
-        capabilities=[str(value) for value in (record.capabilities or [])],
+        capabilities=cast(list[Any], [str(value) for value in (record.capabilities or [])]),
         default_editor=cast(ContentDefaultEditor, str(record.default_editor or "form")),
         default_role=cast(Any, defaults.default_role),
         default_posture=cast(Any, defaults.default_posture),
