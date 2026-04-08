@@ -20,6 +20,7 @@
     "test:quick": "uv run --project apps/api --directory ../.. pytest -q apps/api/tests/test_tenant_context.py apps/api/tests/modules/assets/test_org_assets_router_unit.py apps/api/tests/modules/auth/test_auth_me_avatar_binding_align_unit.py --no-cov",
     "db:migrate": "uv run --project apps/api --directory ../.. python -m tortoise -c apps.api.src.core.database.orm.TORTOISE_ORM makemigrations",
     "db:upgrade": "uv run --project apps/api --directory ../.. python apps/api/scripts/db_upgrade.py",
+    "content:reset-dev-baseline": "uv run --project apps/api --directory ../.. python apps/api/scripts/reset_content_dev_baseline.py",
     "jobs:worker": "uv run --project apps/api --directory ../.. taskiq worker apps.api.src.infra.jobs.taskiq_app:broker apps.api.src.infra.jobs.tasks",
     "jobs:scheduler": "uv run --project apps/api --directory ../.. taskiq scheduler apps.api.src.infra.jobs.taskiq_app:scheduler apps.api.src.infra.jobs.tasks"
   }
