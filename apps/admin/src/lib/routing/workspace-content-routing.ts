@@ -21,6 +21,10 @@ export function workspaceContentLibraryItemPath(workspaceId: string, itemId: str
   return `/w/${encodeURIComponent(workspaceId)}/content/library/${encodeURIComponent(itemId)}`;
 }
 
+export function workspaceContentModelsPath(workspaceId: string): string {
+  return `/w/${encodeURIComponent(workspaceId)}/content/models`;
+}
+
 export function workspaceContentCreatePath(workspaceId: string): string {
   return `/w/${encodeURIComponent(workspaceId)}/content/create`;
 }

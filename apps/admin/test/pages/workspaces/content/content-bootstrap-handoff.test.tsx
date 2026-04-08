@@ -8,6 +8,7 @@ import { useContentBootstrapController } from "@/pages/workspaces/content/bootst
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const createContentItemMock = vi.fn();
 const applyContentBootstrapShapeMock = vi.fn();
+const listAllContentModelsMock = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
@@ -16,6 +17,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/api/content", () => ({
   createContentItem: (...args: unknown[]) => createContentItemMock(...args),
   applyContentBootstrapShape: (...args: unknown[]) => applyContentBootstrapShapeMock(...args),
+  listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
 }));
 
 vi.mock("@/hooks/use-workspace-localization", () => ({
@@ -48,6 +50,22 @@ describe("content bootstrap continuation handoff", () => {
     navigateMock.mockClear();
     createContentItemMock.mockReset();
     applyContentBootstrapShapeMock.mockReset();
+    listAllContentModelsMock.mockReset();
+    listAllContentModelsMock.mockResolvedValue([
+      {
+        id: "model-article",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        key: "article",
+        name: "Article",
+        description: "Long-form posts",
+        category: "content_library",
+        capabilities: ["publishable", "rich_text_editable"],
+        defaultRole: "article",
+        defaultPosture: "entry",
+        defaultSurface: "writing",
+      },
+    ]);
   });
 
   test("uses the shaped item continuation target when a starter preset is selected", async () => {
@@ -106,13 +124,23 @@ describe("content bootstrap continuation handoff", () => {
       wrapper: createWrapper(),
     });
 
+    await waitFor(() => {
+      expect(result.current.availableModels).toHaveLength(1);
+    });
+
     act(() => {
       result.current.setTitle("Hello world");
+      result.current.selectModel("article");
       result.current.selectPreset("post");
       result.current.continueWithStarter();
     });
 
     await waitFor(() => {
+      expect(createContentItemMock).toHaveBeenCalledWith("ws-1", {
+        title: "Hello world",
+        locale: "en-US",
+        modelKey: "article",
+      });
       expect(navigateMock).toHaveBeenCalledWith({
         to: "/w/ws-1/content/library/item-1",
       });

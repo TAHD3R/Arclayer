@@ -7,6 +7,7 @@ from apps.api.src.models.content.content_item import ContentItemRecord
 from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
 from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
+    _create_article_model,
     _item_payload,
     _workspace_client,
 )
@@ -60,6 +61,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         create_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -67,17 +69,17 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert create_res.status_code == 201, create_res.text
         item = create_res.json()["data"]
         item_id = item["id"]
-        assert item["shapeState"] == "unshaped"
-        assert item["shapeReasonCode"] == "UNSHAPED_ITEM"
-        assert item.get("resolvedRole") is None
-        assert item.get("resolvedSurface") is None
+        assert item["shapeState"] == "ready"
+        assert item.get("shapeReasonCode") is None
+        assert item["resolvedRole"] == "article"
+        assert item["resolvedSurface"] == "writing"
         assert item["derivedStatus"] == "draft"
-        assert item["runtime"] == "unknown"
-        assert item["context"] == "standalone"
+        assert item["runtime"] == "text"
+        assert item["context"] == "content_library"
         assert item["libraryGroup"] == "general-content"
-        assert item["editWith"] == "structured"
-        assert item["role"] == "general"
-        assert item["openIntent"]["blocked"] is True
+        assert item["editWith"] == "writing"
+        assert item["role"] == "article"
+        assert item["openIntent"]["blocked"] is False
         assert item["openIntent"]["route"] == f"/w/{workspace_id}/content/library/{item_id}"
         assert item["continuationTarget"]["route"] == item["openIntent"]["route"]
 
@@ -94,7 +96,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert shaped.get("shapeReasonCode") is None
         assert shaped["derivedStatus"] == "draft"
         assert shaped["runtime"] == "text"
-        assert shaped["context"] == "standalone"
+        assert shaped["context"] == "content_library"
         assert shaped["libraryGroup"] == "general-content"
         assert shaped["editWith"] == "writing"
         assert shaped["role"] == "article"

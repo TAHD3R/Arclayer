@@ -731,9 +731,15 @@ export function ContentLibraryPage() {
     },
     onError: (error) => notifyError(error),
   });
-  const handleOpenPreview = React.useCallback((row: ContentLibraryTableRow) => {
-    setPreviewRowId((prev) => (prev === row.id ? null : row.id));
-  }, []);
+  const handleOpenPreview = React.useCallback(
+    (row: ContentLibraryTableRow) => {
+      if (!workspaceId) return;
+      void navigate({
+        to: workspaceContentLibraryItemPath(String(workspaceId), row.id),
+      });
+    },
+    [navigate, workspaceId],
+  );
   const handlePreviewResizePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const container = splitLayoutRef.current;

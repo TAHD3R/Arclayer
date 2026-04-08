@@ -7,6 +7,7 @@ from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
 from apps.api.src.models.content.published_graph import PublishedGraphRecord
 from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
+    _create_page_model,
     _workspace_client,
 )
 
@@ -17,6 +18,7 @@ def _item_payload(slug: str, title: str) -> dict:
     return {
         "title": title,
         "locale": "en-US",
+        "modelKey": "page",
     }
 
 
@@ -67,6 +69,7 @@ def _draft_payload(title: str) -> dict:
 
 
 async def _setup_publishable_items(client, workspace_id: str) -> tuple[str, str]:
+    await _create_page_model(client, workspace_id)
     root_item_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items",
         json=_item_payload("home", "Home"),

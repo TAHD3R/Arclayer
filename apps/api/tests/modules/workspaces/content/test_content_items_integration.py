@@ -99,6 +99,7 @@ def _item_payload() -> dict:
     return {
         "title": "Hello World",
         "locale": "en-US",
+        "modelKey": "article",
     }
 
 
@@ -113,6 +114,49 @@ def _model_payload() -> dict:
         "workflow": {"states": []},
         "views": [],
     }
+
+
+async def _create_content_model(
+    client: AsyncClient,
+    workspace_id: str,
+    **overrides: object,
+) -> dict:
+    response = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/models",
+        json={
+            **_model_payload(),
+            **overrides,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["data"]
+
+
+async def _create_article_model(client: AsyncClient, workspace_id: str) -> dict:
+    return await _create_content_model(
+        client,
+        workspace_id,
+        category="content_library",
+        defaultEditor="rich_text",
+        capabilities=["publishable", "rich_text_editable"],
+        defaultRole="article",
+        defaultPosture="entry",
+        defaultSurface="writing",
+    )
+
+
+async def _create_page_model(client: AsyncClient, workspace_id: str) -> dict:
+    return await _create_content_model(
+        client,
+        workspace_id,
+        key="page",
+        name="Page",
+        category="site_builder",
+        capabilities=["publishable", "routable", "treeable"],
+        defaultRole="page",
+        defaultPosture="page",
+        defaultSurface="structured",
+    )
 
 
 def _bootstrap_shape_payload(
@@ -166,6 +210,7 @@ async def test_content_items_full_workflow_with_first_class_presentations(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -218,6 +263,7 @@ async def test_content_items_list_is_available_from_canonical_read_endpoint(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -228,10 +274,70 @@ async def test_content_items_list_is_available_from_canonical_read_endpoint(
         assert list_res.status_code == 200, list_res.text
         payload = list_res.json()["data"]
         assert payload["total"] == 1
-        assert payload["items"][0].get("modelKey") is None
+        assert payload["items"][0]["modelKey"] == "article"
         assert payload["items"][0]["bootstrapPresetState"] == "none"
         assert payload["items"][0]["capabilityPackIds"] == []
+        assert payload["items"][0]["shapeState"] == "ready"
+        assert payload["items"][0]["resolvedSurface"] == "writing"
         assert payload["items"][0]["slug"].startswith("hello-world")
+
+
+@pytest.mark.asyncio
+async def test_content_items_create_requires_model_key_at_api_boundary(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json={
+                "title": "Hello World",
+                "locale": "en-US",
+            },
+        )
+        assert response.status_code == 422, response.text
+
+
+@pytest.mark.asyncio
+async def test_content_items_create_rejects_unknown_model_key(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json={**_item_payload(), "modelKey": "missing-model"},
+        )
+        assert response.status_code == 404, response.text
+        assert response.json()["error"] == "CONTENT_MODEL_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_content_items_create_uses_model_defaults_when_model_key_is_provided(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
+
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json={**_item_payload(), "modelKey": "article"},
+        )
+        assert item_res.status_code == 201, item_res.text
+
+        payload = item_res.json()["data"]
+        assert payload["modelKey"] == "article"
+        assert payload["resolvedRole"] == "article"
+        assert payload["resolvedPosture"] == "entry"
+        assert payload["resolvedSurface"] == "writing"
+        assert payload["shapeState"] == "ready"
+
+        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        assert list_res.status_code == 200, list_res.text
+        listed = list_res.json()["data"]["items"][0]
+        assert listed["modelKey"] == "article"
+        assert listed["resolvedSurface"] == "writing"
 
 
 @pytest.mark.asyncio
@@ -240,6 +346,7 @@ async def test_content_items_list_returns_active_version_summary(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -266,6 +373,7 @@ async def test_content_items_archive_without_versions_marks_item_archived(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -295,6 +403,7 @@ async def test_content_items_unarchive_without_versions_restores_draft_status(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -330,6 +439,7 @@ async def test_content_items_apply_bootstrap_shape_and_track_customized_state(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -364,6 +474,7 @@ async def test_content_items_reject_direct_writes_to_published_version(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -404,6 +515,7 @@ async def test_content_items_return_single_item_detail(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -425,6 +537,7 @@ async def test_content_items_return_version_detail_with_fields_snapshot_and_pres
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -463,6 +576,7 @@ async def test_content_items_list_versions_endpoint_returns_latest_first(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -515,6 +629,7 @@ async def test_content_item_mutations_emit_workspace_activity_events(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         workspace_uuid = decode_public_id(workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
@@ -582,6 +697,7 @@ async def test_content_items_archive_transition_is_explicit_and_terminal_for_pub
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -633,6 +749,7 @@ async def test_content_items_reject_selected_preset_state_without_preset_key(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -654,6 +771,7 @@ async def test_content_items_duplicate_creates_new_draft_copy_with_presentations
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -698,6 +816,7 @@ async def test_content_items_duplicate_creates_new_draft_copy_with_presentations
         assert [doc.kind for doc in docs] == ["form_data", "rich_text_document", "visual_blueprint"]
         assert duplicate_version.fields_snapshot == {
             "title": "Hello World",
+            "summary": "This is the canonical summary.",
             "body": "Draft body",
         }
 
@@ -708,6 +827,7 @@ async def test_content_items_delete_removes_item_and_versions(
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),

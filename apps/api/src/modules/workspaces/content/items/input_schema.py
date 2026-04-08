@@ -16,6 +16,7 @@ class ContentItemCreateIn(BaseSchema):
 
     title: str = Field(..., min_length=1, max_length=256)
     locale: str = Field(default="zh-CN", min_length=2, max_length=16)
+    model_key: str = Field(..., min_length=1, max_length=64)
 
 
 class ContentItemBootstrapShapeIn(BaseSchema):

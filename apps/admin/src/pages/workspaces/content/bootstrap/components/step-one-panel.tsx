@@ -6,14 +6,20 @@ import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 import { cn } from "@arclayer/lib/utils";
+import type { AdminContentModel } from "@/types/api";
 
 import { CONTENT_BOOTSTRAP_PRESETS } from "../definitions";
 import type { ContentBootstrapPresetKey } from "../types";
 
 type StepOnePanelProps = {
+  availableModels: AdminContentModel[];
   busy: boolean;
+  modelsError: Error | null;
+  modelsLoading: boolean;
+  selectedModelKey: string | null;
   title: string;
   selectedPresetKey: ContentBootstrapPresetKey | null;
+  onModelSelect: (value: string | null) => void;
   onTitleChange: (value: string) => void;
   onPresetSelect: (value: ContentBootstrapPresetKey | null) => void;
 };
@@ -88,6 +94,86 @@ function TitleField(props: Pick<StepOnePanelProps, "busy" | "title" | "onTitleCh
   );
 }
 
+function ModelOption(props: { model: AdminContentModel; selectedModelKey: string | null }) {
+  const selected = props.selectedModelKey === props.model.key;
+
+  return (
+    <ToggleGroupItem
+      value={props.model.key}
+      aria-label={props.model.name}
+      aria-pressed={selected}
+      className={cn(
+        "col-span-1! flex! h-auto! min-h-24! flex-col! rounded-lg! border! bg-card! p-4! text-left! !",
+        "transition-colors! duration-200!",
+        "hover:border-border/80! hover:bg-accent/50! hover:!",
+        selected && "border-border/80! bg-accent/60! !",
+      )}
+    >
+      <div className="flex w-full flex-col gap-2">
+        <div className="text-headline font-semibold text-label-primary">{props.model.name}</div>
+        <div className="text-footnote text-label-secondary">{props.model.key}</div>
+        {props.model.description ? (
+          <div className="break-words whitespace-normal text-footnote text-label-secondary/90">
+            {props.model.description}
+          </div>
+        ) : null}
+      </div>
+    </ToggleGroupItem>
+  );
+}
+
+function ModelField(
+  props: Pick<
+    StepOnePanelProps,
+    | "availableModels"
+    | "busy"
+    | "modelsError"
+    | "modelsLoading"
+    | "selectedModelKey"
+    | "onModelSelect"
+  >,
+) {
+  const { t } = useTranslation("content");
+
+  return (
+    <Accordion type="single" collapsible defaultValue="content-model" className="px-0">
+      <SettingAccordionItem
+        value="content-model"
+        title={<span className="text-body">{t("CONTENT_BOOTSTRAP_FIELD_MODEL_LABEL")}</span>}
+        description={t("CONTENT_BOOTSTRAP_FIELD_MODEL_DESC")}
+        keepRendered
+        contentClassName="max-w-none"
+      >
+        {props.modelsLoading ? (
+          <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-footnote text-label-secondary">
+            {t("CONTENT_BOOTSTRAP_FIELD_MODEL_LOADING")}
+          </div>
+        ) : props.modelsError ? (
+          <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-footnote text-danger">
+            {t("CONTENT_BOOTSTRAP_FIELD_MODEL_ERROR")}
+          </div>
+        ) : props.availableModels.length === 0 ? (
+          <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-footnote text-label-secondary">
+            {t("CONTENT_BOOTSTRAP_FIELD_MODEL_EMPTY")}
+          </div>
+        ) : (
+          <ToggleGroup
+            type="single"
+            value={props.selectedModelKey ?? undefined}
+            disabled={props.busy}
+            onValueChange={(value) => props.onModelSelect(value || null)}
+            className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent md:grid-cols-2"
+          >
+            {props.availableModels.map((model) => (
+              <ModelOption key={model.id} model={model} selectedModelKey={props.selectedModelKey} />
+            ))}
+          </ToggleGroup>
+        )}
+      </SettingAccordionItem>
+    </Accordion>
+  );
+}
+
 function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "onPresetSelect">) {
   const { t } = useTranslation("content");
   const selectedPreset = props.selectedPresetKey
@@ -140,6 +226,14 @@ function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "on
 export function ContentBootstrapStepOnePanel(props: StepOnePanelProps) {
   return (
     <div className="flex w-full flex-1 flex-col gap-4 pb-8">
+      <ModelField
+        availableModels={props.availableModels}
+        busy={props.busy}
+        modelsError={props.modelsError}
+        modelsLoading={props.modelsLoading}
+        selectedModelKey={props.selectedModelKey}
+        onModelSelect={props.onModelSelect}
+      />
       <TitleField busy={props.busy} title={props.title} onTitleChange={props.onTitleChange} />
       <StartFromField
         selectedPresetKey={props.selectedPresetKey}

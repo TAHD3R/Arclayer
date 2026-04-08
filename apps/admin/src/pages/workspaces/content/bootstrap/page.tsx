@@ -10,6 +10,8 @@ import { useContentBootstrapController } from "./hooks/use-content-bootstrap-con
 export function ContentBootstrapPage(props: { workspaceId: string }) {
   const { t } = useTranslation("content");
   const controller = useContentBootstrapController(props.workspaceId);
+  const showModelSetupAction =
+    !controller.modelsLoading && !controller.modelsError && !controller.hasAvailableModels;
 
   return (
     <DefaultPage
@@ -28,11 +30,17 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
           </Button>
           <Button
             type="button"
-            loading={controller.continuePending}
-            disabled={!controller.canContinue || controller.busy}
-            onClick={controller.continueWithStarter}
+            loading={!showModelSetupAction ? controller.continuePending : false}
+            disabled={
+              showModelSetupAction ? controller.busy : !controller.canContinue || controller.busy
+            }
+            onClick={
+              showModelSetupAction ? controller.navigateToModels : controller.continueWithStarter
+            }
           >
-            {t("CONTENT_BOOTSTRAP_ACTION_CONTINUE")}
+            {showModelSetupAction
+              ? t("CONTENT_BOOTSTRAP_FIELD_MODEL_EMPTY_ACTION")
+              : t("CONTENT_BOOTSTRAP_ACTION_CONTINUE")}
           </Button>
         </div>
       }
@@ -41,9 +49,14 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
       contentContainerClassName="mx-auto w-full max-w-4xl"
     >
       <ContentBootstrapStepOnePanel
+        availableModels={controller.availableModels}
         busy={controller.busy}
+        modelsError={controller.modelsError}
+        modelsLoading={controller.modelsLoading}
+        selectedModelKey={controller.selectedModelKey}
         title={controller.title}
         selectedPresetKey={controller.selectedPresetKey}
+        onModelSelect={controller.selectModel}
         onTitleChange={controller.setTitle}
         onPresetSelect={controller.selectPreset}
       />

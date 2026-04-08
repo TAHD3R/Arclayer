@@ -120,15 +120,27 @@ class WorkspaceContentCanonicalItemsService:
         payload: ContentItemCreateIn,
     ) -> ContentItemOut:
         try:
+            model_key = payload.model_key.strip()
+            if not model_key:
+                raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+
+            model = await self.repo.get_model_definition_by_key(
+                workspace_id=workspace_id,
+                site_id=site_id,
+                model_key=model_key,
+            )
+            if model is None:
+                raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
+
             continuation = resolve_item_continuation_truth(
-                model=None,
+                model=model,
                 preset_key=None,
                 capability_pack_ids=[],
             )
             item = await self.repo.create_item(
                 workspace_id=workspace_id,
                 site_id=site_id,
-                model_definition_id=None,
+                model_definition_id=model.id,
                 slug=build_formless_draft_slug(payload.title),
                 title=payload.title.strip(),
                 locale=payload.locale,
@@ -152,7 +164,7 @@ class WorkspaceContentCanonicalItemsService:
                 meta={"title": payload.title, "locale": payload.locale},
             ) from exc
 
-        return to_item_out(item, None)
+        return to_item_out(item, model)
 
     async def apply_bootstrap_shape(
         self,

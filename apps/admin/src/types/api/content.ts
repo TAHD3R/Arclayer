@@ -161,6 +161,7 @@ export type AdminContentItem = {
 export type CreateAdminContentItemPayload = {
   title: string;
   locale?: string;
+  modelKey: string;
 };
 
 export type ApplyAdminContentBootstrapShapePayload = {

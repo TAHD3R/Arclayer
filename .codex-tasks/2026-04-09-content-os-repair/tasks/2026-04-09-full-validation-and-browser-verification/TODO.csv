@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,Run full admin and api checks or capture blockers,TODO,Full-check results are recorded in PROGRESS.md,echo SKIP,,0,
+2,Perform browser verification across create/library/surfaces or capture blockers,TODO,Manual/browser verification outcome is recorded in PROGRESS.md,echo SKIP,,0,
+3,Close epic only after validation layer is complete,TODO,Parent SUBTASKS.csv and PROGRESS.md reflect final truth,test -f .codex-tasks/2026-04-09-content-os-repair/PROGRESS.md,,0,

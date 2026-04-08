@@ -1,13 +1,5 @@
 import * as React from "react";
-import {
-  Archive,
-  ArchiveRestore,
-  Copy,
-  MoreHorizontal,
-  PanelRightClose,
-  PanelRightOpen,
-  Trash2,
-} from "lucide-react";
+import { ArrowUpRight, Archive, ArchiveRestore, Copy, MoreHorizontal, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
@@ -37,10 +29,8 @@ export function ContentLibraryRowActions(props: {
 }) {
   const { t } = useTranslation(["content", "common"]);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const openLabel = props.previewOpen ? t("common:CLOSE") : t("CONTENT_LIBRARY_ACTION_OPEN");
-  const openTooltip = props.previewOpen
-    ? t("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW")
-    : t("CONTENT_LIBRARY_ACTION_OPEN_IN_SIDEBAR_PREVIEW");
+  const openLabel = t("CONTENT_LIBRARY_ACTION_OPEN");
+  const openTooltip = t("CONTENT_LIBRARY_ACTION_OPEN_ITEM");
   const archiveAction =
     props.row.derivedStatus === "archived"
       ? {
@@ -76,11 +66,7 @@ export function ContentLibraryRowActions(props: {
                 event.stopPropagation();
               }}
             >
-              {props.previewOpen ? (
-                <PanelRightClose className="size-4" />
-              ) : (
-                <PanelRightOpen className="size-4" />
-              )}
+              <ArrowUpRight className="size-4" />
               {openLabel}
             </Button>
           </TooltipTrigger>

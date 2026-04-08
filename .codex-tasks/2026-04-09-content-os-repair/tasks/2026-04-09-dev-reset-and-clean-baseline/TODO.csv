@@ -1,0 +1,4 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,Audit existing reset or reseed support for invalid content development data,TODO,Current repo support and gaps are written into PROGRESS.md,test -f .codex-tasks/2026-04-09-content-os-repair/tasks/2026-04-09-dev-reset-and-clean-baseline/PROGRESS.md,,0,
+2,Select or implement one destructive reset path for a typed baseline,TODO,One explicit reset or reseed path exists without runtime fallback logic,echo SKIP,,0,"Use SKIP only if verification must stay manual; explain exact reason in PROGRESS.md"
+3,Verify and record the clean baseline procedure,TODO,Procedure and verification result are recorded in PROGRESS.md,echo SKIP,,0,

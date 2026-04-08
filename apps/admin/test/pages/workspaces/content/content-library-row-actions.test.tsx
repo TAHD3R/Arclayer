@@ -68,7 +68,7 @@ describe("content-library-row-actions", () => {
     expect(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS")).toHaveClass("!rounded-lg");
   });
 
-  it("shows a direct open action with sidebar preview tooltip and routes other actions", async () => {
+  it("shows a direct open action that enters the content item route and routes other actions", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
     const onDuplicate = vi.fn();
@@ -87,9 +87,7 @@ describe("content-library-row-actions", () => {
     );
 
     await user.hover(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }));
-    expect(
-      await screen.findByText("CONTENT_LIBRARY_ACTION_OPEN_IN_SIDEBAR_PREVIEW"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("CONTENT_LIBRARY_ACTION_OPEN_ITEM")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }));
 
@@ -108,7 +106,7 @@ describe("content-library-row-actions", () => {
     expect(onArchive).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
   });
 
-  it("switches the primary action into a close affordance when the sidebar preview is already open", async () => {
+  it("keeps the primary action stable even if a legacy preview state is supplied", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
 
@@ -124,12 +122,10 @@ describe("content-library-row-actions", () => {
       />,
     );
 
-    await user.hover(screen.getByRole("button", { name: "common:CLOSE" }));
-    expect(
-      await screen.findByText("CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW"),
-    ).toBeInTheDocument();
+    await user.hover(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }));
+    expect(await screen.findByText("CONTENT_LIBRARY_ACTION_OPEN_ITEM")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "common:CLOSE" }));
+    await user.click(screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_OPEN" }));
 
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "content-1" }));
   });

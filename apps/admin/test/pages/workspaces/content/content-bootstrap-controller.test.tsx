@@ -8,6 +8,7 @@ import { useContentBootstrapController } from "@/pages/workspaces/content/bootst
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const createContentItemMock = vi.fn();
 const applyContentBootstrapShapeMock = vi.fn();
+const listAllContentModelsMock = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
@@ -22,6 +23,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/api/content", () => ({
   createContentItem: (...args: unknown[]) => createContentItemMock(...args),
   applyContentBootstrapShape: (...args: unknown[]) => applyContentBootstrapShapeMock(...args),
+  listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
 }));
 
 vi.mock("@/hooks/use-workspace-localization", () => ({
@@ -54,6 +56,22 @@ describe("useContentBootstrapController", () => {
     navigateMock.mockClear();
     createContentItemMock.mockReset();
     applyContentBootstrapShapeMock.mockReset();
+    listAllContentModelsMock.mockReset();
+    listAllContentModelsMock.mockResolvedValue([
+      {
+        id: "model-article",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        key: "article",
+        name: "Article",
+        description: "Long-form posts",
+        category: "content_library",
+        capabilities: ["publishable", "rich_text_editable"],
+        defaultRole: "article",
+        defaultPosture: "entry",
+        defaultSurface: "writing",
+      },
+    ]);
   });
 
   test("continue creates a draft with the selected starter and hands off to the continuation target", async () => {
@@ -130,8 +148,13 @@ describe("useContentBootstrapController", () => {
       wrapper: createWrapper(),
     });
 
+    await waitFor(() => {
+      expect(result.current.availableModels).toHaveLength(1);
+    });
+
     act(() => {
       result.current.setTitle("Hello world");
+      result.current.selectModel("article");
       result.current.selectPreset("page");
     });
 
@@ -143,6 +166,7 @@ describe("useContentBootstrapController", () => {
       expect(createContentItemMock).toHaveBeenCalledWith("ws-1", {
         title: "Hello world",
         locale: "en-US",
+        modelKey: "article",
       });
     });
 
@@ -194,8 +218,13 @@ describe("useContentBootstrapController", () => {
       wrapper: createWrapper(),
     });
 
+    await waitFor(() => {
+      expect(result.current.availableModels).toHaveLength(1);
+    });
+
     act(() => {
       result.current.setTitle("Blank draft");
+      result.current.selectModel("article");
     });
 
     act(() => {
@@ -206,6 +235,7 @@ describe("useContentBootstrapController", () => {
       expect(createContentItemMock).toHaveBeenCalledWith("ws-1", {
         title: "Blank draft",
         locale: "en-US",
+        modelKey: "article",
       });
     });
 

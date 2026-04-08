@@ -8,6 +8,7 @@ from apps.api.src.models.content.content_version import ContentVersionRecord
 from apps.api.src.models.content.seo_profile import SEOProfileRecord
 from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
+    _create_page_model,
     _workspace_client,
 )
 
@@ -18,6 +19,7 @@ def _item_payload() -> dict:
     return {
         "title": "Summer Launch",
         "locale": "en-US",
+        "modelKey": "page",
     }
 
 
@@ -59,6 +61,7 @@ async def test_draft_save_persists_first_class_seo_profiles_and_component_bindin
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_page_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),
@@ -101,6 +104,7 @@ async def test_content_version_auxiliary_endpoints_expose_presentations_seo_and_
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_page_model(client, workspace_id)
         item_res = await client.post(
             f"/api/v1/workspaces/{workspace_id}/content/items",
             json=_item_payload(),

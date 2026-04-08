@@ -4,6 +4,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+vi.mock("katex/dist/katex.min.css", () => ({}));
+
 import { ContentLibraryPage } from "@/pages/workspaces/content/library/page";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
@@ -123,6 +125,32 @@ vi.mock("@/components/common/data-table-tools-labels", () => ({
 
 vi.mock("@/pages/workspaces/assets/components/asset-picker-dialog", () => ({
   AssetPickerDialog: () => null,
+}));
+
+vi.mock("@/pages/workspaces/content/library/components/content-library-preview-panel", () => ({
+  ContentLibraryPreviewPanel: (props: {
+    initialTitle?: string;
+    initialSummary?: string;
+    onClose: () => void;
+    onOpenPage: () => void;
+  }) => (
+    <aside aria-label="CONTENT_LIBRARY_PREVIEW_PANEL_TITLE">
+      <button type="button" onClick={props.onClose}>
+        CONTENT_LIBRARY_ACTION_CLOSE_SIDEBAR_PREVIEW
+      </button>
+      <button type="button" onClick={props.onOpenPage}>
+        CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR
+      </button>
+      <button type="button" aria-label="CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU" />
+      <input readOnly value={props.initialTitle ?? ""} />
+      <textarea
+        readOnly
+        placeholder="CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER"
+        value={props.initialSummary ?? ""}
+      />
+      <div data-testid="content-library-article-editor-body" />
+    </aside>
+  ),
 }));
 
 vi.mock(
