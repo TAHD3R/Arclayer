@@ -174,6 +174,99 @@ describe("content-library-row-actions", () => {
     );
   });
 
+  it("shows article-specific editing actions in the row menu", async () => {
+    const user = userEvent.setup();
+    const onOpenFullEditor = vi.fn();
+    const onEditPermalink = vi.fn();
+    const onEditSeo = vi.fn();
+    const onEditVisibility = vi.fn();
+
+    render(
+      <ContentLibraryRowActions
+        row={buildRow({ editWith: "writing", role: "article" })}
+        onOpen={vi.fn()}
+        onOpenFullEditor={onOpenFullEditor}
+        onEditPermalink={onEditPermalink}
+        onEditSeo={onEditSeo}
+        onEditVisibility={onEditVisibility}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onArchive={vi.fn()}
+        onUnarchive={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    await user.click(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR" }),
+    );
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    await user.click(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_PERMALINK" }),
+    );
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    await user.click(screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_SEO" }));
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    await user.click(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY" }),
+    );
+
+    expect(onOpenFullEditor).toHaveBeenCalledWith(expect.objectContaining({ role: "article" }));
+    expect(onEditPermalink).toHaveBeenCalledWith(expect.objectContaining({ role: "article" }));
+    expect(onEditSeo).toHaveBeenCalledWith(expect.objectContaining({ role: "article" }));
+    expect(onEditVisibility).toHaveBeenCalledWith(expect.objectContaining({ role: "article" }));
+  });
+
+  it("shows page and structured actions according to the content type", async () => {
+    const user = userEvent.setup();
+
+    const { unmount } = render(
+      <ContentLibraryRowActions
+        row={buildRow({ editWith: "canvas", role: "page" })}
+        onOpen={vi.fn()}
+        onOpenPageSettings={vi.fn()}
+        onEditPermalink={vi.fn()}
+        onEditSeo={vi.fn()}
+        onEditVisibility={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onArchive={vi.fn()}
+        onUnarchive={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_PAGE_SETTINGS" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR" }),
+    ).not.toBeInTheDocument();
+
+    unmount();
+
+    render(
+      <ContentLibraryRowActions
+        row={buildRow({ editWith: "structured", role: "data" })}
+        onOpen={vi.fn()}
+        onOpenFullEditor={vi.fn()}
+        onOpenStructuredFields={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onArchive={vi.fn()}
+        onUnarchive={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("CONTENT_LIBRARY_ROW_ACTIONS"));
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_OPEN_STRUCTURED_EDITOR" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "CONTENT_LIBRARY_ACTION_EDIT_FIELDS" }),
+    ).toBeInTheDocument();
+  });
+
   it("releases the persisted visible state after closing the menu by clicking outside", async () => {
     const user = userEvent.setup();
 

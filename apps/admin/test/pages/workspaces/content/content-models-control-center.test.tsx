@@ -114,7 +114,7 @@ describe("ContentModelsControlCenterPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Article")).toBeInTheDocument();
+      expect(screen.getByText("CONTENT_TYPE_ARTICLE_NAME")).toBeInTheDocument();
     });
 
     const saveButton = screen.getByRole("button", {
@@ -185,7 +185,7 @@ describe("ContentModelsControlCenterPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Article")).toBeInTheDocument();
+      expect(screen.getByText("CONTENT_TYPE_ARTICLE_NAME")).toBeInTheDocument();
     });
 
     const surfaceSelect = screen.getByLabelText("CONTENT_MODELS_FIELD_SURFACE");
@@ -207,5 +207,38 @@ describe("ContentModelsControlCenterPage", () => {
     expect(screen.getByText("CONTENT_MODELS_PREVIEW_BLOCKING")).toBeInTheDocument();
     expect(saveButton).toBeDisabled();
     expect(patchContentModelMock).not.toHaveBeenCalled();
+  });
+
+  test("surfaces capabilities and user-facing option labels instead of raw continuation jargon", async () => {
+    listAllContentModelsMock.mockResolvedValue([
+      buildModel({
+        capabilities: ["publishable", "rich_text_editable", "seo_managed"],
+        defaultEditor: "rich_text",
+      }),
+    ]);
+
+    render(<ContentModelsControlCenterPage workspaceId="ws-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("CONTENT_TYPE_ARTICLE_NAME")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_CAPABILITY_PUBLISHABLE_LABEL")).toBeInTheDocument();
+    expect(
+      screen.getByText("CONTENT_MODELS_CAPABILITY_RICH_TEXT_EDITABLE_LABEL"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_CAPABILITY_SEO_MANAGED_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_MODELS_EDITOR_RICH_TEXT_LABEL")).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "CONTENT_MODELS_SURFACE_WRITING_LABEL" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "CONTENT_MODELS_POSTURE_ENTRY_LABEL" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "writing" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "entry" })).not.toBeInTheDocument();
   });
 });

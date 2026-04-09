@@ -1,5 +1,17 @@
 import * as React from "react";
-import { ArrowUpRight, Archive, ArchiveRestore, Copy, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  Archive,
+  ArchiveRestore,
+  Braces,
+  Copy,
+  Eye,
+  Globe,
+  Link2,
+  MoreHorizontal,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
@@ -18,6 +30,12 @@ import type { ContentLibraryTableRow } from "../types";
 export function ContentLibraryRowActions(props: {
   row: ContentLibraryTableRow;
   onOpen: (row: ContentLibraryTableRow) => void;
+  onOpenFullEditor?: (row: ContentLibraryTableRow) => void;
+  onEditPermalink?: (row: ContentLibraryTableRow) => void;
+  onEditSeo?: (row: ContentLibraryTableRow) => void;
+  onEditVisibility?: (row: ContentLibraryTableRow) => void;
+  onOpenPageSettings?: (row: ContentLibraryTableRow) => void;
+  onOpenStructuredFields?: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
@@ -31,6 +49,9 @@ export function ContentLibraryRowActions(props: {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const openLabel = t("CONTENT_LIBRARY_ACTION_OPEN");
   const openTooltip = t("CONTENT_LIBRARY_ACTION_OPEN_ITEM");
+  const showWritingActions = props.row.editWith === "writing" || props.row.role === "article";
+  const showPageActions = props.row.editWith === "canvas" || props.row.role === "page";
+  const showStructuredActions = props.row.editWith === "structured";
   const archiveAction =
     props.row.derivedStatus === "archived"
       ? {
@@ -99,6 +120,93 @@ export function ContentLibraryRowActions(props: {
             event.preventDefault();
           }}
         >
+          {showWritingActions && props.onOpenFullEditor ? (
+            <>
+              <DropdownMenuIconItem
+                icon={<ArrowUpRight className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onOpenFullEditor?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_OPEN_PAGE_EDITOR")}
+              </DropdownMenuIconItem>
+              <DropdownMenuIconItem
+                icon={<Link2 className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onEditPermalink?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_PERMALINK")}
+              </DropdownMenuIconItem>
+              <DropdownMenuIconItem
+                icon={<Globe className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onEditSeo?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_SEO")}
+              </DropdownMenuIconItem>
+              <DropdownMenuIconItem
+                icon={<Eye className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onEditVisibility?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY")}
+              </DropdownMenuIconItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+          {showPageActions ? (
+            <>
+              <DropdownMenuIconItem
+                icon={<Link2 className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onEditPermalink?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_PERMALINK")}
+              </DropdownMenuIconItem>
+              <DropdownMenuIconItem
+                icon={<Globe className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onEditSeo?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_SEO")}
+              </DropdownMenuIconItem>
+              <DropdownMenuIconItem
+                icon={<Eye className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onEditVisibility?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_VISIBILITY")}
+              </DropdownMenuIconItem>
+              <DropdownMenuIconItem
+                icon={<Settings2 className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onOpenPageSettings?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_PAGE_SETTINGS")}
+              </DropdownMenuIconItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+          {showStructuredActions ? (
+            <>
+              {props.onOpenFullEditor ? (
+                <DropdownMenuIconItem
+                  icon={<ArrowUpRight className="size-4" />}
+                  disabled={props.pending}
+                  onSelect={() => props.onOpenFullEditor?.(props.row)}
+                >
+                  {t("CONTENT_LIBRARY_ACTION_OPEN_STRUCTURED_EDITOR")}
+                </DropdownMenuIconItem>
+              ) : null}
+              <DropdownMenuIconItem
+                icon={<Braces className="size-4" />}
+                disabled={props.pending}
+                onSelect={() => props.onOpenStructuredFields?.(props.row)}
+              >
+                {t("CONTENT_LIBRARY_ACTION_EDIT_FIELDS")}
+              </DropdownMenuIconItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
           <DropdownMenuIconItem
             icon={<Copy className="size-4" />}
             disabled={props.pending}

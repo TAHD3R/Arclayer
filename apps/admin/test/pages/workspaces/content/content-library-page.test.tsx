@@ -1348,6 +1348,30 @@ describe("ContentLibraryPage", () => {
     expect(mocked.setSidebarOpen).not.toHaveBeenCalled();
   });
 
+  test("exposes a content-types handoff action in the page header", async () => {
+    const user = userEvent.setup();
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT" }),
+      ).toBeInTheDocument();
+    });
+
+    mocked.navigate.mockClear();
+
+    await user.click(
+      within(screen.getByTestId("page-action")).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_MANAGE_TYPES",
+      }),
+    );
+
+    expect(mocked.navigate).toHaveBeenCalledWith({
+      to: "/w/ws-1/content/models",
+    });
+  });
+
   test("highlights the previewed row while the sidebar preview is open", async () => {
     mocked.routeSearch.current = { focusItemId: "content-1" };
 
@@ -1362,9 +1386,9 @@ describe("ContentLibraryPage", () => {
     expect(screen.getByRole("button", { name: "row:Launch note" })).not.toHaveClass("bg-accent/24");
   });
 
-  test("maximizes the split editor into the library article page route", async () => {
+  test("maximizes the article split preview into the full editor route", async () => {
     const user = userEvent.setup();
-    mocked.routeSearch.current = { focusItemId: "content-1" };
+    mocked.routeSearch.current = { focusItemId: "content-2" };
 
     renderWithQuery(<ContentLibraryPage />);
 
@@ -1375,7 +1399,7 @@ describe("ContentLibraryPage", () => {
 
     expect(mocked.navigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: "/w/ws-1/content/library/content-1",
+        to: "/w/ws-1/content/library/content-2",
       }),
     );
   });
@@ -1412,31 +1436,22 @@ describe("ContentLibraryPage", () => {
     expect(mocked.setSidebarOpen).not.toHaveBeenCalled();
   });
 
-  test("selects rows and shows the bulk toolbar on row click instead of opening the preview", async () => {
+  test("opens the sidebar preview on row click instead of entering bulk selection mode", async () => {
     const user = userEvent.setup();
 
     renderWithQuery(<ContentLibraryPage />);
 
     await user.click(await screen.findByRole("button", { name: "row:Homepage" }));
 
-    const overlay = screen.getByTestId("admin-route-overlay");
-
-    expect(within(overlay).getByText("content:CONTENT_LIBRARY_SELECTED_COUNT")).toBeInTheDocument();
-    expect(
-      within(overlay).getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_ARCHIVE" }),
-    ).toBeInTheDocument();
-    expect(
-      within(overlay).getByRole("button", { name: "content:CONTENT_LIBRARY_ACTION_DELETE" }),
-    ).toBeInTheDocument();
-    expect(
-      within(overlay).getByRole("button", { name: "common:DATA_TABLE_CLEAR_SELECTION" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).not.toBeInTheDocument();
-    expect(mocked.navigate).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("CONTENT_LIBRARY_PREVIEW_PANEL_TITLE")).toBeInTheDocument();
+    expect(mocked.navigate).toHaveBeenCalledWith({
+      search: { focusItemId: "content-1" },
+      replace: true,
+    });
   });
 
   test("renders the article editor shell inside the split preview surface", async () => {
-    mocked.routeSearch.current = { focusItemId: "content-1" };
+    mocked.routeSearch.current = { focusItemId: "content-2" };
 
     renderWithQuery(<ContentLibraryPage />);
 
@@ -1458,7 +1473,7 @@ describe("ContentLibraryPage", () => {
     expect(
       within(previewPanel).getByPlaceholderText("CONTENT_LIBRARY_EDITOR_SUMMARY_PLACEHOLDER"),
     ).toBeInTheDocument();
-    expect(within(previewPanel).getByDisplayValue("Homepage")).toBeInTheDocument();
+    expect(within(previewPanel).getByDisplayValue("Launch note")).toBeInTheDocument();
     expect(
       within(previewPanel).getByTestId("content-library-article-editor-body"),
     ).toBeInTheDocument();
@@ -1476,7 +1491,7 @@ describe("ContentLibraryPage", () => {
   });
 
   test("stops fetching the deprecated drawer side queries for the sidebar preview", async () => {
-    mocked.routeSearch.current = { focusItemId: "content-1" };
+    mocked.routeSearch.current = { focusItemId: "content-2" };
 
     renderWithQuery(<ContentLibraryPage />);
 

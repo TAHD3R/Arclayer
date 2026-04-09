@@ -30,17 +30,15 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
           </Button>
           <Button
             type="button"
-            loading={!showModelSetupAction ? controller.continuePending : false}
+            loading={!showModelSetupAction ? controller.createPending : false}
             disabled={
-              showModelSetupAction ? controller.busy : !controller.canContinue || controller.busy
+              showModelSetupAction ? controller.busy : !controller.canCreate || controller.busy
             }
-            onClick={
-              showModelSetupAction ? controller.navigateToModels : controller.continueWithStarter
-            }
+            onClick={showModelSetupAction ? controller.navigateToModels : controller.createDraft}
           >
             {showModelSetupAction
               ? t("CONTENT_BOOTSTRAP_FIELD_MODEL_EMPTY_ACTION")
-              : t("CONTENT_BOOTSTRAP_ACTION_CONTINUE")}
+              : t("CONTENT_BOOTSTRAP_ACTION_CREATE_DRAFT")}
           </Button>
         </div>
       }
@@ -55,10 +53,8 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
         modelsLoading={controller.modelsLoading}
         selectedModelKey={controller.selectedModelKey}
         title={controller.title}
-        selectedPresetKey={controller.selectedPresetKey}
         onModelSelect={controller.selectModel}
         onTitleChange={controller.setTitle}
-        onPresetSelect={controller.selectPreset}
       />
     </DefaultPage>
   );

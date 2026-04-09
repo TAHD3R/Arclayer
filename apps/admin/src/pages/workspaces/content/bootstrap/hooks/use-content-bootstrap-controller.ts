@@ -2,21 +2,19 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
-import { applyContentBootstrapShape, createContentItem, listAllContentModels } from "@/api/content";
+import { createContentItem, listAllContentModels } from "@/api/content";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { DEFAULT_LOCALE, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import {
-  resolveContentItemContinuationRoute,
+  buildWorkspaceContentLibraryFocusSearch,
   workspaceContentLibraryPath,
   workspaceContentModelsPath,
 } from "@/lib/routing/workspace-content-routing";
-import type { AdminContentItem } from "@/types/api";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import type { AdminContentItem } from "@/types/api";
 
 import { buildContentItemsQueryKey, buildContentModelsQueryKey } from "../../library/utils";
-import { applyPresetSelection } from "../state";
-import type { ContentBootstrapPresetKey } from "../types";
 
 function resolveDefaultLocale(params: {
   preferenceLocale: AppLocale;
@@ -48,21 +46,11 @@ function useInvalidateContentItems(workspaceId: string) {
   }, [queryClient, workspaceId]);
 }
 
-function buildStarterPresetPayload(presetKey: ContentBootstrapPresetKey) {
-  const selection = applyPresetSelection(presetKey);
-  return {
-    presetKey: selection.presetKey,
-    presetState: selection.presetState,
-    capabilityPackIds: selection.capabilityPackIds,
-  };
-}
-
-function useContinueWithStarterMutation(params: {
+function useCreateDraftMutation(params: {
   workspaceId: string;
   title: string;
   locale: AppLocale;
   modelKey: string | null;
-  presetKey: ContentBootstrapPresetKey | null;
   invalidateItems: () => Promise<void>;
   onSuccess: (item: AdminContentItem) => void;
 }) {
@@ -78,15 +66,7 @@ function useContinueWithStarterMutation(params: {
         locale: params.locale,
         modelKey: nextModelKey,
       });
-      if (params.presetKey) {
-        const shapedItem = await applyContentBootstrapShape(
-          params.workspaceId,
-          draftItem.id,
-          buildStarterPresetPayload(params.presetKey),
-        );
-        await params.invalidateItems();
-        return shapedItem;
-      }
+
       await params.invalidateItems();
       return draftItem;
     },
@@ -97,22 +77,12 @@ function useContinueWithStarterMutation(params: {
   });
 }
 
-function useStarterPresetSelection() {
-  const [selectedPresetKey, setSelectedPresetKey] =
-    React.useState<ContentBootstrapPresetKey | null>(null);
-  const selectPreset = React.useCallback((presetKey: ContentBootstrapPresetKey | null) => {
-    setSelectedPresetKey(presetKey);
-  }, []);
-  return { selectedPresetKey, selectPreset };
-}
-
 export function useContentBootstrapController(workspaceId: string) {
   const navigate = useNavigate();
   const locale = useBootstrapLocaleState();
   const invalidateItems = useInvalidateContentItems(workspaceId);
   const [title, setTitle] = React.useState("");
   const [selectedModelKey, setSelectedModelKey] = React.useState<string | null>(null);
-  const { selectedPresetKey, selectPreset } = useStarterPresetSelection();
   const modelsQuery = useQuery({
     queryKey: buildContentModelsQueryKey(workspaceId),
     queryFn: () => listAllContentModels(workspaceId),
@@ -142,21 +112,19 @@ export function useContentBootstrapController(workspaceId: string) {
 
   const navigateToContinuation = React.useCallback(
     (item: AdminContentItem) => {
-      const route = resolveContentItemContinuationRoute(item);
-      if (!route) {
-        throw new Error("CONTENT_BOOTSTRAP_CONTINUATION_TARGET_MISSING");
-      }
-      void navigate({ to: route as never });
+      void navigate({
+        to: workspaceContentLibraryPath(workspaceId),
+        search: buildWorkspaceContentLibraryFocusSearch(item.id),
+      });
     },
     [navigate, workspaceId],
   );
 
-  const continueMutation = useContinueWithStarterMutation({
+  const createDraftMutation = useCreateDraftMutation({
     workspaceId,
     title,
     locale,
     modelKey: selectedModelKey,
-    presetKey: selectedPresetKey,
     invalidateItems,
     onSuccess: navigateToContinuation,
   });
@@ -168,15 +136,13 @@ export function useContentBootstrapController(workspaceId: string) {
     modelsError,
     title,
     selectedModelKey,
-    selectedPresetKey,
-    busy: continueMutation.isPending,
-    continuePending: continueMutation.isPending,
-    canContinue: title.trim().length > 0 && Boolean(selectedModelKey),
+    busy: createDraftMutation.isPending,
+    createPending: createDraftMutation.isPending,
+    canCreate: title.trim().length > 0 && Boolean(selectedModelKey),
     setTitle,
     selectModel: setSelectedModelKey,
-    continueWithStarter: () => continueMutation.mutate(),
+    createDraft: () => createDraftMutation.mutate(),
     navigateToLibrary,
     navigateToModels,
-    selectPreset,
   };
 }

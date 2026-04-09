@@ -9,6 +9,7 @@ import { ContentLibraryStatusTag } from "./content-library-status-tag";
 import { ContentLibraryRoleTag } from "./content-library-role-tag";
 import { ContentLibraryRowActions } from "./content-library-row-actions";
 import type { ContentLibraryTableRow } from "../types";
+import { getContentTypeLabel } from "../../content-type-presentation";
 
 function getLibraryGroupLabelKey(row: ContentLibraryTableRow) {
   if (row.libraryGroup === "site-content") return "CONTENT_LIBRARY_GROUP_SITE_CONTENT";
@@ -23,6 +24,12 @@ type ContentLibraryCardListProps = {
   previewRowId?: string | null;
   onCardClick: (row: ContentLibraryTableRow) => void;
   onOpen: (row: ContentLibraryTableRow) => void;
+  onOpenFullEditor?: (row: ContentLibraryTableRow) => void;
+  onEditPermalink?: (row: ContentLibraryTableRow) => void;
+  onEditSeo?: (row: ContentLibraryTableRow) => void;
+  onEditVisibility?: (row: ContentLibraryTableRow) => void;
+  onOpenPageSettings?: (row: ContentLibraryTableRow) => void;
+  onOpenStructuredFields?: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
@@ -64,7 +71,14 @@ export function ContentLibraryCardList(props: ContentLibraryCardListProps) {
               <div className="mt-1 flex flex-wrap gap-2">
                 <ContentLibraryRoleTag role={row.role} />
                 <ContentLibraryEditWithTag editWith={row.editWith} />
-                <BaseTag>{row.modelName || t("CONTENT_LIBRARY_ROW_UNTYPED")}</BaseTag>
+                <BaseTag>
+                  {getContentTypeLabel({
+                    modelKey: row.modelKey,
+                    fallbackName: row.modelName,
+                    fallbackLabel: t("CONTENT_LIBRARY_ROW_UNTYPED"),
+                    t,
+                  })}
+                </BaseTag>
               </div>
             </div>
             <div
@@ -76,6 +90,12 @@ export function ContentLibraryCardList(props: ContentLibraryCardListProps) {
                 pending={props.pending}
                 previewOpen={props.previewRowId === row.id}
                 onOpen={props.onOpen}
+                onOpenFullEditor={props.onOpenFullEditor}
+                onEditPermalink={props.onEditPermalink}
+                onEditSeo={props.onEditSeo}
+                onEditVisibility={props.onEditVisibility}
+                onOpenPageSettings={props.onOpenPageSettings}
+                onOpenStructuredFields={props.onOpenStructuredFields}
                 onDuplicate={props.onDuplicate}
                 onDelete={props.onDelete}
                 onArchive={props.onArchive}

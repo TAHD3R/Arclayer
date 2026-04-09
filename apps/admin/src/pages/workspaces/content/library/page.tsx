@@ -40,13 +40,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@arclayer/ui/alert-dialog";
+import { Button } from "@arclayer/ui/button";
 import {
   workspaceContentCreatePath,
   workspaceContentLibraryItemPath,
+  workspaceContentModelsPath,
 } from "@/lib/routing/workspace-content-routing";
+import { getContentTypeLabel } from "../content-type-presentation";
 import { useContentLibraryTableColumns } from "./components/content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryCardList } from "./components/content-library-card-list";
+import {
+  ContentLibraryItemSettingsDialogs,
+  type ContentLibraryItemSettingsDialogState,
+} from "./components/content-library-item-settings-dialogs";
 import { ContentLibraryNewContentButton } from "./components/content-library-new-content-button";
 import { ContentLibraryPreviewPanel } from "./components/content-library-preview-panel";
 import { ContentLibrarySelectionToolbar } from "./components/content-library-selection-toolbar";
@@ -90,10 +97,19 @@ import {
 
 function ContentLibraryPrimaryAction(props: {
   workspaceId: string | null;
-  onNavigate: () => void;
+  onNavigateCreate: () => void;
+  onNavigateModels: () => void;
 }) {
+  const { t } = useTranslation("content");
   if (!props.workspaceId) return null;
-  return <ContentLibraryNewContentButton onClick={props.onNavigate} />;
+  return (
+    <div className="flex items-center gap-3">
+      <Button type="button" variant="outline" onClick={props.onNavigateModels}>
+        {t("CONTENT_LIBRARY_ACTION_MANAGE_TYPES")}
+      </Button>
+      <ContentLibraryNewContentButton onClick={props.onNavigateCreate} />
+    </div>
+  );
 }
 
 type ArchiveDialogState = {
@@ -148,6 +164,10 @@ function getContentLibraryPreviewWidthDefaultsFromWindow() {
 function getContentLibraryCardMode(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia(CONTENT_LIBRARY_CARD_MODE_QUERY).matches;
+}
+
+function getContentLibraryPreservedViewSearch(view: unknown) {
+  return typeof view === "string" && view.trim() ? { view: view.trim() } : undefined;
 }
 
 function shouldAutoCollapseSidebarForPreview(): boolean {
@@ -447,6 +467,8 @@ export function ContentLibraryPage() {
   const [duplicateRow, setDuplicateRow] = React.useState<ContentLibraryTableRow | null>(null);
   const [deleteRow, setDeleteRow] = React.useState<ContentLibraryTableRow | null>(null);
   const [archiveDialog, setArchiveDialog] = React.useState<ArchiveDialogState | null>(null);
+  const [itemSettingsDialog, setItemSettingsDialog] =
+    React.useState<ContentLibraryItemSettingsDialogState>(null);
   const splitLayoutRef = React.useRef<HTMLDivElement | null>(null);
   const previewResizeCleanupRef = React.useRef<(() => void) | null>(null);
   const dataTableId = React.useMemo(
@@ -734,12 +756,26 @@ export function ContentLibraryPage() {
   const handleOpenPreview = React.useCallback(
     (row: ContentLibraryTableRow) => {
       if (!workspaceId) return;
+      const preservedViewSearch = getContentLibraryPreservedViewSearch(search.view);
+      setSelection((prev) => clearSelection(prev));
+      setPreviewRowId(row.id);
       void navigate({
-        to: workspaceContentLibraryItemPath(String(workspaceId), row.id),
+        search: preservedViewSearch
+          ? { ...preservedViewSearch, focusItemId: row.id }
+          : { focusItemId: row.id },
+        replace: true,
       });
     },
-    [navigate, workspaceId],
+    [navigate, search.view, workspaceId],
   );
+  const handleClosePreview = React.useCallback(() => {
+    const preservedViewSearch = getContentLibraryPreservedViewSearch(search.view);
+    setPreviewRowId(null);
+    void navigate({
+      search: preservedViewSearch ?? {},
+      replace: true,
+    });
+  }, [navigate, search.view]);
   const handlePreviewResizePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const container = splitLayoutRef.current;
@@ -801,6 +837,35 @@ export function ContentLibraryPage() {
       });
     },
     [orderedRowIds],
+  );
+  const handleRowClick = React.useCallback(
+    (
+      row: ContentLibraryTableRow,
+      event?: Pick<React.MouseEvent, "metaKey" | "ctrlKey" | "shiftKey">,
+    ) => {
+      if (event?.shiftKey || event?.metaKey || event?.ctrlKey) {
+        handleRowSelection(row, event);
+        return;
+      }
+      handleOpenPreview(row);
+    },
+    [handleOpenPreview, handleRowSelection],
+  );
+  const handleOpenFullEditor = React.useCallback(
+    (row: ContentLibraryTableRow) => {
+      if (!workspaceId) return;
+      void navigate({
+        to: workspaceContentLibraryItemPath(String(workspaceId), row.id),
+      });
+    },
+    [navigate, workspaceId],
+  );
+  const openItemSettingsDialog = React.useCallback(
+    (kind: NonNullable<ContentLibraryItemSettingsDialogState>["kind"]) =>
+      (row: ContentLibraryTableRow) => {
+        setItemSettingsDialog({ kind, row });
+      },
+    [],
   );
   const applyViewsState = React.useCallback(
     (next: AdminContentLibraryViewsState) => {
@@ -877,6 +942,12 @@ export function ContentLibraryPage() {
       setSelection((prev) => toggleSelect(prev, row.id));
     },
     onOpen: handleOpenPreview,
+    onOpenFullEditor: handleOpenFullEditor,
+    onEditPermalink: openItemSettingsDialog("permalink"),
+    onEditSeo: openItemSettingsDialog("seo"),
+    onEditVisibility: openItemSettingsDialog("visibility"),
+    onOpenPageSettings: openItemSettingsDialog("page-settings"),
+    onOpenStructuredFields: openItemSettingsDialog("structured-fields"),
     onDuplicate: setDuplicateRow,
     onDelete: setDeleteRow,
     onArchive: (row) => setArchiveDialog({ row, mode: "archive" }),
@@ -1221,7 +1292,15 @@ export function ContentLibraryPage() {
       }}
       onResetColumnVisibility={tableHook.resetColumnVisibility}
       toolsLabels={toolsLabels}
-      modelOptions={models.map((model) => ({ value: model.key, label: model.name }))}
+      modelOptions={models.map((model) => ({
+        value: model.key,
+        label: getContentTypeLabel({
+          modelKey: model.key,
+          fallbackName: model.name,
+          fallbackLabel: model.key,
+          t: (key) => t(`content:${key}`),
+        }),
+      }))}
       viewMode={viewMode}
       onViewModeChange={setManualViewMode}
       views={views}
@@ -1257,8 +1336,11 @@ export function ContentLibraryPage() {
         action={
           <ContentLibraryPrimaryAction
             workspaceId={workspaceId ? String(workspaceId) : null}
-            onNavigate={() =>
+            onNavigateCreate={() =>
               void navigate({ to: workspaceContentCreatePath(String(workspaceId)) })
+            }
+            onNavigateModels={() =>
+              void navigate({ to: workspaceContentModelsPath(String(workspaceId)) })
             }
           />
         }
@@ -1273,6 +1355,12 @@ export function ContentLibraryPage() {
                 previewRowId={previewRowId}
                 onCardClick={handleOpenPreview}
                 onOpen={handleOpenPreview}
+                onOpenFullEditor={handleOpenFullEditor}
+                onEditPermalink={openItemSettingsDialog("permalink")}
+                onEditSeo={openItemSettingsDialog("seo")}
+                onEditVisibility={openItemSettingsDialog("visibility")}
+                onOpenPageSettings={openItemSettingsDialog("page-settings")}
+                onOpenStructuredFields={openItemSettingsDialog("structured-fields")}
                 onDuplicate={setDuplicateRow}
                 onDelete={setDeleteRow}
                 onArchive={(row) => setArchiveDialog({ row, mode: "archive" })}
@@ -1319,7 +1407,7 @@ export function ContentLibraryPage() {
                   ? CONTENT_LIBRARY_PREVIEW_ROW_CLASS_NAME
                   : undefined
               }
-              onRowClick={(row, _rowIndex, event) => handleRowSelection(row.original, event)}
+              onRowClick={(row, _rowIndex, event) => handleRowClick(row.original, event)}
             />
           )}
         </div>
@@ -1377,16 +1465,29 @@ export function ContentLibraryPage() {
                 <ContentLibraryPreviewPanel
                   className="min-h-0 w-full flex-1"
                   workspaceId={String(workspaceId)}
-                  itemId={previewRow.id}
+                  row={previewRow}
                   initialTitle={previewRow.title || previewRow.name}
                   initialSummary=""
-                  onClose={() => setPreviewRowId(null)}
+                  onClose={handleClosePreview}
                   onOpenPage={() => {
                     if (!workspaceId) return;
                     void navigate({
                       to: workspaceContentLibraryItemPath(String(workspaceId), previewRow.id),
                     });
                   }}
+                  onEditPermalink={() =>
+                    setItemSettingsDialog({ kind: "permalink", row: previewRow })
+                  }
+                  onEditSeo={() => setItemSettingsDialog({ kind: "seo", row: previewRow })}
+                  onEditVisibility={() =>
+                    setItemSettingsDialog({ kind: "visibility", row: previewRow })
+                  }
+                  onOpenPageSettings={() =>
+                    setItemSettingsDialog({ kind: "page-settings", row: previewRow })
+                  }
+                  onOpenStructuredFields={() =>
+                    setItemSettingsDialog({ kind: "structured-fields", row: previewRow })
+                  }
                 />
               </motion.div>
             </motion.div>
@@ -1556,6 +1657,10 @@ export function ContentLibraryPage() {
               deleteSelectionMutation.mutate(selectedRowIds);
             },
           }}
+        />
+        <ContentLibraryItemSettingsDialogs
+          state={itemSettingsDialog}
+          onClose={() => setItemSettingsDialog(null)}
         />
       </>
     </AdminRouteContainer>

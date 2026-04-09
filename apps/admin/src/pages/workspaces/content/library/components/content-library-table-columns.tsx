@@ -17,6 +17,10 @@ import { ContentLibraryStatusTag } from "./content-library-status-tag";
 import { ContentLibraryRowActions } from "./content-library-row-actions";
 import type { ContentLibraryTableRow } from "../types";
 import { contentHasAddress } from "../utils";
+import {
+  getContentTypeLabel,
+  getOfficialContentTypePresentation,
+} from "../../content-type-presentation";
 
 function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
   const showAddress = contentHasAddress(props.row);
@@ -104,10 +108,24 @@ function OverflowTooltipText(props: { className?: string; children: string }) {
   );
 }
 
-function ContentLibraryModelCell(props: { row: ContentLibraryTableRow; untypedLabel: string }) {
+function ContentLibraryContentTypeCell(props: {
+  row: ContentLibraryTableRow;
+  untypedLabel: string;
+}) {
+  const { t } = useTranslation("content");
+  const presentation = getOfficialContentTypePresentation(props.row.modelKey);
+  const Icon = presentation?.icon;
+  const label = getContentTypeLabel({
+    modelKey: props.row.modelKey,
+    fallbackName: props.row.modelName,
+    fallbackLabel: props.untypedLabel,
+    t,
+  });
+
   return (
-    <span className="text-body text-label-primary">
-      {props.row.modelName || props.untypedLabel}
+    <span className="inline-flex items-center gap-2 text-body text-label-primary">
+      {Icon ? <Icon className="size-4 text-label-secondary" aria-hidden="true" /> : null}
+      <span>{label}</span>
     </span>
   );
 }
@@ -123,6 +141,12 @@ export function useContentLibraryTableColumns(params: {
   onToggleVisibleRows: (rows: ContentLibraryTableRow[], selected: boolean) => void;
   onToggleRowSelection: (row: ContentLibraryTableRow) => void;
   onOpen: (row: ContentLibraryTableRow) => void;
+  onOpenFullEditor?: (row: ContentLibraryTableRow) => void;
+  onEditPermalink?: (row: ContentLibraryTableRow) => void;
+  onEditSeo?: (row: ContentLibraryTableRow) => void;
+  onEditVisibility?: (row: ContentLibraryTableRow) => void;
+  onOpenPageSettings?: (row: ContentLibraryTableRow) => void;
+  onOpenStructuredFields?: (row: ContentLibraryTableRow) => void;
   onDuplicate: (row: ContentLibraryTableRow) => void;
   onDelete: (row: ContentLibraryTableRow) => void;
   onArchive: (row: ContentLibraryTableRow) => void;
@@ -177,10 +201,14 @@ export function useContentLibraryTableColumns(params: {
       },
       {
         accessorKey: "modelName",
-        meta: { title: t("CONTENT_LIBRARY_TABLE_COL_MODEL"), sortKey: "modelName", kind: "meta" },
-        header: t("CONTENT_LIBRARY_TABLE_COL_MODEL"),
+        meta: {
+          title: t("CONTENT_LIBRARY_TABLE_COL_CONTENT_TYPE"),
+          sortKey: "modelName",
+          kind: "meta",
+        },
+        header: t("CONTENT_LIBRARY_TABLE_COL_CONTENT_TYPE"),
         cell: ({ row }) => (
-          <ContentLibraryModelCell
+          <ContentLibraryContentTypeCell
             row={row.original}
             untypedLabel={t("CONTENT_LIBRARY_ROW_UNTYPED")}
           />
@@ -253,6 +281,12 @@ export function useContentLibraryTableColumns(params: {
               pending={params.actionPending}
               previewOpen={params.openPreviewRowId === row.original.id}
               onOpen={params.onOpen}
+              onOpenFullEditor={params.onOpenFullEditor}
+              onEditPermalink={params.onEditPermalink}
+              onEditSeo={params.onEditSeo}
+              onEditVisibility={params.onEditVisibility}
+              onOpenPageSettings={params.onOpenPageSettings}
+              onOpenStructuredFields={params.onOpenStructuredFields}
               onDuplicate={params.onDuplicate}
               onDelete={params.onDelete}
               onArchive={params.onArchive}
@@ -268,6 +302,12 @@ export function useContentLibraryTableColumns(params: {
     [
       params.actionPending,
       params.onOpen,
+      params.onOpenFullEditor,
+      params.onEditPermalink,
+      params.onEditSeo,
+      params.onEditVisibility,
+      params.onOpenPageSettings,
+      params.onOpenStructuredFields,
       params.formatDateTimeOrNull,
       params.onArchive,
       params.onDelete,

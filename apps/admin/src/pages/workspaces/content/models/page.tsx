@@ -16,6 +16,12 @@ import type {
   AdminContentModelImpactPreview,
   PatchAdminContentModelPayload,
 } from "@/types/api";
+import {
+  getContentTypeDescription,
+  getContentTypeLabel,
+  getOfficialContentTypePresentation,
+  sortContentModelsByPresentation,
+} from "@/pages/workspaces/content/content-type-presentation";
 import { buildContentModelsQueryKey } from "@/pages/workspaces/content/library/utils";
 
 const CONTINUATION_ROLE_OPTIONS: Array<AdminContentContinuationRole> = [
@@ -46,6 +52,109 @@ type ContentModelDraft = {
   defaultSurface: AdminContentContinuationSurface | null;
   starterPackPolicyText: string;
 };
+
+const CAPABILITY_PRESENTATION = {
+  versioned: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_VERSIONED_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_VERSIONED_DESC",
+  },
+  routable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_ROUTABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_ROUTABLE_DESC",
+  },
+  treeable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_TREEABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_TREEABLE_DESC",
+  },
+  visual_editable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_VISUAL_EDITABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_VISUAL_EDITABLE_DESC",
+  },
+  rich_text_editable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_RICH_TEXT_EDITABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_RICH_TEXT_EDITABLE_DESC",
+  },
+  queryable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_QUERYABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_QUERYABLE_DESC",
+  },
+  has_slots: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_HAS_SLOTS_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_HAS_SLOTS_DESC",
+  },
+  has_relations: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_HAS_RELATIONS_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_HAS_RELATIONS_DESC",
+  },
+  localizable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_LOCALIZABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_LOCALIZABLE_DESC",
+  },
+  publishable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_PUBLISHABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_PUBLISHABLE_DESC",
+  },
+  schedulable: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_SCHEDULABLE_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_SCHEDULABLE_DESC",
+  },
+  seo_managed: {
+    labelKey: "CONTENT_MODELS_CAPABILITY_SEO_MANAGED_LABEL",
+    descriptionKey: "CONTENT_MODELS_CAPABILITY_SEO_MANAGED_DESC",
+  },
+} as const satisfies Record<
+  AdminContentModel["capabilities"][number],
+  { labelKey: string; descriptionKey: string }
+>;
+
+const ROLE_PRESENTATION = {
+  page: "CONTENT_MODELS_ROLE_PAGE_LABEL",
+  article: "CONTENT_MODELS_ROLE_ARTICLE_LABEL",
+  "reusable-section": "CONTENT_MODELS_ROLE_REUSABLE_SECTION_LABEL",
+  taxonomy: "CONTENT_MODELS_ROLE_TAXONOMY_LABEL",
+  person: "CONTENT_MODELS_ROLE_PERSON_LABEL",
+  settings: "CONTENT_MODELS_ROLE_SETTINGS_LABEL",
+  data: "CONTENT_MODELS_ROLE_DATA_LABEL",
+  general: "CONTENT_MODELS_ROLE_GENERAL_LABEL",
+} as const satisfies Record<AdminContentContinuationRole, string>;
+
+const POSTURE_PRESENTATION = {
+  page: "CONTENT_MODELS_POSTURE_PAGE_LABEL",
+  entry: "CONTENT_MODELS_POSTURE_ENTRY_LABEL",
+  composition: "CONTENT_MODELS_POSTURE_COMPOSITION_LABEL",
+  structured: "CONTENT_MODELS_POSTURE_STRUCTURED_LABEL",
+} as const satisfies Record<AdminContentContinuationPosture, string>;
+
+const SURFACE_PRESENTATION = {
+  writing: "CONTENT_MODELS_SURFACE_WRITING_LABEL",
+  canvas: "CONTENT_MODELS_SURFACE_CANVAS_LABEL",
+  structured: "CONTENT_MODELS_SURFACE_STRUCTURED_LABEL",
+} as const satisfies Record<AdminContentContinuationSurface, string>;
+
+const EDITOR_PRESENTATION = {
+  form: "CONTENT_MODELS_EDITOR_FORM_LABEL",
+  visual: "CONTENT_MODELS_EDITOR_VISUAL_LABEL",
+  rich_text: "CONTENT_MODELS_EDITOR_RICH_TEXT_LABEL",
+  table: "CONTENT_MODELS_EDITOR_TABLE_LABEL",
+} as const satisfies Record<NonNullable<AdminContentModel["defaultEditor"]>, string>;
+
+function ModelFactCard(props: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
+      <div className="text-xs text-muted-foreground">{props.label}</div>
+      <div className="mt-2 text-sm font-medium text-foreground">{props.value}</div>
+    </div>
+  );
+}
+
+function ModelCapabilityCard(props: { label: string; description: string }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
+      <div className="text-sm font-medium text-foreground">{props.label}</div>
+      <div className="mt-1 text-sm text-muted-foreground">{props.description}</div>
+    </div>
+  );
+}
 
 function formatPolicyText(value: Record<string, unknown> | null | undefined): string {
   if (!value) return "";
@@ -113,8 +222,27 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
   const [previewPayloadKey, setPreviewPayloadKey] = React.useState<string | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
-  const models = modelsQuery.data ?? [];
+  const models = React.useMemo(
+    () => sortContentModelsByPresentation(modelsQuery.data ?? []),
+    [modelsQuery.data],
+  );
   const selectedModel = models.find((model) => model.id === selectedModelId) ?? models[0] ?? null;
+  const selectedOfficialType = getOfficialContentTypePresentation(selectedModel?.key);
+  const selectedTypeLabel = selectedModel
+    ? getContentTypeLabel({
+        modelKey: selectedModel.key,
+        fallbackName: selectedModel.name,
+        fallbackLabel: selectedModel.key,
+        t,
+      })
+    : null;
+  const selectedTypeDescription = selectedModel
+    ? getContentTypeDescription({
+        modelKey: selectedModel.key,
+        fallbackDescription: selectedModel.description,
+        t,
+      })
+    : null;
 
   React.useEffect(() => {
     if (!selectedModelId && models[0]) {
@@ -242,8 +370,22 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
                 onClick={() => setSelectedModelId(model.id)}
                 type="button"
               >
-                <span className="text-sm font-medium text-foreground">{model.name}</span>
-                <span className="text-xs text-muted-foreground">{model.key}</span>
+                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {(() => {
+                    const presentation = getOfficialContentTypePresentation(model.key);
+                    const TypeIcon = presentation?.icon;
+                    return TypeIcon ? <TypeIcon className="size-4 text-muted-foreground" /> : null;
+                  })()}
+                  {getContentTypeLabel({
+                    modelKey: model.key,
+                    fallbackName: model.name,
+                    fallbackLabel: model.key,
+                    t,
+                  })}
+                </span>
+                <span className="mt-1 text-xs text-muted-foreground">
+                  {model.description?.trim() || model.key}
+                </span>
               </button>
             ))}
             {!modelsQuery.isLoading && models.length === 0 ? (
@@ -262,101 +404,205 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
           {!modelsQuery.isLoading && selectedModel && draft ? (
             <div className="space-y-6">
               <header className="space-y-1">
-                <h2 className="text-xl font-semibold text-foreground">{selectedModel.name}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {selectedModel.description || selectedModel.key}
-                </p>
+                <div className="flex items-center gap-3">
+                  {selectedOfficialType ? (
+                    <span className="inline-flex size-10 items-center justify-center rounded-full border border-border/60 bg-background/70 text-muted-foreground">
+                      <selectedOfficialType.icon className="size-5" />
+                    </span>
+                  ) : null}
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-semibold text-foreground">
+                      {selectedTypeLabel ?? selectedModel.name}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedTypeDescription || selectedModel.description || selectedModel.key}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <span>
+                    {t("CONTENT_MODELS_FIELD_MODEL_KEY")}: {selectedModel.key}
+                  </span>
+                  <span>·</span>
+                  <span>
+                    {t("CONTENT_MODELS_FIELD_DEFAULT_EDITOR")}:{" "}
+                    {t(
+                      selectedModel.defaultEditor
+                        ? EDITOR_PRESENTATION[selectedModel.defaultEditor]
+                        : "CONTENT_MODELS_OPTION_UNSET",
+                    )}
+                  </span>
+                </div>
               </header>
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <label className="space-y-2 text-sm">
-                  <span className="font-medium text-foreground">
-                    {t("CONTENT_MODELS_FIELD_ROLE")}
-                  </span>
-                  <select
-                    aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2"
-                    value={draft.defaultRole ?? ""}
-                    onChange={(event) =>
-                      updateDraft({
-                        defaultRole: (event.target.value ||
-                          null) as AdminContentContinuationRole | null,
-                      })
-                    }
-                  >
-                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                    {CONTINUATION_ROLE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="space-y-2 text-sm">
-                  <span className="font-medium text-foreground">
-                    {t("CONTENT_MODELS_FIELD_POSTURE")}
-                  </span>
-                  <select
-                    aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2"
-                    value={draft.defaultPosture ?? ""}
-                    onChange={(event) =>
-                      updateDraft({
-                        defaultPosture: (event.target.value ||
-                          null) as AdminContentContinuationPosture | null,
-                      })
-                    }
-                  >
-                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                    {CONTINUATION_POSTURE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="space-y-2 text-sm">
-                  <span className="font-medium text-foreground">
-                    {t("CONTENT_MODELS_FIELD_SURFACE")}
-                  </span>
-                  <select
-                    aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2"
-                    value={draft.defaultSurface ?? ""}
-                    onChange={(event) =>
-                      updateDraft({
-                        defaultSurface: (event.target.value ||
-                          null) as AdminContentContinuationSurface | null,
-                      })
-                    }
-                  >
-                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                    {CONTINUATION_SURFACE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <label className="block space-y-2 text-sm">
-                <span className="font-medium text-foreground">
-                  {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
-                </span>
-                <textarea
-                  aria-label={t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
-                  className="min-h-36 w-full rounded-2xl border border-border bg-background px-3 py-3 font-mono text-xs"
-                  value={draft.starterPackPolicyText}
-                  onChange={(event) =>
-                    updateDraft({
-                      starterPackPolicyText: event.target.value,
-                    })
-                  }
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <ModelFactCard
+                  label={t("CONTENT_MODELS_FIELD_NAME")}
+                  value={selectedTypeLabel ?? selectedModel.name}
                 />
-              </label>
+                <ModelFactCard
+                  label={t("CONTENT_MODELS_FIELD_DESCRIPTION")}
+                  value={selectedTypeDescription || t("CONTENT_MODELS_OPTION_UNSET")}
+                />
+                <ModelFactCard
+                  label={t("CONTENT_MODELS_FIELD_DEFAULT_EDITOR")}
+                  value={t(
+                    selectedModel.defaultEditor
+                      ? EDITOR_PRESENTATION[selectedModel.defaultEditor]
+                      : "CONTENT_MODELS_OPTION_UNSET",
+                  )}
+                />
+                <ModelFactCard
+                  label={t("CONTENT_MODELS_FIELD_CAPABILITY_COUNT")}
+                  value={String(selectedModel.capabilities.length)}
+                />
+              </section>
+
+              <section className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-foreground">
+                    {t("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t("CONTENT_MODELS_SECTION_CAPABILITIES_DESC")}
+                  </p>
+                </div>
+                {selectedModel.capabilities.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {selectedModel.capabilities.map((capability) => (
+                      <ModelCapabilityCard
+                        key={capability}
+                        label={t(CAPABILITY_PRESENTATION[capability].labelKey)}
+                        description={t(CAPABILITY_PRESENTATION[capability].descriptionKey)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border/60 px-4 py-4 text-sm text-muted-foreground">
+                    {t("CONTENT_MODELS_CAPABILITIES_EMPTY")}
+                  </div>
+                )}
+              </section>
+
+              <section className="space-y-4 rounded-2xl border border-border/60 bg-background/70 p-5">
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-foreground">
+                    {t("CONTENT_MODELS_SECTION_DEFAULTS_TITLE")}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t("CONTENT_MODELS_SECTION_DEFAULTS_DESC")}
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="space-y-2 text-sm">
+                    <span className="font-medium text-foreground">
+                      {t("CONTENT_MODELS_FIELD_ROLE")}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t("CONTENT_MODELS_FIELD_ROLE_HINT")}
+                    </span>
+                    <select
+                      aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2"
+                      value={draft.defaultRole ?? ""}
+                      onChange={(event) =>
+                        updateDraft({
+                          defaultRole: (event.target.value ||
+                            null) as AdminContentContinuationRole | null,
+                        })
+                      }
+                    >
+                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                      {CONTINUATION_ROLE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {t(ROLE_PRESENTATION[option])}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="space-y-2 text-sm">
+                    <span className="font-medium text-foreground">
+                      {t("CONTENT_MODELS_FIELD_POSTURE")}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t("CONTENT_MODELS_FIELD_POSTURE_HINT")}
+                    </span>
+                    <select
+                      aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2"
+                      value={draft.defaultPosture ?? ""}
+                      onChange={(event) =>
+                        updateDraft({
+                          defaultPosture: (event.target.value ||
+                            null) as AdminContentContinuationPosture | null,
+                        })
+                      }
+                    >
+                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                      {CONTINUATION_POSTURE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {t(POSTURE_PRESENTATION[option])}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="space-y-2 text-sm">
+                    <span className="font-medium text-foreground">
+                      {t("CONTENT_MODELS_FIELD_SURFACE")}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t("CONTENT_MODELS_FIELD_SURFACE_HINT")}
+                    </span>
+                    <select
+                      aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2"
+                      value={draft.defaultSurface ?? ""}
+                      onChange={(event) =>
+                        updateDraft({
+                          defaultSurface: (event.target.value ||
+                            null) as AdminContentContinuationSurface | null,
+                        })
+                      }
+                    >
+                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                      {CONTINUATION_SURFACE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {t(SURFACE_PRESENTATION[option])}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <details className="rounded-2xl border border-border/60 bg-background/70 p-5">
+                <summary className="cursor-pointer list-none text-base font-semibold text-foreground">
+                  {t("CONTENT_MODELS_SECTION_ADVANCED_TITLE")}
+                </summary>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t("CONTENT_MODELS_SECTION_ADVANCED_DESC")}
+                </p>
+                <label className="mt-4 block space-y-2 text-sm">
+                  <span className="font-medium text-foreground">
+                    {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY_HINT")}
+                  </span>
+                  <textarea
+                    aria-label={t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
+                    className="min-h-36 w-full rounded-2xl border border-border bg-background px-3 py-3 font-mono text-xs"
+                    value={draft.starterPackPolicyText}
+                    onChange={(event) =>
+                      updateDraft({
+                        starterPackPolicyText: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+              </details>
 
               {payloadError ? (
                 <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

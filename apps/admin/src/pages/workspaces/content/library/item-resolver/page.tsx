@@ -7,6 +7,7 @@ import {
   resolveContentItemContinuationRoute,
   resolveContentItemContinuationTarget,
   workspaceContentLibraryPath,
+  workspaceContentLibraryFocusedItemHref,
 } from "@/lib/routing/workspace-content-routing";
 import type {
   AdminContentItem,
@@ -24,7 +25,6 @@ import {
 } from "@arclayer/ui/card";
 
 import { ContentLibraryArticleEditorPage } from "../article-editor/page";
-import { ContentSiteBuilderPage } from "../../site-builder/page";
 import { ContentStructuredSurfacePage } from "../../structured/page";
 
 function getContinuationSurfaceLabel(
@@ -189,6 +189,54 @@ function ContinuationLoadingPage() {
   );
 }
 
+function PageContinuationHandoffPage(props: { item: AdminContentItem }) {
+  const { t } = useTranslation("content");
+  const itemLabel = props.item.title?.trim() || props.item.slug;
+
+  return (
+    <DefaultPage
+      title={t("CONTENT_PAGE_HANDOFF_TITLE")}
+      description={t("CONTENT_PAGE_HANDOFF_DESC")}
+      showFavoriteToggle={false}
+    >
+      <Card data-testid="content-page-handoff-state">
+        <CardHeader>
+          <CardTitle>{itemLabel}</CardTitle>
+          <CardDescription>{t("CONTENT_PAGE_HANDOFF_CARD_DESC")}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <div className="text-footnote text-label-secondary">
+              {t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
+            </div>
+            <div className="text-body text-label-primary">/{props.item.slug}</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-footnote text-label-secondary">
+              {t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
+            </div>
+            <div className="text-body text-label-primary">
+              {t(`CONTENT_LIBRARY_VISIBILITY_${props.item.visibility.toUpperCase()}`)}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-wrap gap-3">
+          <Button asChild type="button">
+            <a href={workspaceContentLibraryFocusedItemHref(props.item.workspaceId, props.item.id)}>
+              {t("CONTENT_PAGE_HANDOFF_ACTION_OPEN_IN_LIBRARY")}
+            </a>
+          </Button>
+          <Button asChild type="button" variant="outline">
+            <a href={workspaceContentLibraryPath(props.item.workspaceId)}>
+              {t("CONTENT_ITEM_CONTINUATION_ACTION_BACK_TO_LIBRARY")}
+            </a>
+          </Button>
+        </CardFooter>
+      </Card>
+    </DefaultPage>
+  );
+}
+
 export function ContentLibraryItemResolverPage(props: { workspaceId: string; itemId: string }) {
   const itemQuery = useQuery({
     queryKey: ["content-item-resolver", props.workspaceId, props.itemId],
@@ -251,7 +299,7 @@ export function ContentLibraryItemResolverPage(props: { workspaceId: string; ite
   }
 
   if (intent?.surface === "canvas") {
-    return <ContentSiteBuilderPage workspaceId={props.workspaceId} item={item} />;
+    return <PageContinuationHandoffPage item={item} />;
   }
 
   return <ContinuationStatePage item={item} intent={intent} mode="boundary" />;

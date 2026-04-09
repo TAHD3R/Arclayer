@@ -1,13 +1,12 @@
+import type { PropsWithChildren } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { PropsWithChildren } from "react";
 
 import { useContentBootstrapController } from "@/pages/workspaces/content/bootstrap/hooks/use-content-bootstrap-controller";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const createContentItemMock = vi.fn();
-const applyContentBootstrapShapeMock = vi.fn();
 const listAllContentModelsMock = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
@@ -22,7 +21,6 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/api/content", () => ({
   createContentItem: (...args: unknown[]) => createContentItemMock(...args),
-  applyContentBootstrapShape: (...args: unknown[]) => applyContentBootstrapShapeMock(...args),
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
 }));
 
@@ -55,7 +53,6 @@ describe("useContentBootstrapController", () => {
   beforeEach(() => {
     navigateMock.mockClear();
     createContentItemMock.mockReset();
-    applyContentBootstrapShapeMock.mockReset();
     listAllContentModelsMock.mockReset();
     listAllContentModelsMock.mockResolvedValue([
       {
@@ -74,7 +71,7 @@ describe("useContentBootstrapController", () => {
     ]);
   });
 
-  test("continue creates a draft with the selected starter and hands off to the continuation target", async () => {
+  test("creates a draft for the selected content type and hands off to the continuation target", async () => {
     createContentItemMock.mockResolvedValue({
       id: "item-1",
       workspaceId: "ws-1",
@@ -86,46 +83,10 @@ describe("useContentBootstrapController", () => {
       locale: "en-US",
       bootstrapPresetState: "none",
       capabilityPackIds: [],
-      shapeState: "unshaped",
-      shapeReasonCode: "UNSHAPED_ITEM",
-      openIntent: {
-        surface: null,
-        route: "/w/ws-1/content/library/item-1",
-        blocked: true,
-        reasonCode: "UNSHAPED_ITEM",
-        reasonMeta: null,
-        recoveryActions: [],
-      },
-      continuationTarget: {
-        surface: null,
-        route: "/w/ws-1/content/library/item-1",
-        blocked: true,
-        reasonCode: "UNSHAPED_ITEM",
-        reasonMeta: null,
-        recoveryActions: [],
-      },
-      draftVersion: 1,
-      updatedAt: "2026-03-19T00:00:00Z",
-    });
-    applyContentBootstrapShapeMock.mockResolvedValue({
-      id: "item-1",
-      workspaceId: "ws-1",
-      siteId: "site-1",
-      slug: "hello-world",
-      title: "Hello world",
-      status: "draft",
-      visibility: "private",
-      locale: "en-US",
-      bootstrapPresetKey: "page",
-      bootstrapPresetState: "selected",
-      capabilityPackIds: ["routable", "publishable", "seo_managed", "layout_bound"],
-      resolvedRole: "page",
-      resolvedPosture: "page",
-      resolvedSurface: "canvas",
       shapeState: "ready",
       shapeReasonCode: null,
       openIntent: {
-        surface: "canvas",
+        surface: "writing",
         route: "/w/ws-1/content/library/item-1",
         blocked: false,
         reasonCode: null,
@@ -133,7 +94,7 @@ describe("useContentBootstrapController", () => {
         recoveryActions: [],
       },
       continuationTarget: {
-        surface: "canvas",
+        surface: "writing",
         route: "/w/ws-1/content/library/item-1",
         blocked: false,
         reasonCode: null,
@@ -155,11 +116,10 @@ describe("useContentBootstrapController", () => {
     act(() => {
       result.current.setTitle("Hello world");
       result.current.selectModel("article");
-      result.current.selectPreset("page");
     });
 
     act(() => {
-      result.current.continueWithStarter();
+      result.current.createDraft();
     });
 
     await waitFor(() => {
@@ -170,50 +130,16 @@ describe("useContentBootstrapController", () => {
       });
     });
 
-    expect(applyContentBootstrapShapeMock).toHaveBeenCalledWith("ws-1", "item-1", {
-      presetKey: "page",
-      presetState: "selected",
-      capabilityPackIds: ["routable", "publishable", "seo_managed", "layout_bound"],
-    });
     expect(navigateMock).toHaveBeenCalledWith({
-      to: "/w/ws-1/content/library/item-1",
+      to: "/w/ws-1/content/library",
+      search: {
+        view: "draft",
+        focusItemId: "item-1",
+      },
     });
   });
 
-  test("continue can create a blank draft without a selected template and still uses continuation routing", async () => {
-    createContentItemMock.mockResolvedValue({
-      id: "item-2",
-      workspaceId: "ws-1",
-      siteId: "site-1",
-      slug: "blank-draft",
-      title: "Blank draft",
-      status: "draft",
-      visibility: "private",
-      locale: "en-US",
-      bootstrapPresetState: "none",
-      capabilityPackIds: [],
-      shapeState: "unshaped",
-      shapeReasonCode: "UNSHAPED_ITEM",
-      openIntent: {
-        surface: null,
-        route: "/w/ws-1/content/library/item-2",
-        blocked: true,
-        reasonCode: "UNSHAPED_ITEM",
-        reasonMeta: null,
-        recoveryActions: [],
-      },
-      continuationTarget: {
-        surface: null,
-        route: "/w/ws-1/content/library/item-2",
-        blocked: true,
-        reasonCode: "UNSHAPED_ITEM",
-        reasonMeta: null,
-        recoveryActions: [],
-      },
-      draftVersion: 1,
-      updatedAt: "2026-03-19T00:00:00Z",
-    });
-
+  test("only becomes creatable after both a title and a content type are selected", async () => {
     const { result } = renderHook(() => useContentBootstrapController("ws-1"), {
       wrapper: createWrapper(),
     });
@@ -222,26 +148,18 @@ describe("useContentBootstrapController", () => {
       expect(result.current.availableModels).toHaveLength(1);
     });
 
+    expect(result.current.canCreate).toBe(false);
+
     act(() => {
-      result.current.setTitle("Blank draft");
+      result.current.setTitle("Hello world");
+    });
+
+    expect(result.current.canCreate).toBe(false);
+
+    act(() => {
       result.current.selectModel("article");
     });
 
-    act(() => {
-      result.current.continueWithStarter();
-    });
-
-    await waitFor(() => {
-      expect(createContentItemMock).toHaveBeenCalledWith("ws-1", {
-        title: "Blank draft",
-        locale: "en-US",
-        modelKey: "article",
-      });
-    });
-
-    expect(applyContentBootstrapShapeMock).not.toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/w/ws-1/content/library/item-2",
-    });
+    expect(result.current.canCreate).toBe(true);
   });
 });

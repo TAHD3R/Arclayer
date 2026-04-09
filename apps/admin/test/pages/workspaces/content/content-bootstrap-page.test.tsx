@@ -18,9 +18,22 @@ vi.mock("@/pages/workspaces/content/bootstrap/hooks/use-content-bootstrap-contro
 }));
 
 describe("ContentBootstrapPage", () => {
-  test("renders a single-step create form with start-from options", () => {
+  test("renders a type-first create form with official content-type cards", () => {
     mocked.useContentBootstrapController.mockReturnValue({
       availableModels: [
+        {
+          id: "model-page",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          key: "landing-page",
+          name: "Landing page",
+          description: "Legacy fallback name",
+          category: "content_library",
+          capabilities: ["publishable", "routable", "seo_managed"],
+          defaultRole: "page",
+          defaultPosture: "page",
+          defaultSurface: "canvas",
+        },
         {
           id: "model-article",
           workspaceId: "ws-1",
@@ -33,6 +46,19 @@ describe("ContentBootstrapPage", () => {
           defaultRole: "article",
           defaultPosture: "entry",
           defaultSurface: "writing",
+        },
+        {
+          id: "model-structured",
+          workspaceId: "ws-1",
+          siteId: "site-1",
+          key: "structured-entry",
+          name: "Structured Entry",
+          description: "Legacy fallback name",
+          category: "content_library",
+          capabilities: ["queryable"],
+          defaultRole: "data",
+          defaultPosture: "structured",
+          defaultSurface: "structured",
         },
       ],
       hasAvailableModels: true,
@@ -40,100 +66,81 @@ describe("ContentBootstrapPage", () => {
       modelsError: null,
       title: "",
       selectedModelKey: null,
-      selectedPresetKey: null,
       busy: false,
-      continuePending: false,
-      canContinue: false,
+      createPending: false,
+      canCreate: false,
       setTitle: vi.fn(),
       selectModel: vi.fn(),
-      continueWithStarter: vi.fn(),
+      createDraft: vi.fn(),
       navigateToLibrary: vi.fn(),
       navigateToModels: vi.fn(),
-      selectPreset: vi.fn(),
     });
 
     render(<ContentBootstrapPage workspaceId="ws-1" />);
 
     expect(screen.getByText("CONTENT_BOOTSTRAP_CREATE_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_CREATE_DESC")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_MODEL_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("Article")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_TYPE_ARTICLE_NAME")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_TYPE_PAGE_NAME")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_TYPE_STRUCTURED_CONTENT_NAME")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_START_WITH_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_PRESET_PAGE_NAME")).toBeInTheDocument();
-    expect(screen.queryByText("CONTENT_BOOTSTRAP_PRESET_BLANK_NAME")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_SKIP" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CONTINUE" }),
+      screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CREATE_DRAFT" }),
     ).toBeDisabled();
-    expect(screen.getByText("CONTENT_BOOTSTRAP_START_FROM_DESC")).toBeInTheDocument();
-    expect(
-      screen.queryByText("CONTENT_BOOTSTRAP_ACTION_CONTINUE_TO_EDITOR"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_BOOTSTRAP_START_WITH_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_BOOTSTRAP_PRESET_PAGE_NAME")).not.toBeInTheDocument();
   });
 
-  test("reflects the selected start-from template", () => {
+  test("reflects the selected content type without rendering template selection", () => {
     mocked.useContentBootstrapController.mockReturnValue({
       availableModels: [
         {
-          id: "model-article",
+          id: "model-page",
           workspaceId: "ws-1",
           siteId: "site-1",
-          key: "article",
-          name: "Article",
-          description: "Long-form posts",
+          key: "landing-page",
+          name: "Landing page",
+          description: "Legacy fallback name",
           category: "content_library",
-          capabilities: ["publishable", "rich_text_editable"],
-          defaultRole: "article",
-          defaultPosture: "entry",
-          defaultSurface: "writing",
+          capabilities: ["publishable", "routable", "seo_managed"],
+          defaultRole: "page",
+          defaultPosture: "page",
+          defaultSurface: "canvas",
         },
       ],
       hasAvailableModels: true,
       modelsLoading: false,
       modelsError: null,
-      title: "My draft",
-      selectedModelKey: "article",
-      selectedPresetKey: "post",
+      title: "Homepage",
+      selectedModelKey: "landing-page",
       busy: false,
-      continuePending: false,
-      canContinue: true,
+      createPending: false,
+      canCreate: true,
       setTitle: vi.fn(),
       selectModel: vi.fn(),
-      continueWithStarter: vi.fn(),
+      createDraft: vi.fn(),
       navigateToLibrary: vi.fn(),
       navigateToModels: vi.fn(),
-      selectPreset: vi.fn(),
     });
 
     render(<ContentBootstrapPage workspaceId="ws-1" />);
 
-    expect(screen.getByText("CONTENT_BOOTSTRAP_CREATE_TITLE")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("My draft")).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Article/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByDisplayValue("Homepage")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /CONTENT_TYPE_PAGE_NAME/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(
-      screen.getByRole("radio", { name: /CONTENT_BOOTSTRAP_PRESET_POST_NAME/i }),
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_SKIP" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CONTINUE" })).toBeEnabled();
-    expect(
-      screen.getByText(
-        (_, node) =>
-          node?.textContent ===
-          [
-            "CONTENT_BOOTSTRAP_START_FROM_DESC",
-            "CONTENT_BOOTSTRAP_START_CURRENT_TEMPLATE_PREFIX",
-            "CONTENT_BOOTSTRAP_PRESET_POST_NAME",
-          ].join(""),
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("CONTENT_BOOTSTRAP_PRESET_POST_NAME")).toHaveLength(2);
+      screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CREATE_DRAFT" }),
+    ).toBeEnabled();
+    expect(screen.queryByText("CONTENT_BOOTSTRAP_START_FROM_DESC")).not.toBeInTheDocument();
   });
 
-  test("shows a setup action instead of continue when no content models exist", () => {
+  test("shows a models handoff action instead of draft creation when no content models exist", () => {
     mocked.useContentBootstrapController.mockReturnValue({
       availableModels: [],
       hasAvailableModels: false,
@@ -141,16 +148,14 @@ describe("ContentBootstrapPage", () => {
       modelsError: null,
       title: "",
       selectedModelKey: null,
-      selectedPresetKey: null,
       busy: false,
-      continuePending: false,
-      canContinue: false,
+      createPending: false,
+      canCreate: false,
       setTitle: vi.fn(),
       selectModel: vi.fn(),
-      continueWithStarter: vi.fn(),
+      createDraft: vi.fn(),
       navigateToLibrary: vi.fn(),
       navigateToModels: vi.fn(),
-      selectPreset: vi.fn(),
     });
 
     render(<ContentBootstrapPage workspaceId="ws-1" />);
@@ -160,7 +165,7 @@ describe("ContentBootstrapPage", () => {
       screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_FIELD_MODEL_EMPTY_ACTION" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CONTINUE" }),
+      screen.queryByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CREATE_DRAFT" }),
     ).not.toBeInTheDocument();
   });
 });

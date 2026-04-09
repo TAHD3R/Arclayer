@@ -31,7 +31,7 @@ describe("ContentStructuredSurfacePage", () => {
           visibility: "private",
           locale: "en-US",
           bootstrapPresetState: "selected",
-          capabilityPackIds: ["queryable"],
+          capabilityPackIds: ["queryable", "has_relations"],
           resolvedRole: "data",
           resolvedPosture: "structured",
           resolvedSurface: "structured",
@@ -50,6 +50,12 @@ describe("ContentStructuredSurfacePage", () => {
 
     expect(screen.getByTestId("content-structured-surface")).toBeInTheDocument();
     expect(screen.getByText("FAQ entry")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_STRUCTURED_SURFACE_NEXT_TITLE")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "CONTENT_ITEM_CONTINUATION_ACTION_BACK_TO_LIBRARY" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_STRUCTURED_SURFACE_SCHEMA_TITLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("CONTENT_STRUCTURED_SURFACE_WORKFLOW_TITLE")).not.toBeInTheDocument();
     expect(screen.queryByTestId("content-structured-surface-boundary")).not.toBeInTheDocument();
   });
 

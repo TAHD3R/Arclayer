@@ -1,4 +1,3 @@
-import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Accordion } from "@arclayer/ui/accordion";
@@ -6,10 +5,13 @@ import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { ToggleGroup, ToggleGroupItem } from "@arclayer/ui/toggle-group";
 import { cn } from "@arclayer/lib/utils";
+
 import type { AdminContentModel } from "@/types/api";
 
-import { CONTENT_BOOTSTRAP_PRESETS } from "../definitions";
-import type { ContentBootstrapPresetKey } from "../types";
+import {
+  getOfficialContentTypePresentation,
+  sortContentModelsByPresentation,
+} from "../../content-type-presentation";
 
 type StepOnePanelProps = {
   availableModels: AdminContentModel[];
@@ -18,54 +20,9 @@ type StepOnePanelProps = {
   modelsLoading: boolean;
   selectedModelKey: string | null;
   title: string;
-  selectedPresetKey: ContentBootstrapPresetKey | null;
   onModelSelect: (value: string | null) => void;
   onTitleChange: (value: string) => void;
-  onPresetSelect: (value: ContentBootstrapPresetKey | null) => void;
 };
-
-function StarterPresetOption(props: {
-  presetKey: ContentBootstrapPresetKey | null;
-  value: ContentBootstrapPresetKey;
-  name: string;
-  description: string;
-  icon: ComponentType<{ className?: string }>;
-}) {
-  const selected = props.presetKey === props.value;
-  const Icon = props.icon;
-
-  return (
-    <ToggleGroupItem
-      value={props.value}
-      aria-label={props.name}
-      aria-pressed={selected}
-      className={cn(
-        "col-span-1! flex! h-auto! min-h-28! flex-col! rounded-lg! border! bg-card! p-4! text-left! !",
-        "transition-colors! duration-200!",
-        "hover:border-border/80! hover:bg-accent/50! hover:!",
-        selected && "border-border/80! bg-accent/60! !",
-      )}
-    >
-      <div className="flex w-full items-start gap-4">
-        <Icon
-          className={cn(
-            "mt-0.5 size-5 shrink-0 text-label-secondary",
-            selected && "text-label-primary",
-          )}
-        />
-        <div
-          className="flex min-w-0 flex-1 flex-col wrap-break-word"
-          style={{ overflowWrap: "anywhere" }}
-        >
-          <div className="text-headline font-semibold text-label-primary">{props.name}</div>
-          <div className="mt-1 break-words whitespace-normal text-footnote  text-label-secondary">
-            {props.description}
-          </div>
-        </div>
-      </div>
-    </ToggleGroupItem>
-  );
-}
 
 function TitleField(props: Pick<StepOnePanelProps, "busy" | "title" | "onTitleChange">) {
   const { t } = useTranslation("content");
@@ -95,28 +52,52 @@ function TitleField(props: Pick<StepOnePanelProps, "busy" | "title" | "onTitleCh
 }
 
 function ModelOption(props: { model: AdminContentModel; selectedModelKey: string | null }) {
+  const { t } = useTranslation("content");
   const selected = props.selectedModelKey === props.model.key;
+  const presentation = getOfficialContentTypePresentation(props.model.key);
+  const Icon = presentation?.icon;
+  const name = presentation ? t(presentation.nameKey) : props.model.name;
+  const description = presentation
+    ? t(presentation.descriptionKey)
+    : props.model.description?.trim() || null;
 
   return (
     <ToggleGroupItem
       value={props.model.key}
-      aria-label={props.model.name}
+      aria-label={name}
       aria-pressed={selected}
       className={cn(
-        "col-span-1! flex! h-auto! min-h-24! flex-col! rounded-lg! border! bg-card! p-4! text-left! !",
+        "col-span-1! flex! h-auto! min-h-28! flex-col! rounded-lg! border! bg-card! p-4! text-left! !",
         "transition-colors! duration-200!",
         "hover:border-border/80! hover:bg-accent/50! hover:!",
         selected && "border-border/80! bg-accent/60! !",
       )}
     >
-      <div className="flex w-full flex-col gap-2">
-        <div className="text-headline font-semibold text-label-primary">{props.model.name}</div>
-        <div className="text-footnote text-label-secondary">{props.model.key}</div>
-        {props.model.description ? (
-          <div className="break-words whitespace-normal text-footnote text-label-secondary/90">
-            {props.model.description}
-          </div>
+      <div className="flex w-full items-start gap-4">
+        {Icon ? (
+          <Icon
+            className={cn(
+              "mt-0.5 size-5 shrink-0 text-label-secondary",
+              selected && "text-label-primary",
+            )}
+          />
         ) : null}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="text-headline font-semibold text-label-primary">{name}</div>
+          {!presentation && props.model.key.trim() ? (
+            <div className="text-footnote text-label-secondary">{props.model.key}</div>
+          ) : null}
+          {description ? (
+            <div className="break-words whitespace-normal text-footnote text-label-secondary/90">
+              {description}
+            </div>
+          ) : null}
+          {!presentation && props.model.category === "custom" ? (
+            <div className="text-footnote text-label-secondary">
+              {t("CONTENT_BOOTSTRAP_FIELD_MODEL_CUSTOM_HINT")}
+            </div>
+          ) : null}
+        </div>
       </div>
     </ToggleGroupItem>
   );
@@ -134,6 +115,7 @@ function ModelField(
   >,
 ) {
   const { t } = useTranslation("content");
+  const sortedModels = sortContentModelsByPresentation(props.availableModels);
 
   return (
     <Accordion type="single" collapsible defaultValue="content-model" className="px-0">
@@ -164,60 +146,11 @@ function ModelField(
             onValueChange={(value) => props.onModelSelect(value || null)}
             className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent md:grid-cols-2"
           >
-            {props.availableModels.map((model) => (
+            {sortedModels.map((model) => (
               <ModelOption key={model.id} model={model} selectedModelKey={props.selectedModelKey} />
             ))}
           </ToggleGroup>
         )}
-      </SettingAccordionItem>
-    </Accordion>
-  );
-}
-
-function StartFromField(props: Pick<StepOnePanelProps, "selectedPresetKey" | "onPresetSelect">) {
-  const { t } = useTranslation("content");
-  const selectedPreset = props.selectedPresetKey
-    ? CONTENT_BOOTSTRAP_PRESETS.find((preset) => preset.key === props.selectedPresetKey)
-    : null;
-  const selectedPresetName = selectedPreset ? t(selectedPreset.nameKey) : null;
-  const startFromDescription = selectedPresetName ? (
-    <>
-      {t("CONTENT_BOOTSTRAP_START_FROM_DESC")}
-      {t("CONTENT_BOOTSTRAP_START_CURRENT_TEMPLATE_PREFIX")}
-      <span className="text-label-primary font-semibold">{selectedPresetName}</span>
-    </>
-  ) : (
-    t("CONTENT_BOOTSTRAP_START_FROM_DESC")
-  );
-
-  return (
-    <Accordion type="single" collapsible className="px-0">
-      <SettingAccordionItem
-        value="start-from-template"
-        title={<span className="text-body">{t("CONTENT_BOOTSTRAP_START_WITH_LABEL")}</span>}
-        description={startFromDescription}
-        keepRendered
-        contentClassName="max-w-none"
-      >
-        <ToggleGroup
-          type="single"
-          value={props.selectedPresetKey ?? undefined}
-          onValueChange={(value) => {
-            props.onPresetSelect(value ? (value as ContentBootstrapPresetKey) : null);
-          }}
-          className="grid w-full grid-cols-1 gap-3 rounded-none bg-transparent  md:grid-cols-2"
-        >
-          {CONTENT_BOOTSTRAP_PRESETS.map((preset) => (
-            <StarterPresetOption
-              key={preset.key}
-              presetKey={props.selectedPresetKey}
-              value={preset.key}
-              name={t(preset.nameKey)}
-              description={t(preset.descriptionKey)}
-              icon={preset.icon}
-            />
-          ))}
-        </ToggleGroup>
       </SettingAccordionItem>
     </Accordion>
   );
@@ -235,10 +168,6 @@ export function ContentBootstrapStepOnePanel(props: StepOnePanelProps) {
         onModelSelect={props.onModelSelect}
       />
       <TitleField busy={props.busy} title={props.title} onTitleChange={props.onTitleChange} />
-      <StartFromField
-        selectedPresetKey={props.selectedPresetKey}
-        onPresetSelect={props.onPresetSelect}
-      />
     </div>
   );
 }

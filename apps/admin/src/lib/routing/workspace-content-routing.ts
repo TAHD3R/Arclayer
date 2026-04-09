@@ -39,6 +39,14 @@ export function buildWorkspaceContentLibraryFocusSearch(itemId: string): {
   };
 }
 
+export function workspaceContentLibraryFocusedItemHref(
+  workspaceId: string,
+  itemId: string,
+): string {
+  const search = new URLSearchParams(buildWorkspaceContentLibraryFocusSearch(itemId));
+  return `${workspaceContentLibraryPath(workspaceId)}?${search.toString()}`;
+}
+
 export function resolveContentItemContinuationTarget(
   item: Pick<AdminContentItem, "continuationTarget" | "openIntent">,
 ): AdminContentOpenIntent | null {

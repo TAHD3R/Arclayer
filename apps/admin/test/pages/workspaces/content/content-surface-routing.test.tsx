@@ -32,12 +32,6 @@ vi.mock("@/pages/workspaces/content/structured/page", () => ({
   ),
 }));
 
-vi.mock("@/pages/workspaces/content/site-builder/page", () => ({
-  ContentSiteBuilderPage: (props: { item?: { id: string } | null }) => (
-    <div data-testid="content-site-builder-shell">canvas:{props.item?.id ?? "none"}</div>
-  ),
-}));
-
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -91,7 +85,7 @@ describe("content surface routing", () => {
     expect(screen.queryByTestId("content-item-continuation-state")).not.toBeInTheDocument();
   });
 
-  test("routes canvas items into the site builder shell", async () => {
+  test("routes canvas items into the library handoff surface", async () => {
     getContentItemMock.mockResolvedValue({
       id: "item-canvas",
       workspaceId: "ws-1",
@@ -124,8 +118,11 @@ describe("content surface routing", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("content-site-builder-shell")).toBeInTheDocument();
+      expect(screen.getByTestId("content-page-handoff-state")).toBeInTheDocument();
     });
+    expect(
+      screen.getByRole("link", { name: "CONTENT_PAGE_HANDOFF_ACTION_OPEN_IN_LIBRARY" }),
+    ).toHaveAttribute("href", "/w/ws-1/content/library?view=draft&focusItemId=item-canvas");
     expect(screen.queryByTestId("content-item-continuation-state")).not.toBeInTheDocument();
   });
 
@@ -163,6 +160,6 @@ describe("content surface routing", () => {
       expect(screen.getByTestId("content-item-continuation-state")).toBeInTheDocument();
     });
     expect(screen.queryByTestId("content-structured-surface")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("content-site-builder-shell")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("content-page-handoff-state")).not.toBeInTheDocument();
   });
 });

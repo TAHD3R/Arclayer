@@ -1,13 +1,12 @@
+import type { PropsWithChildren } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { useContentBootstrapController } from "@/pages/workspaces/content/bootstrap/hooks/use-content-bootstrap-controller";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const createContentItemMock = vi.fn();
-const applyContentBootstrapShapeMock = vi.fn();
 const listAllContentModelsMock = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
@@ -16,7 +15,6 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/api/content", () => ({
   createContentItem: (...args: unknown[]) => createContentItemMock(...args),
-  applyContentBootstrapShape: (...args: unknown[]) => applyContentBootstrapShapeMock(...args),
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
 }));
 
@@ -49,7 +47,6 @@ describe("content bootstrap continuation handoff", () => {
   beforeEach(() => {
     navigateMock.mockClear();
     createContentItemMock.mockReset();
-    applyContentBootstrapShapeMock.mockReset();
     listAllContentModelsMock.mockReset();
     listAllContentModelsMock.mockResolvedValue([
       {
@@ -68,7 +65,7 @@ describe("content bootstrap continuation handoff", () => {
     ]);
   });
 
-  test("uses the shaped item continuation target when a starter preset is selected", async () => {
+  test("uses the created item's continuation target after draft creation", async () => {
     createContentItemMock.mockResolvedValue({
       id: "item-1",
       workspaceId: "ws-1",
@@ -80,33 +77,6 @@ describe("content bootstrap continuation handoff", () => {
       locale: "en-US",
       bootstrapPresetState: "none",
       capabilityPackIds: [],
-      shapeState: "unshaped",
-      draftVersion: 1,
-      updatedAt: "2026-03-19T00:00:00Z",
-      continuationTarget: {
-        surface: null,
-        route: "/w/ws-1/content/library/item-1",
-        blocked: true,
-        reasonCode: "UNSHAPED_ITEM",
-        reasonMeta: null,
-        recoveryActions: [],
-      },
-    });
-    applyContentBootstrapShapeMock.mockResolvedValue({
-      id: "item-1",
-      workspaceId: "ws-1",
-      siteId: "site-1",
-      slug: "hello-world",
-      title: "Hello world",
-      status: "draft",
-      visibility: "private",
-      locale: "en-US",
-      bootstrapPresetKey: "post",
-      bootstrapPresetState: "selected",
-      capabilityPackIds: ["publishable", "rich_text_editable"],
-      resolvedRole: "article",
-      resolvedPosture: "entry",
-      resolvedSurface: "writing",
       shapeState: "ready",
       draftVersion: 1,
       updatedAt: "2026-03-19T00:00:00Z",
@@ -131,8 +101,7 @@ describe("content bootstrap continuation handoff", () => {
     act(() => {
       result.current.setTitle("Hello world");
       result.current.selectModel("article");
-      result.current.selectPreset("post");
-      result.current.continueWithStarter();
+      result.current.createDraft();
     });
 
     await waitFor(() => {
@@ -142,8 +111,32 @@ describe("content bootstrap continuation handoff", () => {
         modelKey: "article",
       });
       expect(navigateMock).toHaveBeenCalledWith({
-        to: "/w/ws-1/content/library/item-1",
+        to: "/w/ws-1/content/library",
+        search: {
+          view: "draft",
+          focusItemId: "item-1",
+        },
       });
+    });
+  });
+
+  test("exposes a direct navigation path to models when no content types are available", async () => {
+    listAllContentModelsMock.mockResolvedValueOnce([]);
+
+    const { result } = renderHook(() => useContentBootstrapController("ws-1"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.hasAvailableModels).toBe(false);
+    });
+
+    act(() => {
+      result.current.navigateToModels();
+    });
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/w/ws-1/content/models",
     });
   });
 });
