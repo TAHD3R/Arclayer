@@ -18,18 +18,27 @@ from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentSeoProfileOut,
     ContentVersionOut,
 )
-from apps.api.src.modules.workspaces.content.items.domain_helpers import read_summary_field, to_item_out, to_version_out
+from apps.api.src.modules.workspaces.content.items.domain_helpers import (
+    read_slug_field,
+    read_summary_field,
+    read_title_field,
+    read_visibility_field,
+    to_item_out,
+    to_version_out,
+)
 from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
+
+ActiveItemFields = dict[str, str | None]
 
 
 class WorkspaceContentCanonicalItemReadService:
     def __init__(self, repo: WorkspaceContentItemsRepository) -> None:
         self.repo = repo
 
-    async def _build_item_summaries(
+    async def _build_active_item_fields(
         self,
         items,
-    ) -> dict[UUID, str | None]:
+    ) -> dict[UUID, ActiveItemFields]:
         active_versions: dict[UUID, int] = {}
         for item in items:
             active_version = item.draft_version or item.published_version
@@ -43,12 +52,18 @@ class WorkspaceContentCanonicalItemReadService:
             item_ids=list(active_versions.keys()),
             version_numbers=list(set(active_versions.values())),
         )
-        summary_by_version = {
-            (version.item_id, version.version): read_summary_field(version.fields_snapshot) for version in versions
+        fields_by_version = {
+            (version.item_id, version.version): {
+                "title": read_title_field(version.fields_snapshot),
+                "summary": read_summary_field(version.fields_snapshot),
+                "slug": read_slug_field(version.fields_snapshot),
+                "visibility": read_visibility_field(version.fields_snapshot),
+            }
+            for version in versions
         }
 
         return {
-            item_id: summary_by_version.get((item_id, version_number))
+            item_id: fields_by_version.get((item_id, version_number), {})
             for item_id, version_number in active_versions.items()
         }
 
@@ -76,12 +91,15 @@ class WorkspaceContentCanonicalItemReadService:
             site_id=site_id,
             model_definition_id=model_definition_id,
         )
-        summaries = await self._build_item_summaries(items)
+        active_fields = await self._build_active_item_fields(items)
         rows = [
             to_item_out(
                 item,
                 item.model_definition,
-                summary=summaries.get(item.id),
+                title=active_fields.get(item.id, {}).get("title"),
+                slug=active_fields.get(item.id, {}).get("slug"),
+                summary=active_fields.get(item.id, {}).get("summary"),
+                visibility=active_fields.get(item.id, {}).get("visibility"),
             )
             for item in items
         ]
@@ -101,8 +119,15 @@ class WorkspaceContentCanonicalItemReadService:
         )
         if item is None:
             raise NotFound("Content item not found", error="CONTENT_ITEM_NOT_FOUND")
-        summaries = await self._build_item_summaries([item])
-        return to_item_out(item, item.model_definition, summary=summaries.get(item.id))
+        active_fields = await self._build_active_item_fields([item])
+        return to_item_out(
+            item,
+            item.model_definition,
+            title=active_fields.get(item.id, {}).get("title"),
+            slug=active_fields.get(item.id, {}).get("slug"),
+            summary=active_fields.get(item.id, {}).get("summary"),
+            visibility=active_fields.get(item.id, {}).get("visibility"),
+        )
 
     @staticmethod
     def _to_presentation_outs(

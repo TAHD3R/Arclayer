@@ -64,12 +64,22 @@ describe("ContentBootstrapPage", () => {
       hasAvailableModels: true,
       modelsLoading: false,
       modelsError: null,
+      selectedModel: null,
       title: "",
+      summary: "",
+      slug: "",
+      visibility: "public",
+      seo: { metaTitle: "", metaDescription: "" },
       selectedModelKey: null,
       busy: false,
       createPending: false,
       canCreate: false,
       setTitle: vi.fn(),
+      setSummary: vi.fn(),
+      setSlug: vi.fn(),
+      setVisibility: vi.fn(),
+      setSeoMetaTitle: vi.fn(),
+      setSeoMetaDescription: vi.fn(),
       selectModel: vi.fn(),
       createDraft: vi.fn(),
       navigateToLibrary: vi.fn(),
@@ -85,6 +95,9 @@ describe("ContentBootstrapPage", () => {
     expect(screen.getByText("CONTENT_TYPE_PAGE_NAME")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_TYPE_STRUCTURED_CONTENT_NAME")).toBeInTheDocument();
     expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_TITLE_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_SUMMARY_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_TYPE_SETTINGS_LABEL")).toBeInTheDocument();
+    expect(screen.getAllByText("CONTENT_BOOTSTRAP_FIELD_TYPE_SETTINGS_EMPTY")).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_SKIP" }),
     ).toBeInTheDocument();
@@ -115,12 +128,34 @@ describe("ContentBootstrapPage", () => {
       hasAvailableModels: true,
       modelsLoading: false,
       modelsError: null,
+      selectedModel: {
+        id: "model-page",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        key: "landing-page",
+        name: "Landing page",
+        description: "Legacy fallback name",
+        category: "content_library",
+        capabilities: ["publishable", "routable", "seo_managed"],
+        defaultRole: "page",
+        defaultPosture: "page",
+        defaultSurface: "canvas",
+      },
       title: "Homepage",
+      summary: "Primary site entry",
+      slug: "homepage",
+      visibility: "public",
+      seo: { metaTitle: "Homepage | Arclayer", metaDescription: "Welcome page" },
       selectedModelKey: "landing-page",
       busy: false,
       createPending: false,
       canCreate: true,
       setTitle: vi.fn(),
+      setSummary: vi.fn(),
+      setSlug: vi.fn(),
+      setVisibility: vi.fn(),
+      setSeoMetaTitle: vi.fn(),
+      setSeoMetaDescription: vi.fn(),
       selectModel: vi.fn(),
       createDraft: vi.fn(),
       navigateToLibrary: vi.fn(),
@@ -130,10 +165,15 @@ describe("ContentBootstrapPage", () => {
     render(<ContentBootstrapPage workspaceId="ws-1" />);
 
     expect(screen.getByDisplayValue("Homepage")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Primary site entry")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("homepage")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Homepage | Arclayer")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Welcome page")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /CONTENT_TYPE_PAGE_NAME/i })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
+    expect(screen.getByText("CONTENT_BOOTSTRAP_FIELD_PAGE_SETTINGS_LABEL")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "CONTENT_BOOTSTRAP_ACTION_CREATE_DRAFT" }),
     ).toBeEnabled();
@@ -146,12 +186,22 @@ describe("ContentBootstrapPage", () => {
       hasAvailableModels: false,
       modelsLoading: false,
       modelsError: null,
+      selectedModel: null,
       title: "",
+      summary: "",
+      slug: "",
+      visibility: "public",
+      seo: { metaTitle: "", metaDescription: "" },
       selectedModelKey: null,
       busy: false,
       createPending: false,
       canCreate: false,
       setTitle: vi.fn(),
+      setSummary: vi.fn(),
+      setSlug: vi.fn(),
+      setVisibility: vi.fn(),
+      setSeoMetaTitle: vi.fn(),
+      setSeoMetaDescription: vi.fn(),
       selectModel: vi.fn(),
       createDraft: vi.fn(),
       navigateToLibrary: vi.fn(),

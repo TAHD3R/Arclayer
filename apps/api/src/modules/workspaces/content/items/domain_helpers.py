@@ -142,6 +142,42 @@ def read_summary_field(fields_snapshot: dict[str, Any] | None) -> str | None:
     return normalized or None
 
 
+def read_title_field(fields_snapshot: dict[str, Any] | None) -> str | None:
+    if not isinstance(fields_snapshot, dict):
+        return None
+
+    value = fields_snapshot.get("title")
+    if not isinstance(value, str):
+        return None
+
+    normalized = value.strip()
+    return normalized or None
+
+
+def read_slug_field(fields_snapshot: dict[str, Any] | None) -> str | None:
+    if not isinstance(fields_snapshot, dict):
+        return None
+
+    value = fields_snapshot.get("slug")
+    if not isinstance(value, str):
+        return None
+
+    normalized = value.strip()
+    return normalized or None
+
+
+def read_visibility_field(fields_snapshot: dict[str, Any] | None) -> str | None:
+    if not isinstance(fields_snapshot, dict):
+        return None
+
+    value = fields_snapshot.get("visibility")
+    if value == "private":
+        return "private"
+    if value == "public":
+        return "public"
+    return None
+
+
 def _model_capabilities(model: ContentModelDefinitionRecord | None) -> set[str]:
     if model is None or not isinstance(model.capabilities, list):
         return set()
@@ -295,7 +331,10 @@ def to_item_out(
     item: ContentItemRecord,
     model: ContentModelDefinitionRecord | None,
     *,
+    title: str | None = None,
+    slug: str | None = None,
     summary: str | None = None,
+    visibility: str | None = None,
 ) -> ContentItemOut:
     route = f"/w/{encode_uuid(item.workspace_id)}/content/library/{encode_uuid(item.id)}"
     shape_reason_code = item.shape_reason_code or None
@@ -328,11 +367,11 @@ def to_item_out(
         site_id=item.site_id,
         model_id=model.id if model is not None else None,
         model_key=model.key if model is not None else None,
-        slug=item.slug,
-        title=item.title,
+        slug=slug or item.slug,
+        title=title or item.title,
         summary=summary,
         status=cast(ContentItemStatusLiteral, str(item.status)),
-        visibility=cast(ContentItemVisibilityLiteral, str(item.visibility)),
+        visibility=cast(ContentItemVisibilityLiteral, visibility or str(item.visibility)),
         locale=item.locale,
         bootstrap_preset_key=item.bootstrap_preset_key,
         bootstrap_preset_state=cast(ContentBootstrapPresetState, str(item.bootstrap_preset_state)),

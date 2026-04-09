@@ -51,10 +51,20 @@ export function ContentBootstrapPage(props: { workspaceId: string }) {
         busy={controller.busy}
         modelsError={controller.modelsError}
         modelsLoading={controller.modelsLoading}
+        selectedModel={controller.selectedModel}
         selectedModelKey={controller.selectedModelKey}
+        summary={controller.summary}
+        slug={controller.slug}
         title={controller.title}
+        visibility={controller.visibility}
+        seo={controller.seo}
         onModelSelect={controller.selectModel}
+        onSummaryChange={controller.setSummary}
+        onSlugChange={controller.setSlug}
         onTitleChange={controller.setTitle}
+        onVisibilityChange={controller.setVisibility}
+        onSeoMetaTitleChange={controller.setSeoMetaTitle}
+        onSeoMetaDescriptionChange={controller.setSeoMetaDescription}
       />
     </DefaultPage>
   );

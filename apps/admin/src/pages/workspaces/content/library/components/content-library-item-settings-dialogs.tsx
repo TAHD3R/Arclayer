@@ -136,6 +136,43 @@ function resolveSaveSuccessKey(kind: ContentLibraryItemSettingsDialogKind) {
   return "CONTENT_LIBRARY_DIALOG_STRUCTURED_FIELDS_SUCCESS";
 }
 
+function ContentLibraryItemSettingsDialogFooter(props: {
+  confirmDisabled: boolean;
+  confirmPending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <>
+      <Button variant="ghost" onClick={props.onCancel} disabled={props.confirmPending}>
+        {props.t("common:CANCEL")}
+      </Button>
+      <Button
+        loading={props.confirmPending}
+        disabled={props.confirmDisabled}
+        onClick={props.onConfirm}
+      >
+        {props.t("common:CONFIRM")}
+      </Button>
+    </>
+  );
+}
+
+function ContentLibraryItemSettingsField(props: {
+  label: string;
+  help?: string | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <label className="font-semibold text-label-primary">{props.label}</label>
+      {props.help ? <div className="text-label-secondary">{props.help}</div> : null}
+      {props.children}
+    </div>
+  );
+}
+
 export function ContentLibraryItemSettingsDialogs(props: {
   state: ContentLibraryItemSettingsDialogState;
   onClose: () => void;
@@ -235,18 +272,13 @@ export function ContentLibraryItemSettingsDialogs(props: {
       description={description}
       contentClassName="sm:max-w-xl"
       footer={
-        <>
-          <Button variant="ghost" onClick={props.onClose} disabled={saveMutation.isPending}>
-            {t("common:CANCEL")}
-          </Button>
-          <Button
-            loading={saveMutation.isPending}
-            disabled={!canSave}
-            onClick={() => saveMutation.mutate()}
-          >
-            {t("common:SAVE")}
-          </Button>
-        </>
+        <ContentLibraryItemSettingsDialogFooter
+          confirmDisabled={!canSave}
+          confirmPending={saveMutation.isPending}
+          onCancel={props.onClose}
+          onConfirm={() => saveMutation.mutate()}
+          t={t}
+        />
       }
     >
       {snapshotQuery.isLoading || !draft ? (
@@ -256,28 +288,22 @@ export function ContentLibraryItemSettingsDialogs(props: {
       ) : (
         <div className="grid gap-4 py-2">
           {props.state?.kind === "permalink" ? (
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary">
-                {t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
-              </label>
-              <div className="text-label-secondary">
-                {t("CONTENT_LIBRARY_DIALOG_PERMALINK_HELP")}
-              </div>
+            <ContentLibraryItemSettingsField
+              label={t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
+              help={t("CONTENT_LIBRARY_DIALOG_PERMALINK_HELP")}
+            >
               <Input
                 value={draft.slug}
                 onChange={(event) => setDraft({ ...draft, slug: event.target.value })}
               />
-            </div>
+            </ContentLibraryItemSettingsField>
           ) : null}
 
           {props.state?.kind === "visibility" ? (
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary">
-                {t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
-              </label>
-              <div className="text-label-secondary">
-                {t("CONTENT_LIBRARY_DIALOG_VISIBILITY_HELP")}
-              </div>
+            <ContentLibraryItemSettingsField
+              label={t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
+              help={t("CONTENT_LIBRARY_DIALOG_VISIBILITY_HELP")}
+            >
               <Select
                 value={draft.visibility}
                 onValueChange={(value) =>
@@ -295,15 +321,15 @@ export function ContentLibraryItemSettingsDialogs(props: {
                   <SelectItem value="private">{t("CONTENT_LIBRARY_VISIBILITY_PRIVATE")}</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </ContentLibraryItemSettingsField>
           ) : null}
 
           {props.state?.kind === "seo" ? (
             <>
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-label-primary">
-                  {t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE")}
-                </label>
+              <ContentLibraryItemSettingsField
+                label={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE")}
+                help={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_TITLE_HELP")}
+              >
                 <Input
                   value={draft.seo.metaTitle}
                   onChange={(event) =>
@@ -313,11 +339,11 @@ export function ContentLibraryItemSettingsDialogs(props: {
                     })
                   }
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-label-primary">
-                  {t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION")}
-                </label>
+              </ContentLibraryItemSettingsField>
+              <ContentLibraryItemSettingsField
+                label={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION")}
+                help={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_DESCRIPTION_HELP")}
+              >
                 <Textarea
                   value={draft.seo.metaDescription}
                   onChange={(event) =>
@@ -327,11 +353,11 @@ export function ContentLibraryItemSettingsDialogs(props: {
                     })
                   }
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-label-primary">
-                  {t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_CANONICAL")}
-                </label>
+              </ContentLibraryItemSettingsField>
+              <ContentLibraryItemSettingsField
+                label={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_CANONICAL")}
+                help={t("CONTENT_LIBRARY_DIALOG_SEO_FIELD_CANONICAL_HELP")}
+              >
                 <Input
                   value={draft.seo.canonicalUrl}
                   onChange={(event) =>
@@ -341,34 +367,34 @@ export function ContentLibraryItemSettingsDialogs(props: {
                     })
                   }
                 />
-              </div>
+              </ContentLibraryItemSettingsField>
             </>
           ) : null}
 
           {props.state?.kind === "page-settings" || props.state?.kind === "structured-fields" ? (
             <>
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-label-primary">
-                  {t("CONTENT_LIBRARY_DIALOG_FIELD_TITLE")}
-                </label>
+              <ContentLibraryItemSettingsField
+                label={t("CONTENT_LIBRARY_DIALOG_FIELD_TITLE")}
+                help={t("CONTENT_LIBRARY_DIALOG_FIELD_TITLE_HELP")}
+              >
                 <Input
                   value={draft.title}
                   onChange={(event) => setDraft({ ...draft, title: event.target.value })}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-label-primary">
-                  {t("CONTENT_LIBRARY_DIALOG_FIELD_SUMMARY")}
-                </label>
+              </ContentLibraryItemSettingsField>
+              <ContentLibraryItemSettingsField
+                label={t("CONTENT_LIBRARY_DIALOG_FIELD_SUMMARY")}
+                help={t("CONTENT_LIBRARY_DIALOG_FIELD_SUMMARY_HELP")}
+              >
                 <Textarea
                   value={draft.summary}
                   onChange={(event) => setDraft({ ...draft, summary: event.target.value })}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <label className="font-semibold text-label-primary">
-                  {t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
-                </label>
+              </ContentLibraryItemSettingsField>
+              <ContentLibraryItemSettingsField
+                label={t("CONTENT_LIBRARY_PREVIEW_FIELD_VISIBILITY")}
+                help={t("CONTENT_LIBRARY_DIALOG_FIELD_VISIBILITY_HELP")}
+              >
                 <Select
                   value={draft.visibility}
                   onValueChange={(value) =>
@@ -388,7 +414,7 @@ export function ContentLibraryItemSettingsDialogs(props: {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </ContentLibraryItemSettingsField>
             </>
           ) : null}
         </div>

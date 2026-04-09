@@ -8,6 +8,7 @@ import { useContentBootstrapController } from "@/pages/workspaces/content/bootst
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const createContentItemMock = vi.fn();
 const listAllContentModelsMock = vi.fn();
+const saveContentItemDraftVersionMock = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
@@ -16,6 +17,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/api/content", () => ({
   createContentItem: (...args: unknown[]) => createContentItemMock(...args),
   listAllContentModels: (...args: unknown[]) => listAllContentModelsMock(...args),
+  saveContentItemDraftVersion: (...args: unknown[]) => saveContentItemDraftVersionMock(...args),
 }));
 
 vi.mock("@/hooks/use-workspace-localization", () => ({
@@ -48,6 +50,7 @@ describe("content bootstrap continuation handoff", () => {
     navigateMock.mockClear();
     createContentItemMock.mockReset();
     listAllContentModelsMock.mockReset();
+    saveContentItemDraftVersionMock.mockReset();
     listAllContentModelsMock.mockResolvedValue([
       {
         id: "model-article",
@@ -63,6 +66,15 @@ describe("content bootstrap continuation handoff", () => {
         defaultSurface: "writing",
       },
     ]);
+    saveContentItemDraftVersionMock.mockResolvedValue({
+      itemId: "item-1",
+      versionNumber: 1,
+      state: "draft",
+      createdAt: "2026-03-19T00:00:00Z",
+      fieldsSnapshot: {},
+      presentations: [],
+      changeSummary: "Seed content draft settings",
+    });
   });
 
   test("uses the created item's continuation target after draft creation", async () => {
@@ -78,7 +90,7 @@ describe("content bootstrap continuation handoff", () => {
       bootstrapPresetState: "none",
       capabilityPackIds: [],
       shapeState: "ready",
-      draftVersion: 1,
+      draftVersion: 0,
       updatedAt: "2026-03-19T00:00:00Z",
       continuationTarget: {
         surface: "writing",
@@ -100,6 +112,7 @@ describe("content bootstrap continuation handoff", () => {
 
     act(() => {
       result.current.setTitle("Hello world");
+      result.current.setSummary("Article summary");
       result.current.selectModel("article");
       result.current.createDraft();
     });
@@ -109,6 +122,17 @@ describe("content bootstrap continuation handoff", () => {
         title: "Hello world",
         locale: "en-US",
         modelKey: "article",
+      });
+      expect(saveContentItemDraftVersionMock).toHaveBeenCalledWith("ws-1", "item-1", {
+        expectedVersion: 0,
+        changeSummary: "Seed content draft settings",
+        fieldsSnapshot: {
+          title: "Hello world",
+          summary: "Article summary",
+          slug: "hello-world",
+          visibility: "public",
+        },
+        presentations: [],
       });
       expect(navigateMock).toHaveBeenCalledWith({
         to: "/w/ws-1/content/library",

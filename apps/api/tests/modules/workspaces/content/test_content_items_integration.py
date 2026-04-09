@@ -368,6 +368,53 @@ async def test_content_items_list_returns_active_version_summary(
 
 
 @pytest.mark.asyncio
+async def test_content_items_reads_active_version_title_slug_and_visibility(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_article_model(client, workspace_id)
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json={
+                "expectedVersion": 0,
+                "changeSummary": "seed draft fields",
+                "fieldsSnapshot": {
+                    "title": "Editorial title",
+                    "summary": "Draft summary",
+                    "slug": "editorial-title",
+                    "visibility": "private",
+                },
+                "presentations": [],
+            },
+        )
+        assert draft_res.status_code == 201, draft_res.text
+
+        list_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items")
+        assert list_res.status_code == 200, list_res.text
+        listed = list_res.json()["data"]["items"][0]
+        assert listed["title"] == "Editorial title"
+        assert listed["summary"] == "Draft summary"
+        assert listed["slug"] == "editorial-title"
+        assert listed["visibility"] == "private"
+
+        detail_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}")
+        assert detail_res.status_code == 200, detail_res.text
+        detail = detail_res.json()["data"]
+        assert detail["title"] == "Editorial title"
+        assert detail["summary"] == "Draft summary"
+        assert detail["slug"] == "editorial-title"
+        assert detail["visibility"] == "private"
+
+
+@pytest.mark.asyncio
 async def test_content_items_archive_without_versions_marks_item_archived(
     prepared_db,
     integration_valkey_settings,

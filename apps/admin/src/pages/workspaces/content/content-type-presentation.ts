@@ -3,6 +3,7 @@ import { FolderTree, LayoutTemplate, Newspaper, type LucideIcon } from "lucide-r
 import type { AdminContentModel } from "@/types/api";
 
 type TranslateFn = (key: string) => string;
+export type ContentBootstrapVariant = "article" | "page" | "structured";
 
 type OfficialContentTypePresentation = {
   key: "article" | "landing-page" | "structured-entry";
@@ -87,4 +88,40 @@ export function sortContentModelsByPresentation(
       sensitivity: "base",
     });
   });
+}
+
+export function resolveContentBootstrapVariant(
+  model:
+    | Pick<
+        AdminContentModel,
+        "key" | "category" | "capabilities" | "defaultRole" | "defaultPosture" | "defaultSurface"
+      >
+    | null
+    | undefined,
+): ContentBootstrapVariant | null {
+  if (!model) return null;
+
+  const official = getOfficialContentTypePresentation(model.key);
+  if (official?.key === "article") return "article";
+  if (official?.key === "landing-page") return "page";
+  if (official?.key === "structured-entry") return "structured";
+
+  if (model.defaultRole === "article" || model.defaultSurface === "writing") return "article";
+  if (
+    model.defaultRole === "page" ||
+    model.defaultPosture === "page" ||
+    model.defaultSurface === "canvas" ||
+    model.category === "site_builder" ||
+    model.capabilities.includes("routable")
+  ) {
+    return "page";
+  }
+  if (
+    model.defaultSurface === "structured" ||
+    model.capabilities.includes("queryable") ||
+    model.capabilities.includes("has_relations")
+  ) {
+    return "structured";
+  }
+  return "structured";
 }
