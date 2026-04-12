@@ -10,9 +10,7 @@ import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
-import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
-import { filterNavByScope } from "@/lib/filter-nav-by-scope";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import {
@@ -30,7 +28,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
   const setEffectiveLocale = usePreferencesStore((s) => s.setEffectiveLocale);
   const cacheWorkspaceLocale = usePreferencesStore((s) => s.cacheWorkspaceLocale);
   const workspaceIdFromStore = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const systemRuntime = useSystemRuntime();
 
   const workspaceBase = useMemo(() => extractWorkspaceBaseFromPath(pathname), [pathname]);
   const workspaceId = useMemo(() => workspaceBase?.replace("/w/", "") ?? null, [workspaceBase]);
@@ -55,14 +52,9 @@ export function AdminLayout({ children }: PropsWithChildren) {
     [workspaceBase],
   );
 
-  const scopedNavItems = useMemo(() => {
-    if (!systemRuntime.runtime) return [];
-    return filterNavByScope(workspaceNav, systemRuntime.runtime.deploymentMode);
-  }, [systemRuntime.runtime, workspaceNav]);
-
   const mainItems = useMemo(
-    () => scopedNavItems.filter((item) => item.position !== "footer"),
-    [scopedNavItems],
+    () => workspaceNav.filter((item) => item.position !== "footer"),
+    [workspaceNav],
   );
 
   const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
@@ -76,7 +68,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     meta: { silent: true },
   });
 
-  const showNavSkeleton = Boolean(accessToken && !systemRuntime.runtime);
   const workspaceLocalization = useWorkspaceLocalization();
 
   useEffect(() => {
@@ -128,7 +119,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
       favoriteWorkspaceBase={isWorkspaceScopeRoute ? workspaceBase : null}
       footerItems={footerItems}
       resolvePermissionName={resolvePermissionName}
-      showNavSkeleton={showNavSkeleton}
+      showNavSkeleton={false}
       sidebarCollapsible="icon"
       loading={Boolean(isWorkspaceScopeRoute && workspaceDetailQuery.isLoading)}
       error={isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}

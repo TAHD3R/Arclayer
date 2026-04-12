@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from src.config import Settings
-from src.core.middleware.site_resolver import _normalize_host
 from src.modules.sites.domains.schema import _normalize_hostname
 from src.modules.sites.domains.service import SiteDomainsService
+from src.modules.sites.shared.hosts import normalize_request_host
 
 
 def test_normalize_hostname_lowercase_strip_port_and_trailing_dot() -> None:
@@ -12,14 +12,13 @@ def test_normalize_hostname_lowercase_strip_port_and_trailing_dot() -> None:
     assert _normalize_hostname("  Blog.Example.COM:8443  ") == "blog.example.com"
 
 
-def test_site_resolver_normalize_host_ipv6_brackets() -> None:
-    assert _normalize_host("[::1]:8000") == "::1"
-    assert _normalize_host("[2001:db8::1]") == "2001:db8::1"
+def test_normalize_request_host_ipv6_brackets() -> None:
+    assert normalize_request_host("[::1]:8000") == "::1"
+    assert normalize_request_host("[2001:db8::1]") == "2001:db8::1"
 
 
 def test_dns_instruction_contract() -> None:
     settings = Settings(
-        application={"deployment_mode": "saas"},
         saas={"base_domain": "arclayer.app"},
         database={"enabled": False},
     )

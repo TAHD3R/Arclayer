@@ -105,7 +105,7 @@ class SiteRuntimeOut(BaseSchema):
     site_id: PublicUUID = Field(..., description="Site id.")
     mode: Literal["public", "preview"] = Field(..., description="Runtime mode.")
     theme: SiteThemeOut = Field(..., description="Theme configuration.")
-    fonts: list[SiteFontOut] = Field(default_factory=list, description="Self-hosted fonts.")
+    fonts: list[SiteFontOut] = Field(default_factory=list, description="Runtime fonts.")
     site: SiteIdentityOut | None = Field(default=None, description="Site identity (public-safe).")
     site_localization: SiteLocalizationOut | None = Field(
         default=None,

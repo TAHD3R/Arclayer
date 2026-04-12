@@ -7,6 +7,7 @@ from src.common.protocols.tortoise import HasWorkspaceId
 from src.core.exceptions import Conflict, NotFound
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
+from src.modules.sites.shared.hosts import normalize_request_host
 
 if TYPE_CHECKING:
     from src.config import Settings
@@ -22,12 +23,9 @@ class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
         if not base_domain:
             return None
 
-        raw = (host or "").strip().lower()
+        raw = normalize_request_host(host)
         if not raw:
             return None
-        if ":" in raw and "]" not in raw:
-            raw = raw.split(":", 1)[0]
-        raw = raw.rstrip(".")
 
         suffix = f".{base_domain}"
         if raw == base_domain:
@@ -41,12 +39,9 @@ class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
         return sub
 
     def _normalize_host_for_custom_domain(self, host: str) -> str | None:
-        raw = (host or "").strip().lower()
+        raw = normalize_request_host(host)
         if not raw:
             return None
-        if ":" in raw and "]" not in raw:
-            raw = raw.split(":", 1)[0]
-        raw = raw.rstrip(".")
 
         base_domain = (self.settings.saas.base_domain or "").strip().lower().rstrip(".")
         if base_domain and (raw == base_domain or raw.endswith(f".{base_domain}")):
@@ -86,7 +81,7 @@ class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):
         if ws_slug is None and host is not None:
             ws_slug = self._extract_workspace_slug_from_host(host)
 
-        if ws_slug is None and host is not None and self.settings.application.deployment_mode == "saas":
+        if ws_slug is None and host is not None:
             resolved = await self._resolve_site_by_custom_domain(host=host)
             if resolved is not None:
                 return resolved

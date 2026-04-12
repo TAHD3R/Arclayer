@@ -41,26 +41,26 @@ class PublishingSitemapService(BaseService):
 
         base = "https://example.test" if self.settings.app_env == "test" else "https://example.invalid"
         if ws_id is not None:
-            if self.settings.application.deployment_mode == "saas":
+            rec = await SettingRecord.get_or_none(
+                scope_type=SCOPE_TYPE_WORKSPACE,
+                scope_id=ws_id,
+                namespace=CORE_SETTINGS_NAMESPACE,
+            )
+            value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
+            site_cfg = value.get("site") if isinstance(value, dict) else None
+            raw_url = site_cfg.get("url") if isinstance(site_cfg, dict) else None
+            if isinstance(raw_url, str) and raw_url.strip():
+                candidate = raw_url.strip().rstrip("/")
+                if "://" not in candidate:
+                    candidate = f"http://{candidate}"
+                base = candidate
+            else:
                 from src.models.workspaces.workspace import Workspace
 
                 ws = await Workspace.get_or_none(id=ws_id)
-                if ws is not None and str(ws.slug).strip():
-                    base = f"https://{str(ws.slug).strip()}.{self.settings.saas.base_domain}".rstrip("/")
-            else:
-                rec = await SettingRecord.get_or_none(
-                    scope_type=SCOPE_TYPE_WORKSPACE,
-                    scope_id=ws_id,
-                    namespace=CORE_SETTINGS_NAMESPACE,
-                )
-                value = rec.value if rec is not None and isinstance(rec.value, dict) else {}
-                site_cfg = value.get("site") if isinstance(value, dict) else None
-                raw_url = site_cfg.get("url") if isinstance(site_cfg, dict) else None
-                if isinstance(raw_url, str) and raw_url.strip():
-                    candidate = raw_url.strip().rstrip("/")
-                    if "://" not in candidate:
-                        candidate = f"http://{candidate}"
-                    base = candidate
+                base_domain = (self.settings.saas.base_domain or "").strip().rstrip(".")
+                if ws is not None and str(ws.slug).strip() and base_domain:
+                    base = f"https://{str(ws.slug).strip()}.{base_domain}".rstrip("/")
         paths = await self._repo.list_public_sitemap_paths(site_id=site_id)
 
         lines: list[str] = [

@@ -18,19 +18,13 @@ export function useSystemRuntime() {
   }
 
   const runtime = query.data ?? null;
-  const systemFlags = runtime?.systemFlags ?? null;
-  const deploymentMode = runtime?.deploymentMode ?? null;
 
   return {
     ...query,
     runtime,
-    systemFlags,
-    flags: systemFlags,
-    deploymentMode,
-    deploymentSettingsEnabled:
-      runtime && runtime.deploymentMode === "self_host"
-        ? Boolean(runtime.capabilities.deploymentSettingsEnabled)
-        : null,
+    deploymentSettingsEnabled: runtime
+      ? Boolean(runtime.capabilities.deploymentSettingsEnabled)
+      : null,
     publicRegisterEnabled: runtime ? Boolean(runtime.capabilities.publicRegisterEnabled) : null,
   } as const;
 }

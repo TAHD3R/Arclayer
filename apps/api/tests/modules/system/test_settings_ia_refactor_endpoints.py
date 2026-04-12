@@ -11,6 +11,8 @@ from src.models.organization.org_membership import OrgRole
 from src.modules.auth.http.service import get_current_user
 from src.modules.organization.http.service import require_org_owner
 from src.modules.organization.router import router as me_router
+from src.modules.system.mail.router import get_mail_service
+from src.modules.system.mail.schema import MailTestResult
 from src.modules.system.router import router as system_router
 from tests.utils.asgi_client import asgi_client
 
@@ -18,8 +20,6 @@ pytestmark = pytest.mark.integration
 
 
 async def test_system_runtime_public_endpoint(monkeypatch) -> None:
-    monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
-    monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "0")
     monkeypatch.setenv("TEST_VALKEY__ENABLED", "0")
     get_settings.cache_clear()
@@ -34,7 +34,6 @@ async def test_system_runtime_public_endpoint(monkeypatch) -> None:
     payload = res.json()
     assert payload.get("error") is None
     data = payload.get("data") or {}
-    assert data.get("deploymentMode") == "self_host"
     caps = data.get("capabilities") or {}
     assert caps.get("deploymentSettingsEnabled") is True
     assert caps.get("publicRegisterEnabled") is False
@@ -98,9 +97,7 @@ async def test_me_organization_owner_flag() -> None:
     assert organization.get("slug") == "demo"
 
 
-async def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
-    monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "saas")
-    monkeypatch.setenv("DEPLOYMENT_MODE", "saas")
+async def test_system_endpoints_available_without_deployment_mode_gate(monkeypatch) -> None:
     get_settings.cache_clear()
 
     app = FastAPI()
@@ -111,8 +108,6 @@ async def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
     init_exception_handlers(app, get_settings())
     app.include_router(system_router, prefix="/api/v1/system")
 
-    # In SaaS mode we should be blocked before any plugin/DB dependencies are evaluated,
-    # but still override owner/user deps to keep the test robust.
     class DummyOrgMembership(BaseModel):
         model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -124,12 +119,17 @@ async def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
     async def _user_override() -> object:
         return object()
 
+    class DummyMailService:
+        async def send_test_email(self, *, recipient: str, locale: str | None = None) -> MailTestResult:
+            return MailTestResult(ok=True)
+
     app.dependency_overrides[require_org_owner] = _org_owner_override
     app.dependency_overrides[get_current_user] = _user_override
+    app.dependency_overrides[get_mail_service] = lambda: DummyMailService()
 
     async with asgi_client(app) as client:
         res_settings = await client.get("/api/v1/system/settings")
-        assert res_settings.status_code == 404
+        assert res_settings.status_code == 503
 
         res_mail = await client.post("/api/v1/system/mail/test", json={"recipient": "demo@example.com"})
-        assert res_mail.status_code == 404
+        assert res_mail.status_code == 200

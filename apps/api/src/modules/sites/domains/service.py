@@ -22,7 +22,7 @@ from src.modules.sites.domains.schema import (
 )
 from src.modules.workspaces.site.service import WorkspaceSiteService
 
-_CACHE_KEY_PREFIX = "saas:site_resolve:host"
+_CACHE_KEY_PREFIX = "site:resolve:host"
 _TXT_PREFIX = "arclayer-site-verification="
 _TXT_LABEL = "_arclayer-site-verification"
 
@@ -40,10 +40,6 @@ class SiteDomainsService(BaseService):
         self._repo = SiteDomainsRepository()
         self._workspace_site = WorkspaceSiteService(settings)
         self._valkey = valkey
-
-    def _assert_saas(self) -> None:
-        if self.settings.application.deployment_mode != "saas":
-            raise Conflict("Custom domains require SaaS mode", error="SITE_DOMAINS_SAAS_REQUIRED")
 
     def _cache_key_for_host(self, host: str) -> str:
         return f"{_CACHE_KEY_PREFIX}:{host}"
@@ -116,7 +112,6 @@ class SiteDomainsService(BaseService):
         return raw
 
     async def _resolve_site_id_for_workspace(self, *, workspace_id: UUID, actor_user_id: UUID | None) -> UUID:
-        self._assert_saas()
         if not self.settings.database.enabled:
             raise Conflict("Custom domains require database storage", error="SITE_DOMAINS_DB_REQUIRED")
 

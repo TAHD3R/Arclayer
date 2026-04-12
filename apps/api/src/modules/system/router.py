@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.analytics.system.router import router as system_activity_router
-from src.modules.system.flags.service import build_system_flags
 from src.modules.system.mail.router import router as system_mail_router
 from src.modules.system.rbac.router import router as system_rbac_router
 from src.modules.system.schema import SystemRuntimeCapabilities, SystemRuntimeOut
@@ -25,23 +24,18 @@ async def get_system_runtime(
     """
     Public, non-sensitive runtime probe endpoint.
 
-    Used by the admin frontend to decide whether instance-level deployment settings
-    (e.g. storage/mail) should be exposed in the UI.
+    Used by the admin frontend to read public, non-sensitive runtime capabilities.
     """
 
     from src.modules.auth.registration.service import get_public_register_policy
 
-    deployment_mode = settings.application.deployment_mode
     policy = await get_public_register_policy(settings)
-    flags = build_system_flags(settings=settings).model_copy(update={"public_register": policy.enabled})
     return ApiResponse.success(
         data=SystemRuntimeOut(
-            deployment_mode=deployment_mode,
             capabilities=SystemRuntimeCapabilities(
-                deployment_settings_enabled=deployment_mode == "self_host",
+                deployment_settings_enabled=True,
                 public_register_enabled=policy.enabled,
             ),
-            system_flags=flags,
         )
     )
 

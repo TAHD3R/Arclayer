@@ -19,7 +19,7 @@ class ExtensionApp(BaseModel):
 
     Notes:
     - Stores a snapshot of the provider manifest for capability resolution.
-    - Does NOT execute provider code in-process (SaaS rule).
+    - Does NOT execute provider code in-process.
     """
 
     app_id = fields.CharField(max_length=128, unique=True, db_index=True)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -39,7 +40,7 @@ def _has_alpha(img) -> bool:  # type: ignore[no-untyped-def]
     return False
 
 
-def generate_image_thumbnails(
+def _generate_image_thumbnails_sync(
     *,
     in_path: Path,
     out_path_for_width: OutPathForWidth,
@@ -129,3 +130,17 @@ def generate_image_thumbnails(
         }
     }
     return variants_payload, meta_payload
+
+
+async def generate_image_thumbnails(
+    *,
+    in_path: Path,
+    out_path_for_width: OutPathForWidth,
+    widths: list[int],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    return await asyncio.to_thread(
+        _generate_image_thumbnails_sync,
+        in_path=in_path,
+        out_path_for_width=out_path_for_width,
+        widths=widths,
+    )

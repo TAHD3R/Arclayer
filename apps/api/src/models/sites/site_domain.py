@@ -8,9 +8,9 @@ from src.common.models import BaseModel
 # Site domain binding (host -> site).
 class SiteDomainRecord(BaseModel):
     """
-    Custom domain binding for a site (SaaS mode only).
+    Custom domain binding for a site.
 
-    Resolution contract (used by SiteResolverMiddleware):
+    Resolution contract:
     - A hostname is routable only when `is_verified` and `is_active` are both true.
     - Verification is performed via a DNS TXT record containing `verification_token`.
     """

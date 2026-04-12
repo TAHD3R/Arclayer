@@ -186,10 +186,6 @@ class AppFactory:
             omit_paths=self.settings.logging.request_log_omit_paths,
             omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
         )
-        if self.settings.application.deployment_mode == "saas":
-            from src.core.middleware.site_resolver import SiteResolverMiddleware
-
-            self.app.add_middleware(SiteResolverMiddleware, settings=self.settings)
         self.app.add_middleware(CorrelationIdMiddleware)
 
         return self

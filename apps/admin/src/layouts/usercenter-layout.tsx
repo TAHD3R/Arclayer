@@ -15,8 +15,6 @@ import {
   mapWorkspaceNavItems,
 } from "@/layouts/admin-scene-utils";
 import { parseNotificationsSourceSearch } from "@/lib/routing/notifications-source";
-import { useSystemRuntime } from "@/hooks/use-system-runtime";
-import { filterNavByScope } from "@/lib/filter-nav-by-scope";
 import type { CommandScope } from "@/lib/command/command-types";
 
 export function UserCenterLayout() {
@@ -24,7 +22,6 @@ export function UserCenterLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const searchStr = useRouterState({ select: (state) => state.location.searchStr });
-  const systemRuntime = useSystemRuntime();
   const sourceSearch = useMemo(() => parseNotificationsSourceSearch(searchStr), [searchStr]);
   const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
   const isInboxRoute = pathname === "/notifications" || pathname.startsWith("/notifications/");
@@ -34,12 +31,10 @@ export function UserCenterLayout() {
   );
 
   const workspaceSourceItems = useMemo(() => {
-    if (!workspaceSourceBase || !systemRuntime.runtime) return [];
+    if (!workspaceSourceBase) return [];
     const workspaceNav = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, workspaceSourceBase);
-    return filterNavByScope(workspaceNav, systemRuntime.runtime.deploymentMode).filter(
-      (item) => item.position !== "footer",
-    );
-  }, [systemRuntime.runtime, workspaceSourceBase]);
+    return workspaceNav.filter((item) => item.position !== "footer");
+  }, [workspaceSourceBase]);
 
   const accountItems = useMemo(
     () => attachSearchToNavItems(USER_CENTER_NAV_ITEMS, sourceSearch),

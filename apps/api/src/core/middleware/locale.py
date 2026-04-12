@@ -8,6 +8,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from tortoise import Tortoise
 from tortoise.exceptions import ConfigurationError, OperationalError
 
+from src.common.utils.routing import extract_workspace_id_from_path
 from src.config import get_settings
 from src.core.i18n import get_request_locale, reset_current_locale, set_current_locale
 from src.settings.locale_runtime import read_core_default_locale
@@ -63,7 +64,7 @@ async def _get_core_default_locale(request: Request) -> str | None:
         now = time.monotonic()
         path = request.url.path
 
-        workspace_id = _extract_workspace_id_from_path(path)
+        workspace_id = extract_workspace_id_from_path(path)
         if workspace_id is not None:
             cache = getattr(state, "_workspace_default_locale_cache", None)
             if isinstance(cache, dict):
@@ -98,23 +99,6 @@ async def _get_core_default_locale(request: Request) -> str | None:
         state._system_default_locale_cache = {"value": locale_str, "expires_at": now + 5.0}
         return locale_str
     except (AttributeError, ConfigurationError, OperationalError, RuntimeError, TypeError, ValueError):
-        return None
-
-
-def _extract_workspace_id_from_path(path: str) -> UUID | None:
-    """
-    Parse v2 workspace-scoped API URL:
-    /api/v1/workspaces/{workspace_id}/...
-    """
-
-    marker = "/workspaces/"
-    if marker not in path:
-        return None
-    try:
-        _, tail = path.split(marker, 1)
-        raw = tail.split("/", 1)[0].strip()
-        return UUID(raw)
-    except (IndexError, ValueError):
         return None
 
 

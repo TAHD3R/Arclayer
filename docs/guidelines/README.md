@@ -12,7 +12,6 @@ Current guidelines:
 - `agents-guide.md`
 - `api-contract-guideline.md`
 - `backend-folder-architecture.md`
-- `deployment-scope-gating.md`
 - `design-guideline.md`
 - `frontend-folder-architecture.md`
 - `i18n.md`

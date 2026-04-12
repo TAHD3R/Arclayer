@@ -56,7 +56,7 @@ class LocalStorageProvider:
 
     Notes:
     - Intended for single-machine deployments (multi-worker is OK).
-    - For SaaS/multi-node, use an object storage provider (S3-compatible).
+    - For multi-node deployments, use an object storage provider (S3-compatible).
     """
 
     provider = "local"

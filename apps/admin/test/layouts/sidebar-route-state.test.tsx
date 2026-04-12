@@ -48,12 +48,10 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/hooks/use-system-runtime", () => ({
   useSystemRuntime: () => ({
     runtime: {
-      deploymentMode: "saas",
       capabilities: {
-        deploymentSettingsEnabled: false,
+        deploymentSettingsEnabled: true,
         publicRegisterEnabled: false,
       },
-      systemFlags: null,
     },
   }),
 }));

@@ -90,11 +90,6 @@ class ApplicationSettings(BaseSettings):
         default="Structured content, visually built.",
         validation_alias="APP_DESCRIPTION",
     )
-    deployment_mode: Literal["saas", "self_host"] = Field(
-        default="self_host",
-        validation_alias=AliasChoices("DEPLOYMENT_MODE", "APPLICATION_DEPLOYMENT_MODE"),
-        description="Deployment mode used to gate instance-level capabilities in the admin console.",
-    )
     app_openapi_url: str | None = Field(
         default="/openapi.json",
         validation_alias="APP_OPENAPI_URL",

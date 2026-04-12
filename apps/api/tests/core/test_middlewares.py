@@ -12,8 +12,7 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("LOG_DIR", str(log_dir))
     monkeypatch.setenv("LOG_ASYNC", "0")
-    # Make middleware unit tests hermetic: they should not depend on SaaS mode or DB connectivity.
-    monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
+    # Make middleware unit tests hermetic: they should not depend on DB or cache connectivity.
     monkeypatch.setenv("DATABASE__ENABLED", "0")
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "0")
     monkeypatch.setenv("VALKEY__ENABLED", "0")

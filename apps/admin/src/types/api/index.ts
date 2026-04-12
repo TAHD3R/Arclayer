@@ -30,7 +30,7 @@ export type { AuthSSOProvider, AuthSSOProvidersOut, AuthSSOLinkStateOut } from "
 export type { OAuthLinkedIdentity, OAuthLinkedIdentityListOut } from "./oauth-social";
 
 // System
-export type { DeploymentMode, SystemRuntime } from "./system";
+export type { SystemRuntime } from "./system";
 
 // Me
 export type {

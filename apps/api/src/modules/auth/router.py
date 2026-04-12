@@ -147,18 +147,34 @@ def _user_asset_scope(user: User) -> AssetScope:
     return AssetScope(type=ASSET_SCOPE_USER, id=user.id)
 
 
+def _get_platform_base_domain(settings: Settings) -> str | None:
+    base_domain = (settings.saas.base_domain or "").strip().lower().lstrip(".").rstrip(".")
+    if not base_domain:
+        return None
+
+    candidate_urls = (
+        settings.application.frontend_base_url,
+        settings.saas.admin_url,
+    )
+    for raw_url in candidate_urls:
+        if not raw_url:
+            continue
+        parsed = urlparse(raw_url)
+        host = (parsed.hostname or "").strip().lower().rstrip(".")
+        if host == base_domain or host.endswith(f".{base_domain}"):
+            return base_domain
+    return None
+
+
 def _get_refresh_cookie_domain(settings: Settings) -> str | None:
     override = settings.auth.cookie.domain
     if override:
         return override
 
-    if settings.application.deployment_mode != "saas":
-        return None
-
-    base_domain = (settings.saas.base_domain or "").strip()
+    base_domain = _get_platform_base_domain(settings)
     if not base_domain:
         return None
-    return f".{base_domain.lstrip('.')}"
+    return f".{base_domain}"
 
 
 def _set_refresh_cookie(
@@ -203,7 +219,7 @@ def _enforce_refresh_cookie_origin_policy(request: Request, *, settings: Setting
     Rationale:
     - `/auth/refresh-cookie` authenticates via a browser cookie.
     - When cookies are used for authentication, CSRF becomes relevant.
-    - We enforce an Origin allowlist based on the configured SaaS base domain.
+    - We enforce an Origin allowlist only when a shared platform base domain is configured.
 
     Notes:
     - We keep this intentionally minimal and only apply it to the refresh-cookie endpoint.
@@ -227,10 +243,7 @@ def _enforce_refresh_cookie_origin_policy(request: Request, *, settings: Setting
             error="CSRF_ORIGIN_INVALID",
         )
 
-    if settings.application.deployment_mode != "saas":
-        return
-
-    base_domain = (settings.saas.base_domain or "").strip().lower().lstrip(".").rstrip(".")
+    base_domain = _get_platform_base_domain(settings)
     if not base_domain:
         return
 

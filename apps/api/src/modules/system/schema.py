@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from pydantic import Field
 
 from src.common.schemas import BaseSchema
-from src.modules.system.flags.schema import SystemFlagsOut
 
 
 class SystemRuntimeCapabilities(BaseSchema):
@@ -15,20 +12,12 @@ class SystemRuntimeCapabilities(BaseSchema):
     )
     public_register_enabled: bool = Field(
         ...,
-        description="Whether public account registration is enabled for this deployment.",
+        description="Whether public account registration is enabled for this runtime.",
     )
 
 
 class SystemRuntimeOut(BaseSchema):
-    deployment_mode: Literal["saas", "self_host"] = Field(
-        ...,
-        description="Deployment mode of the running backend instance.",
-    )
     capabilities: SystemRuntimeCapabilities = Field(
         ...,
-        description="Runtime capabilities derived from deployment mode.",
-    )
-    system_flags: SystemFlagsOut = Field(
-        ...,
-        description="Non-sensitive system flags used by the frontend for conditional UI rendering.",
+        description="Public runtime capabilities derived from concrete backend configuration.",
     )

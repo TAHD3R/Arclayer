@@ -8,8 +8,8 @@ from src.common.utils.slug import slugify
 
 WORKSPACE_SLUG_MAX_LEN = 64
 
-# Workspace slug is a public identifier: it can be used as a tenant subdomain in SaaS,
-# and as a path segment prefix in self-host mode (/w/:workspaceSlug).
+# Workspace slug is a public identifier: it can be used as a tenant subdomain
+# and as a path segment prefix (/w/:workspaceSlug).
 RESERVED_WORKSPACE_SLUGS: frozenset[str] = frozenset({
     # Common platform/reserved subdomains.
     "admin",

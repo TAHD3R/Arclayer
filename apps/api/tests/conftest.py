@@ -71,8 +71,6 @@ def _activate_integration_env(monkeypatch) -> None:
     """
 
     monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.setenv("APPLICATION__DEPLOYMENT_MODE", "self_host")
-    monkeypatch.setenv("DEPLOYMENT_MODE", "self_host")
     # Integration tests may hit email invitation flows. Enable mail but suppress actual sending.
     monkeypatch.setenv("MAIL__ENABLED", "1")
     monkeypatch.setenv("MAIL__SUPPRESS_SEND", "1")

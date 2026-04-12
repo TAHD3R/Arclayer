@@ -11,7 +11,7 @@ class OrganizationCapabilityState(BaseModel):
 
     Notes:
     - Capability ids are declared by app manifests.
-    - Core runtime enforces scope semantics; SaaS does not allow third-party DB migrations.
+    - Core runtime enforces scope semantics; third-party providers must not run DB migrations in-process.
     """
 
     organization = fields.ForeignKeyField(

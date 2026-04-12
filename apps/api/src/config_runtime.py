@@ -109,7 +109,7 @@ class AuthSettings(BaseSettings):
         )
         domain: str | None = Field(
             default=None,
-            description="Optional cookie Domain override. If omitted, defaults to .{saas.base_domain} in SaaS mode.",
+            description="Optional cookie Domain override. If omitted, shared-domain deployments may derive it from base_domain.",
         )
         secure: bool = Field(default=False, description="Whether to set Secure on refresh token cookie.")
         samesite: Literal["lax", "strict", "none"] = Field(
@@ -278,7 +278,7 @@ class EmailSettings(BaseSettings):
 
 class SaasSettings(BaseSettings):
     """
-    SaaS-mode settings (only effective when deployment_mode == "saas").
+    Host/domain settings for tenant-aware deployments.
     """
 
     model_config = SettingsConfigDict(

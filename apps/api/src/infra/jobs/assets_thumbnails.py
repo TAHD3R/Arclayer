@@ -219,8 +219,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
                 key = f"workspaces/{workspace_id}/assets/{asset_id}/thumb-{width}.{out_ext}"
                 return safe_object_key_to_path(settings.storage.local_root_dir, key), key
 
-            variants_payload, meta_payload = await asyncio.to_thread(
-                generate_image_thumbnails,
+            variants_payload, meta_payload = await generate_image_thumbnails(
                 in_path=in_path,
                 out_path_for_width=_out_path_for_width,
                 widths=missing,
@@ -264,8 +263,7 @@ async def generate_asset_thumbnails(ctx: dict[str, Any], asset_id_raw: str, work
                 out_paths[object_key] = out_path
                 return out_path, object_key
 
-            variants_payload, meta_payload = await asyncio.to_thread(
-                generate_image_thumbnails,
+            variants_payload, meta_payload = await generate_image_thumbnails(
                 in_path=in_path,
                 out_path_for_width=_out_path_for_width,
                 widths=missing,

@@ -6,13 +6,12 @@ from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale
 from src.modules.organization.http.service import require_org_owner
-from src.modules.system.http.service import require_self_host_deployment_mode
 from src.modules.system.mail.schema import MailTestRequest, MailTestResult
 from src.modules.system.mail.service import AdminMailService
 
 router = APIRouter(
     tags=["System: Mail"],
-    dependencies=[Depends(require_self_host_deployment_mode), Depends(require_org_owner)],
+    dependencies=[Depends(require_org_owner)],
 )
 
 
