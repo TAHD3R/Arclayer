@@ -23,6 +23,7 @@ This guideline applies to all authored code changes in:
 - Run checks through `package.json` scripts (`pnpm <script>` / `pnpm --filter <pkg> <script>` / `pnpm -C <dir> <script>`).
 - Do not call `.venv` binaries directly.
 - Prefer root orchestrated commands for cross-app validation, and filtered commands for focused validation.
+- When running backend tests directly, keep a 60-second timeout on unit-oriented commands so local debug runs cannot hang indefinitely.
 
 ## 4. Quality Gate Baseline
 
@@ -38,7 +39,8 @@ Canonical commands:
 
 - `pnpm api:check`
 - `pnpm api:test`
-- Optional focused execution: `pnpm --filter @arclayer/api test:integration`
+- Optional focused integration execution: `pnpm -C apps/api test:integration`
+- Optional focused quick execution: `pnpm -C apps/api test:quick`
 
 ### 4.2 Admin frontend (`apps/admin`)
 

@@ -10,12 +10,11 @@ and implementation standards.
 Current guidelines:
 
 - `agents-guide.md`
-- `backend-endpoint-contract-guideline.md`
-- `backend-folder-architecture-guideline.md`
-- `design-guideline.md`
+- `backend-endpoint-contract.md`
+- `backend-folder-architecture.md`
+- `frontend-design.md`
 - `frontend-folder-architecture.md`
 - `i18n.md`
-- `security-and-data-handling.md`
 - `testing-and-quality-gates.md`
 
 ## Maintenance

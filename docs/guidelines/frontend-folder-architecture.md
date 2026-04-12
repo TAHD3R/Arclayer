@@ -1,403 +1,234 @@
-# Frontend Folder Architecture (`apps/*`)
+# Frontend Folder Architecture Guideline (Arclayer)
 
-This document defines the target frontend architecture for Arclayer. It is a normative guideline for the Admin application plus shared frontend packages.
+This document defines the live frontend structure for Arclayer, with `apps/admin` as the primary governed surface.
+It describes current layers, ownership rules, and file-placement decisions that match the repository as it exists today.
 
-## 1. Goals
-
-- Keep Admin boundaries explicit and maintainable.
-- Keep UI code, data access, and runtime infrastructure responsibilities separated.
-- Enforce cross-app reuse through `packages/*` instead of copy-paste.
-- Preserve strong typing and human-readable code structure as default constraints.
-
-## 2. Scope
+## 1. Scope
 
 This guideline applies to:
 
 - `apps/admin`
-- Cross-app shared frontend packages in `packages/*` (especially `packages/core/runtime` and `packages/protocols/*`)
+- shared frontend packages under `packages/*` that Admin consumes directly
 
+Current shared package surfaces relevant to Admin:
+
+- `packages/api-client`
+- `packages/core/runtime`
+- `packages/hooks`
+- `packages/lib`
+- `packages/ui/*`
+
+## 2. Goals
+
+- Keep route wiring, page composition, transport, and shared UI responsibilities separate.
+- Prefer promotion into shared packages over copy-paste across apps.
+- Keep page-level code readable without forcing artificial fragmentation.
+- Make the live structure easy to recover from disk without relying on historical assumptions.
 
 ## 3. Canonical Layer Map
 
-| Layer | Location | Responsibility | Must Not Own |
+| Layer | Live location | Owns | Must not own |
 | --- | --- | --- | --- |
-| App routing shell | `apps/admin/src/routes` (`index.tsx` + `index.lazy.tsx`) | Route config and lazy component binding, route-level guards | Business workflow implementation, inline page rendering |
-| Feature/page composition | `apps/admin/src/pages` | Feature orchestration and page behavior | Transport/client primitives and global infra concerns |
-| Data access layer | `apps/admin/src/api` | API contracts, request helpers, response normalization | JSX rendering logic |
-| Shared app internals | `apps/admin/src/lib`, `apps/admin/src/hooks` | App-local reusable helpers | Cross-app contracts that belong in packages |
-| UI building blocks | `apps/admin/src/components` | Reusable UI components and presentation units | Domain persistence logic and routing policy |
-| App state layer | `apps/admin/src/stores` | UI state only; transient app state | Mirroring server state from API responses |
-| Cross-app shared packages | `packages/core/runtime`, `packages/protocols/*`, `packages/ui/tokens` | Shared contracts, protocol, runtime primitives, theme/tokens | App-specific view logic |
+| Route shell | `apps/admin/src/routes` | route config, redirects, search parsing, route metadata, lazy bindings when used | business workflows, API calls, dense JSX trees |
+| Page composition | `apps/admin/src/pages` | feature composition, page-local state orchestration, page-local components/hooks/utils | shared transport primitives, global providers |
+| App services | `apps/admin/src/api` | typed request functions and response handling for Admin | JSX and page rendering logic |
+| App internals | `apps/admin/src/lib`, `apps/admin/src/hooks`, `apps/admin/src/stores`, `apps/admin/src/types` | app-local helpers, hooks, UI state, Admin-only types | cross-app packages or feature-page rendering |
+| Reusable app UI | `apps/admin/src/components`, `apps/admin/src/layouts` | reusable Admin presentation blocks and page-shell primitives | domain transport logic |
+| Shared packages | `packages/*` | cross-app runtime helpers, UI primitives, hooks, tokens, generated API client | Admin-only page behavior |
 
-## 4. Admin Structure Rules (`apps/admin/src`)
+## 4. Route Layer Rules
 
-- `routes/` owns route definitions and route guards only.
-- `pages/` owns page-level composition and feature wiring.
-- `api/` owns request/response contracts and typed API functions.
-- `components/` owns reusable UI and composite presentation blocks.
-- `lib/` owns local utilities that are not yet cross-app.
-- `hooks/` owns reusable React behavior hooks.
-- `stores/` owns client/UI state only (not server-state mirrors).
-- `types/` owns Admin-local types; shared types should be promoted to the appropriate `packages/*` package.
+### 4.1 What lives in `src/routes`
 
-### 4.1 Admin API Data Layer Convention (`api/` + `types/api/` + `lib/api/`)
+Route files may own:
 
-The Admin API layer follows a strict three-tier separation:
+- `createFileRoute` definitions
+- `staticData` metadata such as `titleKey`
+- `validateSearch`
+- `beforeLoad` redirects and guards
+- lightweight layout wrappers such as `Outlet`
+- `createLazyFileRoute` bindings where the route is intentionally split
 
-```
-src/api/          → Runtime API functions only (HTTP calls)
-src/types/api/    → Pure type definitions (no runtime code)
-src/lib/api/      → Shared utilities (path builders, query-string helpers)
-```
+Route files must not own:
 
-**Rules:**
+- API calls
+- React Query orchestration
+- business transformations
+- large page JSX trees
+- feature-local styling logic
 
-1. **Type definitions** must live in `types/api/*.ts` and be re-exported through `types/api/index.ts`. API files (`api/*.ts`) must not define `type`, `interface`, or `enum` locally — import them from `@/types/api`.
+### 4.2 Route splitting policy
 
-2. **Path construction** must use centralized builders from `lib/api/path-builders.ts`:
-   - `workspacePath(workspaceId, "/sub/path")` for `/workspaces/{id}/...` endpoints.
-   - `organizationWorkspacePath(orgId, wsId, "/sub/path")` for `/organizations/{orgId}/workspaces/{wsId}/...` endpoints.
-   - `organizationWorkspacesBasePath(orgId)` for collection-level organization-workspace endpoints.
-   - `orgPluginPath(pluginRef)` for organization-plugin endpoints.
-   - Hand-written `encodeURIComponent(String(workspaceId))` + template literal path assembly is prohibited when a builder exists.
+The live repo uses a mixed model:
 
-3. **Query string construction** must use `toQueryString()` from `lib/api/query-string.ts`. Hand-written `URLSearchParams` or template-literal query assembly is prohibited for standard list/filter parameters.
+- leaf routes that benefit from lazy-loading commonly use `index.tsx` + `index.lazy.tsx`
+- redirect routes, simple wrapper routes, and some static pages remain single-file `index.tsx`
 
-4. **Internal-only response wrappers** (e.g. `{ items: T[] }` envelope types used only inside one API function) may remain local to the API file as non-exported types.
+Do not enforce route splitting mechanically. Split when it improves code loading or keeps route metadata separate from page binding. Keep single-file routes when the file only contains route metadata or a trivial wrapper.
 
-5. **Adding a new API module** requires:
-   - Create `types/api/<module>.ts` with all type definitions.
-   - Add re-exports to `types/api/index.ts`.
-   - Create `api/<module>.ts` importing types from `@/types/api` and utilities from `@/lib/api`.
+### 4.3 Route metadata
 
-### 4.2 Admin Route Splitting Convention (`routes/` + `pages/`)
+- Page routes should define `staticData.titleKey`.
+- `document.title` resolution is centralized through `RouteDocumentTitleManager`.
+- Navigation config is not the source of truth for document titles.
 
-Admin uses TanStack Router manual lazy-loading with `autoCodeSplitting: false`. Every route is split into two files: `index.tsx` for route configuration and `index.lazy.tsx` for component binding.
+## 5. Page Layer Rules
 
-**File responsibilities:**
+### 5.1 Live page roots
 
-| File | API | Owns | Must not contain |
-| --- | --- | --- | --- |
-| `index.tsx` | `createFileRoute` | Route config: `validateSearch`, `beforeLoad`, search type definitions | `component` property, page component imports |
-| `index.lazy.tsx` | `createLazyFileRoute` | `component` property + page component import | Route config logic (`validateSearch`, `beforeLoad`) |
+Current top-level page domains in `apps/admin/src/pages` include:
 
-**Examples:**
+- `workspaces/*`
+- `usercenter/*`
+- `sys/*`
+- root-level flows such as `login`, `setup`, `reset-password`, `notifications`, `invitations`
 
-Simple route (no config):
+There is also a live `placeholder/` directory. Treat it as transitional surface area, not as the default destination for new product work.
 
-```typescript
-// routes/setup/index.tsx
-import { createFileRoute } from "@tanstack/react-router";
-export const Route = createFileRoute("/setup/")({});
+### 5.2 Route-to-page alignment
 
-// routes/setup/index.lazy.tsx
-import { createLazyFileRoute } from "@tanstack/react-router";
-import { SetupPage } from "@/pages/setup/page";
-export const Route = createLazyFileRoute("/setup/")({ component: SetupPage });
-```
+Follow live route semantics when placing pages:
 
-Route with `validateSearch` (config stays in `index.tsx`, component in lazy):
-
-```typescript
-// routes/w/$workspaceId/settings/workspace/index.tsx
-import { createFileRoute } from "@tanstack/react-router";
-import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
-export const Route = createFileRoute("/w/$workspaceId/settings/workspace/")({
-  validateSearch: (search: Record<string, unknown>): { index?: WorkspaceSettingsTabKey } => {
-    // validation logic only
-  },
-});
-
-// routes/w/$workspaceId/settings/workspace/index.lazy.tsx
-import { createLazyFileRoute } from "@tanstack/react-router";
-import { WorkspaceSettingsPage } from "@/pages/workspaces/settings/workspace/page";
-export const Route = createLazyFileRoute("/w/$workspaceId/settings/workspace/")({
-  component: WorkspaceSettingsPage,
-});
-```
-
-Wrapper component injecting route params into a shared page:
-
-```typescript
-// routes/o/$orgId/extensions/index.lazy.tsx
-import { createLazyFileRoute } from "@tanstack/react-router";
-import { ExtensionsPage } from "@/pages/extensions/extensions-page";
-export const Route = createLazyFileRoute("/o/$orgId/extensions/")({
-  component: OrganizationExtensionsRoute,
-});
-function OrganizationExtensionsRoute() {
-  const { orgId } = Route.useParams();
-  return <ExtensionsPage scope="organization" organizationId={orgId} />;
-}
-```
-
-**Page component naming:**
-
-1. Page components use `*Page` suffix (e.g. `DashboardPage`, `LoginPage`).
-2. Page files are always named `page.tsx`, placed in `src/pages/` mirroring the feature structure.
-3. Lightweight wrapper components in lazy files use `*Route` suffix (e.g. `OrganizationExtensionsRoute`).
-
-**Vite configuration:** The `tanstackRouter` plugin must set `autoCodeSplitting: false`. All code splitting is driven by the manual `index.lazy.tsx` convention.
-
-**Exception:** `__root.tsx` is the only route file allowed to define `component`, `errorComponent`, and `notFoundComponent` directly (using `createRootRoute`).
-
-### 4.3 Route Single Responsibility (mandatory)
-
-Route files (`routes/**/*.tsx`) must follow strict single responsibility. They exist solely for route configuration and lazy component binding.
-
-**Allowed in route files (whitelist):**
-
-- `createFileRoute` / `createLazyFileRoute` invocations.
-- `validateSearch`: search parameter type definitions and validation logic.
-- `beforeLoad`: route guards (authentication checks, redirects).
-- `component`: only in `index.lazy.tsx`, referencing a component from `src/pages/`.
-- Lightweight wrapper functions: only for injecting route params into shared page components (e.g. `Route.useParams()`).
-
-**Prohibited in route files (blacklist):**
-
-- Business logic (data transformation, conditional branching, state computation).
-- API calls or data fetching (belongs in `src/api/` + React Query).
-- Complex JSX rendering (anything beyond a single component reference belongs in `src/pages/`).
-- Stateful hooks (`useEffect`, `useState`, `useMemo`, etc. — `Route.useParams()` / `Route.useSearch()` are exceptions).
-- Style definitions or Tailwind class composition.
-- i18n `useTranslation` calls (belongs in page/component layer).
-
-**Decision principle:** If a piece of code can be removed from a route file without breaking navigation or page loading, it does not belong in the route layer.
-
-### 4.4 Route Title Registry (mandatory)
-
-Admin uses a route-driven registry for document titles. This is a governance rule, not a UI preference.
-
-**Goals:**
-
-- Make document titles a first-class route concern.
-- Keep navigation menu items strictly for rendering navigation (no metadata inference).
-- Prevent fragile `pathname` checks or menu-driven title fallbacks.
-
-**Rules:**
-
-1. Every route that represents a page must set `staticData.titleKey` in its `createFileRoute(...)` definition.
-2. `staticData.titleKey` must be an i18n key (e.g. `nav:NAV_DASHBOARD`, `notifications:NOTIFICATIONS_PAGE_TITLE`).
-3. `document.title` must be set in a single place only: `RouteDocumentTitleManager`.
-4. Navigation constants (`admin-nav.ts`, `org-nav.ts`, `common-footer-nav.ts`) are render-only; they must not be used as the source-of-truth for document titles.
-
-**Example:**
-
-```ts
-// routes/me/notifications/index.tsx
-import { createFileRoute } from "@tanstack/react-router";
-
-export const Route = createFileRoute("/me/notifications/")({
-  staticData: { titleKey: "notifications:NOTIFICATIONS_PAGE_TITLE" },
-});
-```
-
-### 4.5 Admin Pages Directory Convention (mandatory)
-
-This section defines governance rules for `apps/admin/src/pages/`. It extends the layer map and route conventions in this document and must be followed for any new or modified pages.
-
-#### 4.5.1 Route-to-pages path alignment (mandatory)
-
-The `pages/` directory structure must align with route path semantics in `routes/`.
-
-**Mapping rules:**
-
-| Route prefix | Pages directory |
+| Route family | Page location |
 | --- | --- |
-| `w/$workspaceId/*` | `pages/workspaces/*` |
-| `o/$orgId/*` | `pages/organization/*` |
-| Global routes (e.g. `/login`, `/setup`) | `pages/*` (root-level) |
+| `/w/$workspaceId/*` | `pages/workspaces/*` |
+| `/usercenter/*` | `pages/usercenter/*` |
+| `/sys/*` | `pages/sys/*` |
+| root/global flows | `pages/<feature>/*` |
 
-**Constraints:**
+Do not invent `pages/organization/*` or other route families that do not exist in the live app.
 
-- Pages that are shared across workspace and organization contexts must not be placed under the `pages/` root. They must be split by real route ownership, or the shared parts must be extracted into `src/components/` as reusable UI blocks.
-- `builtin/` pages may exist as global error boundary pages and do not need to align with a route prefix, but their non-route nature must be explicit (for example by renaming to `_builtin/` or moving to `src/components/`).
-- `placeholder/` is a temporary staging directory. Any placeholder page must be replaced with a formal page when implementing the actual feature.
+### 5.3 `page.tsx` contract
 
-#### 4.5.2 Page entry file contract: `page.tsx` (mandatory)
+- Each page directory should expose a `page.tsx` entry.
+- `page.tsx` should compose the page and delegate dense UI to local components when the screen grows.
+- It is acceptable for mature pages to own meaningful composition logic; do not split only to satisfy a line-count ritual.
 
-- Every page directory must contain exactly one `page.tsx` file as a thin entry.
-- `page.tsx` must only orchestrate feature composition:
-  - compose subcomponents
-  - pass props
-  - define page-level `Suspense` / `ErrorBoundary` boundaries
-- `page.tsx` should not exceed ~120 lines. If it does, treat it as a signal that responsibilities must be split into page-local components.
+### 5.4 Page-local structure
 
-`page.tsx` must not directly contain:
+Recommended baseline:
 
-- Data table column definitions
-- Dialog implementations
-- Toolbar implementations
-- Filter implementations
-
-**Naming rule:** the exported component name must match route semantics (for example `TeamMembersPage`).
-
-#### 4.5.3 Standard page-local directory layout (recommended baseline)
-
-A complete page directory should follow this structure:
-
-```
+```text
 pages/<domain>/<feature>/
-├── page.tsx              # Thin entry: composition and boundaries
-├── components/           # Page-local components
-│   ├── <feature>-toolbar.tsx
-│   ├── <feature>-dialogs.tsx
-│   ├── <feature>-filter-popover.tsx
-│   └── ...
-├── hooks/                # Page-local hooks (optional)
-│   └── use-<feature>-*.ts
-├── constants.ts          # Page-local constants (optional)
-├── types.ts              # Page-local types (optional)
-└── utils.ts              # Page-local utilities (optional)
+├── page.tsx
+├── components/
+├── hooks/
+├── types.ts
+├── utils.ts
+└── constants.ts
 ```
 
-**Rules:**
+Use the subfolders only when they help. Avoid creating empty structure for ceremony.
 
-- `constants.ts`, `types.ts`, and `utils.ts` must not use a feature prefix (the directory already provides context).
-- If there are only 1–2 hooks, they may be placed directly in the page directory without creating `hooks/`.
-- Non-standard filenames such as `helpers.ts`, `display.ts`, `*-helpers.tsx`, or `*-display.ts` are prohibited — use `utils.ts`.
+### 5.5 Shared directories inside page domains
 
-#### 4.5.4 Component ownership & promotion rules (mandatory)
+The live repo already uses domain-local shared areas such as:
 
-- `src/components/` is for reusable UI components imported by 2+ pages.
-- `pages/<feature>/components/` is for page-local components used only by the current page.
+- `pages/workspaces/shared/*`
+- `pages/workspaces/team/shared/*`
+- `pages/usercenter/shared/*`
 
-**Promotion process:**
+Use these only for code shared within the same page domain. If the code starts serving unrelated domains, promote it into `src/components`, `src/lib`, or `packages/*` as appropriate.
 
-1. When creating a new component, place it under `pages/<feature>/components/` by default.
-2. When a second page needs it, promote it into `src/components/<domain>/`.
-3. When it is reused across Admin and Portal, promote it into `packages/*`.
+## 6. Admin API Layer Rules
 
-Non-normative note: if a domain folder already exists under `src/components/`, it should be audited periodically to ensure it truly contains cross-page components and not feature-local ones.
+### 6.1 Live API structure
 
-#### 4.5.5 Page utilities governance (mandatory)
+Admin transport code is split across:
 
-- If a utility is only used by a single page, it should live in `pages/<feature>/utils.ts`.
-- If a utility is used by 2+ pages, it must be promoted into `src/lib/` under an appropriate domain module.
-- If an equivalent utility already exists in `src/lib/`, duplicate definitions are prohibited — import and reuse the existing implementation.
+- `src/api/*` for runtime request functions
+- `src/types/api/*` for contract types
+- `src/lib/api/*` for shared path/query helpers
+- `src/lib/http/*` for shared HTTP client concerns
 
-**Additional constraints:**
+### 6.2 API ownership rules
 
-- Pure helper functions longer than 5 lines must not be defined inline in `page.tsx` or page-local component files; move them into `utils.ts`.
-- Naming must be consistent: use `utils.ts` (do not use `helpers.ts`, `display.ts`, or `*-helpers.tsx`).
-- For formatting/label utilities that depend on i18n (for example `formatRole`, `getStatusLabel`), evaluate whether they belong in a shared i18n utility layer instead of remaining page-local.
+- Keep transport code in `src/api/*`.
+- Keep reusable query-string and path construction in `src/lib/api/*`.
+- Keep app-level HTTP concerns in `src/lib/http/*`.
+- Keep request and response types in `src/types/api/*` when the shape is reused or part of the stable API surface.
+- Small non-exported helper types that only exist inside one API file are acceptable when they do not represent shared contract surface.
 
-#### 4.5.6 Constants and types extraction rules (mandatory)
+### 6.3 Data fetching rules
 
-- Page-local constants must live in `pages/<feature>/constants.ts`.
-- Cross-page shared constants must live in `src/lib/constants/` or the appropriate domain module under `src/lib/`.
-- Page-local types must live in `pages/<feature>/types.ts`.
-- Cross-page shared types must live in `src/types/`.
-- API request/response types must live in `src/types/api/`; redefining API contract types inside `pages/` is prohibited.
+- Admin server state should go through React Query plus the typed API layer.
+- Components and pages should not scatter raw fetch logic unless the browser-native flow genuinely demands it.
+- Components should not parse backend envelopes ad hoc when the API layer can normalize them once.
 
-**Additional constraints:**
+## 7. App-Local Shared Code Rules
 
-- If an enum originates from backend schema, it should live in `src/types/` and remain aligned with the API contract.
-- The same `interface` or type shape must not be duplicated across multiple pages’ `types.ts` files.
+### 7.1 `src/components`
 
-#### 4.5.7 Data table conventions (mandatory)
+Use `src/components` for reusable Admin presentation blocks that serve multiple pages or multiple feature domains.
 
-To prevent drift in naming and structure:
+Do not move feature-local code here just because it feels “important”.
 
-```
-pages/<feature>/
-└── components/
-    ├── <feature>-columns.tsx        # Column definitions (required)
-    ├── <feature>-toolbar.tsx        # Toolbar (optional)
-    ├── <feature>-bulk-actions.tsx   # Bulk actions (optional)
-    └── <feature>-filter-popover.tsx # Filters (optional)
-```
+### 7.2 `src/layouts`
 
-**Rules:**
+Use `src/layouts` for structural shells and page framing primitives such as `DefaultPage`, `ColumnsPage`, and `ContentGuard`.
 
-- Column definitions files must be named `<feature>-columns.tsx`. Names like `*-table-columns.tsx` are prohibited.
-- Column definitions must be exported as a function (to accept dependencies such as `t`), not as a bare array.
-- Table instantiation must be performed in `page.tsx` or a dedicated `<feature>-view.tsx` component.
-- Shared data-table infrastructure (column types, shared helpers) must live in `src/components/data-table/`.
+### 7.3 `src/lib`
 
-#### 4.5.8 Cross-subpage shared directory: `shared/` (restricted allowance)
+Use `src/lib` for app-local helpers and domain utilities such as:
 
-For patterns like `organization/team/shared/`:
+- `lib/http/*`
+- `lib/query/*`
+- `lib/routing/*`
+- `lib/time/*`
+- `lib/assets/*`
 
-- A `shared/` directory is allowed for components shared by multiple subpages within the same feature domain.
-- `shared/` must be a sibling of the subpages that import it.
-- If a component in `shared/` is imported by a page outside the feature domain, it must be promoted into `src/components/`.
-- `shared/` must not contain `page.tsx`.
+If a helper is reused across multiple page families, `src/lib` is usually the correct home.
 
-#### 4.5.9 File naming consistency (mandatory)
+### 7.4 `src/stores`
 
-- Component files must use `kebab-case.tsx` and export `PascalCase` components.
-- Hook files must use `use-<name>.ts` (logic only) or `use-<name>.tsx` (contains JSX).
-- Page-local utility/constant/type files must be named `utils.ts`, `constants.ts`, and `types.ts` (no page-level prefixes).
-- Prohibited names: `helpers.ts`, `display.ts`, `*-helpers.tsx`, `*-display.ts`.
+- Keep `src/stores` for UI/client state.
+- Do not mirror server state here when React Query already owns that data lifecycle.
 
-## 5. Cross-App Reuse and Promotion Rules (mandatory)
+### 7.5 `src/types`
 
-### 6.1 Promotion trigger
+- Keep Admin-only types in `src/types`.
+- Promote cross-app contracts into shared packages instead of duplicating local shapes.
 
-When the same utility/type/contract appears across multiple frontend surfaces for the second time, it must be evaluated and usually promoted to `packages/*`.
+## 8. Shared Package Promotion Rules
 
-### 6.2 Package placement policy
+Promote code into `packages/*` when it is reused across apps or is clearly foundational.
 
-- `packages/core/runtime`: runtime utilities, HTTP primitives, config/i18n helpers, no React UI dependencies.
-- `packages/protocols/*`: protocol/type contracts shared by apps.
-- `packages/ui/tokens`: shared design tokens, Tailwind preset, and theme adapters.
+Current package placement rules:
 
-### 6.3 Hard prohibitions
+- `packages/api-client`: generated API client and generated contract artifacts
+- `packages/core/runtime`: runtime utilities and shared non-UI primitives
+- `packages/hooks`: reusable hooks that are not Admin-only
+- `packages/lib`: shared helpers used across multiple apps
+- `packages/ui/*`: shared UI primitives, tokens, and styling infrastructure
 
-- No direct source import across app boundaries.
-- No duplicated shared helpers across multiple apps when package extraction is viable.
+Hard rule:
 
-## 7. Dependency Direction Rules
+- do not import source files directly from another app
 
-### 7.1 Admin dependency flow
+## 9. File Placement Decision Order
 
-- `routes -> pages/layouts/providers -> components/hooks/api/lib/stores/types -> packages/*`
-- `api` may depend on `lib/http` and `packages/core/runtime`.
-- `components` may depend on hooks/lib/types/packages, but must not define transport logic.
-- `stores` must not become a mirror cache of server state already managed by React Query.
+When adding new frontend code, decide in this order:
 
-### 7.2 Prohibited patterns
+1. Route concern or redirect logic -> `src/routes`
+2. Page composition or feature flow -> `src/pages`
+3. Admin transport or API normalization -> `src/api`
+4. App-local reusable helper or hook -> `src/lib` / `src/hooks`
+5. Reusable Admin UI block or shell -> `src/components` / `src/layouts`
+6. Cross-app reusable primitive -> `packages/*`
 
-- Business logic, API calls, complex JSX, or stateful hooks in route entry files (`routes/**/*.tsx`). Route files must only contain route configuration and lazy component binding — all rendering and behavior logic belongs in `pages/`. See section 4.3 for the full whitelist/blacklist.
-- Direct fetch calls spread across multiple page/component files when a shared API wrapper can be used.
-- Circular imports between feature modules and component foundations.
+## 10. Quality Constraints
 
-## 8. Type Safety and Code Quality Constraints
+- No authored `any` in maintained source.
+- Route files stay thin.
+- Shared page-shell behavior should be reused instead of cloned.
+- Generated files such as `routeTree.gen.ts` are tooling output and must not be edited manually.
 
-- `any` is forbidden in authored source code.
-- Use explicit `interface` / `type` for component props and public function contracts.
-- API functions must expose explicit return types (`Promise<T>`).
-- Prefer `unknown` + narrowing over `any`.
-- Generated files (for example `routeTree.gen.ts`) are tooling output and must not be manually edited.
+## 11. PR Checklist
 
-## 9. Data Fetching and State Rules
-
-- Admin server state must use React Query via typed API layer abstractions.
-- Portal runtime data fetching should be centralized in runtime API modules.
-- Direct fetch in components/pages is only allowed for exceptional browser-native flows (for example upload streams or external resource probing) and must include a short justification comment.
-- Components must not parse raw backend response envelopes directly.
-
-## 10. File Placement Decision Rules
-
-Use this decision order when adding frontend code:
-
-1. Route shell concern? -> `routes/` or `pages/` route entry
-2. Feature orchestration concern? -> `pages/` (Admin) or `src/features/` (Portal)
-3. API/transport concern? -> `src/api/` (Admin) or `src/runtime/*api*` (Portal)
-4. App-local reusable helper? -> `src/lib` or `src/hooks`
-5. Cross-app reusable contract/helper? -> `packages/core/runtime` / `packages/protocols/*`
-6. Presentation unit? -> `src/components`
-
-## 11. Architecture PR Checklist
-
-A frontend PR should pass all checks:
-
-- New files are placed in the correct layer and follow dependency direction rules.
-- No cross-app direct source imports were introduced.
-- Shared logic is extracted instead of duplicated.
-- No new authored `any` was introduced.
-- API/transport logic is not leaked into route shells or presentation-only components.
-- Admin `pages/` changes follow the Pages Directory Convention (path alignment, single `page.tsx` entry, naming rules, and promotion rules).
-- Added directories include minimal structural documentation when needed.
-- Exceptions are documented with justification and a follow-up plan in `docs/plans/`.
+- [ ] New files are placed in the right layer for their responsibility.
+- [ ] Route files stay limited to routing concerns.
+- [ ] Page-local code was not promoted too early into shared layers.
+- [ ] Shared logic was promoted when it truly crossed app or domain boundaries.
+- [ ] No cross-app direct source imports were introduced.
+- [ ] New transport logic lives in the Admin API stack instead of feature JSX.
+- [ ] New authored code avoids `any` and respects generated-file boundaries.

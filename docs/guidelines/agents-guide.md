@@ -53,10 +53,9 @@ Avoid running infra / interactive commands unless the user explicitly asks:
 ## 7. Cross-References (Source of Truth)
 
 - Guidelines index: `docs/guidelines/README.md`
-- API contract: `docs/guidelines/backend-endpoint-contract-guideline.md`
-- Backend folder architecture: `docs/guidelines/backend-folder-architecture-guideline.md`
+- API contract: `docs/guidelines/backend-endpoint-contract.md`
+- Backend folder architecture: `docs/guidelines/backend-folder-architecture.md`
 - Frontend folder architecture: `docs/guidelines/frontend-folder-architecture.md`
-- UI design guideline (Admin): `docs/guidelines/design-guideline.md`
+- UI design guideline (Admin): `docs/guidelines/frontend-design.md`
 - i18n: `docs/guidelines/i18n.md`
-- Security: `docs/guidelines/security-and-data-handling.md`
 - Testing & quality gates: `docs/guidelines/testing-and-quality-gates.md`
