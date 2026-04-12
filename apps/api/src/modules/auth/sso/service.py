@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import binascii
 from typing import Any, Protocol
 from urllib.parse import urlencode
 from uuid import UUID
@@ -16,8 +15,6 @@ from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.sso.repository import consume_exchange_payload
-from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
 from src.settings.runtime import get_core_settings_value_cached
 
 _FATAL_SSO_ERRORS: tuple[type[BaseException], ...] = (
@@ -109,22 +106,6 @@ class AuthSSOService(BaseService):
 
         return out
 
-    def _decrypt_core_secret_best_effort(self, *, secret_path: str, raw: str) -> str | None:
-        if not isinstance(raw, str) or not raw.strip():
-            return None
-        if not is_encrypted(raw):
-            return raw
-
-        key_path = self.settings.security.master_key_path
-        if not master_key_exists(key_path):
-            return None
-        try:
-            key = load_master_key(key_path)
-            aad = f"{CORE_SETTINGS_NAMESPACE}:{secret_path}"
-            return decrypt_secret(raw, key=key, aad=aad)
-        except (binascii.Error, OSError, RuntimeError, TypeError, ValueError, UnicodeError):
-            return None
-
     async def _list_core_oauth_providers(self) -> list[dict[str, Any]]:
         """
         List built-in OAuth providers controlled by sys config (non-plugin).
@@ -144,13 +125,6 @@ class AuthSSOService(BaseService):
                 return False
             if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                 return False
-            if is_encrypted(client_secret_raw):
-                secret = self._decrypt_core_secret_best_effort(
-                    secret_path=f"{section_id}.client_secret",
-                    raw=client_secret_raw,
-                )
-                if secret is None:
-                    return False
             return True
 
         out: list[dict[str, Any]] = []

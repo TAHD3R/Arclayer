@@ -4,24 +4,19 @@ import asyncio
 import os
 import smtplib
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING
 
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
 from src.common.utils.ids import uuid7
 from src.infra.storage.s3 import S3StorageProvider
 from src.modules.sys.settings.schema import SysConfigTestCheck
-from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 
 if TYPE_CHECKING:
     from src.config import Settings
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
 SMTP_PROBE_TIMEOUT_SECONDS = 5.0
-
-
-class _SysConfigCryptoLike(Protocol):
-    def _decrypt_secret_str_best_effort(self, *, namespace: str, secret_path: str, raw: str) -> str | None: ...
 
 
 class SysConfigChecksCoreMixin:
@@ -113,19 +108,6 @@ class SysConfigChecksCoreMixin:
                 message="Missing s3_secret_access_key",
             )
 
-        secret = cast(_SysConfigCryptoLike, self)._decrypt_secret_str_best_effort(
-            namespace=CORE_SETTINGS_NAMESPACE,
-            secret_path="storage.s3_secret_access_key",
-            raw=secret_raw,
-        )
-        if secret is None:
-            return SysConfigTestCheck(
-                code="core.storage.s3",
-                ok=False,
-                kind="config",
-                message="Cannot decrypt s3_secret_access_key (master key missing or invalid)",
-            )
-
         try:
             effective = self.settings.model_copy(
                 update={
@@ -135,7 +117,7 @@ class SysConfigChecksCoreMixin:
                             "s3_endpoint_url": endpoint_url.strip(),
                             "s3_bucket": bucket.strip(),
                             "s3_access_key_id": access_key_id.strip(),
-                            "s3_secret_access_key": SecretStr(secret),
+                            "s3_secret_access_key": SecretStr(secret_raw.strip()),
                             "s3_force_path_style": bool(force_path_style),
                             "s3_region": region.strip() if isinstance(region, str) and region.strip() else None,
                             "s3_public_bucket": public_bucket.strip()
@@ -232,18 +214,7 @@ class SysConfigChecksCoreMixin:
 
         password: str | None = None
         if isinstance(password_raw, str) and password_raw.strip():
-            password = cast(_SysConfigCryptoLike, self)._decrypt_secret_str_best_effort(
-                namespace=CORE_SETTINGS_NAMESPACE,
-                secret_path="mail.password",
-                raw=password_raw,
-            )
-            if password is None:
-                return SysConfigTestCheck(
-                    code="core.mail.smtp",
-                    ok=False,
-                    kind="config",
-                    message="Cannot decrypt SMTP password (master key missing or invalid)",
-                )
+            password = password_raw.strip()
 
         if isinstance(username, str) and username.strip() and not password:
             return SysConfigTestCheck(

@@ -10,7 +10,6 @@ from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
 from src.models.sys.sys_config_revision import SysConfigRevision
 from src.models.system.setting import SettingRecord
-from src.modules.sys.settings.crypto.service import SysConfigCryptoMixin
 from src.modules.sys.settings.namespaces.service import SysConfigNamespacesMixin
 from src.modules.sys.settings.repository import SysConfigRepository
 from src.modules.sys.settings.schema import SysConfigRevisionDetail, SysConfigRevisionOut
@@ -36,7 +35,7 @@ class _SysConfigActivationLike(Protocol):
     ) -> None: ...
 
 
-class SysConfigRevisionsMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin):
+class SysConfigRevisionsMixin(SysConfigNamespacesMixin):
     repo: SysConfigRepository
     settings: Settings
     logger: LoggerLike
@@ -66,12 +65,6 @@ class SysConfigRevisionsMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin):
         merged_visible = merge_deep(current_visible, patch)
 
         validate_config_schema(schema, merged_visible, allow_unknown=True)
-        merged_visible = await self._encrypt_secrets_if_needed(
-            namespace=CORE_SETTINGS_NAMESPACE,
-            schema=schema,
-            current=current_visible,
-            merged=merged_visible,
-        )
 
         merged: dict[str, object] = dict(merged_visible or {})
 

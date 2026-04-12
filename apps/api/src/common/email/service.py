@@ -8,7 +8,6 @@ from fastapi_mail.schemas import MultipartSubtypeEnum
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
 from src.common.email.helpers import (
-    MAIL_PASSWORD_DECRYPT_ERRORS,
     default_template_dir,
     pick_bool,
     pick_int,
@@ -23,7 +22,6 @@ from src.core.i18n import t
 from src.core.logging import get_logger
 from src.models.system.setting import SettingRecord
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from src.settings.crypto import decrypt_secret, ensure_master_key, is_encrypted, master_key_exists
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
@@ -108,21 +106,7 @@ class EmailService:
         password_raw = mail.get("password")
         password_secret: SecretStr | None = base.password
         if isinstance(password_raw, str) and password_raw.strip():
-            if is_encrypted(password_raw):
-                try:
-                    key_path = self.settings.security.master_key_path
-                    if not master_key_exists(key_path):
-                        raise ValueError("master key missing")
-                    key, _fp = ensure_master_key(key_path)
-                    aad = f"{CORE_SETTINGS_NAMESPACE}:mail.password"
-                    password_secret = SecretStr(decrypt_secret(password_raw, key=key, aad=aad))
-                except MAIL_PASSWORD_DECRYPT_ERRORS as exc:
-                    self.logger.warning(
-                        "Failed to decrypt mail password from core settings, fallback to env password",
-                        error=str(exc),
-                    )
-            else:
-                password_secret = SecretStr(password_raw)
+            password_secret = SecretStr(password_raw)
 
         template_dir: Path | None = base.template_dir
         if template_dir is None:

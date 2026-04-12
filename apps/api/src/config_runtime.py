@@ -305,7 +305,7 @@ class SaasSettings(BaseSettings):
 
 class SecuritySettings(BaseSettings):
     """
-    Security material paths for secrets encryption and revision signing.
+    Security material paths for non-config secret encryption and revision signing.
     """
 
     model_config = SettingsConfigDict(
@@ -320,7 +320,7 @@ class SecuritySettings(BaseSettings):
 
     master_key_path: Path = Field(
         default=Path(__file__).resolve().parents[3] / "data" / "secrets" / "master.key",
-        description="Path to the master key file used to encrypt secrets in settings.",
+        description="Path to the master key file used for non-config secret encryption flows.",
     )
     signing_private_key_path: Path = Field(
         default=Path(__file__).resolve().parents[3] / "data" / "secrets" / "signing.ed25519",

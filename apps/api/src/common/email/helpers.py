@@ -3,10 +3,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from cryptography.exceptions import InvalidTag
 from pydantic import EmailStr, NameEmail, TypeAdapter, ValidationError
 
-MAIL_PASSWORD_DECRYPT_ERRORS = (OSError, ValueError, TypeError, UnicodeError, InvalidTag)
 _FATAL_EMAIL_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
     GeneratorExit,

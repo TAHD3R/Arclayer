@@ -258,9 +258,6 @@ class AppFactory:
         from src.core.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)
-        from src.core.middleware.master_key_guard import MasterKeyGuardMiddleware
-
-        self.app.add_middleware(MasterKeyGuardMiddleware, settings=self.settings)
         from src.core.middleware.request_log import RequestLogMiddleware
 
         # Place request logging inside CorrelationIdMiddleware so the summary line

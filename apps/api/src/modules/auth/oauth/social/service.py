@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import binascii
 import hashlib
 import inspect
 import secrets
@@ -13,7 +12,6 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 import httpx
-from cryptography.exceptions import InvalidTag
 from fastapi import Request
 from pydantic import ValidationError
 from starlette.responses import RedirectResponse
@@ -35,8 +33,6 @@ from src.modules.auth.oauth.social.schema import (
 )
 from src.modules.auth.sso.repository import issue_exchange_code
 from src.modules.auth.sso.schema import AuthSSOExchangePayload
-from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
 from src.settings.runtime import get_core_settings_value_cached
 
 _FATAL_OAUTH_ERRORS: tuple[type[BaseException], ...] = (
@@ -259,19 +255,12 @@ class OAuthSocialService(BaseService):
                     if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
-                    client_secret = self._decrypt_core_secret_best_effort(
-                        secret_path="oauth_google.client_secret",
-                        raw=client_secret_raw,
-                    )
-                    if client_secret is None:
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-
                     callback_url = str(request.url_for("auth_sso_oauth_callback", provider="google"))
                     token_res = await client.post(
                         "https://oauth2.googleapis.com/token",
                         data={
                             "client_id": client_id.strip(),
-                            "client_secret": client_secret,
+                            "client_secret": client_secret_raw.strip(),
                             "code": raw_code,
                             "code_verifier": payload.code_verifier,
                             "grant_type": "authorization_code",
@@ -306,19 +295,12 @@ class OAuthSocialService(BaseService):
                     if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
-                    client_secret = self._decrypt_core_secret_best_effort(
-                        secret_path="oauth_github.client_secret",
-                        raw=client_secret_raw,
-                    )
-                    if client_secret is None:
-                        return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
-
                     callback_url = str(request.url_for("auth_sso_oauth_callback", provider="github"))
                     token_res = await client.post(
                         "https://github.com/login/oauth/access_token",
                         data={
                             "client_id": client_id.strip(),
-                            "client_secret": client_secret,
+                            "client_secret": client_secret_raw.strip(),
                             "code": raw_code,
                             "redirect_uri": callback_url,
                             "code_verifier": payload.code_verifier,
@@ -581,21 +563,6 @@ class OAuthSocialService(BaseService):
             if isinstance(val, dict):
                 out[key] = val
         return out
-
-    def _decrypt_core_secret_best_effort(self, *, secret_path: str, raw: str) -> str | None:
-        if not isinstance(raw, str) or not raw.strip():
-            return None
-        if not is_encrypted(raw):
-            return raw
-        key_path = self.settings.security.master_key_path
-        if not master_key_exists(key_path):
-            return None
-        try:
-            key = load_master_key(key_path)
-            aad = f"{CORE_SETTINGS_NAMESPACE}:{secret_path}"
-            return decrypt_secret(raw, key=key, aad=aad)
-        except (binascii.Error, OSError, RuntimeError, TypeError, ValueError, UnicodeError, InvalidTag):
-            return None
 
     async def _is_public_register_allowed(self, *, email: str | None) -> bool:
         from src.modules.auth.registration.service import get_public_register_policy

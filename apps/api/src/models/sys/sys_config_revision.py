@@ -13,7 +13,7 @@ class SysConfigRevision(BaseModel):
     Notes:
     - This table is the audit trail / history.
     - Active revision is tracked by SysConfigActive.
-    - Secrets are expected to be encrypted at-rest (AES-GCM) inside `value`.
+    - Secret fields remain masked in API responses, but revisions store the raw config payload.
     """
 
     namespace = fields.CharField(max_length=128, db_index=True)

@@ -7,7 +7,7 @@ from tortoise.transactions import in_transaction
 
 from src.common.protocols.tortoise import SettingUpdatedBy
 from src.common.services import BaseService
-from src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
 from src.models.system.rbac import Role
 from src.models.system.setting import SettingRecord
@@ -25,7 +25,6 @@ from src.modules.workspaces.settings.schema import (
     WorkspaceSettingsDetail,
 )
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
-from src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
 from src.settings.scopes import SCOPE_TYPE_WORKSPACE
 from src.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
 
@@ -66,7 +65,6 @@ class WorkspaceSettingsService(BaseService):
         merged = merge_deep(current, patch)
 
         validate_config_schema(CORE_SETTINGS_SCHEMA, merged, allow_unknown=True)
-        merged = await self._encrypt_core_secrets(workspace_id=workspace_id, config=merged)
 
         if record is None:
             saved = await SettingRecord.create(
@@ -231,45 +229,6 @@ class WorkspaceSettingsService(BaseService):
             secrets[path] = True
             section[field_key] = None
         return masked, secrets
-
-    async def _encrypt_core_secrets(self, *, workspace_id: UUID, config: dict[str, Any]) -> dict[str, Any]:
-        # Only require master key if there are plaintext secret fields to encrypt.
-        secret_paths = list(iter_secret_field_paths(CORE_SETTINGS_SCHEMA))
-        needs_encrypt = False
-        for path in secret_paths:
-            section_id, field_key = path.split(".", 1)
-            section = config.get(section_id)
-            if not isinstance(section, dict):
-                continue
-            raw = section.get(field_key)
-            if raw is None or not isinstance(raw, str) or not raw:
-                continue
-            if is_encrypted(raw):
-                continue
-            needs_encrypt = True
-            break
-
-        if not needs_encrypt:
-            return config
-
-        key_path = self.settings.security.master_key_path
-        if not master_key_exists(key_path):
-            raise ServiceUnavailable(message="系统密钥未初始化", error="MASTER_KEY_MISSING")
-        key, _fp = ensure_master_key(key_path)
-
-        for path in secret_paths:
-            section_id, field_key = path.split(".", 1)
-            section = config.get(section_id)
-            if not isinstance(section, dict):
-                continue
-            raw = section.get(field_key)
-            if raw is None or not isinstance(raw, str) or not raw:
-                continue
-            if is_encrypted(raw):
-                continue
-            aad = f"{SCOPE_TYPE_WORKSPACE}:{workspace_id}:{CORE_SETTINGS_NAMESPACE}:{path}"
-            section[field_key] = encrypt_secret(raw, key=key, aad=aad)
-        return config
 
     @staticmethod
     def _flatten_patch_paths(patch: dict[str, Any], *, _prefix: str = "") -> list[str]:

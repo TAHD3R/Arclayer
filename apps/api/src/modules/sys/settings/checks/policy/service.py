@@ -1,13 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, cast
-
 from src.modules.sys.settings.schema import SysConfigTestCheck
-from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-
-
-class _SysConfigCryptoLike(Protocol):
-    def _decrypt_secret_str_best_effort(self, *, namespace: str, secret_path: str, raw: str) -> str | None: ...
 
 
 class SysConfigChecksPolicyMixin:
@@ -28,19 +21,6 @@ class SysConfigChecksPolicyMixin:
                 return SysConfigTestCheck(code=code, ok=False, kind="config", message="Missing client_id")
             if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                 return SysConfigTestCheck(code=code, ok=False, kind="config", message="Missing client_secret")
-
-            secret = cast(_SysConfigCryptoLike, self)._decrypt_secret_str_best_effort(
-                namespace=CORE_SETTINGS_NAMESPACE,
-                secret_path=f"{section_id}.client_secret",
-                raw=client_secret_raw,
-            )
-            if secret is None:
-                return SysConfigTestCheck(
-                    code=code,
-                    ok=False,
-                    kind="config",
-                    message="Cannot decrypt client_secret (master key missing or invalid)",
-                )
             return SysConfigTestCheck(code=code, ok=True, kind="config")
 
         checks.append(_check_provider("oauth_google", code="core.oauth.google"))

@@ -8,14 +8,13 @@ from src.core.events import EventBus
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
-from src.modules.system.settings.crypto.service import SettingsCryptoMixin
 from src.modules.system.settings.events.service import SettingsEventsMixin
 from src.modules.system.settings.repository import SettingsRepository
 from src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary
 from src.modules.system.settings.schemahelpers.service import SettingsSchemaHelpersMixin
 from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
 from src.settings.runtime import invalidate_core_settings_cache
-from src.settings.validation import merge_deep, validate_config_schema
+from src.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
 
 
 def _ts(key: str, default: str) -> str:
@@ -23,7 +22,6 @@ def _ts(key: str, default: str) -> str:
 
 
 class SettingsService(
-    SettingsCryptoMixin,
     SettingsEventsMixin,
     SettingsSchemaHelpersMixin,
     BaseService,
@@ -74,7 +72,6 @@ class SettingsService(
             merged = merge_deep(current, patch)
 
             validate_config_schema(schema, merged, allow_unknown=True)
-            merged = await self._encrypt_core_secrets(schema, merged)
 
             saved = await self.repo.upsert(namespace=CORE_SETTINGS_NAMESPACE, value=merged, updated_by=updated_by)
             invalidate_core_settings_cache()
@@ -96,3 +93,23 @@ class SettingsService(
             )
 
         raise NotFound(message=_ts("NAMESPACE_NOT_FOUND", "配置域不存在"), error="SETTINGS_NAMESPACE_NOT_FOUND")
+
+    @staticmethod
+    def _mask_secrets(schema, config: dict[str, object]) -> tuple[dict[str, object], dict[str, bool]]:
+        masked: dict[str, object] = dict(config or {})
+        secrets: dict[str, bool] = {}
+
+        for path in iter_secret_field_paths(schema):
+            section_id, field_key = path.split(".", 1)
+            section = masked.get(section_id)
+            if not isinstance(section, dict):
+                secrets[path] = False
+                continue
+            value = section.get(field_key)
+            if value is None:
+                secrets[path] = False
+                continue
+            secrets[path] = True
+            section[field_key] = None
+
+        return masked, secrets

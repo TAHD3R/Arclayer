@@ -9,7 +9,6 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from src.models.system.setting import SettingRecord
 from src.modules.sys.settings.checks.service import SysConfigChecksMixin
-from src.modules.sys.settings.crypto.service import SysConfigCryptoMixin
 from src.modules.sys.settings.namespaces.service import SysConfigNamespacesMixin
 from src.modules.sys.settings.repository import SysConfigRepository
 from src.modules.sys.settings.schema import SysConfigDetail, SysConfigTestResult
@@ -21,7 +20,7 @@ from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from src.settings.validation import validate_config_schema
 
 
-class SysConfigActivationMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin, SysConfigChecksMixin):
+class SysConfigActivationMixin(SysConfigNamespacesMixin, SysConfigChecksMixin):
     repo: SysConfigRepository
     settings: Settings
 
@@ -68,7 +67,6 @@ class SysConfigActivationMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin, S
         value = rev.value if isinstance(rev.value, dict) else {}
         visible = self._filter_to_schema_sections(schema=schema, value=value)
         validate_config_schema(schema, visible, allow_unknown=True)
-        self._assert_revision_secrets_encrypted(namespace=namespace, schema=schema, value=value)
         await self._assert_revision_can_activate(
             namespace=namespace,
             schema=schema,
@@ -111,7 +109,6 @@ class SysConfigActivationMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin, S
         value = rev.value if isinstance(rev.value, dict) else {}
         visible = self._filter_to_schema_sections(schema=schema, value=value)
         validate_config_schema(schema, visible, allow_unknown=True)
-        self._assert_revision_secrets_encrypted(namespace=namespace, schema=schema, value=value)
         effective = await self._get_effective_core_value(override=value)
         checks = await self._run_revision_checks(namespace=namespace, effective_core_value=effective)
         ok = all(c.ok for c in checks)

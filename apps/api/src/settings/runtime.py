@@ -1,23 +1,18 @@
 from __future__ import annotations
 
-import binascii
 import time
 
-from cryptography.exceptions import InvalidTag
 from pydantic import SecretStr
 from tortoise.exceptions import OperationalError
 
 from src.config import Settings
 from src.core.logging import get_logger
 from src.models.system.setting import SettingRecord
-from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
-from src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
-from src.settings.validation import iter_secret_field_paths
 
 logger = get_logger(__name__)
 _CORE_SETTINGS_LOAD_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError, OSError)
-_CORE_SECRET_DECRYPT_ERRORS = (binascii.Error, RuntimeError, ValueError, TypeError, OSError, UnicodeError, InvalidTag)
 
 # Per-process cache (each worker has its own memory space).
 _core_cache: dict[str, object] | None = None
@@ -74,7 +69,8 @@ async def get_core_settings_value_cached(
 
     Notes:
     - Best-effort: if DB is not ready, returns {}.
-    - Secrets are decrypted in-memory when possible.
+    - Secret fields are stored in the same JSON payload but are still masked before being
+      returned from admin settings APIs.
     """
 
     global _core_cache, _core_cache_expires_at
@@ -96,47 +92,7 @@ async def get_core_settings_value_cached(
         )
         raw = record.value if record and isinstance(record.value, dict) else {}
 
-        # Decrypt secret fields (best-effort). If we cannot decrypt, keep the encrypted
-        # string out of downstream configs by raising an error (debug-first policy).
-        decrypted: dict[str, object] = dict(raw)
-        if master_key_exists(settings.security.master_key_path):
-            key = load_master_key(settings.security.master_key_path)
-            for path in iter_secret_field_paths(CORE_SETTINGS_SCHEMA):
-                if not path.startswith("storage."):
-                    continue
-                section_id, field_key = path.split(".", 1)
-                section = decrypted.get(section_id)
-                if not isinstance(section, dict):
-                    continue
-                val = section.get(field_key)
-                if not isinstance(val, str) or not val:
-                    continue
-                if not is_encrypted(val):
-                    continue
-                try:
-                    aad = f"{CORE_SETTINGS_NAMESPACE}:{path}"
-                    section[field_key] = decrypt_secret(val, key=key, aad=aad)
-                except _CORE_SECRET_DECRYPT_ERRORS as exc:
-                    logger.warning(
-                        "Core settings secret decrypt failed",
-                        action="decrypt_core_secret",
-                        secret_path=path,
-                        error=str(exc),
-                    )
-                    raise
-        else:
-            for path in iter_secret_field_paths(CORE_SETTINGS_SCHEMA):
-                if not path.startswith("storage."):
-                    continue
-                section_id, field_key = path.split(".", 1)
-                section = decrypted.get(section_id)
-                if not isinstance(section, dict):
-                    continue
-                val = section.get(field_key)
-                if isinstance(val, str) and is_encrypted(val):
-                    raise RuntimeError("Master key missing: cannot decrypt core storage secret")
-
-        _core_cache = decrypted
+        _core_cache = dict(raw)
         _core_cache_expires_at = now + ttl_seconds
         return _core_cache
     except _CORE_SETTINGS_LOAD_ERRORS as exc:
