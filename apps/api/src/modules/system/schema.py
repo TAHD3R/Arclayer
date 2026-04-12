@@ -4,8 +4,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.modules.system.flags.schema import SystemFlagsOut
+from src.common.schemas import BaseSchema
+from src.modules.system.flags.schema import SystemFlagsOut
 
 
 class SystemRuntimeCapabilities(BaseSchema):

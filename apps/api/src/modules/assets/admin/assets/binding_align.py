@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.config import Settings
-from apps.api.src.models.assets.asset import AssetPurpose, AssetVisibility
-from apps.api.src.modules.assets.admin.assets.repository import AdminAssetsRepository
-from apps.api.src.modules.assets.admin.assets.schema import AdminAssetUpdateRequest
-from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
-from apps.api.src.modules.assets.scope import AssetScope
+from src.config import Settings
+from src.models.assets.asset import AssetPurpose, AssetVisibility
+from src.modules.assets.admin.assets.repository import AdminAssetsRepository
+from src.modules.assets.admin.assets.schema import AdminAssetUpdateRequest
+from src.modules.assets.admin.assets.service import AdminAssetsService
+from src.modules.assets.scope import AssetScope
 
 
 async def align_asset_for_binding(

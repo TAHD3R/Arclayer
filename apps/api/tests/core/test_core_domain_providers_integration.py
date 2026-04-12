@@ -5,10 +5,10 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.config import get_settings
-from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
+from src.common.utils.public_ids import encode_uuid
+from src.config import get_settings
+from src.core.registry import create_app
+from src.modules.auth.http.service import get_current_user, get_current_user_id
 
 pytestmark = pytest.mark.integration
 
@@ -20,12 +20,12 @@ async def test_core_domain_short_paths(prepared_db) -> None:
 
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
-        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-        from apps.api.src.models.organization.user import User
-        from apps.api.src.models.workspaces.workspace import Workspace
-        from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.tokens.service import hash_password
-        from apps.api.src.modules.organization.repository import OrganizationRepository
+        from src.models.organization.org_membership import OrgMembership, OrgRole
+        from src.models.organization.user import User
+        from src.models.workspaces.workspace import Workspace
+        from src.modules.auth.repository import UserRepository
+        from src.modules.auth.tokens.service import hash_password
+        from src.modules.organization.repository import OrganizationRepository
 
         settings = get_settings()
         user_repo = UserRepository()

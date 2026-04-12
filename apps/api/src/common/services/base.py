@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
-from apps.api.src.config import Settings
-from apps.api.src.core.logging import get_logger
+from src.config import Settings
+from src.core.logging import get_logger
 
 
 class BaseService:

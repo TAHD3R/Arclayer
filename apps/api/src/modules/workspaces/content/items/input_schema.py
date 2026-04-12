@@ -4,8 +4,8 @@ from typing import Any
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.common.schemas import BaseSchema
+from src.modules.workspaces.content.contracts.schema import (
     ContentBootstrapPresetState,
     ContentPresentationKind,
 )

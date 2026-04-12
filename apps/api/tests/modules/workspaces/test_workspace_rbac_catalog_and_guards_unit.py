@@ -7,17 +7,17 @@ from fastapi import APIRouter
 from fastapi.params import Depends
 from fastapi.routing import APIRoute
 
-from apps.api.src.modules.assets.admin.assets.router import router as assets_router
-from apps.api.src.modules.assets.admin.uploads.router import router as uploads_router
-from apps.api.src.modules.assets.admin.usages.router import router as usages_router
-from apps.api.src.modules.sites.domains.router import router as domains_router
-from apps.api.src.modules.system.admin.notifications.router import router as notifications_router
-from apps.api.src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
-from apps.api.src.modules.workspaces.content.items.router import canonical_items_router
-from apps.api.src.modules.workspaces.content.models.router import canonical_models_router
-from apps.api.src.modules.workspaces.content.routing.router import canonical_routing_router
-from apps.api.src.modules.workspaces.site.router import router as site_router
-from apps.api.src.modules.workspaces.themes.router import router as themes_router
+from src.modules.assets.admin.assets.router import router as assets_router
+from src.modules.assets.admin.uploads.router import router as uploads_router
+from src.modules.assets.admin.usages.router import router as usages_router
+from src.modules.sites.domains.router import router as domains_router
+from src.modules.system.admin.notifications.router import router as notifications_router
+from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
+from src.modules.workspaces.content.items.router import canonical_items_router
+from src.modules.workspaces.content.models.router import canonical_models_router
+from src.modules.workspaces.content.routing.router import canonical_routing_router
+from src.modules.workspaces.site.router import router as site_router
+from src.modules.workspaces.themes.router import router as themes_router
 
 
 def _route_permissions(router: APIRouter, *, path: str, method: str) -> set[str]:

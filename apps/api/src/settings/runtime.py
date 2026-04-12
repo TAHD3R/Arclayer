@@ -7,13 +7,13 @@ from cryptography.exceptions import InvalidTag
 from pydantic import SecretStr
 from tortoise.exceptions import OperationalError
 
-from apps.api.src.config import Settings
-from apps.api.src.core.logging import get_logger
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
-from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
-from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
-from apps.api.src.settings.validation import iter_secret_field_paths
+from src.config import Settings
+from src.core.logging import get_logger
+from src.models.system.setting import SettingRecord
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
+from src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
+from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from src.settings.validation import iter_secret_field_paths
 
 logger = get_logger(__name__)
 _CORE_SETTINGS_LOAD_ERRORS = (OperationalError, RuntimeError, ValueError, TypeError, OSError)

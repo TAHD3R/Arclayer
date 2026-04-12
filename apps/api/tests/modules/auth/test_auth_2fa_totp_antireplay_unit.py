@@ -7,10 +7,10 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.src.common.security.totp import TotpVerifyResult
-from apps.api.src.config import get_settings
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.common.security.totp import TotpVerifyResult
+from src.config import get_settings
+from src.core.exceptions import BadRequest
+from src.modules.auth.two_factor.service import AuthTwoFactorService
 
 
 @dataclass
@@ -67,15 +67,15 @@ def _build_service(monkeypatch, *, user_id: UUID, used_counter_for_code) -> Auth
     settings = get_settings()
 
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.two_factor.service.master_key_exists",
+        "src.modules.auth.two_factor.service.master_key_exists",
         lambda _path: True,
     )
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.two_factor.service.load_master_key",
+        "src.modules.auth.two_factor.service.load_master_key",
         lambda _path: b"x" * 32,
     )
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.two_factor.service.decrypt_secret",
+        "src.modules.auth.two_factor.service.decrypt_secret",
         lambda _value, *, key, aad: "secret",
     )
 
@@ -83,7 +83,7 @@ def _build_service(monkeypatch, *, user_id: UUID, used_counter_for_code) -> Auth
         return TotpVerifyResult(ok=True, used_counter=int(used_counter_for_code(code)))
 
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.two_factor.service.verify_totp_code",
+        "src.modules.auth.two_factor.service.verify_totp_code",
         _verify,
     )
 

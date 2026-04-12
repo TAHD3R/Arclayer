@@ -6,10 +6,10 @@ from uuid import uuid4
 
 import pytest
 
-from apps.api.src.config import get_settings
-from apps.api.src.models.organization.org_rbac import OrganizationPermission, OrganizationRole
-from apps.api.src.modules.organization.rbac import service as rbac_service_module
-from apps.api.src.modules.organization.rbac.service import (
+from src.config import get_settings
+from src.models.organization.org_rbac import OrganizationPermission, OrganizationRole
+from src.modules.organization.rbac import service as rbac_service_module
+from src.modules.organization.rbac.service import (
     _BUILTIN_ROLE_RULES,
     _ORG_PERMISSION_I18N_KEYS,
     _ORG_PERMISSION_TEMPLATES,

@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.events import EventBus
-from apps.api.src.core.exceptions import ServiceUnavailable
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.http.service import get_current_user
-from apps.api.src.modules.organization.http.service import require_org_owner
-from apps.api.src.modules.system.http.service import require_self_host_deployment_mode
-from apps.api.src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary, SettingsPatch
-from apps.api.src.modules.system.settings.service import SettingsService
+from src.config import Settings, get_settings
+from src.core.events import EventBus
+from src.core.exceptions import ServiceUnavailable
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import t
+from src.modules.auth.http.service import get_current_user
+from src.modules.organization.http.service import require_org_owner
+from src.modules.system.http.service import require_self_host_deployment_mode
+from src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary, SettingsPatch
+from src.modules.system.settings.service import SettingsService
 
 router = APIRouter(
     tags=["System: Settings"],

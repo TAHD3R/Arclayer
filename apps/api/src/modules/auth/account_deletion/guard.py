@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from apps.api.src.core.exceptions import Forbidden
-from apps.api.src.core.i18n import t
+from src.core.exceptions import Forbidden
+from src.core.i18n import t
 
 
 class AccountDeletionDataProvider(Protocol):
@@ -19,7 +19,7 @@ class AccountDeletionDataProvider(Protocol):
 
 class TortoiseAccountDeletionDataProvider(AccountDeletionDataProvider):
     async def list_owned_org_ids(self, *, user_id: UUID) -> list[UUID]:
-        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from src.models.organization.org_membership import OrgMembership, OrgRole
 
         rows = await OrgMembership.filter(user_id=user_id, status="active", role=OrgRole.OWNER).values_list(
             "organization_id",
@@ -34,7 +34,7 @@ class TortoiseAccountDeletionDataProvider(AccountDeletionDataProvider):
         return out
 
     async def org_has_other_owner(self, *, organization_id: UUID, user_id: UUID) -> bool:
-        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
+        from src.models.organization.org_membership import OrgMembership, OrgRole
 
         return (
             await OrgMembership
@@ -48,8 +48,8 @@ class TortoiseAccountDeletionDataProvider(AccountDeletionDataProvider):
         )
 
     async def list_owned_workspace_ids(self, *, user_id: UUID) -> list[UUID]:
-        from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
-        from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
+        from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+        from src.modules.system.rbac.constants.service import ROLE_OWNER
 
         rows = await WorkspaceMembership.filter(
             user_id=user_id,
@@ -66,8 +66,8 @@ class TortoiseAccountDeletionDataProvider(AccountDeletionDataProvider):
         return sorted(set(out))
 
     async def workspace_has_other_owner(self, *, workspace_id: UUID, user_id: UUID) -> bool:
-        from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
-        from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
+        from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+        from src.modules.system.rbac.constants.service import ROLE_OWNER
 
         return (
             await WorkspaceMembership

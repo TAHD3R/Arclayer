@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.modules.workspaces.content.contracts.schema import (
     ContentItemOut,
     ContentModelCapability,
     ContentModelOut,

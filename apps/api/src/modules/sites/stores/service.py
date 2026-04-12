@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from uuid import UUID
 
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
+from src.infra.cache.valkey import ValkeyClientLike
 
 
 class PreviewTokenStore:

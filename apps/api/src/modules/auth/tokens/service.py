@@ -5,13 +5,13 @@ from uuid import UUID
 
 import jwt
 
-from apps.api.src.common.constants.auth import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.config import AuthSettings
-from apps.api.src.core.exceptions import ServiceUnavailable, Unauthorized
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.password.service import hash_password as _hash_password
-from apps.api.src.modules.auth.password.service import verify_password as _verify_password
+from src.common.constants.auth import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
+from src.common.utils.ids import uuid7
+from src.config import AuthSettings
+from src.core.exceptions import ServiceUnavailable, Unauthorized
+from src.core.i18n import t
+from src.modules.auth.password.service import hash_password as _hash_password
+from src.modules.auth.password.service import verify_password as _verify_password
 
 
 def _now() -> datetime:

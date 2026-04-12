@@ -6,20 +6,20 @@ from uuid import UUID
 from fastapi import Depends, Path
 from structlog.contextvars import bind_contextvars
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.core.exceptions import Forbidden, NotFound
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.workspaces.workspace import (
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.public_uuid import PublicUUID
+from src.core.exceptions import Forbidden, NotFound
+from src.core.i18n import t
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
-from apps.api.src.modules.workspaces.runtime.service import set_current_workspace_context
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
+from src.modules.workspaces.runtime.service import set_current_workspace_context
 
 
 async def _require_active_workspace(*, workspace_id: PublicUUID) -> Workspace:
@@ -65,7 +65,7 @@ async def _ensure_creator_admin_membership(*, workspace_id: UUID, user_id: UUID)
 
 
 async def _ensure_creator_admin_has_owner_role_binding(*, workspace_id: UUID, membership_id: UUID) -> None:
-    from apps.api.src.models.system.rbac import Role
+    from src.models.system.rbac import Role
 
     owner_role = await Role.get_or_none(workspace_id=workspace_id, code="owner", is_system=True)
     if owner_role is None:

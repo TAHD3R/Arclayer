@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
-from apps.api.src.models.system.notification import NotificationCategory
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.settings.scopes import SCOPE_TYPE_USER
+from src.models.system.notification import NotificationCategory
+from src.models.system.setting import SettingRecord
+from src.settings.scopes import SCOPE_TYPE_USER
 
 NotificationPreferenceChannel = Literal["in_app", "email"]
 NOTIFICATION_PREFERENCES_NAMESPACE = "notifications.me.preferences"

@@ -5,17 +5,17 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import get_current_locale
-from apps.api.src.core.logging import get_logger
-from apps.api.src.models.system.rbac import PermissionScope
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.modules.workspaces.rbac.schema import (
+from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import get_current_locale
+from src.core.logging import get_logger
+from src.models.system.rbac import PermissionScope
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.rbac.schema import (
     PermissionRoleSetRequest,
     RoleCreateFromTemplateRequest,
     RolePermissionSetRequest,
@@ -25,7 +25,7 @@ from apps.api.src.modules.workspaces.rbac.schema import (
     WorkspaceRBACMatrixPermissionRowOut,
     WorkspaceRoleOut,
 )
-from apps.api.src.modules.workspaces.rbac.service import WorkspaceRBACService
+from src.modules.workspaces.rbac.service import WorkspaceRBACService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/rbac", tags=["Workspace RBAC"])
 logger = get_logger(__name__)
@@ -48,7 +48,7 @@ async def _publish_rbac_event(
     try:
         from asgi_correlation_id import correlation_id
 
-        from apps.api.src.core.events import Event, events
+        from src.core.events import Event, events
 
         await events.publish(
             Event(

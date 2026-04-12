@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.modules.sites.repository import SitesRepository
+from src.common.services.base import BaseService
+from src.modules.sites.repository import SitesRepository
 
 
 class ContentDeliveryService(BaseService):
@@ -17,7 +17,7 @@ class ContentDeliveryService(BaseService):
         self._repo = repo
 
     async def delivery_get_menu(self, *, site_id: UUID, menu_key: str):
-        from apps.api.src.modules.sites.delivery.schema import DeliveryMenuOut
+        from src.modules.sites.delivery.schema import DeliveryMenuOut
 
         await self._repo.get_site_by_id(site_id=site_id)
         menu = await self._repo.get_menu_by_key(site_id=site_id, key=menu_key)
@@ -28,7 +28,7 @@ class ContentDeliveryService(BaseService):
         )
 
     async def delivery_get_style(self, *, site_id: UUID):
-        from apps.api.src.modules.sites.delivery.schema import DeliveryStyleOut
+        from src.modules.sites.delivery.schema import DeliveryStyleOut
 
         await self._repo.get_site_by_id(site_id=site_id)
         style = await self._repo.get_site_style(site_id=site_id)

@@ -6,9 +6,9 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
-from apps.api.src.modules.assets.admin.assets.schema import AdminAssetFolderUpdateRequest
-from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
-from apps.api.src.modules.assets.scope import AssetScope
+from src.modules.assets.admin.assets.schema import AdminAssetFolderUpdateRequest
+from src.modules.assets.admin.assets.service import AdminAssetsService
+from src.modules.assets.scope import AssetScope
 
 
 class _Folder(BaseModel):
@@ -38,8 +38,8 @@ class _FakeQuery:
 
 @pytest.mark.asyncio
 async def test_update_folder_requires_existing_folder() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.core.exceptions import NotFound
+    from src.config import get_settings
+    from src.core.exceptions import NotFound
 
     service = AdminAssetsService(get_settings())
     scope = AssetScope(type="workspace", id=uuid4())
@@ -62,8 +62,8 @@ async def test_update_folder_requires_existing_folder() -> None:
 
 @pytest.mark.asyncio
 async def test_update_folder_rejects_cycle_parent() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.core.exceptions import BadRequest
+    from src.config import get_settings
+    from src.core.exceptions import BadRequest
 
     workspace_id = uuid4()
     scope = AssetScope(type="workspace", id=workspace_id)
@@ -102,8 +102,8 @@ async def test_update_folder_rejects_cycle_parent() -> None:
 
 @pytest.mark.asyncio
 async def test_update_folder_rejects_duplicate_name_under_target_parent() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.core.exceptions import Conflict
+    from src.config import get_settings
+    from src.core.exceptions import Conflict
 
     workspace_id = uuid4()
     scope = AssetScope(type="workspace", id=workspace_id)
@@ -138,7 +138,7 @@ async def test_update_folder_rejects_duplicate_name_under_target_parent() -> Non
 
 @pytest.mark.asyncio
 async def test_update_folder_trims_description_and_allows_clear() -> None:
-    from apps.api.src.config import get_settings
+    from src.config import get_settings
 
     workspace_id = uuid4()
     scope = AssetScope(type="workspace", id=workspace_id)

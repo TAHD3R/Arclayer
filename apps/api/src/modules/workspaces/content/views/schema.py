@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import ConfigDict, Field, model_serializer
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 ContentLibraryViewVisibility = Literal["private", "workspace"]
 ContentLibraryViewStatus = Literal["published", "changed", "draft", "archived"]

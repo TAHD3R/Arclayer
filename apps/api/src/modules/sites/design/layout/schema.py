@@ -4,8 +4,8 @@ from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.json_types import JsonValue
+from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonValue
 
 LocaleCode = str
 LocalizedString = dict[LocaleCode, str]

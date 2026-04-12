@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 
 class SitePresenceHeartbeatIn(BaseSchema):

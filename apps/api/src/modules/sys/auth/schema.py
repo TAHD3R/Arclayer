@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import Field, SecretStr
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 
 class SysStepUpRequest(BaseSchema):

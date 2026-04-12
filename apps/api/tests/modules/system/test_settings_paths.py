@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from apps.api.src.config import ApplicationSettings, EmailSettings, SecuritySettings, StorageSettings
+from src.config import ApplicationSettings, EmailSettings, SecuritySettings, StorageSettings
 
 
 def _norm(p: Path) -> str:

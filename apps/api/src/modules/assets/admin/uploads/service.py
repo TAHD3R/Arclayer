@@ -8,42 +8,42 @@ from uuid import UUID
 from fastapi import BackgroundTasks
 from tortoise.exceptions import IntegrityError, OperationalError
 
-from apps.api.src.common.constants.assets import (
+from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
     ASSET_SCOPE_USER,
     ASSET_SCOPE_WORKSPACE,
     ASSET_UPLOADED_EVENT,
 )
-from apps.api.src.common.services import BaseService
-from apps.api.src.common.text.slug.service import slugify
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.config import Settings
-from apps.api.src.core.events import Event, events
-from apps.api.src.core.exceptions import BadRequest, NotFound
-from apps.api.src.core.i18n import t
-from apps.api.src.core.logging import get_logger
-from apps.api.src.infra.storage.factory import build_storage_provider_for
-from apps.api.src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
-from apps.api.src.infra.storage.merge import merge_parts_to_file
-from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
-from apps.api.src.models.assets.asset_folder import AssetFolderRecord
-from apps.api.src.models.assets.upload import UploadSessionRecord, UploadStatus
-from apps.api.src.modules.assets.admin.uploads.policy.service import (
+from src.common.services import BaseService
+from src.common.text.slug.service import slugify
+from src.common.utils.ids import uuid7
+from src.config import Settings
+from src.core.events import Event, events
+from src.core.exceptions import BadRequest, NotFound
+from src.core.i18n import t
+from src.core.logging import get_logger
+from src.infra.storage.factory import build_storage_provider_for
+from src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
+from src.infra.storage.merge import merge_parts_to_file
+from src.infra.storage.s3 import S3StorageProvider
+from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from src.models.assets.asset_folder import AssetFolderRecord
+from src.models.assets.upload import UploadSessionRecord, UploadStatus
+from src.modules.assets.admin.uploads.policy.service import (
     build_upload_policy,
     normalize_original_filename,
     validate_sha256_hex,
     validate_upload_metadata,
 )
-from apps.api.src.modules.assets.admin.uploads.repository import UploadsRepository
-from apps.api.src.modules.assets.admin.uploads.schema import UploadPartPresignOut
-from apps.api.src.modules.assets.naming.service import (
+from src.modules.assets.admin.uploads.repository import UploadsRepository
+from src.modules.assets.admin.uploads.schema import UploadPartPresignOut
+from src.modules.assets.naming.service import (
     build_scoped_asset_object_key,
     build_scoped_upload_part_object_key,
     compute_total_parts,
 )
-from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
-from apps.api.src.settings.runtime import get_effective_settings
+from src.modules.assets.scope import AssetScope, scope_filter_kwargs
+from src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 

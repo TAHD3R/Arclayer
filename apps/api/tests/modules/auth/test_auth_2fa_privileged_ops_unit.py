@@ -6,10 +6,10 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.exceptions import Unauthorized
-from apps.api.src.modules.auth.tokens.service import hash_password
-from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.config import get_settings
+from src.core.exceptions import Unauthorized
+from src.modules.auth.tokens.service import hash_password
+from src.modules.auth.two_factor.service import AuthTwoFactorService
 
 
 @dataclass(frozen=True)
@@ -84,11 +84,11 @@ def _build_service(monkeypatch, *, user: _FakeUser) -> AuthTwoFactorService:
     settings = get_settings()
 
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.two_factor.service.master_key_exists",
+        "src.modules.auth.two_factor.service.master_key_exists",
         lambda _path: True,
     )
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.two_factor.service.load_master_key",
+        "src.modules.auth.two_factor.service.load_master_key",
         lambda _path: b"x" * 32,
     )
 

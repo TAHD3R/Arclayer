@@ -3,17 +3,17 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from apps.api.src.common.text.slug.service import slugify
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.core.exceptions import Conflict
-from apps.api.src.models.content._enums import ContentItemStatus, ContentItemVisibility, ContentVersionState
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
-from apps.api.src.modules.workspaces.content.continuation import (
+from src.common.text.slug.service import slugify
+from src.common.utils.public_ids import encode_uuid
+from src.core.exceptions import Conflict
+from src.models.content._enums import ContentItemStatus, ContentItemVisibility, ContentVersionState
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.model_definition import ContentModelDefinitionRecord
+from src.modules.workspaces.content.continuation import (
     CONTINUATION_TRUTH_MISSING_REASON_CODE,
 )
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.modules.workspaces.content.contracts.schema import (
     ContentBootstrapPresetState,
     ContentContinuationPosture,
     ContentContinuationRole,
@@ -26,16 +26,16 @@ from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentShapeState,
     ContentVersionOut,
 )
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.modules.workspaces.content.contracts.schema import (
     ContentItemStatus as ContentItemStatusLiteral,
 )
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.modules.workspaces.content.contracts.schema import (
     ContentItemVisibility as ContentItemVisibilityLiteral,
 )
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.modules.workspaces.content.contracts.schema import (
     ContentVersionState as ContentVersionStateLiteral,
 )
-from apps.api.src.modules.workspaces.content.items.input_schema import (
+from src.modules.workspaces.content.items.input_schema import (
     ContentPresentationIn,
     ContentVersionPatchIn,
 )

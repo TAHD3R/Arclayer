@@ -9,14 +9,14 @@ from uuid import UUID
 
 from tortoise import Tortoise
 
-from apps.api.src.config import Settings
-from apps.api.src.core.logging import get_logger
-from apps.api.src.infra.assets.thumbnails import generate_image_thumbnails
-from apps.api.src.infra.storage.factory import build_storage_provider_for
-from apps.api.src.infra.storage.local import safe_object_key_to_path
-from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.models.assets.asset import AssetRecord
-from apps.api.src.settings.runtime import get_effective_settings
+from src.config import Settings
+from src.core.logging import get_logger
+from src.infra.assets.thumbnails import generate_image_thumbnails
+from src.infra.storage.factory import build_storage_provider_for
+from src.infra.storage.local import safe_object_key_to_path
+from src.infra.storage.s3 import S3StorageProvider
+from src.models.assets.asset import AssetRecord
+from src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 

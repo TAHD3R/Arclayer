@@ -5,17 +5,17 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Request, status
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.infra.cache.valkey import get_valkey
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.sites.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
-from apps.api.src.modules.sites.service import SiteService
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.modules.workspaces.site.schema import WorkspaceSiteOut
-from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.infra.cache.valkey import get_valkey
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.sites.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
+from src.modules.sites.service import SiteService
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.site.schema import WorkspaceSiteOut
+from src.modules.workspaces.site.service import WorkspaceSiteService
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site",

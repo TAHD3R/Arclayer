@@ -5,9 +5,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response as RawResponse
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.sites.http.service import get_site_service
-from apps.api.src.modules.sites.service import SiteService
+from src.common.types.public_uuid import PublicUUID
+from src.modules.sites.http.service import get_site_service
+from src.modules.sites.service import SiteService
 
 router = APIRouter(tags=["Sites"])
 

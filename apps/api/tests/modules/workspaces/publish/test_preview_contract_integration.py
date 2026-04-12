@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
-from apps.api.tests.modules.workspaces.publish.test_publish_integration import _publish_item, _setup_publishable_items
+from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from tests.modules.workspaces.publish.test_publish_integration import _publish_item, _setup_publishable_items
 
 pytestmark = pytest.mark.integration
 

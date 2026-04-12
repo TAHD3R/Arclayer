@@ -8,7 +8,7 @@ from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
-from apps.api.src.core.logging import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -4,8 +4,8 @@ from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
-from apps.api.src.models.assets.asset_usage import AssetUsageRecord
-from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
+from src.models.assets.asset_usage import AssetUsageRecord
+from src.modules.assets.scope import AssetScope, scope_filter_kwargs
 
 
 class AdminAssetUsagesRepository:

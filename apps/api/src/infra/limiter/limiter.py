@@ -9,9 +9,9 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.i18n import t
-from apps.api.src.core.logging import get_logger
+from src.config import Settings, get_settings
+from src.core.i18n import t
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 

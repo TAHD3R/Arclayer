@@ -5,9 +5,9 @@ from datetime import datetime
 
 from pydantic import AliasChoices, ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from apps.api.src.common.constants.auth import PASSWORD_REGEX, RESET_TOKEN_REGEX
-from apps.api.src.common.schemas import BaseOut, BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
+from src.common.constants.auth import PASSWORD_REGEX, RESET_TOKEN_REGEX
+from src.common.schemas import BaseOut, BaseSchema
+from src.common.types.public_uuid import PublicUUID
 
 
 class LoginRequest(BaseSchema):

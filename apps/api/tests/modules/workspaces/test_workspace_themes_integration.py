@@ -9,20 +9,20 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.config import get_settings
-from apps.api.src.core.database.orm import verify_db_ready
-from apps.api.src.core.registry import create_app
-from apps.api.src.infra.storage.local import safe_object_key_to_path
-from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.sites.site import SiteRecord
-from apps.api.src.models.workspaces.workspace import Workspace
-from apps.api.src.modules.assets.naming.service import build_asset_object_key
-from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.tokens.service import hash_password
+from src.common.utils.public_ids import encode_uuid
+from src.config import get_settings
+from src.core.database.orm import verify_db_ready
+from src.core.registry import create_app
+from src.infra.storage.local import safe_object_key_to_path
+from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.user import User
+from src.models.sites.site import SiteRecord
+from src.models.workspaces.workspace import Workspace
+from src.modules.assets.naming.service import build_asset_object_key
+from src.modules.auth.http.service import get_current_user, get_current_user_id
+from src.modules.auth.repository import UserRepository
+from src.modules.auth.tokens.service import hash_password
 
 pytestmark = pytest.mark.integration
 
@@ -113,7 +113,7 @@ async def test_workspace_theme_import_and_site_runtime_output(
         await verify_db_ready(settings)
 
         # Bootstrap org/workspace/user (creator-admin path) so workspace RBAC grants work.
-        from apps.api.src.modules.organization.repository import OrganizationRepository
+        from src.modules.organization.repository import OrganizationRepository
 
         org_repo = OrganizationRepository()
         user_repo = UserRepository()

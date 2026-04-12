@@ -6,18 +6,18 @@ from math import ceil
 from typing import Any, cast
 from uuid import UUID
 
-from apps.api.src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.system.rbac import Role
-from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
-from apps.api.src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
-from apps.api.src.modules.organization.workspaces.schema import (
+from src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.core.i18n import t
+from src.models.organization.org_membership import OrgRole
+from src.models.organization.user import User
+from src.models.system.rbac import Role
+from src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
+from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
     OrganizationWorkspaceCreateRequest,
     OrganizationWorkspaceDeleteResult,
@@ -25,11 +25,11 @@ from apps.api.src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceMemberPreviewOut,
     OrganizationWorkspaceOut,
 )
-from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
-from apps.api.src.modules.system.rbac.service import RBACService
-from apps.api.src.modules.workspaces.settings.service import WorkspaceSettingsService
-from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
-from apps.api.src.modules.workspaces.slug.service import next_available_workspace_slug
+from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
+from src.modules.system.rbac.service import RBACService
+from src.modules.workspaces.settings.service import WorkspaceSettingsService
+from src.modules.workspaces.site.service import WorkspaceSiteService
+from src.modules.workspaces.slug.service import next_available_workspace_slug
 
 _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
 MAX_WORKSPACE_NAME_LENGTH = 128

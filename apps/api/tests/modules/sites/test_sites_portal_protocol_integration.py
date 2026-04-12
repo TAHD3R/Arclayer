@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.src.common.utils.public_ids import decode_public_id
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.models.workspaces.workspace import Workspace
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.scopes import SCOPE_TYPE_SITE, SCOPE_TYPE_WORKSPACE
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from src.common.utils.public_ids import decode_public_id
+from src.models.system.setting import SettingRecord
+from src.models.workspaces.workspace import Workspace
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.scopes import SCOPE_TYPE_SITE, SCOPE_TYPE_WORKSPACE
+from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
 
 pytestmark = pytest.mark.integration
 

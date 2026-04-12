@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Protocol, cast
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import Unauthorized
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.two_factor.schema import TwoFactorCapabilitiesOut
-from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import Unauthorized
+from src.core.i18n import t
+from src.modules.auth.two_factor.schema import TwoFactorCapabilitiesOut
+from src.modules.auth.two_factor.service import AuthTwoFactorService
 
 
 class _CredentialLike(Protocol):
@@ -36,7 +36,7 @@ class TwoFactorCapabilityService(BaseService):
         super().__init__(settings)
         self.two_factor = two_factor or AuthTwoFactorService(settings)
         if user_repo is None:
-            from apps.api.src.modules.auth.repository import UserRepository
+            from src.modules.auth.repository import UserRepository
 
             self.user_repo = cast(_UserRepositoryLike, UserRepository())
         else:

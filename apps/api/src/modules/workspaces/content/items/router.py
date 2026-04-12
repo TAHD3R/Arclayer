@@ -7,31 +7,31 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Body, Depends, Query, Request, status
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.core.events import Event, EventBus
-from apps.api.src.core.exceptions import ServiceUnavailable
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.models.content._enums import ContentVersionState
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
-from apps.api.src.modules.workspaces.content.items.canonical_service import (
+from src.common.types.public_uuid import PublicUUID
+from src.core.events import Event, EventBus
+from src.core.exceptions import ServiceUnavailable
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.models.content._enums import ContentVersionState
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
+from src.modules.workspaces.content.items.canonical_service import (
     WorkspaceContentCanonicalItemsService,
 )
-from apps.api.src.modules.workspaces.content.items.input_schema import (
+from src.modules.workspaces.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
-from apps.api.src.modules.workspaces.content.items.read_service import (
+from src.modules.workspaces.content.items.read_service import (
     WorkspaceContentCanonicalItemReadService,
 )
-from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
-from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
+from src.modules.workspaces.content.shared.router import _resolve_site_id
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 canonical_items_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",

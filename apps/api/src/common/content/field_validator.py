@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from apps.api.src.common.content.field_types import FIELD_KIND_VALIDATORS
+from src.common.content.field_types import FIELD_KIND_VALIDATORS
 
 
 def validate_field_values(

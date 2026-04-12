@@ -6,12 +6,12 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.exceptions import BadRequest, Unauthorized
-from apps.api.src.models.organization.user import UserStatus
-from apps.api.src.modules.auth.login.service import AuthLoginService
-from apps.api.src.modules.auth.service import AuthService
-from apps.api.src.modules.auth.tokens.service import decode_token, hash_password
+from src.config import get_settings
+from src.core.exceptions import BadRequest, Unauthorized
+from src.models.organization.user import UserStatus
+from src.modules.auth.login.service import AuthLoginService
+from src.modules.auth.service import AuthService
+from src.modules.auth.tokens.service import decode_token, hash_password
 
 
 class _FakeRaw:

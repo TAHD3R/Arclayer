@@ -2,15 +2,15 @@ from tortoise import migrations
 from tortoise.migrations import operations as ops
 import uuid
 from enum import StrEnum
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.models.assets.asset import AssetPurpose, AssetVisibility
-from apps.api.src.models.assets.upload import UploadStatus
-from apps.api.src.models.extensions.app import AppStatus
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.models.organization.user import UserStatus
-from apps.api.src.models.system.notification import NotificationCategory
-from apps.api.src.models.system.rbac import PermissionScope
-from apps.api.src.models.workspaces.workspace import WorkspaceMembershipStatus
+from src.common.utils.ids import uuid7
+from src.models.assets.asset import AssetPurpose, AssetVisibility
+from src.models.assets.upload import UploadStatus
+from src.models.extensions.app import AppStatus
+from src.models.organization.org_membership import OrgRole
+from src.models.organization.user import UserStatus
+from src.models.system.notification import NotificationCategory
+from src.models.system.rbac import PermissionScope
+from src.models.workspaces.workspace import WorkspaceMembershipStatus
 from orjson import loads
 from tortoise.fields.base import OnDelete
 from tortoise.fields.data import JSON_DUMPS

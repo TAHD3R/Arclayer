@@ -1,9 +1,9 @@
 import warnings
 from pathlib import Path
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.registry import create_app
-from apps.api.tests.utils.asgi_client import asgi_client
+from src.config import get_settings
+from src.core.registry import create_app
+from tests.utils.asgi_client import asgi_client
 
 
 def _configure_logging_env(monkeypatch, log_dir: Path) -> None:

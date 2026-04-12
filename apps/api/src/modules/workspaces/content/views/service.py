@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
-from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
-from apps.api.src.common.services import BaseService
-from apps.api.src.core.exceptions import Forbidden, NotFound
-from apps.api.src.core.i18n import t
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.modules.workspaces.content.views.schema import (
+from src.common.protocols.tortoise import SettingUpdatedBy
+from src.common.services import BaseService
+from src.core.exceptions import Forbidden, NotFound
+from src.core.i18n import t
+from src.models.system.setting import SettingRecord
+from src.modules.workspaces.content.views.schema import (
     ContentLibrarySystemViewId,
     ContentLibraryViewColumnsSchema,
     ContentLibraryViewCreateIn,
@@ -18,7 +18,7 @@ from apps.api.src.modules.workspaces.content.views.schema import (
     ContentLibraryViewSortingItemSchema,
     ContentLibraryViewsStateOut,
 )
-from apps.api.src.settings.scopes import SCOPE_TYPE_USER, SCOPE_TYPE_WORKSPACE
+from src.settings.scopes import SCOPE_TYPE_USER, SCOPE_TYPE_WORKSPACE
 
 StoredView = dict[str, Any]
 StoredUserPayload = dict[str, Any]

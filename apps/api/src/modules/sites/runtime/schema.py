@@ -4,10 +4,10 @@ from typing import Any, Literal
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.json_types import JsonValue
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.sites.design.schema import PageBlueprint
+from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonValue
+from src.common.types.public_uuid import PublicUUID
+from src.modules.sites.design.schema import PageBlueprint
 
 
 class SiteResolveOut(BaseSchema):

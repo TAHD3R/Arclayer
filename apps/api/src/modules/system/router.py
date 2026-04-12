@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.analytics.system.router import router as system_activity_router
-from apps.api.src.modules.system.flags.service import build_system_flags
-from apps.api.src.modules.system.mail.router import router as system_mail_router
-from apps.api.src.modules.system.rbac.router import router as system_rbac_router
-from apps.api.src.modules.system.schema import SystemRuntimeCapabilities, SystemRuntimeOut
-from apps.api.src.modules.system.settings.router import router as system_settings_router
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.modules.analytics.system.router import router as system_activity_router
+from src.modules.system.flags.service import build_system_flags
+from src.modules.system.mail.router import router as system_mail_router
+from src.modules.system.rbac.router import router as system_rbac_router
+from src.modules.system.schema import SystemRuntimeCapabilities, SystemRuntimeOut
+from src.modules.system.settings.router import router as system_settings_router
 
 router = APIRouter(tags=["System: Core Settings"])
 
@@ -29,7 +29,7 @@ async def get_system_runtime(
     (e.g. storage/mail) should be exposed in the UI.
     """
 
-    from apps.api.src.modules.auth.registration.service import get_public_register_policy
+    from src.modules.auth.registration.service import get_public_register_policy
 
     deployment_mode = settings.application.deployment_mode
     policy = await get_public_register_policy(settings)

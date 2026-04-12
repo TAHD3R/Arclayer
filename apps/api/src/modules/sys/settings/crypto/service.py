@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 
 from cryptography.exceptions import InvalidTag
 
-from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
-from apps.api.src.modules.sys.settings.schemahelpers.service import _ts
-from apps.api.src.settings.crypto import (
+from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.modules.sys.settings.schemahelpers.service import _ts
+from src.settings.crypto import (
     decrypt_secret,
     encrypt_secret,
     ensure_master_key,
@@ -15,11 +15,11 @@ from apps.api.src.settings.crypto import (
     load_master_key,
     master_key_exists,
 )
-from apps.api.src.settings.schema import ConfigSchema
-from apps.api.src.settings.validation import iter_secret_field_paths
+from src.settings.schema import ConfigSchema
+from src.settings.validation import iter_secret_field_paths
 
 if TYPE_CHECKING:
-    from apps.api.src.config import Settings
+    from src.config import Settings
 
 
 class SysConfigCryptoMixin:

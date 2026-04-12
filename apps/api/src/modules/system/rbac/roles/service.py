@@ -4,11 +4,11 @@ from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
-from apps.api.src.models.system.rbac import PermissionScope, Role
-from apps.api.src.modules.system.rbac.localization.service import _tr
-from apps.api.src.modules.system.rbac.repository import RBACRepository
+from src.common.utils.ids import uuid7
+from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.models.system.rbac import PermissionScope, Role
+from src.modules.system.rbac.localization.service import _tr
+from src.modules.system.rbac.repository import RBACRepository
 
 _ROLE_CODE_MAX_LEN: int = 64
 _ROLE_CODE_GENERATE_ATTEMPTS: int = 20

@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
-from apps.api.src.core.exceptions import ServiceUnavailable
-from apps.api.src.modules.sites.design.schema import PageBlueprint
-from apps.api.src.modules.sites.publishing.content_snapshot import build_canonical_content_snapshot
-from apps.api.src.modules.sites.publishing.includes.service import PublishingIncludesService
-from apps.api.src.modules.sites.repository import SitesRepository
-from apps.api.src.modules.sites.schema import (
+from src.common.services.base import BaseService
+from src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
+from src.core.exceptions import ServiceUnavailable
+from src.modules.sites.design.schema import PageBlueprint
+from src.modules.sites.publishing.content_snapshot import build_canonical_content_snapshot
+from src.modules.sites.publishing.includes.service import PublishingIncludesService
+from src.modules.sites.repository import SitesRepository
+from src.modules.sites.schema import (
     SitePrimaryEntryOut,
     SiteResolvedPageMetaOut,
     SiteRouteDataSourcesOut,

@@ -4,8 +4,8 @@ from typing import Any
 
 from pydantic import Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.modules.extensions.schema import (
+from src.common.schemas import BaseSchema
+from src.modules.extensions.schema import (
     AppKind,
     AppProvider,
     AppScope,

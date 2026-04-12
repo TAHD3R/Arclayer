@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.modules.assets.admin.uploads.policy.service import (
+from src.core.exceptions import BadRequest
+from src.modules.assets.admin.uploads.policy.service import (
     UploadPolicy,
     build_upload_policy,
     normalize_original_filename,

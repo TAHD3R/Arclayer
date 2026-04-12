@@ -57,7 +57,7 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
 
 [tool.tortoise]
-tortoise_orm = "apps.api.src.core.database.orm.TORTOISE_ORM"
+tortoise_orm = "src.core.database.orm.TORTOISE_ORM"
 
 [tool.ruff]
 preview = true
@@ -120,11 +120,11 @@ quote-style = "double"
 "tests/*" = ["S101", "T201"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps"]
+known-first-party = ["src", "tests"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --import-mode=importlib --cov=apps.api.src --cov-report=term-missing"
+addopts = "-ra -q --import-mode=importlib --cov=src --cov-report=term-missing"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -144,7 +144,6 @@ exclude = [
   "**/build",
   "**/migrations/**",
 ]
-extraPaths = ["../.."]
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"

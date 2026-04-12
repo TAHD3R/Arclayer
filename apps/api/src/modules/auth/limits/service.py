@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.src.common.constants.auth import (
+from src.common.constants.auth import (
     FORGOT_PASSWORD_RATE_LIMIT,
     LOGIN_RATE_LIMIT,
     PASSWORD_REGEX,

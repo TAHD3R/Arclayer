@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 def test_audit_event_list_query_accepts_camel_case_time_range() -> None:
-    from apps.api.src.modules.analytics.schema import AuditEventListQuery
+    from src.modules.analytics.schema import AuditEventListQuery
 
     query = AuditEventListQuery.model_validate({
         "occurredFrom": "2026-01-01T00:00:00Z",
@@ -14,7 +14,7 @@ def test_audit_event_list_query_accepts_camel_case_time_range() -> None:
 
 
 def test_audit_event_list_query_keeps_short_time_range_aliases() -> None:
-    from apps.api.src.modules.analytics.schema import AuditEventListQuery
+    from src.modules.analytics.schema import AuditEventListQuery
 
     query = AuditEventListQuery.model_validate({
         "from": "2026-01-01T00:00:00Z",

@@ -12,21 +12,21 @@ from uuid import UUID
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import Conflict, ServiceUnavailable
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
-from apps.api.src.models.content._enums import ContentShapeState
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
-from apps.api.src.models.content.model_field import ContentModelFieldRecord
-from apps.api.src.models.content.model_relation import ContentModelRelationRecord
-from apps.api.src.modules.workspaces.content.continuation import (
+from src.common.schemas import BaseSchema
+from src.config import Settings
+from src.core.exceptions import Conflict, ServiceUnavailable
+from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.models.content._enums import ContentShapeState
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.model_definition import ContentModelDefinitionRecord
+from src.models.content.model_field import ContentModelFieldRecord
+from src.models.content.model_relation import ContentModelRelationRecord
+from src.modules.workspaces.content.continuation import (
     MODEL_DEFAULT_INVALID_REASON_CODE,
     ContentItemContinuationTruth,
     resolve_model_continuation_defaults,
 )
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.modules.workspaces.content.contracts.schema import (
     ContentContinuationPosture,
     ContentContinuationRole,
     ContentContinuationSurface,
@@ -43,13 +43,13 @@ from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentRoutingContract,
     ContentWorkflowContract,
 )
-from apps.api.src.modules.workspaces.content.models.domain_helpers import (
+from src.modules.workspaces.content.models.domain_helpers import (
     dump_contract,
     normalize_default_editor,
     normalize_model_category,
     to_content_model_out,
 )
-from apps.api.src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
+from src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
 
 
 class ContentModelDefinitionPatchContract(BaseSchema):

@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 
 class AppKind(StrEnum):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import Field, model_validator
 
-from apps.api.src.common.schemas import BaseOut, BaseSchema
+from src.common.schemas import BaseOut, BaseSchema
 
 
 class OrganizationRoleOut(BaseOut):

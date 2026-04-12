@@ -5,9 +5,9 @@ from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.json_types import JsonObject
-from apps.api.src.modules.sites.design.layout.schema import (
+from src.common.schemas import BaseSchema
+from src.common.types.json_types import JsonObject
+from src.modules.sites.design.layout.schema import (
     DesignBindingExprV1,
     DesignLayoutV1,
     DesignMotionRefV1,

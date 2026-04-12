@@ -2,7 +2,7 @@ from tortoise import fields
 from tortoise import migrations
 from tortoise.migrations import operations as ops
 
-from apps.api.src.models.content._enums import (
+from src.models.content._enums import (
     ContentContinuationPosture,
     ContentContinuationRole,
     ContentContinuationSurface,

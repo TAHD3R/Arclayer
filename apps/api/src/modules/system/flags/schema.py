@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 DeploymentMode = Literal["saas", "self_host"]
 

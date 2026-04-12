@@ -4,7 +4,7 @@ from typing import Any, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, validate_call
 
-from apps.api.src.core.logging import get_logger
+from src.core.logging import get_logger
 
 T = TypeVar("T")
 logger = get_logger(__name__)

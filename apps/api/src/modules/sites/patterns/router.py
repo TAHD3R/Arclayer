@@ -4,12 +4,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, status
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.sites.patterns.service import SitePatternService
-from apps.api.src.modules.sites.schema import (
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.modules.sites.patterns.service import SitePatternService
+from src.modules.sites.schema import (
     SitePatternCreateIn,
     SitePatternDeleteOut,
     SitePatternOut,

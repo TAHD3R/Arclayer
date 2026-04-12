@@ -7,12 +7,12 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.exceptions import BadRequest, Unauthorized
-from apps.api.src.models.organization.user import User, UserStatus
-from apps.api.src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.service import AuthService
+from src.config import get_settings
+from src.core.exceptions import BadRequest, Unauthorized
+from src.models.organization.user import User, UserStatus
+from src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
+from src.modules.auth.repository import UserRepository
+from src.modules.auth.service import AuthService
 
 
 class _StopAfterReauth(RuntimeError):
@@ -106,7 +106,7 @@ def _build_service(monkeypatch, *, user: FakeUser, two_factor_enabled: bool) -> 
         raise _StopAfterReauth("stop after reauth")
 
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
+        "src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
         _stop,
     )
 
@@ -189,7 +189,7 @@ async def test_account_delete_capabilities_require_2fa_for_sso_only(monkeypatch)
         return None
 
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
+        "src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
         _allow_delete,
     )
     service = AccountDeletionCapabilityService(get_settings())
@@ -207,12 +207,12 @@ async def test_account_delete_capabilities_report_last_owner_block(monkeypatch) 
     user = FakeUser(id=uuid4(), email="demo@example.com", last_login_at=datetime.now(tz=UTC))
 
     async def _raise_block(*_args, **_kwargs) -> None:
-        from apps.api.src.core.exceptions import Forbidden
+        from src.core.exceptions import Forbidden
 
         raise Forbidden(message="权限不足", error="ACCOUNT_DELETE_LAST_ORG_OWNER")
 
     monkeypatch.setattr(
-        "apps.api.src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
+        "src.modules.auth.account_deletion.guard.AccountDeletionGuard.ensure_deletable",
         _raise_block,
     )
     service = AccountDeletionCapabilityService(get_settings())

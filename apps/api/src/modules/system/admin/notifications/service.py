@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.system.admin.notifications.preferences import (
+from src.common.services import BaseService
+from src.common.utils.ids import uuid7
+from src.config import Settings
+from src.core.exceptions import BadRequest, NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_queryset
+from src.core.i18n import t
+from src.modules.system.admin.notifications.preferences import (
     TOPIC_DEFINITIONS,
     is_topic_channel_mutable,
     load_user_notification_preferences,
     save_user_notification_preference,
 )
-from apps.api.src.modules.system.admin.notifications.repository import NotificationRepository
-from apps.api.src.modules.system.admin.notifications.schema import (
+from src.modules.system.admin.notifications.repository import NotificationRepository
+from src.modules.system.admin.notifications.schema import (
     NotificationArchiveResult,
     NotificationDeleteResult,
     NotificationDevSeedResult,
@@ -216,7 +216,7 @@ class NotificationService(BaseService):
         if self.settings.app_env not in {"development", "test"}:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
-        from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
+        from src.models.system.notification import NotificationCategory, NotificationRecord
 
         safe_count = max(0, min(int(count), 50))
         if safe_count <= 0:

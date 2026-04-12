@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
+from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
     _create_page_model,
     _workspace_client,

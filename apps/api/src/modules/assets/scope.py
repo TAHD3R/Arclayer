@@ -4,13 +4,13 @@ from dataclasses import dataclass
 from typing import TypedDict
 from uuid import UUID
 
-from apps.api.src.common.constants.assets import (
+from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
     ASSET_SCOPE_USER,
     ASSET_SCOPE_WORKSPACE,
 )
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.core.i18n import t
+from src.core.exceptions import BadRequest
+from src.core.i18n import t
 
 
 def _ts(key: str, default: str) -> str:

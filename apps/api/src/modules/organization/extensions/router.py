@@ -5,13 +5,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.models.organization.org_membership import OrgMembership
-from apps.api.src.modules.extensions.schema import CapabilityListOut, CapabilitySummaryOut, UIEmbedListOut
-from apps.api.src.modules.extensions.service import ExtensionsService
-from apps.api.src.modules.organization.http.service import require_org_permission
+from src.common.protocols.tortoise import HasOrganizationId
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.models.organization.org_membership import OrgMembership
+from src.modules.extensions.schema import CapabilityListOut, CapabilitySummaryOut, UIEmbedListOut
+from src.modules.extensions.service import ExtensionsService
+from src.modules.organization.http.service import require_org_permission
 
 router = APIRouter(
     prefix="/organizations/current/extensions",

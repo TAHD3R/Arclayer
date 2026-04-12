@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.assets.asset import AssetRecord, AssetVisibility
+from src.common.repositories import BaseRepository
+from src.models.assets.asset import AssetRecord, AssetVisibility
 
 
 class AssetsRepository(BaseRepository):

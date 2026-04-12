@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.modules.workspaces.publish.schema import PublishExportContractOut
-from apps.api.src.modules.workspaces.publish.storage import WorkspacePublishArtifactStorage
+from src.core.exceptions import NotFound
+from src.modules.workspaces.publish.schema import PublishExportContractOut
+from src.modules.workspaces.publish.storage import WorkspacePublishArtifactStorage
 
 
 class WorkspacePublishPreviewService:

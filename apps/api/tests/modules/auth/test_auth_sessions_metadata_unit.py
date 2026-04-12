@@ -5,8 +5,8 @@ import importlib
 import pytest
 from starlette.requests import Request
 
-from apps.api.src.modules.auth.tokens.service import decode_token
-from apps.api.tests.modules.auth.test_auth_sessions_unit import _build
+from src.modules.auth.tokens.service import decode_token
+from tests.modules.auth.test_auth_sessions_unit import _build
 
 UA_CHROME_MAC = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
@@ -30,7 +30,7 @@ def _build_request(headers: list[tuple[bytes, bytes]], *, client_host: str = "10
 
 def test_build_auth_request_context_prefers_forwarded_for() -> None:
     try:
-        request_context_module = importlib.import_module("apps.api.src.modules.auth.sessions.request_context")
+        request_context_module = importlib.import_module("src.modules.auth.sessions.request_context")
     except ModuleNotFoundError as exc:
         pytest.fail(f"missing request_context module: {exc}")
 
@@ -47,7 +47,7 @@ def test_build_auth_request_context_prefers_forwarded_for() -> None:
 
 def test_build_device_label_for_chrome_on_macos() -> None:
     try:
-        device_label_module = importlib.import_module("apps.api.src.modules.auth.sessions.device_label")
+        device_label_module = importlib.import_module("src.modules.auth.sessions.device_label")
     except ModuleNotFoundError as exc:
         pytest.fail(f"missing device_label module: {exc}")
 
@@ -59,7 +59,7 @@ def test_build_device_label_for_chrome_on_macos() -> None:
 async def test_list_sessions_maps_unknown_location_to_null(monkeypatch) -> None:
     auth, sessions, _, user = _build(monkeypatch)
     try:
-        request_context_module = importlib.import_module("apps.api.src.modules.auth.sessions.request_context")
+        request_context_module = importlib.import_module("src.modules.auth.sessions.request_context")
     except ModuleNotFoundError as exc:
         pytest.fail(f"missing request_context module: {exc}")
 

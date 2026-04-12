@@ -5,24 +5,24 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
-from apps.api.src.common.protocols.tortoise import HasWorkspaceId
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.core.exceptions import Conflict
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.modules.sites import schema as sites_schema
-from apps.api.src.modules.sites.namespaces.service import (
+from src.common.protocols.tortoise import HasWorkspaceId
+from src.common.utils.public_ids import encode_uuid
+from src.core.exceptions import Conflict
+from src.models.system.setting import SettingRecord
+from src.modules.sites import schema as sites_schema
+from src.modules.sites.namespaces.service import (
     RUNTIME_SETTING_NAMESPACE,
     THEME_ACTIVE_NAMESPACE,
     THEME_CONFIG_NAMESPACE,
     THEME_VARS_NAMESPACE,
 )
-from apps.api.src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.scopes import SCOPE_TYPE_WORKSPACE
 
 if TYPE_CHECKING:
-    from apps.api.src.config import Settings
-    from apps.api.src.modules.sites.repository import SitesRepository
+    from src.config import Settings
+    from src.modules.sites.repository import SitesRepository
 
 DEFAULT_CSS_VARS: dict[str, str] = {
     "--color-primary": "#1677ff",
@@ -160,13 +160,13 @@ class SiteRuntimeConfigMixin(SiteRuntimeLocalizationMixin):
     async def _resolve_theme_assets(
         self, *, workspace_id: UUID, theme_id: str, version: str
     ) -> tuple[str | None, str | None]:
-        from apps.api.src.models.workspaces.theme_package import ThemePackageRecord
+        from src.models.workspaces.theme_package import ThemePackageRecord
 
         theme_pkg = await ThemePackageRecord.get_or_none(workspace_id=workspace_id, theme_id=theme_id, version=version)
         if theme_pkg is None:
             return None, None
 
-        from apps.api.src.models.assets.asset import AssetRecord
+        from src.models.assets.asset import AssetRecord
 
         tokens_css_url: str | None = None
         base_css_url: str | None = None

@@ -8,9 +8,9 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from tortoise import Tortoise
 from tortoise.exceptions import ConfigurationError, OperationalError
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.i18n import get_request_locale, reset_current_locale, set_current_locale
-from apps.api.src.settings.locale_runtime import read_core_default_locale
+from src.config import get_settings
+from src.core.i18n import get_request_locale, reset_current_locale, set_current_locale
+from src.settings.locale_runtime import read_core_default_locale
 
 
 class LocaleMiddleware:

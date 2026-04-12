@@ -5,15 +5,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
 
-from apps.api.src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_membership import OrgMembership
-from apps.api.src.modules.assets.admin.uploads.schema import (
+from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import t
+from src.models.organization.org_membership import OrgMembership
+from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
     UploadCompleteOut,
     UploadInitOut,
@@ -22,10 +22,10 @@ from apps.api.src.modules.assets.admin.uploads.schema import (
     UploadPartPresignOut,
     UploadStatusOut,
 )
-from apps.api.src.modules.assets.admin.uploads.service import UploadsService
-from apps.api.src.modules.assets.scope import AssetScope
-from apps.api.src.modules.auth.http.service import get_current_user
-from apps.api.src.modules.organization.http.service import (
+from src.modules.assets.admin.uploads.service import UploadsService
+from src.modules.assets.scope import AssetScope
+from src.modules.auth.http.service import get_current_user
+from src.modules.organization.http.service import (
     get_org_membership_for_organization,
     require_org_permission,
 )

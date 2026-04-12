@@ -3,12 +3,12 @@ from __future__ import annotations
 from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.core.exceptions import Conflict
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.modules.sites.repository import SitesRepository
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.common.services.base import BaseService
+from src.core.exceptions import Conflict
+from src.models.system.setting import SettingRecord
+from src.modules.sites.repository import SitesRepository
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.scopes import SCOPE_TYPE_WORKSPACE
 
 
 class PublishingSitemapService(BaseService):
@@ -42,7 +42,7 @@ class PublishingSitemapService(BaseService):
         base = "https://example.test" if self.settings.app_env == "test" else "https://example.invalid"
         if ws_id is not None:
             if self.settings.application.deployment_mode == "saas":
-                from apps.api.src.models.workspaces.workspace import Workspace
+                from src.models.workspaces.workspace import Workspace
 
                 ws = await Workspace.get_or_none(id=ws_id)
                 if ws is not None and str(ws.slug).strip():

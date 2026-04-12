@@ -5,18 +5,18 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.modules.workspaces.publish.preview_service import WorkspacePublishPreviewService
-from apps.api.src.modules.workspaces.publish.schema import (
+from src.core.http.response import Response, ResponseModel
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.content.shared.router import _resolve_site_id
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.publish.preview_service import WorkspacePublishPreviewService
+from src.modules.workspaces.publish.schema import (
     PublishArtifactsOut,
     PublishExportContractOut,
     PublishImpactOut,
 )
-from apps.api.src.modules.workspaces.publish.service import WorkspacePublishService
+from src.modules.workspaces.publish.service import WorkspacePublishService
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/publish",

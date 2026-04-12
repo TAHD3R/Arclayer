@@ -6,13 +6,13 @@ import pytest
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.config import get_settings
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.modules.auth.http.service import get_current_user
-from apps.api.src.modules.organization.http.service import require_org_owner
-from apps.api.src.modules.organization.router import router as me_router
-from apps.api.src.modules.system.router import router as system_router
-from apps.api.tests.utils.asgi_client import asgi_client
+from src.config import get_settings
+from src.models.organization.org_membership import OrgRole
+from src.modules.auth.http.service import get_current_user
+from src.modules.organization.http.service import require_org_owner
+from src.modules.organization.router import router as me_router
+from src.modules.system.router import router as system_router
+from tests.utils.asgi_client import asgi_client
 
 pytestmark = pytest.mark.integration
 
@@ -82,7 +82,7 @@ async def test_me_organization_owner_flag() -> None:
     app = FastAPI()
     app.include_router(me_router, prefix="/api/v1")
     # Override the dependency used by `/me/organization` to bypass auth and DB.
-    from apps.api.src.modules.organization.http.service import get_current_org_membership
+    from src.modules.organization.http.service import get_current_org_membership
 
     app.dependency_overrides[get_current_org_membership] = _get_orgm_owner_override
 
@@ -106,7 +106,7 @@ async def test_system_endpoints_disabled_in_saas_mode(monkeypatch) -> None:
     app = FastAPI()
     # The production app installs exception handlers via the app factory; for this
     # dependency-light test we install them explicitly so APIError -> HTTP responses.
-    from apps.api.src.core.exceptions import init_exception_handlers
+    from src.core.exceptions import init_exception_handlers
 
     init_exception_handlers(app, get_settings())
     app.include_router(system_router, prefix="/api/v1/system")

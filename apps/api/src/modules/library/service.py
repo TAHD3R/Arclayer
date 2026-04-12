@@ -5,11 +5,11 @@ import html
 from fastapi import Request
 from starlette.responses import HTMLResponse
 
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.core.http.pagination import PageParams, paginate_queryset
-from apps.api.src.modules.library.repository import PublicLibraryRepository
-from apps.api.src.modules.library.schema import (
+from src.config import Settings
+from src.core.exceptions import NotFound
+from src.core.http.pagination import PageParams, paginate_queryset
+from src.modules.library.repository import PublicLibraryRepository
+from src.modules.library.schema import (
     PublicLibraryAssetOut,
     PublicLibraryListQuery,
     PublicLibraryOrgOut,

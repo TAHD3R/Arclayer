@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.core.exceptions import ServiceUnavailable
-from apps.api.src.modules.sites.repository import SitesRepository
-from apps.api.src.modules.sites.schema import (
+from src.common.services.base import BaseService
+from src.core.exceptions import ServiceUnavailable
+from src.modules.sites.repository import SitesRepository
+from src.modules.sites.schema import (
     SitePresenceHeartbeatIn,
     SitePresenceHeartbeatOut,
     SitePresenceListOut,
     SitePresenceRecordOut,
 )
-from apps.api.src.modules.sites.stores.service import PresenceStore
+from src.modules.sites.stores.service import PresenceStore
 
 
 class PublishingPresenceService(BaseService):

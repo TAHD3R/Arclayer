@@ -8,7 +8,7 @@ Run:
 - `pnpm -C apps/api jobs:scheduler`
 
 Entry points:
-- broker: `apps.api.src.infra.jobs.taskiq_app:broker`
-- scheduler: `apps.api.src.infra.jobs.taskiq_app:scheduler`
-- tasks: `apps.api.src.infra.jobs.tasks`
+- broker: `src.infra.jobs.taskiq_app:broker`
+- scheduler: `src.infra.jobs.taskiq_app:scheduler`
+- tasks: `src.infra.jobs.tasks`
 """

@@ -4,10 +4,10 @@ from datetime import datetime
 
 from pydantic import Field, computed_field
 
-from apps.api.src.common.schemas import BaseOut, BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.core.http.pagination import PageData
+from src.common.schemas import BaseOut, BaseSchema
+from src.common.types.public_uuid import PublicUUID
+from src.common.utils.public_ids import encode_uuid
+from src.core.http.pagination import PageData
 
 
 def _canonical_filename(slug: str | None, ext: str | None) -> str:

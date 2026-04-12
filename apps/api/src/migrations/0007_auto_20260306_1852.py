@@ -1,6 +1,6 @@
 from tortoise import migrations
 from tortoise.migrations import operations as ops
-from apps.api.src.models.assets.asset import AssetPurpose
+from src.models.assets.asset import AssetPurpose
 from tortoise import fields
 
 class Migration(migrations.Migration):

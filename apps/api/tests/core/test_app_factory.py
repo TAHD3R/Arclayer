@@ -1,5 +1,5 @@
-from apps.api.src.core.registry import create_app
-from apps.api.tests.utils.asgi_client import asgi_client
+from src.core.registry import create_app
+from tests.utils.asgi_client import asgi_client
 
 
 async def test_create_app_docs_enabled_in_test_env(monkeypatch) -> None:

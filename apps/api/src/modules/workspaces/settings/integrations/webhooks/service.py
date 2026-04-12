@@ -10,27 +10,27 @@ from uuid import UUID
 
 import httpx
 
-from apps.api.src.common.protocols.tortoise import HasWorkspaceId
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
-from apps.api.src.core.i18n import t
-from apps.api.src.core.logging import get_logger
-from apps.api.src.models.integrations.webhook_delivery import WebhookDelivery
-from apps.api.src.models.integrations.webhook_subscription import WebhookSubscription
-from apps.api.src.modules.workspaces.settings.integrations.webhooks.repository import WebhooksRepository
-from apps.api.src.modules.workspaces.settings.integrations.webhooks.schema import (
+from src.common.protocols.tortoise import HasWorkspaceId
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.core.i18n import t
+from src.core.logging import get_logger
+from src.models.integrations.webhook_delivery import WebhookDelivery
+from src.models.integrations.webhook_subscription import WebhookSubscription
+from src.modules.workspaces.settings.integrations.webhooks.repository import WebhooksRepository
+from src.modules.workspaces.settings.integrations.webhooks.schema import (
     WebhookDeliveryOut,
     WebhookSubscriptionOut,
 )
-from apps.api.src.settings.crypto import (
+from src.settings.crypto import (
     decrypt_secret,
     encrypt_secret,
     ensure_master_key,
     is_encrypted,
     master_key_exists,
 )
-from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.settings.scopes import SCOPE_TYPE_WORKSPACE
 
 logger = get_logger(__name__)
 

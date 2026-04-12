@@ -5,7 +5,7 @@ from enum import StrEnum
 from tortoise import fields
 from tortoise.signals import post_save
 
-from apps.api.src.common.models.base import BaseModel
+from src.common.models.base import BaseModel
 
 
 class WorkspaceMembershipStatus(StrEnum):
@@ -65,10 +65,10 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
     if not created:
         return
 
-    from apps.api.src.core.exceptions import Conflict
-    from apps.api.src.core.i18n import t
-    from apps.api.src.models.system.rbac import Role
-    from apps.api.src.modules.system.rbac.constants.service import (
+    from src.core.exceptions import Conflict
+    from src.core.i18n import t
+    from src.models.system.rbac import Role
+    from src.modules.system.rbac.constants.service import (
         ROLE_ADMIN,
         ROLE_DESIGNER,
         ROLE_EDITOR,

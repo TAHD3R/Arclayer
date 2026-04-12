@@ -5,17 +5,17 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.content.contracts.schema import ContentComponentBindingListOut
-from apps.api.src.modules.workspaces.content.items.read_service import (
+from src.common.types.public_uuid import PublicUUID
+from src.core.http.response import Response, ResponseModel
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.content.contracts.schema import ContentComponentBindingListOut
+from src.modules.workspaces.content.items.read_service import (
     WorkspaceContentCanonicalItemReadService,
 )
-from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
-from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
+from src.modules.workspaces.content.shared.router import _resolve_site_id
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 bindings_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",

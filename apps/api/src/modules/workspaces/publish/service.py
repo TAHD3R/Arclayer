@@ -4,20 +4,20 @@ from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
-from apps.api.src.core.exceptions import Conflict
-from apps.api.src.models.content._enums import ContentShapeState, PublishArtifactKind
-from apps.api.src.models.content.component_binding import ComponentBindingRecord
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.hierarchy_node import HierarchyNodeRecord
-from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
-from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
-from apps.api.src.models.content.published_graph import PublishedGraphRecord
-from apps.api.src.models.content.route_binding import RouteBindingRecord
-from apps.api.src.models.content.seo_profile import SEOProfileRecord
-from apps.api.src.modules.workspaces.content.continuation import CONTINUATION_TRUTH_MISSING_REASON_CODE
-from apps.api.src.modules.workspaces.content.items.domain_helpers import item_has_capability
-from apps.api.src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishBlockedItemOut, PublishImpactOut
+from src.core.exceptions import Conflict
+from src.models.content._enums import ContentShapeState, PublishArtifactKind
+from src.models.content.component_binding import ComponentBindingRecord
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.hierarchy_node import HierarchyNodeRecord
+from src.models.content.presentation_document import PresentationDocumentRecord
+from src.models.content.publish_artifact import PublishArtifactRecord
+from src.models.content.published_graph import PublishedGraphRecord
+from src.models.content.route_binding import RouteBindingRecord
+from src.models.content.seo_profile import SEOProfileRecord
+from src.modules.workspaces.content.continuation import CONTINUATION_TRUTH_MISSING_REASON_CODE
+from src.modules.workspaces.content.items.domain_helpers import item_has_capability
+from src.modules.workspaces.publish.schema import PublishArtifactsOut, PublishBlockedItemOut, PublishImpactOut
 
 _PRESENTATION_KINDS_EXCLUDED_FROM_COMPONENT_MANIFEST = frozenset({"seo", "slot_mapping"})
 

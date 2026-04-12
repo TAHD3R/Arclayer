@@ -6,7 +6,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.models import Model
 
-from apps.api.src.core.logging import get_logger
+from src.core.logging import get_logger
 
 _QueryT = TypeVar("_QueryT")
 _ModelT = TypeVar("_ModelT", bound=Model)

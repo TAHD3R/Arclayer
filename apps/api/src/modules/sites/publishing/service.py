@@ -3,19 +3,19 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.modules.sites.publishing.includes.service import PublishingIncludesService
-from apps.api.src.modules.sites.publishing.presence.service import PublishingPresenceService
-from apps.api.src.modules.sites.publishing.routes.service import PublishingRoutesResolveService
-from apps.api.src.modules.sites.publishing.sitemap.service import PublishingSitemapService
-from apps.api.src.modules.sites.repository import SitesRepository
-from apps.api.src.modules.sites.schema import (
+from src.common.services.base import BaseService
+from src.modules.sites.publishing.includes.service import PublishingIncludesService
+from src.modules.sites.publishing.presence.service import PublishingPresenceService
+from src.modules.sites.publishing.routes.service import PublishingRoutesResolveService
+from src.modules.sites.publishing.sitemap.service import PublishingSitemapService
+from src.modules.sites.repository import SitesRepository
+from src.modules.sites.schema import (
     SitePresenceHeartbeatIn,
     SitePresenceHeartbeatOut,
     SitePresenceListOut,
     SiteRouteResolveOut,
 )
-from apps.api.src.modules.sites.stores.service import PresenceStore
+from src.modules.sites.stores.service import PresenceStore
 
 
 class SitePublishingService(BaseService):

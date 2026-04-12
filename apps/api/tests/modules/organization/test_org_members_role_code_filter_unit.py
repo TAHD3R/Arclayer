@@ -7,11 +7,11 @@ from uuid import uuid4
 
 import pytest
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.http.pagination import PageParams
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.user import UserStatus
-from apps.api.src.modules.organization.members.service import OrganizationMemberService
+from src.config import get_settings
+from src.core.http.pagination import PageParams
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.user import UserStatus
+from src.modules.organization.members.service import OrganizationMemberService
 
 
 class _FakeOrgMemberRepo:

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from apps.api.src.config import get_settings
-from apps.api.src.infra.jobs.analytics_retention import analytics_audit_log_retention_cleanup
-from apps.api.src.infra.jobs.assets_thumbnails import ASSET_THUMBNAILS_JOB_NAME, generate_asset_thumbnails
-from apps.api.src.infra.jobs.taskiq_app import broker
+from src.config import get_settings
+from src.infra.jobs.analytics_retention import analytics_audit_log_retention_cleanup
+from src.infra.jobs.assets_thumbnails import ASSET_THUMBNAILS_JOB_NAME, generate_asset_thumbnails
+from src.infra.jobs.taskiq_app import broker
 
 
 @broker.task(task_name=ASSET_THUMBNAILS_JOB_NAME)

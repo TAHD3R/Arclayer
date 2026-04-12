@@ -5,13 +5,13 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
-from apps.api.src.common.constants.assets import ADMIN_ASSET_ALLOWED_ORDER_FIELDS
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.assets.asset import AssetRecord
-from apps.api.src.models.assets.asset_folder import AssetFolderRecord
-from apps.api.src.models.assets.asset_tag import AssetTagLinkRecord, AssetTagRecord
-from apps.api.src.modules.assets.admin.assets.schema import AdminAssetListQuery
-from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
+from src.common.constants.assets import ADMIN_ASSET_ALLOWED_ORDER_FIELDS
+from src.common.repositories import BaseRepository
+from src.models.assets.asset import AssetRecord
+from src.models.assets.asset_folder import AssetFolderRecord
+from src.models.assets.asset_tag import AssetTagLinkRecord, AssetTagRecord
+from src.modules.assets.admin.assets.schema import AdminAssetListQuery
+from src.modules.assets.scope import AssetScope, scope_filter_kwargs
 
 
 class AdminAssetsRepository(BaseRepository):

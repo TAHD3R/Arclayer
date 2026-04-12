@@ -4,8 +4,8 @@ from collections.abc import Sequence
 from typing import Protocol, cast
 from uuid import UUID
 
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.organization.org_rbac import (
+from src.common.repositories import BaseRepository
+from src.models.organization.org_rbac import (
     OrganizationPermission,
     OrganizationRole,
     OrganizationRolePermission,

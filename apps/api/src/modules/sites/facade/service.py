@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
-from apps.api.src.modules.sites import schema as sites_schema
+from src.modules.sites import schema as sites_schema
 
 if TYPE_CHECKING:
-    from apps.api.src.modules.sites.content.service import SiteContentService
-    from apps.api.src.modules.sites.publishing.service import SitePublishingService
+    from src.modules.sites.content.service import SiteContentService
+    from src.modules.sites.publishing.service import SitePublishingService
 
 
 class SiteContentPublishingFacadeMixin:

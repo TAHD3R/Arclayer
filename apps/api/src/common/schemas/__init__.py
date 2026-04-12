@@ -1,6 +1,6 @@
 """Common Pydantic schemas."""
 
-from apps.api.src.common.schemas.base import (
+from src.common.schemas.base import (
     BaseOut,
     BaseSchema,
     BulkOperationResponseSchema,

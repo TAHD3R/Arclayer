@@ -4,13 +4,13 @@ from uuid import uuid4
 
 import pytest
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.modules.organization.router import create_my_organization
-from apps.api.src.modules.organization.schema import CreateMyOrganizationRequest
-from apps.api.src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
-from apps.api.src.modules.organization.workspaces.service import OrganizationWorkspaceService
+from src.config import get_settings
+from src.core.exceptions import BadRequest
+from src.models.organization.org_membership import OrgRole
+from src.modules.organization.router import create_my_organization
+from src.modules.organization.schema import CreateMyOrganizationRequest
+from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
+from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 
 
 async def test_create_organization_rejects_name_too_long(monkeypatch) -> None:

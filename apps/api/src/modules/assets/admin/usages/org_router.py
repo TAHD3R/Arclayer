@@ -5,24 +5,24 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response as JsonResponse
-from apps.api.src.core.http.response import ResponseModel
-from apps.api.src.models.organization.org_membership import OrgMembership
-from apps.api.src.modules.assets.admin.usages.schema import (
+from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response as JsonResponse
+from src.core.http.response import ResponseModel
+from src.models.organization.org_membership import OrgMembership
+from src.modules.assets.admin.usages.schema import (
     AdminAssetUsageDeleteOut,
     AdminAssetUsageDeleteRequest,
     AdminAssetUsageOut,
     AdminAssetUsageUpsertRequest,
 )
-from apps.api.src.modules.assets.admin.usages.service import AdminAssetUsagesService
-from apps.api.src.modules.assets.scope import AssetScope
-from apps.api.src.modules.auth.http.service import get_current_user
-from apps.api.src.modules.organization.http.service import (
+from src.modules.assets.admin.usages.service import AdminAssetUsagesService
+from src.modules.assets.scope import AssetScope
+from src.modules.auth.http.service import get_current_user
+from src.modules.organization.http.service import (
     get_org_membership_for_organization,
     require_org_permission,
 )

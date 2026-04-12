@@ -5,9 +5,9 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from apps.api.src.common.schemas import BaseOut, BaseSchema, TimestampMixin
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.system.settings.schema import SettingsSchemaItem
+from src.common.schemas import BaseOut, BaseSchema, TimestampMixin
+from src.common.types.public_uuid import PublicUUID
+from src.modules.system.settings.schema import SettingsSchemaItem
 
 
 class SysConfigNamespaceSummary(BaseSchema):

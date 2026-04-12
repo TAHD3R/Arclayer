@@ -6,17 +6,17 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.config import get_settings
-from apps.api.src.core.database.orm import verify_db_ready
-from apps.api.src.core.registry import create_app
-from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.system.admin.notifications.preferences import (
+from src.common.utils.public_ids import encode_uuid
+from src.config import get_settings
+from src.core.database.orm import verify_db_ready
+from src.core.registry import create_app
+from src.models.system.notification import NotificationCategory, NotificationRecord
+from src.models.system.setting import SettingRecord
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.system.admin.notifications.preferences import (
     NOTIFICATION_PREFERENCES_NAMESPACE,
 )
-from apps.api.src.settings.scopes import SCOPE_TYPE_USER
+from src.settings.scopes import SCOPE_TYPE_USER
 
 pytestmark = pytest.mark.integration
 
@@ -28,11 +28,11 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
     Returns (workspace_id, admin_user_id).
     """
 
-    from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-    from apps.api.src.models.workspaces.workspace import Workspace
-    from apps.api.src.modules.auth.repository import UserRepository
-    from apps.api.src.modules.auth.tokens.service import hash_password
-    from apps.api.src.modules.organization.repository import OrganizationRepository
+    from src.models.organization.org_membership import OrgMembership, OrgRole
+    from src.models.workspaces.workspace import Workspace
+    from src.modules.auth.repository import UserRepository
+    from src.modules.auth.tokens.service import hash_password
+    from src.modules.organization.repository import OrganizationRepository
 
     settings = get_settings()
     org_repo = OrganizationRepository()

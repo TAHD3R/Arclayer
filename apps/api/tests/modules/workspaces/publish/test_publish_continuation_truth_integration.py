@@ -4,12 +4,12 @@ from typing import Any, cast
 
 import pytest
 
-from apps.api.src.common.utils.public_ids import decode_public_id
-from apps.api.src.models.content._enums import ContentShapeState
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.publish_artifact import PublishArtifactRecord
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
-from apps.api.tests.modules.workspaces.publish.test_publish_integration import _publish_item, _setup_publishable_items
+from src.common.utils.public_ids import decode_public_id
+from src.models.content._enums import ContentShapeState
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.publish_artifact import PublishArtifactRecord
+from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from tests.modules.workspaces.publish.test_publish_integration import _publish_item, _setup_publishable_items
 
 pytestmark = pytest.mark.integration
 

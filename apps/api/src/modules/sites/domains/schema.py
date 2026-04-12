@@ -5,8 +5,8 @@ from typing import Annotated
 
 from pydantic import ConfigDict, Field, field_validator
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
+from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
 
 
 def _normalize_hostname(value: str) -> str:

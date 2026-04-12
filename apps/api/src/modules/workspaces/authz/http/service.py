@@ -4,13 +4,13 @@ from uuid import UUID
 
 from fastapi import Depends
 
-from apps.api.src.core.exceptions import Forbidden
-from apps.api.src.core.i18n import t
-from apps.api.src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
-from apps.api.src.models.workspaces.workspace import WorkspaceMembershipRole
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.core.exceptions import Forbidden
+from src.core.i18n import t
+from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
+from src.models.workspaces.workspace import WorkspaceMembershipRole
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 
 async def _list_user_role_codes_in_workspace(*, user_id: UUID, workspace_id: UUID) -> list[str]:
@@ -59,8 +59,8 @@ async def ensure_workspace_permission_granted(
             role__is_system=True,
         ).exists()
     ):
-        from apps.api.src.config import get_settings
-        from apps.api.src.modules.system.rbac.service import RBACService
+        from src.config import get_settings
+        from src.modules.system.rbac.service import RBACService
 
         await RBACService(get_settings()).ensure_workspace_system_role_grants(workspace_id=ctx.workspace_id)
 

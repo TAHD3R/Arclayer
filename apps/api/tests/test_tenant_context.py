@@ -5,11 +5,11 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.src.core.exceptions import Forbidden, NotFound
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.modules.workspaces import service as ws_service
-from apps.api.src.modules.workspaces.http import service as ws_http_service
-from apps.api.src.modules.workspaces.http.schema import WorkspaceAccessType
+from src.core.exceptions import Forbidden, NotFound
+from src.models.organization.org_membership import OrgRole
+from src.modules.workspaces import service as ws_service
+from src.modules.workspaces.http import service as ws_http_service
+from src.modules.workspaces.http.schema import WorkspaceAccessType
 
 
 @pytest.mark.asyncio

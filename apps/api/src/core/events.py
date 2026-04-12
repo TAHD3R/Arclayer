@@ -8,8 +8,8 @@ from typing import Any
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.core.logging import get_logger
+from src.common.schemas import BaseSchema
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 _FATAL_EVENT_BUS_ERRORS: tuple[type[BaseException], ...] = (

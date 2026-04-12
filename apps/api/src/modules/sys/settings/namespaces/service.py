@@ -5,34 +5,34 @@ from uuid import UUID
 
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-from apps.api.src.common.protocols.logging import LoggerLike
-from apps.api.src.config import Settings
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.modules.sys.settings.namespaces.schema import (
+from src.common.protocols.logging import LoggerLike
+from src.config import Settings
+from src.models.system.setting import SettingRecord
+from src.modules.sys.settings.namespaces.schema import (
     SYS_NAMESPACE_AUTH,
     SYS_NAMESPACE_CORE_LEGACY,
     SYS_NAMESPACE_MAIL,
     SYS_NAMESPACE_OAUTH,
     SYS_NAMESPACE_STORAGE,
 )
-from apps.api.src.modules.sys.settings.repository import SysConfigRepository
-from apps.api.src.modules.sys.settings.schema import SysConfigDetail, SysConfigNamespaceSummary
-from apps.api.src.modules.sys.settings.schemahelpers.service import (
+from src.modules.sys.settings.repository import SysConfigRepository
+from src.modules.sys.settings.schema import SysConfigDetail, SysConfigNamespaceSummary
+from src.modules.sys.settings.schemahelpers.service import (
     SysConfigSchemaHelpersMixin,
     _canonical_json_bytes,
     _ts,
 )
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.schema import ConfigSchema
-from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
-from apps.api.src.settings.signing import (
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.schema import ConfigSchema
+from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from src.settings.signing import (
     ensure_signing_keypair,
     fingerprint_key_bytes,
     load_public_key,
     sign_detached,
     verify_detached,
 )
-from apps.api.src.settings.validation import merge_deep
+from src.settings.validation import merge_deep
 
 
 class SysConfigNamespacesMixin(SysConfigSchemaHelpersMixin):

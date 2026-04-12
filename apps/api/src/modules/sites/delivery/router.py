@@ -7,12 +7,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi import Response as FastAPIResponse
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.infra.cache.valkey import get_valkey
-from apps.api.src.modules.sites.delivery.schema import DeliveryMenuOut, DeliveryStyleOut
-from apps.api.src.modules.sites.service import SiteService
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.infra.cache.valkey import get_valkey
+from src.modules.sites.delivery.schema import DeliveryMenuOut, DeliveryStyleOut
+from src.modules.sites.service import SiteService
 
 router = APIRouter(prefix="/sites/{site_id}/delivery", tags=["Delivery"])
 

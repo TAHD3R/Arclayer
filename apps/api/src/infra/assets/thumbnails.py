@@ -5,7 +5,7 @@ from typing import Any, Protocol
 
 from pydantic import ConfigDict
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 
 class ImageThumbnailVariant(BaseSchema):

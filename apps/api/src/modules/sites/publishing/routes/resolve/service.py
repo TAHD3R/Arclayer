@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.core.exceptions import Conflict
-from apps.api.src.modules.sites.publishing.includes.service import PublishingIncludesService
-from apps.api.src.modules.sites.publishing.routes.resolve.content.service import ContentPageRouteResolver
-from apps.api.src.modules.sites.repository import SitesRepository
-from apps.api.src.modules.sites.schema import SiteRouteMatchOut, SiteRouteResolveOut
-from apps.api.src.modules.sites.shared.service import normalize_path as normalize_site_path
+from src.common.services.base import BaseService
+from src.core.exceptions import Conflict
+from src.modules.sites.publishing.includes.service import PublishingIncludesService
+from src.modules.sites.publishing.routes.resolve.content.service import ContentPageRouteResolver
+from src.modules.sites.repository import SitesRepository
+from src.modules.sites.schema import SiteRouteMatchOut, SiteRouteResolveOut
+from src.modules.sites.shared.service import normalize_path as normalize_site_path
 
 
 class PublishingRoutesResolveService(BaseService):

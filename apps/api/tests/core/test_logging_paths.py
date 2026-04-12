@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from apps.api.src.config import LoggingSettings
+from src.config import LoggingSettings
 
 
 def test_logging_log_dir_resolves_repo_relative_path() -> None:

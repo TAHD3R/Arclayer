@@ -6,8 +6,8 @@ from collections.abc import AsyncIterator
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.src.config import ApplicationSettings, Settings
-from apps.api.src.core.registry import AppFactory
+from src.config import ApplicationSettings, Settings
+from src.core.registry import AppFactory
 
 _ASGI_TRANSPORT_HEARTBEAT_INTERVAL_SECONDS = 0.2
 

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pydantic import Field, model_validator
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
+from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
 
 
 class OrganizationLocalizationOut(BaseSchema):

@@ -4,7 +4,7 @@ from uuid import uuid4
 
 
 def test_canonical_asset_filename() -> None:
-    from apps.api.src.modules.assets.service import canonical_asset_filename
+    from src.modules.assets.service import canonical_asset_filename
 
     assert canonical_asset_filename(slug="avatar", ext="png") == "avatar.png"
     assert canonical_asset_filename(slug="avatar", ext=".png") == "avatar.png"
@@ -12,7 +12,7 @@ def test_canonical_asset_filename() -> None:
 
 
 def test_build_asset_headers_sets_noindex_by_default() -> None:
-    from apps.api.src.modules.assets.service import AssetPublicView, build_asset_headers
+    from src.modules.assets.service import AssetPublicView, build_asset_headers
 
     view = AssetPublicView(
         id=uuid4(),
@@ -33,7 +33,7 @@ def test_build_asset_headers_sets_noindex_by_default() -> None:
 
 
 def test_build_asset_headers_omits_noindex_when_indexable() -> None:
-    from apps.api.src.modules.assets.service import AssetPublicView, build_asset_headers
+    from src.modules.assets.service import AssetPublicView, build_asset_headers
 
     view = AssetPublicView(
         id=uuid4(),

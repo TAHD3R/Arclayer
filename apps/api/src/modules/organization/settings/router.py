@@ -5,18 +5,18 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasUserId
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.models.organization.org_membership import OrgMembership
-from apps.api.src.modules.organization.http.service import (
+from src.common.protocols.tortoise import HasOrganizationId, HasUserId
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.models.organization.org_membership import OrgMembership
+from src.modules.organization.http.service import (
     get_current_org_membership,
     get_org_membership_for_organization,
     require_org_permission,
 )
-from apps.api.src.modules.organization.settings.danger_service import OrganizationDangerService
-from apps.api.src.modules.organization.settings.schema import (
+from src.modules.organization.settings.danger_service import OrganizationDangerService
+from src.modules.organization.settings.schema import (
     DeleteOrganizationResult,
     LeaveOrganizationRequest,
     LeaveOrganizationResult,
@@ -26,7 +26,7 @@ from apps.api.src.modules.organization.settings.schema import (
     OrganizationSettingsCoreOut,
     OrganizationSettingsCorePatch,
 )
-from apps.api.src.modules.organization.settings.service import OrganizationSettingsService
+from src.modules.organization.settings.service import OrganizationSettingsService
 
 router = APIRouter(prefix="/organizations/me", tags=["Organization Settings"])
 scoped_router = APIRouter(tags=["Organization Settings"])

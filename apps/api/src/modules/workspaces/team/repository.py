@@ -5,11 +5,11 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
-from apps.api.src.common.constants.users import ADMIN_USERS_ALLOWED_ORDER_FIELDS
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.system.rbac import Role
-from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipRole
-from apps.api.src.modules.workspaces.team.schema import WorkspaceTeamMemberListQuery
+from src.common.constants.users import ADMIN_USERS_ALLOWED_ORDER_FIELDS
+from src.common.repositories import BaseRepository
+from src.models.system.rbac import Role
+from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipRole
+from src.modules.workspaces.team.schema import WorkspaceTeamMemberListQuery
 
 
 class WorkspaceTeamRepository(BaseRepository):

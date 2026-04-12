@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.src.settings.schema import ConfigField, ConfigSchema, ConfigSection
+from src.settings.schema import ConfigField, ConfigSchema, ConfigSection
 
 CORE_SETTINGS_NAMESPACE = "core"
 

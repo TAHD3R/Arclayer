@@ -5,19 +5,19 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.content.routing.schema import (
+from src.common.types.public_uuid import PublicUUID
+from src.core.http.response import Response, ResponseModel
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.content.routing.schema import (
     HierarchyNodeOut,
     HierarchyNodeUpsertIn,
     RouteBindingOut,
     RouteBindingUpsertIn,
 )
-from apps.api.src.modules.workspaces.content.routing.service import WorkspaceContentRoutingService
-from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.content.routing.service import WorkspaceContentRoutingService
+from src.modules.workspaces.content.shared.router import _resolve_site_id
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 canonical_routing_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content/routing",

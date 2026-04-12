@@ -5,25 +5,25 @@ from datetime import UTC, datetime
 from typing import Any, Protocol, cast
 from uuid import UUID
 
-from apps.api.src.common.email.service import EmailService
-from apps.api.src.common.invitations.expiry.service import build_expires_at
-from apps.api.src.common.invitations.tokens.service import build_invite_token, generate_invite_code
-from apps.api.src.common.protocols.tortoise import HasUserId
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_invitation import (
+from src.common.email.service import EmailService
+from src.common.invitations.expiry.service import build_expires_at
+from src.common.invitations.tokens.service import build_invite_token, generate_invite_code
+from src.common.protocols.tortoise import HasUserId
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.core.i18n import t
+from src.models.organization.org_invitation import (
     OrganizationEmailInvite,
     OrganizationInviteLink,
 )
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.models.workspaces.workspace import WorkspaceMembership
-from apps.api.src.modules.organization.members.repository import OrganizationMemberRepository
-from apps.api.src.modules.organization.members.schema import (
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.user import User
+from src.models.system.setting import SettingRecord
+from src.models.workspaces.workspace import WorkspaceMembership
+from src.modules.organization.members.repository import OrganizationMemberRepository
+from src.modules.organization.members.schema import (
     OrganizationInvitationOut,
     OrganizationInvitationRenewResult,
     OrganizationInvitationUserRefOut,
@@ -38,8 +38,8 @@ from apps.api.src.modules.organization.members.schema import (
     OrganizationMemberOut,
     OrganizationMemberWorkspaceOut,
 )
-from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
-from apps.api.src.settings.scopes import SCOPE_TYPE_ORG
+from src.modules.organization.rbac.service import OrganizationRBACService
+from src.settings.scopes import SCOPE_TYPE_ORG
 
 
 class _RoleCodeRef(Protocol):

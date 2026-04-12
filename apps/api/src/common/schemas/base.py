@@ -11,7 +11,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from apps.api.src.common.types.public_uuid import PublicUUID
+from src.common.types.public_uuid import PublicUUID
 
 
 class BaseSchema(BaseModel):

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.src.common.utils.public_ids import decode_public_id
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
+from src.common.utils.public_ids import decode_public_id
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from tests.modules.workspaces.content.test_content_items_integration import (
     _draft_payload,
     _item_payload,
     _model_payload,

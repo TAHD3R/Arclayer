@@ -5,29 +5,29 @@ from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
-from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
-from apps.api.src.common.services import BaseService
-from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
-from apps.api.src.core.i18n import t
-from apps.api.src.models.system.rbac import Role
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.models.workspaces.workspace import (
+from src.common.protocols.tortoise import SettingUpdatedBy
+from src.common.services import BaseService
+from src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from src.core.i18n import t
+from src.models.system.rbac import Role
+from src.models.system.setting import SettingRecord
+from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
-from apps.api.src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
-from apps.api.src.modules.workspaces.settings.integrations.webhooks.service import WebhooksService
-from apps.api.src.modules.workspaces.settings.schema import (
+from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
+from src.modules.workspaces.settings.integrations.webhooks.service import WebhooksService
+from src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersResult,
     WorkspaceRolePolicyOut,
     WorkspaceSettingsDetail,
 )
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
-from apps.api.src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
-from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
-from apps.api.src.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
+from src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
+from src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.settings.validation import iter_secret_field_paths, merge_deep, validate_config_schema
 
 WORKSPACE_CORE_SETTINGS_UPDATED_EVENT = "settings.workspace.core.updated"
 

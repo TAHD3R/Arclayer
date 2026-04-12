@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.src.modules.sites.patterns.repository import SitePatternRepository
-from apps.api.src.modules.sites.schema import SitePatternCreateIn, SitePatternOut, SitePatternUpdateIn
+from src.common.services.base import BaseService
+from src.config import Settings
+from src.core.exceptions import Conflict, NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_queryset
+from src.modules.sites.patterns.repository import SitePatternRepository
+from src.modules.sites.schema import SitePatternCreateIn, SitePatternOut, SitePatternUpdateIn
 
 
 class SitePatternService(BaseService):

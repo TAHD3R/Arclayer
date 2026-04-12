@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.system.settings.schema import (
+from src.core.i18n import t
+from src.modules.system.settings.schema import (
     SettingsFieldItem,
     SettingsOptionItem,
     SettingsSchemaItem,
     SettingsSectionItem,
 )
-from apps.api.src.settings.schema import ConfigSchema
+from src.settings.schema import ConfigSchema
 
 
 class SettingsSchemaHelpersMixin:

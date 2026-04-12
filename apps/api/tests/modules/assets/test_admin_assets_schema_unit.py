@@ -5,8 +5,8 @@ from uuid import uuid4
 
 
 def test_admin_asset_summary_out_computed_urls_for_public() -> None:
-    from apps.api.src.common.utils.public_ids import encode_uuid
-    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
+    from src.common.utils.public_ids import encode_uuid
+    from src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
 
     asset_id = uuid4()
     workspace_id = uuid4()
@@ -35,7 +35,7 @@ def test_admin_asset_summary_out_computed_urls_for_public() -> None:
 
 
 def test_admin_asset_summary_out_computed_urls_for_private() -> None:
-    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
+    from src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
 
     asset_id = uuid4()
     workspace_id = uuid4()
@@ -61,8 +61,8 @@ def test_admin_asset_summary_out_computed_urls_for_private() -> None:
 
 
 def test_admin_asset_list_query_accepts_datetime_and_tags() -> None:
-    from apps.api.src.common.utils.public_ids import encode_uuid
-    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetListQuery
+    from src.common.utils.public_ids import encode_uuid
+    from src.modules.assets.admin.assets.schema import AdminAssetListQuery
 
     q = AdminAssetListQuery.model_validate({
         "createdFrom": "2026-01-28T00:00:00Z",
@@ -78,8 +78,8 @@ def test_admin_asset_list_query_accepts_datetime_and_tags() -> None:
 
 
 def test_admin_asset_update_request_accepts_editable_metadata_fields() -> None:
-    from apps.api.src.common.utils.public_ids import encode_uuid
-    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetUpdateRequest
+    from src.common.utils.public_ids import encode_uuid
+    from src.modules.assets.admin.assets.schema import AdminAssetUpdateRequest
 
     tid = uuid4()
     r = AdminAssetUpdateRequest.model_validate({
@@ -95,7 +95,7 @@ def test_admin_asset_update_request_accepts_editable_metadata_fields() -> None:
 
 
 def test_admin_asset_summary_out_accepts_uploader_identity_fields() -> None:
-    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
+    from src.modules.assets.admin.assets.schema import AdminAssetSummaryOut
 
     out = AdminAssetSummaryOut(
         id=uuid4(),

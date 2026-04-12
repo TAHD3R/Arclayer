@@ -7,19 +7,19 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.src.common.utils.public_ids import decode_public_id, encode_uuid
-from apps.api.src.config import get_settings
-from apps.api.src.core.database.orm import verify_db_ready
-from apps.api.src.core.registry import create_app
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.workspaces.workspace import Workspace
-from apps.api.src.modules.auth.http.service import get_current_user, get_current_user_id
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.organization.repository import OrganizationRepository
+from src.common.utils.public_ids import decode_public_id, encode_uuid
+from src.config import get_settings
+from src.core.database.orm import verify_db_ready
+from src.core.registry import create_app
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.presentation_document import PresentationDocumentRecord
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.user import User
+from src.models.workspaces.workspace import Workspace
+from src.modules.auth.http.service import get_current_user, get_current_user_id
+from src.modules.auth.repository import UserRepository
+from src.modules.organization.repository import OrganizationRepository
 
 pytestmark = pytest.mark.integration
 
@@ -31,7 +31,7 @@ async def _wait_latest_workspace_audit_event(
     entity_id: UUID | None = None,
     timeout_seconds: float = 3.0,
 ):
-    from apps.api.src.models.analytics.audit_event import AuditEvent
+    from src.models.analytics.audit_event import AuditEvent
 
     deadline = asyncio.get_running_loop().time() + timeout_seconds
     while True:

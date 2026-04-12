@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.sys.http.service import require_sys_super_admin
-from apps.api.src.modules.sys.settings.schema import (
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
+from src.core.http.response import Response, ResponseModel
+from src.modules.sys.http.service import require_sys_super_admin
+from src.modules.sys.settings.schema import (
     SysConfigActivateRequest,
     SysConfigDetail,
     SysConfigNamespaceSummary,
@@ -17,7 +17,7 @@ from apps.api.src.modules.sys.settings.schema import (
     SysConfigTestRequest,
     SysConfigTestResult,
 )
-from apps.api.src.modules.sys.settings.service import SysConfigService
+from src.modules.sys.settings.service import SysConfigService
 
 router = APIRouter(
     tags=["Sys: Settings"],

@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from typing import Any, Final
 from uuid import UUID
 
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
+from src.infra.cache.valkey import ValkeyClientLike
+from src.modules.auth.sessions.request_context import AuthRequestContext
 
 _DEFAULT_CHALLENGE_TTL_SECONDS: Final[int] = 5 * 60
 _DEFAULT_MAX_ATTEMPTS: Final[int] = 10

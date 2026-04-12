@@ -4,10 +4,10 @@ from datetime import datetime
 
 from pydantic import Field, model_validator
 
-from apps.api.src.common.schemas import BaseOut, BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.models.organization.user import UserStatus
+from src.common.schemas import BaseOut, BaseSchema
+from src.common.types.public_uuid import PublicUUID
+from src.models.organization.org_membership import OrgRole
+from src.models.organization.user import UserStatus
 
 
 class OrganizationMemberWorkspaceOut(BaseSchema):

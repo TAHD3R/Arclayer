@@ -3,15 +3,15 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
-from apps.api.src.core.i18n import t
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.repository import RefreshTokenStore
-from apps.api.src.modules.auth.sessions.device_label import build_device_label
-from apps.api.src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
-from apps.api.src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionOut
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
+from src.core.i18n import t
+from src.infra.cache.valkey import ValkeyClientLike
+from src.modules.auth.repository import RefreshTokenStore
+from src.modules.auth.sessions.device_label import build_device_label
+from src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
+from src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionOut
 
 
 def _parse_ts(raw: object | None) -> datetime | None:

@@ -8,11 +8,11 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.models.analytics.audit_event import AuditEvent
-from apps.api.src.modules.auth.http.service import get_current_user
-from apps.api.src.modules.organization.http.service import require_org_admin
-from apps.api.src.modules.system.router import router as system_router
+from src.common.utils.public_ids import encode_uuid
+from src.models.analytics.audit_event import AuditEvent
+from src.modules.auth.http.service import get_current_user
+from src.modules.organization.http.service import require_org_admin
+from src.modules.system.router import router as system_router
 
 pytestmark = pytest.mark.integration
 

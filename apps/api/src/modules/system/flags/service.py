@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from apps.api.src.config import Settings
-from apps.api.src.modules.system.flags.schema import DeploymentMode, SystemFlagsOut
+from src.config import Settings
+from src.modules.system.flags.schema import DeploymentMode, SystemFlagsOut
 
 
 def build_system_flags(*, settings: Settings) -> SystemFlagsOut:

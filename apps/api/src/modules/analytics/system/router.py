@@ -5,15 +5,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
-from apps.api.src.modules.analytics.service import ActivityService
-from apps.api.src.modules.auth.http.service import get_current_user
-from apps.api.src.modules.organization.http.service import require_org_admin
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
+from src.modules.analytics.service import ActivityService
+from src.modules.auth.http.service import get_current_user
+from src.modules.organization.http.service import require_org_admin
 
 router = APIRouter(
     tags=["System: Activity"],

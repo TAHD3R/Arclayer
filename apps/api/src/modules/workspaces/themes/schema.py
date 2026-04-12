@@ -5,9 +5,9 @@ from typing import Any
 
 from pydantic import Field, field_validator
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.modules.sites.design.schema import PageBlueprint
+from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
+from src.modules.sites.design.schema import PageBlueprint
 
 _NPM_NAME_RE = re.compile(
     # Very small subset of npm package name rules:

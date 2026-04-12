@@ -3,13 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from apps.api.src.models.content._enums import (
+from src.models.content._enums import (
     ContentContinuationPosture,
     ContentContinuationRole,
     ContentContinuationSurface,
     ContentShapeState,
 )
-from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
+from src.models.content.model_definition import ContentModelDefinitionRecord
 
 UNSHAPED_ITEM_REASON_CODE = "UNSHAPED_ITEM"
 MODEL_DEFAULT_INVALID_REASON_CODE = "MODEL_DEFAULT_INVALID"

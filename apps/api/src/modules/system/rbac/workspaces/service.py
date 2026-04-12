@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import Conflict
-from apps.api.src.models.workspaces.workspace import Workspace
-from apps.api.src.modules.system.rbac.catalogsync.service import RBACCatalogSyncMixin
-from apps.api.src.modules.system.rbac.constants.service import (
+from src.config import Settings
+from src.core.exceptions import Conflict
+from src.models.workspaces.workspace import Workspace
+from src.modules.system.rbac.catalogsync.service import RBACCatalogSyncMixin
+from src.modules.system.rbac.constants.service import (
     ROLE_ADMIN,
     ROLE_DESIGNER,
     ROLE_EDITOR,
     ROLE_OWNER,
     ROLE_VIEWER,
 )
-from apps.api.src.modules.system.rbac.localization.service import _tr
-from apps.api.src.modules.system.rbac.repository import RBACRepository
-from apps.api.src.modules.system.rbac.schema import PermissionSyncResult, PermissionTemplate, WorkspacesSyncResult
+from src.modules.system.rbac.localization.service import _tr
+from src.modules.system.rbac.repository import RBACRepository
+from src.modules.system.rbac.schema import PermissionSyncResult, PermissionTemplate, WorkspacesSyncResult
 
 
 class RBACWorkspacesMixin(RBACCatalogSyncMixin):

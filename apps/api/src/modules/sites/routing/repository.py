@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.route_binding import RouteBindingRecord
-from apps.api.src.modules.sites.shared.service import normalize_path
+from src.common.repositories.base import BaseRepository
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.route_binding import RouteBindingRecord
+from src.modules.sites.shared.service import normalize_path
 
 
 class SiteRoutingRepository(BaseRepository):

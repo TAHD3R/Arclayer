@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.config import Settings
-from apps.api.src.settings.runtime import get_core_settings_value_cached
+from src.config import Settings
+from src.settings.runtime import get_core_settings_value_cached
 
 
 class PublicRegisterPolicy(BaseModel):

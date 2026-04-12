@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from apps.api.src.modules.auth.sessions.schema import AuthSessionOut
+from src.modules.auth.sessions.schema import AuthSessionOut
 
 
 def test_auth_session_contract_includes_enriched_metadata_fields() -> None:

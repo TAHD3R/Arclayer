@@ -9,45 +9,45 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from tortoise.transactions import in_transaction
 
-from apps.api.src.common.invitations.tokens.service import verify_invite_token
-from apps.api.src.common.invitations.workspace_invites import (
+from src.common.invitations.tokens.service import verify_invite_token
+from src.common.invitations.workspace_invites import (
     is_workspace_email_invite_code,
     is_workspace_guest_invite_code,
     is_workspace_invite_link_code,
 )
-from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_invitation import (
+from src.common.protocols.tortoise import HasOrganizationId, HasWorkspaceId
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
+from src.core.i18n import t
+from src.models.organization.org_invitation import (
     OrganizationEmailInvite,
     OrganizationInviteLink,
     OrganizationInviteLinkUseEvent,
 )
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.organization import Organization
-from apps.api.src.models.organization.user import User, UserCredential, UserStatus
-from apps.api.src.models.system.rbac import Role
-from apps.api.src.models.workspaces.workspace import (
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.organization import Organization
+from src.models.organization.user import User, UserCredential, UserStatus
+from src.models.system.rbac import Role
+from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
-from apps.api.src.models.workspaces.workspace_invite import (
+from src.models.workspaces.workspace_invite import (
     WorkspaceEmailInvite,
     WorkspaceInviteLink,
     WorkspaceInviteLinkUseEvent,
 )
-from apps.api.src.modules.auth.schema import (
+from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
     AcceptInvitationRequest,
     TokenPair,
 )
-from apps.api.src.modules.auth.tokens.service import hash_password
-from apps.api.src.modules.system.admin.notifications.preferences import (
+from src.modules.auth.tokens.service import hash_password
+from src.modules.system.admin.notifications.preferences import (
     is_notification_channel_enabled_for_event,
 )
 
@@ -409,9 +409,9 @@ class AuthInvitationAcceptanceService(BaseService):
         # This must never break the onboarding flow if notification creation fails.
         if inviter_user_id is not None and accepted_user_id is not None:
             try:
-                from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
-                from apps.api.src.models.system.setting import SettingRecord
-                from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+                from src.models.system.notification import NotificationCategory, NotificationRecord
+                from src.models.system.setting import SettingRecord
+                from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
                 # Optional gate: allow disabling invite-related in-app notifications.
                 try:
@@ -478,7 +478,7 @@ class AuthInvitationAcceptanceService(BaseService):
         # Best-effort: emit audit event for invite acceptance.
         if organization_id is not None and workspace_id is not None and accepted_user_id is not None:
             try:
-                from apps.api.src.core.events import Event, events
+                from src.core.events import Event, events
 
                 await events.publish(
                     Event(
@@ -823,7 +823,7 @@ class AuthInvitationAcceptanceService(BaseService):
 
         if inviter_user_id is not None and organization_id is not None:
             try:
-                from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
+                from src.models.system.notification import NotificationCategory, NotificationRecord
 
                 accepted_display_name = user.display_name or user.username
                 is_org_invite = code.startswith("oi_") or code.startswith("ol_")

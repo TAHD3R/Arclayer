@@ -3,9 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, Query
 from starlette.responses import Response
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.modules.assets.service import AssetsService
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.modules.assets.service import AssetsService
 
 router = APIRouter(tags=["Public: Assets"])
 

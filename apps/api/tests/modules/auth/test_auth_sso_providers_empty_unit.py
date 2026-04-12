@@ -5,10 +5,10 @@ from uuid import UUID
 import pytest
 from starlette.requests import Request
 
-from apps.api.src.config import get_settings
-from apps.api.src.modules.auth.schema import TokenPair
-from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
-from apps.api.src.modules.auth.sso.service import AuthSSOService
+from src.config import get_settings
+from src.modules.auth.schema import TokenPair
+from src.modules.auth.sessions.request_context import AuthRequestContext
+from src.modules.auth.sso.service import AuthSSOService
 
 
 class _FakeLoginService:
@@ -49,7 +49,7 @@ async def test_auth_sso_list_providers_returns_empty_when_core_oauth_disabled(
     async def _fake_core_settings(*_args, **_kwargs):
         return {}
 
-    monkeypatch.setattr("apps.api.src.modules.auth.sso.service.get_core_settings_value_cached", _fake_core_settings)
+    monkeypatch.setattr("src.modules.auth.sso.service.get_core_settings_value_cached", _fake_core_settings)
 
     service = AuthSSOService(settings, valkey=None, login_service=_FakeLoginService())
 

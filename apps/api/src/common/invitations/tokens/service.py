@@ -6,9 +6,9 @@ import hmac
 import secrets
 from hashlib import sha256
 
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import ServiceUnavailable
-from apps.api.src.core.i18n import t
+from src.config import Settings
+from src.core.exceptions import ServiceUnavailable
+from src.core.i18n import t
 
 
 def _get_invite_signing_secret(settings: Settings) -> bytes:

@@ -5,12 +5,12 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
-from apps.api.src.models.content.component_binding import ComponentBindingRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.seo_profile import SEOProfileRecord
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.core.exceptions import NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.models.content.component_binding import ComponentBindingRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.seo_profile import SEOProfileRecord
+from src.modules.workspaces.content.contracts.schema import (
     ContentComponentBindingOut,
     ContentItemOut,
     ContentPresentationKind,
@@ -18,7 +18,7 @@ from apps.api.src.modules.workspaces.content.contracts.schema import (
     ContentSeoProfileOut,
     ContentVersionOut,
 )
-from apps.api.src.modules.workspaces.content.items.domain_helpers import (
+from src.modules.workspaces.content.items.domain_helpers import (
     read_slug_field,
     read_summary_field,
     read_title_field,
@@ -26,7 +26,7 @@ from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     to_item_out,
     to_version_out,
 )
-from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
+from src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
 
 ActiveItemFields = dict[str, str | None]
 

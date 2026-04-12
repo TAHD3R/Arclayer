@@ -7,14 +7,14 @@ from uuid import UUID
 from fastapi import Depends, Path
 from structlog.contextvars import bind_contextvars
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import Forbidden
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.exceptions import Forbidden
+from src.core.i18n import t
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.organization.rbac.service import OrganizationRBACService
 
 
 def _bind_org_context(orgm: OrgMembership) -> None:

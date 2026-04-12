@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
-from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
-from apps.api.src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
-from apps.api.src.modules.workspaces.schema import WorkspaceDangerActionOut, WorkspaceDangerCapabilitiesOut
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import NotFound
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.modules.system.rbac.constants.service import ROLE_OWNER
+from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
+from src.modules.workspaces.schema import WorkspaceDangerActionOut, WorkspaceDangerCapabilitiesOut
 
 
 class WorkspaceDangerService(BaseService):
@@ -76,7 +76,7 @@ class WorkspaceDangerService(BaseService):
         return None
 
     async def _get_owner_role_ids(self, *, workspace_id: UUID) -> list[UUID]:
-        from apps.api.src.models.system.rbac import Role
+        from src.models.system.rbac import Role
 
         rows = await Role.filter(workspace_id=workspace_id, code=ROLE_OWNER).values_list("id", flat=True)
         return [UUID(str(raw)) for raw in rows if raw is not None]

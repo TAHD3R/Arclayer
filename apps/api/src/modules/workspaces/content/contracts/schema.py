@@ -5,8 +5,8 @@ from typing import Any, Literal
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
+from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
 
 ContentModelCategory = Literal["site_builder", "content_library", "system", "custom"]
 ContentModelCapability = Literal[

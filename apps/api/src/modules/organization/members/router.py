@@ -6,17 +6,17 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.core.http.pagination import DependsPagination, PageData, PageParams
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.user import UserStatus
-from apps.api.src.modules.organization.http.service import get_current_org_membership
-from apps.api.src.modules.organization.members.schema import (
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest
+from src.core.http.pagination import DependsPagination, PageData, PageParams
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import t
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.user import UserStatus
+from src.modules.organization.http.service import get_current_org_membership
+from src.modules.organization.members.schema import (
     OrganizationInvitationOut,
     OrganizationInvitationRenewRequest,
     OrganizationInvitationRenewResult,
@@ -32,7 +32,7 @@ from apps.api.src.modules.organization.members.schema import (
     OrganizationMemberOut,
     OrganizationMemberRoleUpdateRequest,
 )
-from apps.api.src.modules.organization.members.service import OrganizationMemberService
+from src.modules.organization.members.service import OrganizationMemberService
 
 router = APIRouter(prefix="/organizations/me", tags=["Organization"])
 

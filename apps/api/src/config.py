@@ -5,7 +5,7 @@ from typing import Any, Literal, cast
 from pydantic import AliasChoices, Field, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from apps.api.src.config_runtime import (
+from src.config_runtime import (
     AuthSettings,
     EmailSettings,
     PublicIdSettings,
@@ -367,9 +367,9 @@ class DatabaseSettings(BaseSettings):
     use_tz: bool = Field(default=True, validation_alias=AliasChoices("DB_USE_TZ", "DATABASE_USE_TZ"))
     timezone: str = Field(default="UTC", validation_alias=AliasChoices("DB_TIMEZONE", "DATABASE_TIMEZONE"))
     core_models: list[str] = Field(
-        # ORM models live under `apps.api.src.models`. Do not include `apps.api.src.modules` here:
+        # ORM models live under `src.models`. Do not include `src.modules` here:
         # business modules do not contain Tortoise models by design.
-        default_factory=lambda: ["apps.api.src.models"],
+        default_factory=lambda: ["src.models"],
         validation_alias=AliasChoices("DB_CORE_MODELS", "DATABASE_CORE_MODELS"),
     )
     models_max_depth: int | None = Field(

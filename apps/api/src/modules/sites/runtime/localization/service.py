@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.scopes import SCOPE_TYPE_WORKSPACE
+from src.models.system.setting import SettingRecord
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.scopes import SCOPE_TYPE_WORKSPACE
 
 
 class SiteRuntimeLocalizationMixin:

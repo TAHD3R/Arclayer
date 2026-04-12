@@ -6,9 +6,9 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
-from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.models.sites.site_domain import SiteDomainRecord
+from src.common.repositories.base import BaseRepository
+from src.core.exceptions import Conflict, NotFound
+from src.models.sites.site_domain import SiteDomainRecord
 
 
 class SiteDomainsRepository(BaseRepository):

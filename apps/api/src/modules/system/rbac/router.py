@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.organization.http.service import require_org_admin
-from apps.api.src.modules.system.rbac.schema import PermissionOut, PermissionSyncResult
-from apps.api.src.modules.system.rbac.service import RBACService
+from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
+from src.core.http.response import Response, ResponseModel
+from src.modules.organization.http.service import require_org_admin
+from src.modules.system.rbac.schema import PermissionOut, PermissionSyncResult
+from src.modules.system.rbac.service import RBACService
 
 router = APIRouter(tags=["System: RBAC"], dependencies=[Depends(require_org_admin)])
 

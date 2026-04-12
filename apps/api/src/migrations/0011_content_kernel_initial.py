@@ -1,5 +1,5 @@
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.models.content._enums import (
+from src.common.utils.ids import uuid7
+from src.models.content._enums import (
     ContentItemStatus,
     ContentItemVisibility,
     ContentModelFieldType,

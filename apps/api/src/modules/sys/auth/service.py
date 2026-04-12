@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import Unauthorized
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.user import User, UserCredential
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.tokens.service import build_sys_access_token, verify_password
+from src.common.services.base import BaseService
+from src.config import Settings
+from src.core.exceptions import Unauthorized
+from src.core.i18n import t
+from src.models.organization.user import User, UserCredential
+from src.modules.auth.repository import UserRepository
+from src.modules.auth.tokens.service import build_sys_access_token, verify_password
 
 
 class SysAuthService(BaseService):

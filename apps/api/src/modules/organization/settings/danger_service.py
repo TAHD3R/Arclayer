@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import Forbidden, NotFound
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
-from apps.api.src.modules.organization.settings.leave_guard import OrganizationLeaveGuard
-from apps.api.src.modules.organization.settings.repository import OrganizationSettingsRepository
-from apps.api.src.modules.organization.settings.schema import (
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import Forbidden, NotFound
+from src.models.organization.org_membership import OrgRole
+from src.modules.organization.rbac.service import OrganizationRBACService
+from src.modules.organization.settings.leave_guard import OrganizationLeaveGuard
+from src.modules.organization.settings.repository import OrganizationSettingsRepository
+from src.modules.organization.settings.schema import (
     OrganizationDangerActionOut,
     OrganizationDangerCapabilitiesOut,
 )

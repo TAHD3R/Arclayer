@@ -8,8 +8,8 @@ from fastapi import FastAPI, Request
 from redis import exceptions as redis_exc
 from redis.asyncio import Redis
 
-from apps.api.src.config import Settings, ValkeySettings
-from apps.api.src.core.logging import get_logger
+from src.config import Settings, ValkeySettings
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 

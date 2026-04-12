@@ -4,8 +4,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.src.core.exceptions import Forbidden
-from apps.api.src.modules.organization.settings.leave_guard import OrganizationLeaveGuard, OrgLeaveDataProvider
+from src.core.exceptions import Forbidden
+from src.modules.organization.settings.leave_guard import OrganizationLeaveGuard, OrgLeaveDataProvider
 
 
 class FakeData(OrgLeaveDataProvider):

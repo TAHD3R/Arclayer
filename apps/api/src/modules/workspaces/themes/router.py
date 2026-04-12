@@ -6,18 +6,18 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from starlette.responses import Response as StarletteResponse
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.modules.workspaces.themes.schema import (
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.themes.schema import (
     WorkspaceThemeImportIn,
     WorkspaceThemeListOut,
     WorkspaceThemeOut,
 )
-from apps.api.src.modules.workspaces.themes.service import WorkspaceThemesService
+from src.modules.workspaces.themes.service import WorkspaceThemesService
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",

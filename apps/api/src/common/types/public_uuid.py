@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import PlainSerializer, PlainValidator, WithJsonSchema
 
-from apps.api.src.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
+from src.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
 
 
 def _parse_public_uuid(value: Any) -> UUID:
@@ -18,7 +18,7 @@ def _parse_public_uuid(value: Any) -> UUID:
             return decode_public_id(raw)
 
         # Optional dev/test convenience: accept raw UUID strings if enabled.
-        from apps.api.src.config import get_settings
+        from src.config import get_settings
 
         if get_settings().public_id.accept_raw_uuid_input:
             try:

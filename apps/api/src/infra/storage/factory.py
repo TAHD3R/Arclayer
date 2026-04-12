@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from apps.api.src.config import Settings
-from apps.api.src.infra.storage.core_factories import CoreLocalStorageProviderFactory, CoreS3StorageProviderFactory
-from apps.api.src.infra.storage.registry import StorageProviderFactory
+from src.config import Settings
+from src.infra.storage.core_factories import CoreLocalStorageProviderFactory, CoreS3StorageProviderFactory
+from src.infra.storage.registry import StorageProviderFactory
 
 
 def build_storage_provider_for(settings: Settings, *, provider: str):

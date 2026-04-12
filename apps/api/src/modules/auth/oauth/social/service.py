@@ -19,13 +19,13 @@ from pydantic import ValidationError
 from starlette.responses import RedirectResponse
 from tortoise.expressions import Q
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Forbidden
-from apps.api.src.core.i18n import t
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.oauth.social.repository import OAuthSocialRepository
-from apps.api.src.modules.auth.oauth.social.schema import (
+from src.common.services.base import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Forbidden
+from src.core.i18n import t
+from src.infra.cache.valkey import ValkeyClientLike
+from src.modules.auth.oauth.social.repository import OAuthSocialRepository
+from src.modules.auth.oauth.social.schema import (
     GitHubEmailItem,
     GitHubUser,
     GoogleUserInfo,
@@ -33,11 +33,11 @@ from apps.api.src.modules.auth.oauth.social.schema import (
     OAuthLinkedIdentityOut,
     OAuthStatePayload,
 )
-from apps.api.src.modules.auth.sso.repository import issue_exchange_code
-from apps.api.src.modules.auth.sso.schema import AuthSSOExchangePayload
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
-from apps.api.src.settings.runtime import get_core_settings_value_cached
+from src.modules.auth.sso.repository import issue_exchange_code
+from src.modules.auth.sso.schema import AuthSSOExchangePayload
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
+from src.settings.runtime import get_core_settings_value_cached
 
 _FATAL_OAUTH_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -107,7 +107,7 @@ class OAuthSocialService(BaseService):
         self.repo = OAuthSocialRepository()
 
         # Local import to avoid auth module cycles at import time.
-        from apps.api.src.modules.auth.service import AuthService
+        from src.modules.auth.service import AuthService
 
         self.auth_service = AuthService(settings, valkey=valkey)
 
@@ -470,7 +470,7 @@ class OAuthSocialService(BaseService):
         redirect: str | None,
     ) -> RedirectResponse:
         try:
-            from apps.api.src.models.organization.user import User
+            from src.models.organization.user import User
 
             target_user = await User.get_or_none(id=UUID(link_user_id))
             if target_user is None:
@@ -496,8 +496,8 @@ class OAuthSocialService(BaseService):
 
     async def _auto_accept_email_invites(self, *, user_id: UUID, email: str) -> None:
         try:
-            from apps.api.src.models.organization.user import User
-            from apps.api.src.models.workspaces.workspace_invite import WorkspaceEmailInvite
+            from src.models.organization.user import User
+            from src.models.workspaces.workspace_invite import WorkspaceEmailInvite
 
             user = await User.get_or_none(id=user_id)
             if user is None:
@@ -511,8 +511,8 @@ class OAuthSocialService(BaseService):
             rows = await qs.limit(20).all()
             for inv in rows:
                 try:
-                    from apps.api.src.common.invitations.tokens.service import build_invite_token
-                    from apps.api.src.modules.auth.schema import AcceptExistingInvitationRequest
+                    from src.common.invitations.tokens.service import build_invite_token
+                    from src.modules.auth.schema import AcceptExistingInvitationRequest
 
                     token = build_invite_token(self.settings, code=str(inv.code))
                     await self.auth_service.accept_existing_invitation(
@@ -598,7 +598,7 @@ class OAuthSocialService(BaseService):
             return None
 
     async def _is_public_register_allowed(self, *, email: str | None) -> bool:
-        from apps.api.src.modules.auth.registration.service import get_public_register_policy
+        from src.modules.auth.registration.service import get_public_register_policy
 
         policy = await get_public_register_policy(self.settings)
         if not policy.enabled:

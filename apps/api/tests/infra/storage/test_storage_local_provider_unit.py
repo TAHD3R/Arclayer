@@ -6,14 +6,14 @@ import pytest
 
 
 def test_safe_object_key_rejects_absolute_paths(tmp_path: Path) -> None:
-    from apps.api.src.infra.storage.local import safe_object_key_to_path
+    from src.infra.storage.local import safe_object_key_to_path
 
     with pytest.raises(ValueError):
         safe_object_key_to_path(tmp_path, "/etc/passwd")
 
 
 def test_safe_object_key_rejects_path_traversal(tmp_path: Path) -> None:
-    from apps.api.src.infra.storage.local import safe_object_key_to_path
+    from src.infra.storage.local import safe_object_key_to_path
 
     with pytest.raises(ValueError):
         safe_object_key_to_path(tmp_path, "../secret.txt")
@@ -23,14 +23,14 @@ def test_safe_object_key_rejects_path_traversal(tmp_path: Path) -> None:
 
 
 def test_safe_object_key_normalizes_backslashes(tmp_path: Path) -> None:
-    from apps.api.src.infra.storage.local import safe_object_key_to_path
+    from src.infra.storage.local import safe_object_key_to_path
 
     out = safe_object_key_to_path(tmp_path, r"a\\b\\c.txt")
     assert out == tmp_path / "a" / "b" / "c.txt"
 
 
 def test_local_provider_put_and_get_bytes(tmp_path: Path) -> None:
-    from apps.api.src.infra.storage.local import LocalStorageProvider
+    from src.infra.storage.local import LocalStorageProvider
 
     provider = LocalStorageProvider(root_dir=tmp_path)
     key = "org/demo/assets/abc.bin"
@@ -47,7 +47,7 @@ def test_local_provider_put_is_atomic(tmp_path: Path) -> None:
     We approximate this by ensuring the final file exists and tmp artifacts do not remain.
     """
 
-    from apps.api.src.infra.storage.local import LocalStorageProvider
+    from src.infra.storage.local import LocalStorageProvider
 
     provider = LocalStorageProvider(root_dir=tmp_path)
     key = "org/demo/assets/atomic.bin"

@@ -5,19 +5,19 @@ import time
 from typing import Literal
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.models.sites.site import SiteRecord
-from apps.api.src.modules.sites import schema as sites_schema
-from apps.api.src.modules.sites.content.service import SiteContentService
-from apps.api.src.modules.sites.facade.service import SiteContentPublishingFacadeMixin
-from apps.api.src.modules.sites.publishing.service import SitePublishingService
-from apps.api.src.modules.sites.repository import SitesRepository
-from apps.api.src.modules.sites.runtime.config.service import SiteRuntimeConfigMixin
-from apps.api.src.modules.sites.runtime.context.service import SiteRuntimeContextMixin
-from apps.api.src.modules.sites.settings.service import SiteSettingsMixin
-from apps.api.src.modules.sites.stores.service import PresenceStore, PreviewTokenStore
+from src.common.services.base import BaseService
+from src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
+from src.infra.cache.valkey import ValkeyClientLike
+from src.models.sites.site import SiteRecord
+from src.modules.sites import schema as sites_schema
+from src.modules.sites.content.service import SiteContentService
+from src.modules.sites.facade.service import SiteContentPublishingFacadeMixin
+from src.modules.sites.publishing.service import SitePublishingService
+from src.modules.sites.repository import SitesRepository
+from src.modules.sites.runtime.config.service import SiteRuntimeConfigMixin
+from src.modules.sites.runtime.context.service import SiteRuntimeContextMixin
+from src.modules.sites.settings.service import SiteSettingsMixin
+from src.modules.sites.stores.service import PresenceStore, PreviewTokenStore
 
 MIN_PREVIEW_TOKEN_TTL_SECONDS = 60
 MAX_PREVIEW_TOKEN_TTL_SECONDS = 60 * 60

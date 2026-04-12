@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.settings.scopes import SCOPE_TYPE_USER, SCOPE_TYPE_WORKSPACE
-from apps.api.tests.modules.workspaces.content.test_content_models_integration import (
+from src.models.system.setting import SettingRecord
+from src.settings.scopes import SCOPE_TYPE_USER, SCOPE_TYPE_WORKSPACE
+from tests.modules.workspaces.content.test_content_models_integration import (
     _workspace_client,
 )
 

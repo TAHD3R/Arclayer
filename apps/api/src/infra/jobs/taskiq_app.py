@@ -7,9 +7,9 @@ from taskiq.schedule_sources import LabelScheduleSource
 from taskiq.scheduler.scheduler import TaskiqScheduler
 from taskiq_redis import RedisStreamBroker
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.database.orm import close_orm, init_orm, verify_db_ready
-from apps.api.src.core.logging import configure_logging, get_logger
+from src.config import get_settings
+from src.core.database.orm import close_orm, init_orm, verify_db_ready
+from src.core.logging import configure_logging, get_logger
 
 logger = get_logger(__name__)
 _FATAL_TASKIQ_ERRORS: tuple[type[BaseException], ...] = (

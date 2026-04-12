@@ -6,9 +6,9 @@ from typing import Any
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from apps.api.src.config import Settings
-from apps.api.src.core.http.response import Response
-from apps.api.src.settings.crypto import master_key_exists
+from src.config import Settings
+from src.core.http.response import Response
+from src.settings.crypto import master_key_exists
 
 
 class MasterKeyGuardMiddleware:

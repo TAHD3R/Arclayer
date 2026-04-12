@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import smtplib
 
-from apps.api.src.common.email.service import EmailService
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.system.mail.schema import MailTestResult
+from src.common.email.service import EmailService
+from src.common.services.base import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.core.i18n import t
+from src.modules.system.mail.schema import MailTestResult
 
 
 class AdminMailService(BaseService):

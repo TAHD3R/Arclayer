@@ -5,14 +5,14 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.models.content.component_binding import ComponentBindingRecord
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
-from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
-from apps.api.src.models.content.seo_profile import SEOProfileRecord
-from apps.api.src.modules.workspaces.content.contracts.schema import ContentPresentationKind
+from src.common.repositories.base import BaseRepository
+from src.models.content.component_binding import ComponentBindingRecord
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.model_definition import ContentModelDefinitionRecord
+from src.models.content.presentation_document import PresentationDocumentRecord
+from src.models.content.seo_profile import SEOProfileRecord
+from src.modules.workspaces.content.contracts.schema import ContentPresentationKind
 
 
 class WorkspaceContentItemsRepository(BaseRepository):

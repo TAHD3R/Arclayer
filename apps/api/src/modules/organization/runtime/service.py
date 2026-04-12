@@ -4,7 +4,7 @@ from uuid import UUID
 
 from tortoise.exceptions import ConfigurationError, OperationalError
 
-from apps.api.src.models.organization.organization import Organization
+from src.models.organization.organization import Organization
 
 
 async def get_single_organization_id() -> UUID | None:

@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
-from apps.api.src.common.protocols.tortoise import HasWorkspaceId
-from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.sites import schema as sites_schema
-from apps.api.src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
+from src.common.protocols.tortoise import HasWorkspaceId
+from src.core.exceptions import Conflict, NotFound
+from src.modules.sites import schema as sites_schema
+from src.modules.sites.runtime.localization.service import SiteRuntimeLocalizationMixin
 
 if TYPE_CHECKING:
-    from apps.api.src.config import Settings
-    from apps.api.src.modules.sites.repository import SitesRepository
+    from src.config import Settings
+    from src.modules.sites.repository import SitesRepository
 
 
 class SiteRuntimeContextMixin(SiteRuntimeLocalizationMixin):

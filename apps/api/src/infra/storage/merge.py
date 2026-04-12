@@ -5,7 +5,7 @@ import os
 from collections.abc import Iterable
 from pathlib import Path
 
-from apps.api.src.common.utils.ids import uuid7
+from src.common.utils.ids import uuid7
 
 
 def merge_parts_to_file(*, part_paths: Iterable[Path], out_path: Path, chunk_size: int = 1024 * 1024) -> str:

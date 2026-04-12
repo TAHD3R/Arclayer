@@ -3,21 +3,21 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from apps.api.src.common.protocols.tortoise import AssetUsageHasAssetId
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.src.core.i18n import t
-from apps.api.src.models.assets.asset import AssetRecord
-from apps.api.src.modules.assets.admin.usages.repository import AdminAssetUsagesRepository
-from apps.api.src.modules.assets.admin.usages.schema import (
+from src.common.protocols.tortoise import AssetUsageHasAssetId
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_queryset
+from src.core.i18n import t
+from src.models.assets.asset import AssetRecord
+from src.modules.assets.admin.usages.repository import AdminAssetUsagesRepository
+from src.modules.assets.admin.usages.schema import (
     AdminAssetUsageDeleteOut,
     AdminAssetUsageDeleteRequest,
     AdminAssetUsageOut,
     AdminAssetUsageUpsertRequest,
 )
-from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
+from src.modules.assets.scope import AssetScope, scope_filter_kwargs
 
 
 def _ts(key: str, default: str) -> str:

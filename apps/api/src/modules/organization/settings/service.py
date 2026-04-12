@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Forbidden, NotFound
-from apps.api.src.core.i18n import t
-from apps.api.src.models.assets.asset import AssetPurpose
-from apps.api.src.models.organization.org_membership import OrgRole
-from apps.api.src.modules.assets.admin.assets.binding_align import align_asset_for_binding
-from apps.api.src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
-from apps.api.src.modules.assets.scope import AssetScope
-from apps.api.src.modules.organization.rbac.service import OrganizationRBACService
-from apps.api.src.modules.organization.settings.leave_guard import OrganizationLeaveGuard
-from apps.api.src.modules.organization.settings.repository import OrganizationSettingsRepository
-from apps.api.src.modules.organization.settings.schema import (
+from src.common.constants.assets import ASSET_SCOPE_ORGANIZATION
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Forbidden, NotFound
+from src.core.i18n import t
+from src.models.assets.asset import AssetPurpose
+from src.models.organization.org_membership import OrgRole
+from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
+from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
+from src.modules.assets.scope import AssetScope
+from src.modules.organization.rbac.service import OrganizationRBACService
+from src.modules.organization.settings.leave_guard import OrganizationLeaveGuard
+from src.modules.organization.settings.repository import OrganizationSettingsRepository
+from src.modules.organization.settings.schema import (
     DeleteOrganizationResult,
     LeaveOrganizationResult,
     OrganizationAssignDefaultRoleResult,

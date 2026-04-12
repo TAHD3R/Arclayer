@@ -6,18 +6,18 @@ from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
-from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.models.content._enums import (
+from src.core.exceptions import Conflict, NotFound
+from src.models.content._enums import (
     ContentBootstrapPresetState,
     ContentItemStatus,
     ContentItemVisibility,
     ContentVersionState,
 )
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.modules.workspaces.content.continuation import resolve_item_continuation_truth
-from apps.api.src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
-from apps.api.src.modules.workspaces.content.items.domain_helpers import (
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.modules.workspaces.content.continuation import resolve_item_continuation_truth
+from src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
+from src.modules.workspaces.content.items.domain_helpers import (
     VERSION_TRANSITIONS,
     PresentationPayload,
     build_duplicate_item_title,
@@ -36,16 +36,16 @@ from apps.api.src.modules.workspaces.content.items.domain_helpers import (
     status_by_published_version,
     to_item_out,
 )
-from apps.api.src.modules.workspaces.content.items.input_schema import (
+from src.modules.workspaces.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
     ContentItemCreateIn,
     ContentVersionDraftSaveIn,
     ContentVersionPatchIn,
 )
-from apps.api.src.modules.workspaces.content.items.read_service import (
+from src.modules.workspaces.content.items.read_service import (
     WorkspaceContentCanonicalItemReadService,
 )
-from apps.api.src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
+from src.modules.workspaces.content.items.repository import WorkspaceContentItemsRepository
 
 
 class WorkspaceContentCanonicalItemsService:

@@ -11,10 +11,10 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from structlog.contextvars import get_contextvars
 
-from apps.api.src.config import Settings
-from apps.api.src.core.events import Event, EventBus
-from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.analytics.repository import AuditEventRepository
+from src.config import Settings
+from src.core.events import Event, EventBus
+from src.core.logging import get_logger
+from src.modules.analytics.repository import AuditEventRepository
 
 logger = get_logger(__name__)
 

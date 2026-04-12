@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from tortoise import fields
 
-from apps.api.src.common.models.base import BaseModel
-from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from src.common.models.base import BaseModel
+from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 
 # Settings store (scope + namespace -> value).

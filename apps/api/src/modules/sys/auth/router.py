@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.sys.auth.schema import SysStepUpRequest, SysStepUpResult
-from apps.api.src.modules.sys.auth.service import SysAuthService
-from apps.api.src.modules.sys.http.service import require_super_admin
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.modules.sys.auth.schema import SysStepUpRequest, SysStepUpResult
+from src.modules.sys.auth.service import SysAuthService
+from src.modules.sys.http.service import require_super_admin
 
 router = APIRouter(
     tags=["Sys: Auth"],

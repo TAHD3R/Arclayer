@@ -6,8 +6,8 @@ from typing import Any, TypeVar
 import pytest
 from pydantic import ValidationError
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.core.http.pagination import PageParams, paginate_items, paginate_queryset
+from src.common.schemas import BaseSchema
+from src.core.http.pagination import PageParams, paginate_items, paginate_queryset
 
 T = TypeVar("T")
 

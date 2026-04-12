@@ -1,6 +1,6 @@
 from tortoise import migrations
 from tortoise.migrations import operations as ops
-from apps.api.src.common.utils.ids import uuid7
+from src.common.utils.ids import uuid7
 from tortoise.fields.base import OnDelete
 from tortoise import fields
 

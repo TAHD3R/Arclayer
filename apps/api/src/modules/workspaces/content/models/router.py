@@ -7,31 +7,31 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Body, Depends, Request, status
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import get_settings
-from apps.api.src.core.events import Event, EventBus
-from apps.api.src.core.exceptions import NotFound, ServiceUnavailable
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.common.schemas import BaseSchema
+from src.common.types.public_uuid import PublicUUID
+from src.config import get_settings
+from src.core.events import Event, EventBus
+from src.core.exceptions import NotFound, ServiceUnavailable
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.content.contracts.schema import (
     ContentModelDefinitionContract,
     ContentModelImpactOut,
     ContentModelImpactPreviewOut,
     ContentModelOut,
 )
-from apps.api.src.modules.workspaces.content.models.canonical_service import (
+from src.modules.workspaces.content.models.canonical_service import (
     ContentModelDefinitionPatchContract,
     ContentModelImpactPreviewResult,
     ContentModelMutationResult,
     WorkspaceContentCanonicalModelsService,
 )
-from apps.api.src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
-from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
+from src.modules.workspaces.content.shared.router import _resolve_site_id
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 canonical_models_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",

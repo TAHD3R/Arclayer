@@ -5,14 +5,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Path, Request, status
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import Conflict
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.infra.cache.valkey import get_valkey
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.sites.domains.schema import (
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.exceptions import Conflict
+from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
+from src.core.http.response import Response, ResponseModel
+from src.infra.cache.valkey import get_valkey
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.sites.domains.schema import (
     SiteDomainCreateIn,
     SiteDomainCreateOut,
     SiteDomainDeleteOut,
@@ -20,10 +20,10 @@ from apps.api.src.modules.sites.domains.schema import (
     SiteDomainUpdateIn,
     SiteDomainVerifyOut,
 )
-from apps.api.src.modules.sites.domains.service import SiteDomainsService
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.sites.domains.service import SiteDomainsService
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site/domains",

@@ -10,26 +10,26 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, ValidationError
 from starlette.responses import RedirectResponse, Response
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.common.text.slug.service import slugify
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
-from apps.api.src.core.http.content_disposition import build_attachment_content_disposition
-from apps.api.src.core.http.file_stream import stream_file_response
-from apps.api.src.infra.storage.factory import build_storage_provider, build_storage_provider_for
-from apps.api.src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
-from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.modules.assets.naming.service import build_asset_object_key
-from apps.api.src.modules.workspaces.themes.repository import WorkspaceThemesRepository
-from apps.api.src.modules.workspaces.themes.schema import (
+from src.common.services.base import BaseService
+from src.common.text.slug.service import slugify
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.http.content_disposition import build_attachment_content_disposition
+from src.core.http.file_stream import stream_file_response
+from src.infra.storage.factory import build_storage_provider, build_storage_provider_for
+from src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
+from src.infra.storage.s3 import S3StorageProvider
+from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
+from src.models.system.setting import SettingRecord
+from src.modules.assets.naming.service import build_asset_object_key
+from src.modules.workspaces.themes.repository import WorkspaceThemesRepository
+from src.modules.workspaces.themes.schema import (
     ThemeManifestIn,
     ThemeVariantPayloadIn,
     WorkspaceThemeOut,
 )
-from apps.api.src.settings.runtime import get_effective_settings
-from apps.api.src.settings.scopes import SCOPE_TYPE_SITE
+from src.settings.runtime import get_effective_settings
+from src.settings.scopes import SCOPE_TYPE_SITE
 
 THEME_ACTIVE_NAMESPACE = "theme.active"
 THEME_IMPORT_VALIDATION_ERRORS = (
@@ -494,7 +494,7 @@ class WorkspaceThemesService(BaseService):
         mime: str,
         data: bytes,
     ) -> UUID:
-        from apps.api.src.common.utils.ids import uuid7
+        from src.common.utils.ids import uuid7
 
         asset_id = uuid7()
         object_key = build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext=ext)
@@ -533,7 +533,7 @@ class WorkspaceThemesService(BaseService):
         return asset_id
 
     async def _store_artifact_zip(self, *, workspace_id: UUID, src_zip_path: Path, checksum_sha256: str | None) -> UUID:
-        from apps.api.src.common.utils.ids import uuid7
+        from src.common.utils.ids import uuid7
 
         asset_id = uuid7()
         object_key = build_asset_object_key(workspace_id=workspace_id, asset_id=asset_id, ext="zip")

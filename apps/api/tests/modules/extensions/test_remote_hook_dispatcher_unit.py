@@ -5,9 +5,9 @@ import json
 import httpx
 import pytest
 
-from apps.api.src.modules.extensions.manifest import RemoteHookDecl
-from apps.api.src.modules.extensions.remote_hooks.dispatcher import dispatch_remote_hook
-from apps.api.src.modules.extensions.schema import (
+from src.modules.extensions.manifest import RemoteHookDecl
+from src.modules.extensions.remote_hooks.dispatcher import dispatch_remote_hook
+from src.modules.extensions.schema import (
     FailurePolicy,
     RemoteHookOperation,
     RemoteHookRequestIn,

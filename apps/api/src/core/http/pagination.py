@@ -8,7 +8,7 @@ from fastapi import Depends, Query
 from pydantic import Field
 from tortoise.queryset import QuerySet
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 T = TypeVar("T")
 

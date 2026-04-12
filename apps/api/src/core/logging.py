@@ -19,8 +19,8 @@ from structlog.stdlib import (
 )
 from structlog.types import EventDict, Processor, WrappedLogger
 
-from apps.api.src.common.utils.redact import redact
-from apps.api.src.config import Settings
+from src.common.utils.redact import redact
+from src.config import Settings
 
 
 class _LoggerProxy:

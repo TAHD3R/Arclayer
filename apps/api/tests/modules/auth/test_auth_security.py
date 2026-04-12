@@ -6,9 +6,9 @@ from uuid import uuid4
 import jwt
 import pytest
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.exceptions import Unauthorized
-from apps.api.src.modules.auth.tokens.service import (
+from src.config import get_settings
+from src.core.exceptions import Unauthorized
+from src.modules.auth.tokens.service import (
     TOKEN_TYPE_ACCESS,
     TOKEN_TYPE_REFRESH,
     build_access_token,

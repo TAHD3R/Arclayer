@@ -3,9 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request
 from starlette.responses import Response
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.modules.library.schema import PublicLibraryListQuery, PublicLibraryPageOut
-from apps.api.src.modules.library.service import PublicLibraryService
+from src.config import Settings, get_settings
+from src.modules.library.schema import PublicLibraryListQuery, PublicLibraryPageOut
+from src.modules.library.service import PublicLibraryService
 
 router = APIRouter(tags=["Public: Library"])
 

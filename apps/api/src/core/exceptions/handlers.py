@@ -10,11 +10,11 @@ from pydantic import ValidationError
 from starlette.responses import JSONResponse
 from tortoise.exceptions import OperationalError
 
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions.types import APIError
-from apps.api.src.core.http.response import Response
-from apps.api.src.core.i18n import get_request_locale, localize_message
-from apps.api.src.core.logging import get_logger
+from src.config import Settings
+from src.core.exceptions.types import APIError
+from src.core.http.response import Response
+from src.core.i18n import get_request_locale, localize_message
+from src.core.logging import get_logger
 
 _HTTP_ERROR_MAP = {
     400: "BAD_REQUEST",

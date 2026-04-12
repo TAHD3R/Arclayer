@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.modules.system.rbac.localization.service import RBACLocalizationMixin
-from apps.api.src.modules.system.rbac.matrix.service import RBACMatrixMixin
-from apps.api.src.modules.system.rbac.repository import RBACRepository
-from apps.api.src.modules.system.rbac.roles.service import RBACRolesMixin
-from apps.api.src.modules.system.rbac.workspaces.service import RBACWorkspacesMixin
+from src.common.services import BaseService
+from src.config import Settings
+from src.modules.system.rbac.localization.service import RBACLocalizationMixin
+from src.modules.system.rbac.matrix.service import RBACMatrixMixin
+from src.modules.system.rbac.repository import RBACRepository
+from src.modules.system.rbac.roles.service import RBACRolesMixin
+from src.modules.system.rbac.workspaces.service import RBACWorkspacesMixin
 
 
 class RBACService(

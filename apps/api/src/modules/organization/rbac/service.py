@@ -4,18 +4,18 @@ import re
 from typing import Protocol, cast
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.org_rbac import (
+from src.common.services import BaseService
+from src.common.utils.ids import uuid7
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from src.core.i18n import t
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.org_rbac import (
     OrganizationPermission,
     OrganizationRole,
     OrganizationRolePermission,
 )
-from apps.api.src.modules.organization.rbac.repository import OrganizationRBACRepository
+from src.modules.organization.rbac.repository import OrganizationRBACRepository
 
 _ORG_PERMISSION_TEMPLATES: list[tuple[str, str, str, str]] = [
     ("org.members.read", "members", "View members", "View organization member directory."),

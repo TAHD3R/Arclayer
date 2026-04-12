@@ -8,7 +8,7 @@ from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 
-from apps.api.src.common.constants.auth import (
+from src.common.constants.auth import (
     PASSWORD_REGEX,
     REAUTH_MAX_AGE_SECONDS,
     REFRESH_STATUS_ACTIVE,
@@ -17,21 +17,21 @@ from apps.api.src.common.constants.auth import (
     RESET_TOKEN_REGEX,
     TOKEN_TYPE_REFRESH,
 )
-from apps.api.src.common.email.service import EmailService
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.services import BaseService
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
-from apps.api.src.core.http.pagination import PageData, PageParams
-from apps.api.src.core.i18n import t
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.models.organization.org_membership import OrgMembership
-from apps.api.src.models.organization.user import User
-from apps.api.src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
-from apps.api.src.modules.auth.invitations.service import AuthInvitationService
-from apps.api.src.modules.auth.repository import EmailChangeStore, PasswordResetStore, RefreshTokenStore, UserRepository
-from apps.api.src.modules.auth.schema import (
+from src.common.email.service import EmailService
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.services import BaseService
+from src.common.utils.ids import uuid7
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
+from src.core.http.pagination import PageData, PageParams
+from src.core.i18n import t
+from src.infra.cache.valkey import ValkeyClientLike
+from src.models.organization.org_membership import OrgMembership
+from src.models.organization.user import User
+from src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
+from src.modules.auth.invitations.service import AuthInvitationService
+from src.modules.auth.repository import EmailChangeStore, PasswordResetStore, RefreshTokenStore, UserRepository
+from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
     AcceptInvitationRequest,
@@ -44,10 +44,10 @@ from apps.api.src.modules.auth.schema import (
     UpdateMyProfileRequest,
     UserProfile,
 )
-from apps.api.src.modules.auth.sessions.device_label import build_device_label
-from apps.api.src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
-from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
-from apps.api.src.modules.auth.tokens.service import (
+from src.modules.auth.sessions.device_label import build_device_label
+from src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
+from src.modules.auth.sessions.request_context import AuthRequestContext
+from src.modules.auth.tokens.service import (
     build_access_token,
     build_refresh_token,
     decode_token,
@@ -85,7 +85,7 @@ class AuthService(BaseService):
     ) -> None:
         super().__init__(settings)
         self.user_repo: UserRepositoryLike = user_repo or UserRepository()
-        from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
+        from src.modules.auth.two_factor.service import AuthTwoFactorService
 
         self.two_factor: _TwoFactorReauthLike = two_factor or AuthTwoFactorService(settings)
         self.valkey = valkey
@@ -469,7 +469,7 @@ class AuthService(BaseService):
                 self._reauth_by_recent_login_or_raise(user=user_with_cred)
 
         # Guard: prevent deleting the last owner in any org/workspace.
-        from apps.api.src.modules.auth.account_deletion.guard import AccountDeletionGuard
+        from src.modules.auth.account_deletion.guard import AccountDeletionGuard
 
         await AccountDeletionGuard().ensure_deletable(user_id=user_id)
 
@@ -480,7 +480,7 @@ class AuthService(BaseService):
 
         # Best-effort: remove OAuth identity mappings to prevent SSO sign-in after deletion.
         try:
-            from apps.api.src.models.auth.oauth_identity import OAuthIdentity
+            from src.models.auth.oauth_identity import OAuthIdentity
 
             await OAuthIdentity.filter(user_id=user_id).delete()
         except BaseException as exc:
@@ -489,7 +489,7 @@ class AuthService(BaseService):
 
         # Best-effort: remove 2FA secrets/backup codes.
         try:
-            from apps.api.src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
+            from src.models.auth.user_two_factor import UserTwoFactor, UserTwoFactorBackupCode
 
             await UserTwoFactorBackupCode.filter(user_id=user_id).delete()
             await UserTwoFactor.filter(user_id=user_id).delete()
@@ -499,8 +499,8 @@ class AuthService(BaseService):
 
         # Best-effort: disable memberships to prevent orphaned ownership edges.
         try:
-            from apps.api.src.models.organization.org_membership import OrgMembership
-            from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+            from src.models.organization.org_membership import OrgMembership
+            from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
 
             await WorkspaceMembership.filter(user_id=user_id).update(status=WorkspaceMembershipStatus.DISABLED)
             await OrgMembership.filter(user_id=user_id).delete()
@@ -510,7 +510,7 @@ class AuthService(BaseService):
 
         # Remove password credential and scrub PII.
         try:
-            from apps.api.src.models.organization.user import UserCredential
+            from src.models.organization.user import UserCredential
 
             await UserCredential.filter(user_id=user_id).delete()
         except BaseException as exc:
@@ -586,7 +586,7 @@ class AuthService(BaseService):
 
         # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            from apps.api.src.core.events import Event, events
+            from src.core.events import Event, events
 
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
@@ -675,7 +675,7 @@ class AuthService(BaseService):
 
         # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            from apps.api.src.core.events import Event, events
+            from src.core.events import Event, events
 
             orgm = await OrgMembership.get_or_none(user_id=resolved_user_id)
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
@@ -932,7 +932,7 @@ class AuthService(BaseService):
 
         # Best-effort: record password reset request for investigation (do not leak data in payload).
         try:
-            from apps.api.src.core.events import Event, events
+            from src.core.events import Event, events
 
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
@@ -1030,7 +1030,7 @@ class AuthService(BaseService):
 
         # Best-effort: record password reset completion.
         try:
-            from apps.api.src.core.events import Event, events
+            from src.core.events import Event, events
 
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
@@ -1063,7 +1063,7 @@ class AuthService(BaseService):
         avatar_asset_uuid = UUID(str(avatar_asset_id)) if avatar_asset_id is not None else None
         avatar_url = cast(str | None, user.avatar_url)
         if avatar_asset_uuid is not None:
-            from apps.api.src.common.utils.public_ids import encode_uuid
+            from src.common.utils.public_ids import encode_uuid
 
             avatar_url = f"/assets/{encode_uuid(avatar_asset_uuid)}"
         return UserProfile(
@@ -1105,10 +1105,10 @@ class AuthService(BaseService):
                 patch_kwargs["avatar_asset_id"] = None
                 patch_kwargs["avatar_url"] = None
             else:
-                from apps.api.src.common.constants.assets import ASSET_SCOPE_USER
-                from apps.api.src.models.assets.asset import AssetPurpose, AssetRecord
-                from apps.api.src.modules.assets.admin.assets.binding_align import align_asset_for_binding
-                from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
+                from src.common.constants.assets import ASSET_SCOPE_USER
+                from src.models.assets.asset import AssetPurpose, AssetRecord
+                from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
+                from src.modules.assets.scope import AssetScope, scope_filter_kwargs
 
                 scope = AssetScope(type=ASSET_SCOPE_USER, id=user.id)
                 asset = await AssetRecord.get_or_none(
@@ -1127,7 +1127,7 @@ class AuthService(BaseService):
                     purpose=AssetPurpose.AVATAR,
                 )
 
-                from apps.api.src.common.utils.public_ids import encode_uuid
+                from src.common.utils.public_ids import encode_uuid
 
                 patch_kwargs["avatar_asset_id"] = asset.id
                 patch_kwargs["avatar_url"] = f"/assets/{encode_uuid(UUID(str(asset.id)))}"
@@ -1155,7 +1155,7 @@ class AuthService(BaseService):
         email: str | None = None,
         display_name: str | None = None,
     ) -> UserLike:
-        from apps.api.src.modules.auth.registration.service import get_public_register_policy
+        from src.modules.auth.registration.service import get_public_register_policy
 
         policy = await get_public_register_policy(self.settings)
         if not policy.enabled:

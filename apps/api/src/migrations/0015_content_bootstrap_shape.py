@@ -3,7 +3,7 @@ from tortoise import migrations
 from tortoise.fields.base import OnDelete
 from tortoise.migrations import operations as ops
 
-from apps.api.src.models.content._enums import ContentBootstrapPresetState
+from src.models.content._enums import ContentBootstrapPresetState
 
 
 class Migration(migrations.Migration):

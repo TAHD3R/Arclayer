@@ -5,9 +5,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 
-from apps.api.src.core import i18n
-from apps.api.src.core.i18n import get_request_locale, localize_message, t
-from apps.api.tests.utils.asgi_client import asgi_client
+from src.core import i18n
+from src.core.i18n import get_request_locale, localize_message, t
+from tests.utils.asgi_client import asgi_client
 
 
 async def test_get_request_locale_priority() -> None:

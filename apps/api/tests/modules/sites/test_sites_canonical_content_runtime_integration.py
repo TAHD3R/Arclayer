@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
 
 pytestmark = pytest.mark.integration
 

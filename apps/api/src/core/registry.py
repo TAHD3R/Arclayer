@@ -12,21 +12,21 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import HTMLResponse
 from starlette.routing import Mount
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.database.orm import (
+from src.config import Settings, get_settings
+from src.core.database.orm import (
     close_orm,
     ensure_settings_schema_constraints,
     init_orm,
     verify_db_ready,
 )
-from apps.api.src.core.events import events
-from apps.api.src.core.exceptions import init_exception_handlers
-from apps.api.src.core.logging import configure_logging, get_logger
-from apps.api.src.core.routes import register_routes
-from apps.api.src.core.runtime_init import close_domain_runtime, init_domain_runtime
-from apps.api.src.infra.cache.valkey import close_valkey, init_valkey
-from apps.api.src.infra.jobs.client import close_taskiq_client, init_taskiq_client
-from apps.api.src.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
+from src.core.events import events
+from src.core.exceptions import init_exception_handlers
+from src.core.logging import configure_logging, get_logger
+from src.core.routes import register_routes
+from src.core.runtime_init import close_domain_runtime, init_domain_runtime
+from src.infra.cache.valkey import close_valkey, init_valkey
+from src.infra.jobs.client import close_taskiq_client, init_taskiq_client
+from src.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
 
 logger = get_logger(__name__)
 _FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (
@@ -90,7 +90,7 @@ def _build_lifespan(settings: Settings):
             await ensure_settings_schema_constraints()
             # Cache "initialized" flag for lightweight request guards.
             try:
-                from apps.api.src.models.organization.user import User
+                from src.models.organization.user import User
 
                 app.state.system_initialized = await User.all().exists()
             except BaseException as exc:
@@ -246,7 +246,7 @@ class AppFactory:
             self.app.add_middleware(HTTPSRedirectMiddleware)
 
         if middleware.csrf_enabled:
-            from apps.api.src.core.middleware.csrf import CSRFMiddleware
+            from src.core.middleware.csrf import CSRFMiddleware
 
             self.app.add_middleware(
                 CSRFMiddleware,
@@ -258,13 +258,13 @@ class AppFactory:
                 cookie_samesite=middleware.csrf_cookie_samesite,
                 token_bytes=middleware.csrf_token_bytes,
             )
-        from apps.api.src.core.middleware.locale import LocaleMiddleware
+        from src.core.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)
-        from apps.api.src.core.middleware.master_key_guard import MasterKeyGuardMiddleware
+        from src.core.middleware.master_key_guard import MasterKeyGuardMiddleware
 
         self.app.add_middleware(MasterKeyGuardMiddleware, settings=self.settings)
-        from apps.api.src.core.middleware.request_log import RequestLogMiddleware
+        from src.core.middleware.request_log import RequestLogMiddleware
 
         # Place request logging inside CorrelationIdMiddleware so the summary line
         # can reliably include `trace_id` (the correlation middleware may reset contextvars on return).
@@ -275,7 +275,7 @@ class AppFactory:
             omit_path_prefixes=self.settings.logging.request_log_omit_path_prefixes,
         )
         if self.settings.application.deployment_mode == "saas":
-            from apps.api.src.core.middleware.site_resolver import SiteResolverMiddleware
+            from src.core.middleware.site_resolver import SiteResolverMiddleware
 
             self.app.add_middleware(SiteResolverMiddleware, settings=self.settings)
         self.app.add_middleware(CorrelationIdMiddleware)

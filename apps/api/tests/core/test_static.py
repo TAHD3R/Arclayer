@@ -2,7 +2,7 @@ from pathlib import Path
 
 from starlette.routing import Mount
 
-from apps.api.src.core.registry import create_app
+from src.core.registry import create_app
 
 
 def _mount_paths(app) -> set[str]:

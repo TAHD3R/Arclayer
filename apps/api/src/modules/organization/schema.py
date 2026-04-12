@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from apps.api.src.common.schemas import BaseOut, BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.models.organization.org_membership import OrgRole
+from src.common.schemas import BaseOut, BaseSchema
+from src.common.types.public_uuid import PublicUUID
+from src.models.organization.org_membership import OrgRole
 
 
 class OrganizationBriefOut(BaseOut):

@@ -1,4 +1,4 @@
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.modules.workspaces.content.contracts.schema import (
     ContentDefaultEditor,
     ContentItemOut,
     ContentModelCapability,

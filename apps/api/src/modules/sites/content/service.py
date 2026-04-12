@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.modules.sites.content.delivery.service import ContentDeliveryService
-from apps.api.src.modules.sites.repository import SitesRepository
+from src.common.services.base import BaseService
+from src.modules.sites.content.delivery.service import ContentDeliveryService
+from src.modules.sites.repository import SitesRepository
 
 
 class SiteContentService(BaseService):

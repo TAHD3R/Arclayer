@@ -5,13 +5,13 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
-from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.hierarchy_node import HierarchyNodeRecord
-from apps.api.src.models.content.route_binding import RouteBindingRecord
-from apps.api.src.modules.sites.shared.service import normalize_path
-from apps.api.src.modules.workspaces.content.items.domain_helpers import item_has_capability
-from apps.api.src.modules.workspaces.content.routing.schema import (
+from src.core.exceptions import Conflict, NotFound
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.hierarchy_node import HierarchyNodeRecord
+from src.models.content.route_binding import RouteBindingRecord
+from src.modules.sites.shared.service import normalize_path
+from src.modules.workspaces.content.items.domain_helpers import item_has_capability
+from src.modules.workspaces.content.routing.schema import (
     HierarchyNodeOut,
     HierarchyNodeUpsertIn,
     RouteBindingOut,

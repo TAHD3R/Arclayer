@@ -10,15 +10,15 @@ from typing import Final, Protocol, cast
 from urllib.parse import quote, urlencode
 from uuid import UUID
 
-from apps.api.src.common.constants.auth import REAUTH_MAX_AGE_SECONDS
-from apps.api.src.common.security.totp import generate_totp_secret, verify_totp_code
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable, Unauthorized
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.auth.tokens.service import verify_password
-from apps.api.src.modules.auth.two_factor.repository import TwoFactorRepository, TwoFactorRepositoryLike
-from apps.api.src.settings.crypto import decrypt_secret, encrypt_secret, load_master_key, master_key_exists
+from src.common.constants.auth import REAUTH_MAX_AGE_SECONDS
+from src.common.security.totp import generate_totp_secret, verify_totp_code
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable, Unauthorized
+from src.core.i18n import t
+from src.modules.auth.tokens.service import verify_password
+from src.modules.auth.two_factor.repository import TwoFactorRepository, TwoFactorRepositoryLike
+from src.settings.crypto import decrypt_secret, encrypt_secret, load_master_key, master_key_exists
 
 _BACKUP_CODE_COUNT: Final[int] = 10
 _BACKUP_CODE_BYTES: Final[int] = 10
@@ -93,7 +93,7 @@ class AuthTwoFactorService(BaseService):
     ) -> None:
         super().__init__(settings)
         self.repo = repo or TwoFactorRepository()
-        from apps.api.src.modules.auth.repository import UserRepository
+        from src.modules.auth.repository import UserRepository
 
         self.user_repo = user_repo or cast(_UserRepositoryLike, UserRepository())
 

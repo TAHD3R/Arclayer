@@ -5,10 +5,10 @@ from enum import StrEnum
 
 from pydantic import EmailStr, Field
 
-from apps.api.src.common.schemas import BaseOut, BaseSchema
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.models.organization.user import UserStatus
-from apps.api.src.models.workspaces.workspace import WorkspaceMembershipStatus
+from src.common.schemas import BaseOut, BaseSchema
+from src.common.types.public_uuid import PublicUUID
+from src.models.organization.user import UserStatus
+from src.models.workspaces.workspace import WorkspaceMembershipStatus
 
 
 class WorkspaceTeamUserRefOut(BaseSchema):

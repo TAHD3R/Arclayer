@@ -4,14 +4,14 @@ from uuid import uuid4
 
 import pytest
 
-from apps.api.src.modules.assets.admin.assets.service import AdminAssetsService
-from apps.api.src.modules.assets.scope import AssetScope
+from src.modules.assets.admin.assets.service import AdminAssetsService
+from src.modules.assets.scope import AssetScope
 
 
 def test_admin_assets_router_exposes_folder_delete_endpoint() -> None:
     from fastapi.routing import APIRoute
 
-    from apps.api.src.modules.assets.admin.assets.router import router
+    from src.modules.assets.admin.assets.router import router
 
     routes = [r for r in router.routes if isinstance(r, APIRoute)]
     paths = {(r.path, tuple(sorted(r.methods or []))) for r in routes}
@@ -22,8 +22,8 @@ def test_admin_assets_router_exposes_folder_delete_endpoint() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_folder_requires_existing_folder() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.core.exceptions import NotFound
+    from src.config import get_settings
+    from src.core.exceptions import NotFound
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -43,8 +43,8 @@ async def test_delete_folder_requires_existing_folder() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_folder_rejects_non_empty_folder_children() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.core.exceptions import Conflict
+    from src.config import get_settings
+    from src.core.exceptions import Conflict
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -70,8 +70,8 @@ async def test_delete_folder_rejects_non_empty_folder_children() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_folder_rejects_non_empty_folder_assets() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.core.exceptions import Conflict
+    from src.config import get_settings
+    from src.core.exceptions import Conflict
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -97,7 +97,7 @@ async def test_delete_folder_rejects_non_empty_folder_assets() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_folder_deletes_when_empty() -> None:
-    from apps.api.src.config import get_settings
+    from src.config import get_settings
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -132,8 +132,8 @@ async def test_delete_folder_deletes_when_empty() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_folder_can_move_contents_to_root_before_delete() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetFolderDeleteRequest
+    from src.config import get_settings
+    from src.modules.assets.admin.assets.schema import AdminAssetFolderDeleteRequest
 
     settings = get_settings()
     service = AdminAssetsService(settings)
@@ -173,9 +173,9 @@ async def test_delete_folder_can_move_contents_to_root_before_delete() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_folder_rejects_descendant_destination() -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.core.exceptions import BadRequest
-    from apps.api.src.modules.assets.admin.assets.schema import AdminAssetFolderDeleteRequest
+    from src.config import get_settings
+    from src.core.exceptions import BadRequest
+    from src.modules.assets.admin.assets.schema import AdminAssetFolderDeleteRequest
 
     settings = get_settings()
     service = AdminAssetsService(settings)

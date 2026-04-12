@@ -3,9 +3,9 @@ from __future__ import annotations
 import importlib
 from dataclasses import dataclass
 
-from apps.api.src.config import get_settings
-from apps.api.src.modules.auth.router import router
-from apps.api.src.modules.auth.two_factor import schema as two_factor_schema
+from src.config import get_settings
+from src.modules.auth.router import router
+from src.modules.auth.two_factor import schema as two_factor_schema
 
 
 @dataclass(slots=True)
@@ -40,7 +40,7 @@ def test_two_factor_capability_schema_fields_are_frozen() -> None:
 
 def test_two_factor_capability_service_reports_password_reauth(monkeypatch) -> None:
     try:
-        capability_module = importlib.import_module("apps.api.src.modules.auth.two_factor.capability_service")
+        capability_module = importlib.import_module("src.modules.auth.two_factor.capability_service")
     except ModuleNotFoundError:
         capability_module = None
 

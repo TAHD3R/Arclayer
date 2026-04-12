@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from apps.api.src.config import Settings
-from apps.api.src.modules.system.rbac.service import RBACService
+from src.config import Settings
+from src.modules.system.rbac.service import RBACService
 
 
 class WorkspaceRBACService(RBACService):

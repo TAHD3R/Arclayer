@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.events import EventBus
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_items
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.system.settings.crypto.service import SettingsCryptoMixin
-from apps.api.src.modules.system.settings.events.service import SettingsEventsMixin
-from apps.api.src.modules.system.settings.repository import SettingsRepository
-from apps.api.src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary
-from apps.api.src.modules.system.settings.schemahelpers.service import SettingsSchemaHelpersMixin
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
-from apps.api.src.settings.runtime import invalidate_core_settings_cache
-from apps.api.src.settings.validation import merge_deep, validate_config_schema
+from src.common.services.base import BaseService
+from src.config import Settings
+from src.core.events import EventBus
+from src.core.exceptions import NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_items
+from src.core.i18n import t
+from src.modules.system.settings.crypto.service import SettingsCryptoMixin
+from src.modules.system.settings.events.service import SettingsEventsMixin
+from src.modules.system.settings.repository import SettingsRepository
+from src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary
+from src.modules.system.settings.schemahelpers.service import SettingsSchemaHelpersMixin
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE, CORE_SETTINGS_SCHEMA
+from src.settings.runtime import invalidate_core_settings_cache
+from src.settings.validation import merge_deep, validate_config_schema
 
 
 def _ts(key: str, default: str) -> str:

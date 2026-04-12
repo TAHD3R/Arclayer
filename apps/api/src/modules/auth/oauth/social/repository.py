@@ -6,10 +6,10 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
-from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.models.auth.oauth_identity import OAuthIdentity
-from apps.api.src.models.organization.user import User, UserStatus
+from src.common.repositories.base import BaseRepository
+from src.common.utils.ids import uuid7
+from src.models.auth.oauth_identity import OAuthIdentity
+from src.models.organization.user import User, UserStatus
 
 
 def _sanitize_username_base(value: str) -> str:

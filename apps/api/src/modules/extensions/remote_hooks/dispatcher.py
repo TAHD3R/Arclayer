@@ -10,9 +10,9 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
-from apps.api.src.core.logging import get_logger
-from apps.api.src.modules.extensions.manifest import RemoteHookDecl
-from apps.api.src.modules.extensions.schema import (
+from src.core.logging import get_logger
+from src.modules.extensions.manifest import RemoteHookDecl
+from src.modules.extensions.schema import (
     FailurePolicy,
     RemoteHookDecision,
     RemoteHookRequestIn,

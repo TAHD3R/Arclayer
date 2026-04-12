@@ -6,7 +6,7 @@ from typing import Any
 
 from tortoise.fields.data import CharEnumFieldInstance
 
-from apps.api.src.models.content._enums import (
+from src.models.content._enums import (
     ContentBootstrapPresetState,
     ContentItemStatus,
     ContentItemVisibility,
@@ -16,17 +16,17 @@ from apps.api.src.models.content._enums import (
     ContentPresentationKind,
     ContentVersionState,
 )
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.hierarchy_node import HierarchyNodeRecord
-from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
-from apps.api.src.models.content.model_field import ContentModelFieldRecord
-from apps.api.src.models.content.model_relation import ContentModelRelationRecord
-from apps.api.src.models.content.model_view import ContentModelViewRecord
-from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
-from apps.api.src.models.content.published_graph import PublishedGraphRecord
-from apps.api.src.models.content.route_binding import RouteBindingRecord
-from apps.api.src.modules.workspaces.content.contracts import schema as contracts_schema
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.hierarchy_node import HierarchyNodeRecord
+from src.models.content.model_definition import ContentModelDefinitionRecord
+from src.models.content.model_field import ContentModelFieldRecord
+from src.models.content.model_relation import ContentModelRelationRecord
+from src.models.content.model_view import ContentModelViewRecord
+from src.models.content.presentation_document import PresentationDocumentRecord
+from src.models.content.published_graph import PublishedGraphRecord
+from src.models.content.route_binding import RouteBindingRecord
+from src.modules.workspaces.content.contracts import schema as contracts_schema
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_0011 = REPO_ROOT / "apps/api/src/migrations/0011_content_kernel_initial.py"

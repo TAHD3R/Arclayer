@@ -7,20 +7,20 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId, SiteDomainRecordView
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.core.exceptions import Conflict, NotFound, ServiceUnavailable
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.models.organization.org_plan import OrgPlan
-from apps.api.src.models.sites.site_domain import SiteDomainRecord
-from apps.api.src.models.workspaces.workspace import Workspace
-from apps.api.src.modules.sites.domains.repository import SiteDomainsRepository
-from apps.api.src.modules.sites.domains.schema import (
+from src.common.protocols.tortoise import HasOrganizationId, SiteDomainRecordView
+from src.common.services.base import BaseService
+from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
+from src.infra.cache.valkey import ValkeyClientLike
+from src.models.organization.org_plan import OrgPlan
+from src.models.sites.site_domain import SiteDomainRecord
+from src.models.workspaces.workspace import Workspace
+from src.modules.sites.domains.repository import SiteDomainsRepository
+from src.modules.sites.domains.schema import (
     SiteDomainDnsInstructionOut,
     _normalize_hostname,
     domain_datetime_to_ms,
 )
-from apps.api.src.modules.workspaces.site.service import WorkspaceSiteService
+from src.modules.workspaces.site.service import WorkspaceSiteService
 
 _CACHE_KEY_PREFIX = "saas:site_resolve:host"
 _TXT_PREFIX = "arclayer-site-verification="

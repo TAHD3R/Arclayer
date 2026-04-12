@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from apps.api.src.common.protocols.tortoise import HasWorkspaceId
-from apps.api.src.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
-from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.models.assets.asset import AssetRecord
-from apps.api.src.models.sites.site import SiteRecord
+from src.common.protocols.tortoise import HasWorkspaceId
+from src.common.utils.public_ids import decode_public_id, encode_uuid, is_public_id
+from src.core.exceptions import Conflict, NotFound
+from src.models.assets.asset import AssetRecord
+from src.models.sites.site import SiteRecord
 
 
 class DepsValidationRepositoryMixin:
@@ -76,7 +76,7 @@ class DepsValidationRepositoryMixin:
                 continue
 
             # Optional compatibility: allow raw UUID strings in dev/test (configurable).
-            from apps.api.src.config import get_settings
+            from src.config import get_settings
 
             if not get_settings().public_id.accept_raw_uuid_input:
                 invalid.append(raw)

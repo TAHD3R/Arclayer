@@ -6,12 +6,12 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import BaseModel, ConfigDict
 
-from apps.api.src.config import get_settings
-from apps.api.src.models.organization.user import UserStatus
-from apps.api.src.modules.auth.contracts.schema import UserLike
-from apps.api.src.modules.auth.service import AuthService
-from apps.api.src.modules.auth.sessions.service import AuthSessionService
-from apps.api.src.modules.auth.tokens.service import decode_token, hash_password
+from src.config import get_settings
+from src.models.organization.user import UserStatus
+from src.modules.auth.contracts.schema import UserLike
+from src.modules.auth.service import AuthService
+from src.modules.auth.sessions.service import AuthSessionService
+from src.modules.auth.tokens.service import decode_token, hash_password
 
 
 class _FakeRaw:
@@ -236,7 +236,7 @@ async def test_login_persists_session_metadata(monkeypatch) -> None:
     auth, _, valkey, user = _build(monkeypatch)
 
     try:
-        from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
+        from src.modules.auth.sessions.request_context import AuthRequestContext
     except ModuleNotFoundError as exc:
         pytest.fail(f"missing auth request context module: {exc}")
 

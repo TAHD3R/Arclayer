@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.integrations.webhook_delivery import WebhookDelivery
-from apps.api.src.models.integrations.webhook_subscription import WebhookSubscription
+from src.common.repositories import BaseRepository
+from src.models.integrations.webhook_delivery import WebhookDelivery
+from src.models.integrations.webhook_subscription import WebhookSubscription
 
 
 class WebhooksRepository(BaseRepository):

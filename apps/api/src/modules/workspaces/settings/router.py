@@ -4,14 +4,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.modules.workspaces.settings.integrations.webhooks.router import router as workspace_webhooks_router
-from apps.api.src.modules.workspaces.settings.schema import (
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.settings.integrations.webhooks.router import router as workspace_webhooks_router
+from src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersRequest,
     WorkspaceAssignRoleToMembersResult,
     WorkspaceRolePolicyOut,
@@ -19,7 +19,7 @@ from apps.api.src.modules.workspaces.settings.schema import (
     WorkspaceSettingsDetail,
     WorkspaceSettingsPatch,
 )
-from apps.api.src.modules.workspaces.settings.service import WorkspaceSettingsService
+from src.modules.workspaces.settings.service import WorkspaceSettingsService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/settings", tags=["Workspace Settings"])
 router.include_router(workspace_webhooks_router)

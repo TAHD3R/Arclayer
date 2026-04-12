@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from tortoise import fields
 
-from apps.api.src.common.models.base import BaseModel
+from src.common.models.base import BaseModel
 
 
 class NotificationCategory(StrEnum):

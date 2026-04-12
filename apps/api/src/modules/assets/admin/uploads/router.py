@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
 
-from apps.api.src.common.constants.assets import ASSET_SCOPE_WORKSPACE
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import t
-from apps.api.src.modules.assets.admin.uploads.schema import (
+from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import t
+from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
     UploadCompleteOut,
     UploadInitOut,
@@ -17,12 +17,12 @@ from apps.api.src.modules.assets.admin.uploads.schema import (
     UploadPartPresignOut,
     UploadStatusOut,
 )
-from apps.api.src.modules.assets.admin.uploads.service import UploadsService
-from apps.api.src.modules.assets.scope import AssetScope
-from apps.api.src.modules.auth.http.service import get_current_user
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.assets.admin.uploads.service import UploadsService
+from src.modules.assets.scope import AssetScope
+from src.modules.auth.http.service import get_current_user
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",

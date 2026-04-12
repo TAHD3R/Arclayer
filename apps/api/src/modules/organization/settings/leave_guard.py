@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from apps.api.src.core.exceptions import Forbidden
-from apps.api.src.core.i18n import t
+from src.core.exceptions import Forbidden
+from src.core.i18n import t
 
 
 class OrgLeaveDataProvider(Protocol):
@@ -15,8 +15,8 @@ class OrgLeaveDataProvider(Protocol):
 
 class TortoiseOrgLeaveDataProvider(OrgLeaveDataProvider):
     async def list_owned_workspace_ids_in_org(self, *, organization_id: UUID, user_id: UUID) -> list[UUID]:
-        from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
-        from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
+        from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+        from src.modules.system.rbac.constants.service import ROLE_OWNER
 
         rows = await WorkspaceMembership.filter(
             user_id=user_id,
@@ -33,8 +33,8 @@ class TortoiseOrgLeaveDataProvider(OrgLeaveDataProvider):
         return sorted(set(out))
 
     async def workspace_has_other_owner(self, *, workspace_id: UUID, user_id: UUID) -> bool:
-        from apps.api.src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
-        from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
+        from src.models.workspaces.workspace import WorkspaceMembership, WorkspaceMembershipStatus
+        from src.modules.system.rbac.constants.service import ROLE_OWNER
 
         return (
             await WorkspaceMembership

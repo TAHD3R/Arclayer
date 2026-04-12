@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Literal
 from uuid import uuid4
 
-from apps.api.src.common.text.slug.service import slugify
+from src.common.text.slug.service import slugify
 
 WORKSPACE_SLUG_MAX_LEN = 64
 

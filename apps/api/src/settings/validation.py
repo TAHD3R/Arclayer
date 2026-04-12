@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import cast
 
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.core.i18n import t
-from apps.api.src.settings.schema import ConfigSchema
+from src.core.exceptions import BadRequest
+from src.core.i18n import t
+from src.settings.schema import ConfigSchema
 
 
 def _ts(key: str, default: str) -> str:

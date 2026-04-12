@@ -5,8 +5,8 @@ from uuid import UUID
 
 from tortoise import fields
 
-from apps.api.src.common.models.base import BaseModel
-from apps.api.src.models.content._enums import ContentVersionState
+from src.common.models.base import BaseModel
+from src.models.content._enums import ContentVersionState
 
 
 class ContentVersionRecord(BaseModel):

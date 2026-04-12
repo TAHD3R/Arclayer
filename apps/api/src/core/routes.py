@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from apps.api.src.config import Settings
-from apps.api.src.modules.aggregation.router import build_root_router
-from apps.api.src.modules.aggregation.v1.router import build_v1_router
+from src.config import Settings
+from src.modules.aggregation.router import build_root_router
+from src.modules.aggregation.v1.router import build_v1_router
 
 
 def register_routes(app: FastAPI, settings: Settings) -> None:

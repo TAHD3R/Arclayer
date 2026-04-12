@@ -8,13 +8,13 @@ from typing import TYPE_CHECKING, Protocol, cast
 
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.modules.sys.settings.schema import SysConfigTestCheck
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.common.utils.ids import uuid7
+from src.infra.storage.s3 import S3StorageProvider
+from src.modules.sys.settings.schema import SysConfigTestCheck
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 
 if TYPE_CHECKING:
-    from apps.api.src.config import Settings
+    from src.config import Settings
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
 SMTP_PROBE_TIMEOUT_SECONDS = 5.0

@@ -4,12 +4,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.system.admin.notifications.schema import (
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.system.admin.notifications.schema import (
     NotificationArchiveResult,
     NotificationDeleteResult,
     NotificationListQuery,
@@ -20,7 +20,7 @@ from apps.api.src.modules.system.admin.notifications.schema import (
     NotificationReadAllResult,
     NotificationReadResult,
 )
-from apps.api.src.modules.system.admin.notifications.service import NotificationService
+from src.modules.system.admin.notifications.service import NotificationService
 
 router = APIRouter(
     prefix="/me/notifications",

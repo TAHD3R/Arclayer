@@ -7,8 +7,8 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
-from apps.api.src.core.http.response import Response as ResponseBuilder
-from apps.api.src.core.i18n import get_request_locale, t
+from src.core.http.response import Response as ResponseBuilder
+from src.core.i18n import get_request_locale, t
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):

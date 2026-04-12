@@ -4,19 +4,19 @@ from uuid import uuid4
 
 import pytest
 
-from apps.api.src.common.utils.public_ids import decode_public_id
-from apps.api.src.models.content._enums import (
+from src.common.utils.public_ids import decode_public_id
+from src.models.content._enums import (
     ContentBootstrapPresetState,
     ContentItemStatus,
     ContentItemVisibility,
     ContentShapeState,
 )
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.model_definition import ContentModelDefinitionRecord
+from tests.modules.workspaces.content.test_content_items_integration import (
     _wait_latest_workspace_audit_event,
 )
-from apps.api.tests.modules.workspaces.content.test_content_models_integration import (
+from tests.modules.workspaces.content.test_content_models_integration import (
     _blank_first_create_payload,
     _preview_model_update,
     _workspace_client,

@@ -5,8 +5,8 @@ from collections.abc import AsyncIterator
 
 from starlette.responses import Response, StreamingResponse
 
-from apps.api.src.core.http.range import parse_range_header
-from apps.api.src.infra.storage.s3 import S3StorageProvider
+from src.core.http.range import parse_range_header
+from src.infra.storage.s3 import S3StorageProvider
 
 
 async def stream_s3_object(

@@ -5,7 +5,7 @@ from typing import Final
 
 from pydantic import ConfigDict, Field, model_validator
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 _TOTP_CODE_REGEX: Final[re.Pattern[str]] = re.compile(r"^\s*\d[\d\s-]{4,14}\d\s*$")
 _BACKUP_CODE_REGEX: Final[re.Pattern[str]] = re.compile(r"^\s*[A-Za-z0-9][A-Za-z0-9\s-]{4,64}\s*$")

@@ -4,9 +4,9 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from apps.api.src.config import Settings
-from apps.api.src.core.logging import get_logger
-from apps.api.src.infra.cache.valkey import ValkeyClient
+from src.config import Settings
+from src.core.logging import get_logger
+from src.infra.cache.valkey import ValkeyClient
 
 logger = get_logger(__name__)
 

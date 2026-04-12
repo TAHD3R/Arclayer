@@ -5,17 +5,17 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, Query, Request
 from fastapi import Response as FastAPIResponse
 
-from apps.api.src.common.constants.assets import ASSET_SCOPE_USER
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import BadRequest, Forbidden, Unauthorized
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import get_current_locale, t
-from apps.api.src.infra.cache.valkey import get_valkey
-from apps.api.src.infra.limiter.limiter import rate_limit
-from apps.api.src.models.organization.user import User
-from apps.api.src.modules.assets.admin.uploads.schema import (
+from src.common.constants.assets import ASSET_SCOPE_USER
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest, Forbidden, Unauthorized
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import get_current_locale, t
+from src.infra.cache.valkey import get_valkey
+from src.infra.limiter.limiter import rate_limit
+from src.models.organization.user import User
+from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
     UploadCompleteOut,
     UploadInitOut,
@@ -23,11 +23,11 @@ from apps.api.src.modules.assets.admin.uploads.schema import (
     UploadPartPresignOut,
     UploadStatusOut,
 )
-from apps.api.src.modules.assets.admin.uploads.service import UploadsService
-from apps.api.src.modules.assets.scope import AssetScope
-from apps.api.src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
-from apps.api.src.modules.auth.http.service import get_current_access_payload, get_current_user
-from apps.api.src.modules.auth.limits.service import (
+from src.modules.assets.admin.uploads.service import UploadsService
+from src.modules.assets.scope import AssetScope
+from src.modules.auth.account_deletion.capability_service import AccountDeletionCapabilityService
+from src.modules.auth.http.service import get_current_access_payload, get_current_user
+from src.modules.auth.limits.service import (
     ACCOUNT_DELETE_RATE_LIMIT,
     EMAIL_CHANGE_CONFIRM_RATE_LIMIT,
     EMAIL_CHANGE_REQUEST_RATE_LIMIT,
@@ -41,8 +41,8 @@ from apps.api.src.modules.auth.limits.service import (
     TWO_FACTOR_DISABLE_RATE_LIMIT,
     TWO_FACTOR_LOGIN_RATE_LIMIT,
 )
-from apps.api.src.modules.auth.login.service import AuthLoginService
-from apps.api.src.modules.auth.schema import (
+from src.modules.auth.login.service import AuthLoginService
+from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
     AcceptInvitationRequest,
@@ -69,13 +69,13 @@ from apps.api.src.modules.auth.schema import (
     UpdateMyProfileRequest,
     UserProfile,
 )
-from apps.api.src.modules.auth.service import AuthService
-from apps.api.src.modules.auth.sessions.request_context import build_auth_request_context
-from apps.api.src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionRevokeOthersOut
-from apps.api.src.modules.auth.sessions.service import AuthSessionService
-from apps.api.src.modules.auth.sso.router import router as auth_sso_router
-from apps.api.src.modules.auth.two_factor.capability_service import TwoFactorCapabilityService
-from apps.api.src.modules.auth.two_factor.schema import (
+from src.modules.auth.service import AuthService
+from src.modules.auth.sessions.request_context import build_auth_request_context
+from src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionRevokeOthersOut
+from src.modules.auth.sessions.service import AuthSessionService
+from src.modules.auth.sso.router import router as auth_sso_router
+from src.modules.auth.two_factor.capability_service import TwoFactorCapabilityService
+from src.modules.auth.two_factor.schema import (
     TwoFactorCapabilitiesOut,
     TwoFactorConfirmOut,
     TwoFactorConfirmRequest,
@@ -87,7 +87,7 @@ from apps.api.src.modules.auth.two_factor.schema import (
     TwoFactorSetupRequest,
     TwoFactorStatusOut,
 )
-from apps.api.src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.modules.auth.two_factor.service import AuthTwoFactorService
 
 router = APIRouter(tags=["Services: Auth Service"])
 

@@ -8,17 +8,17 @@ from uuid import UUID
 
 from fastapi import Request
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
-from apps.api.src.core.i18n import t
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.schema import TokenPair
-from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
-from apps.api.src.modules.auth.sso.repository import consume_exchange_payload
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
-from apps.api.src.settings.runtime import get_core_settings_value_cached
+from src.common.services.base import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, ServiceUnavailable
+from src.core.i18n import t
+from src.infra.cache.valkey import ValkeyClientLike
+from src.modules.auth.schema import TokenPair
+from src.modules.auth.sessions.request_context import AuthRequestContext
+from src.modules.auth.sso.repository import consume_exchange_payload
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.crypto import decrypt_secret, is_encrypted, load_master_key, master_key_exists
+from src.settings.runtime import get_core_settings_value_cached
 
 _FATAL_SSO_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,

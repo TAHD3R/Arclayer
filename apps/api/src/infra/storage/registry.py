@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from apps.api.src.config import Settings
+from src.config import Settings
 
 
 class StorageProvider(Protocol):

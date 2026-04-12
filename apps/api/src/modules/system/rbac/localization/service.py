@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from apps.api.src.core.i18n import t
-from apps.api.src.models.system.rbac import Permission, Role
+from src.core.i18n import t
+from src.models.system.rbac import Permission, Role
 
 
 def _tr(key: str, default: str) -> str:

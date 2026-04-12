@@ -4,7 +4,7 @@ from uuid import UUID
 
 
 def test_slugify_keeps_ascii_and_hyphens() -> None:
-    from apps.api.src.common.text.slug.service import slugify
+    from src.common.text.slug.service import slugify
 
     assert slugify("Hello World") == "hello-world"
     assert slugify("  Hello   World  ") == "hello-world"
@@ -13,14 +13,14 @@ def test_slugify_keeps_ascii_and_hyphens() -> None:
 
 
 def test_slugify_falls_back_when_empty() -> None:
-    from apps.api.src.common.text.slug.service import slugify
+    from src.common.text.slug.service import slugify
 
     assert slugify("") == "asset"
     assert slugify("   ") == "asset"
 
 
 def test_build_asset_object_key_contains_workspace_and_asset_id() -> None:
-    from apps.api.src.modules.assets.naming.service import build_asset_object_key
+    from src.modules.assets.naming.service import build_asset_object_key
 
     workspace_id = UUID("00000000-0000-0000-0000-000000000001")
     asset_id = UUID("00000000-0000-0000-0000-000000000002")
@@ -31,7 +31,7 @@ def test_build_asset_object_key_contains_workspace_and_asset_id() -> None:
 
 
 def test_build_upload_part_object_key_is_stable() -> None:
-    from apps.api.src.modules.assets.naming.service import build_upload_part_object_key
+    from src.modules.assets.naming.service import build_upload_part_object_key
 
     workspace_id = UUID("00000000-0000-0000-0000-000000000001")
     upload_id = UUID("00000000-0000-0000-0000-000000000003")
@@ -42,7 +42,7 @@ def test_build_upload_part_object_key_is_stable() -> None:
 
 
 def test_compute_total_parts() -> None:
-    from apps.api.src.modules.assets.naming.service import compute_total_parts
+    from src.modules.assets.naming.service import compute_total_parts
 
     assert compute_total_parts(size_bytes=0, chunk_size_bytes=8) == 1
     assert compute_total_parts(size_bytes=1, chunk_size_bytes=8) == 1

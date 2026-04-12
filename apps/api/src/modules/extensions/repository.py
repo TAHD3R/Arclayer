@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.extensions.app import ExtensionApp
+from src.common.repositories import BaseRepository
+from src.models.extensions.app import ExtensionApp
 
 
 class ExtensionsRepository(BaseRepository):
@@ -35,7 +35,7 @@ class ExtensionsRepository(BaseRepository):
         )
 
     async def list_workspace_enabled_capability_ids(self, *, workspace_id: UUID) -> set[str]:
-        from apps.api.src.models.extensions.workspace_capability_state import WorkspaceCapabilityState
+        from src.models.extensions.workspace_capability_state import WorkspaceCapabilityState
 
         rows = await WorkspaceCapabilityState.filter(workspace_id=workspace_id, enabled=True).values_list(
             "capability_id", flat=True
@@ -49,7 +49,7 @@ class ExtensionsRepository(BaseRepository):
         capability_id: str,
         enabled: bool,
     ) -> None:
-        from apps.api.src.models.extensions.workspace_capability_state import WorkspaceCapabilityState
+        from src.models.extensions.workspace_capability_state import WorkspaceCapabilityState
 
         cid = capability_id.strip()
         if not cid:
@@ -62,7 +62,7 @@ class ExtensionsRepository(BaseRepository):
         await row.save()
 
     async def list_org_enabled_capability_ids(self, *, organization_id: UUID) -> set[str]:
-        from apps.api.src.models.extensions.organization_capability_state import OrganizationCapabilityState
+        from src.models.extensions.organization_capability_state import OrganizationCapabilityState
 
         rows = await OrganizationCapabilityState.filter(organization_id=organization_id, enabled=True).values_list(
             "capability_id", flat=True
@@ -76,7 +76,7 @@ class ExtensionsRepository(BaseRepository):
         capability_id: str,
         enabled: bool,
     ) -> None:
-        from apps.api.src.models.extensions.organization_capability_state import OrganizationCapabilityState
+        from src.models.extensions.organization_capability_state import OrganizationCapabilityState
 
         cid = capability_id.strip()
         if not cid:

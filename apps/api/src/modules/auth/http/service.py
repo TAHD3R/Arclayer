@@ -6,13 +6,13 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from structlog.contextvars import bind_contextvars
 
-from apps.api.src.common.constants.auth import TOKEN_TYPE_ACCESS
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import Forbidden, Unauthorized
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.user import User
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.tokens.service import decode_token
+from src.common.constants.auth import TOKEN_TYPE_ACCESS
+from src.config import Settings, get_settings
+from src.core.exceptions import Forbidden, Unauthorized
+from src.core.i18n import t
+from src.models.organization.user import User
+from src.modules.auth.repository import UserRepository
+from src.modules.auth.tokens.service import decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
 

@@ -6,18 +6,18 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
-from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.models.content._enums import (
+from src.common.repositories.base import BaseRepository
+from src.models.content._enums import (
     ContentModelFieldType,
     ContentModelRelationType,
     ContentModelViewType,
 )
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.model_definition import ContentModelDefinitionRecord
-from apps.api.src.models.content.model_field import ContentModelFieldRecord
-from apps.api.src.models.content.model_relation import ContentModelRelationRecord
-from apps.api.src.models.content.model_view import ContentModelViewRecord
-from apps.api.src.modules.workspaces.content.contracts.schema import (
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.model_definition import ContentModelDefinitionRecord
+from src.models.content.model_field import ContentModelFieldRecord
+from src.models.content.model_relation import ContentModelRelationRecord
+from src.models.content.model_view import ContentModelViewRecord
+from src.modules.workspaces.content.contracts.schema import (
     ContentModelFieldContract,
     ContentModelRelationContract,
     ContentModelViewContract,

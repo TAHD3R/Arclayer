@@ -7,7 +7,7 @@ from tortoise import Tortoise
 from tortoise.migrations.executor import MigrationExecutor
 from tortoise.migrations.graph import MigrationKey
 
-from apps.api.src.core.database.orm import close_orm
+from src.core.database.orm import close_orm
 
 MIGRATIONS_DIR = Path(__file__).resolve().parents[2] / "migrations"
 RECORDER_TABLE = "tortoise_migrations"

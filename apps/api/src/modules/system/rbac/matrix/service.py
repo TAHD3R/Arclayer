@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.models.system.rbac import PermissionScope
-from apps.api.src.modules.system.rbac.repository import RBACRepository
-from apps.api.src.modules.system.rbac.schema import RBACMatrixPayload
+from src.models.system.rbac import PermissionScope
+from src.modules.system.rbac.repository import RBACRepository
+from src.modules.system.rbac.schema import RBACMatrixPayload
 
 
 class RBACMatrixMixin:

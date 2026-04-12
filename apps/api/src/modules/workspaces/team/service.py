@@ -8,31 +8,31 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 from tortoise.expressions import Q
 
-from apps.api.src.common.email.service import EmailService
-from apps.api.src.common.protocols.tortoise import HasUserId
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.system.notification import NotificationCategory, NotificationRecord
-from apps.api.src.models.system.rbac import Role
-from apps.api.src.models.workspaces.workspace import (
+from src.common.email.service import EmailService
+from src.common.protocols.tortoise import HasUserId
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.http.pagination import PageData, PageParams
+from src.core.i18n import t
+from src.models.organization.user import User
+from src.models.system.notification import NotificationCategory, NotificationRecord
+from src.models.system.rbac import Role
+from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
-from apps.api.src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.tokens.service import hash_password
-from apps.api.src.modules.system.admin.notifications.preferences import (
+from src.models.workspaces.workspace_invite import WorkspaceInviteLinkUseEvent
+from src.modules.auth.repository import UserRepository
+from src.modules.auth.tokens.service import hash_password
+from src.modules.system.admin.notifications.preferences import (
     is_notification_channel_enabled_for_event,
 )
-from apps.api.src.modules.workspaces.team.invites.service import WorkspaceTeamInviteMixin
-from apps.api.src.modules.workspaces.team.repository import WorkspaceTeamRepository
-from apps.api.src.modules.workspaces.team.schema import (
+from src.modules.workspaces.team.invites.service import WorkspaceTeamInviteMixin
+from src.modules.workspaces.team.repository import WorkspaceTeamRepository
+from src.modules.workspaces.team.schema import (
     InviteStatus,
     WorkspaceInviteLinkParticipantOut,
     WorkspaceTeamMemberOut,
@@ -95,7 +95,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         try:
             from asgi_correlation_id import correlation_id
 
-            from apps.api.src.core.events import Event, events
+            from src.core.events import Event, events
 
             await events.publish(
                 Event(

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import ServiceUnavailable
-from apps.api.src.core.i18n import t
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
-from apps.api.src.settings.schema import ConfigSchema
-from apps.api.src.settings.validation import iter_secret_field_paths
+from src.config import Settings
+from src.core.exceptions import ServiceUnavailable
+from src.core.i18n import t
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.crypto import encrypt_secret, ensure_master_key, is_encrypted, master_key_exists
+from src.settings.schema import ConfigSchema
+from src.settings.validation import iter_secret_field_paths
 
 
 def _ts(key: str, default: str) -> str:

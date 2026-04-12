@@ -5,9 +5,9 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.common.repositories import BaseRepository
+from src.models.organization.user import User
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 
 
 class OrganizationWorkspaceRepository(BaseRepository):

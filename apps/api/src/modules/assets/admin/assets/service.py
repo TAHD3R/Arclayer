@@ -5,21 +5,21 @@ from datetime import UTC, datetime
 from math import ceil
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, NotFound
-from apps.api.src.core.http.file_stream import stream_file_response
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.src.core.i18n import t
-from apps.api.src.infra.storage.factory import build_storage_provider_for
-from apps.api.src.infra.storage.local import safe_object_key_to_path
-from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.infra.storage.s3_stream import stream_s3_object
-from apps.api.src.models.assets.asset import AssetRecord
-from apps.api.src.models.organization.user import User
-from apps.api.src.modules.assets.admin.assets.repository import AdminAssetsRepository
-from apps.api.src.modules.assets.admin.assets.schema import (
+from src.common.services import BaseService
+from src.common.utils.public_ids import encode_uuid
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, NotFound
+from src.core.http.file_stream import stream_file_response
+from src.core.http.pagination import PageData, PageParams, paginate_queryset
+from src.core.i18n import t
+from src.infra.storage.factory import build_storage_provider_for
+from src.infra.storage.local import safe_object_key_to_path
+from src.infra.storage.s3 import S3StorageProvider
+from src.infra.storage.s3_stream import stream_s3_object
+from src.models.assets.asset import AssetRecord
+from src.models.organization.user import User
+from src.modules.assets.admin.assets.repository import AdminAssetsRepository
+from src.modules.assets.admin.assets.schema import (
     AdminAssetBulkDeleteOut,
     AdminAssetBulkDeleteRequest,
     AdminAssetBulkMoveOut,
@@ -40,9 +40,9 @@ from apps.api.src.modules.assets.admin.assets.schema import (
     AdminAssetTagOut,
     AdminAssetUpdateRequest,
 )
-from apps.api.src.modules.assets.admin.uploads.policy.service import normalize_original_filename
-from apps.api.src.modules.assets.scope import AssetScope
-from apps.api.src.settings.runtime import get_effective_settings
+from src.modules.assets.admin.uploads.policy.service import normalize_original_filename
+from src.modules.assets.scope import AssetScope
+from src.settings.runtime import get_effective_settings
 
 
 def _ts(key: str, default: str) -> str:

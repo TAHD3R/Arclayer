@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Protocol, cast
 
-from apps.api.src.modules.sys.settings.namespaces.schema import (
+from src.modules.sys.settings.namespaces.schema import (
     SYS_NAMESPACE_AUTH,
     SYS_NAMESPACE_CORE_LEGACY,
     SYS_NAMESPACE_MAIL,
     SYS_NAMESPACE_OAUTH,
     SYS_NAMESPACE_STORAGE,
 )
-from apps.api.src.modules.sys.settings.schema import SysConfigTestCheck
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.modules.sys.settings.schema import SysConfigTestCheck
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 
 
 class _SysConfigCheckRunners(Protocol):

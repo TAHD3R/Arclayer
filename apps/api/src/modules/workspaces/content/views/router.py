@@ -5,22 +5,22 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, status
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.http.service import (
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.http.service import (
     ensure_workspace_permission_granted,
     require_workspace_permission,
 )
-from apps.api.src.modules.workspaces.content.views.schema import (
+from src.modules.workspaces.content.views.schema import (
     ContentLibraryViewCreateIn,
     ContentLibraryViewMoveIn,
     ContentLibraryViewPatchIn,
     ContentLibraryViewsStateOut,
 )
-from apps.api.src.modules.workspaces.content.views.service import ContentLibraryViewsService
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.content.views.service import ContentLibraryViewsService
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
 
 content_library_views_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content/library",

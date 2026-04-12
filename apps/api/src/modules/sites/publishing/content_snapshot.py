@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from apps.api.src.models.content._enums import ContentPresentationKind
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
-from apps.api.src.models.content.seo_profile import SEOProfileRecord
+from src.models.content._enums import ContentPresentationKind
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.presentation_document import PresentationDocumentRecord
+from src.models.content.seo_profile import SEOProfileRecord
 
 
 @dataclass(frozen=True, slots=True)

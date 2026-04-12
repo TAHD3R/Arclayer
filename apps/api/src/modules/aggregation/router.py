@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from apps.api.src.modules.assets.router import router as public_assets_router
-from apps.api.src.modules.library.router import router as public_library_router
+from src.modules.assets.router import router as public_assets_router
+from src.modules.library.router import router as public_library_router
 
 
 def build_root_router() -> APIRouter:

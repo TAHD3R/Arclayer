@@ -3,13 +3,13 @@ from __future__ import annotations
 from math import ceil
 from uuid import UUID
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams
-from apps.api.src.models.analytics.audit_event import AuditEvent
-from apps.api.src.models.organization.user import User
-from apps.api.src.modules.analytics.repository import AuditEventRepository
-from apps.api.src.modules.analytics.schema import ActivityUserSummaryOut, AuditEventListQuery, AuditEventOut
+from src.common.services.base import BaseService
+from src.core.exceptions import NotFound
+from src.core.http.pagination import PageData, PageParams
+from src.models.analytics.audit_event import AuditEvent
+from src.models.organization.user import User
+from src.modules.analytics.repository import AuditEventRepository
+from src.modules.analytics.schema import ActivityUserSummaryOut, AuditEventListQuery, AuditEventOut
 
 
 class ActivityService(BaseService):

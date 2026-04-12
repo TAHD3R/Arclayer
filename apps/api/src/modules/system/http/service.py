@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi import Depends
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.core.i18n import t
+from src.config import Settings, get_settings
+from src.core.exceptions import NotFound
+from src.core.i18n import t
 
 
 async def require_self_host_deployment_mode(

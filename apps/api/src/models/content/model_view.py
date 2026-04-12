@@ -5,8 +5,8 @@ from uuid import UUID
 
 from tortoise import fields
 
-from apps.api.src.common.models.base import BaseModel
-from apps.api.src.models.content._enums import ContentModelViewType
+from src.common.models.base import BaseModel
+from src.models.content._enums import ContentModelViewType
 
 
 class ContentModelViewRecord(BaseModel):

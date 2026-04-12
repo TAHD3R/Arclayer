@@ -10,8 +10,8 @@ from typing import Final
 
 from tortoise import Tortoise
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.logging import get_logger
+from src.config import Settings, get_settings
+from src.core.logging import get_logger
 
 EXCLUDE_NAMES = ("tests", "base", "migrations", "__pycache__", "__init__")
 
@@ -65,11 +65,10 @@ def _is_importable_package(pkg: str) -> bool:
     return bool(locations)
 
 
-_PRIMARY_CORE_MODELS_PKG: Final[str] = "apps.api.src.models"
+_PRIMARY_CORE_MODELS_PKG: Final[str] = "src.models"
 _LEGACY_CORE_MODELS_PKGS: Final[tuple[str, ...]] = (
     # Legacy pre-refactor paths often referenced `modules` as the model package.
-    "apps.api.src.modules",
-    "apps.api.modules",
+    "src.modules",
 )
 
 
@@ -83,9 +82,9 @@ def _normalize_core_model_pkgs_cached(pkgs: tuple[str, ...]) -> tuple[str, ...]:
     Normalize core model discovery packages.
 
     Goals:
-    - Ensure ORM models under `apps.api.src.models` are always discoverable, even if
+    - Ensure ORM models under `src.models` are always discoverable, even if
       local dotenv files contain legacy `DATABASE__CORE_MODELS` values.
-    - Avoid passing packages that contain no models (e.g. `apps.api.src.modules`) to
+    - Avoid passing packages that contain no models (e.g. `src.modules`) to
       Tortoise, which triggers noisy "has no models" warnings.
     """
 
@@ -96,6 +95,8 @@ def _normalize_core_model_pkgs_cached(pkgs: tuple[str, ...]) -> tuple[str, ...]:
         pkg = str(raw or "").strip()
         if not pkg:
             continue
+        if ".src." in pkg and not pkg.startswith("src."):
+            pkg = pkg[pkg.index("src.") :]
         if pkg in _LEGACY_CORE_MODELS_PKGS:
             continue
         if pkg in seen:
@@ -235,7 +236,7 @@ def build_tortoise_config(
                 "models": models,
                 "default_connection": "default",
                 # Tortoise ORM v1+ built-in migrations.
-                "migrations": "apps.api.src.migrations",
+                "migrations": "src.migrations",
             }
         },
         "use_tz": settings.database.use_tz,

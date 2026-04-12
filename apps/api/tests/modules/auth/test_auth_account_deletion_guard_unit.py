@@ -4,8 +4,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.src.core.exceptions import Forbidden
-from apps.api.src.modules.auth.account_deletion.guard import AccountDeletionDataProvider, AccountDeletionGuard
+from src.core.exceptions import Forbidden
+from src.modules.auth.account_deletion.guard import AccountDeletionDataProvider, AccountDeletionGuard
 
 
 class FakeData(AccountDeletionDataProvider):

@@ -8,31 +8,31 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
-from apps.api.src.common.invitations.expiry.service import build_expires_at
-from apps.api.src.common.invitations.tokens.service import build_invite_token, generate_invite_code
-from apps.api.src.common.invitations.workspace_invites import (
+from src.common.invitations.expiry.service import build_expires_at
+from src.common.invitations.tokens.service import build_invite_token, generate_invite_code
+from src.common.invitations.workspace_invites import (
     WORKSPACE_EMAIL_INVITE_PREFIX_GUEST,
     WORKSPACE_EMAIL_INVITE_PREFIX_MEMBER,
     WORKSPACE_INVITE_LINK_PREFIX_GUEST,
     WORKSPACE_INVITE_LINK_PREFIX_MEMBER,
 )
-from apps.api.src.common.protocols.tortoise import (
+from src.common.protocols.tortoise import (
     WorkspaceEmailInviteMutableFields,
     WorkspaceInviteLinkMutableFields,
 )
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.system.rbac import Role
-from apps.api.src.models.workspaces.workspace_invite import (
+from src.config import Settings
+from src.core.exceptions import BadRequest, NotFound
+from src.core.http.pagination import PageData, PageParams
+from src.core.i18n import t
+from src.models.organization.user import User
+from src.models.system.rbac import Role
+from src.models.workspaces.workspace_invite import (
     WorkspaceEmailInvite,
     WorkspaceInviteLink,
     WorkspaceInviteLinkUseEvent,
 )
-from apps.api.src.modules.workspaces.team.repository import WorkspaceTeamRepository
-from apps.api.src.modules.workspaces.team.schema import (
+from src.modules.workspaces.team.repository import WorkspaceTeamRepository
+from src.modules.workspaces.team.schema import (
     InviteStatus,
     WorkspaceEmailInviteCreateRequest,
     WorkspaceEmailInviteCreateResult,

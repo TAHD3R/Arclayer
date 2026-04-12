@@ -4,17 +4,17 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
-from apps.api.src.common.types.public_uuid import PublicUUID
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import get_current_locale, t
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.modules.workspaces.team.schema import (
+from src.common.types.public_uuid import PublicUUID
+from src.config import Settings, get_settings
+from src.core.exceptions import BadRequest
+from src.core.http.pagination import PageData, PageParams, get_page_params
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import get_current_locale, t
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.team.schema import (
     WorkspaceEmailInviteCreateRequest,
     WorkspaceEmailInviteCreateResult,
     WorkspaceEmailInviteOut,
@@ -32,7 +32,7 @@ from apps.api.src.modules.workspaces.team.schema import (
     WorkspaceTeamUserOptionOut,
     WorkspaceTeamUserUpdateRequest,
 )
-from apps.api.src.modules.workspaces.team.service import WorkspaceTeamService
+from src.modules.workspaces.team.service import WorkspaceTeamService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/team", tags=["Workspace Team"])
 

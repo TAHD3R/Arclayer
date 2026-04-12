@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import Forbidden, Unauthorized
-from apps.api.src.models.organization.user import User
-from apps.api.src.modules.auth.account_deletion.guard import AccountDeletionGuard
-from apps.api.src.modules.auth.repository import UserRepository
-from apps.api.src.modules.auth.schema import DeleteMyAccountCapabilityOut
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import Forbidden, Unauthorized
+from src.models.organization.user import User
+from src.modules.auth.account_deletion.guard import AccountDeletionGuard
+from src.modules.auth.repository import UserRepository
+from src.modules.auth.schema import DeleteMyAccountCapabilityOut
 
 
 class AccountDeletionCapabilityService(BaseService):
@@ -47,7 +47,7 @@ class AccountDeletionCapabilityService(BaseService):
         return None
 
     async def _has_linked_oauth_identities(self, *, user_id: UUID) -> bool:
-        from apps.api.src.models.auth.oauth_identity import OAuthIdentity
+        from src.models.auth.oauth_identity import OAuthIdentity
 
         return await OAuthIdentity.filter(user_id=user_id).exists()
 

@@ -4,8 +4,8 @@ from typing import Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.modules.sites.design.nodes.schema import DesignNodeV1, _is_safe_node_id
+from src.common.schemas import BaseSchema
+from src.modules.sites.design.nodes.schema import DesignNodeV1, _is_safe_node_id
 
 
 class PageBlueprint(BaseSchema):

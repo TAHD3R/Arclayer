@@ -11,16 +11,14 @@ import pytest_asyncio
 from fastapi import FastAPI
 from tortoise import Tortoise
 
-# Ensure repository root is importable (e.g. `apps.*`), but avoid
-# putting `apps/api` itself on `sys.path` (it would shadow stdlib modules like `http`).
-REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+API_ROOT = Path(__file__).resolve().parents[1]
+if str(API_ROOT) not in sys.path:
+    sys.path.insert(0, str(API_ROOT))
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.database.orm import close_orm, init_orm, verify_db_ready
-from apps.api.src.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
-from apps.api.tests.utils.tortoise import reset_postgres_schema
+from src.config import get_settings
+from src.core.database.orm import close_orm, init_orm, verify_db_ready
+from src.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
+from tests.utils.tortoise import reset_postgres_schema
 
 
 @pytest.fixture(autouse=True)
@@ -81,7 +79,7 @@ def _activate_integration_env(monkeypatch) -> None:
     # Keep integration tests hermetic regardless of local `.env` values.
     #
     # ORM discovery must only load the canonical model package.
-    monkeypatch.setenv("DATABASE__CORE_MODELS", '["apps.api.src.models"]')
+    monkeypatch.setenv("DATABASE__CORE_MODELS", '["src.models"]')
     get_settings.cache_clear()
 
 

@@ -4,7 +4,7 @@ import os
 import re
 from pathlib import Path
 
-from apps.api.src.common.utils.ids import uuid7
+from src.common.utils.ids import uuid7
 
 _SAFE_SEGMENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 

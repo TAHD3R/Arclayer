@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from apps.api.src.core.database.migration_state_repair import (
+from src.core.database.migration_state_repair import (
     SchemaSnapshot,
     detect_baseline_migration,
     migration_names_up_to,

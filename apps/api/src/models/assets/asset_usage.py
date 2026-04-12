@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tortoise import fields
 
-from apps.api.src.common.models.base import BaseModel
+from src.common.models.base import BaseModel
 
 
 # Asset usage reference (best-effort audit).

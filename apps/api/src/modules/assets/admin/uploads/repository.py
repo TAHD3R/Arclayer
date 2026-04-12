@@ -7,10 +7,10 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 
-from apps.api.src.common.protocols.tortoise import UploadPartMutableFields
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.assets.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
-from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
+from src.common.protocols.tortoise import UploadPartMutableFields
+from src.common.repositories import BaseRepository
+from src.models.assets.upload import UploadPartRecord, UploadSessionRecord, UploadStatus
+from src.modules.assets.scope import AssetScope, scope_filter_kwargs
 
 
 class UploadsRepository(BaseRepository):

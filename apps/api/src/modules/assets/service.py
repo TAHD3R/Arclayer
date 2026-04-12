@@ -6,18 +6,18 @@ from uuid import UUID
 
 from starlette.responses import RedirectResponse, Response
 
-from apps.api.src.common.utils.public_ids import encode_uuid
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.core.http.content_disposition import build_attachment_content_disposition
-from apps.api.src.core.http.file_stream import stream_file_response
-from apps.api.src.core.logging import get_logger
-from apps.api.src.infra.storage.factory import build_storage_provider_for
-from apps.api.src.infra.storage.local import safe_object_key_to_path
-from apps.api.src.infra.storage.s3 import S3StorageProvider
-from apps.api.src.modules.assets.repository import AssetsRepository
-from apps.api.src.modules.assets.schema import AssetPublicView
-from apps.api.src.settings.runtime import get_effective_settings
+from src.common.utils.public_ids import encode_uuid
+from src.config import Settings
+from src.core.exceptions import NotFound
+from src.core.http.content_disposition import build_attachment_content_disposition
+from src.core.http.file_stream import stream_file_response
+from src.core.logging import get_logger
+from src.infra.storage.factory import build_storage_provider_for
+from src.infra.storage.local import safe_object_key_to_path
+from src.infra.storage.s3 import S3StorageProvider
+from src.modules.assets.repository import AssetsRepository
+from src.modules.assets.schema import AssetPublicView
+from src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
 _FATAL_ASSETS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (

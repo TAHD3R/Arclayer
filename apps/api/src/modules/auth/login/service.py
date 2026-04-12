@@ -3,16 +3,16 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
-from apps.api.src.core.i18n import t
-from apps.api.src.infra.cache.valkey import ValkeyClientLike
-from apps.api.src.modules.auth.schema import TokenPair
-from apps.api.src.modules.auth.service import AuthService
-from apps.api.src.modules.auth.sessions.request_context import AuthRequestContext
-from apps.api.src.modules.auth.tokens.service import verify_password
-from apps.api.src.modules.auth.two_factor.challenge_store import TwoFactorChallengeStore
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
+from src.core.i18n import t
+from src.infra.cache.valkey import ValkeyClientLike
+from src.modules.auth.schema import TokenPair
+from src.modules.auth.service import AuthService
+from src.modules.auth.sessions.request_context import AuthRequestContext
+from src.modules.auth.tokens.service import verify_password
+from src.modules.auth.two_factor.challenge_store import TwoFactorChallengeStore
 
 
 class TwoFactorLoginLike(Protocol):

@@ -1,5 +1,5 @@
-from apps.api.src.common.utils.ids import uuid7
-from apps.api.src.models.content._enums import PublishArtifactKind
+from src.common.utils.ids import uuid7
+from src.models.content._enums import PublishArtifactKind
 from tortoise import fields
 from tortoise import migrations
 from tortoise.fields.base import OnDelete

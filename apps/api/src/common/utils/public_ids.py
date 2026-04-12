@@ -66,7 +66,7 @@ def _feistel_decrypt_16(*, block16: bytes, secret: bytes, rounds: int) -> bytes:
 
 def _get_public_id_secret_bytes() -> bytes:
     # Imported lazily to avoid circular imports during app bootstrap.
-    from apps.api.src.config import get_settings
+    from src.config import get_settings
 
     secret = get_settings().public_id.secret.get_secret_value()
     if not secret:
@@ -77,7 +77,7 @@ def _get_public_id_secret_bytes() -> bytes:
 
 
 def _get_public_id_rounds() -> int:
-    from apps.api.src.config import get_settings
+    from src.config import get_settings
 
     rounds = int(get_settings().public_id.rounds)
     if rounds < 4:

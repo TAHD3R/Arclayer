@@ -8,7 +8,7 @@ Notes:
 - Workspace system roles are immutable: their permission sets are reconciled from these templates.
 """
 
-from apps.api.src.modules.system.rbac.schema import PermissionTemplate
+from src.modules.system.rbac.schema import PermissionTemplate
 
 # Core permission templates must live outside the plugin system, because RBAC is a core capability.
 # These templates are registered into the plugin registry at startup so RBAC can sync them into DB.

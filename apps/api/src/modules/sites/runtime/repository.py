@@ -8,14 +8,14 @@ Runtime payload is derived from settings and other stored entities.
 
 from uuid import UUID
 
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.models.content.content_item import ContentItemRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.presentation_document import PresentationDocumentRecord
-from apps.api.src.models.content.route_binding import RouteBindingRecord
-from apps.api.src.models.content.seo_profile import SEOProfileRecord
-from apps.api.src.models.sites.site import SiteRecord
-from apps.api.src.modules.sites.shared.service import normalize_path
+from src.core.exceptions import NotFound
+from src.models.content.content_item import ContentItemRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.presentation_document import PresentationDocumentRecord
+from src.models.content.route_binding import RouteBindingRecord
+from src.models.content.seo_profile import SEOProfileRecord
+from src.models.sites.site import SiteRecord
+from src.modules.sites.shared.service import normalize_path
 
 
 class RuntimeRepositoryMixin:

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from apps.api.src.common.utils.public_ids import decode_public_id
-from apps.api.src.models.content.component_binding import ComponentBindingRecord
-from apps.api.src.models.content.content_version import ContentVersionRecord
-from apps.api.src.models.content.seo_profile import SEOProfileRecord
-from apps.api.tests.modules.workspaces.content.test_content_items_integration import (
+from src.common.utils.public_ids import decode_public_id
+from src.models.content.component_binding import ComponentBindingRecord
+from src.models.content.content_version import ContentVersionRecord
+from src.models.content.seo_profile import SEOProfileRecord
+from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
     _create_page_model,
     _workspace_client,

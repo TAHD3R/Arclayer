@@ -5,8 +5,8 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.system.notification import NotificationRecord
+from src.common.repositories import BaseRepository
+from src.models.system.notification import NotificationRecord
 
 
 class NotificationRepository(BaseRepository):

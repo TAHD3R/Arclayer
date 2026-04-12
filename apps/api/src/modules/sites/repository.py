@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from apps.api.src.common.repositories.base import BaseRepository
-from apps.api.src.modules.sites.routing.repository import SiteRoutingRepository
-from apps.api.src.modules.sites.runtime.repository import RuntimeRepositoryMixin
-from apps.api.src.modules.sites.settings.repository import SettingsRepositoryMixin
+from src.common.repositories.base import BaseRepository
+from src.modules.sites.routing.repository import SiteRoutingRepository
+from src.modules.sites.runtime.repository import RuntimeRepositoryMixin
+from src.modules.sites.settings.repository import SettingsRepositoryMixin
 
 
 class SitesRepository(

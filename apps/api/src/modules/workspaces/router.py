@@ -4,43 +4,43 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.models.organization.org_membership import OrgMembership
-from apps.api.src.modules.analytics.workspaces.router import router as workspace_activity_router
-from apps.api.src.modules.assets.admin.router import router as workspace_assets_router
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.organization.http.service import get_current_org_membership
-from apps.api.src.modules.organization.workspaces.service import OrganizationWorkspaceService
-from apps.api.src.modules.system.admin.router import router as workspace_admin_router
-from apps.api.src.modules.workspaces.authz.http.service import require_workspace_permission
-from apps.api.src.modules.workspaces.authz.router import router as workspace_authz_router
-from apps.api.src.modules.workspaces.content.bindings.router import (
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.models.organization.org_membership import OrgMembership
+from src.modules.analytics.workspaces.router import router as workspace_activity_router
+from src.modules.assets.admin.router import router as workspace_assets_router
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.organization.http.service import get_current_org_membership
+from src.modules.organization.workspaces.service import OrganizationWorkspaceService
+from src.modules.system.admin.router import router as workspace_admin_router
+from src.modules.workspaces.authz.http.service import require_workspace_permission
+from src.modules.workspaces.authz.router import router as workspace_authz_router
+from src.modules.workspaces.content.bindings.router import (
     bindings_router as workspace_content_bindings_router,
 )
-from apps.api.src.modules.workspaces.content.items.router import (
+from src.modules.workspaces.content.items.router import (
     canonical_items_router as workspace_content_items_router,
 )
-from apps.api.src.modules.workspaces.content.models.router import (
+from src.modules.workspaces.content.models.router import (
     canonical_models_router as workspace_content_models_router,
 )
-from apps.api.src.modules.workspaces.content.presentations.router import (
+from src.modules.workspaces.content.presentations.router import (
     presentations_router as workspace_content_presentations_router,
 )
-from apps.api.src.modules.workspaces.content.routing.router import (
+from src.modules.workspaces.content.routing.router import (
     canonical_routing_router as workspace_content_routing_router,
 )
-from apps.api.src.modules.workspaces.content.seo.router import seo_router as workspace_content_seo_router
-from apps.api.src.modules.workspaces.content.views.router import (
+from src.modules.workspaces.content.seo.router import seo_router as workspace_content_seo_router
+from src.modules.workspaces.content.views.router import (
     content_library_views_router as workspace_content_library_views_router,
 )
-from apps.api.src.modules.workspaces.danger_service import WorkspaceDangerService
-from apps.api.src.modules.workspaces.extensions.router import router as workspace_extensions_router
-from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
-from apps.api.src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
-from apps.api.src.modules.workspaces.publish.router import router as workspace_publish_router
-from apps.api.src.modules.workspaces.rbac.router import router as workspace_rbac_router
-from apps.api.src.modules.workspaces.schema import (
+from src.modules.workspaces.danger_service import WorkspaceDangerService
+from src.modules.workspaces.extensions.router import router as workspace_extensions_router
+from src.modules.workspaces.http.schema import WorkspaceContext
+from src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
+from src.modules.workspaces.publish.router import router as workspace_publish_router
+from src.modules.workspaces.rbac.router import router as workspace_rbac_router
+from src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
     LeaveWorkspaceResult,
     MyWorkspaceListResult,
@@ -49,11 +49,11 @@ from apps.api.src.modules.workspaces.schema import (
     WorkspaceDetailOut,
     WorkspaceUpdateRequest,
 )
-from apps.api.src.modules.workspaces.service import WorkspaceService
-from apps.api.src.modules.workspaces.settings.router import router as workspace_settings_router
-from apps.api.src.modules.workspaces.site.router import router as workspace_site_router
-from apps.api.src.modules.workspaces.team.router import router as workspace_team_router
-from apps.api.src.modules.workspaces.themes.router import router as workspace_themes_router
+from src.modules.workspaces.service import WorkspaceService
+from src.modules.workspaces.settings.router import router as workspace_settings_router
+from src.modules.workspaces.site.router import router as workspace_site_router
+from src.modules.workspaces.team.router import router as workspace_team_router
+from src.modules.workspaces.themes.router import router as workspace_themes_router
 
 router = APIRouter(tags=["Workspaces"])
 router.include_router(workspace_team_router)

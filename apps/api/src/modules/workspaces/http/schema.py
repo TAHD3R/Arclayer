@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 
 class WorkspaceAccessType(StrEnum):

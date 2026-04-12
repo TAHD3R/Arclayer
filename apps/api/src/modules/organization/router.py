@@ -6,23 +6,23 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.common.protocols.tortoise import HasOrganizationId
-from apps.api.src.common.text.slug.service import slugify
-from apps.api.src.core.exceptions import BadRequest, NotFound
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import t
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.organization import Organization
-from apps.api.src.models.organization.user import User
-from apps.api.src.modules.assets.admin.assets.org_router import router as organization_assets_router
-from apps.api.src.modules.assets.admin.uploads.org_router import router as organization_uploads_router
-from apps.api.src.modules.assets.admin.usages.org_router import router as organization_usages_router
-from apps.api.src.modules.auth.http.service import get_current_user_id
-from apps.api.src.modules.organization.extensions.router import router as organization_extensions_router
-from apps.api.src.modules.organization.http.service import get_current_org_membership
-from apps.api.src.modules.organization.members.router import router as organization_members_router
-from apps.api.src.modules.organization.rbac.router import router as organization_rbac_router
-from apps.api.src.modules.organization.schema import (
+from src.common.protocols.tortoise import HasOrganizationId
+from src.common.text.slug.service import slugify
+from src.core.exceptions import BadRequest, NotFound
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import t
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.organization import Organization
+from src.models.organization.user import User
+from src.modules.assets.admin.assets.org_router import router as organization_assets_router
+from src.modules.assets.admin.uploads.org_router import router as organization_uploads_router
+from src.modules.assets.admin.usages.org_router import router as organization_usages_router
+from src.modules.auth.http.service import get_current_user_id
+from src.modules.organization.extensions.router import router as organization_extensions_router
+from src.modules.organization.http.service import get_current_org_membership
+from src.modules.organization.members.router import router as organization_members_router
+from src.modules.organization.rbac.router import router as organization_rbac_router
+from src.modules.organization.schema import (
     CreateMyOrganizationRequest,
     MyOrganizationListOut,
     MyOrganizationOut,
@@ -30,13 +30,13 @@ from apps.api.src.modules.organization.schema import (
     OrganizationMemberPreviewOut,
     OrganizationMembershipOut,
 )
-from apps.api.src.modules.organization.settings.router import (
+from src.modules.organization.settings.router import (
     router as organization_settings_router,
 )
-from apps.api.src.modules.organization.settings.router import (
+from src.modules.organization.settings.router import (
     scoped_router as organization_scoped_settings_router,
 )
-from apps.api.src.modules.organization.workspaces.router import router as organization_workspaces_router
+from src.modules.organization.workspaces.router import router as organization_workspaces_router
 
 router = APIRouter(tags=["Me"])
 

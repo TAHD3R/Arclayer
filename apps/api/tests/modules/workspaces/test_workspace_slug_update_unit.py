@@ -4,11 +4,11 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from apps.api.src.config import get_settings
-from apps.api.src.core.exceptions import BadRequest, Conflict
-from apps.api.src.modules.workspaces.schema import WorkspaceUpdateRequest
-from apps.api.src.modules.workspaces.service import WorkspaceService
-from apps.api.src.modules.workspaces.slug.service import parse_explicit_workspace_slug
+from src.config import get_settings
+from src.core.exceptions import BadRequest, Conflict
+from src.modules.workspaces.schema import WorkspaceUpdateRequest
+from src.modules.workspaces.service import WorkspaceService
+from src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
 
 class _FakeWorkspace:
@@ -51,7 +51,7 @@ def _install_workspace_fakes(monkeypatch, *, ws: _FakeWorkspace, duplicate_slug_
         def filter(cls, **_kwargs):
             return _Query(exists=duplicate_slug_exists)
 
-    monkeypatch.setattr("apps.api.src.modules.workspaces.service.Workspace", _WorkspaceModel)
+    monkeypatch.setattr("src.modules.workspaces.service.Workspace", _WorkspaceModel)
 
 
 def test_parse_explicit_workspace_slug_rejects_reserved() -> None:

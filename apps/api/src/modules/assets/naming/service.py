@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.constants.assets import (
+from src.common.constants.assets import (
     ASSET_SCOPE_ORGANIZATION,
     ASSET_SCOPE_USER,
     ASSET_SCOPE_WORKSPACE,

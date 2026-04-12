@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID
 
-from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.organization import Organization
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
-from apps.api.src.settings.scopes import SCOPE_TYPE_ORG
+from src.common.protocols.tortoise import SettingUpdatedBy
+from src.common.repositories import BaseRepository
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.organization import Organization
+from src.models.system.setting import SettingRecord
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.settings.scopes import SCOPE_TYPE_ORG
 
 
 class OrganizationSettingsRepository(BaseRepository):

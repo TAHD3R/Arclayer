@@ -19,11 +19,11 @@ class _FakeUser:
 
 @pytest.mark.asyncio
 async def test_update_my_profile_sets_avatar_asset_aligned_flag(monkeypatch) -> None:
-    from apps.api.src.config import get_settings
-    from apps.api.src.models.assets.asset import AssetRecord
-    from apps.api.src.modules.assets.admin.assets import binding_align
-    from apps.api.src.modules.auth.schema import UpdateMyProfileRequest
-    from apps.api.src.modules.auth.service import AuthService
+    from src.config import get_settings
+    from src.models.assets.asset import AssetRecord
+    from src.modules.assets.admin.assets import binding_align
+    from src.modules.auth.schema import UpdateMyProfileRequest
+    from src.modules.auth.service import AuthService
 
     settings = get_settings()
     service = AuthService(settings)

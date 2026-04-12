@@ -4,7 +4,7 @@ from typing import Final
 from urllib.parse import urlparse
 from uuid import UUID
 
-from apps.api.src.common.utils.public_ids import decode_public_id, is_public_id
+from src.common.utils.public_ids import decode_public_id, is_public_id
 
 _ASSET_PATH_PREFIX: Final[str] = "/assets/"
 

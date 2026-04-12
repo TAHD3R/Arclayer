@@ -5,9 +5,9 @@ from pathlib import Path
 
 from pydantic import ConfigDict
 
-from apps.api.src.common.schemas import BaseSchema
-from apps.api.src.core.exceptions import BadRequest
-from apps.api.src.core.i18n import t
+from src.common.schemas import BaseSchema
+from src.core.exceptions import BadRequest
+from src.core.i18n import t
 
 
 def _ts(key: str, default: str) -> str:

@@ -13,13 +13,13 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
-from apps.api.src.core.exceptions import Conflict, NotFound
-from apps.api.src.modules.sites import schema as sites_schema
-from apps.api.src.modules.sites.namespaces.service import EDITOR_GLOBAL_SECTIONS_NAMESPACE, EDITOR_STYLE_NAMESPACE
+from src.core.exceptions import Conflict, NotFound
+from src.modules.sites import schema as sites_schema
+from src.modules.sites.namespaces.service import EDITOR_GLOBAL_SECTIONS_NAMESPACE, EDITOR_STYLE_NAMESPACE
 
 if TYPE_CHECKING:
-    from apps.api.src.config import Settings
-    from apps.api.src.modules.sites.repository import SitesRepository
+    from src.config import Settings
+    from src.modules.sites.repository import SitesRepository
 
 
 class SiteSettingsMixin:

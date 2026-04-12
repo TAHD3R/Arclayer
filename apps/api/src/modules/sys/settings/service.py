@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from apps.api.src.common.services.base import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.modules.sys.settings.activation.service import SysConfigActivationMixin
-from apps.api.src.modules.sys.settings.checks.core.service import SysConfigChecksCoreMixin
-from apps.api.src.modules.sys.settings.checks.policy.service import SysConfigChecksPolicyMixin
-from apps.api.src.modules.sys.settings.repository import SysConfigRepository
-from apps.api.src.modules.sys.settings.revisions.service import SysConfigRevisionsMixin
+from src.common.services.base import BaseService
+from src.config import Settings
+from src.modules.sys.settings.activation.service import SysConfigActivationMixin
+from src.modules.sys.settings.checks.core.service import SysConfigChecksCoreMixin
+from src.modules.sys.settings.checks.policy.service import SysConfigChecksPolicyMixin
+from src.modules.sys.settings.repository import SysConfigRepository
+from src.modules.sys.settings.revisions.service import SysConfigRevisionsMixin
 
 
 class SysConfigService(

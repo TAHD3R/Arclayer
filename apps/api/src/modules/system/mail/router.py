@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from apps.api.src.config import Settings, get_settings
-from apps.api.src.core.http.response import Response, ResponseModel
-from apps.api.src.core.i18n import get_current_locale
-from apps.api.src.modules.organization.http.service import require_org_owner
-from apps.api.src.modules.system.http.service import require_self_host_deployment_mode
-from apps.api.src.modules.system.mail.schema import MailTestRequest, MailTestResult
-from apps.api.src.modules.system.mail.service import AdminMailService
+from src.config import Settings, get_settings
+from src.core.http.response import Response, ResponseModel
+from src.core.i18n import get_current_locale
+from src.modules.organization.http.service import require_org_owner
+from src.modules.system.http.service import require_self_host_deployment_mode
+from src.modules.system.mail.schema import MailTestRequest, MailTestResult
+from src.modules.system.mail.service import AdminMailService
 
 router = APIRouter(
     tags=["System: Mail"],

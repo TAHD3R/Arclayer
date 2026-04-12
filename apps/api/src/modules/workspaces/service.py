@@ -6,29 +6,29 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
-from apps.api.src.common.constants.assets import ASSET_SCOPE_WORKSPACE
-from apps.api.src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
-from apps.api.src.core.i18n import t
-from apps.api.src.models.assets.asset import AssetPurpose
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.user import User
-from apps.api.src.models.system.rbac import Role
-from apps.api.src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
-from apps.api.src.modules.assets.admin.assets.binding_align import align_asset_for_binding
-from apps.api.src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
-from apps.api.src.modules.assets.scope import AssetScope
-from apps.api.src.modules.system.rbac.constants.service import ROLE_OWNER
-from apps.api.src.modules.workspaces.schema import (
+from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
+from src.common.protocols.tortoise import HasOrganizationId, HasUserId, HasWorkspaceId
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from src.core.i18n import t
+from src.models.assets.asset import AssetPurpose
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.user import User
+from src.models.system.rbac import Role
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
+from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
+from src.modules.assets.scope import AssetScope
+from src.modules.system.rbac.constants.service import ROLE_OWNER
+from src.modules.workspaces.schema import (
     LeaveWorkspaceResult,
     MyWorkspaceMemberPreviewOut,
     MyWorkspaceOut,
     WorkspaceDetailOut,
     WorkspaceUpdateRequest,
 )
-from apps.api.src.modules.workspaces.slug.service import parse_explicit_workspace_slug
+from src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
 
 def _resolve_organization_id(value: object) -> UUID:

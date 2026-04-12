@@ -3,26 +3,26 @@ from __future__ import annotations
 from typing import Protocol, cast
 from uuid import UUID
 
-from apps.api.src.common.protocols.logging import LoggerLike
-from apps.api.src.common.protocols.tortoise import SettingUpdatedBy
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import NotFound
-from apps.api.src.core.http.pagination import PageData, PageParams, paginate_queryset
-from apps.api.src.models.sys.sys_config_revision import SysConfigRevision
-from apps.api.src.models.system.setting import SettingRecord
-from apps.api.src.modules.sys.settings.crypto.service import SysConfigCryptoMixin
-from apps.api.src.modules.sys.settings.namespaces.service import SysConfigNamespacesMixin
-from apps.api.src.modules.sys.settings.repository import SysConfigRepository
-from apps.api.src.modules.sys.settings.schema import SysConfigRevisionDetail, SysConfigRevisionOut
-from apps.api.src.modules.sys.settings.schemahelpers.service import (
+from src.common.protocols.logging import LoggerLike
+from src.common.protocols.tortoise import SettingUpdatedBy
+from src.config import Settings
+from src.core.exceptions import NotFound
+from src.core.http.pagination import PageData, PageParams, paginate_queryset
+from src.models.sys.sys_config_revision import SysConfigRevision
+from src.models.system.setting import SettingRecord
+from src.modules.sys.settings.crypto.service import SysConfigCryptoMixin
+from src.modules.sys.settings.namespaces.service import SysConfigNamespacesMixin
+from src.modules.sys.settings.repository import SysConfigRepository
+from src.modules.sys.settings.schema import SysConfigRevisionDetail, SysConfigRevisionOut
+from src.modules.sys.settings.schemahelpers.service import (
     _canonical_json_bytes,
     _ts,
 )
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
-from apps.api.src.settings.runtime import invalidate_core_settings_cache
-from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
-from apps.api.src.settings.signing import ensure_signing_keypair, sign_detached
-from apps.api.src.settings.validation import merge_deep, validate_config_schema
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.settings.runtime import invalidate_core_settings_cache
+from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
+from src.settings.signing import ensure_signing_keypair, sign_detached
+from src.settings.validation import merge_deep, validate_config_schema
 
 
 class _SysConfigActivationLike(Protocol):

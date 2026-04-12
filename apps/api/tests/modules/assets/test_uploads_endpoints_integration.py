@@ -7,10 +7,10 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from apps.api.src.common.utils.public_ids import decode_public_id, encode_uuid
-from apps.api.src.config import get_settings
-from apps.api.src.core.registry import create_app
-from apps.api.src.modules.auth.http.service import get_current_user
+from src.common.utils.public_ids import decode_public_id, encode_uuid
+from src.config import get_settings
+from src.core.registry import create_app
+from src.modules.auth.http.service import get_current_user
 
 pytestmark = pytest.mark.integration
 
@@ -39,11 +39,11 @@ async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) 
 
     transport = ASGITransport(app=app)
     async with app.router.lifespan_context(app):
-        from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-        from apps.api.src.models.workspaces.workspace import Workspace
-        from apps.api.src.modules.auth.repository import UserRepository
-        from apps.api.src.modules.auth.tokens.service import hash_password
-        from apps.api.src.modules.organization.repository import OrganizationRepository
+        from src.models.organization.org_membership import OrgMembership, OrgRole
+        from src.models.workspaces.workspace import Workspace
+        from src.modules.auth.repository import UserRepository
+        from src.modules.auth.tokens.service import hash_password
+        from src.modules.organization.repository import OrganizationRepository
 
         settings = get_settings()
         user_repo = UserRepository()
@@ -125,15 +125,15 @@ async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) 
             assert complete2.json()["data"]["assetId"] == asset_pid
 
         # Verify the created asset records uploader.
-        from apps.api.src.models.assets.asset import AssetRecord
+        from src.models.assets.asset import AssetRecord
 
         asset = await AssetRecord.get_or_none(id=asset_uuid)
         assert asset is not None
         assert asset.owner_user_id == user.id
 
         # Verify file content on disk (local provider).
-        from apps.api.src.infra.storage.local import safe_object_key_to_path
-        from apps.api.src.modules.assets.naming.service import build_asset_object_key
+        from src.infra.storage.local import safe_object_key_to_path
+        from src.modules.assets.naming.service import build_asset_object_key
 
         key = build_asset_object_key(workspace_id=ws.id, asset_id=asset_uuid, ext="png")
         out_path = safe_object_key_to_path(root, key)

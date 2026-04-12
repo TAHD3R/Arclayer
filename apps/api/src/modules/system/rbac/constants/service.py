@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.api.src.common.constants.rbac import (
+from src.common.constants.rbac import (
     CORE_PERMISSION_OWNER,
     ROLE_ADMIN,
     ROLE_DESIGNER,

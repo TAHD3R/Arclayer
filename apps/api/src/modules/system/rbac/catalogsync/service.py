@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from apps.api.src.config import Settings
-from apps.api.src.models.system.rbac import Permission, PermissionScope
-from apps.api.src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
-from apps.api.src.modules.system.rbac.constants.service import CORE_PERMISSION_OWNER
-from apps.api.src.modules.system.rbac.repository import RBACRepository
-from apps.api.src.modules.system.rbac.schema import PermissionCatalogSyncResult, PermissionTemplate
+from src.config import Settings
+from src.models.system.rbac import Permission, PermissionScope
+from src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
+from src.modules.system.rbac.constants.service import CORE_PERMISSION_OWNER
+from src.modules.system.rbac.repository import RBACRepository
+from src.modules.system.rbac.schema import PermissionCatalogSyncResult, PermissionTemplate
 
 
 class RBACCatalogSyncMixin:

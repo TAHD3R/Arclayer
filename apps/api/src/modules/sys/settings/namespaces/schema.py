@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from apps.api.src.settings.core_schema import CORE_SETTINGS_SCHEMA
-from apps.api.src.settings.schema import ConfigField, ConfigSchema, ConfigSection
+from src.settings.core_schema import CORE_SETTINGS_SCHEMA
+from src.settings.schema import ConfigField, ConfigSchema, ConfigSection
 
 SYS_NAMESPACE_STORAGE = "storage"
 SYS_NAMESPACE_MAIL = "mail"

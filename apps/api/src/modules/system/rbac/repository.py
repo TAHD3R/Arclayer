@@ -5,9 +5,9 @@ from uuid import UUID
 
 from tortoise.queryset import QuerySet
 
-from apps.api.src.common.protocols.tortoise import PermissionMutableFields
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
+from src.common.protocols.tortoise import PermissionMutableFields
+from src.common.repositories import BaseRepository
+from src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
 
 
 class RBACRepository(BaseRepository):

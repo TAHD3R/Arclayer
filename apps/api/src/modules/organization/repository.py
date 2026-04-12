@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.organization.org_membership import OrgMembership, OrgRole
-from apps.api.src.models.organization.organization import Organization
+from src.common.repositories import BaseRepository
+from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.organization import Organization
 
 
 class OrganizationRepository(BaseRepository):

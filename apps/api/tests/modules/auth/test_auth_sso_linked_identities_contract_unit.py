@@ -8,8 +8,8 @@ from uuid import UUID, uuid4
 import pytest
 from starlette.requests import Request
 
-from apps.api.src.modules.auth.oauth.schema import OAuthLinkedIdentityListOut
-from apps.api.src.modules.auth.sso import router as sso_router
+from src.modules.auth.oauth.schema import OAuthLinkedIdentityListOut
+from src.modules.auth.sso import router as sso_router
 
 
 @dataclass(slots=True)

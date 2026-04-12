@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Protocol, cast
 
-from apps.api.src.modules.sys.settings.schema import SysConfigTestCheck
-from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from src.modules.sys.settings.schema import SysConfigTestCheck
+from src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 
 
 class _SysConfigCryptoLike(Protocol):

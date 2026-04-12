@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import ConfigDict, Field
 
-from apps.api.src.common.schemas import BaseSchema
+from src.common.schemas import BaseSchema
 
 
 class DeliveryMenuOut(BaseSchema):

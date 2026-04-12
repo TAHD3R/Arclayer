@@ -6,14 +6,14 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
-from apps.api.src.common.services import BaseService
-from apps.api.src.config import Settings
-from apps.api.src.core.exceptions import BadRequest, NotFound
-from apps.api.src.core.logging import get_logger
-from apps.api.src.models.extensions.app import ExtensionApp
-from apps.api.src.modules.extensions.manifest import AppManifest, CapabilityDecl, UIEmbedDecl
-from apps.api.src.modules.extensions.repository import ExtensionsRepository
-from apps.api.src.modules.extensions.schema import (
+from src.common.services import BaseService
+from src.config import Settings
+from src.core.exceptions import BadRequest, NotFound
+from src.core.logging import get_logger
+from src.models.extensions.app import ExtensionApp
+from src.modules.extensions.manifest import AppManifest, CapabilityDecl, UIEmbedDecl
+from src.modules.extensions.repository import ExtensionsRepository
+from src.modules.extensions.schema import (
     AppProvider,
     AppScope,
     CapabilitySummaryOut,
