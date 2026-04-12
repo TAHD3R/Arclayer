@@ -9,9 +9,6 @@ ROLE_EDITOR = "editor"
 ROLE_DESIGNER = "designer"
 ROLE_VIEWER = "viewer"
 
-# Marker row key for one-time admin bootstrap.
-BOOTSTRAP_KEY = "bootstrap_admin"
-
 # Synthetic owner id for core permission templates registered into the plugin registry.
 CORE_PERMISSION_OWNER = "core"
 

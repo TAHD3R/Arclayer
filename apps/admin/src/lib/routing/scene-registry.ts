@@ -5,17 +5,14 @@ import { AdminLayout } from "@/layouts/admin-layout";
 import { AuthLayout } from "@/layouts/auth-layout";
 import { GlobalLayout } from "@/layouts/global-layout";
 import { InviteLayout } from "@/layouts/invite-layout";
-import { SetupLayout } from "@/layouts/setup-layout";
 import {
   isAcceptInvitePath,
   isUserCenterPath,
   isAuthScenePath,
   isGlobalPath,
-  isRepairPath,
-  isSetupPath,
 } from "@/lib/routing/route-identity";
 
-export type SceneKey = "setup" | "auth" | "invite" | "account" | "global" | "admin";
+export type SceneKey = "auth" | "invite" | "account" | "global" | "admin";
 
 interface SceneEntry {
   key: SceneKey;
@@ -25,11 +22,6 @@ interface SceneEntry {
 
 // Order matters — first match wins, "admin" is the fallback.
 const SCENE_ENTRIES: SceneEntry[] = [
-  {
-    key: "setup",
-    layout: SetupLayout,
-    match: (pathname) => isSetupPath(pathname) || isRepairPath(pathname),
-  },
   { key: "auth", layout: AuthLayout, match: isAuthScenePath },
   { key: "invite", layout: InviteLayout, match: isAcceptInvitePath },
   { key: "account", layout: UserCenterLayout, match: isUserCenterPath },

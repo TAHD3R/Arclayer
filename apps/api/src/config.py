@@ -8,10 +8,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from apps.api.src.config_runtime import (
     AuthSettings,
     EmailSettings,
-    ObservabilitySettings,
     PublicIdSettings,
     SaasSettings,
-    SetupSettings,
+    SecuritySettings,
     TaskiqSettings,
     TestingSettings,
 )
@@ -311,7 +310,6 @@ class LoggingSettings(BaseSettings):
     )
     request_log_omit_paths: list[str] = Field(
         default_factory=lambda: [
-            "/metrics",
             "/openapi.json",
             "/docs",
             "/redoc",
@@ -653,13 +651,12 @@ class Settings(BaseSettings):
     valkey: ValkeySettings = Field(default_factory=ValkeySettings)
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
     taskiq: TaskiqSettings = Field(default_factory=TaskiqSettings)
-    observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     middleware: MiddlewareSettings = Field(default_factory=MiddlewareSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     public_id: PublicIdSettings = Field(default_factory=PublicIdSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
     saas: SaasSettings = Field(default_factory=SaasSettings)
-    setup: SetupSettings = Field(default_factory=SetupSettings)
+    security: SecuritySettings = Field(default_factory=SecuritySettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)
 
     @computed_field
@@ -733,12 +730,6 @@ class Settings(BaseSettings):
             self.taskiq,
             _build_settings_from_env_file(TaskiqSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
-        self.observability = _merge_settings(
-            self.observability,
-            _build_settings_from_env_file(
-                ObservabilitySettings, env_file=env_file, env_file_encoding=env_file_encoding
-            ),
-        )
         self.middleware = _merge_settings(
             self.middleware,
             _build_settings_from_env_file(MiddlewareSettings, env_file=env_file, env_file_encoding=env_file_encoding),
@@ -759,9 +750,9 @@ class Settings(BaseSettings):
             self.saas,
             _build_settings_from_env_file(SaasSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
-        self.setup = _merge_settings(
-            self.setup,
-            _build_settings_from_env_file(SetupSettings, env_file=env_file, env_file_encoding=env_file_encoding),
+        self.security = _merge_settings(
+            self.security,
+            _build_settings_from_env_file(SecuritySettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.testing = _merge_settings(
             self.testing,

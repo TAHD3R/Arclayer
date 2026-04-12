@@ -26,18 +26,6 @@ export function getErrorMessage(err: unknown): string {
 }
 
 export function notifyError(err: unknown) {
-  // Special-case: strict mode when master key is missing.
-  // Redirect to the repair entry to prevent the UI from spamming 503 errors everywhere.
-  if (err instanceof ApiError && err.status === 503 && err.error === "MASTER_KEY_MISSING") {
-    if (typeof window !== "undefined") {
-      const pathname = window.location.pathname || "";
-      if (!pathname.startsWith("/repair")) {
-        window.location.assign("/repair/master-key");
-      }
-    }
-    return;
-  }
-
   const text = getErrorMessage(err);
   message.error(text);
   console.error(text, err);

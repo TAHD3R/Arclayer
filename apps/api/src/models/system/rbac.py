@@ -86,20 +86,3 @@ class RolePermission(BaseModel):
         table = "role_permissions"
         unique_together = (("role_id", "permission_id"),)
         abstract = False
-
-
-# RBAC bootstrap marker (one-time).
-class BootstrapState(BaseModel):
-    """
-    One-time RBAC bootstrap marker.
-
-    This is kept intentionally small so early-stage setup can safely mark the first admin.
-    """
-
-    key = fields.CharField(max_length=64, unique=True, db_index=True)
-    done = fields.BooleanField(default=False, db_index=True)
-    done_at = fields.DatetimeField(null=True)
-
-    class Meta(BaseModel.Meta):
-        table = "rbac_bootstrap_state"
-        abstract = False

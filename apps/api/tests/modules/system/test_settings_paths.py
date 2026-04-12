@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from apps.api.src.config import ApplicationSettings, EmailSettings, SetupSettings, StorageSettings
+from apps.api.src.config import ApplicationSettings, EmailSettings, SecuritySettings, StorageSettings
 
 
 def _norm(p: Path) -> str:
@@ -30,7 +30,7 @@ def test_email_template_dir_resolves_under_static_by_default() -> None:
     assert _norm(settings.template_dir).endswith("/static/templates/emails")
 
 
-def test_setup_master_key_path_resolves_repo_relative_path() -> None:
-    settings = SetupSettings(master_key_path=Path("data/secrets/master.key"))
+def test_security_master_key_path_resolves_repo_relative_path() -> None:
+    settings = SecuritySettings(master_key_path=Path("data/secrets/master.key"))
     assert settings.master_key_path.is_absolute()
     assert _norm(settings.master_key_path).endswith("/data/secrets/master.key")

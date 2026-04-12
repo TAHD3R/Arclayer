@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from apps.api.src.common.constants.rbac import (
-    BOOTSTRAP_KEY,
     CORE_PERMISSION_OWNER,
     ROLE_ADMIN,
     ROLE_DESIGNER,
@@ -11,7 +10,6 @@ from apps.api.src.common.constants.rbac import (
 )
 
 __all__ = [
-    "BOOTSTRAP_KEY",
     "CORE_PERMISSION_OWNER",
     "ROLE_ADMIN",
     "ROLE_EDITOR",

@@ -29,20 +29,8 @@ export type {
 export type { AuthSSOProvider, AuthSSOProvidersOut, AuthSSOLinkStateOut } from "./auth-sso";
 export type { OAuthLinkedIdentity, OAuthLinkedIdentityListOut } from "./oauth-social";
 
-// Bootstrap & System
-export type { BootstrapState, BootstrapRepairResult } from "./bootstrap";
-export type {
-  SetupAccessMode,
-  SystemSetupStatus,
-  SystemSetupRequest,
-  SystemSetupResult,
-  SystemSetupJobStatus,
-  SystemSetupJobStage,
-  SystemSetupJob,
-  SystemSetupJobStatusPayload,
-  DeploymentMode,
-  SystemRuntime,
-} from "./system";
+// System
+export type { DeploymentMode, SystemRuntime } from "./system";
 
 // Me
 export type {

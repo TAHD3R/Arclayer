@@ -22,7 +22,7 @@ class MasterKeyGuardMiddleware:
 
     Behavior:
     - If the instance is initialized and the master key is missing, reject requests with 503,
-      except for a small allowlist of recovery endpoints (auth + setup/repair).
+      except for a small allowlist of recovery endpoints.
     """
 
     def __init__(self, app: ASGIApp, *, settings: Settings) -> None:
@@ -35,7 +35,6 @@ class MasterKeyGuardMiddleware:
             # Sys governance endpoints are part of the recovery surface: they must remain reachable
             # so super admins can step-up and repair misconfigured secrets.
             f"{api_prefix}/sys/",
-            f"{api_prefix}/system/setup/",
         )
         self._allow_paths = {
             f"{api_prefix}/system/runtime",
@@ -71,7 +70,7 @@ class MasterKeyGuardMiddleware:
             await self.app(scope, receive, send)
             return
 
-        key_path = Path(self.settings.setup.master_key_path)
+        key_path = Path(self.settings.security.master_key_path)
         if master_key_exists(key_path):
             await self.app(scope, receive, send)
             return

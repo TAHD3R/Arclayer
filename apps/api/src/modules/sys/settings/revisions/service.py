@@ -79,8 +79,8 @@ class SysConfigRevisionsMixin(SysConfigNamespacesMixin, SysConfigCryptoMixin):
         signing_fp: str | None = None
         try:
             priv, _pub, signing_fp = ensure_signing_keypair(
-                private_path=self.settings.setup.signing_private_key_path,
-                public_path=self.settings.setup.signing_public_key_path,
+                private_path=self.settings.security.signing_private_key_path,
+                public_path=self.settings.security.signing_public_key_path,
             )
             signature = sign_detached(
                 b"sys-config:" + namespace.encode("utf-8") + b":" + _canonical_json_bytes(merged_visible),

@@ -190,10 +190,6 @@ import type {
   MeUpsertAssetUsageData,
   MeUpsertAssetUsageErrors,
   MeUpsertAssetUsageResponses,
-  ProvisioningGetMyBootstrapStateData,
-  ProvisioningGetMyBootstrapStateResponses,
-  ProvisioningRepairMyBootstrapStateData,
-  ProvisioningRepairMyBootstrapStateResponses,
   ServicesAuthServiceAbortAvatarUploadData,
   ServicesAuthServiceAbortAvatarUploadErrors,
   ServicesAuthServiceAbortAvatarUploadResponses,
@@ -408,9 +404,6 @@ import type {
   SystemCoreSettingsGetNamespaceData,
   SystemCoreSettingsGetNamespaceErrors,
   SystemCoreSettingsGetNamespaceResponses,
-  SystemCoreSettingsGetSetupJobStatusData,
-  SystemCoreSettingsGetSetupJobStatusErrors,
-  SystemCoreSettingsGetSetupJobStatusResponses,
   SystemCoreSettingsGetSystemRuntimeData,
   SystemCoreSettingsGetSystemRuntimeResponses,
   SystemCoreSettingsListActivityData,
@@ -425,20 +418,9 @@ import type {
   SystemCoreSettingsPatchNamespaceData,
   SystemCoreSettingsPatchNamespaceErrors,
   SystemCoreSettingsPatchNamespaceResponses,
-  SystemCoreSettingsReinitializeSelfHostSetupData,
-  SystemCoreSettingsReinitializeSelfHostSetupErrors,
-  SystemCoreSettingsReinitializeSelfHostSetupResponses,
-  SystemCoreSettingsRepairSetupMasterKeyData,
-  SystemCoreSettingsRepairSetupMasterKeyErrors,
-  SystemCoreSettingsRepairSetupMasterKeyResponses,
   SystemCoreSettingsSendTestEmailData,
   SystemCoreSettingsSendTestEmailErrors,
   SystemCoreSettingsSendTestEmailResponses,
-  SystemCoreSettingsSetupStatusData,
-  SystemCoreSettingsSetupStatusResponses,
-  SystemCoreSettingsSetupSystemData,
-  SystemCoreSettingsSetupSystemErrors,
-  SystemCoreSettingsSetupSystemResponses,
   SystemCoreSettingsSyncPermissionsData,
   SystemCoreSettingsSyncPermissionsResponses,
   WorkspacesAbortUploadData,
@@ -450,6 +432,9 @@ import type {
   WorkspacesArchiveMyNotificationData,
   WorkspacesArchiveMyNotificationErrors,
   WorkspacesArchiveMyNotificationResponses,
+  WorkspacesArchiveWorkspaceContentItemCanonicalData,
+  WorkspacesArchiveWorkspaceContentItemCanonicalErrors,
+  WorkspacesArchiveWorkspaceContentItemCanonicalResponses,
   WorkspacesArchiveWorkspaceContentItemVersionCanonicalData,
   WorkspacesArchiveWorkspaceContentItemVersionCanonicalErrors,
   WorkspacesArchiveWorkspaceContentItemVersionCanonicalResponses,
@@ -477,6 +462,9 @@ import type {
   WorkspacesCreateAssetTagData,
   WorkspacesCreateAssetTagErrors,
   WorkspacesCreateAssetTagResponses,
+  WorkspacesCreateContentLibraryViewData,
+  WorkspacesCreateContentLibraryViewErrors,
+  WorkspacesCreateContentLibraryViewResponses,
   WorkspacesCreateEmailInviteData,
   WorkspacesCreateEmailInviteErrors,
   WorkspacesCreateEmailInviteResponses,
@@ -513,6 +501,9 @@ import type {
   WorkspacesDeleteAssetUsageByRefDeleteResponses,
   WorkspacesDeleteAssetUsageByRefErrors,
   WorkspacesDeleteAssetUsageByRefResponses,
+  WorkspacesDeleteContentLibraryViewData,
+  WorkspacesDeleteContentLibraryViewErrors,
+  WorkspacesDeleteContentLibraryViewResponses,
   WorkspacesDeleteMyNotificationData,
   WorkspacesDeleteMyNotificationErrors,
   WorkspacesDeleteMyNotificationResponses,
@@ -525,6 +516,9 @@ import type {
   WorkspacesDeleteThemeData,
   WorkspacesDeleteThemeErrors,
   WorkspacesDeleteThemeResponses,
+  WorkspacesDeleteWorkspaceContentItemCanonicalData,
+  WorkspacesDeleteWorkspaceContentItemCanonicalErrors,
+  WorkspacesDeleteWorkspaceContentItemCanonicalResponses,
   WorkspacesDeleteWorkspaceData,
   WorkspacesDeleteWorkspaceErrors,
   WorkspacesDeleteWorkspaceResponses,
@@ -537,6 +531,9 @@ import type {
   WorkspacesDisableWorkspaceCapabilityData,
   WorkspacesDisableWorkspaceCapabilityErrors,
   WorkspacesDisableWorkspaceCapabilityResponses,
+  WorkspacesDuplicateWorkspaceContentItemCanonicalData,
+  WorkspacesDuplicateWorkspaceContentItemCanonicalErrors,
+  WorkspacesDuplicateWorkspaceContentItemCanonicalResponses,
   WorkspacesEnableMemberData,
   WorkspacesEnableMemberErrors,
   WorkspacesEnableMemberResponses,
@@ -563,6 +560,12 @@ import type {
   WorkspacesGetUploadStatusData,
   WorkspacesGetUploadStatusErrors,
   WorkspacesGetUploadStatusResponses,
+  WorkspacesGetWorkspaceContentItemCanonicalData,
+  WorkspacesGetWorkspaceContentItemCanonicalErrors,
+  WorkspacesGetWorkspaceContentItemCanonicalResponses,
+  WorkspacesGetWorkspaceContentItemVersionCanonicalData,
+  WorkspacesGetWorkspaceContentItemVersionCanonicalErrors,
+  WorkspacesGetWorkspaceContentItemVersionCanonicalResponses,
   WorkspacesGetWorkspaceContentSeoProfileData,
   WorkspacesGetWorkspaceContentSeoProfileErrors,
   WorkspacesGetWorkspaceContentSeoProfileResponses,
@@ -608,6 +611,9 @@ import type {
   WorkspacesListAssetUsagesData,
   WorkspacesListAssetUsagesErrors,
   WorkspacesListAssetUsagesResponses,
+  WorkspacesListContentLibraryViewsData,
+  WorkspacesListContentLibraryViewsErrors,
+  WorkspacesListContentLibraryViewsResponses,
   WorkspacesListEmailInvitesData,
   WorkspacesListEmailInvitesErrors,
   WorkspacesListEmailInvitesResponses,
@@ -661,6 +667,9 @@ import type {
   WorkspacesListWorkspaceContentItemsCanonicalData,
   WorkspacesListWorkspaceContentItemsCanonicalErrors,
   WorkspacesListWorkspaceContentItemsCanonicalResponses,
+  WorkspacesListWorkspaceContentItemVersionsCanonicalData,
+  WorkspacesListWorkspaceContentItemVersionsCanonicalErrors,
+  WorkspacesListWorkspaceContentItemVersionsCanonicalResponses,
   WorkspacesListWorkspaceContentModelsCanonicalData,
   WorkspacesListWorkspaceContentModelsCanonicalErrors,
   WorkspacesListWorkspaceContentModelsCanonicalResponses,
@@ -690,9 +699,15 @@ import type {
   WorkspacesMoveAssetData,
   WorkspacesMoveAssetErrors,
   WorkspacesMoveAssetResponses,
+  WorkspacesMoveContentLibraryViewData,
+  WorkspacesMoveContentLibraryViewErrors,
+  WorkspacesMoveContentLibraryViewResponses,
   WorkspacesPatchAssetData,
   WorkspacesPatchAssetErrors,
   WorkspacesPatchAssetResponses,
+  WorkspacesPatchContentLibraryViewData,
+  WorkspacesPatchContentLibraryViewErrors,
+  WorkspacesPatchContentLibraryViewResponses,
   WorkspacesPatchMyNotificationPreferenceData,
   WorkspacesPatchMyNotificationPreferenceErrors,
   WorkspacesPatchMyNotificationPreferenceResponses,
@@ -711,6 +726,9 @@ import type {
   WorkspacesPresignUploadPartData,
   WorkspacesPresignUploadPartErrors,
   WorkspacesPresignUploadPartResponses,
+  WorkspacesPreviewWorkspaceContentModelUpdateData,
+  WorkspacesPreviewWorkspaceContentModelUpdateErrors,
+  WorkspacesPreviewWorkspaceContentModelUpdateResponses,
   WorkspacesPublishWorkspaceContentItemVersionCanonicalData,
   WorkspacesPublishWorkspaceContentItemVersionCanonicalErrors,
   WorkspacesPublishWorkspaceContentItemVersionCanonicalResponses,
@@ -744,6 +762,9 @@ import type {
   WorkspacesSetRolePermissionsData,
   WorkspacesSetRolePermissionsErrors,
   WorkspacesSetRolePermissionsResponses,
+  WorkspacesUnarchiveWorkspaceContentItemCanonicalData,
+  WorkspacesUnarchiveWorkspaceContentItemCanonicalErrors,
+  WorkspacesUnarchiveWorkspaceContentItemCanonicalResponses,
   WorkspacesUpdateAssetFolderData,
   WorkspacesUpdateAssetFolderErrors,
   WorkspacesUpdateAssetFolderResponses,
@@ -1574,18 +1595,6 @@ export const servicesAuthServiceAuthSsoOauthStart = <ThrowOnError extends boolea
     ServicesAuthServiceAuthSsoOauthStartErrors,
     ThrowOnError
   >({ url: "/api/v1/auth/sso/start/{provider}", ...options });
-
-/**
- * Get post-auth bootstrap readiness for current user
- */
-export const provisioningGetMyBootstrapState = <ThrowOnError extends boolean = false>(
-  options?: Options<ProvisioningGetMyBootstrapStateData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<ProvisioningGetMyBootstrapStateResponses, unknown, ThrowOnError>({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/me/bootstrap-state",
-    ...options,
-  });
 
 /**
  * List my notifications
@@ -2744,22 +2753,6 @@ export const meUnarchiveOrganizationWorkspaceByOrg = <ThrowOnError extends boole
   });
 
 /**
- * Repair current user bootstrap state (idempotent)
- */
-export const provisioningRepairMyBootstrapState = <ThrowOnError extends boolean = false>(
-  options?: Options<ProvisioningRepairMyBootstrapStateData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    ProvisioningRepairMyBootstrapStateResponses,
-    unknown,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/provision/repair",
-    ...options,
-  });
-
-/**
  * Resolve a site (workspaceSlug or host)
  *
  * Public endpoint for Portal SSR to resolve a workspaceSlug/host to a site.
@@ -3306,92 +3299,6 @@ export const systemCoreSettingsPatchNamespace = <ThrowOnError extends boolean = 
   });
 
 /**
- * Start system initialization job
- */
-export const systemCoreSettingsSetupSystem = <ThrowOnError extends boolean = false>(
-  options: Options<SystemCoreSettingsSetupSystemData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SystemCoreSettingsSetupSystemResponses,
-    SystemCoreSettingsSetupSystemErrors,
-    ThrowOnError
-  >({
-    url: "/api/v1/system/setup",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get setup job status
- */
-export const systemCoreSettingsGetSetupJobStatus = <ThrowOnError extends boolean = false>(
-  options: Options<SystemCoreSettingsGetSetupJobStatusData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SystemCoreSettingsGetSetupJobStatusResponses,
-    SystemCoreSettingsGetSetupJobStatusErrors,
-    ThrowOnError
-  >({ url: "/api/v1/system/setup/jobs/{job_id}", ...options });
-
-/**
- * Repair missing master key
- */
-export const systemCoreSettingsRepairSetupMasterKey = <ThrowOnError extends boolean = false>(
-  options: Options<SystemCoreSettingsRepairSetupMasterKeyData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SystemCoreSettingsRepairSetupMasterKeyResponses,
-    SystemCoreSettingsRepairSetupMasterKeyErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/system/setup/master-key/repair",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Reinitialize self-host system
- */
-export const systemCoreSettingsReinitializeSelfHostSetup = <ThrowOnError extends boolean = false>(
-  options: Options<SystemCoreSettingsReinitializeSelfHostSetupData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    SystemCoreSettingsReinitializeSelfHostSetupResponses,
-    SystemCoreSettingsReinitializeSelfHostSetupErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/system/setup/reinitialize",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * Get setup status
- *
- * Lightweight probe endpoint for admin frontend to decide whether to redirect to /setup.
- *
- * Note: This endpoint is intentionally read-only and safe to expose publicly.
- */
-export const systemCoreSettingsSetupStatus = <ThrowOnError extends boolean = false>(
-  options?: Options<SystemCoreSettingsSetupStatusData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<SystemCoreSettingsSetupStatusResponses, unknown, ThrowOnError>({
-    url: "/api/v1/system/setup/status",
-    ...options,
-  });
-
-/**
  * Delete workspace
  */
 export const workspacesDeleteWorkspace = <ThrowOnError extends boolean = false>(
@@ -3869,6 +3776,56 @@ export const workspacesCreateWorkspaceContentItemCanonical = <ThrowOnError exten
   });
 
 /**
+ * Delete rebuilt content item (workspace RBAC protected)
+ */
+export const workspacesDeleteWorkspaceContentItemCanonical = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesDeleteWorkspaceContentItemCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    WorkspacesDeleteWorkspaceContentItemCanonicalResponses,
+    WorkspacesDeleteWorkspaceContentItemCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}",
+    ...options,
+  });
+
+/**
+ * Get rebuilt content item detail (workspace RBAC protected)
+ */
+export const workspacesGetWorkspaceContentItemCanonical = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesGetWorkspaceContentItemCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    WorkspacesGetWorkspaceContentItemCanonicalResponses,
+    WorkspacesGetWorkspaceContentItemCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}",
+    ...options,
+  });
+
+/**
+ * Archive current rebuilt content item state (workspace RBAC protected)
+ */
+export const workspacesArchiveWorkspaceContentItemCanonical = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WorkspacesArchiveWorkspaceContentItemCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    WorkspacesArchiveWorkspaceContentItemCanonicalResponses,
+    WorkspacesArchiveWorkspaceContentItemCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive",
+    ...options,
+  });
+
+/**
  * Apply bootstrap shape to a content item (workspace RBAC protected)
  */
 export const workspacesApplyWorkspaceContentItemBootstrapShape = <
@@ -3891,6 +3848,60 @@ export const workspacesApplyWorkspaceContentItemBootstrapShape = <
   });
 
 /**
+ * Duplicate rebuilt content item (workspace RBAC protected)
+ */
+export const workspacesDuplicateWorkspaceContentItemCanonical = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WorkspacesDuplicateWorkspaceContentItemCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    WorkspacesDuplicateWorkspaceContentItemCanonicalResponses,
+    WorkspacesDuplicateWorkspaceContentItemCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/duplicate",
+    ...options,
+  });
+
+/**
+ * Restore archived rebuilt content item back to draft (workspace RBAC protected)
+ */
+export const workspacesUnarchiveWorkspaceContentItemCanonical = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WorkspacesUnarchiveWorkspaceContentItemCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    WorkspacesUnarchiveWorkspaceContentItemCanonicalResponses,
+    WorkspacesUnarchiveWorkspaceContentItemCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/unarchive",
+    ...options,
+  });
+
+/**
+ * List rebuilt content versions (workspace RBAC protected)
+ */
+export const workspacesListWorkspaceContentItemVersionsCanonical = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WorkspacesListWorkspaceContentItemVersionsCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    WorkspacesListWorkspaceContentItemVersionsCanonicalResponses,
+    WorkspacesListWorkspaceContentItemVersionsCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions",
+    ...options,
+  });
+
+/**
  * Save rebuilt content draft version (workspace RBAC protected)
  */
 export const workspacesSaveWorkspaceContentItemDraftVersionCanonical = <
@@ -3910,6 +3921,24 @@ export const workspacesSaveWorkspaceContentItemDraftVersionCanonical = <
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+/**
+ * Get rebuilt content version detail (workspace RBAC protected)
+ */
+export const workspacesGetWorkspaceContentItemVersionCanonical = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WorkspacesGetWorkspaceContentItemVersionCanonicalData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    WorkspacesGetWorkspaceContentItemVersionCanonicalResponses,
+    WorkspacesGetWorkspaceContentItemVersionCanonicalErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}",
+    ...options,
   });
 
 /**
@@ -4037,6 +4066,98 @@ export const workspacesGetWorkspaceContentSeoProfile = <ThrowOnError extends boo
   });
 
 /**
+ * List content library views visible to the current user
+ */
+export const workspacesListContentLibraryViews = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesListContentLibraryViewsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    WorkspacesListContentLibraryViewsResponses,
+    WorkspacesListContentLibraryViewsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/library/views",
+    ...options,
+  });
+
+/**
+ * Create a private or shared content library view
+ */
+export const workspacesCreateContentLibraryView = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesCreateContentLibraryViewData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    WorkspacesCreateContentLibraryViewResponses,
+    WorkspacesCreateContentLibraryViewErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/library/views",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a content library view
+ */
+export const workspacesDeleteContentLibraryView = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesDeleteContentLibraryViewData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    WorkspacesDeleteContentLibraryViewResponses,
+    WorkspacesDeleteContentLibraryViewErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}",
+    ...options,
+  });
+
+/**
+ * Update a content library view definition, visibility, pin state, or default state
+ */
+export const workspacesPatchContentLibraryView = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesPatchContentLibraryViewData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    WorkspacesPatchContentLibraryViewResponses,
+    WorkspacesPatchContentLibraryViewErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Reorder a content library view within its scope
+ */
+export const workspacesMoveContentLibraryView = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesMoveContentLibraryViewData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    WorkspacesMoveContentLibraryViewResponses,
+    WorkspacesMoveContentLibraryViewErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}/move",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
  * List rebuilt content models (workspace RBAC protected)
  */
 export const workspacesListWorkspaceContentModelsCanonical = <ThrowOnError extends boolean = false>(
@@ -4085,6 +4206,26 @@ export const workspacesUpdateWorkspaceContentModel = <ThrowOnError extends boole
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Preview rebuilt content model mutation impact (workspace RBAC protected)
+ */
+export const workspacesPreviewWorkspaceContentModelUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<WorkspacesPreviewWorkspaceContentModelUpdateData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    WorkspacesPreviewWorkspaceContentModelUpdateResponses,
+    WorkspacesPreviewWorkspaceContentModelUpdateErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/workspaces/{workspace_id}/content/models/{model_id}/impact-preview",
     ...options,
     headers: {
       "Content-Type": "application/json",

@@ -19,8 +19,7 @@ pytestmark = pytest.mark.integration
 
 def _set_test_env(monkeypatch, *, base_dir: Path) -> None:
     monkeypatch.setenv("JWT_SECRET", "0123456789abcdef0123456789abcdef")
-    monkeypatch.setenv("SETUP__MASTER_KEY_PATH", str(base_dir / "master.key"))
-    monkeypatch.setenv("TEST_SETUP__MASTER_KEY_PATH", str(base_dir / "master.key"))
+    monkeypatch.setenv("SECURITY__MASTER_KEY_PATH", str(base_dir / "master.key"))
     get_settings.cache_clear()
 
 
@@ -62,7 +61,7 @@ async def test_auth_security_endpoints_two_factor_flow(
     _set_test_env(monkeypatch, base_dir=tmp_path)
 
     settings = get_settings()
-    ensure_master_key(Path(settings.setup.master_key_path))
+    ensure_master_key(Path(settings.security.master_key_path))
     user = await _create_user(password="pass1234")
 
     app = create_app()
@@ -158,7 +157,7 @@ async def test_auth_sessions_endpoints_include_metadata_and_revoke_others(
     _set_test_env(monkeypatch, base_dir=tmp_path)
 
     settings = get_settings()
-    ensure_master_key(Path(settings.setup.master_key_path))
+    ensure_master_key(Path(settings.security.master_key_path))
     user = await _create_user(password="pass1234")
 
     app = create_app()

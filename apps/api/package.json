@@ -19,8 +19,6 @@
     "test:integration": "RUN_INTEGRATION_TESTS=1 MAIL__SUPPRESS_SEND=${MAIL__SUPPRESS_SEND:-1} PYTHONPATH=../.. uv run pytest -c pyproject.toml -m integration",
     "test:quick": "PYTHONPATH=../.. uv run pytest -c pyproject.toml -q tests/test_tenant_context.py tests/modules/assets/test_org_assets_router_unit.py tests/modules/auth/test_auth_me_avatar_binding_align_unit.py --no-cov",
     "db:migrate": "PYTHONPATH=../.. uv run python -m tortoise -c apps.api.src.core.database.orm.TORTOISE_ORM makemigrations",
-    "db:upgrade": "PYTHONPATH=../.. uv run python scripts/db_upgrade.py",
-    "content:reset-dev-baseline": "PYTHONPATH=../.. uv run python scripts/reset_content_dev_baseline.py",
     "jobs:worker": "PYTHONPATH=../.. uv run taskiq worker apps.api.src.infra.jobs.taskiq_app:broker apps.api.src.infra.jobs.tasks",
     "jobs:scheduler": "PYTHONPATH=../.. uv run taskiq scheduler apps.api.src.infra.jobs.taskiq_app:scheduler apps.api.src.infra.jobs.tasks"
   }

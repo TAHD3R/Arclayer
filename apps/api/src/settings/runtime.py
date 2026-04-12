@@ -99,8 +99,8 @@ async def get_core_settings_value_cached(
         # Decrypt secret fields (best-effort). If we cannot decrypt, keep the encrypted
         # string out of downstream configs by raising an error (debug-first policy).
         decrypted: dict[str, object] = dict(raw)
-        if master_key_exists(settings.setup.master_key_path):
-            key = load_master_key(settings.setup.master_key_path)
+        if master_key_exists(settings.security.master_key_path):
+            key = load_master_key(settings.security.master_key_path)
             for path in iter_secret_field_paths(CORE_SETTINGS_SCHEMA):
                 if not path.startswith("storage."):
                     continue

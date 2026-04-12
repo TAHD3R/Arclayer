@@ -85,6 +85,7 @@ function buildState(kind: NonNullable<ContentLibraryItemSettingsDialogState>["ki
       derivedStatus: "draft",
       visibility: "public",
       locale: "en-US",
+      bootstrapPresetState: "selected",
       draftVersion: 1,
       publishedVersion: null,
       updatedAt: "2026-04-09T00:00:00Z",
@@ -94,8 +95,8 @@ function buildState(kind: NonNullable<ContentLibraryItemSettingsDialogState>["ki
       context: "content_library",
       libraryGroup: "site-content",
       summary: "Homepage summary",
-      usedInCount: 0,
       capabilityPackIds: ["publishable", "routable", "seo_managed"],
+      modelCapabilities: ["publishable", "routable", "seo_managed"],
     },
   } satisfies NonNullable<ContentLibraryItemSettingsDialogState>;
 }

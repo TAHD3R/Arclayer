@@ -2,19 +2,12 @@ import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/rea
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
 import { useSceneRevealTransition } from "@arclayer/hooks/use-scene-reveal-transition";
-import {
-  isAuthScenePath,
-  isLoginPath,
-  isPublicPath,
-  isRepairPath,
-} from "@/lib/routing/route-identity";
+import { isAuthScenePath, isLoginPath, isPublicPath } from "@/lib/routing/route-identity";
 import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
-import { isDevSetupOverrideEnabled, resolveSetupGateRedirect } from "@/lib/routing/setup-routing";
 import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
 import { RouteDocumentTitleManager } from "@/components/builtin/route-document-title-manager";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
-import { useSetupWizardStore } from "@/stores/use-setup-wizard-store";
 
 function normalizeEditorRedirectPath(redirectTo: string): string {
   // Vite `base` 通常配置为 `/editor/`，当落点是 `/editor`（无尾斜杠）时，
@@ -54,27 +47,6 @@ function RootLayout() {
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
-    const setup = useSetupWizardStore.getState();
-    const devAllowSetup = isDevSetupOverrideEnabled(location.searchStr);
-
-    const setupRedirect = resolveSetupGateRedirect({
-      deploymentMode: setup.deploymentMode,
-      initialized: setup.initialized,
-      pathname: location.pathname,
-      devAllowSetup,
-    });
-    if (setupRedirect) {
-      throw redirect({ to: setupRedirect });
-    }
-
-    if (
-      setup.repairRequired === true &&
-      !isRepairPath(location.pathname) &&
-      !isAuthScenePath(location.pathname)
-    ) {
-      throw redirect({ to: "/repair/master-key", replace: true });
-    }
-
     const token = useAuthStore.getState().accessToken;
     const isPublic = isPublicPath(location.pathname);
     const isLogin = isLoginPath(location.pathname);

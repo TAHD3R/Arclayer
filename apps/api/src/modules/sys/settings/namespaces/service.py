@@ -160,8 +160,8 @@ class SysConfigNamespacesMixin(SysConfigSchemaHelpersMixin):
         signing_fp: str | None = None
         try:
             priv, _pub, signing_fp = ensure_signing_keypair(
-                private_path=self.settings.setup.signing_private_key_path,
-                public_path=self.settings.setup.signing_public_key_path,
+                private_path=self.settings.security.signing_private_key_path,
+                public_path=self.settings.security.signing_public_key_path,
             )
             signature = sign_detached(
                 b"sys-config:" + namespace.encode("utf-8") + b":" + _canonical_json_bytes(visible),
@@ -196,7 +196,7 @@ class SysConfigNamespacesMixin(SysConfigSchemaHelpersMixin):
         if not signature:
             return None, None
 
-        pub_path = self.settings.setup.signing_public_key_path
+        pub_path = self.settings.security.signing_public_key_path
         try:
             if not pub_path.is_file():
                 return None, "PUBLIC_KEY_MISSING"

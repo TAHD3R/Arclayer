@@ -31,7 +31,6 @@ async def prepared_schema(integration_db_settings, integration_valkey_settings, 
     """
 
     _ = integration_valkey_settings
-    monkeypatch.setenv("SETUP__ENABLED", "0")
     get_settings.cache_clear()
 
     settings = get_settings()

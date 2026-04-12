@@ -18,7 +18,7 @@ describe("scene layout routing", () => {
     expect(registrySource).not.toContain("isEditorPath");
     expect(registrySource).not.toContain("layout: EditorLayout");
     expect(registrySource).toContain(
-      'type SceneKey = "setup" | "auth" | "invite" | "account" | "global" | "admin"',
+      'type SceneKey = "auth" | "invite" | "account" | "global" | "admin"',
     );
   });
 

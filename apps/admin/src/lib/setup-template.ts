@@ -1,4 +1,12 @@
-import type { SetupSiteDraft, SetupWorkspaceTemplate } from "@/types/stores";
+type SetupWorkspaceTemplate = "blog" | "website" | "blank";
+
+type SetupSiteDraft = {
+  templateKey: SetupWorkspaceTemplate;
+  workspaceName: string;
+  siteName: string;
+  siteUrl: string;
+  siteDescription?: string;
+};
 
 type SetupTranslate = (key: string, params?: Record<string, unknown>) => string;
 

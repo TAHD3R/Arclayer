@@ -8,16 +8,4 @@ export type {
   WorkspaceLocaleCache,
   PreferencesState,
 } from "./preferences";
-export type {
-  SetupWizardStep,
-  SetupAccessMode,
-  SetupWorkspaceTemplate,
-  SetupAdminDraft,
-  SetupAdminDraftPartial,
-  SetupSiteDraft,
-  SetupSiteDraftPartial,
-  SetupDefaultsDraft,
-  SetupDefaultsDraftPartial,
-  SetupWizardState,
-} from "./setup-wizard";
 export type { WorkspaceState } from "./workspace";

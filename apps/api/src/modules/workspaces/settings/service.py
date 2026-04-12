@@ -252,7 +252,7 @@ class WorkspaceSettingsService(BaseService):
         if not needs_encrypt:
             return config
 
-        key_path = self.settings.setup.master_key_path
+        key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             raise ServiceUnavailable(message="系统密钥未初始化", error="MASTER_KEY_MISSING")
         key, _fp = ensure_master_key(key_path)

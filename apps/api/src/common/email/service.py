@@ -110,7 +110,7 @@ class EmailService:
         if isinstance(password_raw, str) and password_raw.strip():
             if is_encrypted(password_raw):
                 try:
-                    key_path = self.settings.setup.master_key_path
+                    key_path = self.settings.security.master_key_path
                     if not master_key_exists(key_path):
                         raise ValueError("master key missing")
                     key, _fp = ensure_master_key(key_path)

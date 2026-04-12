@@ -12,9 +12,11 @@ from apps.api.src.core.logging import get_logger
 from apps.api.src.infra.jobs.assets_thumbnails import generate_asset_thumbnails
 from apps.api.src.infra.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
 from apps.api.src.infra.jobs.tasks import task_generate_asset_thumbnails
+from apps.api.src.modules.analytics.ingest.service import ActivityIngestor
+from apps.api.src.modules.system.rbac.service import RBACService
 
 logger = get_logger(__name__)
-_FATAL_ASSET_PROCESSOR_ERRORS: tuple[type[BaseException], ...] = (
+_FATAL_RUNTIME_INIT_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
     GeneratorExit,
     KeyboardInterrupt,
@@ -23,22 +25,20 @@ _FATAL_ASSET_PROCESSOR_ERRORS: tuple[type[BaseException], ...] = (
 
 
 def _raise_if_fatal(exc: BaseException) -> None:
-    if isinstance(exc, _FATAL_ASSET_PROCESSOR_ERRORS):
+    if isinstance(exc, _FATAL_RUNTIME_INIT_ERRORS):
         raise exc
 
 
-async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, settings: Settings) -> None:
-    """
-    Register core asset processors on the in-process EventBus.
-
-    Notes:
-    - This is best-effort. In SaaS/multi-replica mode we enqueue to the Taskiq worker.
-    - If Taskiq is disabled/unavailable, we fall back to in-process processing.
-    - We keep the core processors lightweight and safe; they must never crash the app.
-    """
+async def init_domain_runtime(app: FastAPI, settings: Settings, *, event_bus: EventBus) -> None:
+    ingestor = ActivityIngestor(settings)
+    app.state.activity_ingestor = ingestor
+    try:
+        await ingestor.start(event_bus=event_bus)
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning("Activity ingestor init failed (ignored)", action="init_activity_ingestor", error=str(exc))
 
     async def _on_asset_uploaded(event: Event) -> None:
-        # Thumbnails are a performance optimization; always best-effort.
         try:
             raw_asset_id = (event.payload or {}).get("asset_id")
             raw_workspace_id = (event.payload or {}).get("workspace_id")
@@ -47,7 +47,6 @@ async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, sett
 
             asset_id = UUID(str(raw_asset_id))
             workspace_id = UUID(str(raw_workspace_id))
-            # Try enqueueing to Taskiq (preferred for SaaS/multi-replica).
             if settings.taskiq.enabled and is_taskiq_enabled(app):
                 dedupe_ok = await try_dedupe_enqueue(
                     app,
@@ -63,7 +62,6 @@ async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, sett
                     if enqueued:
                         return
 
-            # Fallback: run in-process (best-effort).
             await generate_asset_thumbnails({"settings": settings}, str(asset_id), str(workspace_id))
         except BaseException as exc:
             _raise_if_fatal(exc)
@@ -74,7 +72,6 @@ async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, sett
                 error=str(exc),
             )
 
-    # Subscribe as "core". If the app hot-reloads, duplicate subscriptions may happen;
     await event_bus.subscribe(
         subscriber_id="core",
         event_name=ASSET_UPLOADED_EVENT,
@@ -82,3 +79,21 @@ async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, sett
         priority=0,
         name="core:thumbnail-generator",
     )
+
+    if not settings.database.enabled:
+        return
+
+    rbac = RBACService(settings)
+    await rbac.sync_permission_catalog()
+    await rbac.ensure_all_workspaces_ready()
+
+
+async def close_domain_runtime(app: FastAPI, *, event_bus: EventBus) -> None:
+    ingestor: ActivityIngestor | None = getattr(app.state, "activity_ingestor", None)
+    if ingestor is None:
+        return
+    try:
+        await ingestor.stop(event_bus=event_bus)
+    except BaseException as exc:
+        _raise_if_fatal(exc)
+        logger.warning("Activity ingestor shutdown failed (ignored)", action="close_activity_ingestor", error=str(exc))

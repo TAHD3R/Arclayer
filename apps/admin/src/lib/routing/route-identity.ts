@@ -23,14 +23,6 @@ export function isGlobalPath(pathname: string): boolean {
   return pathname === "/" || pathname === "/workspaces" || pathname === "/workspaces/";
 }
 
-export function isSetupPath(pathname: string): boolean {
-  return pathname === "/setup" || pathname.startsWith("/setup/");
-}
-
-export function isRepairPath(pathname: string): boolean {
-  return pathname === "/repair" || pathname.startsWith("/repair/");
-}
-
 /** Auth scene paths — login & reset-password (used for layout switching). */
 export function isAuthScenePath(pathname: string): boolean {
   return isLoginPath(pathname) || isResetPasswordPath(pathname);
@@ -38,11 +30,5 @@ export function isAuthScenePath(pathname: string): boolean {
 
 /** Public paths that do not require authentication. */
 export function isPublicPath(pathname: string): boolean {
-  return (
-    isLoginPath(pathname) ||
-    isResetPasswordPath(pathname) ||
-    isSetupPath(pathname) ||
-    isRepairPath(pathname) ||
-    isAcceptInvitePath(pathname)
-  );
+  return isLoginPath(pathname) || isResetPasswordPath(pathname) || isAcceptInvitePath(pathname);
 }

@@ -82,7 +82,7 @@ vi.mock("@/layouts/auth-layout", () => ({
   useAuthLegalKey: () => ({ setLegalKey: vi.fn() }),
 }));
 
-vi.mock("@/lib/routing/bootstrap-routing", () => ({
+vi.mock("@/lib/routing/post-auth-routing", () => ({
   resolvePostAuthRoute: vi.fn(async () => ({ path: "/" })),
 }));
 

@@ -17,7 +17,7 @@ class SettingsCryptoMixin:
     settings: Settings
 
     async def _encrypt_core_secrets(self, schema: ConfigSchema, config: dict[str, object]) -> dict[str, object]:
-        key_path = self.settings.setup.master_key_path
+        key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             raise ServiceUnavailable(
                 message=_ts("MASTER_KEY_MISSING", "系统密钥未初始化"),

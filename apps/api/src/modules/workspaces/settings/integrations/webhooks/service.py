@@ -239,7 +239,7 @@ class WebhooksService(BaseService):
         if is_encrypted(raw):
             return raw
 
-        key_path = self.settings.setup.master_key_path
+        key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             raise ServiceUnavailable(
                 message=t("settings", "MASTER_KEY_MISSING", default="系统密钥未初始化"),
@@ -256,7 +256,7 @@ class WebhooksService(BaseService):
             return None
         if not is_encrypted(raw):
             return raw
-        key_path = self.settings.setup.master_key_path
+        key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             return None
         key, _fp = ensure_master_key(key_path)

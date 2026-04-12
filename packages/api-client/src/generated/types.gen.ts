@@ -1280,54 +1280,6 @@ export type AvatarUploadInitRequest = {
 };
 
 /**
- * BootstrapStateOut
- */
-export type BootstrapStateOut = {
-  /**
-   * Nextpath
-   *
-   * Recommended next path for post-auth navigation.
-   */
-  nextPath: string;
-  /**
-   * Organizationid
-   *
-   * Resolved organization id.
-   */
-  organizationId?: string | null;
-  /**
-   * Ready
-   *
-   * Whether the current user can enter a workspace immediately.
-   */
-  ready: boolean;
-  /**
-   * Reason
-   *
-   * Optional machine-readable reason when not ready.
-   */
-  reason?: string | null;
-  /**
-   * Repairrequired
-   *
-   * Whether bootstrap repair is required before entering workspace.
-   */
-  repairRequired: boolean;
-  /**
-   * Siteid
-   *
-   * Resolved site id.
-   */
-  siteId?: string | null;
-  /**
-   * Workspaceid
-   *
-   * Resolved workspace id.
-   */
-  workspaceId?: string | null;
-};
-
-/**
  * CapabilityListOut
  */
 export type CapabilityListOut = {
@@ -1542,6 +1494,10 @@ export type ContentItemCreateIn = {
    */
   locale?: string;
   /**
+   * Modelkey
+   */
+  modelKey: string;
+  /**
    * Title
    */
   title: string;
@@ -1570,17 +1526,45 @@ export type ContentItemOut = {
    */
   capabilityPackIds?: Array<string>;
   /**
+   * Context
+   *
+   * Workbench content context used by the content library.
+   */
+  context?: "site_builder" | "content_library" | "system" | "custom" | "standalone";
+  /**
+   * Alias of the resolved continuation target for UI routing consumers.
+   */
+  continuationTarget?: ContentOpenIntentOut | null;
+  /**
+   * Derivedstatus
+   *
+   * Workbench lifecycle classification used by the content library.
+   */
+  derivedStatus?: "published" | "changed" | "draft" | "archived";
+  /**
    * Draftversion
    *
    * Current draft version pointer.
    */
   draftVersion?: number;
   /**
+   * Editwith
+   *
+   * Workbench editing surface classification used by the content library.
+   */
+  editWith?: "writing" | "canvas" | "structured";
+  /**
    * Id
    *
    * Content item id.
    */
   id: string;
+  /**
+   * Librarygroup
+   *
+   * Workbench grouping used by system views in the content library.
+   */
+  libraryGroup?: "site-content" | "general-content" | "structured-content";
   /**
    * Locale
    *
@@ -1600,11 +1584,90 @@ export type ContentItemOut = {
    */
   modelKey?: string | null;
   /**
+   * Backend-resolved open intent for routing into the next continuation surface.
+   */
+  openIntent?: ContentOpenIntentOut | null;
+  /**
    * Publishedversion
    *
    * Current published version pointer.
    */
   publishedVersion?: number | null;
+  /**
+   * Resolvedposture
+   *
+   * Resolved continuation posture persisted on the item.
+   */
+  resolvedPosture?: "page" | "entry" | "composition" | "structured" | null;
+  /**
+   * Resolvedrole
+   *
+   * Resolved continuation role persisted on the item.
+   */
+  resolvedRole?:
+    | "page"
+    | "article"
+    | "reusable-section"
+    | "taxonomy"
+    | "person"
+    | "settings"
+    | "data"
+    | "general"
+    | null;
+  /**
+   * Resolvedsurface
+   *
+   * Resolved continuation surface persisted on the item.
+   */
+  resolvedSurface?: "writing" | "canvas" | "structured" | null;
+  /**
+   * Role
+   *
+   * Workbench role classification used by the content library.
+   */
+  role?:
+    | "page"
+    | "article"
+    | "reusable-section"
+    | "taxonomy"
+    | "person"
+    | "settings"
+    | "data"
+    | "general";
+  /**
+   * Runtime
+   *
+   * Workbench runtime classification used by the content library.
+   */
+  runtime?: "text" | "visual" | "data" | "unknown";
+  /**
+   * Shapereasoncode
+   *
+   * Machine-readable reason for blocked or unshaped continuation.
+   */
+  shapeReasonCode?:
+    | "UNSHAPED_ITEM"
+    | "MODEL_DEFAULT_INVALID"
+    | "CONTINUATION_TRUTH_MISSING"
+    | "SURFACE_UNAVAILABLE"
+    | "MISSING_ROUTE"
+    | "PARENT_UNPUBLISHED"
+    | "RECOVERY_REQUIRED"
+    | null;
+  /**
+   * Shapereasonmeta
+   *
+   * Structured metadata for the current shape reason.
+   */
+  shapeReasonMeta?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Shapestate
+   *
+   * Resolved continuation shape state.
+   */
+  shapeState?: "ready" | "blocked" | "unshaped";
   /**
    * Siteid
    *
@@ -1623,6 +1686,12 @@ export type ContentItemOut = {
    * Lifecycle status.
    */
   status: "draft" | "published" | "archived";
+  /**
+   * Summary
+   *
+   * Optional item summary/description.
+   */
+  summary?: string | null;
   /**
    * Title
    *
@@ -1647,6 +1716,223 @@ export type ContentItemOut = {
    * Workspace id.
    */
   workspaceId: string;
+};
+
+/**
+ * ContentLibraryViewColumnsSchema
+ */
+export type ContentLibraryViewColumnsSchema = {
+  /**
+   * Order
+   */
+  order?: Array<string> | null;
+  /**
+   * Rowheight
+   */
+  rowHeight?: "short" | "medium" | "tall" | "extraTall" | null;
+  /**
+   * Visibility
+   */
+  visibility?: {
+    [key: string]: boolean;
+  } | null;
+  /**
+   * Wrapheaders
+   */
+  wrapHeaders?: boolean | null;
+};
+
+/**
+ * ContentLibraryViewCreateIn
+ */
+export type ContentLibraryViewCreateIn = {
+  /**
+   * Baseviewid
+   */
+  baseViewId: "all" | "site-content" | "draft" | "published" | "needs-attention";
+  columns?: ContentLibraryViewColumnsSchema | null;
+  filters?: ContentLibraryViewFiltersSchema;
+  /**
+   * Isdefault
+   */
+  isDefault?: boolean;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Pinned
+   */
+  pinned?: boolean;
+  /**
+   * Query
+   */
+  query?: string;
+  /**
+   * Sorting
+   */
+  sorting?: Array<ContentLibraryViewSortingItemSchema>;
+  /**
+   * Viewmode
+   */
+  viewMode?: "table" | "card" | null;
+  /**
+   * Visibility
+   */
+  visibility?: "private" | "workspace";
+};
+
+/**
+ * ContentLibraryViewFiltersSchema
+ */
+export type ContentLibraryViewFiltersSchema = {
+  /**
+   * Editwith
+   */
+  editWith?: "writing" | "canvas" | "structured" | null;
+  /**
+   * Modelkey
+   */
+  modelKey?: string | null;
+  /**
+   * Role
+   */
+  role?:
+    | "page"
+    | "article"
+    | "reusable-section"
+    | "taxonomy"
+    | "person"
+    | "settings"
+    | "data"
+    | "general"
+    | null;
+  /**
+   * Status
+   */
+  status?: "published" | "changed" | "draft" | "archived" | null;
+};
+
+/**
+ * ContentLibraryViewMoveIn
+ */
+export type ContentLibraryViewMoveIn = {
+  /**
+   * Direction
+   */
+  direction: "up" | "down";
+};
+
+/**
+ * ContentLibraryViewOut
+ */
+export type ContentLibraryViewOut = {
+  /**
+   * Baseviewid
+   */
+  baseViewId: "all" | "site-content" | "draft" | "published" | "needs-attention";
+  columns?: ContentLibraryViewColumnsSchema;
+  filters?: ContentLibraryViewFiltersSchema;
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Isdefault
+   */
+  isDefault?: boolean;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Pinned
+   */
+  pinned?: boolean;
+  /**
+   * Query
+   */
+  query?: string;
+  /**
+   * Sorting
+   */
+  sorting?: Array<ContentLibraryViewSortingItemSchema>;
+  /**
+   * Viewmode
+   */
+  viewMode?: "table" | "card" | null;
+  /**
+   * Visibility
+   */
+  visibility: "private" | "workspace";
+};
+
+/**
+ * ContentLibraryViewPatchIn
+ */
+export type ContentLibraryViewPatchIn = {
+  /**
+   * Baseviewid
+   */
+  baseViewId?: "all" | "site-content" | "draft" | "published" | "needs-attention" | null;
+  columns?: ContentLibraryViewColumnsSchema | null;
+  filters?: ContentLibraryViewFiltersSchema | null;
+  /**
+   * Isdefault
+   */
+  isDefault?: boolean | null;
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Pinned
+   */
+  pinned?: boolean | null;
+  /**
+   * Query
+   */
+  query?: string | null;
+  /**
+   * Sorting
+   */
+  sorting?: Array<ContentLibraryViewSortingItemSchema> | null;
+  /**
+   * Viewmode
+   */
+  viewMode?: "table" | "card" | null;
+  /**
+   * Visibility
+   */
+  visibility?: "private" | "workspace" | null;
+};
+
+/**
+ * ContentLibraryViewSortingItemSchema
+ */
+export type ContentLibraryViewSortingItemSchema = {
+  /**
+   * Desc
+   */
+  desc?: boolean;
+  /**
+   * Id
+   */
+  id: string;
+};
+
+/**
+ * ContentLibraryViewsStateOut
+ */
+export type ContentLibraryViewsStateOut = {
+  /**
+   * Defaultviewid
+   */
+  defaultViewId?: string | null;
+  /**
+   * Items
+   */
+  items?: Array<ContentLibraryViewOut>;
 };
 
 /**
@@ -1684,6 +1970,33 @@ export type ContentModelDefinitionContract = {
    * Default editing mode.
    */
   defaultEditor?: "form" | "visual" | "rich_text" | "table";
+  /**
+   * Defaultposture
+   *
+   * Optional explicit default continuation posture.
+   */
+  defaultPosture?: "page" | "entry" | "composition" | "structured" | null;
+  /**
+   * Defaultrole
+   *
+   * Optional explicit default continuation role.
+   */
+  defaultRole?:
+    | "page"
+    | "article"
+    | "reusable-section"
+    | "taxonomy"
+    | "person"
+    | "settings"
+    | "data"
+    | "general"
+    | null;
+  /**
+   * Defaultsurface
+   *
+   * Optional explicit default continuation surface.
+   */
+  defaultSurface?: "writing" | "canvas" | "structured" | null;
   /**
    * Description
    *
@@ -1735,6 +2048,22 @@ export type ContentModelDefinitionContract = {
     [key: string]: unknown;
   } | null;
   /**
+   * Starterpackpolicy
+   *
+   * Starter pack policy contract.
+   */
+  starterPackPolicy?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Surfacepolicy
+   *
+   * Surface policy contract.
+   */
+  surfacePolicy?: {
+    [key: string]: unknown;
+  } | null;
+  /**
    * Views
    *
    * View contracts.
@@ -1776,6 +2105,27 @@ export type ContentModelDefinitionPatchContract = {
    */
   defaultEditor?: "form" | "visual" | "rich_text" | "table" | null;
   /**
+   * Defaultposture
+   */
+  defaultPosture?: "page" | "entry" | "composition" | "structured" | null;
+  /**
+   * Defaultrole
+   */
+  defaultRole?:
+    | "page"
+    | "article"
+    | "reusable-section"
+    | "taxonomy"
+    | "person"
+    | "settings"
+    | "data"
+    | "general"
+    | null;
+  /**
+   * Defaultsurface
+   */
+  defaultSurface?: "writing" | "canvas" | "structured" | null;
+  /**
    * Description
    */
   description?: string | null;
@@ -1783,6 +2133,10 @@ export type ContentModelDefinitionPatchContract = {
    * Fields
    */
   fields?: Array<ContentModelFieldContract> | null;
+  /**
+   * Impactpreviewtoken
+   */
+  impactPreviewToken?: string | null;
   /**
    * Key
    */
@@ -1806,6 +2160,18 @@ export type ContentModelDefinitionPatchContract = {
    * Seo
    */
   seo?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Starterpackpolicy
+   */
+  starterPackPolicy?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Surfacepolicy
+   */
+  surfacePolicy?: {
     [key: string]: unknown;
   } | null;
   /**
@@ -1902,9 +2268,61 @@ export type ContentModelImpactOut = {
 };
 
 /**
+ * ContentModelImpactPreviewOut
+ */
+export type ContentModelImpactPreviewOut = {
+  /**
+   * Affecteditemscount
+   *
+   * Items whose persisted continuation truth would change.
+   */
+  affectedItemsCount?: number;
+  /**
+   * Hasblockingchanges
+   *
+   * Whether the preview contains blocking continuation changes.
+   */
+  hasBlockingChanges?: boolean;
+  /**
+   * Schema mutation impact summary.
+   */
+  impact?: ContentModelImpactOut;
+  /**
+   * Previewtoken
+   *
+   * Signed preview token required to commit the same mutation.
+   */
+  previewToken: string;
+  /**
+   * Recoveryitemscount
+   *
+   * Items that would move into a non-ready recovery state.
+   */
+  recoveryItemsCount?: number;
+  /**
+   * Reshapeitemscount
+   *
+   * Items that would stay ready but require reshaping.
+   */
+  reshapeItemsCount?: number;
+};
+
+/**
  * ContentModelMutationOut
  */
 export type ContentModelMutationOut = {
+  /**
+   * Defaultposture
+   */
+  defaultPosture?: string | null;
+  /**
+   * Defaultrole
+   */
+  defaultRole?: string | null;
+  /**
+   * Defaultsurface
+   */
+  defaultSurface?: string | null;
   /**
    * Description
    */
@@ -1926,6 +2344,18 @@ export type ContentModelMutationOut = {
    * Siteid
    */
   siteId: string;
+  /**
+   * Starterpackpolicy
+   */
+  starterPackPolicy?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Surfacepolicy
+   */
+  surfacePolicy?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Workspaceid
    */
@@ -1967,6 +2397,33 @@ export type ContentModelOut = {
    * Default editor mode.
    */
   defaultEditor?: "form" | "visual" | "rich_text" | "table";
+  /**
+   * Defaultposture
+   *
+   * Default continuation posture resolved for new items of this model.
+   */
+  defaultPosture?: "page" | "entry" | "composition" | "structured" | null;
+  /**
+   * Defaultrole
+   *
+   * Default continuation role resolved for new items of this model.
+   */
+  defaultRole?:
+    | "page"
+    | "article"
+    | "reusable-section"
+    | "taxonomy"
+    | "person"
+    | "settings"
+    | "data"
+    | "general"
+    | null;
+  /**
+   * Defaultsurface
+   *
+   * Default continuation surface resolved for new items of this model.
+   */
+  defaultSurface?: "writing" | "canvas" | "structured" | null;
   /**
    * Description
    *
@@ -2029,6 +2486,22 @@ export type ContentModelOut = {
    * Site id.
    */
   siteId: string;
+  /**
+   * Starterpackpolicy
+   *
+   * Starter pack policy used when shaping new items.
+   */
+  starterPackPolicy?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Surfacepolicy
+   *
+   * Surface policy constraints for continuation routing.
+   */
+  surfacePolicy?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Viewschema
    *
@@ -2124,6 +2597,58 @@ export type ContentModelViewContract = {
 };
 
 /**
+ * ContentOpenIntentOut
+ */
+export type ContentOpenIntentOut = {
+  /**
+   * Blocked
+   *
+   * Whether continuation is currently blocked.
+   */
+  blocked?: boolean;
+  /**
+   * Reasoncode
+   *
+   * Machine-readable blocker or recovery code.
+   */
+  reasonCode?:
+    | "UNSHAPED_ITEM"
+    | "MODEL_DEFAULT_INVALID"
+    | "CONTINUATION_TRUTH_MISSING"
+    | "SURFACE_UNAVAILABLE"
+    | "MISSING_ROUTE"
+    | "PARENT_UNPUBLISHED"
+    | "RECOVERY_REQUIRED"
+    | null;
+  /**
+   * Reasonmeta
+   *
+   * Structured metadata for the blocker or recovery reason.
+   */
+  reasonMeta?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Recoveryactions
+   *
+   * Recovery actions that can unblock continuation.
+   */
+  recoveryActions?: Array<ContentRecoveryActionOut>;
+  /**
+   * Route
+   *
+   * Admin route to open for this item.
+   */
+  route?: string | null;
+  /**
+   * Surface
+   *
+   * Target continuation surface.
+   */
+  surface?: "writing" | "canvas" | "structured" | null;
+};
+
+/**
  * ContentPresentationIn
  */
 export type ContentPresentationIn = {
@@ -2181,6 +2706,30 @@ export type ContentPresentationOut = {
   payload?: {
     [key: string]: unknown;
   } | null;
+};
+
+/**
+ * ContentRecoveryActionOut
+ */
+export type ContentRecoveryActionOut = {
+  /**
+   * Kind
+   *
+   * Machine-readable recovery action kind.
+   */
+  kind: string;
+  /**
+   * Label
+   *
+   * User-facing recovery action label.
+   */
+  label: string;
+  /**
+   * Route
+   *
+   * Optional admin route for the recovery action.
+   */
+  route?: string | null;
 };
 
 /**
@@ -7539,6 +8088,54 @@ export type PageDataContentModelOut = {
 };
 
 /**
+ * PageData[ContentVersionOut]
+ */
+export type PageDataContentVersionOut = {
+  /**
+   * Items
+   *
+   * Current page items.
+   */
+  items?: Array<ContentVersionOut>;
+  /**
+   * Next
+   *
+   * Next page number.
+   */
+  next?: number | null;
+  /**
+   * Page
+   *
+   * Current page number (1-based).
+   */
+  page: number;
+  /**
+   * Pages
+   *
+   * Total pages.
+   */
+  pages: number;
+  /**
+   * Prev
+   *
+   * Previous page number.
+   */
+  prev?: number | null;
+  /**
+   * Size
+   *
+   * Page size.
+   */
+  size: number;
+  /**
+   * Total
+   *
+   * Total item count.
+   */
+  total: number;
+};
+
+/**
  * PageData[MyInvitationOut]
  */
 export type PageDataMyInvitationOut = {
@@ -8727,48 +9324,6 @@ export type PermissionSyncResult = {
 };
 
 /**
- * ProvisionRepairOut
- */
-export type ProvisionRepairOut = {
-  /**
-   * Actions
-   *
-   * Executed repair actions.
-   */
-  actions?: Array<string>;
-  /**
-   * Organizationid
-   *
-   * Resolved organization id after repair.
-   */
-  organizationId?: string | null;
-  /**
-   * Ready
-   *
-   * Whether bootstrap is ready after repair.
-   */
-  ready: boolean;
-  /**
-   * Repaired
-   *
-   * Whether the repair action changed any bootstrap records.
-   */
-  repaired: boolean;
-  /**
-   * Siteid
-   *
-   * Resolved site id after repair.
-   */
-  siteId?: string | null;
-  /**
-   * Workspaceid
-   *
-   * Resolved workspace id after repair.
-   */
-  workspaceId?: string | null;
-};
-
-/**
  * PublishArtifactsOut
  */
 export type PublishArtifactsOut = {
@@ -8782,6 +9337,44 @@ export type PublishArtifactsOut = {
    * Publish impact summary.
    */
   impact: PublishImpactOut;
+};
+
+/**
+ * PublishBlockedItemOut
+ */
+export type PublishBlockedItemOut = {
+  /**
+   * Itemid
+   *
+   * Blocked published item id.
+   */
+  itemId: string;
+  /**
+   * Reasoncode
+   *
+   * Machine-readable continuation blocker reason.
+   */
+  reasonCode: string;
+  /**
+   * Reasonmeta
+   *
+   * Structured blocker metadata propagated from continuation truth or publish validation.
+   */
+  reasonMeta?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Shapestate
+   *
+   * Continuation shape state at publish time.
+   */
+  shapeState: string;
+  /**
+   * Surface
+   *
+   * Resolved continuation surface seen by publish.
+   */
+  surface?: string | null;
 };
 
 /**
@@ -8874,6 +9467,12 @@ export type PublishExportRoutePointerOut = {
  * PublishImpactOut
  */
 export type PublishImpactOut = {
+  /**
+   * Blockeditems
+   *
+   * Published items blocked by resolved continuation truth or publish validation.
+   */
+  blockedItems?: Array<PublishBlockedItemOut>;
   /**
    * Missingroutes
    *
@@ -9491,31 +10090,6 @@ export type ResponseModelAuthzSnapshot = {
 };
 
 /**
- * ResponseModel[BootstrapStateOut]
- */
-export type ResponseModelBootstrapStateOut = {
-  data?: BootstrapStateOut | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
  * ResponseModel[CapabilityListOut]
  */
 export type ResponseModelCapabilityListOut = {
@@ -9595,6 +10169,56 @@ export type ResponseModelContentComponentBindingListOut = {
  */
 export type ResponseModelContentItemOut = {
   data?: ContentItemOut | null;
+  /**
+   * Error
+   */
+  error?: string | null;
+  /**
+   * Message
+   */
+  message?: string;
+  /**
+   * Meta
+   */
+  meta?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Timestamp
+   */
+  timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentLibraryViewsStateOut]
+ */
+export type ResponseModelContentLibraryViewsStateOut = {
+  data?: ContentLibraryViewsStateOut | null;
+  /**
+   * Error
+   */
+  error?: string | null;
+  /**
+   * Message
+   */
+  message?: string;
+  /**
+   * Meta
+   */
+  meta?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Timestamp
+   */
+  timestamp?: number;
+};
+
+/**
+ * ResponseModel[ContentModelImpactPreviewOut]
+ */
+export type ResponseModelContentModelImpactPreviewOut = {
+  data?: ContentModelImpactPreviewOut | null;
   /**
    * Error
    */
@@ -10819,6 +11443,31 @@ export type ResponseModelPageDataContentModelOut = {
 };
 
 /**
+ * ResponseModel[PageData[ContentVersionOut]]
+ */
+export type ResponseModelPageDataContentVersionOut = {
+  data?: PageDataContentVersionOut | null;
+  /**
+   * Error
+   */
+  error?: string | null;
+  /**
+   * Message
+   */
+  message?: string;
+  /**
+   * Meta
+   */
+  meta?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Timestamp
+   */
+  timestamp?: number;
+};
+
+/**
  * ResponseModel[PageData[MyInvitationOut]]
  */
 export type ResponseModelPageDataMyInvitationOut = {
@@ -11398,31 +12047,6 @@ export type ResponseModelPageDataWorkspaceTeamUserOptionOut = {
  */
 export type ResponseModelPermissionSyncResult = {
   data?: PermissionSyncResult | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
- * ResponseModel[ProvisionRepairOut]
- */
-export type ResponseModelProvisionRepairOut = {
-  data?: ProvisionRepairOut | null;
   /**
    * Error
    */
@@ -12044,135 +12668,10 @@ export type ResponseModelSysStepUpResult = {
 };
 
 /**
- * ResponseModel[SystemMasterKeyRepairResult]
- */
-export type ResponseModelSystemMasterKeyRepairResult = {
-  data?: SystemMasterKeyRepairResult | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemReinitializeResult]
- */
-export type ResponseModelSystemReinitializeResult = {
-  data?: SystemReinitializeResult | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
  * ResponseModel[SystemRuntimeOut]
  */
 export type ResponseModelSystemRuntimeOut = {
   data?: SystemRuntimeOut | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemSetupJobOut]
- */
-export type ResponseModelSystemSetupJobOut = {
-  data?: SystemSetupJobOut | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemSetupJobStatusOut]
- */
-export type ResponseModelSystemSetupJobStatusOut = {
-  data?: SystemSetupJobStatusOut | null;
-  /**
-   * Error
-   */
-  error?: string | null;
-  /**
-   * Message
-   */
-  message?: string;
-  /**
-   * Meta
-   */
-  meta?: {
-    [key: string]: unknown;
-  } | null;
-  /**
-   * Timestamp
-   */
-  timestamp?: number;
-};
-
-/**
- * ResponseModel[SystemSetupStatus]
- */
-export type ResponseModelSystemSetupStatus = {
-  data?: SystemSetupStatus | null;
   /**
    * Error
    */
@@ -13393,54 +13892,6 @@ export type SettingsSectionItem = {
 };
 
 /**
- * SetupAdmin
- */
-export type SetupAdmin = {
-  /**
-   * Displayname
-   *
-   * Initial admin display name.
-   */
-  displayName?: string | null;
-  /**
-   * Email
-   *
-   * Initial admin email.
-   */
-  email?: string | null;
-  /**
-   * Username
-   *
-   * Initial admin username.
-   */
-  username: string;
-};
-
-/**
- * SetupOrganization
- */
-export type SetupOrganization = {
-  /**
-   * Logourl
-   *
-   * Optional organization logo url.
-   */
-  logoUrl?: string | null;
-  /**
-   * Name
-   *
-   * Initial organization name.
-   */
-  name: string;
-  /**
-   * Slug
-   *
-   * Optional organization slug (unique).
-   */
-  slug?: string | null;
-};
-
-/**
  * SiteDomainCreateIn
  */
 export type SiteDomainCreateIn = {
@@ -14644,72 +15095,6 @@ export type SystemFlagsOut = {
 };
 
 /**
- * SystemMasterKeyRepairRequest
- */
-export type SystemMasterKeyRepairRequest = {
-  /**
-   * Confirmtext
-   *
-   * Confirmation text, must be REPAIR.
-   */
-  confirmText: string;
-};
-
-/**
- * SystemMasterKeyRepairResult
- */
-export type SystemMasterKeyRepairResult = {
-  /**
-   * Created
-   *
-   * Whether the master key file was newly created.
-   */
-  created: boolean;
-  /**
-   * Masterkeyfingerprint
-   *
-   * SHA-256 fingerprint of the current master key.
-   */
-  masterKeyFingerprint: string;
-  /**
-   * Masterkeyready
-   *
-   * Whether master key is ready after repair.
-   */
-  masterKeyReady: boolean;
-};
-
-/**
- * SystemReinitializeRequest
- */
-export type SystemReinitializeRequest = {
-  /**
-   * Confirmname
-   *
-   * Organization name confirmation.
-   */
-  confirmName: string;
-};
-
-/**
- * SystemReinitializeResult
- */
-export type SystemReinitializeResult = {
-  /**
-   * Reinitialized
-   *
-   * Whether system reinitialization completed.
-   */
-  reinitialized?: boolean;
-  /**
-   * Setuprequired
-   *
-   * Whether setup must run again.
-   */
-  setupRequired?: boolean;
-};
-
-/**
  * SystemRuntimeCapabilities
  */
 export type SystemRuntimeCapabilities = {
@@ -14745,236 +15130,6 @@ export type SystemRuntimeOut = {
    * Non-sensitive system flags used by the frontend for conditional UI rendering.
    */
   systemFlags: SystemFlagsOut;
-};
-
-/**
- * SystemSetupJobOut
- */
-export type SystemSetupJobOut = {
-  /**
-   * Createdat
-   *
-   * Job creation time.
-   */
-  createdAt: string;
-  /**
-   * Jobid
-   *
-   * Setup job identifier.
-   */
-  jobId: string;
-  /**
-   * Percent
-   *
-   * Overall setup progress (0-100).
-   */
-  percent: number;
-  /**
-   * Stage
-   *
-   * Current setup stage.
-   */
-  stage: "precheck" | "admin" | "provision" | "workspace" | "finalize";
-  /**
-   * Status
-   *
-   * Current setup job status.
-   */
-  status: "pending" | "running" | "succeeded" | "failed";
-};
-
-/**
- * SystemSetupJobStatusOut
- */
-export type SystemSetupJobStatusOut = {
-  /**
-   * Createdat
-   *
-   * Job creation time.
-   */
-  createdAt: string;
-  /**
-   * Errorcode
-   *
-   * Failure code when status is failed.
-   */
-  errorCode?: string | null;
-  /**
-   * Errormessage
-   *
-   * Failure message when status is failed.
-   */
-  errorMessage?: string | null;
-  /**
-   * Finishedat
-   *
-   * Job execution completion time.
-   */
-  finishedAt?: string | null;
-  /**
-   * Jobid
-   *
-   * Setup job identifier.
-   */
-  jobId: string;
-  /**
-   * Percent
-   *
-   * Overall setup progress (0-100).
-   */
-  percent: number;
-  /**
-   * Final setup result when status is succeeded.
-   */
-  result?: SystemSetupResult | null;
-  /**
-   * Stage
-   *
-   * Current setup stage.
-   */
-  stage: "precheck" | "admin" | "provision" | "workspace" | "finalize";
-  /**
-   * Startedat
-   *
-   * Job execution start time.
-   */
-  startedAt?: string | null;
-  /**
-   * Status
-   *
-   * Current setup job status.
-   */
-  status: "pending" | "running" | "succeeded" | "failed";
-  /**
-   * Warnings
-   *
-   * Non-fatal warnings produced during setup.
-   */
-  warnings?: Array<string>;
-};
-
-/**
- * SystemSetupRequest
- */
-export type SystemSetupRequest = {
-  /**
-   * Admin user to be created.
-   */
-  admin: SetupAdmin;
-  /**
-   * Corepatch
-   *
-   * Initial core settings merge patch (e.g. site/mail/seo).
-   */
-  corePatch?: {
-    [key: string]: unknown;
-  };
-  /**
-   * Masterkey
-   *
-   * Optional master key (base64url, 32 bytes) used to encrypt secrets.
-   */
-  masterKey?: null;
-  /**
-   * Initial organization to be created (optional, defaults will be used).
-   */
-  organization?: SetupOrganization | null;
-};
-
-/**
- * SystemSetupResult
- */
-export type SystemSetupResult = {
-  /**
-   * Adminuserid
-   *
-   * Created admin user id.
-   */
-  adminUserId: string;
-  /**
-   * Adminusername
-   *
-   * Created admin username.
-   */
-  adminUsername: string;
-  /**
-   * Initializedat
-   *
-   * Initialization time.
-   */
-  initializedAt: string;
-  /**
-   * Masterkeyfingerprint
-   *
-   * SHA-256 fingerprint of the master key.
-   */
-  masterKeyFingerprint: string;
-  /**
-   * Organizationid
-   *
-   * Created organization id (if any).
-   */
-  organizationId?: string | null;
-  /**
-   * Organizationname
-   *
-   * Created organization name (if any).
-   */
-  organizationName?: string | null;
-  /**
-   * Organizationslug
-   *
-   * Created organization slug (if any).
-   */
-  organizationSlug?: string | null;
-  /**
-   * Rbacbootstrapped
-   *
-   * Whether RBAC admin bootstrap succeeded.
-   */
-  rbacBootstrapped: boolean;
-};
-
-/**
- * SystemSetupStatus
- */
-export type SystemSetupStatus = {
-  /**
-   * Access
-   *
-   * Setup access mode: local_only (no token configured) or token (token required).
-   */
-  access: string;
-  /**
-   * Initialized
-   *
-   * Whether the system has been initialized.
-   */
-  initialized: boolean;
-  /**
-   * Masterkeyready
-   *
-   * Whether the master key file exists and can be used.
-   */
-  masterKeyReady: boolean;
-  /**
-   * Repairhint
-   *
-   * Hint code for operators when repair is required.
-   */
-  repairHint?: string | null;
-  /**
-   * Repairrequired
-   *
-   * Whether setup is initialized but master key is missing.
-   */
-  repairRequired: boolean;
-  /**
-   * Setupenabled
-   *
-   * Whether the setup endpoint is enabled.
-   */
-  setupEnabled: boolean;
 };
 
 /**
@@ -17207,82 +17362,6 @@ export type ResponseModelPageDataAdminAssetSummaryOutWritable = {
   timestamp?: number;
 };
 
-/**
- * SetupAdmin
- */
-export type SetupAdminWritable = {
-  /**
-   * Displayname
-   *
-   * Initial admin display name.
-   */
-  displayName?: string | null;
-  /**
-   * Email
-   *
-   * Initial admin email.
-   */
-  email?: string | null;
-  /**
-   * Password
-   *
-   * Initial admin password.
-   */
-  password: string;
-  /**
-   * Username
-   *
-   * Initial admin username.
-   */
-  username: string;
-};
-
-/**
- * SystemMasterKeyRepairRequest
- */
-export type SystemMasterKeyRepairRequestWritable = {
-  /**
-   * Confirmtext
-   *
-   * Confirmation text, must be REPAIR.
-   */
-  confirmText: string;
-  /**
-   * Password
-   *
-   * Super admin password for step-up confirmation.
-   */
-  password: string;
-};
-
-/**
- * SystemSetupRequest
- */
-export type SystemSetupRequestWritable = {
-  /**
-   * Admin user to be created.
-   */
-  admin: SetupAdminWritable;
-  /**
-   * Corepatch
-   *
-   * Initial core settings merge patch (e.g. site/mail/seo).
-   */
-  corePatch?: {
-    [key: string]: unknown;
-  };
-  /**
-   * Masterkey
-   *
-   * Optional master key (base64url, 32 bytes) used to encrypt secrets.
-   */
-  masterKey?: string | null;
-  /**
-   * Initial organization to be created (optional, defaults will be used).
-   */
-  organization?: SetupOrganization | null;
-};
-
 export type ServicesAuthServiceGetTwoFactorStatusData = {
   body?: never;
   path?: never;
@@ -18513,23 +18592,6 @@ export type ServicesAuthServiceAuthSsoOauthStartResponses = {
    */
   200: unknown;
 };
-
-export type ProvisioningGetMyBootstrapStateData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/v1/me/bootstrap-state";
-};
-
-export type ProvisioningGetMyBootstrapStateResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelBootstrapStateOut;
-};
-
-export type ProvisioningGetMyBootstrapStateResponse =
-  ProvisioningGetMyBootstrapStateResponses[keyof ProvisioningGetMyBootstrapStateResponses];
 
 export type WorkspacesListMyNotificationsData = {
   body?: never;
@@ -21141,23 +21203,6 @@ export type MeUnarchiveOrganizationWorkspaceByOrgResponses = {
 export type MeUnarchiveOrganizationWorkspaceByOrgResponse =
   MeUnarchiveOrganizationWorkspaceByOrgResponses[keyof MeUnarchiveOrganizationWorkspaceByOrgResponses];
 
-export type ProvisioningRepairMyBootstrapStateData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/v1/provision/repair";
-};
-
-export type ProvisioningRepairMyBootstrapStateResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelProvisionRepairOut;
-};
-
-export type ProvisioningRepairMyBootstrapStateResponse =
-  ProvisioningRepairMyBootstrapStateResponses[keyof ProvisioningRepairMyBootstrapStateResponses];
-
 export type SitesPublicResolveSiteByHostData = {
   body?: never;
   path?: never;
@@ -22408,148 +22453,6 @@ export type SystemCoreSettingsPatchNamespaceResponses = {
 export type SystemCoreSettingsPatchNamespaceResponse =
   SystemCoreSettingsPatchNamespaceResponses[keyof SystemCoreSettingsPatchNamespaceResponses];
 
-export type SystemCoreSettingsSetupSystemData = {
-  body: SystemSetupRequestWritable;
-  headers?: {
-    /**
-     * X-Setup-Token
-     */
-    "X-Setup-Token"?: string | null;
-  };
-  path?: never;
-  query?: never;
-  url: "/api/v1/system/setup";
-};
-
-export type SystemCoreSettingsSetupSystemErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type SystemCoreSettingsSetupSystemError =
-  SystemCoreSettingsSetupSystemErrors[keyof SystemCoreSettingsSetupSystemErrors];
-
-export type SystemCoreSettingsSetupSystemResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelSystemSetupJobOut;
-};
-
-export type SystemCoreSettingsSetupSystemResponse =
-  SystemCoreSettingsSetupSystemResponses[keyof SystemCoreSettingsSetupSystemResponses];
-
-export type SystemCoreSettingsGetSetupJobStatusData = {
-  body?: never;
-  headers?: {
-    /**
-     * X-Setup-Token
-     */
-    "X-Setup-Token"?: string | null;
-  };
-  path: {
-    /**
-     * Job Id
-     */
-    job_id: string;
-  };
-  query?: never;
-  url: "/api/v1/system/setup/jobs/{job_id}";
-};
-
-export type SystemCoreSettingsGetSetupJobStatusErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type SystemCoreSettingsGetSetupJobStatusError =
-  SystemCoreSettingsGetSetupJobStatusErrors[keyof SystemCoreSettingsGetSetupJobStatusErrors];
-
-export type SystemCoreSettingsGetSetupJobStatusResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelSystemSetupJobStatusOut;
-};
-
-export type SystemCoreSettingsGetSetupJobStatusResponse =
-  SystemCoreSettingsGetSetupJobStatusResponses[keyof SystemCoreSettingsGetSetupJobStatusResponses];
-
-export type SystemCoreSettingsRepairSetupMasterKeyData = {
-  body: SystemMasterKeyRepairRequestWritable;
-  path?: never;
-  query?: never;
-  url: "/api/v1/system/setup/master-key/repair";
-};
-
-export type SystemCoreSettingsRepairSetupMasterKeyErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type SystemCoreSettingsRepairSetupMasterKeyError =
-  SystemCoreSettingsRepairSetupMasterKeyErrors[keyof SystemCoreSettingsRepairSetupMasterKeyErrors];
-
-export type SystemCoreSettingsRepairSetupMasterKeyResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelSystemMasterKeyRepairResult;
-};
-
-export type SystemCoreSettingsRepairSetupMasterKeyResponse =
-  SystemCoreSettingsRepairSetupMasterKeyResponses[keyof SystemCoreSettingsRepairSetupMasterKeyResponses];
-
-export type SystemCoreSettingsReinitializeSelfHostSetupData = {
-  body: SystemReinitializeRequest;
-  path?: never;
-  query?: never;
-  url: "/api/v1/system/setup/reinitialize";
-};
-
-export type SystemCoreSettingsReinitializeSelfHostSetupErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type SystemCoreSettingsReinitializeSelfHostSetupError =
-  SystemCoreSettingsReinitializeSelfHostSetupErrors[keyof SystemCoreSettingsReinitializeSelfHostSetupErrors];
-
-export type SystemCoreSettingsReinitializeSelfHostSetupResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelSystemReinitializeResult;
-};
-
-export type SystemCoreSettingsReinitializeSelfHostSetupResponse =
-  SystemCoreSettingsReinitializeSelfHostSetupResponses[keyof SystemCoreSettingsReinitializeSelfHostSetupResponses];
-
-export type SystemCoreSettingsSetupStatusData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/v1/system/setup/status";
-};
-
-export type SystemCoreSettingsSetupStatusResponses = {
-  /**
-   * Successful Response
-   */
-  200: ResponseModelSystemSetupStatus;
-};
-
-export type SystemCoreSettingsSetupStatusResponse =
-  SystemCoreSettingsSetupStatusResponses[keyof SystemCoreSettingsSetupStatusResponses];
-
 export type WorkspacesDeleteWorkspaceData = {
   body?: never;
   path: {
@@ -23608,6 +23511,120 @@ export type WorkspacesCreateWorkspaceContentItemCanonicalResponses = {
 export type WorkspacesCreateWorkspaceContentItemCanonicalResponse =
   WorkspacesCreateWorkspaceContentItemCanonicalResponses[keyof WorkspacesCreateWorkspaceContentItemCanonicalResponses];
 
+export type WorkspacesDeleteWorkspaceContentItemCanonicalData = {
+  body?: never;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}";
+};
+
+export type WorkspacesDeleteWorkspaceContentItemCanonicalErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesDeleteWorkspaceContentItemCanonicalError =
+  WorkspacesDeleteWorkspaceContentItemCanonicalErrors[keyof WorkspacesDeleteWorkspaceContentItemCanonicalErrors];
+
+export type WorkspacesDeleteWorkspaceContentItemCanonicalResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelNoneType;
+};
+
+export type WorkspacesDeleteWorkspaceContentItemCanonicalResponse =
+  WorkspacesDeleteWorkspaceContentItemCanonicalResponses[keyof WorkspacesDeleteWorkspaceContentItemCanonicalResponses];
+
+export type WorkspacesGetWorkspaceContentItemCanonicalData = {
+  body?: never;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}";
+};
+
+export type WorkspacesGetWorkspaceContentItemCanonicalErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesGetWorkspaceContentItemCanonicalError =
+  WorkspacesGetWorkspaceContentItemCanonicalErrors[keyof WorkspacesGetWorkspaceContentItemCanonicalErrors];
+
+export type WorkspacesGetWorkspaceContentItemCanonicalResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentItemOut;
+};
+
+export type WorkspacesGetWorkspaceContentItemCanonicalResponse =
+  WorkspacesGetWorkspaceContentItemCanonicalResponses[keyof WorkspacesGetWorkspaceContentItemCanonicalResponses];
+
+export type WorkspacesArchiveWorkspaceContentItemCanonicalData = {
+  body?: never;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/archive";
+};
+
+export type WorkspacesArchiveWorkspaceContentItemCanonicalErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesArchiveWorkspaceContentItemCanonicalError =
+  WorkspacesArchiveWorkspaceContentItemCanonicalErrors[keyof WorkspacesArchiveWorkspaceContentItemCanonicalErrors];
+
+export type WorkspacesArchiveWorkspaceContentItemCanonicalResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentItemOut;
+};
+
+export type WorkspacesArchiveWorkspaceContentItemCanonicalResponse =
+  WorkspacesArchiveWorkspaceContentItemCanonicalResponses[keyof WorkspacesArchiveWorkspaceContentItemCanonicalResponses];
+
 export type WorkspacesApplyWorkspaceContentItemBootstrapShapeData = {
   /**
    * Bootstrap shape payload.
@@ -23649,6 +23666,133 @@ export type WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses = {
 export type WorkspacesApplyWorkspaceContentItemBootstrapShapeResponse =
   WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses[keyof WorkspacesApplyWorkspaceContentItemBootstrapShapeResponses];
 
+export type WorkspacesDuplicateWorkspaceContentItemCanonicalData = {
+  body?: never;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/duplicate";
+};
+
+export type WorkspacesDuplicateWorkspaceContentItemCanonicalErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesDuplicateWorkspaceContentItemCanonicalError =
+  WorkspacesDuplicateWorkspaceContentItemCanonicalErrors[keyof WorkspacesDuplicateWorkspaceContentItemCanonicalErrors];
+
+export type WorkspacesDuplicateWorkspaceContentItemCanonicalResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentItemOut;
+};
+
+export type WorkspacesDuplicateWorkspaceContentItemCanonicalResponse =
+  WorkspacesDuplicateWorkspaceContentItemCanonicalResponses[keyof WorkspacesDuplicateWorkspaceContentItemCanonicalResponses];
+
+export type WorkspacesUnarchiveWorkspaceContentItemCanonicalData = {
+  body?: never;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/unarchive";
+};
+
+export type WorkspacesUnarchiveWorkspaceContentItemCanonicalErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesUnarchiveWorkspaceContentItemCanonicalError =
+  WorkspacesUnarchiveWorkspaceContentItemCanonicalErrors[keyof WorkspacesUnarchiveWorkspaceContentItemCanonicalErrors];
+
+export type WorkspacesUnarchiveWorkspaceContentItemCanonicalResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentItemOut;
+};
+
+export type WorkspacesUnarchiveWorkspaceContentItemCanonicalResponse =
+  WorkspacesUnarchiveWorkspaceContentItemCanonicalResponses[keyof WorkspacesUnarchiveWorkspaceContentItemCanonicalResponses];
+
+export type WorkspacesListWorkspaceContentItemVersionsCanonicalData = {
+  body?: never;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Page
+     *
+     * Page number (1-based).
+     */
+    page?: number;
+    /**
+     * Size
+     *
+     * Page size.
+     */
+    size?: number;
+  };
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions";
+};
+
+export type WorkspacesListWorkspaceContentItemVersionsCanonicalErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesListWorkspaceContentItemVersionsCanonicalError =
+  WorkspacesListWorkspaceContentItemVersionsCanonicalErrors[keyof WorkspacesListWorkspaceContentItemVersionsCanonicalErrors];
+
+export type WorkspacesListWorkspaceContentItemVersionsCanonicalResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelPageDataContentVersionOut;
+};
+
+export type WorkspacesListWorkspaceContentItemVersionsCanonicalResponse =
+  WorkspacesListWorkspaceContentItemVersionsCanonicalResponses[keyof WorkspacesListWorkspaceContentItemVersionsCanonicalResponses];
+
 export type WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalData = {
   /**
    * Draft save payload.
@@ -23689,6 +23833,48 @@ export type WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponses = {
 
 export type WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponse =
   WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponses[keyof WorkspacesSaveWorkspaceContentItemDraftVersionCanonicalResponses];
+
+export type WorkspacesGetWorkspaceContentItemVersionCanonicalData = {
+  body?: never;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+    /**
+     * Version Number
+     */
+    version_number: number;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version_number}";
+};
+
+export type WorkspacesGetWorkspaceContentItemVersionCanonicalErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesGetWorkspaceContentItemVersionCanonicalError =
+  WorkspacesGetWorkspaceContentItemVersionCanonicalErrors[keyof WorkspacesGetWorkspaceContentItemVersionCanonicalErrors];
+
+export type WorkspacesGetWorkspaceContentItemVersionCanonicalResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentVersionOut;
+};
+
+export type WorkspacesGetWorkspaceContentItemVersionCanonicalResponse =
+  WorkspacesGetWorkspaceContentItemVersionCanonicalResponses[keyof WorkspacesGetWorkspaceContentItemVersionCanonicalResponses];
 
 export type WorkspacesPatchWorkspaceContentItemVersionCanonicalData = {
   /**
@@ -23987,6 +24173,197 @@ export type WorkspacesGetWorkspaceContentSeoProfileResponses = {
 export type WorkspacesGetWorkspaceContentSeoProfileResponse =
   WorkspacesGetWorkspaceContentSeoProfileResponses[keyof WorkspacesGetWorkspaceContentSeoProfileResponses];
 
+export type WorkspacesListContentLibraryViewsData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/library/views";
+};
+
+export type WorkspacesListContentLibraryViewsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesListContentLibraryViewsError =
+  WorkspacesListContentLibraryViewsErrors[keyof WorkspacesListContentLibraryViewsErrors];
+
+export type WorkspacesListContentLibraryViewsResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type WorkspacesListContentLibraryViewsResponse =
+  WorkspacesListContentLibraryViewsResponses[keyof WorkspacesListContentLibraryViewsResponses];
+
+export type WorkspacesCreateContentLibraryViewData = {
+  /**
+   * Create content library view payload.
+   */
+  body: ContentLibraryViewCreateIn;
+  path: {
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/library/views";
+};
+
+export type WorkspacesCreateContentLibraryViewErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesCreateContentLibraryViewError =
+  WorkspacesCreateContentLibraryViewErrors[keyof WorkspacesCreateContentLibraryViewErrors];
+
+export type WorkspacesCreateContentLibraryViewResponses = {
+  /**
+   * Successful Response
+   */
+  201: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type WorkspacesCreateContentLibraryViewResponse =
+  WorkspacesCreateContentLibraryViewResponses[keyof WorkspacesCreateContentLibraryViewResponses];
+
+export type WorkspacesDeleteContentLibraryViewData = {
+  body?: never;
+  path: {
+    /**
+     * View Id
+     */
+    view_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}";
+};
+
+export type WorkspacesDeleteContentLibraryViewErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesDeleteContentLibraryViewError =
+  WorkspacesDeleteContentLibraryViewErrors[keyof WorkspacesDeleteContentLibraryViewErrors];
+
+export type WorkspacesDeleteContentLibraryViewResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type WorkspacesDeleteContentLibraryViewResponse =
+  WorkspacesDeleteContentLibraryViewResponses[keyof WorkspacesDeleteContentLibraryViewResponses];
+
+export type WorkspacesPatchContentLibraryViewData = {
+  /**
+   * Patch content library view payload.
+   */
+  body: ContentLibraryViewPatchIn;
+  path: {
+    /**
+     * View Id
+     */
+    view_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}";
+};
+
+export type WorkspacesPatchContentLibraryViewErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesPatchContentLibraryViewError =
+  WorkspacesPatchContentLibraryViewErrors[keyof WorkspacesPatchContentLibraryViewErrors];
+
+export type WorkspacesPatchContentLibraryViewResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type WorkspacesPatchContentLibraryViewResponse =
+  WorkspacesPatchContentLibraryViewResponses[keyof WorkspacesPatchContentLibraryViewResponses];
+
+export type WorkspacesMoveContentLibraryViewData = {
+  /**
+   * Move content library view payload.
+   */
+  body: ContentLibraryViewMoveIn;
+  path: {
+    /**
+     * View Id
+     */
+    view_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/library/views/{view_id}/move";
+};
+
+export type WorkspacesMoveContentLibraryViewErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesMoveContentLibraryViewError =
+  WorkspacesMoveContentLibraryViewErrors[keyof WorkspacesMoveContentLibraryViewErrors];
+
+export type WorkspacesMoveContentLibraryViewResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentLibraryViewsStateOut;
+};
+
+export type WorkspacesMoveContentLibraryViewResponse =
+  WorkspacesMoveContentLibraryViewResponses[keyof WorkspacesMoveContentLibraryViewResponses];
+
 export type WorkspacesListWorkspaceContentModelsCanonicalData = {
   body?: never;
   path: {
@@ -24111,6 +24488,47 @@ export type WorkspacesUpdateWorkspaceContentModelResponses = {
 
 export type WorkspacesUpdateWorkspaceContentModelResponse =
   WorkspacesUpdateWorkspaceContentModelResponses[keyof WorkspacesUpdateWorkspaceContentModelResponses];
+
+export type WorkspacesPreviewWorkspaceContentModelUpdateData = {
+  /**
+   * Patch model contract payload.
+   */
+  body: ContentModelDefinitionPatchContract;
+  path: {
+    /**
+     * Model Id
+     */
+    model_id: string;
+    /**
+     * Workspace Id
+     *
+     * Workspace ID.
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: "/api/v1/workspaces/{workspace_id}/content/models/{model_id}/impact-preview";
+};
+
+export type WorkspacesPreviewWorkspaceContentModelUpdateErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type WorkspacesPreviewWorkspaceContentModelUpdateError =
+  WorkspacesPreviewWorkspaceContentModelUpdateErrors[keyof WorkspacesPreviewWorkspaceContentModelUpdateErrors];
+
+export type WorkspacesPreviewWorkspaceContentModelUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: ResponseModelContentModelImpactPreviewOut;
+};
+
+export type WorkspacesPreviewWorkspaceContentModelUpdateResponse =
+  WorkspacesPreviewWorkspaceContentModelUpdateResponses[keyof WorkspacesPreviewWorkspaceContentModelUpdateResponses];
 
 export type WorkspacesListWorkspaceContentRouteBindingsCanonicalData = {
   body?: never;

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
@@ -8,8 +7,7 @@ from tortoise.queryset import QuerySet
 
 from apps.api.src.common.protocols.tortoise import PermissionMutableFields
 from apps.api.src.common.repositories import BaseRepository
-from apps.api.src.models.system.rbac import BootstrapState, Permission, PermissionScope, Role, RolePermission
-from apps.api.src.modules.system.rbac.constants.service import BOOTSTRAP_KEY
+from apps.api.src.models.system.rbac import Permission, PermissionScope, Role, RolePermission
 
 
 class RBACRepository(BaseRepository):
@@ -165,19 +163,3 @@ class RBACRepository(BaseRepository):
                 continue
             out.append((str(perm_code), str(role_code)))
         return out
-
-    # -------- Bootstrap marker (legacy helper, kept for setup flow) --------
-    async def get_bootstrap_state(self) -> BootstrapState:
-        state, _ = await BootstrapState.get_or_create(
-            key=BOOTSTRAP_KEY,
-            defaults={"done": False},
-        )
-        return state
-
-    async def mark_bootstrap_done(self) -> BootstrapState:
-        state = await self.get_bootstrap_state()
-        if not state.done:
-            state.done = True
-            state.done_at = datetime.now(UTC)
-            await state.save(update_fields=["done", "done_at"])
-        return state

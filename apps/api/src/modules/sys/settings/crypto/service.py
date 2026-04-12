@@ -56,7 +56,7 @@ class SysConfigCryptoMixin:
         if not is_encrypted(raw):
             return raw
 
-        key_path = self.settings.setup.master_key_path
+        key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             return None
         try:
@@ -99,7 +99,7 @@ class SysConfigCryptoMixin:
         if not needs_encrypt:
             return merged
 
-        key_path = self.settings.setup.master_key_path
+        key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             raise ServiceUnavailable(
                 message=_ts("MASTER_KEY_MISSING", "系统密钥未初始化"),

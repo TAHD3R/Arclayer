@@ -9,7 +9,6 @@ def build_v1_router(settings: Settings) -> APIRouter:
     # Import routers lazily to avoid circular imports during app startup and tests.
     from apps.api.src.modules.auth.router import router as auth_router
     from apps.api.src.modules.organization.router import router as organization_router
-    from apps.api.src.modules.provision.router import router as provision_router
     from apps.api.src.modules.sites.delivery.router import router as delivery_router
     from apps.api.src.modules.sites.patterns.router import router as patterns_router
     from apps.api.src.modules.sites.public.router import router as sites_public_router
@@ -32,7 +31,6 @@ def build_v1_router(settings: Settings) -> APIRouter:
     root.include_router(sys_router, prefix="/sys")
     root.include_router(system_router, prefix="/system")
     root.include_router(organization_router)
-    root.include_router(provision_router)
     # Workspace-scoped admin governance (v2).
     root.include_router(workspaces_router)
     return root

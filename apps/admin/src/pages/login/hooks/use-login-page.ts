@@ -16,7 +16,7 @@ import {
   notifySuccessText,
 } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
-import { resolvePostAuthRoute } from "@/lib/routing/bootstrap-routing";
+import { resolvePostAuthRoute } from "@/lib/routing/post-auth-routing";
 import {
   getActiveAuthChallenge,
   isAuthChallengeExpired,
@@ -163,7 +163,7 @@ export function useLoginPage() {
         return;
       }
 
-      const decision = await resolvePostAuthRoute({ lastWorkspaceId, attemptRepair: true });
+      const decision = await resolvePostAuthRoute({ lastWorkspaceId });
       if (decision.workspaceId) {
         setCurrentWorkspaceId(decision.workspaceId);
       }

@@ -9,7 +9,7 @@ class WebhookDelivery(BaseModel):
     """
     Webhook delivery log record.
 
-    v1 is intentionally minimal: it supports observability and debugging, and avoids storing
+    v1 is intentionally minimal: it supports delivery diagnostics and debugging, and avoids storing
     large payloads by default.
     """
 

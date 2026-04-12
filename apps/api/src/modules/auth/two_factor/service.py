@@ -101,7 +101,7 @@ class AuthTwoFactorService(BaseService):
         return t("auth", key, default=default)
 
     def _require_master_key(self) -> bytes:
-        path = self.settings.setup.master_key_path
+        path = self.settings.security.master_key_path
         if not master_key_exists(path):
             raise ServiceUnavailable(
                 message=self._ta("MASTER_KEY_MISSING", "系统未配置 master key，无法启用 2FA"),

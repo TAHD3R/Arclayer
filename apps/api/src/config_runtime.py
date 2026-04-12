@@ -94,58 +94,6 @@ class TestingSettings(BaseSettings):
     )
 
 
-class ObservabilitySettings(BaseSettings):
-    """
-    Observability settings for the API application.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="OBSERVABILITY__",
-        env_file_encoding="utf-8",
-        env_nested_delimiter="__",
-        extra="ignore",
-        case_sensitive=False,
-        populate_by_name=True,
-        validate_default=True,
-    )
-
-    sentry_enabled: bool = Field(default=False, validation_alias=AliasChoices("SENTRY_ENABLED", "APP_SENTRY_ENABLED"))
-    sentry_dsn: str | None = Field(default=None, validation_alias=AliasChoices("SENTRY_DSN", "APP_SENTRY_DSN"))
-    sentry_environment: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("SENTRY_ENVIRONMENT", "APP_SENTRY_ENVIRONMENT"),
-    )
-    sentry_release: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("SENTRY_RELEASE", "APP_SENTRY_RELEASE"),
-    )
-    sentry_traces_sample_rate: float = Field(
-        default=0.0,
-        validation_alias=AliasChoices("SENTRY_TRACES_SAMPLE_RATE", "APP_SENTRY_TRACES_SAMPLE_RATE"),
-    )
-    sentry_profiles_sample_rate: float = Field(
-        default=0.0,
-        validation_alias=AliasChoices("SENTRY_PROFILES_SAMPLE_RATE", "APP_SENTRY_PROFILES_SAMPLE_RATE"),
-    )
-    sentry_send_pii: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("SENTRY_SEND_PII", "APP_SENTRY_SEND_PII"),
-    )
-
-    metrics_enabled: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("METRICS_ENABLED", "APP_METRICS_ENABLED"),
-    )
-    metrics_path: str = Field(
-        default="/metrics",
-        validation_alias=AliasChoices("METRICS_PATH", "APP_METRICS_PATH"),
-    )
-    metrics_include_in_schema: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("METRICS_INCLUDE_IN_SCHEMA", "APP_METRICS_INCLUDE_IN_SCHEMA"),
-    )
-
-
 class AuthSettings(BaseSettings):
     """
     Auth/JWT settings for the API application.
@@ -355,13 +303,13 @@ class SaasSettings(BaseSettings):
     free_tier_storage_mb: int = Field(default=500, ge=1, description="Max storage (MiB) for free tier.")
 
 
-class SetupSettings(BaseSettings):
+class SecuritySettings(BaseSettings):
     """
-    One-time system initialization (bootstrap) settings.
+    Security material paths for secrets encryption and revision signing.
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="SETUP__",
+        env_prefix="SECURITY__",
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
@@ -370,8 +318,6 @@ class SetupSettings(BaseSettings):
         validate_default=True,
     )
 
-    enabled: bool = Field(default=True)
-    token: SecretStr | None = Field(default=None, description="Optional setup token for /system/setup.")
     master_key_path: Path = Field(
         default=Path(__file__).resolve().parents[3] / "data" / "secrets" / "master.key",
         description="Path to the master key file used to encrypt secrets in settings.",

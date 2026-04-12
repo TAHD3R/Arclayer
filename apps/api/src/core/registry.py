@@ -12,7 +12,6 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import HTMLResponse
 from starlette.routing import Mount
 
-from apps.api.src.bootstrap import close_domain_bootstrap, init_domain_bootstrap
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.database.orm import (
     close_orm,
@@ -23,8 +22,8 @@ from apps.api.src.core.database.orm import (
 from apps.api.src.core.events import events
 from apps.api.src.core.exceptions import init_exception_handlers
 from apps.api.src.core.logging import configure_logging, get_logger
-from apps.api.src.core.observability import configure_observability
 from apps.api.src.core.routes import register_routes
+from apps.api.src.core.runtime_init import close_domain_runtime, init_domain_runtime
 from apps.api.src.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.src.infra.jobs.client import close_taskiq_client, init_taskiq_client
 from apps.api.src.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
@@ -101,28 +100,16 @@ def _build_lifespan(settings: Settings):
                 )
                 app.state.system_initialized = False
 
-            # SaaS defaults: bootstrap storage sys-config (best-effort, do not crash startup).
-            try:
-                from apps.api.src.modules.sys.bootstrap.storage.service import bootstrap_saas_storage_defaults
-
-                await bootstrap_saas_storage_defaults(settings=settings)
-            except BaseException as exc:
-                _raise_if_fatal(exc)
-                logger.warning(
-                    "SaaS storage bootstrap failed",
-                    action="sys_storage_bootstrap_failed",
-                    error=str(exc),
-                )
             if event_bus is None:
-                raise RuntimeError("event_bus unavailable during domain bootstrap")
-            await init_domain_bootstrap(app, settings, event_bus=event_bus)
+                raise RuntimeError("event_bus unavailable during domain runtime init")
+            await init_domain_runtime(app, settings, event_bus=event_bus)
             await init_valkey(app, settings)
             await init_taskiq_client(app, settings)
             await init_rate_limiter(app, settings)
             yield
         finally:
             if event_bus is not None:
-                await close_domain_bootstrap(app, event_bus=event_bus)
+                await close_domain_runtime(app, event_bus=event_bus)
             try:
                 if event_bus is not None:
                     await event_bus.aclose()
@@ -295,10 +282,6 @@ class AppFactory:
 
         return self
 
-    def with_observability(self) -> "AppFactory":
-        configure_observability(self.app, self.settings)
-        return self
-
     def with_exception_handlers(self) -> "AppFactory":
         init_exception_handlers(self.app, self.settings)
         return self
@@ -323,7 +306,6 @@ def create_app() -> FastAPI:
     return (
         AppFactory()
         .with_logging()
-        .with_observability()
         .with_middlewares()
         .with_exception_handlers()
         .with_static()

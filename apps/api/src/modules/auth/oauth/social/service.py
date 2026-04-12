@@ -392,7 +392,6 @@ class OAuthSocialService(BaseService):
             if identity is not None:
                 user_id = UUID(str(identity.user_id))
 
-            created_new_user = False
             if user_id is None:
                 if not email or not email_verified:
                     return self._redirect_to_login_error(frontend_base, error="email_not_verified", redirect=redirect)
@@ -417,7 +416,6 @@ class OAuthSocialService(BaseService):
 
                     created = await self.repo.create_user(email=email, display_name=display_name, avatar_url=avatar_url)
                     user_id = UUID(str(created.id))
-                    created_new_user = True
 
                 await self.repo.create_identity(provider=provider_key, subject=subject, user_id=user_id, email=email)
 
@@ -427,9 +425,6 @@ class OAuthSocialService(BaseService):
             )
             if auto_accept_invites and email and email_verified:
                 await self._auto_accept_email_invites(user_id=user_id, email=email)
-
-            if created_new_user:
-                await self._ensure_user_bootstrap_best_effort(user_id=user_id)
 
             exchange_code = await issue_exchange_code(
                 self.valkey,
@@ -592,7 +587,7 @@ class OAuthSocialService(BaseService):
             return None
         if not is_encrypted(raw):
             return raw
-        key_path = self.settings.setup.master_key_path
+        key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             return None
         try:
@@ -613,21 +608,6 @@ class OAuthSocialService(BaseService):
         if not policy.is_email_allowed(email):
             return False
         return True
-
-    async def _ensure_user_bootstrap_best_effort(self, *, user_id: UUID) -> None:
-        try:
-            from apps.api.src.modules.provision.service import TenantProvisioningService
-
-            provisioning = TenantProvisioningService(self.settings)
-            await provisioning.ensure_user_bootstrap(user_id=user_id, source="register")
-        except BaseException as exc:
-            _raise_if_fatal(exc)
-            self.logger.warning(
-                "OAuth user bootstrap failed (best-effort)",
-                action="oauth_user_bootstrap",
-                user_id=str(user_id),
-                error=str(exc),
-            )
 
     def _redirect_to_frontend_login(self, base: str, *, oauth_code: str, redirect: str | None) -> RedirectResponse:
         base = (base or "").strip().rstrip("/")
