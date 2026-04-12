@@ -6,7 +6,7 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from src.common.invitations.tokens.service import verify_invite_token
+from src.common.invitations.tokens import verify_invite_token
 from src.common.invitations.workspace_invites import (
     is_workspace_email_invite_code,
     is_workspace_invite_link_code,

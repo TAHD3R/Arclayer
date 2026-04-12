@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.config import Settings
 from src.modules.sys.settings.activation.service import SysConfigActivationMixin
 from src.modules.sys.settings.checks.core.service import SysConfigChecksCoreMixin

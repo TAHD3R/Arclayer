@@ -6,7 +6,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.transactions import in_transaction
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.models.content._enums import (
     ContentModelFieldType,
     ContentModelRelationType,

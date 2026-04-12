@@ -4,7 +4,7 @@ from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.core.exceptions import Conflict
 from src.models.sites.site import SiteRecord
 

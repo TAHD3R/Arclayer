@@ -10,8 +10,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, ValidationError
 from starlette.responses import RedirectResponse, Response
 
-from src.common.services.base import BaseService
-from src.common.text.slug.service import slugify
+from src.common.services import BaseService
+from src.common.utils.slug import slugify
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.content_disposition import build_attachment_content_disposition

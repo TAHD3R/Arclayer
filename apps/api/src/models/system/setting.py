@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tortoise import fields
 
-from src.common.models.base import BaseModel
+from src.common.models import BaseModel
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 

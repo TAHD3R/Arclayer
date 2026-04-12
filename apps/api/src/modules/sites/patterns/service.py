@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_queryset

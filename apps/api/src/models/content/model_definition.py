@@ -5,7 +5,7 @@ from uuid import UUID
 
 from tortoise import fields
 
-from src.common.models.base import BaseModel
+from src.common.models import BaseModel
 from src.models.content._enums import (
     ContentContinuationPosture,
     ContentContinuationRole,

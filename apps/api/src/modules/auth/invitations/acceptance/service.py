@@ -9,7 +9,7 @@ from uuid import UUID
 from asgi_correlation_id import correlation_id
 from tortoise.transactions import in_transaction
 
-from src.common.invitations.tokens.service import verify_invite_token
+from src.common.invitations.tokens import verify_invite_token
 from src.common.invitations.workspace_invites import (
     is_workspace_email_invite_code,
     is_workspace_guest_invite_code,

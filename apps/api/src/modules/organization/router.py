@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends
 
 from src.common.protocols.tortoise import HasOrganizationId
-from src.common.text.slug.service import slugify
+from src.common.utils.slug import slugify
 from src.core.exceptions import BadRequest, NotFound
 from src.core.http.response import Response, ResponseModel
 from src.core.i18n import t

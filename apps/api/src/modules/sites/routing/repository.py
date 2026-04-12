@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.sites.shared.service import normalize_path

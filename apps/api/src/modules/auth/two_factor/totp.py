@@ -87,7 +87,7 @@ def verify_totp_code(
 
     Security notes:
     - Uses constant-time comparison.
-    - Allows small clock drift (default ±1 step).
+    - Allows small clock drift (default +/-1 step).
     """
 
     normalized = _normalize_totp_code(code)

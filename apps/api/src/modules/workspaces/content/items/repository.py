@@ -5,7 +5,7 @@ from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.models.content.component_binding import ComponentBindingRecord
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord

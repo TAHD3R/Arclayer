@@ -6,7 +6,7 @@ from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.common.utils.ids import uuid7
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.organization.user import User, UserStatus

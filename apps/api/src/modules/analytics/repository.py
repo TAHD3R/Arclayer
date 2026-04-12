@@ -7,7 +7,7 @@ from uuid import UUID
 from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.queryset import QuerySet
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.models.analytics.audit_event import AuditEvent
 from src.modules.analytics.schema import AuditEventListQuery
 

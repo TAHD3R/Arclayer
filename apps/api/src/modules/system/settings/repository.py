@@ -4,7 +4,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import SettingUpdatedBy
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.models.system.setting import SettingRecord
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 

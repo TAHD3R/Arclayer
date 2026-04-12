@@ -405,7 +405,7 @@ async def test_auth_me_invitations_includes_workspace(prepared_db, integration_v
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
 
-        from src.common.invitations.tokens.service import generate_invite_code
+        from src.common.invitations.tokens import generate_invite_code
         from src.models.organization.org_membership import OrgMembership, OrgRole
         from src.models.organization.user import User
         from src.models.workspaces.workspace import Workspace

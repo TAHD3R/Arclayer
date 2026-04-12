@@ -6,7 +6,7 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.core.exceptions import Conflict, NotFound
 from src.models.sites.site_domain import SiteDomainRecord
 

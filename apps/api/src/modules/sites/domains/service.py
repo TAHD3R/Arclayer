@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from src.common.protocols.tortoise import HasOrganizationId, SiteDomainRecordView
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
 from src.infra.cache.valkey import ValkeyClientLike
 from src.models.organization.org_plan import OrgPlan

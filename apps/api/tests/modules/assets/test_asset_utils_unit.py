@@ -4,7 +4,7 @@ from uuid import UUID
 
 
 def test_slugify_keeps_ascii_and_hyphens() -> None:
-    from src.common.text.slug.service import slugify
+    from src.common.utils.slug import slugify
 
     assert slugify("Hello World") == "hello-world"
     assert slugify("  Hello   World  ") == "hello-world"
@@ -13,7 +13,7 @@ def test_slugify_keeps_ascii_and_hyphens() -> None:
 
 
 def test_slugify_falls_back_when_empty() -> None:
-    from src.common.text.slug.service import slugify
+    from src.common.utils.slug import slugify
 
     assert slugify("") == "asset"
     assert slugify("   ") == "asset"

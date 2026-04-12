@@ -5,7 +5,7 @@ import time
 from typing import Literal
 from uuid import UUID
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
 from src.infra.cache.valkey import ValkeyClientLike
 from src.models.sites.site import SiteRecord

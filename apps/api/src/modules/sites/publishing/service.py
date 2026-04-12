@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.modules.sites.publishing.includes.service import PublishingIncludesService
 from src.modules.sites.publishing.presence.service import PublishingPresenceService
 from src.modules.sites.publishing.routes.service import PublishingRoutesResolveService

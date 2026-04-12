@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.modules.sites.content.delivery.service import ContentDeliveryService
 from src.modules.sites.repository import SitesRepository
 

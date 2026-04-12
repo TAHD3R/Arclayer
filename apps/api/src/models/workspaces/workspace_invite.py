@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tortoise import fields
 
-from src.common.models.base import BaseModel
+from src.common.models import BaseModel
 
 
 # Workspace email invite (pending membership invitation).

@@ -3,7 +3,7 @@ from __future__ import annotations
 from math import ceil
 from uuid import UUID
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.core.exceptions import NotFound
 from src.core.http.pagination import PageData, PageParams
 from src.models.analytics.audit_event import AuditEvent

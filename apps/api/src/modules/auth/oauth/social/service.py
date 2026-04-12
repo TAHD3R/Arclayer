@@ -19,7 +19,7 @@ from pydantic import ValidationError
 from starlette.responses import RedirectResponse
 from tortoise.expressions import Q
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden
 from src.core.i18n import t
@@ -511,7 +511,7 @@ class OAuthSocialService(BaseService):
             rows = await qs.limit(20).all()
             for inv in rows:
                 try:
-                    from src.common.invitations.tokens.service import build_invite_token
+                    from src.common.invitations.tokens import build_invite_token
                     from src.modules.auth.schema import AcceptExistingInvitationRequest
 
                     token = build_invite_token(self.settings, code=str(inv.code))

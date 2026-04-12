@@ -6,12 +6,12 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.common.security.totp import generate_totp_code
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
+from src.modules.auth.two_factor.totp import generate_totp_code
 from src.settings.crypto import ensure_master_key
 
 pytestmark = pytest.mark.integration

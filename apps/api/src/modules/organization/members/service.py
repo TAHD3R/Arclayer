@@ -6,8 +6,8 @@ from typing import Any, Protocol, cast
 from uuid import UUID
 
 from src.common.email.service import EmailService
-from src.common.invitations.expiry.service import build_expires_at
-from src.common.invitations.tokens.service import build_invite_token, generate_invite_code
+from src.common.invitations.expiry import build_expires_at
+from src.common.invitations.tokens import build_invite_token, generate_invite_code
 from src.common.protocols.tortoise import HasUserId
 from src.common.services import BaseService
 from src.config import Settings

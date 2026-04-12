@@ -11,13 +11,13 @@ from urllib.parse import quote, urlencode
 from uuid import UUID
 
 from src.common.constants.auth import REAUTH_MAX_AGE_SECONDS
-from src.common.security.totp import generate_totp_secret, verify_totp_code
 from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
 from src.modules.auth.tokens.service import verify_password
 from src.modules.auth.two_factor.repository import TwoFactorRepository, TwoFactorRepositoryLike
+from src.modules.auth.two_factor.totp import generate_totp_secret, verify_totp_code
 from src.settings.crypto import decrypt_secret, encrypt_secret, load_master_key, master_key_exists
 
 _BACKUP_CODE_COUNT: Final[int] = 10

@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 from xml.sax.saxutils import escape as xml_escape
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.core.exceptions import Conflict
 from src.models.system.setting import SettingRecord
 from src.modules.sites.repository import SitesRepository

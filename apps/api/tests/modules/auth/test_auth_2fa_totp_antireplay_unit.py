@@ -7,10 +7,10 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.common.security.totp import TotpVerifyResult
 from src.config import get_settings
 from src.core.exceptions import BadRequest
 from src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.modules.auth.two_factor.totp import TotpVerifyResult
 
 
 @dataclass

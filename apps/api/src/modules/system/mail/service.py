@@ -3,7 +3,7 @@ from __future__ import annotations
 import smtplib
 
 from src.common.email.service import EmailService
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t

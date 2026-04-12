@@ -15,8 +15,8 @@ from src.common.constants.assets import (
     ASSET_UPLOADED_EVENT,
 )
 from src.common.services import BaseService
-from src.common.text.slug.service import slugify
 from src.common.utils.ids import uuid7
+from src.common.utils.slug import slugify
 from src.config import Settings
 from src.core.events import Event, events
 from src.core.exceptions import BadRequest, NotFound

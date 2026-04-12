@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from src.common.text.slug.service import slugify
 from src.common.utils.public_ids import encode_uuid
+from src.common.utils.slug import slugify
 from src.core.exceptions import Conflict
 from src.models.content._enums import ContentItemStatus, ContentItemVisibility, ContentVersionState
 from src.models.content.content_item import ContentItemRecord

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.modules.sites.routing.repository import SiteRoutingRepository
 from src.modules.sites.runtime.repository import RuntimeRepositoryMixin
 from src.modules.sites.settings.repository import SettingsRepositoryMixin

@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from tortoise import fields
 
-from src.common.models.base import BaseModel
+from src.common.models import BaseModel
 
 
 class OrgRole(StrEnum):

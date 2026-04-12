@@ -4,7 +4,7 @@ from uuid import UUID
 
 from tortoise.transactions import in_transaction
 
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.models.assets.asset import AssetRecord
 from src.models.sites.site import SiteRecord
 from src.models.workspaces.theme_package import ThemePackageRecord

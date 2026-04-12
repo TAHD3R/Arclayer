@@ -6,7 +6,7 @@ from uuid import UUID
 from tortoise.exceptions import IntegrityError
 
 from src.common.protocols.tortoise import SysConfigActiveMutableFields
-from src.common.repositories.base import BaseRepository
+from src.common.repositories import BaseRepository
 from src.models.sys.sys_config_active import SysConfigActive
 from src.models.sys.sys_config_revision import SysConfigRevision
 

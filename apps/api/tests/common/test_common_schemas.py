@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from src.common.schemas.base import BaseOut, BaseSchema, TimestampMixin
+from src.common.schemas import BaseOut, BaseSchema, TimestampMixin
 
 
 class DemoSchema(BaseSchema):

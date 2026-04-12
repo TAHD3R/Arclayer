@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal, cast
 from uuid import UUID
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.common.utils.public_ids import PublicIdDecodeError, decode_public_id
 from src.modules.sites.design.schema import PageBlueprint
 from src.modules.sites.namespaces.service import get_max_content_ref_depth

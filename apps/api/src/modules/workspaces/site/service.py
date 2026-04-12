@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.models.workspaces.workspace import Workspace
 from src.modules.workspaces.site.repository import WorkspaceSiteRepository
 

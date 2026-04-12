@@ -8,8 +8,8 @@ from uuid import UUID
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
-from src.common.invitations.expiry.service import build_expires_at
-from src.common.invitations.tokens.service import build_invite_token, generate_invite_code
+from src.common.invitations.expiry import build_expires_at
+from src.common.invitations.tokens import build_invite_token, generate_invite_code
 from src.common.invitations.workspace_invites import (
     WORKSPACE_EMAIL_INVITE_PREFIX_GUEST,
     WORKSPACE_EMAIL_INVITE_PREFIX_MEMBER,

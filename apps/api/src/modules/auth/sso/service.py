@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import Request
 
-from src.common.services.base import BaseService
+from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
