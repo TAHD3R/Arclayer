@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.content.shared.router import _resolve_site_id
 from src.modules.workspaces.http.schema import WorkspaceContext
@@ -45,7 +45,7 @@ async def get_workspace_publish_impact(
     service: Annotated[WorkspacePublishService, Depends(get_workspace_publish_service)],
 ) -> ResponseModel[PublishImpactOut]:
     data = await service.preview_impact(workspace_id=ctx.workspace_id, site_id=site_id)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.post(
@@ -61,7 +61,7 @@ async def post_workspace_publish_artifacts(
     service: Annotated[WorkspacePublishService, Depends(get_workspace_publish_service)],
 ) -> ResponseModel[PublishArtifactsOut]:
     data = await service.build_artifacts(workspace_id=ctx.workspace_id, site_id=site_id)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.get(
@@ -76,4 +76,4 @@ async def get_workspace_publish_preview_contract(
     service: Annotated[WorkspacePublishPreviewService, Depends(get_workspace_publish_preview_service)],
 ) -> ResponseModel[PublishExportContractOut]:
     data = await service.build_preview_contract(workspace_id=ctx.workspace_id, site_id=site_id)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

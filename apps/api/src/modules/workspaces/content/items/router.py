@@ -11,7 +11,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.core.events import Event, EventBus
 from src.core.exceptions import ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.models.content._enums import ContentVersionState
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -112,7 +112,7 @@ async def list_workspace_content_items_canonical(
         params=params,
         model_key=model_key,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.get(
@@ -135,7 +135,7 @@ async def get_workspace_content_item_canonical(
         site_id=site_id,
         item_id=item_id,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.post(
@@ -176,7 +176,7 @@ async def create_workspace_content_item_canonical(
             "item_status": str(data.status),
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.post(
@@ -216,7 +216,7 @@ async def duplicate_workspace_content_item_canonical(
             "duplicated_item_slug": data.slug,
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.delete(
@@ -249,7 +249,7 @@ async def delete_workspace_content_item_canonical(
         event_bus=event_bus,
         event_name="workspace.content.item.deleted",
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @canonical_items_router.post(
@@ -285,7 +285,7 @@ async def archive_workspace_content_item_canonical(
         event_name="workspace.content.item.archived",
         properties={"item_status": str(data.status)},
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.post(
@@ -321,7 +321,7 @@ async def unarchive_workspace_content_item_canonical(
         event_name="workspace.content.item.unarchived",
         properties={"item_status": str(data.status)},
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.patch(
@@ -365,7 +365,7 @@ async def apply_workspace_content_item_bootstrap_shape(
             "bootstrap_preset_state": str(data.bootstrap_preset_state),
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.post(
@@ -408,7 +408,7 @@ async def save_workspace_content_item_draft_version_canonical(
             "change_summary": data.change_summary,
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.get(
@@ -433,7 +433,7 @@ async def list_workspace_content_item_versions_canonical(
         item_id=item_id,
         params=params,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.get(
@@ -458,7 +458,7 @@ async def get_workspace_content_item_version_canonical(
         item_id=item_id,
         version_number=version_number,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.post(
@@ -501,7 +501,7 @@ async def publish_workspace_content_item_version_canonical(
             "change_summary": data.change_summary,
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.post(
@@ -544,7 +544,7 @@ async def schedule_workspace_content_item_version_canonical(
             "change_summary": data.change_summary,
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.post(
@@ -587,7 +587,7 @@ async def archive_workspace_content_item_version_canonical(
             "change_summary": data.change_summary,
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_items_router.patch(
@@ -631,4 +631,4 @@ async def patch_workspace_content_item_version_canonical(
             "change_summary": data.change_summary,
         },
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

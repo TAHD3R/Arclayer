@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
 from src.modules.analytics.service import ActivityService
 from src.modules.workspaces.http.schema import WorkspaceContext
@@ -32,4 +32,4 @@ async def list_workspace_activity(
 
     service = ActivityService(settings)
     page = await service.list_events(organization_id=ctx.organization_id, params=params, filters=query)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)

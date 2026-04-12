@@ -9,7 +9,7 @@ from src.common.protocols.tortoise import HasOrganizationId, HasUserId
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import DependsPagination, PageData, PageParams
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.models.organization.org_membership import OrgMembership
 from src.modules.organization.http.service import (
     get_org_membership_for_organization,
@@ -56,7 +56,7 @@ async def _list_workspaces(
         archived=archived,
         enterable_only=enterable_only,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 async def _list_workspace_members(
@@ -76,7 +76,7 @@ async def _list_workspace_members(
         params=params,
         q=q,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 async def _create_workspace(
@@ -92,7 +92,7 @@ async def _create_workspace(
         org_role=orgm.role,
         payload=payload,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 async def _archive_workspace(
@@ -108,7 +108,7 @@ async def _archive_workspace(
         user_id=_user_id(orgm),
         org_role=orgm.role,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 async def _unarchive_workspace(
@@ -124,7 +124,7 @@ async def _unarchive_workspace(
         user_id=_user_id(orgm),
         org_role=orgm.role,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 async def _delete_workspace(
@@ -142,7 +142,7 @@ async def _delete_workspace(
         org_role=orgm.role,
         confirm_name=confirm_name,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(

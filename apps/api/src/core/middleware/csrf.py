@@ -7,7 +7,7 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
-from src.core.http.response import Response as ResponseBuilder
+from src.core.http.response import ApiResponse as ResponseBuilder
 from src.core.i18n import get_request_locale, t
 
 

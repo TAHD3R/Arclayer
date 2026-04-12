@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, status
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import (
     ensure_workspace_permission_granted,
@@ -59,7 +59,7 @@ async def list_content_library_views(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
-    return Response.success(data=await service.list_views(workspace_id=ctx.workspace_id, user_id=user_id))
+    return ApiResponse.success(data=await service.list_views(workspace_id=ctx.workspace_id, user_id=user_id))
 
 
 @content_library_views_router.post(
@@ -75,7 +75,7 @@ async def create_content_library_view(
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
-    return Response.success(
+    return ApiResponse.success(
         data=await service.create_view(
             workspace_id=ctx.workspace_id,
             user_id=user_id,
@@ -98,7 +98,7 @@ async def patch_content_library_view(
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
-    return Response.success(
+    return ApiResponse.success(
         data=await service.update_view(
             workspace_id=ctx.workspace_id,
             user_id=user_id,
@@ -122,7 +122,7 @@ async def move_content_library_view(
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
-    return Response.success(
+    return ApiResponse.success(
         data=await service.move_view(
             workspace_id=ctx.workspace_id,
             user_id=user_id,
@@ -145,7 +145,7 @@ async def delete_content_library_view(
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
-    return Response.success(
+    return ApiResponse.success(
         data=await service.delete_view(
             workspace_id=ctx.workspace_id,
             user_id=user_id,

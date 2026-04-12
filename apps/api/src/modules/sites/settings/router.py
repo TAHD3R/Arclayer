@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Query
 
 from src.common.types.public_uuid import PublicUUID
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.sites.http.service import get_site_service
 from src.modules.sites.schema import SiteSettingGetOut, SiteSettingUpsertIn
 from src.modules.sites.service import SiteService
@@ -27,7 +27,7 @@ async def get_site_setting(
 ) -> ResponseModel[SiteSettingGetOut]:
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.get_site_setting(site_id=site_id, namespace=namespace)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.put(
@@ -45,4 +45,4 @@ async def upsert_site_setting(
 ) -> ResponseModel[SiteSettingGetOut]:
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.upsert_site_setting(site_id=site_id, namespace=namespace, payload=payload)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

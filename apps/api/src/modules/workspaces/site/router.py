@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, Request, status
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.infra.cache.valkey import get_valkey
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.sites.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
@@ -67,7 +67,7 @@ async def get_workspace_site(
         fallbackLocale=str(site.fallback_locale),
         isActive=bool(site.is_active),
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -84,4 +84,4 @@ async def create_workspace_site_preview_token(
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePreviewTokenOut]:
     data = await service.create_preview_token(site_id=site_id, ttl_seconds=payload.ttl_seconds)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

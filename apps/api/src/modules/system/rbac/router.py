@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.organization.http.service import require_org_admin
 from src.modules.system.rbac.schema import PermissionOut, PermissionSyncResult
 from src.modules.system.rbac.service import RBACService
@@ -28,7 +28,7 @@ async def list_permissions(
     perms = await service.repo.list_permissions(scope=None)
     items = [PermissionOut.model_validate(service.localize_permission(p)) for p in perms]
     page = paginate_items(items, params=params)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.post(
@@ -40,4 +40,4 @@ async def sync_permissions(
     service: RBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PermissionSyncResult]:
     result = await service.sync_permissions_with_workspaces()
-    return Response.success(data=result)
+    return ApiResponse.success(data=result)

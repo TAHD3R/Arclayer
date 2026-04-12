@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.analytics.system.router import router as system_activity_router
 from src.modules.system.flags.service import build_system_flags
 from src.modules.system.mail.router import router as system_mail_router
@@ -34,7 +34,7 @@ async def get_system_runtime(
     deployment_mode = settings.application.deployment_mode
     policy = await get_public_register_policy(settings)
     flags = build_system_flags(settings=settings).model_copy(update={"public_register": policy.enabled})
-    return Response.success(
+    return ApiResponse.success(
         data=SystemRuntimeOut(
             deployment_mode=deployment_mode,
             capabilities=SystemRuntimeCapabilities(

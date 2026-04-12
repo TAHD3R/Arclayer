@@ -9,7 +9,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.exceptions import Conflict
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.infra.cache.valkey import get_valkey
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.sites.domains.schema import (
@@ -58,7 +58,7 @@ async def list_site_domains(
     domains = await service.list_domains(workspace_id=ctx.workspace_id, actor_user_id=user_id)
     items = [SiteDomainOut.model_validate(service.to_out(d)) for d in domains]
     page = paginate_items(items, params=params)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.post(
@@ -81,7 +81,7 @@ async def create_site_domain(
         actor_user_id=user_id,
     )
     out = SiteDomainOut.model_validate(service.to_out(rec))
-    return Response.success(data=SiteDomainCreateOut(domain=out, dns=dns))
+    return ApiResponse.success(data=SiteDomainCreateOut(domain=out, dns=dns))
 
 
 @router.post(
@@ -103,7 +103,7 @@ async def verify_site_domain(
         actor_user_id=user_id,
     )
     out = SiteDomainOut.model_validate(service.to_out(rec))
-    return Response.success(
+    return ApiResponse.success(
         data=SiteDomainVerifyOut(
             domain=out,
             dns=dns,
@@ -137,7 +137,7 @@ async def update_site_domain(
         actor_user_id=user_id,
     )
     out = SiteDomainOut.model_validate(service.to_out(rec))
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -158,4 +158,4 @@ async def delete_site_domain(
         domain_id=UUID(str(domain_id)),
         actor_user_id=user_id,
     )
-    return Response.success(data=SiteDomainDeleteOut(domainId=domain_id))
+    return ApiResponse.success(data=SiteDomainDeleteOut(domainId=domain_id))

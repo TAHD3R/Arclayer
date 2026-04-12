@@ -7,7 +7,7 @@ from fastapi import APIRouter, Body, Depends, status
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.sites.patterns.service import SitePatternService
 from src.modules.sites.schema import (
     SitePatternCreateIn,
@@ -37,7 +37,7 @@ async def list_site_patterns(
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[SitePatternOut]]:
     data = await service.list_patterns(site_id=site_id, params=params)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.post(
@@ -53,7 +53,7 @@ async def create_site_pattern(
     service: Annotated[SitePatternService, Depends(get_pattern_service)],
 ) -> ResponseModel[SitePatternOut]:
     data = await service.create_pattern(site_id=site_id, payload=payload)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.patch(
@@ -69,7 +69,7 @@ async def update_site_pattern(
     service: Annotated[SitePatternService, Depends(get_pattern_service)],
 ) -> ResponseModel[SitePatternOut]:
     data = await service.update_pattern(pattern_id=pattern_id, payload=payload)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.delete(
@@ -84,4 +84,4 @@ async def delete_site_pattern(
     service: Annotated[SitePatternService, Depends(get_pattern_service)],
 ) -> ResponseModel[SitePatternDeleteOut]:
     await service.delete_pattern(pattern_id=pattern_id)
-    return Response.success(data=SitePatternDeleteOut(pattern_id=pattern_id))
+    return ApiResponse.success(data=SitePatternDeleteOut(pattern_id=pattern_id))

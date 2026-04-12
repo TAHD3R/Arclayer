@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from src.common.protocols.tortoise import HasOrganizationId
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.models.organization.org_membership import OrgMembership
 from src.modules.organization.http.service import get_current_org_membership
 from src.modules.organization.rbac.schema import (
@@ -65,7 +65,7 @@ async def list_roles(
         [OrganizationRoleOut.model_validate(service.localize_role(role)) for role in roles],
         params=params,
     )
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -94,7 +94,7 @@ async def list_permissions(
         ],
         params=params,
     )
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -116,7 +116,7 @@ async def get_matrix(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id))
     )
     localized_permissions = [service.localize_permission(permission) for permission in permissions]
-    return Response.success(
+    return ApiResponse.success(
         data=OrganizationRBACMatrixOut(
             roles=[OrganizationRoleOut.model_validate(service.localize_role(role)) for role in roles],
             permissions=[
@@ -156,7 +156,7 @@ async def create_role(
         description=body.description,
         template_role_code=body.template_role_code,
     )
-    return Response.success(data=OrganizationRoleOut.model_validate(service.localize_role(role)))
+    return ApiResponse.success(data=OrganizationRoleOut.model_validate(service.localize_role(role)))
 
 
 @router.delete(
@@ -178,7 +178,7 @@ async def delete_role(
     await service.delete_custom_role(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)), role_code=role_code
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @router.put(
@@ -203,7 +203,7 @@ async def set_permission_roles(
         permission_code=permission_code,
         role_codes=body.role_codes,
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @router.put(
@@ -228,4 +228,4 @@ async def set_role_permissions(
         role_code=role_code,
         permission_codes=body.permission_codes,
     )
-    return Response.success()
+    return ApiResponse.success()

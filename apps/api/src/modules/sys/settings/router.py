@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.sys.http.service import require_sys_super_admin
 from src.modules.sys.settings.schema import (
     SysConfigActivateRequest,
@@ -40,7 +40,7 @@ async def list_namespaces(
 ) -> ResponseModel[PageData[SysConfigNamespaceSummary]]:
     items = await service.list_namespaces()
     page = paginate_items(items, params=params)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -53,7 +53,7 @@ async def get_namespace(
     service: SysConfigService = Depends(get_sys_config_service),
 ) -> ResponseModel[SysConfigDetail]:
     detail = await service.get_detail(namespace=namespace)
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.patch(
@@ -73,7 +73,7 @@ async def patch_namespace(
         updated_by=getattr(user, "id", None),
         activate=bool(payload.activate),
     )
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.get(
@@ -87,7 +87,7 @@ async def list_revisions(
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[SysConfigRevisionOut]]:
     page = await service.list_revisions_page(namespace=namespace, params=params)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -101,7 +101,7 @@ async def get_revision(
     service: SysConfigService = Depends(get_sys_config_service),
 ) -> ResponseModel[SysConfigRevisionDetail]:
     detail = await service.get_revision_detail(namespace=namespace, revision_id=revision_id)
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.post(
@@ -115,7 +115,7 @@ async def test_revision(
     service: SysConfigService = Depends(get_sys_config_service),
 ) -> ResponseModel[SysConfigTestResult]:
     out = await service.test_revision(namespace=namespace, revision_id=payload.revision_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -134,4 +134,4 @@ async def activate_revision(
         revision_id=payload.revision_id,
         activated_by=getattr(user, "id", None),
     )
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)

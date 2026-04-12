@@ -15,7 +15,6 @@ from starlette.routing import Mount
 from src.config import Settings, get_settings
 from src.core.database.orm import (
     close_orm,
-    ensure_settings_schema_constraints,
     init_orm,
     verify_db_ready,
 )
@@ -86,8 +85,6 @@ def _build_lifespan(settings: Settings):
 
             await init_orm(settings)
             await verify_db_ready(settings)
-            # Hotfix legacy DB constraint that blocks v2 workspace-scoped settings.
-            await ensure_settings_schema_constraints()
             # Cache "initialized" flag for lightweight request guards.
             try:
                 from src.models.organization.user import User

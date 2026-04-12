@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.extensions.schema import CapabilityListOut, CapabilitySummaryOut, UIEmbedListOut
 from src.modules.extensions.service import ExtensionsService
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -28,7 +28,7 @@ async def list_workspace_capabilities(
     service: ExtensionsService = Depends(get_extensions_service),
 ) -> ResponseModel[CapabilityListOut]:
     items = await service.list_workspace_capabilities(workspace_id=ctx.workspace_id)
-    return Response.success(data=CapabilityListOut(items=items))
+    return ApiResponse.success(data=CapabilityListOut(items=items))
 
 
 @router.post(
@@ -47,7 +47,7 @@ async def enable_workspace_capability(
         capability_id=capability_id,
         enabled=True,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -66,7 +66,7 @@ async def disable_workspace_capability(
         capability_id=capability_id,
         enabled=False,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -88,4 +88,4 @@ async def list_workspace_ui_embeds(
         capability_id=capability_id,
         enabled_only=enabled_only,
     )
-    return Response.success(data=UIEmbedListOut(items=items))
+    return ApiResponse.success(data=UIEmbedListOut(items=items))

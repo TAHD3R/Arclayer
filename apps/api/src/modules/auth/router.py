@@ -10,7 +10,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest, Forbidden, Unauthorized
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale, t
 from src.infra.cache.valkey import get_valkey
 from src.infra.limiter.limiter import rate_limit
@@ -267,7 +267,7 @@ async def login(
         refresh_token=tokens.refresh_token,
         refresh_ttl_seconds=tokens.refresh_expires_in,
     )
-    return Response.success(message=t("auth", "LOGIN_SUCCESS", default="登录成功"), data=tokens)
+    return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS", default="登录成功"), data=tokens)
 
 
 @router.post(
@@ -294,7 +294,7 @@ async def login_two_factor(
         refresh_token=tokens.refresh_token,
         refresh_ttl_seconds=tokens.refresh_expires_in,
     )
-    return Response.success(message=t("auth", "LOGIN_SUCCESS", default="登录成功"), data=tokens)
+    return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS", default="登录成功"), data=tokens)
 
 
 @router.post(
@@ -324,7 +324,7 @@ async def register(
             user_id=profile.id,
             locale=locale,
         )
-    return Response.success(message=t("auth", "REGISTER_SUCCESS", default="注册成功"), data=profile)
+    return ApiResponse.success(message=t("auth", "REGISTER_SUCCESS", default="注册成功"), data=profile)
 
 
 @router.post(
@@ -349,7 +349,7 @@ async def refresh(
         refresh_token=tokens.refresh_token,
         refresh_ttl_seconds=tokens.refresh_expires_in,
     )
-    return Response.success(message=t("auth", "REFRESH_SUCCESS", default="刷新成功"), data=tokens)
+    return ApiResponse.success(message=t("auth", "REFRESH_SUCCESS", default="刷新成功"), data=tokens)
 
 
 @router.post(
@@ -386,7 +386,7 @@ async def refresh_cookie(
         refresh_token=tokens.refresh_token,
         refresh_ttl_seconds=tokens.refresh_expires_in,
     )
-    return Response.success(message=t("auth", "REFRESH_SUCCESS", default="刷新成功"), data=tokens)
+    return ApiResponse.success(message=t("auth", "REFRESH_SUCCESS", default="刷新成功"), data=tokens)
 
 
 @router.post(
@@ -412,7 +412,7 @@ async def forgot_password(
             user_id=user_id,
             locale=locale,
         )
-    return Response.success(
+    return ApiResponse.success(
         message=t("auth", "RESET_SENT", default="如账号存在则将发送重置码至指定邮箱"),
         data=token_payload,
     )
@@ -429,7 +429,7 @@ async def reset_password(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
     await service.reset_password(reset_token=payload.reset_token, new_password=payload.new_password)
-    return Response.success(message=t("auth", "RESET_SUCCESS", default="密码重置成功"))
+    return ApiResponse.success(message=t("auth", "RESET_SUCCESS", default="密码重置成功"))
 
 
 @router.post(
@@ -447,7 +447,7 @@ async def change_password(
         old_password=payload.old_password,
         new_password=payload.new_password,
     )
-    return Response.success(message=t("auth", "PASSWORD_CHANGED", default="密码修改成功"))
+    return ApiResponse.success(message=t("auth", "PASSWORD_CHANGED", default="密码修改成功"))
 
 
 @router.post(
@@ -466,7 +466,7 @@ async def set_my_password(
         code=payload.code,
         backup_code=payload.backup_code,
     )
-    return Response.success(message=t("auth", "PASSWORD_SET", default="密码设置成功"))
+    return ApiResponse.success(message=t("auth", "PASSWORD_SET", default="密码设置成功"))
 
 
 @router.post(
@@ -486,7 +486,7 @@ async def logout(
         refresh_token = request.cookies.get(service.settings.auth.cookie.name)
     await service.logout(user_id=user.id, refresh_token=refresh_token)
     _clear_refresh_cookie(fastapi_response, settings=service.settings)
-    return Response.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
+    return ApiResponse.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
 
 
 @router.post(
@@ -501,7 +501,7 @@ async def logout_all(
 ) -> ResponseModel[None]:
     await service.logout_all(user_id=user.id)
     _clear_refresh_cookie(fastapi_response, settings=service.settings)
-    return Response.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
+    return ApiResponse.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
 
 
 @router.get(
@@ -517,7 +517,7 @@ async def list_my_sessions(
     current_sid_raw = access_payload.get("sid")
     current_sid = current_sid_raw.strip() if isinstance(current_sid_raw, str) and current_sid_raw.strip() else None
     out = await service.list_sessions(user_id=user.id, current_session_id=current_sid)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -531,7 +531,7 @@ async def revoke_my_session(
     service: AuthSessionService = Depends(_get_auth_session_service),
 ) -> ResponseModel[None]:
     await service.revoke_session(user_id=user.id, session_id=session_id)
-    return Response.success(message=t("auth", "SESSION_REVOKED", default="会话已撤销"))
+    return ApiResponse.success(message=t("auth", "SESSION_REVOKED", default="会话已撤销"))
 
 
 @router.post(
@@ -549,7 +549,7 @@ async def revoke_other_sessions(
     if not current_sid:
         raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="CURRENT_SESSION_MISSING")
     revoked_count = await service.revoke_other_sessions(user_id=user.id, current_session_id=current_sid)
-    return Response.success(data=AuthSessionRevokeOthersOut(revoked_count=revoked_count))
+    return ApiResponse.success(data=AuthSessionRevokeOthersOut(revoked_count=revoked_count))
 
 
 @router.get(
@@ -562,7 +562,7 @@ async def get_two_factor_status(
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[TwoFactorStatusOut]:
     enabled, backup_codes_remaining = await service.get_status(user_id=user.id)
-    return Response.success(data=TwoFactorStatusOut(enabled=enabled, backup_codes_remaining=backup_codes_remaining))
+    return ApiResponse.success(data=TwoFactorStatusOut(enabled=enabled, backup_codes_remaining=backup_codes_remaining))
 
 
 @router.get(
@@ -575,7 +575,7 @@ async def get_two_factor_capabilities(
     service: TwoFactorCapabilityService = Depends(_get_auth_two_factor_capability_service),
 ) -> ResponseModel[TwoFactorCapabilitiesOut]:
     out = await service.get_capabilities(user_id=user.id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -596,7 +596,7 @@ async def begin_two_factor_setup(
         account_label=account_label,
         password=payload.password if payload is not None else None,
     )
-    return Response.success(data=TwoFactorSetupOut(secret=secret, otpauth_uri=otpauth_uri))
+    return ApiResponse.success(data=TwoFactorSetupOut(secret=secret, otpauth_uri=otpauth_uri))
 
 
 @router.post(
@@ -611,7 +611,7 @@ async def confirm_two_factor_setup(
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[TwoFactorConfirmOut]:
     codes = await service.confirm_setup(user_id=user.id, code=payload.code)
-    return Response.success(data=TwoFactorConfirmOut(backup_codes=codes))
+    return ApiResponse.success(data=TwoFactorConfirmOut(backup_codes=codes))
 
 
 @router.post(
@@ -626,7 +626,7 @@ async def disable_two_factor(
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[None]:
     await service.disable(user_id=user.id, code=payload.code, backup_code=payload.backup_code)
-    return Response.success(message=t("auth", "TWO_FACTOR_DISABLED", default="2FA 已禁用"))
+    return ApiResponse.success(message=t("auth", "TWO_FACTOR_DISABLED", default="2FA 已禁用"))
 
 
 @router.post(
@@ -641,7 +641,7 @@ async def regenerate_two_factor_backup_codes(
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[TwoFactorRegenerateBackupCodesOut]:
     codes = await service.regenerate_backup_codes(user_id=user.id, code=payload.code, backup_code=payload.backup_code)
-    return Response.success(data=TwoFactorRegenerateBackupCodesOut(backup_codes=codes))
+    return ApiResponse.success(data=TwoFactorRegenerateBackupCodesOut(backup_codes=codes))
 
 
 @router.get(
@@ -654,7 +654,7 @@ async def me(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
     profile = service.build_user_profile(user)
-    return Response.success(data=profile)
+    return ApiResponse.success(data=profile)
 
 
 @router.get(
@@ -667,7 +667,7 @@ async def get_my_security_capabilities(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[MySecurityCapabilityOut]:
     out = await service.get_my_security_capabilities(user_id=user.id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.patch(
@@ -681,7 +681,7 @@ async def update_me(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
     profile = await service.update_my_profile(user=user, payload=payload)
-    return Response.success(message=t("auth", "PROFILE_UPDATED", default="资料已更新"), data=profile)
+    return ApiResponse.success(message=t("auth", "PROFILE_UPDATED", default="资料已更新"), data=profile)
 
 
 @router.post(
@@ -706,7 +706,7 @@ async def init_avatar_upload(
         requested_indexable=None,
         target_folder_id=None,
     )
-    return Response.success(
+    return ApiResponse.success(
         data=UploadInitOut(
             upload_id=session.id,
             chunk_size=session.chunk_size,
@@ -730,7 +730,7 @@ async def get_avatar_upload_status(
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadStatusOut]:
     session, missing = await service.get_status(upload_id=upload_id, scope=_user_asset_scope(user))
-    return Response.success(
+    return ApiResponse.success(
         data=UploadStatusOut(
             upload_id=session.id,
             status=str(session.status),
@@ -761,7 +761,7 @@ async def upload_avatar_part(
         )
 
     await service.put_part(upload_id=upload_id, scope=_user_asset_scope(user), part_number=part_number, data=data)
-    return Response.success(data=None)
+    return ApiResponse.success(data=None)
 
 
 @router.post(
@@ -778,7 +778,7 @@ async def complete_avatar_upload(
     asset_id = await service.complete(
         upload_id=upload_id, scope=_user_asset_scope(user), background_tasks=background_tasks
     )
-    return Response.success(data=UploadCompleteOut(asset_id=asset_id))
+    return ApiResponse.success(data=UploadCompleteOut(asset_id=asset_id))
 
 
 @router.post(
@@ -792,7 +792,7 @@ async def abort_avatar_upload(
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadAbortOut]:
     session = await service.abort(upload_id=upload_id, scope=_user_asset_scope(user))
-    return Response.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
+    return ApiResponse.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
 
 
 @router.post(
@@ -807,7 +807,7 @@ async def presign_avatar_upload_part(
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadPartPresignOut]:
     out = await service.presign_part(upload_id=upload_id, scope=_user_asset_scope(user), part_number=part_number)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -829,7 +829,7 @@ async def commit_avatar_upload_part(
         etag=payload.etag,
         size_bytes=payload.size_bytes,
     )
-    return Response.success(data=None)
+    return ApiResponse.success(data=None)
 
 
 @router.post(
@@ -854,7 +854,7 @@ async def request_email_change(
         user_id=user.id,
         locale=locale,
     )
-    return Response.success(
+    return ApiResponse.success(
         message=t("auth", "EMAIL_CODE_SENT", default="验证码已发送"),
         data=RequestMyEmailChangeOut(expires_in=ttl),
     )
@@ -879,7 +879,7 @@ async def confirm_email_change(
         two_factor_code=payload.two_factor_code,
         backup_code=payload.backup_code,
     )
-    return Response.success(message=t("auth", "EMAIL_CHANGED", default="邮箱已更新"), data=profile)
+    return ApiResponse.success(message=t("auth", "EMAIL_CHANGED", default="邮箱已更新"), data=profile)
 
 
 @router.get(
@@ -897,7 +897,7 @@ async def get_delete_my_account_capabilities(
         user=user,
         two_factor_enabled=await two_factor_service.is_enabled(user_id=user.id),
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -918,7 +918,7 @@ async def delete_my_account(
         code=payload.code,
         backup_code=payload.backup_code,
     )
-    return Response.success(message=t("auth", "ACCOUNT_DELETED", default="账号已删除"))
+    return ApiResponse.success(message=t("auth", "ACCOUNT_DELETED", default="账号已删除"))
 
 
 @router.get(
@@ -941,7 +941,7 @@ async def me_invitations(
     """
 
     page = await service.list_my_invitations(user=user, params=params, filters=filters)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.post(
@@ -955,7 +955,7 @@ async def accept_invitation(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
     tokens = await service.accept_invitation(payload=payload)
-    return Response.success(message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"), data=tokens)
+    return ApiResponse.success(message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"), data=tokens)
 
 
 @router.get(
@@ -969,7 +969,7 @@ async def preview_invitation(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[InvitationPreviewResult]:
     out = await service.preview_invitation(token=token)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -984,7 +984,7 @@ async def accept_existing_invitation(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[AcceptExistingInvitationResult]:
     result = await service.accept_existing_invitation(payload=payload, user=user)
-    return Response.success(
+    return ApiResponse.success(
         message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"),
         data=result,
     )

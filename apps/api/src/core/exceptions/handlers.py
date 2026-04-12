@@ -12,7 +12,7 @@ from tortoise.exceptions import OperationalError
 
 from src.config import Settings
 from src.core.exceptions.types import APIError
-from src.core.http.response import Response
+from src.core.http.response import ApiResponse
 from src.core.i18n import get_request_locale, localize_message
 from src.core.logging import get_logger
 
@@ -100,7 +100,7 @@ def _build_response(
 
     locale = get_request_locale(request)
     message = localize_message(message, error=error, locale=locale)
-    payload = Response.fail(message=message, error=error, meta=out_meta)
+    payload = ApiResponse.fail(message=message, error=error, meta=out_meta)
     return JSONResponse(payload.model_dump(), status_code=status_code, headers=headers)
 
 

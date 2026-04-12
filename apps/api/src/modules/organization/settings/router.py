@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from src.common.protocols.tortoise import HasOrganizationId, HasUserId
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.models.organization.org_membership import OrgMembership
 from src.modules.organization.http.service import (
     get_current_org_membership,
@@ -53,7 +53,7 @@ async def get_organization_core_settings(
 ) -> ResponseModel[OrganizationSettingsCoreOut]:
     service = OrganizationSettingsService(settings)
     out = await service.get_core_detail(organization_id=_org_id(orgm))
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.patch(
@@ -75,7 +75,7 @@ async def patch_organization_core_settings(
         patch=payload,
         updated_by=_user_id(orgm),
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -100,7 +100,7 @@ async def assign_organization_default_role_to_all_users(
         role_code=payload.role_code,
         confirm_name=payload.confirm_name,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -119,7 +119,7 @@ async def leave_organization(
         user_id=_user_id(orgm),
         confirm_text=payload.confirm_text,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -146,7 +146,7 @@ async def delete_organization(
         organization_id=_org_id(orgm),
         confirm_name=confirm_name or "",
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @scoped_router.get(
@@ -164,7 +164,7 @@ async def get_organization_danger_capabilities(
         organization_id=UUID(str(organization_id)),
         user_id=_user_id(orgm),
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @scoped_router.post(
@@ -184,7 +184,7 @@ async def leave_scoped_organization(
         user_id=_user_id(orgm),
         confirm_text=payload.confirm_text,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @scoped_router.delete(
@@ -216,4 +216,4 @@ async def delete_scoped_organization(
         organization_id=UUID(str(organization_id)),
         confirm_name=confirm_name or "",
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)

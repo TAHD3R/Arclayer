@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi import Response as FastAPIResponse
 
 from src.common.types.public_uuid import PublicUUID
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.sites.http.service import get_site_service
 from src.modules.sites.schema import SiteRouteResolveOut, SiteRuntimeOut
 from src.modules.sites.service import SiteService
@@ -33,7 +33,7 @@ async def get_site_runtime(
         "no-store" if mode == "preview" else "public, max-age=300, stale-while-revalidate=3600"
     )
     data = await service.get_runtime(site_id=site_id, mode=mode, locale=locale)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.get(
@@ -55,4 +55,4 @@ async def resolve_site_route(
         "no-store" if mode == "preview" else "public, max-age=60, stale-while-revalidate=300"
     )
     data = await service.resolve_route(site_id=site_id, path=path, mode=mode)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

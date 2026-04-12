@@ -44,7 +44,7 @@ class ResponseModel[T](BaseModel):
         return payload
 
 
-class ResponseBase:
+class ApiResponseBuilder:
     @staticmethod
     @validate_call
     def success(
@@ -79,4 +79,4 @@ class ResponseBase:
         )
 
 
-Response = ResponseBase()
+ApiResponse = ApiResponseBuilder()

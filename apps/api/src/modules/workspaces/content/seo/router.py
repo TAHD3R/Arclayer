@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from src.common.types.public_uuid import PublicUUID
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.content.contracts.schema import ContentSeoProfileOut
 from src.modules.workspaces.content.items.read_service import (
@@ -50,4 +50,4 @@ async def get_workspace_content_seo_profile(
         item_id=item_id,
         version_number=version_number,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

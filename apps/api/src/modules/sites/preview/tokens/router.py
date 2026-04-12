@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, status
 
 from src.common.types.public_uuid import PublicUUID
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.sites.http.service import get_site_service
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from src.modules.sites.service import SiteService
@@ -29,4 +29,4 @@ async def create_preview_token(
     ] = SitePreviewTokenCreateIn(),
 ) -> ResponseModel[SitePreviewTokenOut]:
     data = await service.create_preview_token(site_id=site_id, ttl_seconds=payload.ttl_seconds)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

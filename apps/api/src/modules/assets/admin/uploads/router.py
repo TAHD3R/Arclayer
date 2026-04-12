@@ -6,7 +6,7 @@ from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
@@ -62,7 +62,7 @@ async def init_upload(
         requested_indexable=payload.indexable,
         target_folder_id=payload.folder_id,
     )
-    return Response.success(
+    return ApiResponse.success(
         data=UploadInitOut(
             upload_id=session.id,
             chunk_size=session.chunk_size,
@@ -87,7 +87,7 @@ async def get_upload_status(
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadStatusOut]:
     session, missing = await service.get_status(upload_id=upload_id, scope=_workspace_scope(ctx))
-    return Response.success(
+    return ApiResponse.success(
         data=UploadStatusOut(
             upload_id=session.id,
             status=str(session.status),
@@ -121,7 +121,7 @@ async def upload_part(
         )
 
     await service.put_part(upload_id=upload_id, scope=_workspace_scope(ctx), part_number=part_number, data=data)
-    return Response.success(data=None)
+    return ApiResponse.success(data=None)
 
 
 @router.post(
@@ -139,7 +139,7 @@ async def complete_upload(
     asset_id = await service.complete(
         upload_id=upload_id, scope=_workspace_scope(ctx), background_tasks=background_tasks
     )
-    return Response.success(data=UploadCompleteOut(asset_id=asset_id))
+    return ApiResponse.success(data=UploadCompleteOut(asset_id=asset_id))
 
 
 @router.post(
@@ -154,7 +154,7 @@ async def abort_upload(
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadAbortOut]:
     session = await service.abort(upload_id=upload_id, scope=_workspace_scope(ctx))
-    return Response.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
+    return ApiResponse.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
 
 
 @router.post(
@@ -170,7 +170,7 @@ async def presign_upload_part(
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadPartPresignOut]:
     out = await service.presign_part(upload_id=upload_id, scope=_workspace_scope(ctx), part_number=part_number)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -193,4 +193,4 @@ async def commit_upload_part(
         etag=payload.etag,
         size_bytes=payload.size_bytes,
     )
-    return Response.success(data=None)
+    return ApiResponse.success(data=None)

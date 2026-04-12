@@ -7,7 +7,7 @@ from starlette.responses import RedirectResponse
 
 from src.config import Settings, get_settings
 from src.core.exceptions import ServiceUnavailable
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.infra.cache.valkey import get_valkey
 from src.infra.limiter.limiter import rate_limit
 from src.models.auth.oauth_identity import OAuthIdentity
@@ -95,7 +95,7 @@ async def list_providers(
 ) -> ResponseModel[AuthSSOProvidersOut]:
     items = await service.list_providers(request, redirect=redirect)
     providers = [AuthSSOProviderItem.model_validate(x) for x in items]
-    return Response.success(data=AuthSSOProvidersOut(providers=providers))
+    return ApiResponse.success(data=AuthSSOProvidersOut(providers=providers))
 
 
 @router.post(
@@ -110,7 +110,7 @@ async def exchange(
     service: AuthSSOService = Depends(get_sso_service),
 ) -> ResponseModel[TokenPair]:
     tokens = await service.exchange(code=payload.code, request_context=build_auth_request_context(request))
-    return Response.success(data=tokens)
+    return ApiResponse.success(data=tokens)
 
 
 @router.post(
@@ -133,7 +133,7 @@ async def issue_link_state(
 
     token = secrets.token_urlsafe(32)
     await valkey.set(f"{_SSO_LINK_STATE_KEY_PREFIX}{token}", str(user.id), ex=_SSO_LINK_STATE_EXPIRES_IN)
-    return Response.success(data=AuthSSOLinkStateOut(token=token, expires_in=_SSO_LINK_STATE_EXPIRES_IN))
+    return ApiResponse.success(data=AuthSSOLinkStateOut(token=token, expires_in=_SSO_LINK_STATE_EXPIRES_IN))
 
 
 @router.get(
@@ -178,7 +178,7 @@ async def list_my_oauth_identities(
     service: OAuthSocialService = Depends(get_oauth_social_service),
 ) -> ResponseModel[OAuthLinkedIdentityListOut]:
     out = await service.list_identities_out(user_id=user.id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -193,14 +193,14 @@ async def unlink_my_oauth_identity(
 ) -> ResponseModel[None]:
     provider_key = (provider or "").strip().lower()
     if not provider_key:
-        return Response.success(data=None)
+        return ApiResponse.success(data=None)
 
     # Safety: prevent users from locking themselves out (no password + last identity).
     has_password = await UserCredential.get_or_none(user_id=user.id) is not None
     identities = await OAuthIdentity.filter(user_id=user.id).all()
     has_other_identity = any((i.provider or "").strip().lower() != provider_key for i in identities)
     if not has_password and not has_other_identity:
-        return Response.fail(message="Cannot unlink the last sign-in method.", error="LAST_SIGNIN_METHOD")
+        return ApiResponse.fail(message="Cannot unlink the last sign-in method.", error="LAST_SIGNIN_METHOD")
 
     await service.unlink_identity(user_id=user.id, provider=provider_key)
-    return Response.success(data=None)
+    return ApiResponse.success(data=None)

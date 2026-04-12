@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.system.admin.notifications.schema import (
     NotificationDeleteResult,
@@ -50,7 +50,7 @@ async def list_notifications(
     page = await service.list_notifications(
         workspace_id=ctx.workspace_id, user_id=user_id, params=params, filters=filters
     )
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -65,7 +65,7 @@ async def get_unread_preview(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationPreviewOut]:
     preview = await service.get_unread_preview(workspace_id=ctx.workspace_id, user_id=user_id, limit=limit)
-    return Response.success(data=preview)
+    return ApiResponse.success(data=preview)
 
 
 @router.post(
@@ -80,7 +80,7 @@ async def mark_read(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadResult]:
     out = await service.mark_read(workspace_id=ctx.workspace_id, user_id=user_id, notification_id=notification_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -94,7 +94,7 @@ async def mark_all_read(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadAllResult]:
     out = await service.mark_all_read(workspace_id=ctx.workspace_id, user_id=user_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -110,7 +110,7 @@ async def seed_demo_notifications(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationDevSeedResult]:
     out = await service.seed_demo_notifications(workspace_id=ctx.workspace_id, user_id=user_id, count=payload.count)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -127,4 +127,4 @@ async def delete_notification(
     out = await service.delete_notification(
         workspace_id=ctx.workspace_id, user_id=user_id, notification_id=notification_id
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)

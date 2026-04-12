@@ -11,7 +11,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest
 from src.core.http.pagination import DependsPagination, PageData, PageParams
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import UserStatus
@@ -110,7 +110,7 @@ async def list_organization_members(
         last_login_from=last_login_from,
         last_login_to=last_login_to,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -134,7 +134,7 @@ async def invite_organization_member(
         actor_membership=orgm,
         payload=payload,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -164,7 +164,7 @@ async def list_organization_invitations(
         status=status,
         mine=mine,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -185,7 +185,7 @@ async def renew_organization_invitation(
         invitation_id=UUID(str(invitation_id)),
         expires_in_seconds=payload.expires_in_seconds,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -204,7 +204,7 @@ async def revoke_organization_invitation(
         actor_membership=orgm,
         invitation_id=UUID(str(invitation_id)),
     )
-    return Response.success(
+    return ApiResponse.success(
         data=OrganizationInvitationRevokeResult(invitation_id=UUID(str(invitation_id)), revoked=revoked)
     )
 
@@ -225,7 +225,7 @@ async def create_organization_invite_link(
         actor_membership=orgm,
         payload=payload,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -253,7 +253,7 @@ async def list_organization_invite_links(
         ordering=ordering,
         mine=mine,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -274,7 +274,7 @@ async def renew_organization_invite_link(
         link_id=UUID(str(link_id)),
         expires_in_seconds=payload.expires_in_seconds,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -293,7 +293,9 @@ async def disable_organization_invite_link(
         actor_membership=orgm,
         link_id=UUID(str(link_id)),
     )
-    return Response.success(data=OrganizationInvitationRevokeResult(invitation_id=UUID(str(link_id)), revoked=revoked))
+    return ApiResponse.success(
+        data=OrganizationInvitationRevokeResult(invitation_id=UUID(str(link_id)), revoked=revoked)
+    )
 
 
 @router.get(
@@ -314,7 +316,7 @@ async def list_organization_invite_link_participants(
         link_id=UUID(str(link_id)),
         params=params,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.patch(
@@ -335,7 +337,7 @@ async def patch_organization_member_role(
         target_membership_id=UUID(str(membership_id)),
         role_code=str(payload.role_code),
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -354,4 +356,4 @@ async def delete_organization_member(
         actor_membership=orgm,
         target_membership_id=UUID(str(membership_id)),
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)

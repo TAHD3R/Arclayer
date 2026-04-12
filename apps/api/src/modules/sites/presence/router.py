@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Query
 
 from src.common.types.public_uuid import PublicUUID
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.sites.http.service import get_site_service
 from src.modules.sites.presence.schema import (
     SitePresenceHeartbeatIn,
@@ -34,7 +34,7 @@ async def heartbeat_presence(
 ) -> ResponseModel[SitePresenceHeartbeatOut]:
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.heartbeat_presence(site_id=site_id, payload=payload)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.get(
@@ -51,4 +51,4 @@ async def list_presence(
 ) -> ResponseModel[SitePresenceListOut]:
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.list_presence(site_id=site_id, doc_key=doc_key)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

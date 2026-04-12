@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params, paginate_items
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale
 from src.core.logging import get_logger
 from src.models.system.rbac import PermissionScope
@@ -91,7 +91,7 @@ async def list_roles(
     locale = get_current_locale()
     items = [WorkspaceRoleOut.model_validate(service.localize_role(r, locale=locale)) for r in roles]
     page = paginate_items(items, params=params)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -126,7 +126,7 @@ async def list_permissions(
             )
         )
     page = paginate_items(items, params=params)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -168,7 +168,7 @@ async def get_matrix(
             )
         )
 
-    return Response.success(data=WorkspaceRBACMatrixOut(roles=localized_roles, permissions=localized_perm_rows))
+    return ApiResponse.success(data=WorkspaceRBACMatrixOut(roles=localized_roles, permissions=localized_perm_rows))
 
 
 @router.post(
@@ -196,7 +196,7 @@ async def create_role(
         payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
         actor_user_id=user_id,
     )
-    return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
+    return ApiResponse.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
 
 
 @router.patch(
@@ -224,7 +224,7 @@ async def update_role(
         payload={"workspace_id": str(ctx.workspace_id), "role_code": role.code, "role_id": str(role.id)},
         actor_user_id=user_id,
     )
-    return Response.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
+    return ApiResponse.success(data=WorkspaceRoleOut.model_validate(service.localize_role(role, locale=locale)))
 
 
 @router.delete(
@@ -245,7 +245,7 @@ async def delete_role(
         payload={"workspace_id": str(ctx.workspace_id), "role_code": str(role_code)},
         actor_user_id=user_id,
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @router.put(
@@ -275,7 +275,7 @@ async def set_permission_roles(
         },
         actor_user_id=user_id,
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @router.put(
@@ -305,4 +305,4 @@ async def set_role_permissions(
         },
         actor_user_id=user_id,
     )
-    return Response.success()
+    return ApiResponse.success()

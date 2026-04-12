@@ -8,7 +8,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.exceptions import BadRequest
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale, t
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -51,7 +51,7 @@ async def list_user_options(
 ) -> ResponseModel[PageData[WorkspaceTeamUserOptionOut]]:
     service = WorkspaceTeamService(settings)
     page = await service.list_user_options(workspace_id=ctx.workspace_id, params=params, q=q)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -68,7 +68,7 @@ async def list_members(
 ) -> ResponseModel[PageData[WorkspaceTeamMemberOut]]:
     service = WorkspaceTeamService(settings)
     page = await service.list_members(workspace_id=ctx.workspace_id, params=params, filters=query)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.put(
@@ -92,7 +92,7 @@ async def set_member_roles(
         payload=payload,
         acting_user_id=user_id,
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @router.patch(
@@ -116,7 +116,7 @@ async def update_member_user(
         payload=payload,
         acting_user_id=user_id,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -139,7 +139,7 @@ async def enable_member(
         enabled=True,
         acting_user_id=user_id,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -162,7 +162,7 @@ async def disable_member(
         enabled=False,
         acting_user_id=user_id,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -186,7 +186,7 @@ async def reset_member_password(
         payload=payload,
         acting_user_id=user_id,
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @router.post(
@@ -237,7 +237,7 @@ async def create_email_invite(
         invited_by_user_id=str(user_id),
         locale=locale,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -270,7 +270,7 @@ async def list_email_invites(
         mine=mine,
         current_user_id=user_id,
     )
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.post(
@@ -294,7 +294,7 @@ async def renew_email_invite(
         payload=payload,
         renewed_by_user_id=user_id,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -316,7 +316,7 @@ async def revoke_email_invite(
         invite_id=invite_id,
         revoked_by_user_id=user_id,
     )
-    return Response.success()
+    return ApiResponse.success()
 
 
 @router.post(
@@ -338,7 +338,7 @@ async def create_invite_link(
         created_by_user_id=user_id,
         payload=payload,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -369,7 +369,7 @@ async def list_invite_links(
         mine=mine,
         current_user_id=user_id,
     )
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -393,7 +393,7 @@ async def list_invite_link_participants(
         params=params,
         q=q,
     )
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.post(
@@ -417,7 +417,7 @@ async def renew_invite_link(
         payload=payload,
         renewed_by_user_id=user_id,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -439,4 +439,4 @@ async def disable_invite_link(
         link_id=link_id,
         disabled_by_user_id=user_id,
     )
-    return Response.success()
+    return ApiResponse.success()

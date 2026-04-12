@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 
 from src.common.protocols.tortoise import HasOrganizationId
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.models.organization.org_membership import OrgMembership
 from src.modules.extensions.schema import CapabilityListOut, CapabilitySummaryOut, UIEmbedListOut
 from src.modules.extensions.service import ExtensionsService
@@ -37,7 +37,7 @@ async def list_org_capabilities(
 ) -> ResponseModel[CapabilityListOut]:
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
     items = await service.list_org_capabilities(organization_id=organization_id)
-    return Response.success(data=CapabilityListOut(items=items))
+    return ApiResponse.success(data=CapabilityListOut(items=items))
 
 
 @router.post(
@@ -59,7 +59,7 @@ async def enable_org_capability(
         capability_id=capability_id,
         enabled=True,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -81,7 +81,7 @@ async def disable_org_capability(
         capability_id=capability_id,
         enabled=False,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -106,4 +106,4 @@ async def list_org_ui_embeds(
         capability_id=capability_id,
         enabled_only=enabled_only,
     )
-    return Response.success(data=UIEmbedListOut(items=items))
+    return ApiResponse.success(data=UIEmbedListOut(items=items))

@@ -13,7 +13,7 @@ from src.config import get_settings
 from src.core.events import Event, EventBus
 from src.core.exceptions import NotFound, ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.content.contracts.schema import (
@@ -206,7 +206,7 @@ async def create_workspace_content_model(
         site_id=site_id,
         payload=payload,
     )
-    return Response.success(data=_to_mutation_out(record))
+    return ApiResponse.success(data=_to_mutation_out(record))
 
 
 @canonical_models_router.get(
@@ -229,7 +229,7 @@ async def list_workspace_content_models_canonical(
         site_id=site_id,
         params=params,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_models_router.post(
@@ -257,7 +257,7 @@ async def preview_workspace_content_model_update(
     )
     if result is None:
         raise NotFound("Content model not found", error="CONTENT_MODEL_NOT_FOUND")
-    return Response.success(data=_to_preview_out(result))
+    return ApiResponse.success(data=_to_preview_out(result))
 
 
 @canonical_models_router.patch(
@@ -294,4 +294,4 @@ async def update_workspace_content_model(
         event_bus=event_bus,
         result=record,
     )
-    return Response.success(data=_to_mutation_out(record))
+    return ApiResponse.success(data=_to_mutation_out(record))

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.schema import AuthzSnapshot
 from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_snapshot
@@ -24,4 +24,4 @@ async def me_workspace_authz(
     _settings: Settings = Depends(get_settings),
 ) -> ResponseModel[AuthzSnapshot]:
     snap = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=ctx.workspace_id)
-    return Response.success(data=snap)
+    return ApiResponse.success(data=snap)

@@ -9,7 +9,7 @@ from src.common.protocols.tortoise import HasOrganizationId
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
 from src.modules.analytics.service import ActivityService
 from src.modules.auth.http.service import get_current_user
@@ -38,7 +38,7 @@ async def list_activity(
 
     service = ActivityService(settings)
     page = await service.list_events(organization_id=org_id, params=params, filters=query)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -57,4 +57,4 @@ async def get_activity_detail(
 
     service = ActivityService(settings)
     event = await service.get_event(organization_id=org_id, event_id=event_id)
-    return Response.success(data=event)
+    return ApiResponse.success(data=event)

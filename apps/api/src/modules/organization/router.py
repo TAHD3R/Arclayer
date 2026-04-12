@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from src.common.protocols.tortoise import HasOrganizationId
 from src.common.utils.slug import slugify
 from src.core.exceptions import BadRequest, NotFound
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization
@@ -90,7 +90,7 @@ async def list_my_organizations(
         .all()
     )
     if not memberships:
-        return Response.success(data=MyOrganizationListOut(items=[], total=0))
+        return ApiResponse.success(data=MyOrganizationListOut(items=[], total=0))
 
     org_ids = [UUID(str(cast(HasOrganizationId, membership).organization_id)) for membership in memberships]
     active_org_memberships = (
@@ -149,7 +149,7 @@ async def list_my_organizations(
             )
         )
 
-    return Response.success(data=MyOrganizationListOut(items=items, total=len(items)))
+    return ApiResponse.success(data=MyOrganizationListOut(items=items, total=len(items)))
 
 
 @router.post(
@@ -192,7 +192,7 @@ async def create_my_organization(
             )
         )
 
-    return Response.success(
+    return ApiResponse.success(
         data=MyOrganizationOut(
             organization=OrganizationBriefOut(
                 id=organization.id,
@@ -271,7 +271,7 @@ async def get_my_organization(
         role=orgm.role,
         status=orgm.status,
     )
-    return Response.success(
+    return ApiResponse.success(
         data=MyOrganizationOut(
             organization=organization,
             membership=membership,

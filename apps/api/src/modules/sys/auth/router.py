@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.sys.auth.schema import SysStepUpRequest, SysStepUpResult
 from src.modules.sys.auth.service import SysAuthService
 from src.modules.sys.http.service import require_super_admin
@@ -29,4 +29,4 @@ async def step_up(
     user=Depends(require_super_admin),
 ) -> ResponseModel[SysStepUpResult]:
     token, ttl = await service.step_up(user=user, password=payload.password.get_secret_value())
-    return Response.success(data=SysStepUpResult(token=token, expires_in=ttl))
+    return ApiResponse.success(data=SysStepUpResult(token=token, expires_in=ttl))

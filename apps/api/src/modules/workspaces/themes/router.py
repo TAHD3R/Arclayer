@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from starlette.responses import Response as StarletteResponse
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
@@ -37,7 +37,7 @@ async def list_themes(
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeListOut]:
     items = await service.list_themes(workspace_id=ctx.workspace_id)
-    return Response.success(data=WorkspaceThemeListOut(items=items))
+    return ApiResponse.success(data=WorkspaceThemeListOut(items=items))
 
 
 @router.post(
@@ -57,7 +57,7 @@ async def import_theme(
         actor_user_id=user_id,
         asset_id=payload.asset_id,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -73,7 +73,7 @@ async def get_theme(
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeOut]:
     out = await service.get_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -90,7 +90,7 @@ async def delete_theme(
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[None]:
     await service.delete_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
-    return Response.success(data=None)
+    return ApiResponse.success(data=None)
 
 
 @router.get(

@@ -9,7 +9,7 @@ from fastapi import Response as FastAPIResponse
 
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.infra.cache.valkey import get_valkey
 from src.modules.sites.schema import SiteResolveOut
 from src.modules.sites.service import SiteService
@@ -50,7 +50,7 @@ async def resolve_site_by_host(
     # Low-frequency mapping, safe to cache briefly.
     raw_response.headers["cache-control"] = "public, max-age=300, stale-while-revalidate=600"
     data = await svc.resolve_site(host=host, workspace_slug=workspace_slug)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.get(
@@ -64,4 +64,4 @@ async def get_site_context(
     svc: SiteService = Depends(get_site_service),
 ) -> ResponseModel[SiteResolveOut]:
     data = await svc.get_site_context(site_id=site_id)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

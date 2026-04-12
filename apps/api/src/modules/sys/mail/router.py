@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale
 from src.modules.sys.http.service import require_sys_super_admin
 from src.modules.system.mail.schema import MailTestRequest, MailTestResult
@@ -30,4 +30,4 @@ async def send_test_email(
 ) -> ResponseModel[MailTestResult]:
     locale = get_current_locale()
     out = await service.send_test_email(recipient=str(payload.recipient), locale=locale)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)

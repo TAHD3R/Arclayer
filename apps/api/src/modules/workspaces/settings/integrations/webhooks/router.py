@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
@@ -36,7 +36,7 @@ async def list_webhook_subscriptions(
     service: WebhooksService = Depends(get_service),
 ) -> ResponseModel[WebhookSubscriptionListOut]:
     items = await service.list_subscriptions_out(workspace_id=ctx.workspace_id)
-    return Response.success(data=WebhookSubscriptionListOut(items=items))
+    return ApiResponse.success(data=WebhookSubscriptionListOut(items=items))
 
 
 @router.post(
@@ -58,7 +58,7 @@ async def create_webhook_subscription(
         enabled=payload.enabled,
         secret=payload.secret,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.get(
@@ -73,4 +73,4 @@ async def list_webhook_deliveries(
     limit: int = Query(default=50, ge=1, le=200),
 ) -> ResponseModel[WebhookDeliveryListOut]:
     items = await service.list_deliveries_out(workspace_id=ctx.workspace_id, limit=limit)
-    return Response.success(data=WebhookDeliveryListOut(items=items))
+    return ApiResponse.success(data=WebhookDeliveryListOut(items=items))

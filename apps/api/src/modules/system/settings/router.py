@@ -6,7 +6,7 @@ from src.config import Settings, get_settings
 from src.core.events import EventBus
 from src.core.exceptions import ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
 from src.modules.auth.http.service import get_current_user
 from src.modules.organization.http.service import require_org_owner
@@ -48,7 +48,7 @@ async def list_namespaces(
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[SettingsNamespaceSummary]]:
     page = await service.list_namespaces(params=params)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -62,7 +62,7 @@ async def get_namespace(
     _user=Depends(get_current_user),
 ) -> ResponseModel[SettingsDetail]:
     detail = await service.get_namespace_detail(namespace)
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.patch(
@@ -77,4 +77,4 @@ async def patch_namespace(
     user=Depends(get_current_user),
 ) -> ResponseModel[SettingsDetail]:
     detail = await service.patch_namespace(namespace, patch=payload.patch, updated_by=getattr(user, "id", None))
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)

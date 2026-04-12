@@ -1,24 +1,5 @@
 from __future__ import annotations
 
-from pydantic import ConfigDict
-
-from src.common.schemas import BaseSchema
-
-
-class ByteRange(BaseSchema):
-    """
-    Inclusive byte range [start, end].
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    start: int
-    end: int
-
-    @property
-    def length(self) -> int:
-        return self.end - self.start + 1
-
 
 def parse_range_header(range_header: str | None, *, size: int) -> tuple[int, int] | None:
     """

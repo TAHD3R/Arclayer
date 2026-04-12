@@ -9,7 +9,7 @@ from fastapi import Response as FastAPIResponse
 
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.infra.cache.valkey import get_valkey
 from src.modules.sites.delivery.schema import DeliveryMenuOut, DeliveryStyleOut
 from src.modules.sites.service import SiteService
@@ -45,7 +45,7 @@ async def get_delivery_menu(
 ) -> ResponseModel[DeliveryMenuOut]:
     raw_response.headers["cache-control"] = _CACHE_PUBLIC
     data = await service.delivery_get_menu(site_id=site_id, menu_key=menu_key)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @router.get(
@@ -61,4 +61,4 @@ async def get_delivery_style(
 ) -> ResponseModel[DeliveryStyleOut]:
     raw_response.headers["cache-control"] = _CACHE_PUBLIC
     data = await service.delivery_get_style(site_id=site_id)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

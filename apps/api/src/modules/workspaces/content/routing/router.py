@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends
 
 from src.common.types.public_uuid import PublicUUID
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.content.routing.schema import (
     HierarchyNodeOut,
@@ -42,7 +42,7 @@ async def list_workspace_content_route_bindings_canonical(
     service: Annotated[WorkspaceContentRoutingService, Depends(get_workspace_content_routing_service)],
 ) -> ResponseModel[list[RouteBindingOut]]:
     data = await service.list_route_bindings(workspace_id=ctx.workspace_id, site_id=site_id)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_routing_router.put(
@@ -65,7 +65,7 @@ async def upsert_workspace_content_route_binding_canonical(
         item_id=item_id,
         payload=payload,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_routing_router.get(
@@ -80,7 +80,7 @@ async def list_workspace_content_hierarchy_nodes_canonical(
     service: Annotated[WorkspaceContentRoutingService, Depends(get_workspace_content_routing_service)],
 ) -> ResponseModel[list[HierarchyNodeOut]]:
     data = await service.list_hierarchy_nodes(workspace_id=ctx.workspace_id, site_id=site_id)
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)
 
 
 @canonical_routing_router.put(
@@ -103,4 +103,4 @@ async def upsert_workspace_content_hierarchy_node_canonical(
         item_id=item_id,
         payload=payload,
     )
-    return Response.success(data=data)
+    return ApiResponse.success(data=data)

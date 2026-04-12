@@ -6,7 +6,7 @@ from src.common.constants.assets import ASSET_SCOPE_WORKSPACE
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response as JsonResponse
+from src.core.http.response import ApiResponse as JsonResponse
 from src.core.http.response import ResponseModel
 from src.modules.assets.admin.usages.schema import (
     AdminAssetUsageDeleteOut,

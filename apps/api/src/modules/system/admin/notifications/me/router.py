@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.system.admin.notifications.schema import (
     NotificationArchiveResult,
@@ -44,7 +44,7 @@ async def list_my_notifications(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[PageData[NotificationOut]]:
     page = await service.list_notifications_for_user(user_id=user_id, params=params, filters=filters)
-    return Response.success(data=page)
+    return ApiResponse.success(data=page)
 
 
 @router.get(
@@ -58,7 +58,7 @@ async def get_my_unread_preview(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationPreviewOut]:
     preview = await service.get_unread_preview_for_user(user_id=user_id, limit=limit)
-    return Response.success(data=preview)
+    return ApiResponse.success(data=preview)
 
 
 @router.get(
@@ -71,7 +71,7 @@ async def get_my_notification_preferences(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationPreferencesOut]:
     out = await service.get_notification_preferences_for_user(user_id=user_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.patch(
@@ -85,7 +85,7 @@ async def patch_my_notification_preference(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationPreferencesOut]:
     out = await service.patch_notification_preference_for_user(user_id=user_id, payload=payload)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -99,7 +99,7 @@ async def mark_my_notification_read(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadResult]:
     out = await service.mark_read_for_user(user_id=user_id, notification_id=notification_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -112,7 +112,7 @@ async def mark_all_my_notifications_read(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadAllResult]:
     out = await service.mark_all_read_for_user(user_id=user_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -126,7 +126,7 @@ async def delete_my_notification(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationDeleteResult]:
     out = await service.delete_notification_for_user(user_id=user_id, notification_id=notification_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -140,4 +140,4 @@ async def archive_my_notification(
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationArchiveResult]:
     out = await service.archive_notification_for_user(user_id=user_id, notification_id=notification_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)

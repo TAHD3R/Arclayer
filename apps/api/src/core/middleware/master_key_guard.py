@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from src.config import Settings
-from src.core.http.response import Response
+from src.core.http.response import ApiResponse
 from src.settings.crypto import master_key_exists
 
 
@@ -79,7 +79,7 @@ class MasterKeyGuardMiddleware:
         state["error_code"] = "MASTER_KEY_MISSING"
         state["error_message"] = "Master key missing: instance requires repair"
 
-        payload = Response.fail(
+        payload = ApiResponse.fail(
             message="系统密钥缺失：服务暂不可用，请联系管理员修复。",
             error="MASTER_KEY_MISSING",
         )

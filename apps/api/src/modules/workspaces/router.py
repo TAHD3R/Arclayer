@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.models.organization.org_membership import OrgMembership
 from src.modules.analytics.workspaces.router import router as workspace_activity_router
 from src.modules.assets.admin.router import router as workspace_assets_router
@@ -87,7 +87,7 @@ async def list_my_workspaces(
 ) -> ResponseModel[MyWorkspaceListResult]:
     service = WorkspaceService(settings)
     items = await service.list_my_workspaces(user_id=user_id)
-    return Response.success(data=MyWorkspaceListResult(items=items))
+    return ApiResponse.success(data=MyWorkspaceListResult(items=items))
 
 
 @router.get(
@@ -102,7 +102,7 @@ async def get_workspace_detail(
 ) -> ResponseModel[WorkspaceDetailOut]:
     service = WorkspaceService(settings)
     detail = await service.get_workspace_detail(organization_id=ctx.organization_id, workspace_id=ctx.workspace_id)
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.get(
@@ -121,7 +121,7 @@ async def get_workspace_danger_capabilities(
         workspace_id=ctx.workspace_id,
         user_id=user_id,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.patch(
@@ -143,7 +143,7 @@ async def update_workspace(
         payload=payload,
         actor_user_id=user_id,
     )
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.post(
@@ -164,7 +164,7 @@ async def leave_workspace(
         user_id=user_id,
         confirm_text=payload.confirm_text,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.delete(
@@ -196,7 +196,7 @@ async def delete_workspace(
         org_role=orgm.role,
         confirm_name=confirm_name or "",
     )
-    return Response.success(
+    return ApiResponse.success(
         data=WorkspaceDeleteResult(
             workspace_id=UUID(str(out.workspace_id)),
             deleted=out.deleted,

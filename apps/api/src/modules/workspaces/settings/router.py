@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from src.config import Settings, get_settings
-from src.core.http.response import Response, ResponseModel
+from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
@@ -37,7 +37,7 @@ async def get_workspace_core_settings(
 ) -> ResponseModel[WorkspaceSettingsDetail]:
     service = WorkspaceSettingsService(settings)
     detail = await service.get_core_detail(workspace_id=ctx.workspace_id)
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.patch(
@@ -54,7 +54,7 @@ async def patch_workspace_core_settings(
 ) -> ResponseModel[WorkspaceSettingsDetail]:
     service = WorkspaceSettingsService(settings)
     detail = await service.patch_core(workspace_id=ctx.workspace_id, patch=payload.patch or {}, updated_by=user_id)
-    return Response.success(data=detail)
+    return ApiResponse.success(data=detail)
 
 
 @router.get(
@@ -69,7 +69,7 @@ async def get_workspace_role_policy(
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
     service = WorkspaceSettingsService(settings)
     out = await service.get_role_policy(workspace_id=ctx.workspace_id)
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.patch(
@@ -88,7 +88,7 @@ async def patch_workspace_role_policy(
         workspace_id=ctx.workspace_id,
         default_role_code=payload.default_role_code,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)
 
 
 @router.post(
@@ -108,4 +108,4 @@ async def assign_workspace_role_to_regular_members(
         role_code=payload.role_code,
         confirm_name=payload.confirm_name,
     )
-    return Response.success(data=out)
+    return ApiResponse.success(data=out)

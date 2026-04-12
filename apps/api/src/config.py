@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from pydantic import AliasChoices, Field, SecretStr, computed_field, field_validator
+from pydantic import AliasChoices, Field, PostgresDsn, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.config_runtime import (
@@ -380,8 +380,25 @@ class DatabaseSettings(BaseSettings):
     @computed_field
     @property
     def dsn_async(self) -> str:
-        password = self.password.get_secret_value()
-        return f"postgresql://{self.user}:{password}@{self.host}:{self.port}/{self.database}"
+        return PostgresDsn.build(
+            scheme="postgresql",
+            username=self.user,
+            password=self.password.get_secret_value() or None,
+            host=self.host,
+            port=self.port,
+            path=self.database,
+        ).unicode_string()
+
+    @computed_field
+    @property
+    def dsn_async_hint(self) -> str:
+        return PostgresDsn.build(
+            scheme="postgresql",
+            username=self.user,
+            host=self.host,
+            port=self.port,
+            path=self.database,
+        ).unicode_string()
 
 
 class ValkeySettings(BaseSettings):
