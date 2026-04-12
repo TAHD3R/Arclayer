@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.cors import CORSMiddleware
+from guard.middleware import SecurityMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -21,6 +21,7 @@ from src.core.database.orm import (
 from src.core.events import events
 from src.core.exceptions import init_exception_handlers
 from src.core.logging import configure_logging, get_logger
+from src.core.middleware.guard_integration import build_guard_config, close_guard_runtime, initialize_guard_runtime
 from src.core.routes import register_routes
 from src.core.runtime_init import close_domain_runtime, init_domain_runtime
 from src.infra.cache.valkey import close_valkey, init_valkey
@@ -76,6 +77,7 @@ def _build_lifespan(settings: Settings):
 
             event_bus = events.bus
             app.state.event_bus = event_bus
+            await initialize_guard_runtime(app, settings)
 
             # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can
             # skip heavyweight startup steps and still exercise routers/middlewares safely.
@@ -119,6 +121,7 @@ def _build_lifespan(settings: Settings):
                     await heartbeat_task
                 except asyncio.CancelledError:
                     pass
+            await close_guard_runtime(app)
             await close_rate_limiter(app)
             await close_orm()
             await close_taskiq_client(app)
@@ -204,26 +207,12 @@ class AppFactory:
         from asgi_correlation_id import CorrelationIdMiddleware
 
         middleware = self.settings.middleware
+        security = self.settings.security
 
-        if middleware.cors_enabled:
-            allow_origins = middleware.cors_allow_origins
-            if middleware.cors_allow_origin_dynamic:
-                base_domain = (self.settings.saas.base_domain or "").strip()
-                base_domain = base_domain.removeprefix("http://").removeprefix("https://")
-                base_domain = base_domain.strip().lstrip(".").rstrip("/")
-                scheme = "https" if self.settings.app_env == "production" else "http"
-                if base_domain:
-                    allow_origins = [f"{scheme}://app.{base_domain}", f"{scheme}://api.{base_domain}"]
-            self.app.add_middleware(
-                CORSMiddleware,
-                allow_origins=allow_origins,
-                allow_methods=middleware.cors_allow_methods,
-                allow_headers=middleware.cors_allow_headers,
-                allow_credentials=middleware.cors_allow_credentials,
-                allow_origin_regex=middleware.cors_allow_origin_regex,
-                expose_headers=middleware.cors_expose_headers,
-                max_age=middleware.cors_max_age,
-            )
+        if security.enabled:
+            guard_config = build_guard_config(self.settings)
+            SecurityMiddleware.configure_cors(self.app, guard_config)
+            self.app.add_middleware(SecurityMiddleware, config=guard_config)
 
         if middleware.gzip_enabled:
             self.app.add_middleware(
@@ -241,20 +230,6 @@ class AppFactory:
 
         if middleware.https_redirect_enabled and self.settings.app_env == "production":
             self.app.add_middleware(HTTPSRedirectMiddleware)
-
-        if middleware.csrf_enabled:
-            from src.core.middleware.csrf import CSRFMiddleware
-
-            self.app.add_middleware(
-                CSRFMiddleware,
-                header_name=middleware.csrf_header_name,
-                cookie_name=middleware.csrf_cookie_name,
-                safe_methods=middleware.csrf_safe_methods,
-                cookie_secure=middleware.csrf_cookie_secure,
-                cookie_httponly=middleware.csrf_cookie_httponly,
-                cookie_samesite=middleware.csrf_cookie_samesite,
-                token_bytes=middleware.csrf_token_bytes,
-            )
         from src.core.middleware.locale import LocaleMiddleware
 
         self.app.add_middleware(LocaleMiddleware)

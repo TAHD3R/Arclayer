@@ -25,12 +25,11 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
 
 async def test_cors_preflight(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
-    monkeypatch.setenv("APP_CORS_ENABLED", "1")
-    monkeypatch.setenv("APP_CORS_ALLOW_ORIGINS", '["https://example.com"]')
-    # Ensure we don't override allow_origins via SaaS base domain inference.
-    monkeypatch.setenv("APP_CORS_ALLOW_ORIGIN_DYNAMIC", "0")
-    monkeypatch.setenv("APP_CORS_ALLOW_METHODS", '["GET","POST","OPTIONS"]')
-    monkeypatch.setenv("APP_CORS_ALLOW_HEADERS", '["*"]')
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_CORS", "1")
+    monkeypatch.setenv("SECURITY__CORS_ALLOW_ORIGINS", '["https://example.com"]')
+    monkeypatch.setenv("SECURITY__CORS_ALLOW_METHODS", '["GET","POST","OPTIONS"]')
+    monkeypatch.setenv("SECURITY__CORS_ALLOW_HEADERS", '["*"]')
 
     app = create_app()
 
@@ -123,7 +122,8 @@ async def test_https_redirect_only_production(monkeypatch, tmp_path: Path) -> No
 
 async def test_csrf_middleware(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
-    monkeypatch.setenv("APP_CSRF_ENABLED", "1")
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__CSRF__ENABLED", "1")
     monkeypatch.setenv("APP_ENV", "development")
     get_settings.cache_clear()
 
@@ -154,3 +154,72 @@ async def test_csrf_middleware(monkeypatch, tmp_path: Path) -> None:
         assert token is not None
         ok_post = await client.post("/csrf", headers={"X-CSRF-Token": token})
         assert ok_post.status_code == 200
+
+
+async def test_guard_security_headers(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv(
+        "SECURITY__SECURITY_HEADERS",
+        '{"enabled": true, "frame_options": "DENY", "content_type_options": "nosniff", "referrer_policy": "same-origin"}',
+    )
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.get("/headers")
+    async def headers() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app) as client:
+        response = await client.get("/headers")
+
+    assert response.status_code == 200
+    assert response.headers.get("x-frame-options") == "DENY"
+    assert response.headers.get("x-content-type-options") == "nosniff"
+    assert response.headers.get("referrer-policy") == "same-origin"
+
+
+async def test_guard_custom_penetration_pattern(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_PENETRATION_DETECTION", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_IP_BANNING", "0")
+    monkeypatch.setenv("SECURITY__CUSTOM_PENETRATION_PATTERNS", '["dangerous_probe"]')
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.get("/probe")
+    async def probe() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app) as client:
+        response = await client.get("/probe", params={"term": "dangerous_probe"})
+
+    assert response.status_code == 400
+    assert "Suspicious activity detected" in response.text
+
+
+async def test_guard_auto_ip_ban(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_PENETRATION_DETECTION", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_IP_BANNING", "1")
+    monkeypatch.setenv("SECURITY__AUTO_BAN_THRESHOLD", "1")
+    monkeypatch.setenv("SECURITY__CUSTOM_PENETRATION_PATTERNS", '["dangerous_probe"]')
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @app.get("/ban")
+    async def banned() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app) as client:
+        suspicious = await client.get("/ban", params={"term": "dangerous_probe"})
+        banned_response = await client.get("/ban", params={"term": "safe"})
+
+    assert suspicious.status_code == 403
+    assert "IP has been banned" in suspicious.text
+    assert banned_response.status_code == 403

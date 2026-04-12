@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, BaseModel, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -305,8 +305,32 @@ class SaasSettings(BaseSettings):
 
 class SecuritySettings(BaseSettings):
     """
-    Security material paths for non-config secret encryption and revision signing.
+    Security settings for runtime secrets and FastAPI Guard integration.
     """
+
+    class CSRFSettings(BaseModel):
+        enabled: bool = Field(default=False, description="Whether to enable CSRF protection via FastAPI Guard hooks.")
+        header_name: str = Field(default="X-CSRF-Token", min_length=1, description="Header used to submit CSRF token.")
+        cookie_name: str = Field(default="csrf_token", min_length=1, description="Cookie used to persist CSRF token.")
+        cookie_secure: bool = Field(default=False, description="Whether the CSRF cookie should be marked Secure.")
+        cookie_httponly: bool = Field(
+            default=False,
+            description="Whether the CSRF cookie should be marked HttpOnly.",
+        )
+        cookie_samesite: Literal["lax", "strict", "none"] = Field(
+            default="lax",
+            description="SameSite policy for the CSRF cookie.",
+        )
+        safe_methods: list[str] = Field(
+            default_factory=lambda: ["GET", "HEAD", "OPTIONS", "TRACE"],
+            description="HTTP methods that should mint/read a CSRF cookie without validation.",
+        )
+        token_bytes: int = Field(
+            default=32,
+            ge=8,
+            le=128,
+            description="Entropy size used when minting CSRF tokens.",
+        )
 
     model_config = SettingsConfigDict(
         env_prefix="SECURITY__",
@@ -330,6 +354,87 @@ class SecuritySettings(BaseSettings):
         default=Path(__file__).resolve().parents[3] / "data" / "secrets" / "signing.ed25519.pub",
         description="Path to the Ed25519 public key used to verify system config revision signatures.",
     )
+    enabled: bool = Field(default=False, description="Whether to enable FastAPI Guard middleware.")
+    passive_mode: bool = Field(default=False, description="Whether FastAPI Guard should log suspicious activity only.")
+    enable_redis: bool = Field(default=False, description="Whether FastAPI Guard should use Redis-backed shared state.")
+    redis_url: str | None = Field(
+        default="redis://127.0.0.1:6379/0",
+        description="Redis URL used by FastAPI Guard when distributed state is enabled.",
+    )
+    redis_prefix: str = Field(default="arclayer:guard:", description="Redis key prefix used by FastAPI Guard.")
+    whitelist: list[str] | None = Field(default=None, description="IP addresses or CIDR ranges always allowed.")
+    blacklist: list[str] = Field(default_factory=list, description="IP addresses or CIDR ranges always blocked.")
+    whitelist_countries: list[str] = Field(default_factory=list, description="ISO country codes always allowed.")
+    blocked_countries: list[str] = Field(default_factory=list, description="ISO country codes always blocked.")
+    blocked_user_agents: list[str] = Field(
+        default_factory=list, description="User-Agent substrings or patterns to block."
+    )
+    auto_ban_threshold: int = Field(default=10, ge=1, le=10_000, description="Suspicious request threshold before ban.")
+    auto_ban_duration: int = Field(
+        default=3600,
+        ge=60,
+        le=31_536_000,
+        description="Ban duration in seconds for automatically banned IP addresses.",
+    )
+    custom_log_file: str | None = Field(default=None, description="Optional file path for FastAPI Guard security logs.")
+    log_suspicious_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] | None = Field(default="WARNING")
+    log_request_level: Literal["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"] | None = Field(default=None)
+    log_format: Literal["text", "json"] = Field(default="text", description="Log output format used by FastAPI Guard.")
+    custom_error_responses: dict[int, str] = Field(
+        default_factory=dict, description="Custom error messages by status code."
+    )
+    enable_rate_limiting: bool = Field(default=False, description="Whether to enable FastAPI Guard rate limiting.")
+    rate_limit: int = Field(default=100, ge=1, le=1_000_000, description="Allowed requests per rate limit window.")
+    rate_limit_window: int = Field(
+        default=60,
+        ge=1,
+        le=86_400,
+        description="Rate limiting window size in seconds.",
+    )
+    enforce_https: bool = Field(default=False, description="Whether FastAPI Guard should redirect insecure requests.")
+    security_headers: dict[str, Any] | None = Field(
+        default=None,
+        description="FastAPI Guard security headers configuration object.",
+    )
+    enable_cors: bool = Field(default=False, description="Whether FastAPI Guard should configure CORS.")
+    cors_allow_origins: list[str] = Field(default_factory=list, description="Allowed origins for CORS requests.")
+    cors_allow_methods: list[str] = Field(default_factory=lambda: ["GET"], description="Allowed CORS methods.")
+    cors_allow_headers: list[str] = Field(default_factory=list, description="Allowed CORS request headers.")
+    cors_allow_credentials: bool = Field(default=False, description="Whether credentialed CORS requests are allowed.")
+    cors_expose_headers: list[str] = Field(
+        default_factory=list, description="CORS response headers exposed to clients."
+    )
+    cors_max_age: int = Field(default=600, ge=0, le=86_400, description="CORS preflight cache duration in seconds.")
+    block_cloud_providers: set[Literal["AWS", "GCP", "Azure"]] = Field(
+        default_factory=set,
+        description="Cloud providers whose IP ranges should be blocked.",
+    )
+    cloud_ip_refresh_interval: int = Field(
+        default=3600,
+        ge=60,
+        le=86_400,
+        description="How often cloud provider IP ranges should be refreshed.",
+    )
+    exclude_paths: list[str] = Field(
+        default_factory=lambda: [
+            "/docs",
+            "/redoc",
+            "/openapi.json",
+            "/favicon.ico",
+            "/static",
+        ],
+        description="Request paths that should bypass FastAPI Guard checks.",
+    )
+    enable_ip_banning: bool = Field(default=False, description="Whether FastAPI Guard should ban suspicious IPs.")
+    enable_penetration_detection: bool = Field(
+        default=False,
+        description="Whether FastAPI Guard should inspect requests for suspicious patterns.",
+    )
+    custom_penetration_patterns: list[str] = Field(
+        default_factory=list,
+        description="Additional custom penetration-detection regex patterns to register.",
+    )
+    csrf: CSRFSettings = Field(default_factory=CSRFSettings)
 
     @field_validator("master_key_path", mode="after")
     @classmethod
@@ -344,3 +449,20 @@ class SecuritySettings(BaseSettings):
         current = Path(__file__).resolve().parent
         repo_root = current.parents[2]
         return _normalize_runtime_fs_path(value, default_base=repo_root)
+
+    @field_validator("blocked_user_agents", "whitelist_countries", "blocked_countries", "exclude_paths", mode="after")
+    @classmethod
+    def _strip_list_entries(cls, value: list[str]) -> list[str]:
+        return [item.strip() for item in value if item and item.strip()]
+
+    @field_validator("custom_penetration_patterns", mode="after")
+    @classmethod
+    def _strip_custom_patterns(cls, value: list[str]) -> list[str]:
+        return [item.strip() for item in value if item and item.strip()]
+
+    @field_validator(
+        "cors_allow_origins", "cors_allow_methods", "cors_allow_headers", "cors_expose_headers", mode="after"
+    )
+    @classmethod
+    def _normalize_cors_lists(cls, value: list[str]) -> list[str]:
+        return [item.strip() for item in value if item and item.strip()]
