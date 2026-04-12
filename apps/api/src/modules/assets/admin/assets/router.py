@@ -38,7 +38,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
-    tags=["Workspace: Asset Library"],
+    tags=["domain.assets"],
     dependencies=[require_workspace_permission("system:assets:read")],
 )
 
@@ -62,6 +62,7 @@ async def list_assets(
     filters: AdminAssetListQuery = Depends(),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[PageData[AdminAssetSummaryOut]]:
+    """List assets."""
     page = await service.list_assets(scope=_workspace_scope(ctx), params=params, filters=filters)
     return JsonResponse.success(data=page)
 
@@ -76,6 +77,7 @@ async def list_asset_folders(
     params: PageParams = Depends(get_page_params),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[PageData[AdminAssetFolderOut]]:
+    """List asset folders."""
     page = await service.list_folders(scope=_workspace_scope(ctx), params=params)
     return JsonResponse.success(data=page)
 
@@ -91,6 +93,7 @@ async def list_asset_tags(
     params: PageParams = Depends(get_page_params),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[PageData[AdminAssetTagOut]]:
+    """List asset tags."""
     page = await service.list_tags(scope=_workspace_scope(ctx), params=params, q=q)
     return JsonResponse.success(data=page)
 
@@ -106,6 +109,7 @@ async def create_asset_tag(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetTagOut]:
+    """Create asset tag."""
     created = await service.create_tag(scope=_workspace_scope(ctx), payload=payload)
     return JsonResponse.success(data=created)
 
@@ -120,6 +124,7 @@ async def get_asset_detail(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetDetailOut]:
+    """Get asset detail."""
     detail = await service.get_asset_detail(scope=_workspace_scope(ctx), asset_id=asset_id)
     return JsonResponse.success(data=detail)
 
@@ -136,6 +141,7 @@ async def patch_asset(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetDetailOut]:
+    """Update asset."""
     updated = await service.update_asset(scope=_workspace_scope(ctx), asset_id=asset_id, payload=payload)
     return JsonResponse.success(data=updated)
 
@@ -151,6 +157,7 @@ async def delete_asset(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetDeleteOut]:
+    """Delete asset."""
     deleted = await service.delete_asset(scope=_workspace_scope(ctx), asset_id=asset_id)
     return JsonResponse.success(data=deleted)
 
@@ -166,6 +173,7 @@ async def create_asset_folder(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderOut]:
+    """Create asset folder."""
     created = await service.create_folder(scope=_workspace_scope(ctx), payload=payload)
     return JsonResponse.success(data=created)
 
@@ -182,6 +190,7 @@ async def update_asset_folder(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderOut]:
+    """Update asset folder."""
     updated = await service.update_folder(scope=_workspace_scope(ctx), folder_id=folder_id, payload=payload)
     return JsonResponse.success(data=updated)
 
@@ -197,6 +206,7 @@ async def delete_asset_folder(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderDeleteOut]:
+    """Delete asset folder."""
     deleted = await service.delete_folder(scope=_workspace_scope(ctx), folder_id=folder_id)
     return JsonResponse.success(data=deleted)
 
@@ -213,6 +223,7 @@ async def delete_asset_folder_with_move(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetFolderDeleteOut]:
+    """Delete asset folder with content migration."""
     deleted = await service.delete_folder(scope=_workspace_scope(ctx), folder_id=folder_id, payload=payload)
     return JsonResponse.success(data=deleted)
 
@@ -297,6 +308,7 @@ async def move_asset(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: AdminAssetsService = Depends(get_admin_assets_service),
 ) -> ResponseModel[AdminAssetSummaryOut]:
+    """Move asset."""
     updated = await service.move_asset(scope=_workspace_scope(ctx), asset_id=asset_id, payload=payload)
     return JsonResponse.success(data=updated)
 
@@ -312,5 +324,6 @@ async def stream_asset_content(
     service: AdminAssetsService = Depends(get_admin_assets_service),
     range_header: str | None = Header(default=None, alias="Range"),
 ) -> Response:
+    """Stream asset content."""
     # Binary streaming endpoint for admin preview (supports HTTP Range).
     return await service.stream_asset_content(scope=_workspace_scope(ctx), asset_id=asset_id, range_header=range_header)

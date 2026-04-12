@@ -10,7 +10,8 @@ from src.common.models import BaseModel
 
 # Asset folder record (scoped: workspace/org/user).
 class AssetFolderRecord(BaseModel):
-    """
+    """Domain model for asset folder records.
+
     Asset folder (scoped in v3).
 
     Notes:
@@ -37,7 +38,7 @@ class AssetFolderRecord(BaseModel):
         parent_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "asset_folders"
+        table = "domain_asset_folders"
         abstract = False
         unique_together = (
             ("workspace_id", "parent_id", "name"),

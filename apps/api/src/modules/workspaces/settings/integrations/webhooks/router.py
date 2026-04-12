@@ -17,7 +17,7 @@ from src.modules.workspaces.settings.integrations.webhooks.service import Webhoo
 
 router = APIRouter(
     prefix="/integrations/webhooks",
-    tags=["Workspace Integrations: Webhooks"],
+    tags=["domain.workspaces.integrations.webhooks"],
 )
 
 
@@ -35,6 +35,7 @@ async def list_webhook_subscriptions(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WebhooksService = Depends(get_service),
 ) -> ResponseModel[WebhookSubscriptionListOut]:
+    """List workspace webhook subscriptions."""
     items = await service.list_subscriptions_out(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=WebhookSubscriptionListOut(items=items))
 
@@ -50,6 +51,7 @@ async def create_webhook_subscription(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WebhooksService = Depends(get_service),
 ) -> ResponseModel[WebhookSubscriptionOut]:
+    """Create a webhook subscription."""
     out = await service.create_subscription_out(
         workspace_id=ctx.workspace_id,
         capability_id=payload.capability_id,
@@ -72,5 +74,6 @@ async def list_webhook_deliveries(
     service: WebhooksService = Depends(get_service),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> ResponseModel[WebhookDeliveryListOut]:
+    """List recent webhook deliveries (delivery log)."""
     items = await service.list_deliveries_out(workspace_id=ctx.workspace_id, limit=limit)
     return ApiResponse.success(data=WebhookDeliveryListOut(items=items))

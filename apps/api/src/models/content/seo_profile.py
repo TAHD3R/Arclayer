@@ -9,7 +9,7 @@ from src.common.models import BaseModel
 
 
 class SEOProfileRecord(BaseModel):
-    """Immutable SEO profile persisted alongside a content version."""
+    """Domain model for SEO profiles."""
 
     version = fields.OneToOneField(
         "models.ContentVersionRecord",
@@ -26,5 +26,5 @@ class SEOProfileRecord(BaseModel):
         version_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_seo_profiles"
+        table = "domain_content_seo_profiles"
         abstract = False

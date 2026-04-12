@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Organization billing/subscription plan.
 class OrgPlan(BaseModel):
-    """
+    """Domain model for organization plans.
+
     Organization billing plan / quota record.
 
     Each organization has at most one active plan row. The plan_code maps to
@@ -27,5 +28,5 @@ class OrgPlan(BaseModel):
     is_active = fields.BooleanField(default=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "org_plans"
+        table = "domain_org_plans"
         abstract = False

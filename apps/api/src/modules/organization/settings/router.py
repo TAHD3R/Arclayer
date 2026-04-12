@@ -28,8 +28,8 @@ from src.modules.organization.settings.schema import (
 )
 from src.modules.organization.settings.service import OrganizationSettingsService
 
-router = APIRouter(prefix="/organizations/me", tags=["Organization Settings"])
-scoped_router = APIRouter(tags=["Organization Settings"])
+router = APIRouter(prefix="/organizations/me", tags=["domain.organization.settings"])
+scoped_router = APIRouter(tags=["domain.organization.settings"])
 
 
 def _org_id(orgm: OrgMembership) -> UUID:
@@ -51,6 +51,7 @@ async def get_organization_core_settings(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationSettingsCoreOut]:
+    """Get organization core settings."""
     service = OrganizationSettingsService(settings)
     out = await service.get_core_detail(organization_id=_org_id(orgm))
     return ApiResponse.success(data=out)
@@ -69,6 +70,7 @@ async def patch_organization_core_settings(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationSettingsCoreOut]:
+    """Patch organization core settings."""
     service = OrganizationSettingsService(settings)
     out = await service.patch_core(
         organization_id=_org_id(orgm),
@@ -94,6 +96,7 @@ async def assign_organization_default_role_to_all_users(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationAssignDefaultRoleResult]:
+    """Assign role to all active member users."""
     service = OrganizationSettingsService(settings)
     out = await service.assign_default_role_to_members(
         organization_id=_org_id(orgm),
@@ -113,6 +116,7 @@ async def leave_organization(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[LeaveOrganizationResult]:
+    """Leave current organization."""
     service = OrganizationSettingsService(settings)
     out = await service.leave_organization(
         organization_id=_org_id(orgm),
@@ -141,6 +145,7 @@ async def delete_organization(
     ),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[DeleteOrganizationResult]:
+    """Delete current organization."""
     service = OrganizationSettingsService(settings)
     out = await service.delete_organization(
         organization_id=_org_id(orgm),

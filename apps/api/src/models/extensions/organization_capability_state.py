@@ -6,7 +6,8 @@ from src.common.models import BaseModel
 
 
 class OrganizationCapabilityState(BaseModel):
-    """
+    """Domain model for organization capability states.
+
     Organization-scoped capability enablement state.
 
     Notes:
@@ -24,6 +25,6 @@ class OrganizationCapabilityState(BaseModel):
     config = fields.JSONField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "organization_capabilities"
+        table = "domain_organization_capabilities"
         abstract = False
         unique_together = (("organization_id", "capability_id"),)

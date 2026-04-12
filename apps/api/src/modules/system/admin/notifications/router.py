@@ -26,7 +26,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/notifications",
-    tags=["Workspace: Notifications"],
+    tags=["domain.workspaces.notifications"],
     dependencies=[require_workspace_permission("system:notifications:read")],
 )
 
@@ -47,6 +47,7 @@ async def list_notifications(
     filters: NotificationListQuery = Depends(),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[PageData[NotificationOut]]:
+    """List notifications."""
     page = await service.list_notifications(
         workspace_id=ctx.workspace_id, user_id=user_id, params=params, filters=filters
     )
@@ -64,6 +65,7 @@ async def get_unread_preview(
     limit: int = Query(3, ge=1, le=20, description="Max unread items to return (default 3)."),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationPreviewOut]:
+    """Get unread notification preview."""
     preview = await service.get_unread_preview(workspace_id=ctx.workspace_id, user_id=user_id, limit=limit)
     return ApiResponse.success(data=preview)
 
@@ -79,6 +81,7 @@ async def mark_read(
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadResult]:
+    """Mark a notification as read."""
     out = await service.mark_read(workspace_id=ctx.workspace_id, user_id=user_id, notification_id=notification_id)
     return ApiResponse.success(data=out)
 
@@ -93,6 +96,7 @@ async def mark_all_read(
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationReadAllResult]:
+    """Mark all notifications as read."""
     out = await service.mark_all_read(workspace_id=ctx.workspace_id, user_id=user_id)
     return ApiResponse.success(data=out)
 
@@ -109,6 +113,7 @@ async def seed_demo_notifications(
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationDevSeedResult]:
+    """Seed demo notifications (dev/test only)."""
     out = await service.seed_demo_notifications(workspace_id=ctx.workspace_id, user_id=user_id, count=payload.count)
     return ApiResponse.success(data=out)
 
@@ -124,6 +129,7 @@ async def delete_notification(
     user_id: UUID = Depends(get_current_user_id),
     service: NotificationService = Depends(get_notification_service),
 ) -> ResponseModel[NotificationDeleteResult]:
+    """Delete a notification."""
     out = await service.delete_notification(
         workspace_id=ctx.workspace_id, user_id=user_id, notification_id=notification_id
     )

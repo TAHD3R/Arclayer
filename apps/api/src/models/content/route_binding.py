@@ -9,7 +9,7 @@ from src.common.models import BaseModel
 
 
 class RouteBindingRecord(BaseModel):
-    """Route record separated from mutable content item payload."""
+    """Domain model for route binding records."""
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
@@ -37,6 +37,6 @@ class RouteBindingRecord(BaseModel):
         item_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_route_bindings"
+        table = "domain_content_route_bindings"
         abstract = False
         unique_together = (("site_id", "locale", "path"), ("item_id", "locale"))

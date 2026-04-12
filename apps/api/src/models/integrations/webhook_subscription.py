@@ -6,7 +6,8 @@ from src.common.models import BaseModel
 
 
 class WebhookSubscription(BaseModel):
-    """
+    """Domain model for webhook subscriptions.
+
     Workspace-scoped webhook subscription.
 
     Notes:
@@ -31,6 +32,6 @@ class WebhookSubscription(BaseModel):
     secret = fields.CharField(max_length=2048, null=True)
 
     class Meta(BaseModel.Meta):
-        table = "webhook_subscriptions"
+        table = "domain_webhook_subscriptions"
         abstract = False
         unique_together = (("workspace_id", "event", "endpoint_url"),)

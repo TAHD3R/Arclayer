@@ -20,7 +20,7 @@ class UploadStatus(StrEnum):
 
 # Upload session record (multipart upload).
 class UploadSessionRecord(BaseModel):
-    """Upload session (supports local and S3 multipart uploads)."""
+    """Domain model for upload session records."""
 
     # Exactly one of workspace_id / organization_id / user_id must be set (enforced at service boundary).
     workspace_id = fields.UUIDField(null=True, db_index=True)
@@ -61,13 +61,13 @@ class UploadSessionRecord(BaseModel):
     s3_bucket = fields.CharField(max_length=255, null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "upload_sessions"
+        table = "domain_upload_sessions"
         abstract = False
 
 
 # Upload part record (multipart upload chunk).
 class UploadPartRecord(BaseModel):
-    """Upload part record (per-part bookkeeping for resumable uploads)."""
+    """Domain model for upload part records."""
 
     session = fields.ForeignKeyField("models.UploadSessionRecord", related_name="parts", on_delete=fields.CASCADE)
     part_number = fields.IntField()
@@ -78,6 +78,6 @@ class UploadPartRecord(BaseModel):
     stored = fields.BooleanField(default=False)
 
     class Meta(BaseModel.Meta):
-        table = "upload_parts"
+        table = "domain_upload_parts"
         abstract = False
         unique_together = (("session_id", "part_number"),)

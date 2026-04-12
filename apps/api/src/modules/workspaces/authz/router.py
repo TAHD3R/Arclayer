@@ -10,7 +10,7 @@ from src.modules.workspaces.authz.snapshot.service import get_workspace_authz_sn
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 
-router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["Workspace Authz"])
+router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["domain.workspaces.authz"])
 
 
 @router.get(
@@ -23,5 +23,6 @@ async def me_workspace_authz(
     user_id=Depends(get_current_user_id),
     _settings: Settings = Depends(get_settings),
 ) -> ResponseModel[AuthzSnapshot]:
+    """Get workspace-scoped authz snapshot for current user."""
     snap = await get_workspace_authz_snapshot(user_id=user_id, workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=snap)

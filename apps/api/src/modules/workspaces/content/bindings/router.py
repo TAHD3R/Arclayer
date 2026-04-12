@@ -19,7 +19,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 bindings_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
-    tags=["Workspace: Content"],
+    tags=["domain.workspaces.content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 
@@ -44,6 +44,7 @@ async def list_workspace_content_bindings(
         Depends(get_workspace_content_bindings_service),
     ],
 ) -> ResponseModel[ContentComponentBindingListOut]:
+    """List rebuilt component bindings for a version (workspace RBAC protected)."""
     items = await service.list_component_bindings(
         workspace_id=ctx.workspace_id,
         site_id=site_id,

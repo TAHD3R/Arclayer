@@ -10,7 +10,7 @@ from src.modules.sites.http.service import get_site_service
 from src.modules.sites.schema import SiteSettingGetOut, SiteSettingUpsertIn
 from src.modules.sites.service import SiteService
 
-router = APIRouter(tags=["Sites"])
+router = APIRouter(tags=["external.sites.settings"])
 
 
 @router.get(
@@ -25,6 +25,7 @@ async def get_site_setting(
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SiteSettingGetOut]:
+    """Get a site setting (namespace-scoped)."""
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.get_site_setting(site_id=site_id, namespace=namespace)
     return ApiResponse.success(data=data)
@@ -43,6 +44,7 @@ async def upsert_site_setting(
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SiteSettingGetOut]:
+    """Upsert a site setting (namespace-scoped)."""
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.upsert_site_setting(site_id=site_id, namespace=namespace, payload=payload)
     return ApiResponse.success(data=data)

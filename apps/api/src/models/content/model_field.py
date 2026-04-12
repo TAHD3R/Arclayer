@@ -10,7 +10,7 @@ from src.models.content._enums import ContentModelFieldType
 
 
 class ContentModelFieldRecord(BaseModel):
-    """Structured field definition under a rebuilt content model."""
+    """Domain model for content model field records."""
 
     model_definition = fields.ForeignKeyField(
         "models.ContentModelDefinitionRecord",
@@ -30,6 +30,6 @@ class ContentModelFieldRecord(BaseModel):
         model_definition_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_model_fields"
+        table = "domain_content_model_fields"
         abstract = False
         unique_together = (("model_definition_id", "key"),)

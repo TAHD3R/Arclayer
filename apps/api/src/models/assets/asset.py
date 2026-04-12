@@ -29,7 +29,8 @@ class AssetVisibility(StrEnum):
 
 # Asset record (immutable blob metadata).
 class AssetRecord(BaseModel):
-    """
+    """Domain model for asset records.
+
     Immutable blob metadata.
 
     Notes:
@@ -72,7 +73,6 @@ class AssetRecord(BaseModel):
 
     deleted_at = fields.DatetimeField(null=True, db_index=True)
 
-
-class Meta(BaseModel.Meta):
-    table = "assets"
-    abstract = False
+    class Meta(BaseModel.Meta):
+        table = "domain_assets"
+        abstract = False

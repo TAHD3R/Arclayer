@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Site domain binding (host -> site).
 class SiteDomainRecord(BaseModel):
-    """
+    """Domain model for site domain records.
+
     Custom domain binding for a site.
 
     Resolution contract:
@@ -32,5 +33,5 @@ class SiteDomainRecord(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "site_domains"
+        table = "domain_site_domains"
         abstract = False

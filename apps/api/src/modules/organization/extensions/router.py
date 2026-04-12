@@ -15,7 +15,7 @@ from src.modules.organization.http.service import require_org_permission
 
 router = APIRouter(
     prefix="/organizations/current/extensions",
-    tags=["Organization: Extensions"],
+    tags=["domain.organization.extensions"],
 )
 
 
@@ -35,6 +35,7 @@ async def list_org_capabilities(
     ],
     service: Annotated[ExtensionsService, Depends(get_extensions_service)],
 ) -> ResponseModel[CapabilityListOut]:
+    """List organization-scoped capabilities (extensions/integrations)."""
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
     items = await service.list_org_capabilities(organization_id=organization_id)
     return ApiResponse.success(data=CapabilityListOut(items=items))
@@ -53,6 +54,7 @@ async def enable_org_capability(
     ],
     service: Annotated[ExtensionsService, Depends(get_extensions_service)],
 ) -> ResponseModel[CapabilitySummaryOut]:
+    """Enable an organization-scoped capability."""
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
     out = await service.set_org_capability_enabled(
         organization_id=organization_id,
@@ -75,6 +77,7 @@ async def disable_org_capability(
     ],
     service: Annotated[ExtensionsService, Depends(get_extensions_service)],
 ) -> ResponseModel[CapabilitySummaryOut]:
+    """Disable an organization-scoped capability."""
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
     out = await service.set_org_capability_enabled(
         organization_id=organization_id,
@@ -99,6 +102,7 @@ async def list_org_ui_embeds(
     capability_id: str | None = Query(default=None, alias="capabilityId"),
     enabled_only: bool = Query(default=True, alias="enabledOnly"),
 ) -> ResponseModel[UIEmbedListOut]:
+    """List UI embed descriptors (iframe) for enabled org-scoped capabilities."""
     organization_id = UUID(str(cast(HasOrganizationId, orgm).organization_id))
     items = await service.list_org_ui_embeds(
         organization_id=organization_id,

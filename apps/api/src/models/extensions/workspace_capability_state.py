@@ -6,7 +6,8 @@ from src.common.models import BaseModel
 
 
 class WorkspaceCapabilityState(BaseModel):
-    """
+    """Domain model for workspace capability states.
+
     Workspace-scoped capability enablement state.
 
     Design:
@@ -24,6 +25,6 @@ class WorkspaceCapabilityState(BaseModel):
     config = fields.JSONField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "workspace_capabilities"
+        table = "domain_workspace_capabilities"
         abstract = False
         unique_together = (("workspace_id", "capability_id"),)

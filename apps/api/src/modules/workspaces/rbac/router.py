@@ -27,7 +27,7 @@ from src.modules.workspaces.rbac.schema import (
 )
 from src.modules.workspaces.rbac.service import WorkspaceRBACService
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/rbac", tags=["Workspace RBAC"])
+router = APIRouter(prefix="/workspaces/{workspace_id}/rbac", tags=["domain.workspaces.rbac"])
 logger = get_logger(__name__)
 _FATAL_RBAC_EVENT_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
@@ -86,6 +86,7 @@ async def list_roles(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[WorkspaceRoleOut]]:
+    """List roles in current workspace."""
     # Role counts are typically small; do in-memory pagination so we can localize deterministically.
     roles = await service.repo.list_roles(workspace_id=ctx.workspace_id)
     locale = get_current_locale()
@@ -105,6 +106,7 @@ async def list_permissions(
     _ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[PageData[WorkspacePermissionOut]]:
+    """List permissions (workspace scope)."""
     perms = await service.repo.list_permissions(scope=PermissionScope.WORKSPACE)
     plugin_ids = {str(p.plugin_id) for p in perms if p.plugin_id and str(p.plugin_id) != "core"}
     plugin_names = await service.get_plugin_name_map(plugin_ids=plugin_ids)
@@ -139,6 +141,7 @@ async def get_matrix(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRBACMatrixOut]:
+    """Get RBAC permission matrix for current workspace."""
     payload = await service.get_matrix(workspace_id=ctx.workspace_id)
     roles = payload.roles
     permissions = payload.permissions
@@ -183,6 +186,7 @@ async def create_role(
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
+    """Create a custom role from template."""
     locale = get_current_locale()
     role = await service.create_custom_role(
         workspace_id=ctx.workspace_id,
@@ -212,6 +216,7 @@ async def update_role(
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[WorkspaceRoleOut]:
+    """Update a custom role."""
     locale = get_current_locale()
     role = await service.update_custom_role(
         workspace_id=ctx.workspace_id,
@@ -239,6 +244,7 @@ async def delete_role(
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
+    """Delete a custom role (auto-unbind from members)."""
     await service.delete_custom_role(workspace_id=ctx.workspace_id, role_code=role_code)
     await _publish_rbac_event(
         event_name="rbac.role.deleted",
@@ -261,6 +267,7 @@ async def set_permission_roles(
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
+    """Set custom roles that can perform a permission (system roles are immutable)."""
     await service.set_permission_custom_roles(
         workspace_id=ctx.workspace_id,
         permission_code=permission_code,
@@ -291,6 +298,7 @@ async def set_role_permissions(
     user_id=Depends(get_current_user_id),
     service: WorkspaceRBACService = Depends(get_rbac_service),
 ) -> ResponseModel[None]:
+    """Replace permissions granted to a custom role (system roles are immutable)."""
     await service.set_custom_role_permissions(
         workspace_id=ctx.workspace_id,
         role_code=role_code,

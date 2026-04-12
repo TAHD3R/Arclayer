@@ -12,7 +12,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/activity",
-    tags=["Workspace: Activity"],
+    tags=["domain.analytics"],
 )
 
 
@@ -27,6 +27,7 @@ async def list_workspace_activity(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[AuditEventOut]]:
+    """List activity events (workspace-scoped)."""
     # Enforce workspace scope regardless of query params.
     query = query.model_copy(update={"workspace_id": ctx.workspace_id})
 

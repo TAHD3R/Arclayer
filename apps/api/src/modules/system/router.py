@@ -10,7 +10,7 @@ from src.modules.system.rbac.router import router as system_rbac_router
 from src.modules.system.schema import SystemRuntimeCapabilities, SystemRuntimeOut
 from src.modules.system.settings.router import router as system_settings_router
 
-router = APIRouter(tags=["System: Core Settings"])
+router = APIRouter(tags=["internal.system"])
 
 
 @router.get(

@@ -10,8 +10,8 @@ and implementation standards.
 Current guidelines:
 
 - `agents-guide.md`
-- `api-contract-guideline.md`
-- `backend-folder-architecture.md`
+- `backend-endpoint-contract-guideline.md`
+- `backend-folder-architecture-guideline.md`
 - `design-guideline.md`
 - `frontend-folder-architecture.md`
 - `i18n.md`

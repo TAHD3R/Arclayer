@@ -14,7 +14,7 @@ from src.modules.system.settings.schema import SettingsDetail, SettingsNamespace
 from src.modules.system.settings.service import SettingsService
 
 router = APIRouter(
-    tags=["System: Settings"],
+    tags=["internal.system.settings"],
     dependencies=[Depends(require_org_owner)],
 )
 
@@ -46,6 +46,7 @@ async def list_namespaces(
     _user=Depends(get_current_user),
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[SettingsNamespaceSummary]]:
+    """List settings namespaces."""
     page = await service.list_namespaces(params=params)
     return ApiResponse.success(data=page)
 
@@ -60,6 +61,7 @@ async def get_namespace(
     service: SettingsService = Depends(get_settings_service),
     _user=Depends(get_current_user),
 ) -> ResponseModel[SettingsDetail]:
+    """Get settings namespace detail."""
     detail = await service.get_namespace_detail(namespace)
     return ApiResponse.success(data=detail)
 
@@ -75,5 +77,6 @@ async def patch_namespace(
     service: SettingsService = Depends(get_settings_service),
     user=Depends(get_current_user),
 ) -> ResponseModel[SettingsDetail]:
+    """Patch settings namespace."""
     detail = await service.patch_namespace(namespace, patch=payload.patch, updated_by=getattr(user, "id", None))
     return ApiResponse.success(data=detail)

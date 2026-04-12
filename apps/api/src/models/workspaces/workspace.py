@@ -18,7 +18,7 @@ class WorkspaceMembershipStatus(StrEnum):
 
 # Workspace (admin governance boundary).
 class Workspace(BaseModel):
-    """Workspace (project) under an organization."""
+    """Domain model for workspaces."""
 
     organization = fields.ForeignKeyField(
         "models.Organization",
@@ -37,7 +37,7 @@ class Workspace(BaseModel):
     created_by_user_id = fields.UUIDField(db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "workspaces"
+        table = "domain_workspaces"
         abstract = False
 
 
@@ -156,7 +156,7 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
 
 # Workspace membership (user -> workspace).
 class WorkspaceMembership(BaseModel):
-    """User membership in a workspace (the admin governance boundary)."""
+    """Domain model for workspace memberships."""
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
@@ -173,14 +173,14 @@ class WorkspaceMembership(BaseModel):
     invited_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "workspace_memberships"
+        table = "domain_workspace_memberships"
         abstract = False
         unique_together = (("workspace_id", "user_id"),)
 
 
 # Workspace membership role edge (membership -> role).
 class WorkspaceMembershipRole(BaseModel):
-    """Role binding for a workspace membership."""
+    """Domain model for workspace membership roles."""
 
     membership = fields.ForeignKeyField(
         "models.WorkspaceMembership",
@@ -190,6 +190,6 @@ class WorkspaceMembershipRole(BaseModel):
     role = fields.ForeignKeyField("models.Role", related_name="workspace_membership_roles", on_delete=fields.CASCADE)
 
     class Meta(BaseModel.Meta):
-        table = "workspace_membership_roles"
+        table = "domain_workspace_membership_roles"
         abstract = False
         unique_together = (("membership_id", "role_id"),)

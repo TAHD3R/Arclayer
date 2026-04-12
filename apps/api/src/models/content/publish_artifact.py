@@ -10,7 +10,7 @@ from src.models.content._enums import PublishArtifactKind
 
 
 class PublishArtifactRecord(BaseModel):
-    """Published manifest artifact derived from an immutable content version."""
+    """Domain model for publish artifact records."""
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
@@ -44,6 +44,6 @@ class PublishArtifactRecord(BaseModel):
         version_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_publish_artifacts"
+        table = "domain_content_publish_artifacts"
         abstract = False
         unique_together = (("site_id", "item_id", "version_id", "artifact_kind", "locale"),)

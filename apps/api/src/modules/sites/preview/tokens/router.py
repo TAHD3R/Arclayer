@@ -10,7 +10,7 @@ from src.modules.sites.http.service import get_site_service
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from src.modules.sites.service import SiteService
 
-router = APIRouter(tags=["Sites"])
+router = APIRouter(tags=["external.sites.preview"])
 
 
 @router.post(
@@ -28,5 +28,6 @@ async def create_preview_token(
         Body(description="Preview token request."),
     ] = SitePreviewTokenCreateIn(),
 ) -> ResponseModel[SitePreviewTokenOut]:
+    """Create a preview token (stub)."""
     data = await service.create_preview_token(site_id=site_id, ttl_seconds=payload.ttl_seconds)
     return ApiResponse.success(data=data)

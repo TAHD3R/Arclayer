@@ -2,4 +2,4 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-router = APIRouter(tags=["Sites: Design Document Nodes"])
+router = APIRouter(tags=["external.sites.design.nodes"])

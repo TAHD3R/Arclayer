@@ -19,7 +19,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 seo_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
-    tags=["Workspace: Content"],
+    tags=["domain.workspaces.content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 
@@ -44,6 +44,7 @@ async def get_workspace_content_seo_profile(
         Depends(get_workspace_content_seo_service),
     ],
 ) -> ResponseModel[ContentSeoProfileOut]:
+    """Get rebuilt content SEO profile for a version (workspace RBAC protected)."""
     data = await service.get_seo_profile(
         workspace_id=ctx.workspace_id,
         site_id=site_id,

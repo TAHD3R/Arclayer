@@ -24,7 +24,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 content_library_views_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content/library",
-    tags=["Workspace: Content"],
+    tags=["domain.workspaces.content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 
@@ -59,6 +59,7 @@ async def list_content_library_views(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
+    """List content library views visible to the current user."""
     return ApiResponse.success(data=await service.list_views(workspace_id=ctx.workspace_id, user_id=user_id))
 
 
@@ -74,6 +75,7 @@ async def create_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
+    """Create a private or shared content library view."""
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
     return ApiResponse.success(
         data=await service.create_view(
@@ -97,6 +99,7 @@ async def patch_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
+    """Update a content library view definition, visibility, pin state, or default state."""
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
     return ApiResponse.success(
         data=await service.update_view(
@@ -121,6 +124,7 @@ async def move_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
+    """Reorder a content library view within its scope."""
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
     return ApiResponse.success(
         data=await service.move_view(
@@ -144,6 +148,7 @@ async def delete_content_library_view(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[ContentLibraryViewsService, Depends(get_content_library_views_service)],
 ) -> ResponseModel[ContentLibraryViewsStateOut]:
+    """Delete a content library view."""
     can_manage = await _resolve_can_manage_workspace_views(user_id=user_id, ctx=ctx)
     return ApiResponse.success(
         data=await service.delete_view(

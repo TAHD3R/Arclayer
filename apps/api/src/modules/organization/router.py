@@ -38,7 +38,7 @@ from src.modules.organization.settings.router import (
 )
 from src.modules.organization.workspaces.router import router as organization_workspaces_router
 
-router = APIRouter(tags=["Me"])
+router = APIRouter(tags=["domain.organization"])
 
 router.include_router(organization_extensions_router)
 router.include_router(organization_workspaces_router)
@@ -82,6 +82,7 @@ async def _next_available_org_slug(base_slug: str) -> str:
 async def list_my_organizations(
     user_id: UUID = Depends(get_current_user_id),
 ) -> ResponseModel[MyOrganizationListOut]:
+    """List organizations accessible to current user."""
     memberships = (
         await OrgMembership
         .filter(user_id=user_id, status="active")
@@ -161,6 +162,7 @@ async def create_my_organization(
     payload: CreateMyOrganizationRequest,
     user_id: UUID = Depends(get_current_user_id),
 ) -> ResponseModel[MyOrganizationOut]:
+    """Create organization for current user."""
     name = str(payload.name or "").strip()
     if not name:
         raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_ORGANIZATION_NAME")
@@ -220,6 +222,7 @@ async def create_my_organization(
 async def get_my_organization(
     orgm: OrgMembership = Depends(get_current_org_membership),
 ) -> ResponseModel[MyOrganizationOut]:
+    """Get current user organization and membership."""
     await orgm.fetch_related("organization")
     org = orgm.organization
 

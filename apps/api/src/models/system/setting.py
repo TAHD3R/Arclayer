@@ -8,7 +8,7 @@ from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 # Settings store (scope + namespace -> value).
 class SettingRecord(BaseModel):
-    """Runtime settings store (scoped namespace -> JSON value)."""
+    """Internal model for setting records."""
 
     scope_type = fields.CharField(max_length=16, default=SCOPE_TYPE_SYSTEM, db_index=True)
     scope_id = fields.UUIDField(db_index=True, default=SYSTEM_SCOPE_ID)
@@ -17,6 +17,6 @@ class SettingRecord(BaseModel):
     updated_by = fields.UUIDField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "settings"
+        table = "internal_settings"
         abstract = False
         unique_together = (("scope_type", "scope_id", "namespace"),)

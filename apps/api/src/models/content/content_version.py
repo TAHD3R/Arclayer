@@ -10,7 +10,7 @@ from src.models.content._enums import ContentVersionState
 
 
 class ContentVersionRecord(BaseModel):
-    """Immutable version snapshot for a rebuilt content item."""
+    """Domain model for content version records."""
 
     item = fields.ForeignKeyField(
         "models.ContentItemRecord",
@@ -34,6 +34,6 @@ class ContentVersionRecord(BaseModel):
         item_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_versions"
+        table = "domain_content_versions"
         abstract = False
         unique_together = (("item_id", "version"),)

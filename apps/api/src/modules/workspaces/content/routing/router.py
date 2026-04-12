@@ -21,7 +21,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 canonical_routing_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content/routing",
-    tags=["Workspace: Content"],
+    tags=["domain.workspaces.content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 

@@ -19,7 +19,7 @@ from src.modules.workspaces.site.service import WorkspaceSiteService
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site",
-    tags=["Workspace: Site"],
+    tags=["domain.workspaces.site"],
     dependencies=[require_workspace_permission("system:site:read")],
 )
 
@@ -56,6 +56,7 @@ async def get_workspace_site(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceSiteOut]:
+    """Get the workspace site (single-site workspace model)."""
     service = WorkspaceSiteService(settings)
     site = await service.get_or_create_site_for_workspace(workspace_id=ctx.workspace_id, actor_user_id=user_id)
     out = WorkspaceSiteOut(
@@ -83,5 +84,6 @@ async def create_workspace_site_preview_token(
     site_id: Annotated[UUID, Depends(_resolve_site_id)],
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> ResponseModel[SitePreviewTokenOut]:
+    """Issue a preview token for Portal editor/preview (workspace RBAC protected)."""
     data = await service.create_preview_token(site_id=site_id, ttl_seconds=payload.ttl_seconds)
     return ApiResponse.success(data=data)

@@ -18,7 +18,7 @@ from src.models.content._enums import (
 
 
 class ContentItemRecord(BaseModel):
-    """Mutable content item state without route/tree blueprint coupling."""
+    """Domain model for content item records."""
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
@@ -99,6 +99,6 @@ class ContentItemRecord(BaseModel):
         model_definition_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "content_items"
+        table = "domain_content_items"
         abstract = False
         unique_together = (("model_definition_id", "locale", "slug"),)

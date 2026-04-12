@@ -2,4 +2,4 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-router = APIRouter(tags=["Sites: Namespaces"])
+router = APIRouter(tags=["domain.sites.namespaces"])

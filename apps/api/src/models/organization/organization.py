@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Organization (tenant boundary).
 class Organization(BaseModel):
-    """
+    """Domain model for organizations.
+
     Organization (account-level container).
 
     v2 boundary model:
@@ -21,5 +22,5 @@ class Organization(BaseModel):
     is_active = fields.BooleanField(default=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "organizations"
+        table = "domain_organizations"
         abstract = False

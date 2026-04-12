@@ -16,7 +16,7 @@ from src.modules.auth.http.service import get_current_user
 from src.modules.organization.http.service import require_org_admin
 
 router = APIRouter(
-    tags=["System: Activity"],
+    tags=["domain.analytics"],
     dependencies=[Depends(require_org_admin)],
 )
 
@@ -33,6 +33,7 @@ async def list_activity(
     orgm=Depends(require_org_admin),
     _user=Depends(get_current_user),
 ) -> ResponseModel[PageData[AuditEventOut]]:
+    """List activity events (org-scoped)."""
     orgm_like = cast(HasOrganizationId, orgm)
     org_id = UUID(str(orgm_like.organization_id))
 
@@ -52,6 +53,7 @@ async def get_activity_detail(
     orgm=Depends(require_org_admin),
     _user=Depends(get_current_user),
 ) -> ResponseModel[AuditEventOut]:
+    """Get activity event detail (org-scoped)."""
     orgm_like = cast(HasOrganizationId, orgm)
     org_id = UUID(str(orgm_like.organization_id))
 

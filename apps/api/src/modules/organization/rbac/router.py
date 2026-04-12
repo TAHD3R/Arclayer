@@ -22,7 +22,7 @@ from src.modules.organization.rbac.schema import (
 )
 from src.modules.organization.rbac.service import OrganizationRBACService
 
-router = APIRouter(prefix="/organizations/me/rbac", tags=["Organization RBAC"])
+router = APIRouter(prefix="/organizations/me/rbac", tags=["domain.organization.rbac"])
 
 
 def get_org_rbac_service(settings: Settings = Depends(get_settings)) -> OrganizationRBACService:
@@ -54,6 +54,7 @@ async def list_roles(
     params: PageParams = Depends(get_page_params),
     service: OrganizationRBACService = Depends(get_org_rbac_service),
 ) -> ResponseModel[PageData[OrganizationRoleOut]]:
+    """List organization roles."""
     await _assert_permission(
         orgm=orgm,
         service=service,
@@ -78,6 +79,7 @@ async def list_permissions(
     params: PageParams = Depends(get_page_params),
     service: OrganizationRBACService = Depends(get_org_rbac_service),
 ) -> ResponseModel[PageData[OrganizationPermissionOut]]:
+    """List organization permissions."""
     await _assert_permission(
         orgm=orgm,
         service=service,
@@ -106,6 +108,7 @@ async def get_matrix(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: OrganizationRBACService = Depends(get_org_rbac_service),
 ) -> ResponseModel[OrganizationRBACMatrixOut]:
+    """Get organization RBAC matrix."""
     await _assert_permission(
         orgm=orgm,
         service=service,
@@ -143,6 +146,7 @@ async def create_role(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: OrganizationRBACService = Depends(get_org_rbac_service),
 ) -> ResponseModel[OrganizationRoleOut]:
+    """Create organization custom role."""
     await _assert_permission(
         orgm=orgm,
         service=service,
@@ -169,6 +173,7 @@ async def delete_role(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: OrganizationRBACService = Depends(get_org_rbac_service),
 ) -> ResponseModel[None]:
+    """Delete organization custom role."""
     await _assert_permission(
         orgm=orgm,
         service=service,
@@ -192,6 +197,7 @@ async def set_permission_roles(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: OrganizationRBACService = Depends(get_org_rbac_service),
 ) -> ResponseModel[None]:
+    """Set custom roles for an organization permission."""
     await _assert_permission(
         orgm=orgm,
         service=service,
@@ -217,6 +223,7 @@ async def set_role_permissions(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     service: OrganizationRBACService = Depends(get_org_rbac_service),
 ) -> ResponseModel[None]:
+    """Set permissions for an organization custom role."""
     await _assert_permission(
         orgm=orgm,
         service=service,

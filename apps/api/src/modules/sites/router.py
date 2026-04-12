@@ -9,7 +9,7 @@ from src.modules.sites.runtime.router import router as runtime_router
 from src.modules.sites.settings.router import router as settings_router
 from src.modules.sites.sitemap.router import router as sitemap_router
 
-router = APIRouter(tags=["Sites"])
+router = APIRouter(tags=["domain.sites"])
 router.include_router(site_domains_router)
 router.include_router(runtime_router)
 router.include_router(preview_tokens_router)

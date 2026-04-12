@@ -9,7 +9,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.modules.sites.http.service import get_site_service
 from src.modules.sites.service import SiteService
 
-router = APIRouter(tags=["Sites"])
+router = APIRouter(tags=["external.sites.sitemap"])
 
 
 @router.get(
@@ -21,6 +21,7 @@ async def get_sitemap_xml(
     site_id: PublicUUID,
     service: Annotated[SiteService, Depends(get_site_service)],
 ) -> RawResponse:
+    """Get sitemap.xml (public)."""
     xml = await service.get_sitemap_xml(site_id=site_id)
     return RawResponse(
         content=xml,

@@ -7,7 +7,7 @@ from src.common.models import BaseModel
 
 # Site pattern definition (reusable blocks composition).
 class SitePattern(BaseModel):
-    """User-defined block pattern (reusable block composition)."""
+    """Domain model for site patterns."""
 
     site = fields.ForeignKeyField(
         "models.SiteRecord",
@@ -23,6 +23,6 @@ class SitePattern(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "site_patterns"
+        table = "domain_site_patterns"
         abstract = False
         unique_together = (("site_id", "code"),)

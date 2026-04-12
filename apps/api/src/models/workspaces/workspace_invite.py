@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Workspace email invite (pending membership invitation).
 class WorkspaceEmailInvite(BaseModel):
-    """
+    """Domain model for workspace email invites.
+
     Email-bound invite (Pending/Accepted list).
 
     Rules (v2):
@@ -39,13 +40,14 @@ class WorkspaceEmailInvite(BaseModel):
     revoked_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "workspace_email_invites"
+        table = "domain_workspace_email_invites"
         abstract = False
 
 
 # Workspace invite link (reusable invite token).
 class WorkspaceInviteLink(BaseModel):
-    """
+    """Domain model for workspace invite links.
+
     Reusable invite link.
 
     Rules (v2):
@@ -78,13 +80,13 @@ class WorkspaceInviteLink(BaseModel):
     last_used_at = fields.DatetimeField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "workspace_invite_links"
+        table = "domain_workspace_invite_links"
         abstract = False
 
 
 # Workspace invite link use event (audit trail).
 class WorkspaceInviteLinkUseEvent(BaseModel):
-    """Invite link usage event (participants)."""
+    """Domain model for workspace invite link use events."""
 
     link = fields.ForeignKeyField(
         "models.WorkspaceInviteLink",
@@ -96,6 +98,6 @@ class WorkspaceInviteLinkUseEvent(BaseModel):
     joined_membership_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "workspace_invite_link_use_events"
+        table = "domain_workspace_invite_link_use_events"
         abstract = False
         index_together = (("link_id", "used_at"),)

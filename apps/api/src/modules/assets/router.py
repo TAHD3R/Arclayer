@@ -7,7 +7,7 @@ from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.modules.assets.service import AssetsService
 
-router = APIRouter(tags=["Public: Assets"])
+router = APIRouter(tags=["external.assets"])
 
 
 def get_assets_service(settings: Settings = Depends(get_settings)) -> AssetsService:
@@ -19,6 +19,7 @@ async def asset_redirect(
     asset_id: PublicUUID,
     service: AssetsService = Depends(get_assets_service),
 ) -> Response:
+    """Redirect to canonical asset URL."""
     return await service.redirect_to_canonical(asset_id=asset_id)
 
 
@@ -28,6 +29,7 @@ async def asset_download(
     range: str | None = Header(default=None, alias="Range"),
     service: AssetsService = Depends(get_assets_service),
 ) -> Response:
+    """Download asset file."""
     return await service.download(asset_id=asset_id, range_header=range)
 
 
@@ -38,6 +40,7 @@ async def asset_thumbnail(
     range: str | None = Header(default=None, alias="Range"),
     service: AssetsService = Depends(get_assets_service),
 ) -> Response:
+    """Serve asset thumbnail."""
     return await service.thumbnail(asset_id=asset_id, width=w, range_header=range)
 
 
@@ -48,4 +51,5 @@ async def asset_serve(
     range: str | None = Header(default=None, alias="Range"),
     service: AssetsService = Depends(get_assets_service),
 ) -> Response:
+    """Serve asset content."""
     return await service.serve(asset_id=asset_id, filename=filename, range_header=range)

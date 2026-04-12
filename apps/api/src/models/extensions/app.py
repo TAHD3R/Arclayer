@@ -14,7 +14,8 @@ class AppStatus(StrEnum):
 
 
 class ExtensionApp(BaseModel):
-    """
+    """Domain model for extension apps.
+
     Installed app record (official/community).
 
     Notes:
@@ -37,5 +38,5 @@ class ExtensionApp(BaseModel):
     base_url = fields.CharField(max_length=512, null=True)
 
     class Meta(BaseModel.Meta):
-        table = "extension_apps"
+        table = "domain_extension_apps"
         abstract = False

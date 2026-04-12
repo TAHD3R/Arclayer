@@ -6,7 +6,8 @@ from src.common.models import BaseModel
 
 
 class WebhookDelivery(BaseModel):
-    """
+    """Domain model for webhook deliveries.
+
     Webhook delivery log record.
 
     v1 is intentionally minimal: it supports delivery diagnostics and debugging, and avoids storing
@@ -26,5 +27,5 @@ class WebhookDelivery(BaseModel):
     duration_ms = fields.IntField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "webhook_deliveries"
+        table = "domain_webhook_deliveries"
         abstract = False

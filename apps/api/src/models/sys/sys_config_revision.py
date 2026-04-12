@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Sys config revision history (namespace -> value).
 class SysConfigRevision(BaseModel):
-    """
+    """Internal model for system configuration revisions.
+
     Sys-domain configuration revision (namespace -> JSON payload).
 
     Notes:
@@ -26,6 +27,6 @@ class SysConfigRevision(BaseModel):
     signing_key_fingerprint = fields.CharField(max_length=128, null=True)
 
     class Meta(BaseModel.Meta):
-        table = "sys_config_revisions"
+        table = "internal_sys_config_revisions"
         abstract = False
         indexes = (("namespace", "created_at"),)

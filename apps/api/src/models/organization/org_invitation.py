@@ -7,7 +7,7 @@ from src.common.models import BaseModel
 
 # Organization email invite (pending membership invitation).
 class OrganizationEmailInvite(BaseModel):
-    """Email-bound invitation for joining an organization."""
+    """Domain model for organization email invites."""
 
     organization = fields.ForeignKeyField(
         "models.Organization",
@@ -30,13 +30,13 @@ class OrganizationEmailInvite(BaseModel):
     revoked_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "organization_email_invites"
+        table = "domain_organization_email_invites"
         abstract = False
 
 
 # Organization invite link (reusable invite token).
 class OrganizationInviteLink(BaseModel):
-    """Reusable organization invitation link."""
+    """Domain model for organization invite links."""
 
     organization = fields.ForeignKeyField(
         "models.Organization",
@@ -62,13 +62,13 @@ class OrganizationInviteLink(BaseModel):
     last_used_at = fields.DatetimeField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "organization_invite_links"
+        table = "domain_organization_invite_links"
         abstract = False
 
 
 # Organization invite link use event (audit trail).
 class OrganizationInviteLinkUseEvent(BaseModel):
-    """Invite-link use event for organization invite links."""
+    """Domain model for organization invite link use events."""
 
     link = fields.ForeignKeyField(
         "models.OrganizationInviteLink",
@@ -80,6 +80,6 @@ class OrganizationInviteLinkUseEvent(BaseModel):
     joined_membership_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "organization_invite_link_use_events"
+        table = "domain_organization_invite_link_use_events"
         abstract = False
         index_together = (("link_id", "used_at"),)

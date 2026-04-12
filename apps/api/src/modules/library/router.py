@@ -7,7 +7,7 @@ from src.config import Settings, get_settings
 from src.modules.library.schema import PublicLibraryListQuery, PublicLibraryPageOut
 from src.modules.library.service import PublicLibraryService
 
-router = APIRouter(tags=["Public: Library"])
+router = APIRouter(tags=["external.library"])
 
 
 def get_library_service(settings: Settings = Depends(get_settings)) -> PublicLibraryService:
@@ -26,6 +26,7 @@ async def public_library(
     query: PublicLibraryListQuery = Depends(),
     service: PublicLibraryService = Depends(get_library_service),
 ) -> Response | PublicLibraryPageOut:
+    """Public asset library (HTML or JSON)."""
     # Content negotiation:
     # - If client Accepts text/html, returns minimal HTML for indexing.
     # - Else returns JSON (PublicLibraryPageOut).

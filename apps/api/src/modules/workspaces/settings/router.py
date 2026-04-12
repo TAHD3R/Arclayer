@@ -21,7 +21,7 @@ from src.modules.workspaces.settings.schema import (
 )
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/settings", tags=["Workspace Settings"])
+router = APIRouter(prefix="/workspaces/{workspace_id}/settings", tags=["domain.workspaces.settings"])
 router.include_router(workspace_webhooks_router)
 
 
@@ -35,6 +35,7 @@ async def get_workspace_core_settings(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceSettingsDetail]:
+    """Get workspace core settings."""
     service = WorkspaceSettingsService(settings)
     detail = await service.get_core_detail(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=detail)
@@ -52,6 +53,7 @@ async def patch_workspace_core_settings(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceSettingsDetail]:
+    """Patch workspace core settings."""
     service = WorkspaceSettingsService(settings)
     detail = await service.patch_core(workspace_id=ctx.workspace_id, patch=payload.patch or {}, updated_by=user_id)
     return ApiResponse.success(data=detail)
@@ -67,6 +69,7 @@ async def get_workspace_role_policy(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
+    """Get workspace role policy."""
     service = WorkspaceSettingsService(settings)
     out = await service.get_role_policy(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=out)
@@ -83,6 +86,7 @@ async def patch_workspace_role_policy(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
+    """Patch workspace role policy."""
     service = WorkspaceSettingsService(settings)
     out = await service.patch_role_policy(
         workspace_id=ctx.workspace_id,
@@ -102,6 +106,7 @@ async def assign_workspace_role_to_regular_members(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceAssignRoleToMembersResult]:
+    """Assign role to all regular members in workspace."""
     service = WorkspaceSettingsService(settings)
     out = await service.assign_role_to_regular_members(
         workspace_id=ctx.workspace_id,

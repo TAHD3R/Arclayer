@@ -99,8 +99,8 @@ Use `pnpm format` only when formatting is required by the task.
 
 - Index: `docs/guidelines/README.md`
 - Agents behavior: `docs/guidelines/agents-guide.md`
-- API contract: `docs/guidelines/api-contract-guideline.md`
-- Backend folder architecture: `docs/guidelines/backend-folder-architecture.md`
+- API contract: `docs/guidelines/backend-endpoint-contract-guideline.md`
+- Backend folder architecture: `docs/guidelines/backend-folder-architecture-guideline.md`
 - Frontend folder architecture: `docs/guidelines/frontend-folder-architecture.md`
 - Design guideline: `docs/guidelines/design-guideline.md`
 - i18n: `docs/guidelines/i18n.md`
@@ -110,7 +110,7 @@ Use `pnpm format` only when formatting is required by the task.
 ## Common Pitfalls (Quick Checks)
 
 - i18n: avoid hardcoded user-facing strings; add keys to both `zh-CN` and `en-US` (see `docs/guidelines/i18n.md`).
-- Backend: keep routers thin; do not call repositories from routers; external-facing IDs must use `PublicUUID` (see `docs/guidelines/backend-folder-architecture.md` and `docs/guidelines/api-contract-guideline.md`).
+- Backend: keep routers thin; do not call repositories from routers; external-facing IDs must use `PublicUUID` (see `docs/guidelines/backend-folder-architecture-guideline.md` and `docs/guidelines/backend-endpoint-contract-guideline.md`).
 - Admin UI: follow convention tests (see `apps/admin/test/lib/conventions/admin-ui-conventions.test.ts`).
 - Frontend: avoid `any`; keep routing config files free of business logic (see `docs/guidelines/frontend-folder-architecture.md`).
 - Monorepo hygiene: avoid touching `node_modules/`, lockfiles, and build outputs unless explicitly required.

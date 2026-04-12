@@ -16,7 +16,8 @@ class PermissionScope(StrEnum):
 
 # RBAC role (workspace-scoped).
 class Role(BaseModel):
-    """
+    """Internal model for roles.
+
     Workspace-scoped RBAC role.
 
     Notes:
@@ -46,14 +47,15 @@ class Role(BaseModel):
     is_superuser = fields.BooleanField(default=False, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "roles"
+        table = "internal_roles"
         abstract = False
         unique_together = (("workspace_id", "code"),)
 
 
 # RBAC permission catalog entry.
 class Permission(BaseModel):
-    """
+    """Internal model for permissions.
+
     RBAC permission.
 
     Notes:
@@ -71,18 +73,18 @@ class Permission(BaseModel):
     plugin_id = fields.CharField(max_length=128, null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "permissions"
+        table = "internal_permissions"
         abstract = False
 
 
 # Role -> Permission link (many-to-many).
 class RolePermission(BaseModel):
-    """Role -> Permission link (many-to-many)."""
+    """Internal model for role permissions."""
 
     role = fields.ForeignKeyField("models.Role", related_name="role_permissions", on_delete=fields.CASCADE)
     permission = fields.ForeignKeyField("models.Permission", related_name="permission_roles", on_delete=fields.CASCADE)
 
     class Meta(BaseModel.Meta):
-        table = "role_permissions"
+        table = "internal_role_permissions"
         unique_together = (("role_id", "permission_id"),)
         abstract = False

@@ -35,7 +35,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 canonical_items_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
-    tags=["Workspace: Content"],
+    tags=["domain.workspaces.content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 
@@ -106,6 +106,7 @@ async def list_workspace_content_items_canonical(
     params: PageParams = Depends(get_page_params),
     model_key: Annotated[str | None, Query(alias="modelKey", description="Optional content model key filter.")] = None,
 ) -> ResponseModel[PageData[ContentItemOut]]:
+    """List rebuilt content items (workspace RBAC protected)."""
     data = await service.list_items_paginated(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -130,6 +131,7 @@ async def get_workspace_content_item_canonical(
         Depends(get_workspace_content_canonical_item_reads),
     ],
 ) -> ResponseModel[ContentItemOut]:
+    """Get rebuilt content item detail (workspace RBAC protected)."""
     data = await service.get_item(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -157,6 +159,7 @@ async def create_workspace_content_item_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
+    """Create rebuilt content item (workspace RBAC protected)."""
     data = await service.create_item(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -197,6 +200,7 @@ async def duplicate_workspace_content_item_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
+    """Duplicate rebuilt content item (workspace RBAC protected)."""
     data = await service.duplicate_item(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -236,6 +240,7 @@ async def delete_workspace_content_item_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[None]:
+    """Delete rebuilt content item (workspace RBAC protected)."""
     await service.delete_item(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -270,6 +275,7 @@ async def archive_workspace_content_item_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
+    """Archive current rebuilt content item state (workspace RBAC protected)."""
     data = await service.archive_item(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -306,6 +312,7 @@ async def unarchive_workspace_content_item_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
+    """Restore archived rebuilt content item back to draft (workspace RBAC protected)."""
     data = await service.unarchive_item(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -346,6 +353,7 @@ async def apply_workspace_content_item_bootstrap_shape(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentItemOut]:
+    """Apply bootstrap shape to a content item (workspace RBAC protected)."""
     data = await service.apply_bootstrap_shape(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -388,6 +396,7 @@ async def save_workspace_content_item_draft_version_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
+    """Save rebuilt content draft version (workspace RBAC protected)."""
     data = await service.save_draft_version(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -427,6 +436,7 @@ async def list_workspace_content_item_versions_canonical(
     ],
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[ContentVersionOut]]:
+    """List rebuilt content versions (workspace RBAC protected)."""
     data = await service.list_versions_paginated(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -452,6 +462,7 @@ async def get_workspace_content_item_version_canonical(
         Depends(get_workspace_content_canonical_item_reads),
     ],
 ) -> ResponseModel[ContentVersionOut]:
+    """Get rebuilt content version detail (workspace RBAC protected)."""
     data = await service.get_version(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -480,6 +491,7 @@ async def publish_workspace_content_item_version_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
+    """Publish rebuilt content version (workspace RBAC protected)."""
     data = await service.transition_version(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -523,6 +535,7 @@ async def schedule_workspace_content_item_version_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
+    """Schedule rebuilt content version (workspace RBAC protected)."""
     data = await service.transition_version(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -566,6 +579,7 @@ async def archive_workspace_content_item_version_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
+    """Archive rebuilt content version (workspace RBAC protected)."""
     data = await service.transition_version(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -610,6 +624,7 @@ async def patch_workspace_content_item_version_canonical(
         Depends(get_workspace_content_canonical_items_service),
     ],
 ) -> ResponseModel[ContentVersionOut]:
+    """Patch rebuilt content version (workspace RBAC protected)."""
     data = await service.patch_version(
         workspace_id=ctx.workspace_id,
         site_id=site_id,

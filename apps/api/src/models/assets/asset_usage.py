@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Asset usage reference (best-effort audit).
 class AssetUsageRecord(BaseModel):
-    """
+    """Domain model for asset usage records.
+
     Asset usage reference (workspace-scoped in v2).
 
     Use cases:
@@ -43,7 +44,7 @@ class AssetUsageRecord(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "asset_usages"
+        table = "domain_asset_usages"
         abstract = False
         unique_together = (
             ("workspace_id", "entity_type", "entity_id", "field_key"),

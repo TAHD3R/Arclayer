@@ -7,7 +7,7 @@ from src.common.models import BaseModel
 
 # Organization role (org-scoped RBAC).
 class OrganizationRole(BaseModel):
-    """Organization-scoped RBAC role."""
+    """Domain model for organization roles."""
 
     organization = fields.ForeignKeyField(
         "models.Organization",
@@ -26,14 +26,14 @@ class OrganizationRole(BaseModel):
     is_builtin = fields.BooleanField(default=False, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "organization_roles"
+        table = "domain_organization_roles"
         abstract = False
         unique_together = (("organization_id", "code"),)
 
 
 # Organization permission catalog entry.
 class OrganizationPermission(BaseModel):
-    """Organization-scoped permission catalog entry."""
+    """Domain model for organization permissions."""
 
     code = fields.CharField(max_length=128, unique=True, db_index=True)
     module = fields.CharField(max_length=64, db_index=True)
@@ -42,13 +42,13 @@ class OrganizationPermission(BaseModel):
     is_system = fields.BooleanField(default=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "organization_permissions"
+        table = "domain_organization_permissions"
         abstract = False
 
 
 # Organization role -> permission grant edge.
 class OrganizationRolePermission(BaseModel):
-    """Organization role -> permission grant edge."""
+    """Domain model for organization role permissions."""
 
     role = fields.ForeignKeyField(
         "models.OrganizationRole",
@@ -62,6 +62,6 @@ class OrganizationRolePermission(BaseModel):
     )
 
     class Meta(BaseModel.Meta):
-        table = "organization_role_permissions"
+        table = "domain_organization_role_permissions"
         abstract = False
         unique_together = ("role_id", "permission_id")

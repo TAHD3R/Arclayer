@@ -7,7 +7,7 @@ from src.common.models import BaseModel
 
 # OAuth identity mapping (provider subject -> local user).
 class OAuthIdentity(BaseModel):
-    """OAuth identity mapping (provider subject -> local user)."""
+    """Global model for OAuth identities."""
 
     provider = fields.CharField(max_length=32, db_index=True)
     subject = fields.CharField(max_length=128, db_index=True)
@@ -18,7 +18,7 @@ class OAuthIdentity(BaseModel):
     email = fields.CharField(max_length=255, null=True)
 
     class Meta(BaseModel.Meta):
-        table = "oauth_identities"
+        table = "global_oauth_identities"
         abstract = False
         unique_together = (("provider", "subject"),)
         index_together = (("user_id", "provider"),)

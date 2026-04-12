@@ -10,7 +10,7 @@ from src.models.content._enums import ContentPresentationKind
 
 
 class PresentationDocumentRecord(BaseModel):
-    """Version-scoped presentation payload (visual, rich text, query DSL, etc.)."""
+    """Domain model for presentation document records."""
 
     version = fields.ForeignKeyField(
         "models.ContentVersionRecord",
@@ -25,6 +25,6 @@ class PresentationDocumentRecord(BaseModel):
         version_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_presentation_documents"
+        table = "domain_content_presentation_documents"
         abstract = False
         unique_together = (("version_id", "kind"),)

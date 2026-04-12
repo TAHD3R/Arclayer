@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Site (public portal boundary).
 class SiteRecord(BaseModel):
-    """
+    """Domain model for site records.
+
     Site (public portal boundary).
 
     Sprint 3:
@@ -32,7 +33,7 @@ class SiteRecord(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "sites"
+        table = "domain_sites"
         abstract = False
         # Enforce 1:1 between workspace and site (single-site workspace model).
         # Slug is kept for forward compatibility, but is not part of the uniqueness contract.

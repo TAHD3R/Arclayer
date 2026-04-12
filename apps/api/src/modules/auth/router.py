@@ -89,7 +89,7 @@ from src.modules.auth.two_factor.schema import (
 )
 from src.modules.auth.two_factor.service import AuthTwoFactorService
 
-router = APIRouter(tags=["Services: Auth Service"])
+router = APIRouter(tags=["global.auth"])
 
 
 def _get_auth_service(
@@ -269,6 +269,7 @@ async def login(
     fastapi_response: FastAPIResponse,
     service: AuthLoginService = Depends(_get_auth_login_service),
 ) -> ResponseModel[TokenPair]:
+    """Login and issue access/refresh tokens."""
     tokens = await service.login(
         identifier=payload.username,
         password=payload.password,
@@ -295,6 +296,7 @@ async def login_two_factor(
     fastapi_response: FastAPIResponse,
     service: AuthLoginService = Depends(_get_auth_login_service),
 ) -> ResponseModel[TokenPair]:
+    """Complete login with 2FA challenge token."""
     tokens = await service.complete_two_factor_login(
         two_factor_token=payload.two_factor_token,
         code=payload.code,
@@ -321,6 +323,7 @@ async def register(
     background_tasks: BackgroundTasks,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
+    """Register a new account."""
     user = await service.register_public(
         username=payload.username,
         password=payload.password,
@@ -352,6 +355,7 @@ async def refresh(
     fastapi_response: FastAPIResponse,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
+    """Refresh access token."""
     tokens = await service.refresh(
         refresh_token=payload.refresh_token,
         request_context=build_auth_request_context(request),
@@ -376,6 +380,7 @@ async def refresh_cookie(
     fastapi_response: FastAPIResponse,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
+    """Refresh tokens using refresh cookie."""
     settings = service.settings
     if not settings.auth.cookie.enabled:
         raise BadRequest(
@@ -413,6 +418,7 @@ async def forgot_password(
     background_tasks: BackgroundTasks,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[ResetTokenPayload]:
+    """Request password reset."""
     token_payload, issued = await service.request_password_reset(identifier=payload.identifier)
     if issued:
         token, ttl, recipient, user_id = issued
@@ -441,6 +447,7 @@ async def reset_password(
     payload: ResetPasswordRequest,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
+    """Reset password using token."""
     await service.reset_password(reset_token=payload.reset_token, new_password=payload.new_password)
     return ApiResponse.success(message=t("auth", "RESET_SUCCESS", default="密码重置成功"))
 
@@ -455,6 +462,7 @@ async def change_password(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
+    """Change current password."""
     await service.change_password(
         user_id=user.id,
         old_password=payload.old_password,
@@ -473,6 +481,7 @@ async def set_my_password(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
+    """Set password for current user (OAuth-only accounts)."""
     await service.set_password_for_current_user(
         user_id=user.id,
         new_password=payload.new_password,
@@ -494,6 +503,7 @@ async def logout(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
+    """Logout and revoke refresh tokens."""
     refresh_token = payload.refresh_token
     if not refresh_token and service.settings.auth.cookie.enabled:
         refresh_token = request.cookies.get(service.settings.auth.cookie.name)
@@ -512,6 +522,7 @@ async def logout_all(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
+    """Logout from all sessions and revoke refresh tokens."""
     await service.logout_all(user_id=user.id)
     _clear_refresh_cookie(fastapi_response, settings=service.settings)
     return ApiResponse.success(message=t("auth", "LOGOUT_SUCCESS", default="退出成功"))
@@ -527,6 +538,7 @@ async def list_my_sessions(
     access_payload: dict[str, object] = Depends(get_current_access_payload),
     service: AuthSessionService = Depends(_get_auth_session_service),
 ) -> ResponseModel[AuthSessionListOut]:
+    """List active sessions for current user."""
     current_sid_raw = access_payload.get("sid")
     current_sid = current_sid_raw.strip() if isinstance(current_sid_raw, str) and current_sid_raw.strip() else None
     out = await service.list_sessions(user_id=user.id, current_session_id=current_sid)
@@ -543,6 +555,7 @@ async def revoke_my_session(
     user: User = Depends(get_current_user),
     service: AuthSessionService = Depends(_get_auth_session_service),
 ) -> ResponseModel[None]:
+    """Revoke a session for current user."""
     await service.revoke_session(user_id=user.id, session_id=session_id)
     return ApiResponse.success(message=t("auth", "SESSION_REVOKED", default="会话已撤销"))
 
@@ -557,6 +570,7 @@ async def revoke_other_sessions(
     access_payload: dict[str, object] = Depends(get_current_access_payload),
     service: AuthSessionService = Depends(_get_auth_session_service),
 ) -> ResponseModel[AuthSessionRevokeOthersOut]:
+    """Revoke all sessions except current."""
     current_sid_raw = access_payload.get("sid")
     current_sid = current_sid_raw.strip() if isinstance(current_sid_raw, str) and current_sid_raw.strip() else None
     if not current_sid:
@@ -574,6 +588,7 @@ async def get_two_factor_status(
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[TwoFactorStatusOut]:
+    """Get 2FA status for current user."""
     enabled, backup_codes_remaining = await service.get_status(user_id=user.id)
     return ApiResponse.success(data=TwoFactorStatusOut(enabled=enabled, backup_codes_remaining=backup_codes_remaining))
 
@@ -587,6 +602,7 @@ async def get_two_factor_capabilities(
     user: User = Depends(get_current_user),
     service: TwoFactorCapabilityService = Depends(_get_auth_two_factor_capability_service),
 ) -> ResponseModel[TwoFactorCapabilitiesOut]:
+    """Get 2FA capabilities for current user."""
     out = await service.get_capabilities(user_id=user.id)
     return ApiResponse.success(data=out)
 
@@ -601,6 +617,7 @@ async def begin_two_factor_setup(
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[TwoFactorSetupOut]:
+    """Start 2FA (TOTP) setup for current user."""
     issuer = service.settings.application.app_name
     account_label = user.email or user.username
     secret, otpauth_uri = await service.begin_setup(
@@ -623,6 +640,7 @@ async def confirm_two_factor_setup(
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[TwoFactorConfirmOut]:
+    """Confirm 2FA setup (TOTP code required)."""
     codes = await service.confirm_setup(user_id=user.id, code=payload.code)
     return ApiResponse.success(data=TwoFactorConfirmOut(backup_codes=codes))
 
@@ -638,6 +656,7 @@ async def disable_two_factor(
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[None]:
+    """Disable 2FA (TOTP or backup code required)."""
     await service.disable(user_id=user.id, code=payload.code, backup_code=payload.backup_code)
     return ApiResponse.success(message=t("auth", "TWO_FACTOR_DISABLED", default="2FA 已禁用"))
 
@@ -653,6 +672,7 @@ async def regenerate_two_factor_backup_codes(
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
 ) -> ResponseModel[TwoFactorRegenerateBackupCodesOut]:
+    """Regenerate 2FA backup codes (TOTP or backup code required)."""
     codes = await service.regenerate_backup_codes(user_id=user.id, code=payload.code, backup_code=payload.backup_code)
     return ApiResponse.success(data=TwoFactorRegenerateBackupCodesOut(backup_codes=codes))
 
@@ -666,6 +686,7 @@ async def me(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
+    """Get current user profile."""
     profile = service.build_user_profile(user)
     return ApiResponse.success(data=profile)
 
@@ -679,6 +700,7 @@ async def get_my_security_capabilities(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[MySecurityCapabilityOut]:
+    """Get security capabilities for current user."""
     out = await service.get_my_security_capabilities(user_id=user.id)
     return ApiResponse.success(data=out)
 
@@ -693,6 +715,7 @@ async def update_me(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
+    """Update current user profile."""
     profile = await service.update_my_profile(user=user, payload=payload)
     return ApiResponse.success(message=t("auth", "PROFILE_UPDATED", default="资料已更新"), data=profile)
 
@@ -707,6 +730,7 @@ async def init_avatar_upload(
     user: User = Depends(get_current_user),
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadInitOut]:
+    """Initialize avatar upload (current user)."""
     session = await service.init_upload(
         scope=_user_asset_scope(user),
         actor_user_id=user.id,
@@ -742,6 +766,7 @@ async def get_avatar_upload_status(
     user: User = Depends(get_current_user),
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadStatusOut]:
+    """Get avatar upload status (current user)."""
     session, missing = await service.get_status(upload_id=upload_id, scope=_user_asset_scope(user))
     return ApiResponse.success(
         data=UploadStatusOut(
@@ -767,6 +792,7 @@ async def upload_avatar_part(
     service: UploadsService = Depends(_get_uploads_service),
     content_length: int | None = Header(default=None, alias="Content-Length"),
 ) -> ResponseModel[None]:
+    """Upload avatar part (current user)."""
     data = await request.body()
     if content_length is not None and content_length != len(data):
         raise BadRequest(
@@ -788,6 +814,7 @@ async def complete_avatar_upload(
     user: User = Depends(get_current_user),
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
+    """Complete avatar upload (current user)."""
     asset_id = await service.complete(
         upload_id=upload_id, scope=_user_asset_scope(user), background_tasks=background_tasks
     )
@@ -804,6 +831,7 @@ async def abort_avatar_upload(
     user: User = Depends(get_current_user),
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadAbortOut]:
+    """Abort avatar upload (current user)."""
     session = await service.abort(upload_id=upload_id, scope=_user_asset_scope(user))
     return ApiResponse.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
 
@@ -819,6 +847,7 @@ async def presign_avatar_upload_part(
     user: User = Depends(get_current_user),
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[UploadPartPresignOut]:
+    """Presign avatar upload part (current user)."""
     out = await service.presign_part(upload_id=upload_id, scope=_user_asset_scope(user), part_number=part_number)
     return ApiResponse.success(data=out)
 
@@ -835,6 +864,7 @@ async def commit_avatar_upload_part(
     user: User = Depends(get_current_user),
     service: UploadsService = Depends(_get_uploads_service),
 ) -> ResponseModel[None]:
+    """Commit avatar upload part (current user)."""
     await service.commit_part(
         upload_id=upload_id,
         scope=_user_asset_scope(user),
@@ -857,6 +887,7 @@ async def request_email_change(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[RequestMyEmailChangeOut]:
+    """Request email change verification code."""
     code, ttl, new_email = await service.request_email_change(user=user, new_email=str(payload.new_email))
     locale = get_current_locale()
     background_tasks.add_task(
@@ -884,6 +915,7 @@ async def confirm_email_change(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[UserProfile]:
+    """Confirm email change."""
     profile = await service.confirm_email_change(
         user=user,
         new_email=str(payload.new_email),
@@ -905,6 +937,7 @@ async def get_delete_my_account_capabilities(
     two_factor_service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[DeleteMyAccountCapabilityOut]:
+    """Get delete-account capabilities for current user."""
     service = AccountDeletionCapabilityService(settings)
     out = await service.get_capabilities(
         user=user,
@@ -924,6 +957,7 @@ async def delete_my_account(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
+    """Delete current account."""
     await service.delete_my_account(
         user=user,
         email=str(payload.email),
@@ -967,6 +1001,7 @@ async def accept_invitation(
     payload: AcceptInvitationRequest,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TokenPair]:
+    """Accept invitation and create account."""
     tokens = await service.accept_invitation(payload=payload)
     return ApiResponse.success(message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"), data=tokens)
 
@@ -981,6 +1016,7 @@ async def preview_invitation(
     token: str = Query(..., min_length=8, max_length=512, description="Invitation token."),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[InvitationPreviewResult]:
+    """Preview invitation details."""
     out = await service.preview_invitation(token=token)
     return ApiResponse.success(data=out)
 
@@ -996,6 +1032,7 @@ async def accept_existing_invitation(
     user: User = Depends(get_current_user),
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[AcceptExistingInvitationResult]:
+    """Accept invitation for existing account."""
     result = await service.accept_existing_invitation(payload=payload, user=user)
     return ApiResponse.success(
         message=t("auth", "INVITE_ACCEPTED", default="加入工作区成功"),

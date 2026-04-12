@@ -10,7 +10,7 @@ from src.models.content._enums import ContentModelRelationType
 
 
 class ContentModelRelationRecord(BaseModel):
-    """Relation contract between rebuilt content models."""
+    """Domain model for content model relation records."""
 
     model_definition = fields.ForeignKeyField(
         "models.ContentModelDefinitionRecord",
@@ -36,6 +36,6 @@ class ContentModelRelationRecord(BaseModel):
         target_model_definition_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "content_model_relations"
+        table = "domain_content_model_relations"
         abstract = False
         unique_together = (("model_definition_id", "key"),)

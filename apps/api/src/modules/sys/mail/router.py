@@ -10,7 +10,7 @@ from src.modules.system.mail.schema import MailTestRequest, MailTestResult
 from src.modules.system.mail.service import AdminMailService
 
 router = APIRouter(
-    tags=["Sys: Mail"],
+    tags=["internal.sys.mail"],
     dependencies=[Depends(require_sys_super_admin)],
 )
 
@@ -28,6 +28,7 @@ async def send_test_email(
     payload: MailTestRequest,
     service: AdminMailService = Depends(get_mail_service),
 ) -> ResponseModel[MailTestResult]:
+    """Send a test email (super admin)."""
     locale = get_current_locale()
     out = await service.send_test_email(recipient=str(payload.recipient), locale=locale)
     return ApiResponse.success(data=out)

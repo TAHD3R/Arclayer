@@ -34,7 +34,7 @@ from src.modules.organization.members.schema import (
 )
 from src.modules.organization.members.service import OrganizationMemberService
 
-router = APIRouter(prefix="/organizations/me", tags=["Organization"])
+router = APIRouter(prefix="/organizations/me", tags=["domain.organization.members"])
 
 
 @router.get(
@@ -93,6 +93,7 @@ async def list_organization_members(
     ),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationMemberOut]]:
+    """List organization members."""
     service = OrganizationMemberService(settings)
     out = await service.list_members(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -123,6 +124,7 @@ async def invite_organization_member(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationMemberInviteResult]:
+    """Invite organization member."""
     service = OrganizationMemberService(settings)
     if not await service.email_service.is_enabled():
         raise BadRequest(
@@ -154,6 +156,7 @@ async def list_organization_invitations(
     mine: bool | None = Query(default=None, description="If true, only invitations created by me."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationInvitationOut]]:
+    """List organization invitations."""
     service = OrganizationMemberService(settings)
     out = await service.list_invitations(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -178,6 +181,7 @@ async def renew_organization_invitation(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationInvitationRenewResult]:
+    """Renew organization invitation."""
     service = OrganizationMemberService(settings)
     out = await service.renew_invitation(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -198,6 +202,7 @@ async def revoke_organization_invitation(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationInvitationRevokeResult]:
+    """Revoke organization invitation."""
     service = OrganizationMemberService(settings)
     revoked = await service.revoke_invitation(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -219,6 +224,7 @@ async def create_organization_invite_link(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationInviteLinkCreateResult]:
+    """Create organization invite link."""
     service = OrganizationMemberService(settings)
     out = await service.create_invite_link(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -244,6 +250,7 @@ async def list_organization_invite_links(
     mine: bool | None = Query(default=None, description="If true, only links created by me."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationInviteLinkOut]]:
+    """List organization invite links."""
     service = OrganizationMemberService(settings)
     out = await service.list_invite_links(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -267,6 +274,7 @@ async def renew_organization_invite_link(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationInviteLinkRenewResult]:
+    """Renew organization invite link."""
     service = OrganizationMemberService(settings)
     out = await service.renew_invite_link(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -287,6 +295,7 @@ async def disable_organization_invite_link(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationInvitationRevokeResult]:
+    """Disable organization invite link."""
     service = OrganizationMemberService(settings)
     revoked = await service.disable_invite_link(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -309,6 +318,7 @@ async def list_organization_invite_link_participants(
     params: PageParams = DependsPagination,
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationInviteLinkParticipantOut]]:
+    """List organization invite-link participants."""
     service = OrganizationMemberService(settings)
     out = await service.list_invite_link_participants(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -330,6 +340,7 @@ async def patch_organization_member_role(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationMemberOut]:
+    """Update organization member role."""
     service = OrganizationMemberService(settings)
     out = await service.update_member_role(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),
@@ -350,6 +361,7 @@ async def delete_organization_member(
     orgm: Annotated[OrgMembership, Depends(get_current_org_membership)],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationMemberDeleteResult]:
+    """Remove organization member."""
     service = OrganizationMemberService(settings)
     out = await service.remove_member(
         organization_id=UUID(str(cast(HasOrganizationId, orgm).organization_id)),

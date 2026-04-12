@@ -9,7 +9,7 @@ from src.common.models import BaseModel
 
 
 class HierarchyNodeRecord(BaseModel):
-    """Hierarchy record separated from route binding and item payload."""
+    """Domain model for hierarchy node records."""
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
@@ -42,5 +42,5 @@ class HierarchyNodeRecord(BaseModel):
         parent_item_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "content_hierarchy_nodes"
+        table = "domain_content_hierarchy_nodes"
         abstract = False

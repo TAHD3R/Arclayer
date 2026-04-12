@@ -22,7 +22,8 @@ class NotificationCategory(StrEnum):
 
 # Notification inbox record (per-user).
 class NotificationRecord(BaseModel):
-    """
+    """Internal model for notification records.
+
     Per-user notification inbox record (workspace-scoped in v2).
 
     Product decisions (MVP):
@@ -54,6 +55,6 @@ class NotificationRecord(BaseModel):
     archived_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "notifications"
+        table = "internal_notifications"
         abstract = False
         unique_together = (("workspace_id", "recipient_user_id", "dedupe_key"),)

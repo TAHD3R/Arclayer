@@ -34,7 +34,7 @@ from src.modules.workspaces.team.schema import (
 )
 from src.modules.workspaces.team.service import WorkspaceTeamService
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/team", tags=["Workspace Team"])
+router = APIRouter(prefix="/workspaces/{workspace_id}/team", tags=["domain.workspaces.team"])
 
 
 @router.get(
@@ -49,6 +49,7 @@ async def list_user_options(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceTeamUserOptionOut]]:
+    """Search workspace users for Select options (pagination)."""
     service = WorkspaceTeamService(settings)
     page = await service.list_user_options(workspace_id=ctx.workspace_id, params=params, q=q)
     return ApiResponse.success(data=page)
@@ -66,6 +67,7 @@ async def list_members(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceTeamMemberOut]]:
+    """List workspace team members."""
     service = WorkspaceTeamService(settings)
     page = await service.list_members(workspace_id=ctx.workspace_id, params=params, filters=query)
     return ApiResponse.success(data=page)
@@ -84,6 +86,7 @@ async def set_member_roles(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
+    """Set workspace member roles."""
     service = WorkspaceTeamService(settings)
     await service.set_member_roles(
         organization_id=ctx.organization_id,
@@ -108,6 +111,7 @@ async def update_member_user(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberOut]:
+    """Update member user profile (workspace-scoped)."""
     service = WorkspaceTeamService(settings)
     out = await service.update_member_user(
         organization_id=ctx.organization_id,
@@ -131,6 +135,7 @@ async def enable_member(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
+    """Enable a member in current workspace."""
     service = WorkspaceTeamService(settings)
     out = await service.set_member_status(
         organization_id=ctx.organization_id,
@@ -154,6 +159,7 @@ async def disable_member(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
+    """Disable a member in current workspace."""
     service = WorkspaceTeamService(settings)
     out = await service.set_member_status(
         organization_id=ctx.organization_id,
@@ -178,6 +184,7 @@ async def reset_member_password(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
+    """Reset member password (workspace-scoped authorization)."""
     service = WorkspaceTeamService(settings)
     await service.reset_member_password(
         organization_id=ctx.organization_id,
@@ -202,6 +209,7 @@ async def create_email_invite(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceEmailInviteCreateResult]:
+    """Create or update an email invite (pending unique per email)."""
     service = WorkspaceTeamService(settings)
     # Email invites are meant to be delivered by email. To avoid "fake success", fail fast when disabled.
     if not await service.email_service.is_enabled():
@@ -259,6 +267,7 @@ async def list_email_invites(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceEmailInviteOut]]:
+    """List email invites (pending/accepted/revoked/expired)."""
     service = WorkspaceTeamService(settings)
     page = await service.list_email_invites(
         organization_id=ctx.organization_id,
@@ -286,6 +295,7 @@ async def renew_email_invite(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceEmailInviteCreateResult]:
+    """Renew an email invite (extend expires_at only)."""
     service = WorkspaceTeamService(settings)
     out = await service.renew_email_invite(
         organization_id=ctx.organization_id,
@@ -309,6 +319,7 @@ async def revoke_email_invite(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
+    """Revoke an email invite."""
     service = WorkspaceTeamService(settings)
     await service.revoke_email_invite(
         organization_id=ctx.organization_id,
@@ -331,6 +342,7 @@ async def create_invite_link(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceInviteLinkCreateResult]:
+    """Create a reusable invite link."""
     service = WorkspaceTeamService(settings)
     out = await service.create_invite_link(
         organization_id=ctx.organization_id,
@@ -359,6 +371,7 @@ async def list_invite_links(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceInviteLinkOut]]:
+    """List reusable invite links."""
     service = WorkspaceTeamService(settings)
     page = await service.list_invite_links(
         organization_id=ctx.organization_id,
@@ -385,6 +398,7 @@ async def list_invite_link_participants(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceInviteLinkParticipantOut]]:
+    """List invite link participants (usage events)."""
     service = WorkspaceTeamService(settings)
     page = await service.list_invite_link_participants(
         organization_id=ctx.organization_id,
@@ -409,6 +423,7 @@ async def renew_invite_link(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceInviteLinkCreateResult]:
+    """Renew invite link (extend expires_at only)."""
     service = WorkspaceTeamService(settings)
     out = await service.renew_invite_link(
         organization_id=ctx.organization_id,
@@ -432,6 +447,7 @@ async def disable_invite_link(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
+    """Disable invite link."""
     service = WorkspaceTeamService(settings)
     await service.disable_invite_link(
         organization_id=ctx.organization_id,

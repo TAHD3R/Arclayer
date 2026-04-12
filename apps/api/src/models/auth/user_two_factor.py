@@ -6,7 +6,8 @@ from src.common.models import BaseModel
 
 
 class UserTwoFactor(BaseModel):
-    """
+    """Global model for user two-factor settings.
+
     User TOTP (2FA) configuration.
 
     - `totp_secret_enc` is stored encrypted at rest.
@@ -20,12 +21,13 @@ class UserTwoFactor(BaseModel):
     last_totp_used_at = fields.DatetimeField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "user_two_factor"
+        table = "global_user_two_factor"
         abstract = False
 
 
 class UserTwoFactorBackupCode(BaseModel):
-    """
+    """Global model for user two-factor backup codes.
+
     One-time backup codes for 2FA.
 
     Stores only a salted hash; plain codes are never persisted.
@@ -37,5 +39,5 @@ class UserTwoFactorBackupCode(BaseModel):
     used_at = fields.DatetimeField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "user_two_factor_backup_codes"
+        table = "global_user_two_factor_backup_codes"
         abstract = False

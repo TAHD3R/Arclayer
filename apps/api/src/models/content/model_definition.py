@@ -14,7 +14,7 @@ from src.models.content._enums import (
 
 
 class ContentModelDefinitionRecord(BaseModel):
-    """Rebuilt content model definition scoped by workspace and site."""
+    """Domain model for content model definition records."""
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
@@ -65,6 +65,6 @@ class ContentModelDefinitionRecord(BaseModel):
         site_id: UUID
 
     class Meta(BaseModel.Meta):
-        table = "content_model_definitions"
+        table = "domain_content_model_definitions"
         abstract = False
         unique_together = (("workspace_id", "site_id", "key"),)

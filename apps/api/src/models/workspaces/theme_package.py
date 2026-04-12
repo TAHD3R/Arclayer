@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Theme package record (workspace-scoped).
 class ThemePackageRecord(BaseModel):
-    """
+    """Domain model for theme package records.
+
     Installed theme package (workspace-scoped).
 
     Notes:
@@ -44,7 +45,7 @@ class ThemePackageRecord(BaseModel):
     created_by = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "theme_packages"
+        table = "domain_theme_packages"
         abstract = False
         unique_together = (("workspace_id", "theme_id", "version"),)
         indexes = (("workspace_id", "theme_id"),)

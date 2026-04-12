@@ -14,7 +14,7 @@ from src.modules.sites.presence.schema import (
 )
 from src.modules.sites.service import SiteService
 
-router = APIRouter(tags=["Sites"])
+router = APIRouter(tags=["external.sites.presence"])
 
 
 @router.post(
@@ -32,6 +32,7 @@ async def heartbeat_presence(
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SitePresenceHeartbeatOut]:
+    """Presence heartbeat (v1: TTL-based, Valkey-backed)."""
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.heartbeat_presence(site_id=site_id, payload=payload)
     return ApiResponse.success(data=data)
@@ -49,6 +50,7 @@ async def list_presence(
     service: Annotated[SiteService, Depends(get_site_service)],
     token: Annotated[str, Query(..., description="Preview token (required).")],
 ) -> ResponseModel[SitePresenceListOut]:
+    """List presence records for a document key (v1)."""
     await service.assert_preview_access_async(site_id=site_id, mode="preview", token=token)
     data = await service.list_presence(site_id=site_id, doc_key=doc_key)
     return ApiResponse.success(data=data)

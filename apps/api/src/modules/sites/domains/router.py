@@ -27,7 +27,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site/domains",
-    tags=["Workspace: Site Domains"],
+    tags=["domain.sites.domains"],
     dependencies=[require_workspace_permission("system:domains:read")],
 )
 
@@ -55,6 +55,7 @@ async def list_site_domains(
     user_id: UUID = Depends(get_current_user_id),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[PageData[SiteDomainOut]]:
+    """List site custom domains for current workspace site."""
     domains = await service.list_domains(workspace_id=ctx.workspace_id, actor_user_id=user_id)
     items = [SiteDomainOut.model_validate(service.to_out(d)) for d in domains]
     page = paginate_items(items, params=params)
@@ -75,6 +76,7 @@ async def create_site_domain(
     user_id: UUID = Depends(get_current_user_id),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainCreateOut]:
+    """Bind a custom domain (DNS TXT verification required)."""
     rec, dns = await service.create_domain(
         workspace_id=ctx.workspace_id,
         hostname=payload.hostname,
@@ -97,6 +99,7 @@ async def verify_site_domain(
     user_id: UUID = Depends(get_current_user_id),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainVerifyOut]:
+    """Verify a custom domain via DNS TXT."""
     rec, dns, observed = await service.verify_domain(
         workspace_id=ctx.workspace_id,
         domain_id=UUID(str(domain_id)),
@@ -126,6 +129,7 @@ async def update_site_domain(
     user_id: UUID = Depends(get_current_user_id),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainOut]:
+    """Update a custom domain binding."""
     if payload.is_active is None:
         # Keep this endpoint strict: require at least one field.
         raise Conflict("No updatable fields provided", error="SITE_DOMAIN_UPDATE_EMPTY")
@@ -153,6 +157,7 @@ async def delete_site_domain(
     user_id: UUID = Depends(get_current_user_id),
     service: SiteDomainsService = Depends(get_site_domains_service),
 ) -> ResponseModel[SiteDomainDeleteOut]:
+    """Unbind a custom domain."""
     await service.delete_domain(
         workspace_id=ctx.workspace_id,
         domain_id=UUID(str(domain_id)),

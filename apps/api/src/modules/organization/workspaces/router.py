@@ -24,7 +24,7 @@ from src.modules.organization.workspaces.schema import (
 )
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 
-router = APIRouter(tags=["Organization"])
+router = APIRouter(tags=["domain.organization.workspaces"])
 
 
 def _org_id(orgm: OrgMembership) -> UUID:
@@ -162,6 +162,7 @@ async def list_organization_workspaces_me(
     enterable_only: bool = Query(default=False, description="Only include enterable workspaces."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationWorkspaceOut]]:
+    """List organization workspaces."""
     return await _list_workspaces(
         orgm=orgm,
         params=params,
@@ -194,6 +195,7 @@ async def list_organization_workspaces_by_org(
     enterable_only: bool = Query(default=False, description="Only include enterable workspaces."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationWorkspaceOut]]:
+    """List organization workspaces by organization id."""
     return await _list_workspaces(
         orgm=orgm,
         params=params,
@@ -220,6 +222,7 @@ async def list_organization_workspace_members_me(
     q: str | None = Query(default=None, description="Search query by name or email."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationWorkspaceMemberOut]]:
+    """List workspace members from organization scope."""
     return await _list_workspace_members(
         workspace_id=workspace_id,
         orgm=orgm,
@@ -248,6 +251,7 @@ async def list_organization_workspace_members_by_org(
     q: str | None = Query(default=None, description="Search query by name or email."),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[OrganizationWorkspaceMemberOut]]:
+    """List workspace members from organization scope by organization id."""
     return await _list_workspace_members(
         workspace_id=workspace_id,
         orgm=orgm,
@@ -270,6 +274,7 @@ async def create_organization_workspace_me(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceOut]:
+    """Create organization workspace."""
     return await _create_workspace(payload=payload, orgm=orgm, settings=settings)
 
 
@@ -290,6 +295,7 @@ async def create_organization_workspace_by_org(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceOut]:
+    """Create organization workspace by organization id."""
     return await _create_workspace(payload=payload, orgm=orgm, settings=settings)
 
 
@@ -306,6 +312,7 @@ async def archive_organization_workspace_me(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
+    """Archive organization workspace."""
     return await _archive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
 
 
@@ -326,6 +333,7 @@ async def archive_organization_workspace_by_org(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
+    """Archive organization workspace by organization id."""
     return await _archive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
 
 
@@ -342,6 +350,7 @@ async def unarchive_organization_workspace_me(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
+    """Unarchive organization workspace."""
     return await _unarchive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
 
 
@@ -362,6 +371,7 @@ async def unarchive_organization_workspace_by_org(
     ],
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceArchiveResult]:
+    """Unarchive organization workspace by organization id."""
     return await _unarchive_workspace(workspace_id=workspace_id, orgm=orgm, settings=settings)
 
 
@@ -385,6 +395,7 @@ async def delete_organization_workspace_me(
     ),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceDeleteResult]:
+    """Delete organization workspace."""
     return await _delete_workspace(
         workspace_id=workspace_id,
         orgm=orgm,
@@ -417,6 +428,7 @@ async def delete_organization_workspace_by_org(
     ),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[OrganizationWorkspaceDeleteResult]:
+    """Delete organization workspace by organization id."""
     return await _delete_workspace(
         workspace_id=workspace_id,
         orgm=orgm,

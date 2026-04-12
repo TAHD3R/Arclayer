@@ -11,7 +11,7 @@ from src.modules.sites.http.service import get_site_service
 from src.modules.sites.schema import SiteRouteResolveOut, SiteRuntimeOut
 from src.modules.sites.service import SiteService
 
-router = APIRouter(tags=["Sites"])
+router = APIRouter(tags=["external.sites.runtime"])
 
 
 @router.get(
@@ -28,6 +28,7 @@ async def get_site_runtime(
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
     locale: Annotated[str | None, Query(description="Resolved locale for localized settings (e.g. en-US).")] = None,
 ) -> ResponseModel[SiteRuntimeOut]:
+    """Get site runtime config (theme, fonts, site identity, SEO defaults)."""
     await service.assert_preview_access_async(site_id=site_id, mode=mode, token=token)
     raw_response.headers["cache-control"] = (
         "no-store" if mode == "preview" else "public, max-age=300, stale-while-revalidate=3600"
@@ -50,6 +51,7 @@ async def resolve_site_route(
     mode: Annotated[Literal["public", "preview"], Query(description="Runtime mode.")] = "public",
     token: Annotated[str | None, Query(description="Preview token (required when mode=preview).")] = None,
 ) -> ResponseModel[SiteRouteResolveOut]:
+    """Resolve site route (pathname -> page blueprint)."""
     await service.assert_preview_access_async(site_id=site_id, mode=mode, token=token)
     raw_response.headers["cache-control"] = (
         "no-store" if mode == "preview" else "public, max-age=60, stale-while-revalidate=300"

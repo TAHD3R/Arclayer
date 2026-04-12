@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Active sys config revision pointer (per namespace).
 class SysConfigActive(BaseModel):
-    """
+    """Internal model for active system configuration pointers.
+
     Active sys-domain configuration pointer (namespace -> revision).
 
     Notes:
@@ -25,5 +26,5 @@ class SysConfigActive(BaseModel):
     activated_by = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "sys_config_active"
+        table = "internal_sys_config_active"
         abstract = False

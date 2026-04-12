@@ -17,7 +17,7 @@ class UserStatus(StrEnum):
 
 # User account.
 class User(BaseModel):
-    """User account (org-agnostic identity)."""
+    """Domain model for users."""
 
     username = fields.CharField(max_length=64, unique=True, db_index=True)
     email = fields.CharField(max_length=255, null=True, unique=True)
@@ -32,18 +32,18 @@ class User(BaseModel):
     token_version = fields.IntField(default=0, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "users"
+        table = "domain_users"
         abstract = False
 
 
 # User credential (password hash).
 class UserCredential(BaseModel):
-    """User credential record (password hash)."""
+    """Domain model for user credentials."""
 
     user = fields.OneToOneField("models.User", related_name="credential", on_delete=fields.CASCADE)
     password_hash = fields.CharField(max_length=255)
     password_updated_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta(BaseModel.Meta):
-        table = "user_credentials"
+        table = "domain_user_credentials"
         abstract = False

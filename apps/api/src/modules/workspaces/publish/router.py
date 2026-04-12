@@ -20,7 +20,7 @@ from src.modules.workspaces.publish.service import WorkspacePublishService
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/publish",
-    tags=["Workspace: Publish"],
+    tags=["domain.workspaces.publish"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 
@@ -44,6 +44,7 @@ async def get_workspace_publish_impact(
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     service: Annotated[WorkspacePublishService, Depends(get_workspace_publish_service)],
 ) -> ResponseModel[PublishImpactOut]:
+    """Preview publish impact (workspace RBAC protected)."""
     data = await service.preview_impact(workspace_id=ctx.workspace_id, site_id=site_id)
     return ApiResponse.success(data=data)
 
@@ -60,6 +61,7 @@ async def post_workspace_publish_artifacts(
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     service: Annotated[WorkspacePublishService, Depends(get_workspace_publish_service)],
 ) -> ResponseModel[PublishArtifactsOut]:
+    """Build published graph artifacts (workspace RBAC protected)."""
     data = await service.build_artifacts(workspace_id=ctx.workspace_id, site_id=site_id)
     return ApiResponse.success(data=data)
 
@@ -75,5 +77,6 @@ async def get_workspace_publish_preview_contract(
     ctx: Annotated[WorkspaceContext, Depends(require_workspace_manage_access)],
     service: Annotated[WorkspacePublishPreviewService, Depends(get_workspace_publish_preview_service)],
 ) -> ResponseModel[PublishExportContractOut]:
+    """Read preview contract from publish artifacts."""
     data = await service.build_preview_contract(workspace_id=ctx.workspace_id, site_id=site_id)
     return ApiResponse.success(data=data)

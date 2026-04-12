@@ -2,4 +2,4 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-router = APIRouter(tags=["Sites: Stores"])
+router = APIRouter(tags=["external.sites.stores"])

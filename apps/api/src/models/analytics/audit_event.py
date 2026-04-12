@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Audit log event (append-only).
 class AuditEvent(BaseModel):
-    """
+    """Domain model for audit events.
+
     Audit log event (append-only).
 
     This table stores security-relevant and operationally useful events:
@@ -34,7 +35,7 @@ class AuditEvent(BaseModel):
     properties = fields.JSONField(null=True)
 
     class Meta(BaseModel.Meta):
-        table = "analytics_audit_events"
+        table = "domain_analytics_audit_events"
         abstract = False
         indexes = (
             ("organization_id", "occurred_at"),

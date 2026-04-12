@@ -7,7 +7,8 @@ from src.common.models import BaseModel
 
 # Asset share link (tokenized public access).
 class AssetShareLinkRecord(BaseModel):
-    """
+    """Domain model for asset share link records.
+
     Link-only share access for a single asset.
 
     Requirements:
@@ -30,5 +31,5 @@ class AssetShareLinkRecord(BaseModel):
     created_by_user_id = fields.UUIDField(null=True, db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "asset_share_links"
+        table = "domain_asset_share_links"
         abstract = False

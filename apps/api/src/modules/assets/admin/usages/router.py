@@ -23,7 +23,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
-    tags=["Workspace: Asset Usages"],
+    tags=["domain.assets.usages"],
     dependencies=[require_workspace_permission("system:assets:read")],
 )
 
@@ -48,6 +48,7 @@ async def list_asset_usages(
     params: PageParams = Depends(get_page_params),
     service: AdminAssetUsagesService = Depends(get_admin_asset_usages_service),
 ) -> ResponseModel[PageData[AdminAssetUsageOut]]:
+    """List asset usages."""
     page = await service.list_usages_by_asset(scope=_workspace_scope(ctx), asset_id=asset_id, params=params)
     return JsonResponse.success(data=page)
 
@@ -64,6 +65,7 @@ async def upsert_asset_usage(
     user=Depends(get_current_user),
     service: AdminAssetUsagesService = Depends(get_admin_asset_usages_service),
 ) -> ResponseModel[AdminAssetUsageOut]:
+    """Upsert asset usage."""
     created = await service.upsert_usage(scope=_workspace_scope(ctx), actor_user_id=user.id, payload=payload)
     return JsonResponse.success(data=created)
 
@@ -80,6 +82,7 @@ async def delete_asset_usage_by_ref(
     _user=Depends(get_current_user),
     service: AdminAssetUsagesService = Depends(get_admin_asset_usages_service),
 ) -> ResponseModel[AdminAssetUsageDeleteOut]:
+    """Delete asset usage by ref."""
     out = await service.delete_usage_by_ref(scope=_workspace_scope(ctx), payload=payload)
     return JsonResponse.success(data=out)
 
@@ -97,5 +100,6 @@ async def delete_asset_usage_by_ref_delete(
     _user=Depends(get_current_user),
     service: AdminAssetUsagesService = Depends(get_admin_asset_usages_service),
 ) -> ResponseModel[AdminAssetUsageDeleteOut]:
+    """Delete asset usage by ref (compat)."""
     out = await service.delete_usage_by_ref(scope=_workspace_scope(ctx), payload=payload)
     return JsonResponse.success(data=out)

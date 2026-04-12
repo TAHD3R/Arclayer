@@ -35,7 +35,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 canonical_models_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",
-    tags=["Workspace: Content"],
+    tags=["domain.workspaces.content"],
     dependencies=[require_workspace_permission("system:content:read")],
 )
 
@@ -201,6 +201,7 @@ async def create_workspace_content_model(
         Depends(get_workspace_content_canonical_models_service),
     ],
 ) -> ResponseModel[ContentModelMutationOut]:
+    """Create rebuilt content model contract (workspace RBAC protected)."""
     record = await service.create_model(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -224,6 +225,7 @@ async def list_workspace_content_models_canonical(
     ],
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[ContentModelOut]]:
+    """List rebuilt content models (workspace RBAC protected)."""
     data = await service.list_models_paginated(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -249,6 +251,7 @@ async def preview_workspace_content_model_update(
         Depends(get_workspace_content_canonical_models_service),
     ],
 ) -> ResponseModel[ContentModelImpactPreviewOut]:
+    """Preview rebuilt content model mutation impact (workspace RBAC protected)."""
     result = await service.preview_model_update(
         workspace_id=ctx.workspace_id,
         site_id=site_id,
@@ -279,6 +282,7 @@ async def update_workspace_content_model(
         Depends(get_workspace_content_canonical_models_service),
     ],
 ) -> ResponseModel[ContentModelMutationOut]:
+    """Update rebuilt content model contract (workspace RBAC protected)."""
     record = await service.update_model(
         workspace_id=ctx.workspace_id,
         site_id=site_id,

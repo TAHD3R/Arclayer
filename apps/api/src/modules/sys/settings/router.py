@@ -20,7 +20,7 @@ from src.modules.sys.settings.schema import (
 from src.modules.sys.settings.service import SysConfigService
 
 router = APIRouter(
-    tags=["Sys: Settings"],
+    tags=["internal.sys.settings"],
     dependencies=[Depends(require_sys_super_admin)],
 )
 
@@ -38,6 +38,7 @@ async def list_namespaces(
     service: SysConfigService = Depends(get_sys_config_service),
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[SysConfigNamespaceSummary]]:
+    """List sys config namespaces (super admin)."""
     items = await service.list_namespaces()
     page = paginate_items(items, params=params)
     return ApiResponse.success(data=page)
@@ -52,6 +53,7 @@ async def get_namespace(
     namespace: str,
     service: SysConfigService = Depends(get_sys_config_service),
 ) -> ResponseModel[SysConfigDetail]:
+    """Get sys config namespace detail (super admin)."""
     detail = await service.get_detail(namespace=namespace)
     return ApiResponse.success(data=detail)
 
@@ -67,6 +69,7 @@ async def patch_namespace(
     service: SysConfigService = Depends(get_sys_config_service),
     user=Depends(require_sys_super_admin),
 ) -> ResponseModel[SysConfigDetail]:
+    """Patch sys config namespace (super admin)."""
     detail = await service.patch_namespace(
         namespace,
         patch=payload.patch,
@@ -86,6 +89,7 @@ async def list_revisions(
     service: SysConfigService = Depends(get_sys_config_service),
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[SysConfigRevisionOut]]:
+    """List sys config revisions (super admin)."""
     page = await service.list_revisions_page(namespace=namespace, params=params)
     return ApiResponse.success(data=page)
 
@@ -100,6 +104,7 @@ async def get_revision(
     revision_id: PublicUUID,
     service: SysConfigService = Depends(get_sys_config_service),
 ) -> ResponseModel[SysConfigRevisionDetail]:
+    """Get sys config revision detail (super admin)."""
     detail = await service.get_revision_detail(namespace=namespace, revision_id=revision_id)
     return ApiResponse.success(data=detail)
 
@@ -114,6 +119,7 @@ async def test_revision(
     payload: SysConfigTestRequest,
     service: SysConfigService = Depends(get_sys_config_service),
 ) -> ResponseModel[SysConfigTestResult]:
+    """Test a sys config revision (super admin)."""
     out = await service.test_revision(namespace=namespace, revision_id=payload.revision_id)
     return ApiResponse.success(data=out)
 
@@ -129,6 +135,7 @@ async def activate_revision(
     service: SysConfigService = Depends(get_sys_config_service),
     user=Depends(require_sys_super_admin),
 ) -> ResponseModel[SysConfigDetail]:
+    """Activate a sys config revision (super admin)."""
     detail = await service.activate_revision(
         namespace=namespace,
         revision_id=payload.revision_id,

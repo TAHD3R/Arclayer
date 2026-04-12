@@ -26,7 +26,7 @@ from src.modules.workspaces.http.service import require_workspace_manage_access
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
-    tags=["Workspace: Uploads"],
+    tags=["domain.assets.uploads"],
     dependencies=[require_workspace_permission("system:assets:manage")],
 )
 
@@ -50,6 +50,7 @@ async def init_upload(
     user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadInitOut]:
+    """Initialize upload session."""
     session = await service.init_upload(
         scope=_workspace_scope(ctx),
         actor_user_id=user.id,
@@ -86,6 +87,7 @@ async def get_upload_status(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadStatusOut]:
+    """Get upload status."""
     session, missing = await service.get_status(upload_id=upload_id, scope=_workspace_scope(ctx))
     return ApiResponse.success(
         data=UploadStatusOut(
@@ -112,6 +114,7 @@ async def upload_part(
     service: UploadsService = Depends(get_uploads_service),
     content_length: int | None = Header(default=None, alias="Content-Length"),
 ) -> ResponseModel[None]:
+    """Upload a part."""
     # Chunk sizes are expected to be bounded (default 8MiB); reading into memory is acceptable for now.
     data = await request.body()
     if content_length is not None and content_length != len(data):
@@ -136,6 +139,7 @@ async def complete_upload(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadCompleteOut]:
+    """Complete upload."""
     asset_id = await service.complete(
         upload_id=upload_id, scope=_workspace_scope(ctx), background_tasks=background_tasks
     )
@@ -153,6 +157,7 @@ async def abort_upload(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadAbortOut]:
+    """Abort upload."""
     session = await service.abort(upload_id=upload_id, scope=_workspace_scope(ctx))
     return ApiResponse.success(data=UploadAbortOut(upload_id=session.id, status=str(session.status)))
 
@@ -169,6 +174,7 @@ async def presign_upload_part(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[UploadPartPresignOut]:
+    """Presign upload part."""
     out = await service.presign_part(upload_id=upload_id, scope=_workspace_scope(ctx), part_number=part_number)
     return ApiResponse.success(data=out)
 
@@ -186,6 +192,7 @@ async def commit_upload_part(
     _user=Depends(get_current_user),
     service: UploadsService = Depends(get_uploads_service),
 ) -> ResponseModel[None]:
+    """Commit upload part."""
     await service.commit_part(
         upload_id=upload_id,
         scope=_workspace_scope(ctx),

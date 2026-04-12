@@ -14,7 +14,7 @@ from src.infra.cache.valkey import get_valkey
 from src.modules.sites.delivery.schema import DeliveryMenuOut, DeliveryStyleOut
 from src.modules.sites.service import SiteService
 
-router = APIRouter(prefix="/sites/{site_id}/delivery", tags=["Delivery"])
+router = APIRouter(prefix="/sites/{site_id}/delivery", tags=["external.sites.delivery"])
 
 
 def _get_site_service(
@@ -43,6 +43,7 @@ async def get_delivery_menu(
     raw_response: FastAPIResponse,
     service: Annotated[SiteService, Depends(_get_site_service)],
 ) -> ResponseModel[DeliveryMenuOut]:
+    """Get a menu by key (public)."""
     raw_response.headers["cache-control"] = _CACHE_PUBLIC
     data = await service.delivery_get_menu(site_id=site_id, menu_key=menu_key)
     return ApiResponse.success(data=data)
@@ -59,6 +60,7 @@ async def get_delivery_style(
     raw_response: FastAPIResponse,
     service: Annotated[SiteService, Depends(_get_site_service)],
 ) -> ResponseModel[DeliveryStyleOut]:
+    """Get effective site style (public)."""
     raw_response.headers["cache-control"] = _CACHE_PUBLIC
     data = await service.delivery_get_style(site_id=site_id)
     return ApiResponse.success(data=data)

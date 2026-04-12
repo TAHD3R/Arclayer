@@ -14,7 +14,7 @@ from src.infra.cache.valkey import get_valkey
 from src.modules.sites.schema import SiteResolveOut
 from src.modules.sites.service import SiteService
 
-router = APIRouter(prefix="/sites", tags=["Sites (Public)"])
+router = APIRouter(prefix="/sites", tags=["external.sites"])
 
 
 def get_site_service(
@@ -47,6 +47,7 @@ async def resolve_site_by_host(
     ),
     svc: SiteService = Depends(get_site_service),
 ) -> ResponseModel[SiteResolveOut]:
+    """Resolve a site (workspaceSlug or host)."""
     # Low-frequency mapping, safe to cache briefly.
     raw_response.headers["cache-control"] = "public, max-age=300, stale-while-revalidate=600"
     data = await svc.resolve_site(host=host, workspace_slug=workspace_slug)
@@ -63,5 +64,6 @@ async def get_site_context(
     site_id: Annotated[PublicUUID, Path(..., description="Site ID.")],
     svc: SiteService = Depends(get_site_service),
 ) -> ResponseModel[SiteResolveOut]:
+    """Get site context by ID."""
     data = await svc.get_site_context(site_id=site_id)
     return ApiResponse.success(data=data)

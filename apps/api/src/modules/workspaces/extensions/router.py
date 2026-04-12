@@ -10,7 +10,7 @@ from src.modules.workspaces.authz.http.service import require_workspace_permissi
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/extensions", tags=["Workspace: Extensions"])
+router = APIRouter(prefix="/workspaces/{workspace_id}/extensions", tags=["domain.workspaces.extensions"])
 
 
 def get_extensions_service(settings: Settings = Depends(get_settings)) -> ExtensionsService:
@@ -27,6 +27,7 @@ async def list_workspace_capabilities(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: ExtensionsService = Depends(get_extensions_service),
 ) -> ResponseModel[CapabilityListOut]:
+    """List capabilities (extensions/integrations) visible in current workspace scope."""
     items = await service.list_workspace_capabilities(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=CapabilityListOut(items=items))
 
@@ -42,6 +43,7 @@ async def enable_workspace_capability(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: ExtensionsService = Depends(get_extensions_service),
 ) -> ResponseModel[CapabilitySummaryOut]:
+    """Enable a capability in current workspace."""
     out = await service.set_workspace_capability_enabled(
         workspace_id=ctx.workspace_id,
         capability_id=capability_id,
@@ -61,6 +63,7 @@ async def disable_workspace_capability(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     service: ExtensionsService = Depends(get_extensions_service),
 ) -> ResponseModel[CapabilitySummaryOut]:
+    """Disable a capability in current workspace."""
     out = await service.set_workspace_capability_enabled(
         workspace_id=ctx.workspace_id,
         capability_id=capability_id,
@@ -82,6 +85,7 @@ async def list_workspace_ui_embeds(
     enabled_only: bool = Query(default=True, alias="enabledOnly"),
     service: ExtensionsService = Depends(get_extensions_service),
 ) -> ResponseModel[UIEmbedListOut]:
+    """List UI embed descriptors (iframe) for enabled capabilities in current workspace."""
     items = await service.list_workspace_ui_embeds(
         workspace_id=ctx.workspace_id,
         slot=slot,

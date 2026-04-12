@@ -17,7 +17,8 @@ class OrgRole(StrEnum):
 
 # Organization membership (user -> organization).
 class OrgMembership(BaseModel):
-    """
+    """Domain model for organization memberships.
+
     User membership in an organization.
 
     Notes:
@@ -43,6 +44,6 @@ class OrgMembership(BaseModel):
     status = fields.CharField(max_length=16, default="active", db_index=True)
 
     class Meta(BaseModel.Meta):
-        table = "org_memberships"
+        table = "domain_org_memberships"
         abstract = False
         unique_together = (("organization", "user"),)

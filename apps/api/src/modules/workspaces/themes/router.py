@@ -21,7 +21,7 @@ from src.modules.workspaces.themes.service import WorkspaceThemesService
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}",
-    tags=["Workspace: Themes"],
+    tags=["domain.workspaces.themes"],
     dependencies=[require_workspace_permission("system:themes:read")],
 )
 
@@ -36,6 +36,7 @@ async def list_themes(
     _user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeListOut]:
+    """List installed themes."""
     items = await service.list_themes(workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=WorkspaceThemeListOut(items=items))
 
@@ -52,6 +53,7 @@ async def import_theme(
     user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeOut]:
+    """Import a theme package (zip)."""
     out = await service.import_theme_from_asset(
         workspace_id=ctx.workspace_id,
         actor_user_id=user_id,
@@ -72,6 +74,7 @@ async def get_theme(
     _user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[WorkspaceThemeOut]:
+    """Get theme package detail."""
     out = await service.get_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
     return ApiResponse.success(data=out)
 
@@ -89,6 +92,7 @@ async def delete_theme(
     _user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> ResponseModel[None]:
+    """Uninstall a theme package."""
     await service.delete_theme(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)
     return ApiResponse.success(data=None)
 
@@ -105,4 +109,5 @@ async def download_theme(
     _user_id: Annotated[UUID, Depends(get_current_user_id)],
     service: Annotated[WorkspaceThemesService, Depends(get_themes_service)],
 ) -> StarletteResponse:
+    """Download theme package."""
     return await service.download_theme_artifact(workspace_id=ctx.workspace_id, theme_id=theme_id, version=version)

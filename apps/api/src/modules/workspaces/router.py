@@ -55,7 +55,7 @@ from src.modules.workspaces.site.router import router as workspace_site_router
 from src.modules.workspaces.team.router import router as workspace_team_router
 from src.modules.workspaces.themes.router import router as workspace_themes_router
 
-router = APIRouter(tags=["Workspaces"])
+router = APIRouter(tags=["domain.workspaces"])
 router.include_router(workspace_team_router)
 router.include_router(workspace_settings_router)
 router.include_router(workspace_authz_router)
@@ -85,6 +85,7 @@ async def list_my_workspaces(
     user_id=Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[MyWorkspaceListResult]:
+    """List workspaces visible to current user."""
     service = WorkspaceService(settings)
     items = await service.list_my_workspaces(user_id=user_id)
     return ApiResponse.success(data=MyWorkspaceListResult(items=items))
@@ -100,6 +101,7 @@ async def get_workspace_detail(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceDetailOut]:
+    """Get workspace metadata (name/slug)."""
     service = WorkspaceService(settings)
     detail = await service.get_workspace_detail(organization_id=ctx.organization_id, workspace_id=ctx.workspace_id)
     return ApiResponse.success(data=detail)
@@ -115,6 +117,7 @@ async def get_workspace_danger_capabilities(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceDangerCapabilitiesOut]:
+    """Get workspace danger capabilities for current user."""
     service = WorkspaceDangerService(settings)
     out = await service.get_capabilities(
         organization_id=ctx.organization_id,
@@ -136,6 +139,7 @@ async def update_workspace(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceDetailOut]:
+    """Update workspace metadata (name)."""
     service = WorkspaceService(settings)
     detail = await service.update_workspace(
         organization_id=ctx.organization_id,
@@ -157,6 +161,7 @@ async def leave_workspace(
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[LeaveWorkspaceResult]:
+    """Leave current workspace."""
     service = WorkspaceService(settings)
     out = await service.leave_workspace(
         organization_id=ctx.organization_id,
@@ -188,6 +193,7 @@ async def delete_workspace(
     ),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceDeleteResult]:
+    """Delete workspace."""
     service = OrganizationWorkspaceService(settings)
     out = await service.delete_workspace(
         organization_id=ctx.organization_id,

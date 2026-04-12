@@ -9,7 +9,7 @@ from src.common.models import BaseModel
 
 
 class PublishedGraphRecord(BaseModel):
-    """Published graph node references immutable content versions."""
+    """Domain model for published graph records."""
 
     workspace = fields.ForeignKeyField(
         "models.Workspace",
@@ -50,6 +50,6 @@ class PublishedGraphRecord(BaseModel):
         hierarchy_parent_item_id: UUID | None
 
     class Meta(BaseModel.Meta):
-        table = "content_published_graph"
+        table = "domain_content_published_graph"
         abstract = False
         unique_together = (("site_id", "locale", "route_path"), ("item_id", "locale"))

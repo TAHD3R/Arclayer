@@ -29,7 +29,7 @@ from src.modules.auth.sso.schema import (
 from src.modules.auth.sso.service import AuthSSOService
 from src.modules.auth.two_factor.service import AuthTwoFactorService
 
-router = APIRouter(prefix="/sso", tags=["Services: Auth SSO"])
+router = APIRouter(prefix="/sso", tags=["global.auth.sso"])
 
 _SSO_LINK_STATE_EXPIRES_IN = 10 * 60
 _SSO_LINK_STATE_KEY_PREFIX = "auth:sso:link_state:"
@@ -93,6 +93,7 @@ async def list_providers(
     redirect: str | None = Query(default=None, description="Optional safe redirect path after login."),
     service: AuthSSOService = Depends(get_sso_service),
 ) -> ResponseModel[AuthSSOProvidersOut]:
+    """List enabled SSO providers for current instance."""
     items = await service.list_providers(request, redirect=redirect)
     providers = [AuthSSOProviderItem.model_validate(x) for x in items]
     return ApiResponse.success(data=AuthSSOProvidersOut(providers=providers))
@@ -109,6 +110,7 @@ async def exchange(
     request: Request,
     service: AuthSSOService = Depends(get_sso_service),
 ) -> ResponseModel[TokenPair]:
+    """Exchange a one-time OAuth/SSO code for a token pair."""
     tokens = await service.exchange(code=payload.code, request_context=build_auth_request_context(request))
     return ApiResponse.success(data=tokens)
 
@@ -149,6 +151,7 @@ async def start_oauth(
     link_state: str | None = Query(default=None, description="Optional one-time link state token."),
     service: OAuthSocialService = Depends(get_oauth_social_service),
 ) -> RedirectResponse:
+    """Start OAuth social login flow."""
     return await service.start(request, provider=provider, redirect=redirect, link_state=link_state)
 
 
@@ -165,6 +168,7 @@ async def callback_oauth(
     state: str | None = Query(default=None, description="OAuth state."),
     service: OAuthSocialService = Depends(get_oauth_social_service),
 ) -> RedirectResponse:
+    """OAuth social login callback."""
     return await service.callback(request, provider=provider, code=code, state=state)
 
 
@@ -177,6 +181,7 @@ async def list_my_oauth_identities(
     user: User = Depends(get_current_user),
     service: OAuthSocialService = Depends(get_oauth_social_service),
 ) -> ResponseModel[OAuthLinkedIdentityListOut]:
+    """List linked OAuth identities for current user."""
     out = await service.list_identities_out(user_id=user.id)
     return ApiResponse.success(data=out)
 
@@ -191,6 +196,7 @@ async def unlink_my_oauth_identity(
     user: User = Depends(get_current_user),
     service: OAuthSocialService = Depends(get_oauth_social_service),
 ) -> ResponseModel[None]:
+    """Unlink an OAuth identity for current user."""
     provider_key = (provider or "").strip().lower()
     if not provider_key:
         return ApiResponse.success(data=None)

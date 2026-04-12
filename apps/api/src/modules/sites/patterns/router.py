@@ -16,7 +16,7 @@ from src.modules.sites.schema import (
     SitePatternUpdateIn,
 )
 
-router = APIRouter(tags=["Site Patterns"])
+router = APIRouter(tags=["external.sites.patterns"])
 
 
 def get_pattern_service(
@@ -36,6 +36,7 @@ async def list_site_patterns(
     service: Annotated[SitePatternService, Depends(get_pattern_service)],
     params: PageParams = Depends(get_page_params),
 ) -> ResponseModel[PageData[SitePatternOut]]:
+    """List site patterns (paginated)."""
     data = await service.list_patterns(site_id=site_id, params=params)
     return ApiResponse.success(data=data)
 
@@ -52,6 +53,7 @@ async def create_site_pattern(
     payload: Annotated[SitePatternCreateIn, Body(description="Create payload.")],
     service: Annotated[SitePatternService, Depends(get_pattern_service)],
 ) -> ResponseModel[SitePatternOut]:
+    """Create a site pattern."""
     data = await service.create_pattern(site_id=site_id, payload=payload)
     return ApiResponse.success(data=data)
 
@@ -68,6 +70,7 @@ async def update_site_pattern(
     payload: Annotated[SitePatternUpdateIn, Body(description="Update payload.")],
     service: Annotated[SitePatternService, Depends(get_pattern_service)],
 ) -> ResponseModel[SitePatternOut]:
+    """Update a site pattern."""
     data = await service.update_pattern(pattern_id=pattern_id, payload=payload)
     return ApiResponse.success(data=data)
 
@@ -83,5 +86,6 @@ async def delete_site_pattern(
     pattern_id: PublicUUID,
     service: Annotated[SitePatternService, Depends(get_pattern_service)],
 ) -> ResponseModel[SitePatternDeleteOut]:
+    """Delete a site pattern."""
     await service.delete_pattern(pattern_id=pattern_id)
     return ApiResponse.success(data=SitePatternDeleteOut(pattern_id=pattern_id))
