@@ -15,6 +15,7 @@ _FATAL_EMAIL_ERRORS: tuple[type[BaseException], ...] = (
 )
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
+_REPO_ROOT_MARKER = "pnpm-workspace.yaml"
 
 
 def raise_if_fatal(exc: BaseException) -> None:
@@ -25,7 +26,7 @@ def raise_if_fatal(exc: BaseException) -> None:
 def default_template_dir() -> Path:
     current = Path(__file__).resolve()
     for parent in current.parents:
-        if (parent / "pyproject.toml").exists():
+        if (parent / _REPO_ROOT_MARKER).exists():
             return parent / "static" / "templates" / "emails"
     return current.parents[5] / "static" / "templates" / "emails"
 

@@ -3,9 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev jobs:worker jobs:scheduler --filter=@arclayer/admin --filter=@arclayer/api",
-    "dev:saas": "DEPLOYMENT_MODE=saas pnpm docker:saas && pnpm dev",
-    "dev:selfhost": "pnpm docker:edge && pnpm dev",
-    "dev:selfhost:min": "pnpm docker && pnpm dev",
+    "dev:docker": "pnpm docker && pnpm dev",
     "build": "turbo run build --filter=@arclayer/admin",
     "format": "turbo run format --filter=@arclayer/admin --filter=@arclayer/api",
     "check": "turbo run lint format typecheck test --filter=@arclayer/admin --filter=@arclayer/api",
@@ -16,8 +14,6 @@
     "api:test": "pnpm -C apps/api test",
     "api:check": "turbo run lint format typecheck test --filter=@arclayer/api",
     "docker": "docker compose up -d",
-    "docker:saas": "docker compose --profile saas up -d",
-    "docker:edge": "docker compose --profile edge up -d",
     "docker:devtools": "docker compose --profile devtools up -d"
   },
   "devDependencies": {

@@ -68,7 +68,7 @@
     },
     "@arclayer/api#test": {
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/pyproject.toml"],
       "passThroughEnv": [
         "APPLICATION_ENV",
         "DATABASE_URL",
@@ -84,7 +84,7 @@
     "@arclayer/api#test:integration": {
       "cache": false,
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/pyproject.toml"],
       "passThroughEnv": [
         "APPLICATION_ENV",
         "DATABASE_URL",
@@ -99,11 +99,11 @@
     },
     "@arclayer/api#lint": {
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/pyproject.toml"]
     },
     "@arclayer/api#typecheck": {
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/pyproject.toml"]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/pyproject.toml"]
     },
     "@arclayer/api#db:migrate": {
       "cache": false,

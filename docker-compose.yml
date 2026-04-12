@@ -3,22 +3,13 @@ services:
     image: pgvector/pgvector:pg16
     container_name: arclayer-postgres
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DATABASE__NAME:-arclayer}
-      POSTGRES_USER: ${DATABASE__USER:-postgres}
-      POSTGRES_PASSWORD: ${DATABASE__PASSWORD:-postgres}
-      POSTGRES_INITDB_ARGS: "--auth=scram-sha-256"
-      TZ: ${TZ:-UTC}
-    command:
-      [
-        "postgres",
-        "-c",
-        "config_file=/etc/postgresql/postgresql.conf",
-        "-c",
-        "hba_file=/etc/postgresql/pg_hba.conf",
-      ]
+    env_file:
+      - ./docker/env/postgres.env
+    command: >-
+      postgres -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
@@ -36,9 +27,9 @@ services:
     image: valkey/valkey:8.0-alpine
     container_name: arclayer-valkey
     restart: unless-stopped
-    command: ["valkey-server", "/etc/valkey/valkey.conf"]
+    command: valkey-server /etc/valkey/valkey.conf
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     volumes:
       - valkey_data:/data
       - ./docker/valkey/valkey.conf:/etc/valkey/valkey.conf:ro
@@ -54,12 +45,10 @@ services:
     image: getmeili/meilisearch:v1.12.1
     container_name: arclayer-meilisearch
     restart: unless-stopped
-    environment:
-      # Production should override this value. A non-empty key enables Meilisearch auth.
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-dev-master-key}
-      MEILI_ENV: ${MEILI_ENV:-development}
+    env_file:
+      - ./docker/env/meilisearch.env
     ports:
-      - "127.0.0.1:7700:7700"
+      - "7700:7700"
     volumes:
       - meilisearch_data:/meili_data
     networks:
@@ -69,12 +58,11 @@ services:
     image: rustfs/rustfs:1.0.0-alpha.83-glibc
     container_name: arclayer-rustfs
     restart: unless-stopped
-    environment:
-      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
-      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+    env_file:
+      - ./docker/env/rustfs.env
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - rustfs_data:/data
     networks:
@@ -86,8 +74,8 @@ services:
     restart: unless-stopped
     profiles: ["devtools"]
     ports:
-      - "127.0.0.1:1025:1025" # SMTP
-      - "127.0.0.1:8025:8025" # Web UI
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
     volumes:
       - mailpit_data:/data
     networks:
@@ -98,82 +86,12 @@ services:
     container_name: arclayer-dozzle
     restart: unless-stopped
     profiles: ["devtools"]
-    environment:
-      DOZZLE_LEVEL: ${DOZZLE_LEVEL:-info}
+    env_file:
+      - ./docker/env/dozzle.env
     ports:
-      - "127.0.0.1:9999:8080"
+      - "9999:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - arclayer
-
-  traefik-edge:
-    image: traefik:v3.6.9
-    container_name: arclayer-traefik-edge
-    restart: unless-stopped
-    profiles: ["edge"]
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      # Entrypoints
-      TRAEFIK_ENTRYPOINTS_WEB_ADDRESS: ":80"
-      TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_TO: "websecure"
-      TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_SCHEME: "https"
-      TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_PERMANENT: "true"
-      TRAEFIK_ENTRYPOINTS_WEBSECURE_ADDRESS: ":443"
-      # Providers
-      TRAEFIK_PROVIDERS_DOCKER: "true"
-      TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
-      # ACME (Let's Encrypt)
-      TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_EMAIL: ${TRAEFIK_ACME_EMAIL:-}
-      TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_STORAGE: "/acme/acme.json"
-      TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_HTTPCHALLENGE: "true"
-      TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_HTTPCHALLENGE_ENTRYPOINT: "web"
-      # Logs
-      TRAEFIK_LOG_LEVEL: ${TRAEFIK_LOG_LEVEL:-INFO}
-    volumes:
-      - traefik_edge_acme:/acme
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - arclayer
-
-  edge-routes:
-    image: alpine:3.20
-    container_name: arclayer-edge-routes
-    restart: unless-stopped
-    profiles: ["edge"]
-    command: ["sh", "-c", "sleep infinity"]
-    labels:
-      - "traefik.enable=true"
-
-      # Admin: https://app.example.com/
-      - "traefik.http.routers.admin.rule=Host(`${SELFHOST_ADMIN_HOST:-app.example.com}`)"
-      - "traefik.http.routers.admin.entrypoints=websecure"
-      - "traefik.http.routers.admin.tls=true"
-      - "traefik.http.routers.admin.tls.certresolver=le"
-      - "traefik.http.routers.admin.middlewares=compress@docker,security-headers@docker"
-      - "traefik.http.services.admin.loadbalancer.server.url=${SELFHOST_ADMIN_UPSTREAM:-http://host.docker.internal:5173}"
-      - "traefik.http.services.admin.loadbalancer.passhostheader=true"
-
-      # API: https://api.example.com/
-      - "traefik.http.routers.api.rule=Host(`${SELFHOST_API_HOST:-api.example.com}`)"
-      - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.routers.api.tls=true"
-      - "traefik.http.routers.api.tls.certresolver=le"
-      - "traefik.http.routers.api.middlewares=compress@docker,security-headers@docker"
-      - "traefik.http.services.api.loadbalancer.server.url=${SELFHOST_API_UPSTREAM:-http://host.docker.internal:8000}"
-      - "traefik.http.services.api.loadbalancer.passhostheader=true"
-
-      # Middlewares
-      - "traefik.http.middlewares.compress.compress=true"
-      - "traefik.http.middlewares.security-headers.headers.contenttypenosniff=true"
-      - "traefik.http.middlewares.security-headers.headers.browserxssfilter=true"
-      - "traefik.http.middlewares.security-headers.headers.referrerpolicy=no-referrer"
-      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-Permitted-Cross-Domain-Policies=none"
-      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-Download-Options=noopen"
     networks:
       - arclayer
 
@@ -181,16 +99,26 @@ services:
     image: traefik:v3.6.9
     container_name: arclayer-traefik
     restart: unless-stopped
-    profiles: ["saas"]
-    command: ["--configFile=/etc/traefik/traefik.yml"]
     ports:
       - "80:80"
-      - "8080:8080"
+      - "443:443"
+    env_file:
+      - ./docker/env/traefik.env
     volumes:
-      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik_acme:/acme
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - arclayer
+
+  routes:
+    image: alpine:3.20
+    container_name: arclayer-routes
+    restart: unless-stopped
+    command: sleep infinity
+    label_file:
+      - ./docker/traefik/routes.labels
     networks:
       - arclayer
 
@@ -200,7 +128,7 @@ volumes:
   meilisearch_data:
   rustfs_data:
   mailpit_data:
-  traefik_edge_acme:
+  traefik_acme:
 
 networks:
   arclayer:
