@@ -44,6 +44,23 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
 - Prefer existing patterns and abstractions; avoid introducing new frameworks or ad-hoc conventions.
 - Never hide failures: no silent fallbacks, no swallowing exceptions, no fake “success” paths.
 
+## Repo MCP Workflow
+
+- This repository has `code-review-graph` and `serena` MCPs installed. For medium-or-larger tasks, code review, root-cause analysis across multiple files, architecture questions, or cross-file refactors, use them before broad manual exploration.
+- Use `code-review-graph` first for repository topology, impact radius, review context, affected flows, and change-risk analysis.
+- Use `serena` for symbol-level navigation, reference tracing, and precise cross-file semantic lookup once the relevant area is known.
+- Default triggers for this workflow:
+  - any request containing `review`
+  - tasks touching 3 or more files
+  - dependency / call-chain / blast-radius / flow questions
+  - regressions that are not obviously isolated to one file
+- Do not force these MCPs for trivial single-file edits where a direct file read is faster.
+- If `code-review-graph` is empty or stale, refresh it before relying on results:
+  - `code-review-graph status --repo /home/philip/Arclayer`
+  - `code-review-graph update --repo /home/philip/Arclayer`
+  - use full `code-review-graph build --repo /home/philip/Arclayer --skip-flows` when needed
+- If either MCP is unavailable or returns incomplete data, state that explicitly and continue from live repo truth rather than treating the MCP output as authoritative.
+
 ## Command Discipline (Monorepo)
 
 Use repo scripts only:
