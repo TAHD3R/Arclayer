@@ -15,8 +15,7 @@ from apps.api.src.modules.system.rbac.constants.service import (
 )
 from apps.api.src.modules.system.rbac.localization.service import _tr
 from apps.api.src.modules.system.rbac.repository import RBACRepository
-from apps.api.src.modules.system.rbac.schema import PermissionSyncResult, WorkspacesSyncResult
-from apps.api.src.plugin.manifest import PermissionTemplate
+from apps.api.src.modules.system.rbac.schema import PermissionSyncResult, PermissionTemplate, WorkspacesSyncResult
 
 
 class RBACWorkspacesMixin(RBACCatalogSyncMixin):

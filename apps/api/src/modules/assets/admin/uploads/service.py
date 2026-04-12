@@ -18,6 +18,7 @@ from apps.api.src.common.services import BaseService
 from apps.api.src.common.text.slug.service import slugify
 from apps.api.src.common.utils.ids import uuid7
 from apps.api.src.config import Settings
+from apps.api.src.core.events import Event, events
 from apps.api.src.core.exceptions import BadRequest, NotFound
 from apps.api.src.core.i18n import t
 from apps.api.src.core.logging import get_logger
@@ -42,8 +43,6 @@ from apps.api.src.modules.assets.naming.service import (
     compute_total_parts,
 )
 from apps.api.src.modules.assets.scope import AssetScope, scope_filter_kwargs
-from apps.api.src.plugin.event_bus import Event
-from apps.api.src.plugin.host import host as plugin_host
 from apps.api.src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)
@@ -550,7 +549,7 @@ class UploadsService(BaseService):
 
         async def _publish() -> None:
             try:
-                await plugin_host.event_bus.publish(event)
+                await events.publish(event)
             except UPLOAD_EVENT_PUBLISH_ERRORS as exc:
                 logger.warning(
                     "Asset uploaded event publish failed",

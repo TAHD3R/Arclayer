@@ -4,7 +4,7 @@ from typing import cast
 
 from apps.api.src.core.exceptions import BadRequest
 from apps.api.src.core.i18n import t
-from apps.api.src.plugin.manifest import ConfigSchema
+from apps.api.src.settings.schema import ConfigSchema
 
 
 def _ts(key: str, default: str) -> str:

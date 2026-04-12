@@ -16,8 +16,8 @@ from apps.api.src.modules.sys.settings.namespaces.schema import (
     SYS_OAUTH_SETTINGS_SCHEMA,
     SYS_STORAGE_SETTINGS_SCHEMA,
 )
-from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.src.settings.schema import ConfigSchema
 from apps.api.src.settings.validation import iter_secret_field_paths
 
 

@@ -10,6 +10,7 @@ from fastapi import APIRouter, Body, Depends, Request, status
 from apps.api.src.common.schemas import BaseSchema
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.config import get_settings
+from apps.api.src.core.events import Event, EventBus
 from apps.api.src.core.exceptions import NotFound, ServiceUnavailable
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
@@ -31,7 +32,6 @@ from apps.api.src.modules.workspaces.content.models.repository import WorkspaceC
 from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.plugin.event_bus import Event, EventBus
 
 canonical_models_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",

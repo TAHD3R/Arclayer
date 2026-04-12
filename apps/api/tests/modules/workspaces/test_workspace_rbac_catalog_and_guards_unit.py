@@ -11,7 +11,6 @@ from apps.api.src.modules.assets.admin.assets.router import router as assets_rou
 from apps.api.src.modules.assets.admin.uploads.router import router as uploads_router
 from apps.api.src.modules.assets.admin.usages.router import router as usages_router
 from apps.api.src.modules.sites.domains.router import router as domains_router
-from apps.api.src.modules.system.admin.extensions.router import router as admin_extensions_router
 from apps.api.src.modules.system.admin.notifications.router import router as notifications_router
 from apps.api.src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from apps.api.src.modules.workspaces.content.items.router import canonical_items_router
@@ -196,12 +195,6 @@ def test_assets_domains_notifications_and_extensions_use_granular_permissions() 
         path="/workspaces/{workspace_id}/notifications/dev/seed",
         method="POST",
     )
-    admin_exts = _route_permissions(
-        admin_extensions_router,
-        path="/workspaces/{workspace_id}/extensions/admin",
-        method="GET",
-    )
-
     assert assets_list == {"system:assets:read"}
     assert assets_update == {"system:assets:read", "system:assets:manage"}
     assert usages_list == {"system:assets:read"}
@@ -211,7 +204,6 @@ def test_assets_domains_notifications_and_extensions_use_granular_permissions() 
     assert domains_create == {"system:domains:read", "system:domains:manage"}
     assert notif_list == {"system:notifications:read"}
     assert notif_seed == {"system:notifications:read", "system:notifications:manage"}
-    assert admin_exts == {"system:extensions:read"}
 
 
 def test_workspace_routers_forbid_admin_access_coarse_permission_dependency() -> None:

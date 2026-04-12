@@ -586,13 +586,12 @@ class AuthService(BaseService):
 
         # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            from apps.api.src.plugin.event_bus import Event
-            from apps.api.src.plugin.host import host as plugin_host
+            from apps.api.src.core.events import Event, events
 
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await plugin_host.event_bus.publish(
+            await events.publish(
                 Event(
                     name="auth.login.succeeded",
                     payload={
@@ -676,13 +675,12 @@ class AuthService(BaseService):
 
         # Best-effort: emit audit-worthy login event (do not block auth flow).
         try:
-            from apps.api.src.plugin.event_bus import Event
-            from apps.api.src.plugin.host import host as plugin_host
+            from apps.api.src.core.events import Event, events
 
             orgm = await OrgMembership.get_or_none(user_id=resolved_user_id)
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await plugin_host.event_bus.publish(
+            await events.publish(
                 Event(
                     name="auth.login.succeeded",
                     payload={
@@ -934,13 +932,12 @@ class AuthService(BaseService):
 
         # Best-effort: record password reset request for investigation (do not leak data in payload).
         try:
-            from apps.api.src.plugin.event_bus import Event
-            from apps.api.src.plugin.host import host as plugin_host
+            from apps.api.src.core.events import Event, events
 
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await plugin_host.event_bus.publish(
+            await events.publish(
                 Event(
                     name="auth.password.reset.requested",
                     payload={
@@ -1033,13 +1030,12 @@ class AuthService(BaseService):
 
         # Best-effort: record password reset completion.
         try:
-            from apps.api.src.plugin.event_bus import Event
-            from apps.api.src.plugin.host import host as plugin_host
+            from apps.api.src.core.events import Event, events
 
             orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
             org_id = UUID(str(cast(HasOrganizationId, orgm).organization_id)) if orgm is not None else None
 
-            await plugin_host.event_bus.publish(
+            await events.publish(
                 Event(
                     name="auth.password.reset.completed",
                     payload={

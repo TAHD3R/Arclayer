@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from apps.api.src.config import Settings
+from apps.api.src.infra.storage.core_factories import CoreLocalStorageProviderFactory, CoreS3StorageProviderFactory
 from apps.api.src.infra.storage.registry import StorageProviderFactory
-from apps.api.src.plugin.host import host
 
 
 def build_storage_provider_for(settings: Settings, *, provider: str):
@@ -13,16 +13,10 @@ def build_storage_provider_for(settings: Settings, *, provider: str):
     a provider interface, not directly on Settings.
     """
 
-    # Pluggy returns a list of results (one per implementing plugin). Each result can itself be a list.
-    raw = host.hook.storage_provider_factories()
-    factories: list[StorageProviderFactory] = []
-    for part in raw or []:
-        if part is None:
-            continue
-        if isinstance(part, list):
-            factories.extend(part)
-            continue
-        factories.append(part)
+    factories: list[StorageProviderFactory] = [
+        CoreLocalStorageProviderFactory(),
+        CoreS3StorageProviderFactory(),
+    ]
 
     for factory in factories:
         if getattr(factory, "provider", None) == provider:

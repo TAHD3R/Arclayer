@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from apps.api.src.common.protocols.tortoise import HasOrganizationId
 from apps.api.src.common.types.public_uuid import PublicUUID
 from apps.api.src.config import Settings, get_settings
+from apps.api.src.core.events import EventBus
 from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.response import Response, ResponseModel
 from apps.api.src.core.i18n import t
@@ -33,7 +34,6 @@ from apps.api.src.modules.system.schema import (
 )
 from apps.api.src.modules.system.service import SystemSetupService
 from apps.api.src.modules.system.settings.router import router as system_settings_router
-from apps.api.src.plugin.event_bus import EventBus
 
 router = APIRouter(tags=["System: Core Settings"])
 

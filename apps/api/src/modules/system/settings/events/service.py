@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 
+from apps.api.src.common.constants.events import SETTINGS_UPDATED
 from apps.api.src.common.protocols.logging import LoggerLike
-from apps.api.src.plugin.event_bus import Event, EventBus
-from apps.api.src.plugin.events import SETTINGS_UPDATED
-from apps.api.src.plugin.manifest import ConfigSchema
+from apps.api.src.core.events import Event, EventBus
+from apps.api.src.settings.schema import ConfigSchema
 from apps.api.src.settings.validation import iter_secret_field_paths
 
 _FATAL_SETTINGS_SERVICE_ERRORS: tuple[type[BaseException], ...] = (

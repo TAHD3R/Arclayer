@@ -12,9 +12,9 @@ from asgi_correlation_id import correlation_id
 from structlog.contextvars import get_contextvars
 
 from apps.api.src.config import Settings
+from apps.api.src.core.events import Event, EventBus
 from apps.api.src.core.logging import get_logger
 from apps.api.src.modules.analytics.repository import AuditEventRepository
-from apps.api.src.plugin.event_bus import Event, EventBus
 
 logger = get_logger(__name__)
 
@@ -182,7 +182,7 @@ class ActivityIngestor:
             return
 
         await event_bus.subscribe(
-            plugin_id="core.analytics",
+            subscriber_id="core.analytics",
             event_name="*",
             handler=self._event_handler,
             priority=-100,  # should never block higher-priority domain handlers
@@ -197,12 +197,12 @@ class ActivityIngestor:
             return
 
         try:
-            await event_bus.unsubscribe(plugin_id="core.analytics", event_name="*", handler=self._event_handler)
+            await event_bus.unsubscribe(subscriber_id="core.analytics", event_name="*", handler=self._event_handler)
         except BaseException as exc:
             _raise_if_fatal(exc)
             logger.warning(
                 "Activity ingestor unsubscribe failed",
-                plugin_id="core.analytics",
+                subscriber_id="core.analytics",
                 event_name="*",
                 error=str(exc),
             )
@@ -340,7 +340,7 @@ class ActivityIngestor:
             try:
                 first = await asyncio.wait_for(self._queue.get(), timeout=interval)
                 batch.append(first)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # No new events; still try flushing whatever is buffered.
                 pass
 

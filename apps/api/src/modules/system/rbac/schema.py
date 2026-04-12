@@ -14,6 +14,16 @@ class PermissionOut(BaseOut):
     plugin_id: str | None = Field(default=None, description="Owning plugin id.")
 
 
+class PermissionTemplate(BaseSchema):
+    code: str
+    scope: str = "workspace"
+    name: str
+    description: str | None = None
+    name_i18n: str | None = None
+    description_i18n: str | None = None
+    default_roles: list[str] = Field(default_factory=list)
+
+
 class PermissionSyncResult(BaseSchema):
     total: int = Field(..., ge=0, description="Total permissions processed.")
     created: int = Field(..., ge=0, description="Created permissions.")

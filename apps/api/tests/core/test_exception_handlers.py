@@ -16,7 +16,6 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     # Keep exception handler tests isolated from external infra.
     monkeypatch.setenv("DATABASE__ENABLED", "0")
     monkeypatch.setenv("VALKEY__ENABLED", "0")
-    monkeypatch.setenv("PLUGIN__ENABLED", "0")
     # `get_settings()` is cached; tests that mutate env must reset it to avoid leaking
     # configuration across the test suite.
     get_settings.cache_clear()

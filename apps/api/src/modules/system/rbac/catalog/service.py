@@ -4,12 +4,11 @@ from __future__ import annotations
 Core RBAC permission templates.
 
 Notes:
-- This file defines the source of truth for core permissions. Plugins can contribute additional
-  permissions via their manifests, and all templates are registered into the plugin registry.
+- This file defines the source of truth for core permissions.
 - Workspace system roles are immutable: their permission sets are reconciled from these templates.
 """
 
-from apps.api.src.plugin.manifest import PermissionTemplate
+from apps.api.src.modules.system.rbac.schema import PermissionTemplate
 
 # Core permission templates must live outside the plugin system, because RBAC is a core capability.
 # These templates are registered into the plugin registry at startup so RBAC can sync them into DB.

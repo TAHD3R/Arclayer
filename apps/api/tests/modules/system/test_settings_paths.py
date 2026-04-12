@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from apps.api.src.config import ApplicationSettings, EmailSettings, PluginSettings, SetupSettings, StorageSettings
+from apps.api.src.config import ApplicationSettings, EmailSettings, SetupSettings, StorageSettings
 
 
 def _norm(p: Path) -> str:
@@ -28,13 +28,6 @@ def test_email_template_dir_resolves_under_static_by_default() -> None:
     assert settings.template_dir is not None
     assert settings.template_dir.is_absolute()
     assert _norm(settings.template_dir).endswith("/static/templates/emails")
-
-
-def test_plugin_root_dir_resolves_repo_relative_path() -> None:
-    settings = PluginSettings(root_dir=Path("plugins"))
-    assert settings.root_dir.is_absolute()
-    assert _norm(settings.root_dir).endswith("/plugins")
-    assert "/apps/api/plugins" not in _norm(settings.root_dir)
 
 
 def test_setup_master_key_path_resolves_repo_relative_path() -> None:

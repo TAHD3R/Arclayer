@@ -10,9 +10,6 @@ function getBlockedTooltipText(
   resolvePermissionName: ((code: string) => string | null) | undefined,
 ): string | null {
   if (!item.disabled) return null;
-  if (item.blockedReason === "plugin_disabled") {
-    return t("nav:MENU_BLOCKED_PLUGIN_DISABLED");
-  }
   if (item.blockedReason === "missing_permission") {
     const permCode = item.requiredPermission || "admin:access";
     const permissionName = resolvePermissionName?.(permCode) ?? null;

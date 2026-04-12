@@ -6,6 +6,7 @@ from uuid import UUID
 
 from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.config import Settings
+from apps.api.src.core.events import EventBus
 from apps.api.src.core.exceptions import BadRequest, Conflict, Forbidden, Unauthorized
 from apps.api.src.core.i18n import t
 from apps.api.src.models.organization.user import UserCredential
@@ -13,7 +14,6 @@ from apps.api.src.modules.auth.tokens.service import verify_password
 from apps.api.src.modules.system.schema import SystemMasterKeyRepairResult
 from apps.api.src.modules.system.settings.service import SettingsService
 from apps.api.src.modules.system.setup.shared.service import _raise_if_fatal, _ts
-from apps.api.src.plugin.event_bus import EventBus
 from apps.api.src.settings.crypto import ensure_master_key, master_key_exists
 from apps.api.src.settings.signing import ensure_signing_keypair
 

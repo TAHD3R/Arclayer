@@ -190,21 +190,6 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventCatalogEntry> =
     descriptionKey: "ACTIVITY_EVENT_SETTINGS_UPDATED_DESC",
     level: "warning",
   },
-  "plugin.installed": {
-    titleKey: "ACTIVITY_EVENT_PLUGIN_INSTALLED_TITLE",
-    descriptionKey: "ACTIVITY_EVENT_PLUGIN_INSTALLED_DESC",
-    level: "info",
-  },
-  "plugin.enabled": {
-    titleKey: "ACTIVITY_EVENT_PLUGIN_ENABLED_TITLE",
-    descriptionKey: "ACTIVITY_EVENT_PLUGIN_ENABLED_DESC",
-    level: "info",
-  },
-  "plugin.disabled": {
-    titleKey: "ACTIVITY_EVENT_PLUGIN_DISABLED_TITLE",
-    descriptionKey: "ACTIVITY_EVENT_PLUGIN_DISABLED_DESC",
-    level: "warning",
-  },
   "asset.uploaded": {
     titleKey: "ACTIVITY_EVENT_ASSET_UPLOADED_TITLE",
     descriptionKey: "ACTIVITY_EVENT_ASSET_UPLOADED_DESC",

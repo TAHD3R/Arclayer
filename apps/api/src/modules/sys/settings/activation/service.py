@@ -14,9 +14,9 @@ from apps.api.src.modules.sys.settings.namespaces.service import SysConfigNamesp
 from apps.api.src.modules.sys.settings.repository import SysConfigRepository
 from apps.api.src.modules.sys.settings.schema import SysConfigDetail, SysConfigTestResult
 from apps.api.src.modules.sys.settings.schemahelpers.service import _ts
-from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
 from apps.api.src.settings.runtime import invalidate_core_settings_cache
+from apps.api.src.settings.schema import ConfigSchema
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.src.settings.validation import validate_config_schema
 

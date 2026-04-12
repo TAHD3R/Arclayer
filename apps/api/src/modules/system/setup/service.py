@@ -4,6 +4,7 @@ import asyncio
 
 from apps.api.src.common.services.base import BaseService
 from apps.api.src.config import Settings
+from apps.api.src.core.events import EventBus
 from apps.api.src.modules.system.setup.access.service import SystemSetupAccessMixin
 from apps.api.src.modules.system.setup.initialize.organization.service import SystemSetupOrganizationBootstrapMixin
 from apps.api.src.modules.system.setup.initialize.service import SystemSetupInitializeMixin
@@ -11,7 +12,6 @@ from apps.api.src.modules.system.setup.initialize.workspace.service import Syste
 from apps.api.src.modules.system.setup.job.service import SystemSetupJobMixin
 from apps.api.src.modules.system.setup.masterkey.service import SystemSetupMasterKeyMixin
 from apps.api.src.modules.system.setup.reinitialize.service import SystemSetupReinitializeMixin
-from apps.api.src.plugin.event_bus import EventBus
 
 
 class SystemSetupService(

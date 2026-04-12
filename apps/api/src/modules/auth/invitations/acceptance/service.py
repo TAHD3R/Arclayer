@@ -478,10 +478,9 @@ class AuthInvitationAcceptanceService(BaseService):
         # Best-effort: emit audit event for invite acceptance.
         if organization_id is not None and workspace_id is not None and accepted_user_id is not None:
             try:
-                from apps.api.src.plugin.event_bus import Event
-                from apps.api.src.plugin.host import host as plugin_host
+                from apps.api.src.core.events import Event, events
 
-                await plugin_host.event_bus.publish(
+                await events.publish(
                     Event(
                         name="workspace.invite.accepted",
                         payload={

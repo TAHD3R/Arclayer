@@ -7,7 +7,7 @@ from apps.api.src.modules.system.settings.schema import (
     SettingsSchemaItem,
     SettingsSectionItem,
 )
-from apps.api.src.plugin.manifest import ConfigSchema
+from apps.api.src.settings.schema import ConfigSchema
 
 
 class SettingsSchemaHelpersMixin:

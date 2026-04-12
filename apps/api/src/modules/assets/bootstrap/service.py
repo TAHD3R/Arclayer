@@ -7,11 +7,11 @@ from fastapi import FastAPI
 
 from apps.api.src.common.constants.assets import ASSET_UPLOADED_EVENT
 from apps.api.src.config import Settings
+from apps.api.src.core.events import Event, EventBus
 from apps.api.src.core.logging import get_logger
 from apps.api.src.infra.jobs.assets_thumbnails import generate_asset_thumbnails
 from apps.api.src.infra.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
 from apps.api.src.infra.jobs.tasks import task_generate_asset_thumbnails
-from apps.api.src.plugin.event_bus import Event, EventBus
 
 logger = get_logger(__name__)
 _FATAL_ASSET_PROCESSOR_ERRORS: tuple[type[BaseException], ...] = (
@@ -76,7 +76,7 @@ async def register_core_asset_processors(app: FastAPI, event_bus: EventBus, sett
 
     # Subscribe as "core". If the app hot-reloads, duplicate subscriptions may happen;
     await event_bus.subscribe(
-        plugin_id="core",
+        subscriber_id="core",
         event_name=ASSET_UPLOADED_EVENT,
         handler=_on_asset_uploaded,
         priority=0,

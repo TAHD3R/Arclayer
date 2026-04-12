@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Literal, cast
 
 from pydantic import AliasChoices, Field, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,7 +9,6 @@ from apps.api.src.config_runtime import (
     AuthSettings,
     EmailSettings,
     ObservabilitySettings,
-    PluginSettings,
     PublicIdSettings,
     SaasSettings,
     SetupSettings,
@@ -24,17 +23,14 @@ _REPO_ROOT_PREFIXES = {
     "apps",
     "data",
     "packages",
-    "plugins",
     "locales",
     "static",
     "docs",
     "docker",
 }
 
-S = TypeVar("S", bound=BaseSettings)
 
-
-def _build_settings_from_env_file(
+def _build_settings_from_env_file[S: BaseSettings](
     settings_cls: type[S],
     *,
     env_file: Any,
@@ -378,10 +374,6 @@ class DatabaseSettings(BaseSettings):
         default_factory=lambda: ["apps.api.src.models"],
         validation_alias=AliasChoices("DB_CORE_MODELS", "DATABASE_CORE_MODELS"),
     )
-    plugin_packages: list[str] = Field(
-        default_factory=lambda: ["apps.api.src.plugins"],
-        validation_alias=AliasChoices("DB_PLUGIN_PACKAGES", "DATABASE_PLUGIN_PACKAGES"),
-    )
     models_max_depth: int | None = Field(
         default=4,
         validation_alias=AliasChoices("DB_MODELS_MAX_DEPTH", "DATABASE_MODELS_MAX_DEPTH"),
@@ -666,7 +658,6 @@ class Settings(BaseSettings):
     auth: AuthSettings = Field(default_factory=AuthSettings)
     public_id: PublicIdSettings = Field(default_factory=PublicIdSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
-    plugin: PluginSettings = Field(default_factory=PluginSettings)
     saas: SaasSettings = Field(default_factory=SaasSettings)
     setup: SetupSettings = Field(default_factory=SetupSettings)
     testing: TestingSettings = Field(default_factory=TestingSettings)
@@ -763,10 +754,6 @@ class Settings(BaseSettings):
         self.email = _merge_settings(
             self.email,
             _build_settings_from_env_file(EmailSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.plugin = _merge_settings(
-            self.plugin,
-            _build_settings_from_env_file(PluginSettings, env_file=env_file, env_file_encoding=env_file_encoding),
         )
         self.saas = _merge_settings(
             self.saas,

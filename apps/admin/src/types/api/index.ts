@@ -297,6 +297,3 @@ export type {
 
 // Workspace Themes
 export type { WorkspaceThemeItem, WorkspaceThemeListOut } from "./workspace-themes";
-
-// Admin Extensions
-export type { AdminUIExtension } from "./admin-extensions";

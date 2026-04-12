@@ -22,8 +22,8 @@ from apps.api.src.modules.sys.settings.schemahelpers.service import (
     _canonical_json_bytes,
     _ts,
 )
-from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.core_schema import CORE_SETTINGS_NAMESPACE
+from apps.api.src.settings.schema import ConfigSchema
 from apps.api.src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 from apps.api.src.settings.signing import (
     ensure_signing_keypair,

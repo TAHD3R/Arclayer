@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -72,7 +72,7 @@ class SiteDomainsRepository(BaseRepository):
         site_id: UUID,
         domain_id: UUID,
     ) -> SiteDomainRecord:
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         async with in_transaction() as conn:
             rec = (
                 await SiteDomainRecord.filter(id=domain_id, site_id=site_id).using_db(conn).select_for_update().first()

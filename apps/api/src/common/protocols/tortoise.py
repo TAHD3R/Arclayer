@@ -67,18 +67,6 @@ class PermissionMutableFields(Protocol):
     plugin_id: str | None
 
 
-class PluginRecordMutableFields(Protocol):
-    description: str | None
-    website: str | None
-    repository: str | None
-    issues: str | None
-    license: str | None
-    package_filename: str | None
-    package_checksum: str | None
-    package_size: int | None
-    started_at: datetime | None
-
-
 class UploadPartMutableFields(Protocol):
     checksum_sha256: str | None
     etag: str | None

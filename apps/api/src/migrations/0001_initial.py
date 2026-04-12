@@ -11,7 +11,6 @@ from apps.api.src.models.organization.user import UserStatus
 from apps.api.src.models.system.notification import NotificationCategory
 from apps.api.src.models.system.rbac import PermissionScope
 from apps.api.src.models.workspaces.workspace import WorkspaceMembershipStatus
-from apps.api.src.plugin.types import PluginStatus
 from orjson import loads
 from tortoise.fields.base import OnDelete
 from tortoise.fields.data import JSON_DUMPS
@@ -27,6 +26,14 @@ class AdminMenuItemType(StrEnum):
 class SitePageVisibility(StrEnum):
     PUBLIC = "public"
     PRIVATE = "private"
+
+
+class PluginStatus(StrEnum):
+    INSTALLED = "installed"
+    STARTED = "started"
+    STOPPED = "stopped"
+    DISABLED = "disabled"
+    FAILED = "failed"
 
 
 class Migration(migrations.Migration):

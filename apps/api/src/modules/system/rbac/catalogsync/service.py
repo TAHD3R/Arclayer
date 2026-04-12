@@ -7,8 +7,7 @@ from apps.api.src.models.system.rbac import Permission, PermissionScope
 from apps.api.src.modules.system.rbac.catalog.service import CORE_PERMISSION_TEMPLATES
 from apps.api.src.modules.system.rbac.constants.service import CORE_PERMISSION_OWNER
 from apps.api.src.modules.system.rbac.repository import RBACRepository
-from apps.api.src.modules.system.rbac.schema import PermissionCatalogSyncResult
-from apps.api.src.plugin.manifest import PermissionTemplate
+from apps.api.src.modules.system.rbac.schema import PermissionCatalogSyncResult, PermissionTemplate
 
 
 class RBACCatalogSyncMixin:

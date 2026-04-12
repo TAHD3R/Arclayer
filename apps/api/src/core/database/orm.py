@@ -2,25 +2,21 @@ from __future__ import annotations
 
 import asyncio
 import fnmatch
-import sys
 from collections.abc import Iterable
 from functools import lru_cache
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Final
 
-from pydantic import ValidationError
 from tortoise import Tortoise
 
 from apps.api.src.config import Settings, get_settings
 from apps.api.src.core.logging import get_logger
-from apps.api.src.plugin.manifest import load_plugin_manifest
 
 EXCLUDE_NAMES = ("tests", "base", "migrations", "__pycache__", "__init__")
 
 logger = get_logger(__name__)
 
-MANIFEST_PARSE_ERRORS = (OSError, ValidationError)
 _FATAL_ORM_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,
     GeneratorExit,
@@ -181,19 +177,6 @@ def discover_model_modules(
     return sorted(results)
 
 
-def discover_plugin_models(
-    base_pkgs: Iterable[str],
-    *,
-    exclude: tuple[str, ...] = tuple(EXCLUDE_NAMES),
-    exclude_globs: tuple[str, ...] = (),
-    max_depth: int | None = None,
-) -> list[str]:
-    modules: set[str] = set()
-    for pkg in base_pkgs:
-        modules.update(discover_model_modules(pkg, exclude=exclude, exclude_globs=exclude_globs, max_depth=max_depth))
-    return sorted(modules)
-
-
 def build_models_list(
     settings: Settings,
     *,
@@ -218,13 +201,6 @@ def build_models_list(
                 action="db_core_models_no_models",
                 entry=pkg,
             )
-    modules.update(
-        discover_plugin_models(
-            settings.database.plugin_packages,
-            max_depth=settings.database.models_max_depth,
-        )
-    )
-    modules.update(_collect_manifest_models(settings))
     for pkg in extra_pkgs or []:
         modules.update(discover_model_modules(pkg))
     for module in extra_modules or []:
@@ -265,39 +241,6 @@ def build_tortoise_config(
         "use_tz": settings.database.use_tz,
         "timezone": settings.database.timezone,
     }
-
-
-def _collect_manifest_models(settings: Settings) -> set[str]:
-    if not settings.plugin.enabled:
-        return set()
-
-    root_dir = Path(settings.plugin.root_dir)
-    if not root_dir.exists():
-        return set()
-
-    root_str = str(root_dir)
-    if root_str not in sys.path:
-        sys.path.insert(0, root_str)
-
-    models: set[str] = set()
-    for manifest_path in root_dir.glob("*/plugin.toml"):
-        plugin_root = manifest_path.parent
-        plugin_root_str = str(plugin_root)
-        if plugin_root_str not in sys.path:
-            sys.path.insert(0, plugin_root_str)
-        src_root = plugin_root / "src"
-        if src_root.is_dir():
-            src_root_str = str(src_root)
-            if src_root_str not in sys.path:
-                sys.path.insert(0, src_root_str)
-        try:
-            manifest = load_plugin_manifest(manifest_path)
-        except MANIFEST_PARSE_ERRORS as exc:
-            logger.warning("Plugin manifest parse failed", path=str(manifest_path), error=str(exc))
-            continue
-        for module in manifest.models:
-            models.add(module)
-    return models
 
 
 TORTOISE_ORM: Final = build_tortoise_config(get_settings())

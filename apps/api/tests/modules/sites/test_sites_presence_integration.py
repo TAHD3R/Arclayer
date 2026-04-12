@@ -27,14 +27,10 @@ async def prepared_schema(integration_db_settings, integration_valkey_settings, 
     Prepare DB schema for integration tests.
 
     Note:
-    - We disable plugin system to keep the test focused on Sites protocol behavior.
     - Schema is created via `Tortoise.generate_schemas()` (test-only), not Aerich.
     """
 
     _ = integration_valkey_settings
-    monkeypatch.setenv("PLUGIN__ENABLED", "0")
-    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
-    monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
     monkeypatch.setenv("SETUP__ENABLED", "0")
     get_settings.cache_clear()
 

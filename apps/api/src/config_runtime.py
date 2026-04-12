@@ -16,7 +16,6 @@ def _normalize_runtime_fs_path(value: Path, *, default_base: Path) -> Path:
         "apps",
         "data",
         "packages",
-        "plugins",
         "locales",
         "static",
         "docs",
@@ -327,52 +326,6 @@ class EmailSettings(BaseSettings):
         current = Path(__file__).resolve().parent
         repo_root = current.parents[2]
         return _normalize_runtime_fs_path(value, default_base=repo_root / "static")
-
-
-class PluginSettings(BaseSettings):
-    """
-    Plugin system settings.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="PLUGIN__",
-        env_file_encoding="utf-8",
-        env_nested_delimiter="__",
-        extra="ignore",
-        case_sensitive=False,
-        populate_by_name=True,
-        validate_default=True,
-    )
-
-    enabled: bool = Field(default=True)
-    root_dir: Path = Field(default=Path(__file__).resolve().parents[3] / "plugins")
-    auto_migrate: bool = Field(default=True)
-    auto_restart: bool = Field(default=True)
-    package_max_files: int = Field(default=2000, description="Max number of files allowed in a plugin zip package.")
-    package_max_total_uncompressed_bytes: int = Field(
-        default=200 * 1024 * 1024,
-        description="Max total uncompressed bytes allowed when extracting a plugin zip package.",
-    )
-    package_max_single_file_bytes: int = Field(
-        default=50 * 1024 * 1024,
-        description="Max uncompressed size for a single file in a plugin zip package.",
-    )
-    package_max_zip_bytes: int = Field(default=50 * 1024 * 1024, description="Max allowed zip upload bytes.")
-    watch_enabled: bool = Field(default=False, description="Enable dev-only file watchers (watchfiles).")
-    watch_debounce_ms: int = Field(default=300, description="Debounce window for watch events.")
-    watch_locales: bool = Field(default=True, description="Watch locale JSON files and clear i18n cache.")
-    watch_plugins: bool = Field(default=True, description="Watch plugin directory changes and request restart.")
-    migration_lock_ttl_seconds: int = Field(default=300)
-    migration_lock_timeout_seconds: int = Field(default=60)
-    restart_poll_interval_seconds: float = Field(default=2.0)
-    restart_jitter_seconds: float = Field(default=5.0)
-
-    @field_validator("root_dir", mode="after")
-    @classmethod
-    def _normalize_plugin_root_dir(cls, value: Path) -> Path:
-        current = Path(__file__).resolve().parent
-        repo_root = current.parents[2]
-        return _normalize_runtime_fs_path(value, default_base=repo_root)
 
 
 class SaasSettings(BaseSettings):

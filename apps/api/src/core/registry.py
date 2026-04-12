@@ -20,6 +20,7 @@ from apps.api.src.core.database.orm import (
     init_orm,
     verify_db_ready,
 )
+from apps.api.src.core.events import events
 from apps.api.src.core.exceptions import init_exception_handlers
 from apps.api.src.core.logging import configure_logging, get_logger
 from apps.api.src.core.observability import configure_observability
@@ -27,7 +28,6 @@ from apps.api.src.core.routes import register_routes
 from apps.api.src.infra.cache.valkey import close_valkey, init_valkey
 from apps.api.src.infra.jobs.client import close_taskiq_client, init_taskiq_client
 from apps.api.src.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
-from apps.api.src.plugin.host import host as plugin_host
 
 logger = get_logger(__name__)
 _FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (
@@ -70,13 +70,13 @@ def _build_lifespan(settings: Settings):
         heartbeat_task: asyncio.Task[None] | None = None
         try:
             # Starlette's TestClient runs the app in a separate thread with its own event loop.
-            # Recreate the host state in that loop to avoid cross-thread asyncio primitives
-            # (e.g. EventBus locks) created at import time.
+            # Recreate the shared event runtime in that loop to avoid cross-thread asyncio
+            # primitives created at import time.
             if settings.app_env == "test":
-                plugin_host.reset()
+                events.reset()
                 heartbeat_task = asyncio.create_task(_test_event_loop_heartbeat(), name="test-event-loop-heartbeat")
 
-            event_bus = plugin_host.event_bus
+            event_bus = events.bus
             app.state.event_bus = event_bus
 
             # In pure unit-test mode we often disable DB/Valkey entirely. In that case we can

@@ -5,8 +5,10 @@ from datetime import UTC, datetime
 from typing import Protocol, cast
 from uuid import UUID
 
+from apps.api.src.common.constants.events import SYSTEM_SETUP_COMPLETED
 from apps.api.src.common.protocols.logging import LoggerLike
 from apps.api.src.config import Settings
+from apps.api.src.core.events import Event, EventBus
 from apps.api.src.core.exceptions import BadRequest, Conflict, ServiceUnavailable
 from apps.api.src.models.organization.organization import Organization
 from apps.api.src.models.organization.user import User
@@ -15,8 +17,6 @@ from apps.api.src.modules.provision.service import TenantProvisioningService
 from apps.api.src.modules.system.schema import SystemSetupJobStage
 from apps.api.src.modules.system.settings.service import SettingsService
 from apps.api.src.modules.system.setup.shared.service import _raise_if_fatal, _ts
-from apps.api.src.plugin.event_bus import Event, EventBus
-from apps.api.src.plugin.events import SYSTEM_SETUP_COMPLETED
 from apps.api.src.settings.crypto import ensure_master_key
 from apps.api.src.settings.signing import ensure_signing_keypair
 

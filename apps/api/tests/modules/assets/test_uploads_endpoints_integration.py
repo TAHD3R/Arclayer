@@ -16,14 +16,13 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.mark.asyncio
-async def test_uploads_resumable_flow(prepared_db, plugin_root, tmp_path: Path, monkeypatch) -> None:
+async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) -> None:
     """
     Minimal resumable upload flow:
     - init -> status (missing) -> put part(s) -> status -> complete -> idempotent complete
     """
 
     _ = prepared_db
-    _ = plugin_root
 
     # Isolate storage under test temp dir (no writes to repo data/).
     root = tmp_path / "uploads"

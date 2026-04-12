@@ -8,6 +8,7 @@ from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Body, Depends, Query, Request, status
 
 from apps.api.src.common.types.public_uuid import PublicUUID
+from apps.api.src.core.events import Event, EventBus
 from apps.api.src.core.exceptions import ServiceUnavailable
 from apps.api.src.core.http.pagination import PageData, PageParams, get_page_params
 from apps.api.src.core.http.response import Response, ResponseModel
@@ -31,7 +32,6 @@ from apps.api.src.modules.workspaces.content.items.repository import WorkspaceCo
 from apps.api.src.modules.workspaces.content.shared.router import _resolve_site_id
 from apps.api.src.modules.workspaces.http.schema import WorkspaceContext
 from apps.api.src.modules.workspaces.http.service import require_workspace_manage_access
-from apps.api.src.plugin.event_bus import Event, EventBus
 
 canonical_items_router = APIRouter(
     prefix="/workspaces/{workspace_id}/content",

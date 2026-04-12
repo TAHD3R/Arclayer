@@ -15,7 +15,7 @@ export type AdminNavItem = {
   /** Control visibility by deployment mode; default: "both". */
   scope?: DeploymentScope;
   disabled?: boolean;
-  blockedReason?: "missing_permission" | "plugin_disabled" | null;
+  blockedReason?: "missing_permission" | null;
   requiredPermission?: string | null;
   ownerPluginId?: string | null;
   children?: AdminNavItem[];

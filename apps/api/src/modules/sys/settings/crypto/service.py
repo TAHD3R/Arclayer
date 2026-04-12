@@ -7,7 +7,6 @@ from cryptography.exceptions import InvalidTag
 
 from apps.api.src.core.exceptions import BadRequest, ServiceUnavailable
 from apps.api.src.modules.sys.settings.schemahelpers.service import _ts
-from apps.api.src.plugin.manifest import ConfigSchema
 from apps.api.src.settings.crypto import (
     decrypt_secret,
     encrypt_secret,
@@ -16,6 +15,7 @@ from apps.api.src.settings.crypto import (
     load_master_key,
     master_key_exists,
 )
+from apps.api.src.settings.schema import ConfigSchema
 from apps.api.src.settings.validation import iter_secret_field_paths
 
 if TYPE_CHECKING:

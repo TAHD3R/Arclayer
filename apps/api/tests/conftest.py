@@ -11,7 +11,7 @@ import pytest_asyncio
 from fastapi import FastAPI
 from tortoise import Tortoise
 
-# Ensure repository root is importable (e.g. `apps.*`, `plugins/*`), but avoid
+# Ensure repository root is importable (e.g. `apps.*`), but avoid
 # putting `apps/api` itself on `sys.path` (it would shadow stdlib modules like `http`).
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
@@ -20,7 +20,6 @@ if str(REPO_ROOT) not in sys.path:
 from apps.api.src.config import get_settings
 from apps.api.src.core.database.orm import close_orm, init_orm, verify_db_ready
 from apps.api.src.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
-from apps.api.tests.utils.plugins import collect_test_plugin_models
 from apps.api.tests.utils.tortoise import reset_postgres_schema
 
 
@@ -83,7 +82,6 @@ def _activate_integration_env(monkeypatch) -> None:
     #
     # ORM discovery must only load the canonical model package.
     monkeypatch.setenv("DATABASE__CORE_MODELS", '["apps.api.src.models"]')
-    monkeypatch.setenv("DATABASE__PLUGIN_PACKAGES", '["apps.api.src.plugins"]')
     get_settings.cache_clear()
 
 
@@ -123,17 +121,6 @@ def integration_valkey_settings(monkeypatch) -> str:
     return settings.testing.valkey_prefix or "test"
 
 
-@pytest.fixture
-def plugin_root(tmp_path, monkeypatch) -> Path:
-    root = tmp_path / "plugins"
-    monkeypatch.setenv("PLUGIN__ENABLED", "1")
-    monkeypatch.setenv("PLUGIN__ROOT_DIR", str(root))
-    monkeypatch.setenv("PLUGIN__AUTO_MIGRATE", "0")
-    monkeypatch.setenv("PLUGIN__AUTO_RESTART", "0")
-    get_settings.cache_clear()
-    return root
-
-
 async def _ensure_test_database(settings) -> None:
     db_name = settings.database.database
     admin_db = os.getenv("TEST_DATABASE__ADMIN_DB", "postgres")
@@ -166,11 +153,10 @@ async def db(integration_db_settings) -> AsyncGenerator[None, None]:
 
 
 @pytest_asyncio.fixture
-async def prepared_db(integration_db_settings, plugin_root) -> AsyncGenerator[None, None]:
+async def prepared_db(integration_db_settings) -> AsyncGenerator[None, None]:
     settings = get_settings()
-    extra_models = collect_test_plugin_models(settings)
     await _ensure_test_database(settings)
-    await init_orm(settings, extra_modules=extra_models)
+    await init_orm(settings)
     await reset_postgres_schema()
     await Tortoise.generate_schemas(safe=True)
     try:

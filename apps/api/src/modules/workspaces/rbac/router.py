@@ -48,10 +48,9 @@ async def _publish_rbac_event(
     try:
         from asgi_correlation_id import correlation_id
 
-        from apps.api.src.plugin.event_bus import Event
-        from apps.api.src.plugin.host import host as plugin_host
+        from apps.api.src.core.events import Event, events
 
-        await plugin_host.event_bus.publish(
+        await events.publish(
             Event(
                 name=event_name,
                 payload=payload,

@@ -27,9 +27,6 @@ const REQUIRED_ACTIVITY_EVENTS = [
   "rbac.role.permissions_set",
   "system.setup.completed",
   "settings.updated",
-  "plugin.installed",
-  "plugin.enabled",
-  "plugin.disabled",
   "asset.uploaded",
 ] as const;
 
