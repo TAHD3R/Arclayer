@@ -9,8 +9,6 @@ from guard.middleware import SecurityMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.responses import HTMLResponse
-from starlette.routing import Mount
 
 from src.config import Settings, get_settings
 from src.core.database.orm import (
@@ -144,61 +142,6 @@ class AppFactory:
             lifespan=_build_lifespan(self.settings),
         )
 
-    def with_spotlight_docs(self) -> "AppFactory":
-        """
-        Register Stoplight Elements as the only API documentation UI.
-
-        Notes:
-        - Only enabled when docs are enabled (development/test).
-        - Uses local static assets under `static/spotlight@9.0.6` (no network dependency).
-        """
-
-        if not self.settings.enable_docs:
-            return self
-
-        # Spotlight assets are bundled with the repository under `/<repo>/static/spotlight@9.0.6`.
-        # We mount them under a docs-only path so we don't implicitly enable `/static`
-        # when application static serving is disabled.
-        repo_static_dir = Path(__file__).resolve().parents[4] / "static" / "spotlight@9.0.6"
-        assets_url = "/_docs/spotlight@9.0.6"
-        already_mounted = any(isinstance(route, Mount) and route.path == assets_url for route in self.app.routes)
-        if not already_mounted:
-            repo_static_dir.mkdir(parents=True, exist_ok=True)
-            self.app.mount(assets_url, StaticFiles(directory=repo_static_dir), name="spotlight-assets")
-
-        assets_base = assets_url.rstrip("/")
-        openapi_url = self.app.openapi_url or self.settings.application.app_openapi_url or "/openapi.json"
-
-        docs_path = self.settings.application.app_docs_url or "/docs"
-
-        @self.app.get(docs_path, include_in_schema=False)
-        async def spotlight_docs() -> HTMLResponse:
-            # Minimal HTML wrapper for Stoplight Elements. Keep it dependency-free.
-            html = f"""<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{self.app.title} - Spotlight API Documentation</title>
-    <link rel="stylesheet" href="{assets_base}/styles.min.css" />
-    <script src="{assets_base}/web-components.min.js"></script>
-  </head>
-  <body>
-    <elements-api apiDescriptionUrl="{openapi_url}" router="hash"></elements-api>
-  </body>
-</html>"""
-            return HTMLResponse(content=html)
-
-        # Backward-compatible alias for existing links.
-        if docs_path != "/spotlight":
-            from starlette.responses import RedirectResponse
-
-            @self.app.get("/spotlight", include_in_schema=False)
-            async def spotlight_docs_alias() -> RedirectResponse:
-                return RedirectResponse(url=docs_path)
-
-        return self
-
     def with_logging(self) -> "AppFactory":
         configure_logging(self.settings)
         return self
@@ -272,12 +215,4 @@ class AppFactory:
 
 
 def create_app() -> FastAPI:
-    return (
-        AppFactory()
-        .with_logging()
-        .with_middlewares()
-        .with_exception_handlers()
-        .with_static()
-        .with_spotlight_docs()
-        .build()
-    )
+    return AppFactory().with_logging().with_middlewares().with_exception_handlers().with_static().build()

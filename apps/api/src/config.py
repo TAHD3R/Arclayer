@@ -313,7 +313,6 @@ class LoggingSettings(BaseSettings):
             "/openapi.json",
             "/docs",
             "/redoc",
-            "/spotlight",
             "/favicon.ico",
         ],
         validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATHS"),
@@ -321,7 +320,6 @@ class LoggingSettings(BaseSettings):
     request_log_omit_path_prefixes: list[str] = Field(
         default_factory=lambda: [
             "/static",
-            "/_docs",
         ],
         validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATH_PREFIXES"),
     )

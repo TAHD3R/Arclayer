@@ -3,20 +3,19 @@ from __future__ import annotations
 import secrets
 from contextvars import ContextVar
 from http.cookies import SimpleCookie
-from typing import Any, cast
 
 from fastapi import FastAPI, Request
 from guard import (
     RedisManager,
     cloud_handler,
     ip_ban_manager,
-    rate_limit_handler,
     sus_patterns_handler,
 )
 from guard import (
     SecurityConfig as GuardSecurityConfig,
 )
 from guard.adapters import StarletteGuardRequest, StarletteGuardResponse
+from guard_core.handlers.ratelimit_handler import RateLimitManager
 from guard_core.protocols.request_protocol import GuardRequest
 from guard_core.protocols.response_protocol import GuardResponse
 from starlette.responses import JSONResponse
@@ -162,7 +161,9 @@ async def initialize_guard_runtime(app: FastAPI, settings: Settings) -> None:
         redis_manager = RedisManager(config)
         await redis_manager.initialize()
         await ip_ban_manager.initialize_redis(redis_manager)
-        await cast(Any, rate_limit_handler).initialize_redis(redis_manager)
+        # Guard uses a singleton RateLimitManager underneath the middleware. Initialize
+        # the instance explicitly so Redis-backed rate limiting is actually active.
+        await RateLimitManager(config).initialize_redis(redis_manager)
         await sus_patterns_handler.initialize_redis(redis_manager)
         if config.block_cloud_providers:
             await cloud_handler.initialize_redis(

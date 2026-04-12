@@ -34,3 +34,14 @@ def test_security_master_key_path_resolves_repo_relative_path() -> None:
     settings = SecuritySettings(master_key_path=Path("data/secrets/master.key"))
     assert settings.master_key_path.is_absolute()
     assert _norm(settings.master_key_path).endswith("/data/secrets/master.key")
+
+
+def test_security_blank_optional_guard_values_normalize_to_none() -> None:
+    settings = SecuritySettings.model_validate({
+        "log_request_level": "",
+        "custom_log_file": "   ",
+        "redis_url": "",
+    })
+    assert settings.log_request_level is None
+    assert settings.custom_log_file is None
+    assert settings.redis_url is None

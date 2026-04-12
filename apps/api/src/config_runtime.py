@@ -450,6 +450,13 @@ class SecuritySettings(BaseSettings):
         repo_root = current.parents[2]
         return _normalize_runtime_fs_path(value, default_base=repo_root)
 
+    @field_validator("redis_url", "custom_log_file", "log_suspicious_level", "log_request_level", mode="before")
+    @classmethod
+    def _normalize_optional_blank_strings(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     @field_validator("blocked_user_agents", "whitelist_countries", "blocked_countries", "exclude_paths", mode="after")
     @classmethod
     def _strip_list_entries(cls, value: list[str]) -> list[str]:
