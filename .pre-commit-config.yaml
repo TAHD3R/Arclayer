@@ -28,6 +28,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: api-typecheck
+        name: API Typecheck (ty)
+        entry: pnpm -C apps/api typecheck
+        language: system
+        files: ^apps/api/(src|tests|scripts)/.*\.py$
+        types: [python]
+        pass_filenames: false
+
       - id: frontend-format
         name: Frontend Format (oxfmt)
         entry: pnpm -w exec oxfmt

@@ -40,7 +40,7 @@ def _build_settings_from_env_file[S: BaseSettings](
 
     Notes:
     - pydantic-settings supports `_env_file` / `_env_file_encoding` at runtime, but some type stubs
-      don't expose these kwargs, which can confuse Pyright.
+      don't expose these kwargs, which can confuse static type checkers.
     - We isolate the cast here to keep the rest of the codebase strongly typed.
     """
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -18,7 +19,7 @@ class _FakeRaw:
     async def sadd(self, key: str, *values: str) -> int:
         return 0
 
-    async def smembers(self, key: str) -> set[str]:
+    async def smembers(self, key: str) -> builtins.set[str]:
         return set()
 
     async def srem(self, key: str, *values: str) -> int:
@@ -81,7 +82,7 @@ class FakeValkeyClient:
     async def sadd(self, key: str, *members: str) -> int:
         return await self.raw.sadd(key, *members)
 
-    async def smembers(self, key: str) -> set[str]:
+    async def smembers(self, key: str) -> builtins.set[str]:
         return await self.raw.smembers(key)
 
     async def srem(self, key: str, *members: str) -> int:

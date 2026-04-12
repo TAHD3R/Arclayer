@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -78,7 +78,7 @@ async def test_list_members_can_filter_by_role_code(monkeypatch: pytest.MonkeyPa
         _ = organization_id, actor_membership, permission_code, error_code
         return None
 
-    service._ensure_permission = _allow  # type: ignore[assignment]
+    service._ensure_permission = cast(Any, _allow)
 
     page = await service.list_members(
         organization_id=uuid4(),
@@ -151,8 +151,8 @@ async def test_list_members_includes_workspace_icon_url(monkeypatch: pytest.Monk
         _ = organization_id, actor_membership, permission_code, error_code
         return None
 
-    service.repo.list_workspace_memberships_for_user_ids = _list_workspace_memberships  # type: ignore[method-assign]
-    service._ensure_permission = _allow  # type: ignore[assignment]
+    service.repo.list_workspace_memberships_for_user_ids = cast(Any, _list_workspace_memberships)
+    service._ensure_permission = cast(Any, _allow)
 
     page = await service.list_members(
         organization_id=uuid4(),

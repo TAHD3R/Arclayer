@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 from types import SimpleNamespace
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -71,7 +72,7 @@ class _FakeValkey(ValkeyClientLike):
         _ = key, members
         return 0
 
-    async def smembers(self, key: str) -> set[str]:
+    async def smembers(self, key: str) -> builtins.set[str]:
         _ = key
         return set()
 

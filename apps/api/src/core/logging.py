@@ -73,13 +73,11 @@ def _redact_sensitive(logger: WrappedLogger, method_name: str, event_dict: Event
 
 def _ensure_event_dict(event_dict: EventDict) -> dict[str, Any]:
     # structlog's stubs use `EventDict` (MutableMapping) but in practice the runtime value is a `dict`.
-    return event_dict if isinstance(event_dict, dict) else dict(event_dict)
+    return dict(event_dict)
 
 
 def _merge_contextvars_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
-    # structlog's type stubs for contextvars processors can be inconsistent across versions.
-    # At runtime this returns a mapping; we cast to keep Pyright satisfied.
-    return cast(EventDict, merge_contextvars(logger, method_name, _ensure_event_dict(event_dict)))
+    return merge_contextvars(logger, method_name, _ensure_event_dict(event_dict))
 
 
 def _add_log_level_processor(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:

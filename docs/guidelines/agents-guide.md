@@ -43,7 +43,7 @@ It is complementary to `AGENTS.md`:
 This repo uses Turborepo + pnpm workspaces. Commands must go through `package.json` scripts.
 
 - Use `pnpm <script>`, `pnpm --filter <pkg> <script>`, or `pnpm -C <dir> <script>`.
-- Do not run `.venv/bin/*` directly (e.g. `.venv/bin/pytest`, `.venv/bin/pyright`).
+- Do not run `.venv/bin/*` directly (e.g. `.venv/bin/pytest`, `.venv/bin/ty`).
 - Backend ad-hoc commands must go through scripts, e.g. `pnpm -C apps/api uv -- <command>`.
 
 Avoid running infra / interactive commands unless the user explicitly asks:

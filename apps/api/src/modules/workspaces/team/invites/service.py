@@ -141,13 +141,15 @@ class WorkspaceTeamInviteMixin:
         accepted_at: datetime | None,
         revoked_at: datetime | None,
         expires_at: datetime | None,
-    ) -> InviteStatus: ...
+    ) -> InviteStatus:
+        raise NotImplementedError
 
     async def _get_role_by_code_in_workspace(self, *, workspace_id: UUID, role_code: str) -> Role | None: ...
 
     async def _list_recent_participants(
         self, *, link_id: UUID, limit: int = 3
-    ) -> list[WorkspaceInviteLinkParticipantOut]: ...
+    ) -> list[WorkspaceInviteLinkParticipantOut]:
+        raise NotImplementedError
 
     async def _notify_workspace_email_invite_change(
         self,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from src.common.services import BaseService
@@ -110,6 +111,6 @@ class SettingsService(
                 secrets[path] = False
                 continue
             secrets[path] = True
-            section[field_key] = None
+            cast(dict[str, object], section)[field_key] = None
 
         return masked, secrets

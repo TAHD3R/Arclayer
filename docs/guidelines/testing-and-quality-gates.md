@@ -31,7 +31,7 @@ This guideline applies to all authored code changes in:
 Minimum pass conditions:
 
 - Ruff check/format
-- Pyright typecheck
+- Ty typecheck
 - Unit/integration-relevant pytest suites
 
 Canonical commands:

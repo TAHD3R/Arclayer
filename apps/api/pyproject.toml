@@ -41,13 +41,13 @@ dependencies = [
 [dependency-groups]
 dev = [
   "pre-commit>=4.5.1",
-  "pyright>=1.1.408",
   "pytest>=9.0.2",
   "pytest-asyncio>=1.3.0",
   "pytest-cov>=6.0.0",
   "pyupgrade>=3.21.2",
   "ruff>=0.14.13",
   "safety>=3.7.0",
+  "ty>=0.0.29",
 ]
 
 [tool.uv]
@@ -134,7 +134,10 @@ markers = [
     "unit: tests that exercise dependency-light units without external services",
 ]
 
-[tool.pyright]
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
 include = ["src", "tests", "scripts"]
 exclude = [
   "**/__pycache__",
@@ -143,11 +146,10 @@ exclude = [
   "**/.turbo",
   "**/dist",
   "**/build",
-  "**/migrations/**",
+  "src/migrations/**",
 ]
-venvPath = "."
-venv = ".venv"
-typeCheckingMode = "standard"
-reportMissingImports = true
-reportMissingTypeStubs = false
-pythonVersion = "3.12"
+
+[tool.ty.rules]
+unknown-argument = "warn"
+invalid-argument-type = "warn"
+no-matching-overload = "warn"

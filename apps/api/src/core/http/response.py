@@ -26,7 +26,7 @@ class ResponseModel[T](BaseModel):
     meta: dict[str, Any] | None = None
 
     @classmethod
-    def __class_getitem__(cls, params: Any):
+    def __class_getitem__(cls, params: Any):  # ty: ignore[invalid-method-override]
         specialized: Any = cast("Any", super().__class_getitem__(params))
         mr = getattr(specialized, "model_rebuild", None)
         if callable(mr):

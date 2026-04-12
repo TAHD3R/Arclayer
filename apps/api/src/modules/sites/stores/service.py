@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import time
 from uuid import UUID
 
@@ -75,7 +76,7 @@ class PresenceStore:
         )
         return expires_at_ms
 
-    async def list(self, *, site_id: UUID, doc_key: str) -> list[dict[str, object]]:
+    async def list(self, *, site_id: UUID, doc_key: str) -> builtins.list[dict[str, object]]:
         key = self._set_key(site_id=site_id, doc_key=doc_key)
         client_ids = sorted(await self._client.smembers(key))
         results: list[dict[str, object]] = []

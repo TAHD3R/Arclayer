@@ -125,7 +125,7 @@ class AuthService(BaseService):
         auth_method: str,
         parent: str | None = None,
     ) -> dict[str, object | None]:
-        record = {
+        record: dict[str, object | None] = {
             "jti": jti,
             "user_id": str(user_id),
             "token_version": token_version,

@@ -71,7 +71,7 @@ Use repo scripts only:
 
 Do not:
 
-- run `.venv/bin/*` directly (e.g. `.venv/bin/pytest`, `.venv/bin/pyright`)
+- run `.venv/bin/*` directly (e.g. `.venv/bin/pytest`, `.venv/bin/ty`)
 - bypass scripts by manually assembling env + direct tool invocation (except explicit debugging with rationale)
 - start persistent dev servers in automation contexts unless the user asks
 

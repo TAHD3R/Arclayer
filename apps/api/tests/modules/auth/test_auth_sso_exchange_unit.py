@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import json
 from typing import Any
 from uuid import UUID, uuid4
@@ -94,7 +95,7 @@ class _FakeValkey(ValkeyClientLike):
                 removed += 1
         return removed
 
-    async def smembers(self, key: str) -> set[str]:
+    async def smembers(self, key: str) -> builtins.set[str]:
         return set(self._sets.get(key, set()))
 
 

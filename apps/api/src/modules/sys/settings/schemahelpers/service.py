@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 
 from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
@@ -105,7 +106,7 @@ class SysConfigSchemaHelpersMixin:
                 secrets[path] = False
                 continue
             secrets[path] = True
-            section[field_key] = None
+            cast(dict[str, object], section)[field_key] = None
 
         return masked, secrets
 

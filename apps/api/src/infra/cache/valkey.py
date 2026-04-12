@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 import json
 from typing import Any, Protocol, cast
 
@@ -27,10 +28,11 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
+_orjson: Any = None
 try:
     import orjson as _orjson
 except ImportError:
-    _orjson = None
+    pass
 
 
 class _AsyncEval(Protocol):
@@ -62,7 +64,7 @@ class _AsyncRedis(Protocol):
 
     async def srem(self, key: str, *members: str) -> int: ...
 
-    async def smembers(self, key: str) -> set[str]: ...
+    async def smembers(self, key: str) -> builtins.set[str]: ...
 
     async def aclose(self) -> Any: ...
 
@@ -157,7 +159,7 @@ class ValkeyClient:
     async def srem(self, key: str, *members: str) -> int:
         return int(await self._r.srem(self.key(key), *members))
 
-    async def smembers(self, key: str) -> set[str]:
+    async def smembers(self, key: str) -> builtins.set[str]:
         members = await self._r.smembers(self.key(key))
         return {str(x) for x in members} if members else set()
 
@@ -236,7 +238,7 @@ class ValkeyClientLike(Protocol):
 
     async def srem(self, key: str, *members: str) -> int: ...
 
-    async def smembers(self, key: str) -> set[str]: ...
+    async def smembers(self, key: str) -> builtins.set[str]: ...
 
 
 def build_valkey(settings: ValkeySettings) -> _AsyncRedis:
