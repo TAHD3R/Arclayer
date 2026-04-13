@@ -78,5 +78,18 @@
   "ORG_RBAC_ROLE_ADMIN_NAME": "Organization Admin",
   "ORG_RBAC_ROLE_ADMIN_DESC": "Manage members, invitations, and most organization operations except destructive actions.",
   "ORG_RBAC_ROLE_MEMBER_NAME": "Organization Member",
-  "ORG_RBAC_ROLE_MEMBER_DESC": "Organization visibility with limited governance operations."
+  "ORG_RBAC_ROLE_MEMBER_DESC": "Organization visibility with limited governance operations.",
+  "PERMISSION_NOT_FOUND": "Permission not found",
+  "PERMISSION_SCOPE_INVALID": "Permission scope is invalid",
+  "ROLE_CODE_GENERATE_FAILED": "Failed to generate a role code. Please try again.",
+  "ROLE_CODE_GENERATION_FAILED": "Failed to allocate a role code",
+  "ROLE_CODE_INVALID": "Role code is invalid",
+  "ROLE_CODE_RESERVED": "Role code is reserved by the system",
+  "ROLE_DELETE_INVALID": "System roles cannot be deleted",
+  "ROLE_EXISTS": "Role already exists",
+  "ROLE_NAME_REQUIRED": "Role name is required",
+  "ROLE_NOT_FOUND": "Role not found",
+  "ROLE_SYSTEM_IMMUTABLE": "System roles cannot be modified",
+  "ROLE_TEMPLATE_NOT_FOUND": "Role template not found",
+  "ROLE_UPDATE_INVALID": "System roles cannot be updated"
 }

@@ -37,7 +37,7 @@ class PublicLibraryService:
     ):
         org = await self.repo.get_org_by_slug(slug=org_slug)
         if org is None:
-            raise NotFound(message="Not Found", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
 
         # Convert query into internal PageParams.
         params = PageParams(page=int(filters.page), size=int(filters.size))

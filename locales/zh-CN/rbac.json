@@ -78,5 +78,18 @@
   "ORG_RBAC_ROLE_ADMIN_NAME": "组织管理员",
   "ORG_RBAC_ROLE_ADMIN_DESC": "可管理成员、邀请与大部分组织运维操作，但不含高风险破坏性操作。",
   "ORG_RBAC_ROLE_MEMBER_NAME": "组织成员",
-  "ORG_RBAC_ROLE_MEMBER_DESC": "拥有组织级基础可见性，具体能力由角色授权决定。"
+  "ORG_RBAC_ROLE_MEMBER_DESC": "拥有组织级基础可见性，具体能力由角色授权决定。",
+  "PERMISSION_NOT_FOUND": "权限不存在",
+  "PERMISSION_SCOPE_INVALID": "权限作用域不合法",
+  "ROLE_CODE_GENERATE_FAILED": "角色标识生成失败，请重试",
+  "ROLE_CODE_GENERATION_FAILED": "角色编码生成失败，请重试",
+  "ROLE_CODE_INVALID": "角色编码不合法",
+  "ROLE_CODE_RESERVED": "角色编码已被系统保留",
+  "ROLE_DELETE_INVALID": "不允许删除系统角色",
+  "ROLE_EXISTS": "角色已存在",
+  "ROLE_NAME_REQUIRED": "角色名称不能为空",
+  "ROLE_NOT_FOUND": "角色不存在",
+  "ROLE_SYSTEM_IMMUTABLE": "系统角色不可修改",
+  "ROLE_TEMPLATE_NOT_FOUND": "角色模板不存在",
+  "ROLE_UPDATE_INVALID": "不允许修改系统角色"
 }

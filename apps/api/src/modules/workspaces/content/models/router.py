@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from asgi_correlation_id import correlation_id
@@ -14,6 +14,7 @@ from src.core.events import Event, EventBus
 from src.core.exceptions import NotFound, ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.content.contracts.schema import (
@@ -66,7 +67,7 @@ def _flatten_audit_value(value: object | None, *, prefix: str = "") -> object | 
         if isinstance(nested_value, dict):
             nested_flat = _flatten_audit_value(nested_value, prefix=next_prefix)
             if isinstance(nested_flat, dict):
-                flattened.update(nested_flat)
+                flattened.update(cast(dict[str, object | None], nested_flat))
             else:
                 flattened[next_prefix] = nested_flat
             continue
@@ -121,7 +122,7 @@ def get_event_bus(request: Request) -> EventBus:
     bus = getattr(request.app.state, "event_bus", None)
     if bus is None:
         raise ServiceUnavailable(
-            message="事件总线不可用",
+            message=t("settings:EVENT_BUS_UNAVAILABLE"),
             error="EVENT_BUS_UNAVAILABLE",
         )
     return bus

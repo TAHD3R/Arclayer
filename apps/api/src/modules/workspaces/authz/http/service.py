@@ -69,7 +69,7 @@ async def ensure_workspace_permission_granted(
     role_codes = await _list_user_role_codes_in_workspace(user_id=user_id, workspace_id=ctx.workspace_id)
     if not role_codes:
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error=error_code,
         )
 
@@ -84,7 +84,7 @@ async def ensure_workspace_permission_granted(
     ).exists()
     if not ok:
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error=error_code,
         )
 

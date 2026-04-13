@@ -92,7 +92,7 @@ class AccountDeletionGuard:
             has_other = await self.data.org_has_other_owner(organization_id=org_id, user_id=user_id)
             if not has_other:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    message=t("errors", "PERMISSION_DENIED"),
                     error="ACCOUNT_DELETE_LAST_ORG_OWNER",
                     meta={"organization_id": str(org_id)},
                 )
@@ -102,7 +102,7 @@ class AccountDeletionGuard:
             has_other = await self.data.workspace_has_other_owner(workspace_id=ws_id, user_id=user_id)
             if not has_other:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    message=t("errors", "PERMISSION_DENIED"),
                     error="ACCOUNT_DELETE_LAST_WORKSPACE_OWNER",
                     meta={"workspace_id": str(ws_id)},
                 )

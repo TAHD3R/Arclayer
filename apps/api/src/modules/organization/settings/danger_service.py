@@ -24,10 +24,10 @@ class OrganizationDangerService(BaseService):
     async def get_capabilities(self, *, organization_id: UUID, user_id: UUID) -> OrganizationDangerCapabilitiesOut:
         org = await self.repo.get_organization(organization_id=organization_id)
         if org is None:
-            raise NotFound(message="资源不存在", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
         membership = await self.repo.get_membership(organization_id=organization_id, user_id=user_id)
         if membership is None:
-            raise NotFound(message="资源不存在", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
         role_code = self.rbac.resolve_membership_role_code(membership)
         leave_blocked_reason = await self._get_leave_blocked_reason(
             organization_id=organization_id,

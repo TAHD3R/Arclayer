@@ -159,7 +159,7 @@ class EmailService:
         token_hint = f"{reset_token[:6]}...{reset_token[-4:]}" if len(reset_token) >= 10 else reset_token
         try:
             fm = await self._get_fast_mail()
-            subject = t("auth", "RESET_EMAIL_SUBJECT", default="重置密码", locale=locale)
+            subject = t("auth", "RESET_EMAIL_SUBJECT", locale=locale)
             base = (self.settings.application.frontend_base_url or "").strip()
             base = base.rstrip("/") if base else ""
             reset_url = f"{base}/reset-password?token={reset_token}" if base else None
@@ -184,14 +184,14 @@ class EmailService:
                     expires_in=expires_in,
                 )
 
-            title = t("auth", "RESET_EMAIL_TITLE", default="重置你的密码", locale=locale)
+            title = t("auth", "RESET_EMAIL_TITLE", locale=locale)
             intro = t(
                 "auth",
                 "RESET_EMAIL_INTRO",
                 default="我们收到了重置密码请求，请点击下方按钮继续。",
                 locale=locale,
             )
-            cta = t("auth", "RESET_EMAIL_CTA", default="重置密码", locale=locale)
+            cta = t("auth", "RESET_EMAIL_CTA", locale=locale)
             fallback = t(
                 "auth",
                 "RESET_EMAIL_FALLBACK",
@@ -745,7 +745,7 @@ class EmailService:
                     locale=locale,
                 )
             )
-            cta = t("team", "TEAM_INVITE_EMAIL_CTA", default="接受邀请", locale=locale)
+            cta = t("team", "TEAM_INVITE_EMAIL_CTA", locale=locale)
             fallback = t(
                 "team",
                 "TEAM_INVITE_EMAIL_FALLBACK",
@@ -857,7 +857,7 @@ class EmailService:
             raise ValueError("INVALID_EMAIL")
 
         fm = await self._get_fast_mail()
-        subject = t("settings", "MAIL_TEST_SUBJECT", default="邮箱配置测试", locale=locale)
+        subject = t("settings", "MAIL_TEST_SUBJECT", locale=locale)
         plain_body = t(
             "settings",
             "MAIL_TEST_BODY",

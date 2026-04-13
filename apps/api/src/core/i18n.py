@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from contextvars import ContextVar, Token
 from functools import lru_cache
 from pathlib import Path
@@ -13,6 +14,7 @@ SUPPORTED_LOCALES = ("zh-CN", "en-US")
 LOCALES_DIR = Path(__file__).resolve().parents[4] / "locales"
 _LOCALE_PATHS: list[Path] = [LOCALES_DIR]
 _current_locale: ContextVar[str] = ContextVar("current_locale", default=DEFAULT_LOCALE)
+_T_OPTION_RESERVED_KEYS = frozenset({"default", "defaultValue", "lng", "locale", "ns"})
 
 
 def get_request_locale(request: Request | None, *, default_locale: str | None = None) -> str:
@@ -43,27 +45,33 @@ def reset_current_locale(token: Token) -> None:
 
 
 def t(
-    namespace: str,
-    key: str,
+    namespace_or_key: str,
+    key_or_options: str | Mapping[str, Any] | None = None,
     *,
     locale: str | None = None,
     default: str | None = None,
     **kwargs: Any,
 ) -> str:
-    lang = _normalize_locale(locale or get_current_locale())
+    namespace, key, options = _resolve_t_call(namespace_or_key, key_or_options)
+    option_locale = options.get("lng") or options.get("locale")
+    option_default = options.get("defaultValue") or options.get("default")
+    params = {k: v for k, v in options.items() if k not in _T_OPTION_RESERVED_KEYS}
+    params.update(kwargs)
+
+    lang = _normalize_locale(str(option_locale) if option_locale is not None else locale or get_current_locale())
     text = translate(namespace, key, locale=lang)
     if text is None:
-        text = default or key
-    if kwargs:
+        text = str(option_default) if option_default is not None else default or key
+    if params:
         try:
-            text = text.format_map(kwargs)
+            text = text.format_map(params)
         except (AttributeError, KeyError, ValueError):
             return text
     return text
 
 
 def localize_message(message: str, *, error: str | None, locale: str) -> str:
-    if locale == DEFAULT_LOCALE or not error:
+    if not error:
         return message
     translated = translate_error(error, locale=locale)
     return translated or message
@@ -105,6 +113,25 @@ def clear_locale_cache() -> None:
     """
 
     _load_locale.cache_clear()
+
+
+def _resolve_t_call(
+    namespace_or_key: str,
+    key_or_options: str | Mapping[str, Any] | None,
+) -> tuple[str, str, dict[str, Any]]:
+    if isinstance(key_or_options, str):
+        return namespace_or_key, key_or_options, {}
+
+    options = dict(key_or_options or {})
+    prefixed = namespace_or_key.strip()
+    option_namespace = str(options.get("ns") or "").strip()
+
+    if ":" in prefixed:
+        namespace, key = prefixed.split(":", 1)
+        return namespace.strip(), key.strip(), options
+
+    namespace = option_namespace or "common"
+    return namespace, prefixed, options
 
 
 def _normalize_locale(value: str | None) -> str:

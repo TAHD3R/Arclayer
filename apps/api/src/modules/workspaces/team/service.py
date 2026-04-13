@@ -201,7 +201,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
             default="{actor} invited you to join the workspace",
             actor=actor_label,
         )
-        body = t("notifications", body_key, default="Assigned role: {role}", role=role_label)
+        body = t("notifications", body_key, role=role_label)
         await self._create_notification_record(
             workspace_id=workspace_id,
             recipient_user_id=recipient.id,
@@ -361,7 +361,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     async def get_workspace_name(self, *, workspace_id: UUID) -> str:
         ws = await Workspace.get_or_none(id=workspace_id)
         if ws is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return ws.name
 
     def _compute_invite_status(
@@ -483,18 +483,16 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
 
         membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
         if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if membership.status != WorkspaceMembershipStatus.ACTIVE:
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="成员状态不可用"), error="MEMBERSHIP_NOT_ACTIVE"
-            )
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="MEMBERSHIP_NOT_ACTIVE")
 
         user = membership.user
         updates: dict = {}
         if payload.email is not None:
             email = str(payload.email).strip().lower() if payload.email else None
             if email and email != (user.email or "").strip().lower() and await self.user_repo.exists_email(email):
-                raise Conflict(message=t("auth", "EMAIL_EXISTS", default="邮箱已存在"), error="CONFLICT")
+                raise Conflict(message=t("auth", "EMAIL_EXISTS"), error="CONFLICT")
             updates["email"] = email
         if payload.display_name is not None:
             updates["display_name"] = payload.display_name
@@ -508,7 +506,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
                 await user.save(update_fields=list(updates.keys()))
             except IntegrityError as exc:
                 # Defensive: email has a unique constraint. Race conditions can still happen.
-                raise Conflict(message=t("errors", "CONFLICT", default="资源冲突"), error="CONFLICT") from exc
+                raise Conflict(message=t("errors", "CONFLICT"), error="CONFLICT") from exc
 
             await self._publish_activity_event(
                 name="workspace.member.profile.updated",
@@ -547,12 +545,12 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     ) -> WorkspaceTeamMemberStatusResult:
         membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
         if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
         if membership_user_id == acting_user_id and not enabled:
             raise BadRequest(
-                message=t("errors", "CANNOT_DISABLE_SELF", default="不能禁用自己的账号"),
+                message=t("errors", "CANNOT_DISABLE_SELF"),
                 error="CANNOT_DISABLE_SELF",
             )
 
@@ -609,12 +607,12 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
 
         membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
         if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         membership_user_id = UUID(str(cast(HasUserId, membership).user_id))
         user = await self.user_repo.get_by_id_with_credential(membership_user_id)
         if user is None:
-            raise NotFound(message=t("auth", "USER_NOT_FOUND", default="用户不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("auth", "USER_NOT_FOUND"), error="NOT_FOUND")
 
         password_hash = hash_password(payload.new_password, self.settings.auth)
         await self.user_repo.set_password(user, password_hash)
@@ -648,11 +646,11 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
     ) -> None:
         membership = await self.repo.get_membership(membership_id=membership_id, workspace_id=workspace_id)
         if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         if membership.status != WorkspaceMembershipStatus.ACTIVE:
             raise BadRequest(
-                message=t("errors", "MEMBERSHIP_NOT_ACTIVE", default="成员状态不可用"),
+                message=t("errors", "MEMBERSHIP_NOT_ACTIVE"),
                 error="MEMBERSHIP_NOT_ACTIVE",
             )
 
@@ -662,7 +660,7 @@ class WorkspaceTeamService(WorkspaceTeamInviteMixin, BaseService):
         missing = [c for c in role_codes if c not in found]
         if missing:
             raise BadRequest(
-                message=t("errors", "ROLE_NOT_FOUND", default="角色不存在"),
+                message=t("errors", "ROLE_NOT_FOUND"),
                 error="ROLE_NOT_FOUND",
                 meta={"missing": missing},
             )

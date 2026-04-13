@@ -6,6 +6,7 @@ from uuid import UUID
 from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import Forbidden, Unauthorized
+from src.core.i18n import t
 from src.models.organization.user import User
 from src.modules.auth.account_deletion.guard import AccountDeletionGuard
 from src.modules.auth.repository import UserRepository
@@ -20,7 +21,7 @@ class AccountDeletionCapabilityService(BaseService):
     async def get_capabilities(self, *, user: User, two_factor_enabled: bool) -> DeleteMyAccountCapabilityOut:
         user_with_cred = cast(User | None, await self.user_repo.get_by_id_with_credential(UUID(str(user.id))))
         if user_with_cred is None:
-            raise Unauthorized(message="用户不存在", error="USER_NOT_FOUND")
+            raise Unauthorized(message=t("auth:USER_NOT_FOUND"), error="USER_NOT_FOUND")
         has_password = getattr(user_with_cred, "credential", None) is not None
         has_linked_oauth_identities = await self._has_linked_oauth_identities(user_id=UUID(str(user.id)))
         blocked_reason = await self._get_blocked_reason(user=user_with_cred)

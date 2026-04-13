@@ -299,7 +299,7 @@ class WorkspaceService(BaseService):
             deleted_at__isnull=True,
         )
         if ws is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return WorkspaceDetailOut(
             id=ws.id,
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
@@ -382,38 +382,36 @@ class WorkspaceService(BaseService):
             deleted_at__isnull=True,
         )
         if ws is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         updates: dict[str, object] = {}
         icon_asset_aligned = False
         if payload.name is not None:
             name = str(payload.name).strip()
             if not name:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_NAME")
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
             if len(name) > 128:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_NAME")
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
             updates["name"] = name
 
         if payload.slug is not None:
             desired = str(payload.slug).strip()
             normalized, err = parse_explicit_workspace_slug(desired)
             if err == "invalid" or normalized is None:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_SLUG_INVALID")
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_INVALID")
             if err == "reserved":
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_SLUG_RESERVED"
-                )
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_RESERVED")
 
             if ws.kind == WorkspaceKind.PERSONAL and ws.slug != normalized:
                 raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    message=t("errors", "BAD_REQUEST"),
                     error="WORKSPACE_SLUG_IMMUTABLE",
                 )
             if ws.slug != normalized:
                 exists = await Workspace.filter(slug=normalized).exclude(id=ws.id).exists()
                 if exists:
                     raise Conflict(
-                        message=t("errors", "BAD_REQUEST", default="参数错误"),
+                        message=t("errors", "BAD_REQUEST"),
                         error="WORKSPACE_SLUG_EXISTS",
                     )
                 updates["slug"] = normalized
@@ -422,9 +420,7 @@ class WorkspaceService(BaseService):
             raw = str(payload.icon_url).strip()
             icon_url = raw or None
             if icon_url is not None and len(icon_url) > 1024:
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_ICON_URL_TOO_LONG"
-                )
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_URL_TOO_LONG")
             updates["icon_url"] = icon_url
             if icon_url is not None:
                 asset_uuid = try_extract_asset_uuid_from_relative_public_url(icon_url)
@@ -443,7 +439,7 @@ class WorkspaceService(BaseService):
                 await ws.save(update_fields=list(updates.keys()) + ["updated_at"])
             except IntegrityError as exc:
                 raise Conflict(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    message=t("errors", "BAD_REQUEST"),
                     error="WORKSPACE_SLUG_EXISTS",
                 ) from exc
 
@@ -466,7 +462,7 @@ class WorkspaceService(BaseService):
     ) -> LeaveWorkspaceResult:
         if str(confirm_text or "").strip() != "LEAVE":
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error="WORKSPACE_LEAVE_CONFIRM_TEXT_MISMATCH",
             )
 
@@ -477,10 +473,10 @@ class WorkspaceService(BaseService):
             deleted_at__isnull=True,
         )
         if ws is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if ws.kind == WorkspaceKind.PERSONAL:
             raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                message=t("errors", "PERMISSION_DENIED"),
                 error="PERSONAL_SPACE_LEAVE_FORBIDDEN",
             )
 
@@ -490,7 +486,7 @@ class WorkspaceService(BaseService):
             status=WorkspaceMembershipStatus.ACTIVE,
         )
         if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         owner_role = await Role.get_or_none(workspace_id=workspace_id, code=ROLE_OWNER)
         if owner_role is not None:
@@ -506,7 +502,7 @@ class WorkspaceService(BaseService):
                 ).count()
                 if int(owner_count) <= 1:
                     raise Forbidden(
-                        message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                        message=t("errors", "PERMISSION_DENIED"),
                         error="WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED",
                     )
 

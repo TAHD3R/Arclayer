@@ -58,7 +58,7 @@ class OrganizationLeaveGuard:
             has_other_owner = await self.data.workspace_has_other_owner(workspace_id=ws_id, user_id=user_id)
             if not has_other_owner:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    message=t("errors", "PERMISSION_DENIED"),
                     error="ORG_LEAVE_LAST_WORKSPACE_OWNER",
                     meta={"workspace_id": str(ws_id)},
                 )

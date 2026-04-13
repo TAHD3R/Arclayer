@@ -20,7 +20,7 @@ class OrgWorkspaceCreationPolicy(BaseService):
         workspace_count = await self.repo.count_active_workspaces(organization_id=organization_id)
         if workspace_count >= 1:
             raise Conflict(
-                message=t("errors", "CONFLICT", default="资源冲突"),
+                message=t("errors", "CONFLICT"),
                 error="ORG_WORKSPACE_LIMIT_REACHED",
             )
 

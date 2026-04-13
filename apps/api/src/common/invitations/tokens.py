@@ -23,7 +23,7 @@ def _get_invite_signing_secret(settings: Settings) -> bytes:
     secret = (settings.auth.jwt_secret.get_secret_value() or "").strip()
     if not secret:
         raise ServiceUnavailable(
-            message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"),
+            message=t("errors", "SERVICE_UNAVAILABLE"),
             error="INVITE_SIGNING_SECRET_MISSING",
         )
     return secret.encode("utf-8")

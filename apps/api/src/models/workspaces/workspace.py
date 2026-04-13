@@ -145,7 +145,7 @@ async def _bootstrap_workspace_system_roles(  # type: ignore[no-untyped-def]
             # Defensive: avoid collisions where a custom role uses a reserved system code.
             if not bool(existing.is_system):
                 raise Conflict(
-                    message=t("rbac", "ROLE_CODE_RESERVED", default="角色编码已被系统保留"),
+                    message=t("rbac", "ROLE_CODE_RESERVED"),
                     error="ROLE_CODE_RESERVED",
                     meta={"code": d["code"]},
                 )

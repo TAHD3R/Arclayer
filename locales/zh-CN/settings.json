@@ -322,5 +322,17 @@
   "SETTINGS_SITE_DESCRIPTION_LOCALIZED_DESC": "为不同语言提供对应简介，让预览内容保持一致。",
   "SETTINGS_SITE_PUBLIC_URL_LABEL": "公开地址",
   "SETTINGS_SITE_PUBLIC_URL_DESC": "用于公开链接、预览链接与 canonical 元数据的主地址。",
-  "SETTINGS_SITE_PUBLIC_URL_PLACEHOLDER": "https://example.com"
+  "SETTINGS_SITE_PUBLIC_URL_PLACEHOLDER": "https://example.com",
+  "MAIL_DISABLED": "邮件服务未开启",
+  "MAIL_INVALID_RECIPIENT": "收件人邮箱无效",
+  "MAIL_SEND_FAILED": "发送失败，请检查邮箱配置与网络连接",
+  "MAIL_TEST_BODY": "这是一封测试邮件。如果你收到了它，说明 SMTP 配置已生效。",
+  "MAIL_TEST_SUBJECT": "邮箱配置测试",
+  "MASTER_KEY_MISSING": "系统密钥未初始化",
+  "BAD_REQUEST": "参数错误",
+  "CONFIG_ITEM_INVALID": "配置项不合法",
+  "CONFIG_TYPE_INVALID": "配置项类型不正确",
+  "CORE_SETTINGS_DESC": "站点设置与基础系统配置。",
+  "CORE_SETTINGS_TITLE": "系统设置",
+  "NAMESPACE_NOT_FOUND": "配置域不存在"
 }

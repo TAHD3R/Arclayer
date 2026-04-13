@@ -23,7 +23,7 @@ def get_event_bus(request: Request) -> EventBus:
     bus = getattr(request.app.state, "event_bus", None)
     if bus is None:
         raise ServiceUnavailable(
-            message=t("settings", "EVENT_BUS_UNAVAILABLE", default="事件总线不可用"),
+            message=t("settings", "EVENT_BUS_UNAVAILABLE"),
             error="EVENT_BUS_UNAVAILABLE",
         )
     return bus

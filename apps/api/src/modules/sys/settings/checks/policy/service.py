@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from src.core.i18n import t
 from src.modules.sys.settings.schema import SysConfigTestCheck
+
+
+def _tsys(key: str) -> str:
+    return t("sys", key)
 
 
 class SysConfigChecksPolicyMixin:
@@ -13,14 +18,29 @@ class SysConfigChecksPolicyMixin:
                 section = {}
             enabled = section.get("enabled") is True
             if not enabled:
-                return SysConfigTestCheck(code=code, ok=True, kind="config", message="OAuth disabled (skipped)")
+                return SysConfigTestCheck(
+                    code=code,
+                    ok=True,
+                    kind="config",
+                    message=_tsys("SYS_CHECK_OAUTH_DISABLED"),
+                )
 
             client_id = section.get("client_id")
             client_secret_raw = section.get("client_secret")
             if not isinstance(client_id, str) or not client_id.strip():
-                return SysConfigTestCheck(code=code, ok=False, kind="config", message="Missing client_id")
+                return SysConfigTestCheck(
+                    code=code,
+                    ok=False,
+                    kind="config",
+                    message=_tsys("SYS_CHECK_OAUTH_CLIENT_ID_REQUIRED"),
+                )
             if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
-                return SysConfigTestCheck(code=code, ok=False, kind="config", message="Missing client_secret")
+                return SysConfigTestCheck(
+                    code=code,
+                    ok=False,
+                    kind="config",
+                    message=_tsys("SYS_CHECK_OAUTH_CLIENT_SECRET_REQUIRED"),
+                )
             return SysConfigTestCheck(code=code, ok=True, kind="config")
 
         checks.append(_check_provider("oauth_google", code="core.oauth.google"))
@@ -42,7 +62,7 @@ class SysConfigChecksPolicyMixin:
                     code="core.auth.registration",
                     ok=False,
                     kind="config",
-                    message="public_register_email_domains_allowlist must be a list",
+                    message=_tsys("SYS_CHECK_AUTH_ALLOWLIST_NOT_LIST"),
                 )
             ]
 
@@ -54,7 +74,7 @@ class SysConfigChecksPolicyMixin:
                         code="core.auth.registration",
                         ok=False,
                         kind="config",
-                        message="public_register_email_domains_allowlist must only contain strings",
+                        message=_tsys("SYS_CHECK_AUTH_ALLOWLIST_NOT_STRING_LIST"),
                     )
                 ]
             d = item.strip().lower().lstrip(".")
@@ -68,7 +88,7 @@ class SysConfigChecksPolicyMixin:
                     code="core.auth.registration",
                     ok=False,
                     kind="config",
-                    message="public_register_email_domains_allowlist contains duplicates",
+                    message=_tsys("SYS_CHECK_AUTH_ALLOWLIST_DUPLICATES"),
                 )
             ]
 

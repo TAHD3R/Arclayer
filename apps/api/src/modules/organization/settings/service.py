@@ -40,7 +40,7 @@ class OrganizationSettingsService(BaseService):
     async def get_core_detail(self, *, organization_id: UUID) -> OrganizationSettingsCoreOut:
         org = await self.repo.get_organization(organization_id=organization_id)
         if org is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         record = await self.repo.get_core_setting(organization_id=organization_id)
         raw_value = record.value if record and isinstance(record.value, dict) else {}
@@ -82,7 +82,7 @@ class OrganizationSettingsService(BaseService):
     ) -> OrganizationSettingsCoreOut:
         org = await self.repo.get_organization(organization_id=organization_id)
         if org is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         current_record = await self.repo.get_core_setting(organization_id=organization_id)
         current_value: dict[str, object] = (
@@ -95,9 +95,9 @@ class OrganizationSettingsService(BaseService):
         if patch.organization_name is not None:
             normalized_name = str(patch.organization_name).strip()
             if not normalized_name:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_ORG_NAME")
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_ORG_NAME")
             if len(normalized_name) > 128:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_ORG_NAME")
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_ORG_NAME")
             if org.name != normalized_name:
                 org.name = normalized_name
                 await org.save(update_fields=["name", "updated_at"])
@@ -106,7 +106,7 @@ class OrganizationSettingsService(BaseService):
             raw = str(patch.organization_logo_url).strip()
             logo_url = raw or None
             if logo_url is not None and len(logo_url) > 512:
-                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ORG_LOGO_URL_TOO_LONG")
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ORG_LOGO_URL_TOO_LONG")
             if logo_url is not None:
                 asset_uuid = try_extract_asset_uuid_from_relative_public_url(logo_url)
                 if asset_uuid is not None:
@@ -170,12 +170,12 @@ class OrganizationSettingsService(BaseService):
     ) -> OrganizationAssignDefaultRoleResult:
         org = await self.repo.get_organization(organization_id=organization_id)
         if org is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         normalized_confirm_name = str(confirm_name or "").strip()
         if normalized_confirm_name != str(org.name):
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error="ORG_SETTINGS_CONFIRM_NAME_MISMATCH",
             )
 
@@ -205,19 +205,19 @@ class OrganizationSettingsService(BaseService):
     ) -> LeaveOrganizationResult:
         if str(confirm_text or "").strip() != "LEAVE":
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error="ORG_LEAVE_CONFIRM_TEXT_MISMATCH",
             )
 
         membership = await self.repo.get_membership(organization_id=organization_id, user_id=user_id)
         if membership is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         if membership.role == OrgRole.OWNER:
             owner_count = await self.repo.count_owner_memberships(organization_id=organization_id)
             if owner_count <= 1:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    message=t("errors", "PERMISSION_DENIED"),
                     error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
                 )
 
@@ -241,12 +241,12 @@ class OrganizationSettingsService(BaseService):
     ) -> DeleteOrganizationResult:
         org = await self.repo.get_organization(organization_id=organization_id)
         if org is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         normalized_confirm_name = str(confirm_name or "").strip()
         if normalized_confirm_name != str(org.name):
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error="ORG_DELETE_CONFIRM_NAME_MISMATCH",
             )
 
@@ -257,12 +257,12 @@ class OrganizationSettingsService(BaseService):
     async def _normalize_role_code(self, *, organization_id: UUID, role_code: str) -> str:
         code = str(role_code or "").strip().lower()
         if not code:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
         await self.rbac.ensure_defaults(organization_id=organization_id)
         role = await self.rbac.repo.get_role_by_code(organization_id=organization_id, code=code)
         if role is None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
         return str(role.code)
 
     @staticmethod

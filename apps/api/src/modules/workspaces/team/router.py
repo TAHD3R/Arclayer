@@ -214,7 +214,7 @@ async def create_email_invite(
     # Email invites are meant to be delivered by email. To avoid "fake success", fail fast when disabled.
     if not await service.email_service.is_enabled():
         raise BadRequest(
-            message=t("settings", "MAIL_DISABLED", default="邮件服务未开启"),
+            message=t("settings", "MAIL_DISABLED"),
             error="MAIL_DISABLED",
         )
     out = await service.create_or_update_email_invite(

@@ -223,18 +223,18 @@ class OrganizationMemberService(BaseService):
 
         email = str(payload.email or "").strip().lower()
         if not email or "@" not in email:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="Invalid request"), error="INVALID_EMAIL")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_EMAIL")
 
         existing = await self.repo.find_user_membership_by_email(organization_id=organization_id, email=email)
         if existing is not None:
             raise Conflict(
-                message=t("errors", "CONFLICT", default="Resource conflict"),
+                message=t("errors", "CONFLICT"),
                 error="ORG_MEMBER_ALREADY_EXISTS",
             )
 
         if await self.repo.has_pending_email_invite(organization_id=organization_id, email=email):
             raise Conflict(
-                message=t("errors", "CONFLICT", default="Resource conflict"),
+                message=t("errors", "CONFLICT"),
                 error="ORG_MEMBER_INVITE_ALREADY_PENDING",
             )
 
@@ -349,17 +349,17 @@ class OrganizationMemberService(BaseService):
 
         invite = await self.repo.get_email_invite(organization_id=organization_id, invitation_id=invitation_id)
         if invite is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         if invite.accepted_at is not None:
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="Invite already accepted"),
+                message=t("errors", "BAD_REQUEST"),
                 error="INVITE_ALREADY_ACCEPTED",
             )
 
         if invite.revoked_at is not None:
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="Invite already revoked"),
+                message=t("errors", "BAD_REQUEST"),
                 error="INVITE_REVOKED",
             )
 
@@ -409,11 +409,11 @@ class OrganizationMemberService(BaseService):
 
         invite = await self.repo.get_email_invite(organization_id=organization_id, invitation_id=invitation_id)
         if invite is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         if invite.accepted_at is not None:
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="Invite already accepted"),
+                message=t("errors", "BAD_REQUEST"),
                 error="INVITE_ALREADY_ACCEPTED",
             )
 
@@ -460,7 +460,7 @@ class OrganizationMemberService(BaseService):
 
         domain = str(payload.allowed_email_domain or "").strip().lower() or None
         if domain and "@" in domain:
-            raise BadRequest(message="Domain must not contain @", error="INVALID_EMAIL_DOMAIN")
+            raise BadRequest(error="INVALID_EMAIL_DOMAIN")
 
         link = await OrganizationInviteLink.create(
             organization_id=organization_id,
@@ -548,9 +548,9 @@ class OrganizationMemberService(BaseService):
 
         link = await self.repo.get_invite_link(organization_id=organization_id, link_id=link_id)
         if link is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if link.disabled_at is not None:
-            raise BadRequest(message="Invite link disabled", error="INVITE_LINK_DISABLED")
+            raise BadRequest(error="INVITE_LINK_DISABLED")
 
         link_expires_at = cast(_HasNullableExpiresAt, link)
         link_expires_at.expires_at = build_expires_at(expires_in_seconds=expires_in_seconds)
@@ -585,7 +585,7 @@ class OrganizationMemberService(BaseService):
         )
         link = await self.repo.get_invite_link(organization_id=organization_id, link_id=link_id)
         if link is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if link.disabled_at is not None:
             return True
 
@@ -667,12 +667,12 @@ class OrganizationMemberService(BaseService):
 
         target = await self.repo.get_membership(organization_id=organization_id, membership_id=target_membership_id)
         if target is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         if actor_role != OrgRole.OWNER:
             if target.role == OrgRole.OWNER or normalized_role == OrgRole.OWNER:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="Forbidden"),
+                    message=t("errors", "PERMISSION_DENIED"),
                     error="ORG_OWNER_REQUIRED",
                 )
 
@@ -680,7 +680,7 @@ class OrganizationMemberService(BaseService):
             owner_count = await self.repo.count_role_memberships(organization_id=organization_id, role=OrgRole.OWNER)
             if owner_count <= 1:
                 raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="Invalid request"),
+                    message=t("errors", "BAD_REQUEST"),
                     error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
                 )
 
@@ -741,19 +741,19 @@ class OrganizationMemberService(BaseService):
 
         target = await self.repo.get_membership(organization_id=organization_id, membership_id=target_membership_id)
         if target is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="Not found"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         target_user_id = UUID(str(target.user.id))
 
         if actor_role != OrgRole.OWNER and target.role == OrgRole.OWNER:
             raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="Forbidden"),
+                message=t("errors", "PERMISSION_DENIED"),
                 error="ORG_OWNER_REQUIRED",
             )
 
         if target.role == OrgRole.OWNER and actor_user_id == target_user_id:
             raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="Forbidden"),
+                message=t("errors", "PERMISSION_DENIED"),
                 error="ORG_OWNER_SELF_REMOVE_FORBIDDEN",
             )
 
@@ -761,7 +761,7 @@ class OrganizationMemberService(BaseService):
             owner_count = await self.repo.count_role_memberships(organization_id=organization_id, role=OrgRole.OWNER)
             if owner_count <= 1:
                 raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="Invalid request"),
+                    message=t("errors", "BAD_REQUEST"),
                     error="ORG_OWNER_AT_LEAST_ONE_REQUIRED",
                 )
 
@@ -815,7 +815,7 @@ class OrganizationMemberService(BaseService):
         await self.rbac.ensure_defaults(organization_id=organization_id)
         role = await self.rbac.repo.get_role_by_code(organization_id=organization_id, code=code)
         if role is None:
-            raise BadRequest(message="Role code not found", error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(error="ROLE_CODE_NOT_FOUND")
         return role.code
 
     def _to_builtin_org_role(self, role_code: str) -> OrgRole:
@@ -997,7 +997,7 @@ class OrganizationMemberService(BaseService):
             if not await OrganizationInviteLink.filter(display_code=display_code).exists():
                 return display_code
         raise BadRequest(
-            message=t("errors", "FAILED_TO_CREATE_INVITE_LINK", default="创建邀请链接失败"),
+            message=t("errors", "FAILED_TO_CREATE_INVITE_LINK"),
             error="FAILED_TO_CREATE_INVITE_LINK",
         )
 

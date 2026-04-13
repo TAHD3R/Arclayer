@@ -165,9 +165,9 @@ async def create_my_organization(
     """Create organization for current user."""
     name = str(payload.name or "").strip()
     if not name:
-        raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_ORGANIZATION_NAME")
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_ORGANIZATION_NAME")
     if len(name) > MAX_ORG_NAME_LENGTH:
-        raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ORG_NAME_TOO_LONG")
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ORG_NAME_TOO_LONG")
 
     requested_slug = str(payload.slug or "").strip()
     base_slug = requested_slug or name
@@ -230,7 +230,7 @@ async def get_my_organization(
     # Still keep a defensive error for corrupted DB records.
     if org is None:
         raise NotFound(
-            message=t("errors", "NOT_FOUND", default="资源不存在"),
+            message=t("errors", "NOT_FOUND"),
             error="ORGANIZATION_NOT_FOUND",
         )
 

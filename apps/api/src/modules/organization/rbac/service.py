@@ -162,6 +162,10 @@ def _localize_i18n_ref(value: str | None, *, default: str | None) -> str | None:
     return t(namespace, key, default=default)
 
 
+def _tr(key: str, default: str) -> str:
+    return t("rbac", key, default=default)
+
+
 class OrganizationRBACService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
@@ -339,7 +343,7 @@ class OrganizationRBACService(BaseService):
             if allowed:
                 return
 
-        raise Forbidden(message="Forbidden", error=error_code)
+        raise Forbidden(error=error_code)
 
     async def get_matrix(
         self, *, organization_id: UUID
@@ -367,16 +371,16 @@ class OrganizationRBACService(BaseService):
 
         clean_name = str(name or "").strip()
         if not clean_name:
-            raise BadRequest(message="Role name is required", error="ROLE_NAME_REQUIRED")
+            raise BadRequest(message=_tr("ROLE_NAME_REQUIRED", "角色名称不能为空"), error="ROLE_NAME_REQUIRED")
 
         role_code = str(code or "").strip()
         if role_code:
             role_code = role_code.lower()
             if not _ROLE_CODE_PATTERN.match(role_code):
-                raise BadRequest(message="Invalid role code", error="ROLE_CODE_INVALID")
+                raise BadRequest(message=_tr("ROLE_CODE_INVALID", "角色编码不合法"), error="ROLE_CODE_INVALID")
             existing = await self.repo.get_role_by_code(organization_id=organization_id, code=role_code)
             if existing is not None:
-                raise Conflict(message="Role already exists", error="ROLE_EXISTS")
+                raise Conflict(message=_tr("ROLE_EXISTS", "角色已存在"), error="ROLE_EXISTS")
         else:
             for _ in range(24):
                 candidate = f"role-{uuid7().hex[:8]}"
@@ -384,7 +388,10 @@ class OrganizationRBACService(BaseService):
                     role_code = candidate
                     break
             if not role_code:
-                raise Conflict(message="Failed to allocate role code", error="ROLE_CODE_GENERATION_FAILED")
+                raise Conflict(
+                    message=_tr("ROLE_CODE_GENERATION_FAILED", "角色编码生成失败，请重试"),
+                    error="ROLE_CODE_GENERATION_FAILED",
+                )
 
         role = await self.repo.create_role(
             organization_id=organization_id,
@@ -401,7 +408,10 @@ class OrganizationRBACService(BaseService):
         if tpl_code:
             template = await self.repo.get_role_by_code(organization_id=organization_id, code=tpl_code)
             if template is None:
-                raise BadRequest(message="Template role not found", error="ROLE_TEMPLATE_NOT_FOUND")
+                raise BadRequest(
+                    message=_tr("ROLE_TEMPLATE_NOT_FOUND", "角色模板不存在"),
+                    error="ROLE_TEMPLATE_NOT_FOUND",
+                )
             perms = await self.repo.list_role_permissions(role_id=UUID(str(template.id)))
             await self.repo.replace_role_permissions(
                 role=role,
@@ -413,9 +423,12 @@ class OrganizationRBACService(BaseService):
     async def delete_custom_role(self, *, organization_id: UUID, role_code: str) -> None:
         role = await self.repo.get_role_by_code(organization_id=organization_id, code=role_code)
         if role is None:
-            raise NotFound(message="Role not found", error="ROLE_NOT_FOUND")
+            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
         if role.is_system:
-            raise BadRequest(message="System roles are immutable", error="ROLE_SYSTEM_IMMUTABLE")
+            raise BadRequest(
+                message=_tr("ROLE_SYSTEM_IMMUTABLE", "系统角色不可修改"),
+                error="ROLE_SYSTEM_IMMUTABLE",
+            )
 
         await OrgMembership.filter(organization_id=organization_id, role_code=role.code).update(
             role=OrgRole.MEMBER,
@@ -433,15 +446,18 @@ class OrganizationRBACService(BaseService):
         await self.ensure_defaults(organization_id=organization_id)
         permission = await self.repo.get_permission_by_code(code=permission_code)
         if permission is None:
-            raise NotFound(message="Permission not found", error="PERMISSION_NOT_FOUND")
+            raise NotFound(message=_tr("PERMISSION_NOT_FOUND", "权限不存在"), error="PERMISSION_NOT_FOUND")
 
         custom_roles: list[OrganizationRole] = []
         for role_code in sorted({str(x).strip() for x in role_codes if str(x).strip()}):
             role = await self.repo.get_role_by_code(organization_id=organization_id, code=role_code)
             if role is None:
-                raise BadRequest(message="Role not found", error="ROLE_NOT_FOUND")
+                raise BadRequest(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
             if role.is_system:
-                raise BadRequest(message="System roles are immutable", error="ROLE_SYSTEM_IMMUTABLE")
+                raise BadRequest(
+                    message=_tr("ROLE_SYSTEM_IMMUTABLE", "系统角色不可修改"),
+                    error="ROLE_SYSTEM_IMMUTABLE",
+                )
             custom_roles.append(role)
 
         await self.repo.replace_permission_roles(
@@ -461,15 +477,18 @@ class OrganizationRBACService(BaseService):
 
         role = await self.repo.get_role_by_code(organization_id=organization_id, code=role_code)
         if role is None:
-            raise NotFound(message="Role not found", error="ROLE_NOT_FOUND")
+            raise NotFound(message=_tr("ROLE_NOT_FOUND", "角色不存在"), error="ROLE_NOT_FOUND")
         if role.is_system:
-            raise BadRequest(message="System roles are immutable", error="ROLE_SYSTEM_IMMUTABLE")
+            raise BadRequest(
+                message=_tr("ROLE_SYSTEM_IMMUTABLE", "系统角色不可修改"),
+                error="ROLE_SYSTEM_IMMUTABLE",
+            )
 
         permission_ids: list[UUID] = []
         for permission_code in sorted({str(x).strip() for x in permission_codes if str(x).strip()}):
             permission = await self.repo.get_permission_by_code(code=permission_code)
             if permission is None:
-                raise BadRequest(message="Permission not found", error="PERMISSION_NOT_FOUND")
+                raise BadRequest(message=_tr("PERMISSION_NOT_FOUND", "权限不存在"), error="PERMISSION_NOT_FOUND")
             permission_ids.append(UUID(str(permission.id)))
 
         await self.repo.replace_role_permissions(role=role, permission_ids=permission_ids)

@@ -104,7 +104,7 @@ class NotificationService(BaseService):
             )
         except ValueError as exc:
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error=str(exc),
             ) from exc
         return self._build_preferences_out(state=state)
@@ -171,7 +171,7 @@ class NotificationService(BaseService):
             workspace_id=workspace_id, recipient_user_id=user_id, notification_id=notification_id
         )
         if row is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return NotificationReadResult(id=row.id, read_at=row.read_at)
 
     async def mark_read_for_user(
@@ -185,7 +185,7 @@ class NotificationService(BaseService):
             notification_id=notification_id,
         )
         if row is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return NotificationReadResult(id=row.id, read_at=row.read_at)
 
     async def mark_all_read(
@@ -214,7 +214,7 @@ class NotificationService(BaseService):
     ) -> NotificationDevSeedResult:
         # Security: never expose dev utilities in production.
         if self.settings.app_env not in {"development", "test"}:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         from src.models.system.notification import NotificationCategory, NotificationRecord
 
@@ -296,7 +296,7 @@ class NotificationService(BaseService):
             notification_id=notification_id,
         )
         if deleted <= 0:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return NotificationDeleteResult(id=notification_id)
 
     async def delete_notification_for_user(
@@ -310,7 +310,7 @@ class NotificationService(BaseService):
             notification_id=notification_id,
         )
         if deleted <= 0:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return NotificationDeleteResult(id=notification_id)
 
     async def archive_notification_for_user(
@@ -324,5 +324,5 @@ class NotificationService(BaseService):
             notification_id=notification_id,
         )
         if row is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         return NotificationArchiveResult(id=row.id, archived_at=row.archived_at)

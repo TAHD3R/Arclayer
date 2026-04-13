@@ -12,6 +12,7 @@ from src.core.events import Event, EventBus
 from src.core.exceptions import ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
 from src.models.content._enums import ContentVersionState
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -44,7 +45,7 @@ def get_event_bus(request: Request) -> EventBus:
     bus = getattr(request.app.state, "event_bus", None)
     if bus is None:
         raise ServiceUnavailable(
-            message="事件总线不可用",
+            message=t("settings:EVENT_BUS_UNAVAILABLE"),
             error="EVENT_BUS_UNAVAILABLE",
         )
     return bus

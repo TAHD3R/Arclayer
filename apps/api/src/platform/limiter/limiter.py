@@ -30,7 +30,7 @@ def default_callback(*args: Any, **kwargs: Any) -> None:
     # (It's fine for this to be sync because it always raises.)
     _ = args, kwargs
     detail: dict[str, Any] = {
-        "message": t("errors", "RATE_LIMITED", default="请求过于频繁"),
+        "message": t("errors", "RATE_LIMITED"),
         "error": "RATE_LIMITED",
     }
     raise HTTPException(

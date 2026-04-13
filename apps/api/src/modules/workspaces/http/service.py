@@ -26,7 +26,7 @@ from src.modules.workspaces.runtime.service import set_current_workspace_context
 async def _require_active_workspace(*, workspace_id: PublicUUID) -> Workspace:
     ws = await Workspace.get_or_none(id=workspace_id, deleted_at__isnull=True)
     if ws is None or not ws.is_active:
-        raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
     return ws
 
 
@@ -97,7 +97,7 @@ async def _resolve_guest_workspace_context(
     membership = await _find_active_workspace_membership(workspace_id=workspace_uuid, user_id=user_id)
     if membership is None:
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error="WORKSPACE_ACCESS_DENIED",
         )
 
@@ -168,7 +168,7 @@ async def get_workspace_context(
     workspace = await _require_active_workspace(workspace_id=workspace_id)
     if workspace.kind == WorkspaceKind.PERSONAL and UUID(str(workspace.owner_user_id)) != user_id:
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error="WORKSPACE_ACCESS_DENIED",
         )
     organization_id = _resolve_workspace_org_id(workspace=workspace)
@@ -196,5 +196,5 @@ async def require_workspace_manage_access(
     """
 
     if ctx.visible_only or ctx.workspace_membership_id is None:
-        raise Forbidden(message=t("errors", "PERMISSION_DENIED", default="权限不足"), error="WORKSPACE_ACCESS_DENIED")
+        raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_ACCESS_DENIED")
     return ctx

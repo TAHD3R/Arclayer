@@ -314,10 +314,7 @@ def _preview_payload_fingerprint(payload: ContentModelDefinitionPatchContract) -
 def _get_preview_signing_secret(settings: Settings) -> bytes:
     secret = (settings.auth.jwt_secret.get_secret_value() or "").strip()
     if not secret:
-        raise ServiceUnavailable(
-            message="Preview signing secret unavailable",
-            error="CONTENT_MODEL_PREVIEW_SECRET_MISSING",
-        )
+        raise ServiceUnavailable(error="CONTENT_MODEL_PREVIEW_SECRET_MISSING")
     return secret.encode("utf-8")
 
 

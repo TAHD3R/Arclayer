@@ -265,12 +265,12 @@ class AuthInvitationAcceptanceService(BaseService):
                 ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
                 if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(
-                        message=t("errors", "NOT_FOUND", default="资源不存在"),
+                        message=t("errors", "NOT_FOUND"),
                         error="WORKSPACE_INACTIVE",
                     )
                 if UUID(str(cast(HasOrganizationId, ws).organization_id)) != organization_id:
                     raise Forbidden(
-                        message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                        message=t("errors", "PERMISSION_DENIED"),
                         error="CROSS_ORG_ACCESS_DENIED",
                     )
 
@@ -329,7 +329,7 @@ class AuthInvitationAcceptanceService(BaseService):
             if not is_org_scope:
                 if workspace_id is None:
                     raise ServiceUnavailable(
-                        message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"),
+                        message=t("errors", "SERVICE_UNAVAILABLE"),
                         error="SERVICE_UNAVAILABLE",
                     )
 
@@ -689,12 +689,12 @@ class AuthInvitationAcceptanceService(BaseService):
                 ws = await Workspace.get_or_none(id=workspace_id, using_db=conn)
                 if ws is None or not ws.is_active or ws.archived_at is not None:
                     raise Forbidden(
-                        message=t("errors", "NOT_FOUND", default="资源不存在"),
+                        message=t("errors", "NOT_FOUND"),
                         error="WORKSPACE_INACTIVE",
                     )
                 if UUID(str(cast(HasOrganizationId, ws).organization_id)) != organization_id:
                     raise Forbidden(
-                        message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                        message=t("errors", "PERMISSION_DENIED"),
                         error="CROSS_ORG_ACCESS_DENIED",
                     )
 
@@ -730,7 +730,7 @@ class AuthInvitationAcceptanceService(BaseService):
             else:
                 if UUID(str(cast(HasOrganizationId, existing_orgm).organization_id)) != organization_id:
                     raise Forbidden(
-                        message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                        message=t("errors", "PERMISSION_DENIED"),
                         error="CROSS_ORG_ACCESS_DENIED",
                     )
 
@@ -739,7 +739,7 @@ class AuthInvitationAcceptanceService(BaseService):
             if not is_org_scope:
                 if workspace_id is None:
                     raise ServiceUnavailable(
-                        message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"),
+                        message=t("errors", "SERVICE_UNAVAILABLE"),
                         error="SERVICE_UNAVAILABLE",
                     )
 
@@ -866,7 +866,7 @@ class AuthInvitationAcceptanceService(BaseService):
 
         if organization_id is None:
             raise ServiceUnavailable(
-                message=t("errors", "SERVICE_UNAVAILABLE", default="服务不可用"),
+                message=t("errors", "SERVICE_UNAVAILABLE"),
                 error="SERVICE_UNAVAILABLE",
             )
 

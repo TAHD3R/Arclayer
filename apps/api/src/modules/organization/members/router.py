@@ -128,7 +128,7 @@ async def invite_organization_member(
     service = OrganizationMemberService(settings)
     if not await service.email_service.is_enabled():
         raise BadRequest(
-            message=t("settings", "MAIL_DISABLED", default="邮件服务未开启"),
+            message=t("settings", "MAIL_DISABLED"),
             error="MAIL_DISABLED",
         )
     out = await service.invite_member(

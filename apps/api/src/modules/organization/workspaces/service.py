@@ -171,7 +171,7 @@ class OrganizationWorkspaceService(BaseService):
                 workspace_id=workspace_id,
             )
             if workspace is None:
-                raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         else:
             visible = await self.repo.list_active_workspaces_for_member(
                 organization_id=organization_id,
@@ -179,7 +179,7 @@ class OrganizationWorkspaceService(BaseService):
             )
             visible_ids = {UUID(str(item.id)) for item in visible}
             if workspace_id not in visible_ids:
-                raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         total, rows = await self.repo.list_workspace_members(
             workspace_id=workspace_id,
@@ -234,9 +234,9 @@ class OrganizationWorkspaceService(BaseService):
     ) -> OrganizationWorkspaceOut:
         name = str(payload.name or "").strip()
         if not name:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_WORKSPACE_NAME")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
         if len(name) > MAX_WORKSPACE_NAME_LENGTH:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_NAME_TOO_LONG")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_NAME_TOO_LONG")
 
         description = str(payload.description or "").strip() or None
 
@@ -372,11 +372,9 @@ class OrganizationWorkspaceService(BaseService):
     ) -> OrganizationWorkspaceArchiveResult:
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if workspace.kind == WorkspaceKind.PERSONAL:
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"), error="PERSONAL_SPACE_ARCHIVE_FORBIDDEN"
-            )
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="PERSONAL_SPACE_ARCHIVE_FORBIDDEN")
 
         if workspace.archived_at is None:
             workspace.archived_at = datetime.now(UTC)
@@ -408,10 +406,10 @@ class OrganizationWorkspaceService(BaseService):
     ) -> OrganizationWorkspaceArchiveResult:
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if workspace.kind == WorkspaceKind.PERSONAL:
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error="PERSONAL_SPACE_ARCHIVE_FORBIDDEN",
             )
 
@@ -447,16 +445,14 @@ class OrganizationWorkspaceService(BaseService):
     ) -> OrganizationWorkspaceDeleteResult:
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if workspace.kind == WorkspaceKind.PERSONAL:
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"), error="PERSONAL_SPACE_DELETE_FORBIDDEN"
-            )
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="PERSONAL_SPACE_DELETE_FORBIDDEN")
 
         normalized_confirm_name = str(confirm_name or "").strip()
         if normalized_confirm_name != str(workspace.name):
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error="WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH",
             )
 
@@ -464,7 +460,7 @@ class OrganizationWorkspaceService(BaseService):
             active_count = await self.repo.count_active_non_archived_workspaces(organization_id=organization_id)
             if active_count <= 1:
                 raise BadRequest(
-                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    message=t("errors", "BAD_REQUEST"),
                     error="LAST_ACTIVE_WORKSPACE_NOT_DELETABLE",
                 )
 

@@ -72,7 +72,7 @@ def _csrf_failure_response(guard_request: GuardRequest) -> StarletteGuardRespons
     request = _get_starlette_request(guard_request)
     locale = get_request_locale(request)
     payload = ResponseBuilder.fail(
-        message=t("errors", "CSRF_FAILED", locale=locale, default="CSRF validation failed"),
+        message=t("errors", "CSRF_FAILED", locale=locale),
         error="CSRF_FAILED",
         meta={"reason": "token_mismatch"},
     )

@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound
+from src.core.i18n import t
 from src.core.logging import get_logger
 from src.models.extensions.app import ExtensionApp
 from src.modules.extensions.manifest import AppManifest, CapabilityDecl, UIEmbedDecl
@@ -51,14 +52,14 @@ class ExtensionsService(BaseService):
     ) -> CapabilitySummaryOut:
         cid = capability_id.strip()
         if not cid:
-            raise BadRequest(message="capability_id is required", error="CAPABILITY_ID_REQUIRED")
+            raise BadRequest(error="CAPABILITY_ID_REQUIRED")
         apps = await self.repo.list_apps()
         resolved = self._find_capability(apps=apps, capability_id=cid)
         if resolved is None:
-            raise NotFound(message="Capability not found", error="CAPABILITY_NOT_FOUND")
+            raise NotFound(error="CAPABILITY_NOT_FOUND")
         cap, app, provider, app_icon_url = resolved
         if cap.scope != AppScope.WORKSPACE:
-            raise BadRequest(message="Capability scope mismatch", error="CAPABILITY_SCOPE_MISMATCH")
+            raise BadRequest(error="CAPABILITY_SCOPE_MISMATCH")
         await self.repo.set_workspace_capability_enabled(workspace_id=workspace_id, capability_id=cid, enabled=enabled)
         enabled_ids = await self.repo.list_workspace_enabled_capability_ids(workspace_id=workspace_id)
         return self._to_capability_summary(
@@ -78,14 +79,14 @@ class ExtensionsService(BaseService):
     ) -> CapabilitySummaryOut:
         cid = capability_id.strip()
         if not cid:
-            raise BadRequest(message="capability_id is required", error="CAPABILITY_ID_REQUIRED")
+            raise BadRequest(error="CAPABILITY_ID_REQUIRED")
         apps = await self.repo.list_apps()
         resolved = self._find_capability(apps=apps, capability_id=cid)
         if resolved is None:
-            raise NotFound(message="Capability not found", error="CAPABILITY_NOT_FOUND")
+            raise NotFound(error="CAPABILITY_NOT_FOUND")
         cap, app, provider, app_icon_url = resolved
         if cap.scope != AppScope.ORGANIZATION:
-            raise BadRequest(message="Capability scope mismatch", error="CAPABILITY_SCOPE_MISMATCH")
+            raise BadRequest(error="CAPABILITY_SCOPE_MISMATCH")
         await self.repo.set_org_capability_enabled(organization_id=organization_id, capability_id=cid, enabled=enabled)
         enabled_ids = await self.repo.list_org_enabled_capability_ids(organization_id=organization_id)
         return self._to_capability_summary(
@@ -239,6 +240,7 @@ class ExtensionsService(BaseService):
         title = str(embed.title or "").strip()
         if not title:
             title = embed_id or "Embed"
+        title = _localize_i18n_ref(embed.title_i18n, default=title) or title
         return UIEmbedDescriptorOut(
             id=embed_id,
             capability_id=capability_id,
@@ -263,13 +265,17 @@ class ExtensionsService(BaseService):
         app_icon_url: str | None,
     ) -> CapabilitySummaryOut:
         cid = str(cap.capability_id or "").strip()
+        name = _localize_i18n_ref(cap.name_i18n, default=str(cap.name or ""))
+        description = _localize_i18n_ref(
+            cap.description_i18n, default=str(cap.description) if cap.description else None
+        )
         return CapabilitySummaryOut(
             capability_id=cid,
             kind=cap.kind,
             provider=provider,
             scope=cap.scope,
-            name=str(cap.name or ""),
-            description=str(cap.description) if cap.description else None,
+            name=name or "",
+            description=description,
             name_i18n=cap.name_i18n,
             description_i18n=cap.description_i18n,
             version=str(app.version) if app.version else None,
@@ -343,6 +349,13 @@ class ExtensionsService(BaseService):
 
 def _safe_meta(value: Any) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
+
+
+def _localize_i18n_ref(value: str | None, *, default: str | None) -> str | None:
+    ref = str(value or "").strip()
+    if not ref:
+        return default
+    return t(ref, {"defaultValue": default}) if default is not None else t(ref)
 
 
 def _is_http_url(value: str) -> bool:

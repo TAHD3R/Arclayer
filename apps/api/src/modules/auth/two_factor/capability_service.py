@@ -51,7 +51,7 @@ class TwoFactorCapabilityService(BaseService):
     async def get_capabilities(self, *, user_id: UUID) -> TwoFactorCapabilitiesOut:
         user = await self._get_user_with_credential(user_id=user_id)
         if user is None:
-            raise Unauthorized(message=t("auth", "USER_NOT_FOUND", default="用户不存在"), error="USER_NOT_FOUND")
+            raise Unauthorized(message=t("auth", "USER_NOT_FOUND"), error="USER_NOT_FOUND")
         enabled, _ = await self._get_status(user_id=user_id)
         has_password = cast(_CredentialLike | None, getattr(user, "credential", None)) is not None
         return self.build_capabilities(enabled=enabled, has_password=has_password)

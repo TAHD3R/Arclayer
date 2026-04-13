@@ -20,7 +20,7 @@ class WorkspaceDangerService(BaseService):
     ) -> WorkspaceDangerCapabilitiesOut:
         workspace = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
         if workspace is None:
-            raise NotFound(message="资源不存在", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
         leave_blocked_reason = await self._get_leave_blocked_reason(workspace_id=workspace_id, user_id=user_id)
         delete_blocked_reason = await self._get_delete_blocked_reason(
             organization_id=organization_id,

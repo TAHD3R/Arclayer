@@ -91,7 +91,7 @@ class ActivityService(BaseService):
     ) -> AuditEventOut:
         row = await AuditEvent.get_or_none(id=event_id, organization_id=organization_id)
         if row is None:
-            raise NotFound(message="Activity event not found", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
         out = AuditEventOut.model_validate(row, from_attributes=True)
 
         user_ids: set[UUID] = set()

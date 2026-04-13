@@ -22,20 +22,20 @@ class AdminMailService(BaseService):
         except RuntimeError as exc:
             if str(exc) == "MAIL_DISABLED":
                 raise BadRequest(
-                    message=t("settings", "MAIL_DISABLED", default="邮件服务未开启"),
+                    message=t("settings", "MAIL_DISABLED"),
                     error="MAIL_DISABLED",
                 )
             raise ServiceUnavailable(
-                message=t("settings", "MAIL_SEND_FAILED", default="发送失败，请检查邮箱配置与网络连接"),
+                message=t("settings", "MAIL_SEND_FAILED"),
                 error="MAIL_SEND_FAILED",
             )
         except ValueError:
             raise BadRequest(
-                message=t("settings", "MAIL_INVALID_RECIPIENT", default="收件人邮箱无效"),
+                message=t("settings", "MAIL_INVALID_RECIPIENT"),
                 error="MAIL_INVALID_RECIPIENT",
             )
         except (ConnectionError, OSError, TimeoutError, smtplib.SMTPException):
             raise ServiceUnavailable(
-                message=t("settings", "MAIL_SEND_FAILED", default="发送失败，请检查邮箱配置与网络连接"),
+                message=t("settings", "MAIL_SEND_FAILED"),
                 error="MAIL_SEND_FAILED",
             )

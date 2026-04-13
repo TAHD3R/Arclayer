@@ -178,7 +178,7 @@ class WorkspaceTeamInviteMixin:
             role = await self._get_role_by_code_in_workspace(workspace_id=workspace_id, role_code=role_code)
             if role is None:
                 raise BadRequest(
-                    message=t("errors", "ROLE_NOT_FOUND", default="角色不存在"),
+                    message=t("errors", "ROLE_NOT_FOUND"),
                     error="ROLE_NOT_FOUND",
                     meta={"missing": [role_code]},
                 )
@@ -288,13 +288,11 @@ class WorkspaceTeamInviteMixin:
             id=invite_id, organization_id=organization_id, workspace_id=workspace_id
         )
         if inv is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if inv.accepted_at is not None:
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="邀请已被接受"), error="INVITE_ALREADY_ACCEPTED"
-            )
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_ALREADY_ACCEPTED")
         if inv.revoked_at is not None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="邀请已被撤销"), error="INVITE_REVOKED")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_REVOKED")
 
         # Q1: only extend expires_at (do not rotate code).
         cast(WorkspaceEmailInviteMutableFields, inv).expires_at = expires_at
@@ -355,11 +353,9 @@ class WorkspaceTeamInviteMixin:
             id=invite_id, organization_id=organization_id, workspace_id=workspace_id
         )
         if inv is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if inv.accepted_at is not None:
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="邀请已被接受"), error="INVITE_ALREADY_ACCEPTED"
-            )
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVITE_ALREADY_ACCEPTED")
         if inv.revoked_at is not None:
             return
         inv.revoked_at = datetime.now(UTC)
@@ -406,7 +402,7 @@ class WorkspaceTeamInviteMixin:
             role = await self._get_role_by_code_in_workspace(workspace_id=workspace_id, role_code=role_code)
             if role is None:
                 raise BadRequest(
-                    message=t("errors", "ROLE_NOT_FOUND", default="角色不存在"),
+                    message=t("errors", "ROLE_NOT_FOUND"),
                     error="ROLE_NOT_FOUND",
                     meta={"missing": [role_code]},
                 )
@@ -420,7 +416,7 @@ class WorkspaceTeamInviteMixin:
                 break
         else:
             raise BadRequest(
-                message=t("errors", "FAILED_TO_CREATE_INVITE_LINK", default="创建邀请链接失败"),
+                message=t("errors", "FAILED_TO_CREATE_INVITE_LINK"),
                 error="FAILED_TO_CREATE_INVITE_LINK",
             )
 
@@ -492,7 +488,7 @@ class WorkspaceTeamInviteMixin:
             id=link_id, organization_id=organization_id, workspace_id=workspace_id
         )
         if link is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         cast(WorkspaceInviteLinkMutableFields, link).expires_at = expires_at
         await link.save(update_fields=["expires_at", "updated_at"])
 
@@ -547,7 +543,7 @@ class WorkspaceTeamInviteMixin:
             id=link_id, organization_id=organization_id, workspace_id=workspace_id
         )
         if link is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         if link.disabled_at is not None:
             return
         link.disabled_at = datetime.now(UTC)
@@ -665,7 +661,7 @@ class WorkspaceTeamInviteMixin:
             id=link_id, organization_id=organization_id, workspace_id=workspace_id
         )
         if link is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         qs = WorkspaceInviteLinkUseEvent.filter(link_id=link.id)
 

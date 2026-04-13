@@ -99,7 +99,7 @@ class AssetsService:
     async def _get_public_view(self, *, asset_id: UUID) -> AssetPublicView:
         asset = await self.repo.get_public_asset(asset_id=asset_id)
         if asset is None:
-            raise NotFound(message="Not Found", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
 
         slug = (asset.slug or "asset").strip() or "asset"
         ext = (asset.ext or "bin").lstrip(".").lower() or "bin"
@@ -170,7 +170,7 @@ class AssetsService:
             # Dev / no-CDN fallback: presigned GET.
             provider = self._try_build_s3_provider(effective=effective, object_key=view.object_key)
             if provider is None:
-                raise NotFound(message="Not Found", error="NOT_FOUND")
+                raise NotFound(error="NOT_FOUND")
             if view.storage_bucket:
                 provider = provider.with_bucket(view.storage_bucket)
             presigned = await provider.presign_get_object(
@@ -183,7 +183,7 @@ class AssetsService:
         root_dir = self.settings.storage.local_root_dir
         path = safe_object_key_to_path(root_dir, view.object_key)
         if not path.is_file():
-            raise NotFound(message="Not Found", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
 
         media_type = view.mime
         if not media_type:
@@ -211,7 +211,7 @@ class AssetsService:
             effective = await get_effective_settings(self.settings)
             provider = self._try_build_s3_provider(effective=effective, object_key=view.object_key)
             if provider is None:
-                raise NotFound(message="Not Found", error="NOT_FOUND")
+                raise NotFound(error="NOT_FOUND")
             if view.storage_bucket:
                 provider = provider.with_bucket(view.storage_bucket)
             url = await provider.presign_get_object(
@@ -225,7 +225,7 @@ class AssetsService:
         root_dir = self.settings.storage.local_root_dir
         path = safe_object_key_to_path(root_dir, view.object_key)
         if not path.is_file():
-            raise NotFound(message="Not Found", error="NOT_FOUND")
+            raise NotFound(error="NOT_FOUND")
 
         media_type = view.mime or "application/octet-stream"
         headers = build_asset_headers(view)

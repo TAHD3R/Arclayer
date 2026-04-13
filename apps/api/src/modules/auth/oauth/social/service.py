@@ -120,7 +120,7 @@ class OAuthSocialService(BaseService):
 
         if provider_key not in {"google", "github"}:
             raise BadRequest(
-                message=t("auth", "SSO_PROVIDER_INVALID", default="登录方式不支持"),
+                message=t("auth", "SSO_PROVIDER_INVALID"),
                 error="SSO_PROVIDER_INVALID",
             )
 
@@ -158,10 +158,10 @@ class OAuthSocialService(BaseService):
         if provider_key == "google":
             section = config.get("oauth_google") if isinstance(config, dict) else None
             if not isinstance(section, dict) or not bool(section.get("enabled")):
-                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
             client_id = (section.get("client_id") or "").strip() if isinstance(section.get("client_id"), str) else ""
             if not client_id:
-                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+                raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
 
             callback_url = str(request.url_for("auth_sso_oauth_callback", provider="google"))
             auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -180,10 +180,10 @@ class OAuthSocialService(BaseService):
 
         section = config.get("oauth_github") if isinstance(config, dict) else None
         if not isinstance(section, dict) or not bool(section.get("enabled")):
-            raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+            raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
         client_id = (section.get("client_id") or "").strip() if isinstance(section.get("client_id"), str) else ""
         if not client_id:
-            raise Forbidden(message=t("auth", "SSO_UNAVAILABLE", default="SSO 不可用"), error="SSO_UNAVAILABLE")
+            raise Forbidden(message=t("auth", "SSO_UNAVAILABLE"), error="SSO_UNAVAILABLE")
 
         callback_url = str(request.url_for("auth_sso_oauth_callback", provider="github"))
         auth_url = "https://github.com/login/oauth/authorize"

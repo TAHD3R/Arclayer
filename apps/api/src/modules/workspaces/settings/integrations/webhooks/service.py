@@ -69,7 +69,7 @@ class WebhooksService(BaseService):
     ) -> WebhookSubscription:
         normalized_event = str(event or "").strip()
         if not normalized_event:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WEBHOOK_EVENT_REQUIRED")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WEBHOOK_EVENT_REQUIRED")
 
         encrypted_secret = await self._encrypt_secret_if_needed(
             workspace_id=workspace_id,
@@ -242,7 +242,7 @@ class WebhooksService(BaseService):
         key_path = self.settings.security.master_key_path
         if not master_key_exists(key_path):
             raise ServiceUnavailable(
-                message=t("settings", "MASTER_KEY_MISSING", default="系统密钥未初始化"),
+                message=t("settings", "MASTER_KEY_MISSING"),
                 error="MASTER_KEY_MISSING",
             )
         key, _fp = ensure_master_key(key_path)

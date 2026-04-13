@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
 from src.common.utils.ids import uuid7
+from src.core.i18n import t
 from src.modules.sys.settings.schema import SysConfigTestCheck
 from src.platform.storage.s3 import S3StorageProvider
 
@@ -17,6 +18,10 @@ if TYPE_CHECKING:
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
 SMTP_PROBE_TIMEOUT_SECONDS = 5.0
+
+
+def _tsys(key: str) -> str:
+    return t("sys", key)
 
 
 class SysConfigChecksCoreMixin:
@@ -37,7 +42,7 @@ class SysConfigChecksCoreMixin:
             code="core.storage.provider",
             ok=False,
             kind="config",
-            message="Unsupported storage provider",
+            message=_tsys("SYS_CHECK_STORAGE_PROVIDER_UNSUPPORTED"),
             details={"provider": provider},
         )
 
@@ -57,7 +62,7 @@ class SysConfigChecksCoreMixin:
                 code="core.storage.local",
                 ok=False,
                 kind="internal",
-                message="Local storage is not writable",
+                message=_tsys("SYS_CHECK_STORAGE_LOCAL_NOT_WRITABLE"),
                 details={"rootDir": str(root), "error": str(exc)},
             )
 
@@ -74,10 +79,18 @@ class SysConfigChecksCoreMixin:
 
         if not isinstance(endpoint_url, str) or not endpoint_url.strip():
             return SysConfigTestCheck(
-                code="core.storage.s3", ok=False, kind="config", message="Missing s3_endpoint_url"
+                code="core.storage.s3",
+                ok=False,
+                kind="config",
+                message=_tsys("SYS_CHECK_STORAGE_S3_ENDPOINT_REQUIRED"),
             )
         if not isinstance(bucket, str) or not bucket.strip():
-            return SysConfigTestCheck(code="core.storage.s3", ok=False, kind="config", message="Missing s3_bucket")
+            return SysConfigTestCheck(
+                code="core.storage.s3",
+                ok=False,
+                kind="config",
+                message=_tsys("SYS_CHECK_STORAGE_S3_BUCKET_REQUIRED"),
+            )
 
         mode = public_delivery_mode if isinstance(public_delivery_mode, str) else "auto"
         if mode == "direct":
@@ -86,26 +99,29 @@ class SysConfigChecksCoreMixin:
                     code="core.storage.s3",
                     ok=False,
                     kind="config",
-                    message="Missing s3_public_bucket (required for public direct delivery)",
+                    message=_tsys("SYS_CHECK_STORAGE_S3_PUBLIC_BUCKET_REQUIRED"),
                 )
             if not isinstance(public_base_url, str) or not public_base_url.strip():
                 return SysConfigTestCheck(
                     code="core.storage.s3",
                     ok=False,
                     kind="config",
-                    message="Missing public_base_url (required for public direct delivery)",
+                    message=_tsys("SYS_CHECK_STORAGE_PUBLIC_BASE_URL_REQUIRED"),
                 )
 
         if not isinstance(access_key_id, str) or not access_key_id.strip():
             return SysConfigTestCheck(
-                code="core.storage.s3", ok=False, kind="config", message="Missing s3_access_key_id"
+                code="core.storage.s3",
+                ok=False,
+                kind="config",
+                message=_tsys("SYS_CHECK_STORAGE_S3_ACCESS_KEY_REQUIRED"),
             )
         if not isinstance(secret_raw, str) or not secret_raw.strip():
             return SysConfigTestCheck(
                 code="core.storage.s3",
                 ok=False,
                 kind="config",
-                message="Missing s3_secret_access_key",
+                message=_tsys("SYS_CHECK_STORAGE_S3_SECRET_KEY_REQUIRED"),
             )
 
         try:
@@ -152,7 +168,7 @@ class SysConfigChecksCoreMixin:
                 code="core.storage.s3",
                 ok=False,
                 kind="internal",
-                message="S3 client dependency is missing",
+                message=_tsys("SYS_CHECK_STORAGE_S3_DEPENDENCY_MISSING"),
                 details={"error": str(exc)},
             )
         except ValueError as exc:
@@ -160,7 +176,7 @@ class SysConfigChecksCoreMixin:
                 code="core.storage.s3",
                 ok=False,
                 kind="config",
-                message="Invalid S3 settings",
+                message=_tsys("SYS_CHECK_STORAGE_S3_INVALID"),
                 details={"error": str(exc)},
             )
         except Exception as exc:
@@ -168,7 +184,7 @@ class SysConfigChecksCoreMixin:
                 code="core.storage.s3",
                 ok=False,
                 kind="connectivity",
-                message="Failed to connect to S3",
+                message=_tsys("SYS_CHECK_STORAGE_S3_CONNECT_FAILED"),
                 details={"error": str(exc)},
             )
 
@@ -178,7 +194,12 @@ class SysConfigChecksCoreMixin:
             mail = {}
         enabled = mail.get("enabled")
         if enabled is not True:
-            return SysConfigTestCheck(code="core.mail", ok=True, kind="config", message="Mail disabled (skipped)")
+            return SysConfigTestCheck(
+                code="core.mail",
+                ok=True,
+                kind="config",
+                message=_tsys("SYS_CHECK_MAIL_DISABLED"),
+            )
 
         server = mail.get("server")
         port = mail.get("port")
@@ -189,15 +210,25 @@ class SysConfigChecksCoreMixin:
         mail_from = mail.get("mail_from")
 
         if not isinstance(server, str) or not server.strip():
-            return SysConfigTestCheck(code="core.mail.smtp", ok=False, kind="config", message="Missing SMTP server")
+            return SysConfigTestCheck(
+                code="core.mail.smtp",
+                ok=False,
+                kind="config",
+                message=_tsys("SYS_CHECK_MAIL_SMTP_SERVER_REQUIRED"),
+            )
         if not isinstance(port, int) or port <= 0 or port > 65535:
-            return SysConfigTestCheck(code="core.mail.smtp", ok=False, kind="config", message="Invalid SMTP port")
+            return SysConfigTestCheck(
+                code="core.mail.smtp",
+                ok=False,
+                kind="config",
+                message=_tsys("SYS_CHECK_MAIL_SMTP_PORT_INVALID"),
+            )
         if ssl_tls is True and starttls is True:
             return SysConfigTestCheck(
                 code="core.mail.smtp",
                 ok=False,
                 kind="config",
-                message="Invalid TLS settings (ssl_tls and starttls cannot both be true)",
+                message=_tsys("SYS_CHECK_MAIL_TLS_INVALID"),
             )
 
         if isinstance(mail_from, str) and mail_from.strip():
@@ -208,7 +239,7 @@ class SysConfigChecksCoreMixin:
                     code="core.mail.smtp",
                     ok=False,
                     kind="config",
-                    message="Invalid mail_from",
+                    message=_tsys("SYS_CHECK_MAIL_FROM_INVALID"),
                     details={"error": str(exc)},
                 )
 
@@ -221,7 +252,7 @@ class SysConfigChecksCoreMixin:
                 code="core.mail.smtp",
                 ok=False,
                 kind="config",
-                message="SMTP username requires password",
+                message=_tsys("SYS_CHECK_MAIL_SMTP_PASSWORD_REQUIRED"),
             )
 
         def _call() -> None:
@@ -255,7 +286,7 @@ class SysConfigChecksCoreMixin:
                 code="core.mail.smtp",
                 ok=False,
                 kind="connectivity",
-                message="Failed to connect to SMTP server",
+                message=_tsys("SYS_CHECK_MAIL_SMTP_CONNECT_FAILED"),
                 details={"error": str(exc)},
             )
         except Exception as exc:
@@ -263,6 +294,6 @@ class SysConfigChecksCoreMixin:
                 code="core.mail.smtp",
                 ok=False,
                 kind="internal",
-                message="Unexpected mail test error",
+                message=_tsys("SYS_CHECK_MAIL_UNEXPECTED_ERROR"),
                 details={"error": str(exc)},
             )

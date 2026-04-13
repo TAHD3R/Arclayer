@@ -299,7 +299,7 @@ class AuthTwoFactorService(BaseService):
         elif backup_code:
             await self._verify_or_consume_backup(user_id=user_id, backup_code=backup_code, now=now)
         else:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="BAD_REQUEST")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
 
         await self.repo.delete_backup_codes(user_id=user_id)
         await self.repo.delete_record(user_id=user_id)
@@ -329,7 +329,7 @@ class AuthTwoFactorService(BaseService):
         elif backup_code:
             await self._verify_or_consume_backup(user_id=user_id, backup_code=backup_code, now=now)
         else:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="BAD_REQUEST")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
 
         master_key = self._require_master_key()
         backup_codes = [_build_backup_code() for _ in range(_BACKUP_CODE_COUNT)]

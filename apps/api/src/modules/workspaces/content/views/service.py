@@ -134,7 +134,7 @@ def _resolve_fallback_default_view_id(
 def _move_item(items: list[StoredView], *, view_id: str, direction: Literal["up", "down"]) -> list[StoredView]:
     index = next((i for i, item in enumerate(items) if item["id"] == view_id), -1)
     if index < 0:
-        raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
     target = index - 1 if direction == "up" else index + 1
     if target < 0 or target >= len(items):
         return items
@@ -160,7 +160,7 @@ class ContentLibraryViewsService(BaseService):
         visibility = payload.visibility
         if visibility == "workspace" and not can_manage_workspace_views:
             raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                message=t("errors", "PERMISSION_DENIED"),
                 error=CONTENT_LIBRARY_MANAGE_ERROR,
             )
 
@@ -221,21 +221,21 @@ class ContentLibraryViewsService(BaseService):
         )
         if location == "workspace" and updates_definition and not can_manage_workspace_views:
             raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                message=t("errors", "PERMISSION_DENIED"),
                 error=CONTENT_LIBRARY_MANAGE_ERROR,
             )
 
         next_location = cast(ViewLocation, payload.visibility or location)
         if next_location == "workspace" and not can_manage_workspace_views:
             raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                message=t("errors", "PERMISSION_DENIED"),
                 error=CONTENT_LIBRARY_MANAGE_ERROR,
             )
 
         current_items = workspace_items if location == "workspace" else cast(list[StoredView], user_payload["items"])
         current_index = next((index for index, item in enumerate(current_items) if item["id"] == view_id), -1)
         if current_index < 0:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
         next_view = dict(current_items[current_index])
 
         if payload.name is not None:
@@ -302,7 +302,7 @@ class ContentLibraryViewsService(BaseService):
         if location == "workspace":
             if not can_manage_workspace_views:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    message=t("errors", "PERMISSION_DENIED"),
                     error=CONTENT_LIBRARY_MANAGE_ERROR,
                 )
             workspace_items = _move_item(workspace_items, view_id=view_id, direction=direction)
@@ -337,7 +337,7 @@ class ContentLibraryViewsService(BaseService):
         if location == "workspace":
             if not can_manage_workspace_views:
                 raise Forbidden(
-                    message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                    message=t("errors", "PERMISSION_DENIED"),
                     error=CONTENT_LIBRARY_MANAGE_ERROR,
                 )
             workspace_items = [item for item in workspace_items if item["id"] != view_id]
@@ -524,4 +524,4 @@ class ContentLibraryViewsService(BaseService):
             return "workspace"
         if any(item["id"] == view_id for item in user_items):
             return "private"
-        raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")

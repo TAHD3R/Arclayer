@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
 from src.modules.analytics.system.router import router as system_activity_router
 from src.modules.auth.limits.service import REGISTER_RATE_LIMIT
 from src.modules.auth.schema import TokenPair
@@ -87,7 +88,7 @@ async def bootstrap_instance(
         request_context=build_auth_request_context(request),
         auth_method="bootstrap",
     )
-    return ApiResponse.success(message="Instance initialized", data=tokens)
+    return ApiResponse.success(message=t("sys", "INSTANCE_INITIALIZED"), data=tokens)
 
 
 # System-scoped administration endpoints (v2).

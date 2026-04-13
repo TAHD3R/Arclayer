@@ -30,7 +30,7 @@ async def get_current_org_membership(
     orgm = await OrgMembership.filter(user_id=user_id, status="active").order_by("created_at", "id").first()
     if orgm is None:
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error="ORG_MEMBERSHIP_REQUIRED",
         )
     _bind_org_context(orgm)
@@ -55,7 +55,7 @@ async def get_org_membership_for_organization(
     )
     if orgm is None:
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error="ORG_MEMBERSHIP_REQUIRED",
         )
     _bind_org_context(orgm)
@@ -75,7 +75,7 @@ async def require_org_owner(
 
     if orgm.role != OrgRole.OWNER:
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error="ORG_OWNER_REQUIRED",
         )
     return orgm
@@ -94,7 +94,7 @@ async def require_org_admin(
 
     if orgm.role not in (OrgRole.OWNER, OrgRole.ADMIN):
         raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+            message=t("errors", "PERMISSION_DENIED"),
             error="ORG_ADMIN_REQUIRED",
         )
     return orgm

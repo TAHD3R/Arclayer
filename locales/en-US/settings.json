@@ -322,5 +322,17 @@
   "SETTINGS_SITE_DESCRIPTION_LOCALIZED_DESC": "Store translated descriptions so previews match each locale.",
   "SETTINGS_SITE_PUBLIC_URL_LABEL": "Public URL",
   "SETTINGS_SITE_PUBLIC_URL_DESC": "Primary address used for public links, previews, and canonical metadata.",
-  "SETTINGS_SITE_PUBLIC_URL_PLACEHOLDER": "https://example.com"
+  "SETTINGS_SITE_PUBLIC_URL_PLACEHOLDER": "https://example.com",
+  "MAIL_DISABLED": "Mail service is disabled",
+  "MAIL_INVALID_RECIPIENT": "Recipient email address is invalid",
+  "MAIL_SEND_FAILED": "Failed to send the email. Check your mail configuration and network connection.",
+  "MAIL_TEST_BODY": "This is a test email. If you received it, SMTP is configured correctly.",
+  "MAIL_TEST_SUBJECT": "Mail configuration test",
+  "MASTER_KEY_MISSING": "The system master key has not been initialized",
+  "BAD_REQUEST": "Bad request",
+  "CONFIG_ITEM_INVALID": "Configuration item is invalid",
+  "CONFIG_TYPE_INVALID": "Configuration item type is invalid",
+  "CORE_SETTINGS_DESC": "Site settings and foundational system configuration.",
+  "CORE_SETTINGS_TITLE": "System settings",
+  "NAMESPACE_NOT_FOUND": "Settings namespace not found"
 }

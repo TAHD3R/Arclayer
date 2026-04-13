@@ -119,7 +119,7 @@ class AuthSessionService(BaseService):
         store = self._require_store()
         desired = str(session_id or "").strip()
         if not desired:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="INVALID_SESSION_ID")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_SESSION_ID")
 
         jtis = await store.list_active(user_id)
         for jti in jtis:
@@ -132,13 +132,13 @@ class AuthSessionService(BaseService):
             await store.revoke(jti)
             return
 
-        raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
     async def revoke_other_sessions(self, *, user_id: UUID, current_session_id: str) -> int:
         store = self._require_store()
         desired = str(current_session_id or "").strip()
         if not desired:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="CURRENT_SESSION_MISSING")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="CURRENT_SESSION_MISSING")
 
         revoked = 0
         jtis = await store.list_active(user_id)

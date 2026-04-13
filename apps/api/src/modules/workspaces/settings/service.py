@@ -123,11 +123,11 @@ class WorkspaceSettingsService(BaseService):
     async def get_role_policy(self, *, workspace_id: UUID) -> WorkspaceRolePolicyOut:
         workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
         if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         roles = await Role.filter(workspace_id=workspace_id).order_by("code").all()
         if not roles:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
         default_role = next((item for item in roles if bool(item.is_default)), roles[0])
         return WorkspaceRolePolicyOut(
@@ -143,15 +143,15 @@ class WorkspaceSettingsService(BaseService):
     ) -> WorkspaceRolePolicyOut:
         workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
         if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         code = str(default_role_code or "").strip().lower()
         if not code:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
         target_role = await Role.get_or_none(workspace_id=workspace_id, code=code)
         if target_role is None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
         async with in_transaction():
             await (
@@ -175,21 +175,21 @@ class WorkspaceSettingsService(BaseService):
     ) -> WorkspaceAssignRoleToMembersResult:
         workspace = await Workspace.get_or_none(id=workspace_id, is_active=True)
         if workspace is None:
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         if str(confirm_name or "").strip() != str(workspace.name):
             raise BadRequest(
-                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                message=t("errors", "BAD_REQUEST"),
                 error="WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH",
             )
 
         code = str(role_code or "").strip().lower()
         if not code:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
         target_role = await Role.get_or_none(workspace_id=workspace_id, code=code)
         if target_role is None:
-            raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="ROLE_CODE_NOT_FOUND")
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="ROLE_CODE_NOT_FOUND")
 
         excluded_membership_ids = {
             UUID(str(member_id))

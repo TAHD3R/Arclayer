@@ -8,6 +8,7 @@ from starlette.responses import RedirectResponse
 from src.config import Settings, get_settings
 from src.core.exceptions import ServiceUnavailable
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.i18n import t
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.organization.user import User, UserCredential
 from src.modules.auth.http.service import get_current_user
@@ -78,7 +79,7 @@ def get_oauth_social_service(
     try:
         valkey = get_valkey(request)
     except RuntimeError as exc:
-        raise ServiceUnavailable(message="Valkey unavailable", error="VALKEY_UNAVAILABLE") from exc
+        raise ServiceUnavailable(error="VALKEY_UNAVAILABLE") from exc
     return OAuthSocialService(settings, valkey=valkey)
 
 
@@ -131,7 +132,7 @@ async def issue_link_state(
     try:
         valkey = get_valkey(request)
     except RuntimeError as exc:
-        raise ServiceUnavailable(message="Valkey unavailable", error="VALKEY_UNAVAILABLE") from exc
+        raise ServiceUnavailable(error="VALKEY_UNAVAILABLE") from exc
 
     token = secrets.token_urlsafe(32)
     await valkey.set(f"{_SSO_LINK_STATE_KEY_PREFIX}{token}", str(user.id), ex=_SSO_LINK_STATE_EXPIRES_IN)
@@ -206,7 +207,7 @@ async def unlink_my_oauth_identity(
     identities = await OAuthIdentity.filter(user_id=user.id).all()
     has_other_identity = any((i.provider or "").strip().lower() != provider_key for i in identities)
     if not has_password and not has_other_identity:
-        return ApiResponse.fail(message="Cannot unlink the last sign-in method.", error="LAST_SIGNIN_METHOD")
+        return ApiResponse.fail(message=t("errors", "LAST_SIGNIN_METHOD"), error="LAST_SIGNIN_METHOD")
 
     await service.unlink_identity(user_id=user.id, provider=provider_key)
     return ApiResponse.success(data=None)

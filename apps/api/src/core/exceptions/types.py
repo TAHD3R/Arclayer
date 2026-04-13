@@ -6,7 +6,7 @@ from typing import Any
 class APIError(Exception):
     def __init__(
         self,
-        message: str,
+        message: str | None = None,
         *,
         error: str | None = None,
         status_code: int = 400,
@@ -14,19 +14,20 @@ class APIError(Exception):
         meta: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
-        self.message = message
+        resolved_message = message or error or "ERROR"
+        self.message = resolved_message
         self.error = error
         self.status_code = status_code
         self.details = details
         self.meta = meta
         self.headers = headers
-        super().__init__(message)
+        super().__init__(resolved_message)
 
 
 class BadRequest(APIError):
     def __init__(
         self,
-        message: str = "Bad request",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -46,7 +47,7 @@ class BadRequest(APIError):
 class Unauthorized(APIError):
     def __init__(
         self,
-        message: str = "Unauthorized",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -66,7 +67,7 @@ class Unauthorized(APIError):
 class Forbidden(APIError):
     def __init__(
         self,
-        message: str = "Forbidden",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -86,7 +87,7 @@ class Forbidden(APIError):
 class NotFound(APIError):
     def __init__(
         self,
-        message: str = "Not found",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -106,7 +107,7 @@ class NotFound(APIError):
 class Conflict(APIError):
     def __init__(
         self,
-        message: str = "Conflict",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -126,7 +127,7 @@ class Conflict(APIError):
 class TooManyRequests(APIError):
     def __init__(
         self,
-        message: str = "Too many requests",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -146,7 +147,7 @@ class TooManyRequests(APIError):
 class InternalServerError(APIError):
     def __init__(
         self,
-        message: str = "Internal server error",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,
@@ -166,7 +167,7 @@ class InternalServerError(APIError):
 class ServiceUnavailable(APIError):
     def __init__(
         self,
-        message: str = "Service unavailable",
+        message: str | None = None,
         *,
         error: str | None = None,
         details: Any | None = None,

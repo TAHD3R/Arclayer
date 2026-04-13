@@ -22,7 +22,7 @@ def _get_secret(settings: AuthSettings) -> str:
     secret = settings.jwt_secret.get_secret_value()
     if not secret:
         raise ServiceUnavailable(
-            message=t("auth", "JWT_SECRET_MISSING", default="JWT 密钥未配置"),
+            message=t("auth", "JWT_SECRET_MISSING"),
             error="JWT_SECRET_MISSING",
         )
     return secret
@@ -44,9 +44,9 @@ def decode_token(token: str, settings: AuthSettings) -> dict[str, object]:
             audience=settings.jwt_audience,
         )
     except jwt.ExpiredSignatureError as exc:
-        raise Unauthorized(message=t("auth", "TOKEN_EXPIRED", default="Token 已过期"), error="TOKEN_EXPIRED") from exc
+        raise Unauthorized(message=t("auth", "TOKEN_EXPIRED"), error="TOKEN_EXPIRED") from exc
     except jwt.InvalidTokenError as exc:
-        raise Unauthorized(message=t("auth", "TOKEN_INVALID", default="Token 无效"), error="TOKEN_INVALID") from exc
+        raise Unauthorized(message=t("auth", "TOKEN_INVALID"), error="TOKEN_INVALID") from exc
 
 
 def build_access_token(

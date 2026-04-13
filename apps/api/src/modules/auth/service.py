@@ -1129,9 +1129,7 @@ class AuthService(BaseService):
                     **scope_filter_kwargs(scope),
                 )
                 if asset is None:
-                    raise NotFound(
-                        message=t("errors", "ASSET_NOT_FOUND", default="资源不存在"), error="ASSET_NOT_FOUND"
-                    )
+                    raise NotFound(message=t("errors", "ASSET_NOT_FOUND"), error="ASSET_NOT_FOUND")
                 avatar_asset_aligned = await align_asset_for_binding(
                     self.settings,
                     scope=scope,
@@ -1172,7 +1170,7 @@ class AuthService(BaseService):
         policy = await get_public_register_policy(self.settings)
         if not policy.enabled:
             # Hide the endpoint by default to enforce invitation-only onboarding.
-            raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+            raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
         normalized_email = (email or "").strip().lower() or None
         if policy.require_email and not normalized_email:

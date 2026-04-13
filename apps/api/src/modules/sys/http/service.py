@@ -13,7 +13,7 @@ async def require_super_admin(
 ) -> User:
     if not bool(getattr(user, "is_super_admin", False)):
         raise Forbidden(
-            message=t("auth", "FORBIDDEN", default="无权限"),
+            message=t("auth", "FORBIDDEN"),
             error="SUPER_ADMIN_REQUIRED",
         )
     return user
@@ -33,12 +33,12 @@ async def require_sys_super_admin(
 
     if not bool(getattr(user, "is_super_admin", False)):
         raise Forbidden(
-            message=t("auth", "FORBIDDEN", default="无权限"),
+            message=t("auth", "FORBIDDEN"),
             error="SUPER_ADMIN_REQUIRED",
         )
     if (payload or {}).get("ctx") != "sys":
         raise Forbidden(
-            message=t("auth", "FORBIDDEN", default="无权限"),
+            message=t("auth", "FORBIDDEN"),
             error="SYS_STEP_UP_REQUIRED",
         )
     return user

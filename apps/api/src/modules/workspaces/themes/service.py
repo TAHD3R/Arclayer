@@ -130,7 +130,7 @@ class WorkspaceThemesService(BaseService):
     async def get_theme(self, *, workspace_id: UUID, theme_id: str, version: str) -> WorkspaceThemeOut:
         rec = await self.repo.get_theme_package(workspace_id=workspace_id, theme_id=theme_id, version=version)
         if rec is None:
-            raise NotFound(message="Theme not found", error="THEME_NOT_FOUND")
+            raise NotFound(error="THEME_NOT_FOUND")
         return self._to_out(rec)
 
     async def import_theme_from_asset(
@@ -142,9 +142,9 @@ class WorkspaceThemesService(BaseService):
     ) -> WorkspaceThemeOut:
         asset = await self.repo.get_zip_asset(workspace_id=workspace_id, asset_id=asset_id)
         if asset is None:
-            raise NotFound(message="Zip asset not found", error="THEME_IMPORT_ASSET_NOT_FOUND")
+            raise NotFound(error="THEME_IMPORT_ASSET_NOT_FOUND")
         if (asset.ext or "").lower().lstrip(".") != "zip":
-            raise BadRequest(message="Theme package must be a .zip file", error="THEME_IMPORT_NOT_ZIP")
+            raise BadRequest(error="THEME_IMPORT_NOT_ZIP")
 
         zip_path = await self._materialize_asset_to_local_path(asset)
 
@@ -155,7 +155,7 @@ class WorkspaceThemesService(BaseService):
         except THEME_IMPORT_VALIDATION_ERRORS as exc:
             # Keep the external error stable; log the details.
             self.logger.warning("theme_import_failed", extra={"asset_id": str(asset_id), "error": str(exc)})
-            raise BadRequest(message="Invalid theme package", error="THEME_IMPORT_INVALID") from None
+            raise BadRequest(error="THEME_IMPORT_INVALID") from None
 
         # Ensure uniqueness (workspace-scoped).
         existing = await self.repo.get_theme_package(
@@ -163,7 +163,6 @@ class WorkspaceThemesService(BaseService):
         )
         if existing is not None:
             raise Conflict(
-                message="Theme already installed",
                 error="THEME_ALREADY_INSTALLED",
                 meta={"themeId": manifest.theme_id, "version": manifest.version},
             )
@@ -240,23 +239,22 @@ class WorkspaceThemesService(BaseService):
                     continue
                 if str(r.value.get("themeId") or "") == theme_id and str(r.value.get("version") or "") == version:
                     raise Conflict(
-                        message="Theme is in use by at least one site",
                         error="THEME_IN_USE",
                         meta={"siteId": str(r.scope_id)},
                     )
 
         deleted = await self.repo.delete_theme_package(workspace_id=workspace_id, theme_id=theme_id, version=version)
         if deleted <= 0:
-            raise NotFound(message="Theme not found", error="THEME_NOT_FOUND")
+            raise NotFound(error="THEME_NOT_FOUND")
 
     async def download_theme_artifact(self, *, workspace_id: UUID, theme_id: str, version: str) -> Response:
         rec = await self.repo.get_theme_package(workspace_id=workspace_id, theme_id=theme_id, version=version)
         if rec is None or rec.artifact_asset_id is None:
-            raise NotFound(message="Theme not found", error="THEME_NOT_FOUND")
+            raise NotFound(error="THEME_NOT_FOUND")
 
         asset = await AssetRecord.get_or_none(id=rec.artifact_asset_id, workspace_id=workspace_id, deleted_at=None)
         if asset is None:
-            raise NotFound(message="Theme artifact not found", error="THEME_ARTIFACT_NOT_FOUND")
+            raise NotFound(error="THEME_ARTIFACT_NOT_FOUND")
 
         filename = f"{theme_id.replace('/', '__')}@{version}.zip"
         disposition = build_attachment_content_disposition(filename)
@@ -266,9 +264,9 @@ class WorkspaceThemesService(BaseService):
             try:
                 provider = build_storage_provider_for(effective, provider="s3")
             except THEME_STORAGE_PROVIDER_BUILD_ERRORS:
-                raise NotFound(message="Theme artifact not found", error="THEME_ARTIFACT_NOT_FOUND")
+                raise NotFound(error="THEME_ARTIFACT_NOT_FOUND")
             if not isinstance(provider, S3StorageProvider):
-                raise NotFound(message="Theme artifact not found", error="THEME_ARTIFACT_NOT_FOUND")
+                raise NotFound(error="THEME_ARTIFACT_NOT_FOUND")
             url = await provider.presign_get_object(
                 object_key=asset.object_key,
                 expires_in=900,
@@ -280,7 +278,7 @@ class WorkspaceThemesService(BaseService):
         root_dir = self.settings.storage.local_root_dir
         path = safe_object_key_to_path(root_dir, asset.object_key)
         if not path.is_file():
-            raise NotFound(message="Theme artifact not found", error="THEME_ARTIFACT_NOT_FOUND")
+            raise NotFound(error="THEME_ARTIFACT_NOT_FOUND")
 
         return await stream_file_response(
             path=path,
@@ -316,9 +314,9 @@ class WorkspaceThemesService(BaseService):
             try:
                 provider = build_storage_provider_for(effective, provider="s3")
             except THEME_STORAGE_PROVIDER_BUILD_ERRORS:
-                raise NotFound(message="Theme import asset not accessible", error="THEME_IMPORT_STORAGE_UNAVAILABLE")
+                raise NotFound(error="THEME_IMPORT_STORAGE_UNAVAILABLE")
             if not isinstance(provider, S3StorageProvider):
-                raise NotFound(message="Theme import asset not accessible", error="THEME_IMPORT_STORAGE_UNAVAILABLE")
+                raise NotFound(error="THEME_IMPORT_STORAGE_UNAVAILABLE")
 
             out_path = (
                 self.settings.storage.local_tmp_dir / "themes" / "imports" / f"{asset.workspace_id}" / f"{asset.id}.zip"
@@ -333,13 +331,13 @@ class WorkspaceThemesService(BaseService):
         self, zip_path: Path
     ) -> tuple[ThemeManifestIn, dict[str, Any] | None, dict[str, Any] | None, _ExtractedEntrypoints]:
         if not zip_path.is_file():
-            raise BadRequest(message="Theme package file not found", error="THEME_IMPORT_FILE_NOT_FOUND")
+            raise BadRequest(error="THEME_IMPORT_FILE_NOT_FOUND")
 
         # Size guardrail: avoid reading huge archives into memory during import.
         size = zip_path.stat().st_size
         max_bytes = int(self.settings.storage.upload_max_file_size_mb) * 1024 * 1024
         if max_bytes > 0 and size > max_bytes:
-            raise BadRequest(message="Theme package too large", error="THEME_IMPORT_TOO_LARGE")
+            raise BadRequest(error="THEME_IMPORT_TOO_LARGE")
 
         with zipfile.ZipFile(zip_path, "r") as zf:
             raw_names = [n for n in zf.namelist() if n and not n.endswith("/")]
@@ -349,7 +347,6 @@ class WorkspaceThemesService(BaseService):
                 ext = Path(nn).suffix.lower()
                 if ext in _FORBIDDEN_EXTS:
                     raise BadRequest(
-                        message="Executable files are forbidden in theme packages (v0)",
                         error="THEME_IMPORT_FORBIDDEN_FILE",
                         meta={"path": nn},
                     )
@@ -359,19 +356,18 @@ class WorkspaceThemesService(BaseService):
 
             manifest_path = _join_under_prefix(prefix=prefix, rel="manifest.json")
             if manifest_path not in names:
-                raise BadRequest(message="manifest.json not found", error="THEME_IMPORT_MANIFEST_NOT_FOUND")
+                raise BadRequest(error="THEME_IMPORT_MANIFEST_NOT_FOUND")
 
             manifest_raw = zf.read(manifest_path)
             try:
                 manifest_obj = json.loads(manifest_raw.decode("utf-8"))
             except THEME_JSON_PARSE_ERRORS:
-                raise BadRequest(message="manifest.json must be valid JSON", error="THEME_IMPORT_MANIFEST_INVALID")
+                raise BadRequest(error="THEME_IMPORT_MANIFEST_INVALID")
 
             try:
                 manifest = ThemeManifestIn.model_validate(manifest_obj)
             except ValidationError as exc:
                 raise BadRequest(
-                    message="manifest.json validation failed",
                     error="THEME_IMPORT_MANIFEST_VALIDATION_FAILED",
                     meta={"reason": str(exc)},
                 )
@@ -379,18 +375,18 @@ class WorkspaceThemesService(BaseService):
             # Entrypoints (required tokens.css).
             tokens_css_path = _join_under_prefix(prefix=prefix, rel=manifest.entrypoints.tokens_css)
             if tokens_css_path not in names:
-                raise BadRequest(message="tokensCss not found", error="THEME_IMPORT_TOKENS_CSS_NOT_FOUND")
+                raise BadRequest(error="THEME_IMPORT_TOKENS_CSS_NOT_FOUND")
             if Path(tokens_css_path).suffix.lower() != ".css":
-                raise BadRequest(message="tokensCss must be a .css file", error="THEME_IMPORT_TOKENS_CSS_INVALID")
+                raise BadRequest(error="THEME_IMPORT_TOKENS_CSS_INVALID")
             tokens_css_bytes = zf.read(tokens_css_path)
 
             base_css_bytes: bytes | None = None
             if manifest.entrypoints.base_css:
                 base_css_path = _join_under_prefix(prefix=prefix, rel=manifest.entrypoints.base_css)
                 if base_css_path not in names:
-                    raise BadRequest(message="baseCss not found", error="THEME_IMPORT_BASE_CSS_NOT_FOUND")
+                    raise BadRequest(error="THEME_IMPORT_BASE_CSS_NOT_FOUND")
                 if Path(base_css_path).suffix.lower() != ".css":
-                    raise BadRequest(message="baseCss must be a .css file", error="THEME_IMPORT_BASE_CSS_INVALID")
+                    raise BadRequest(error="THEME_IMPORT_BASE_CSS_INVALID")
                 base_css_bytes = zf.read(base_css_path)
 
             preview_bytes: bytes | None = None
@@ -398,7 +394,7 @@ class WorkspaceThemesService(BaseService):
             if manifest.entrypoints.preview_image:
                 preview_path = _join_under_prefix(prefix=prefix, rel=manifest.entrypoints.preview_image)
                 if preview_path not in names:
-                    raise BadRequest(message="previewImage not found", error="THEME_IMPORT_PREVIEW_NOT_FOUND")
+                    raise BadRequest(error="THEME_IMPORT_PREVIEW_NOT_FOUND")
                 preview_ext = Path(preview_path).suffix.lstrip(".").lower() or None
                 preview_bytes = zf.read(preview_path)
 
@@ -410,7 +406,6 @@ class WorkspaceThemesService(BaseService):
                 for decl in manifest.variants:
                     if decl.variant_id in seen:
                         raise BadRequest(
-                            message="Duplicate variantId",
                             error="THEME_IMPORT_VARIANT_DUPLICATE",
                             meta={"variantId": decl.variant_id},
                         )
@@ -418,7 +413,6 @@ class WorkspaceThemesService(BaseService):
                     var_path = _join_under_prefix(prefix=prefix, rel=decl.path)
                     if var_path not in names:
                         raise BadRequest(
-                            message="Variant file not found",
                             error="THEME_IMPORT_VARIANT_FILE_NOT_FOUND",
                             meta={"variantId": decl.variant_id, "path": decl.path},
                         )
@@ -426,7 +420,6 @@ class WorkspaceThemesService(BaseService):
                         var_obj = json.loads(zf.read(var_path).decode("utf-8"))
                     except THEME_JSON_PARSE_ERRORS:
                         raise BadRequest(
-                            message="Variant JSON must be valid",
                             error="THEME_IMPORT_VARIANT_JSON_INVALID",
                             meta={"variantId": decl.variant_id},
                         )
@@ -434,7 +427,6 @@ class WorkspaceThemesService(BaseService):
                         payload = ThemeVariantPayloadIn.model_validate(var_obj)
                     except ValidationError as exc:
                         raise BadRequest(
-                            message="Variant payload validation failed",
                             error="THEME_IMPORT_VARIANT_VALIDATION_FAILED",
                             meta={"variantId": decl.variant_id, "reason": str(exc)},
                         )
@@ -448,7 +440,6 @@ class WorkspaceThemesService(BaseService):
                 for decl in manifest.presets:
                     if decl.id in seen_p:
                         raise BadRequest(
-                            message="Duplicate preset id",
                             error="THEME_IMPORT_PRESET_DUPLICATE",
                             meta={"presetId": decl.id},
                         )
@@ -456,7 +447,6 @@ class WorkspaceThemesService(BaseService):
                     p_path = _join_under_prefix(prefix=prefix, rel=decl.path)
                     if p_path not in names:
                         raise BadRequest(
-                            message="Preset file not found",
                             error="THEME_IMPORT_PRESET_FILE_NOT_FOUND",
                             meta={"presetId": decl.id, "path": decl.path},
                         )
@@ -464,13 +454,11 @@ class WorkspaceThemesService(BaseService):
                         obj = json.loads(zf.read(p_path).decode("utf-8"))
                     except THEME_JSON_PARSE_ERRORS:
                         raise BadRequest(
-                            message="Preset JSON must be valid",
                             error="THEME_IMPORT_PRESET_JSON_INVALID",
                             meta={"presetId": decl.id},
                         )
                     if not isinstance(obj, dict):
                         raise BadRequest(
-                            message="Preset JSON must be an object",
                             error="THEME_IMPORT_PRESET_INVALID",
                             meta={"presetId": decl.id},
                         )

@@ -119,9 +119,7 @@ async def upload_part(
     data = await request.body()
     if content_length is not None and content_length != len(data):
         # Defensive check for broken clients/proxies.
-        raise BadRequest(
-            message=t("errors", "UPLOAD_BODY_INVALID", default="上传内容不合法"), error="UPLOAD_BODY_INVALID"
-        )
+        raise BadRequest(message=t("errors", "UPLOAD_BODY_INVALID"), error="UPLOAD_BODY_INVALID")
 
     await service.put_part(upload_id=upload_id, scope=_workspace_scope(ctx), part_number=part_number, data=data)
     return ApiResponse.success(data=None)

@@ -199,5 +199,16 @@
   "TEAM_INVITATIONS_COL_ACCEPTED": "接受时间",
   "TEAM_INVITATIONS_COL_PROCESSED": "处理时间",
   "TEAM_INVITATIONS_SENT_AT": "发送于{{datetime}}",
-  "TEAM_INVITE_LINKS_COL_LAST_USED": "最近使用"
+  "TEAM_INVITE_LINKS_COL_LAST_USED": "最近使用",
+  "TEAM_INVITE_EMAIL_CTA": "接受邀请",
+  "TEAM_INVITE_EMAIL_EXPIRES_AT": "该邀请链接将于 {expires_at} 过期（UTC）。",
+  "TEAM_INVITE_EMAIL_EXPIRES_NEVER": "该邀请链接不会过期。",
+  "TEAM_INVITE_EMAIL_FALLBACK": "如果按钮无法使用，你也可以使用以下 Token：",
+  "TEAM_INVITE_EMAIL_IGNORE": "如非本人操作，请忽略本邮件。",
+  "TEAM_INVITE_EMAIL_INTRO": "你已被邀请加入工作区。",
+  "TEAM_INVITE_EMAIL_INTRO_WITH_INVITER": "{inviter} 邀请你加入工作区。",
+  "TEAM_INVITE_EMAIL_PLAIN": "工作区：{workspace_name}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+  "TEAM_INVITE_EMAIL_PLAIN_WITH_LINK": "工作区：{workspace_name}\n邀请链接：{invite_url}\nToken：{invite_token}\n{expires_notice}\n{ignore_notice}",
+  "TEAM_INVITE_EMAIL_SUBJECT": "邀请加入工作区 {workspace_name}",
+  "TEAM_INVITE_EMAIL_TITLE": "你已被邀请加入工作区 {workspace_name}"
 }
