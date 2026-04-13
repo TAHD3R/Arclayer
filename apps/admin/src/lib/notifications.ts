@@ -27,21 +27,33 @@ export function getErrorMessage(err: unknown): string {
 
 export function notifyError(err: unknown) {
   const text = getErrorMessage(err);
-  message.error(text);
+  message.error({
+    title: i18n.t("TOAST_TITLE_ERROR", { ns: "common" }),
+    description: text,
+  });
   console.error(text, err);
 }
 
 export function notifyErrorText(text: string) {
-  message.error(text);
+  message.error({
+    title: i18n.t("TOAST_TITLE_ERROR", { ns: "common" }),
+    description: text,
+  });
   console.error(text);
 }
 
 export function notifyInfoText(text: string) {
-  message.info(text);
+  message.info({
+    title: i18n.t("TOAST_TITLE_INFO", { ns: "common" }),
+    description: text,
+  });
   console.info(text);
 }
 
 export function notifySuccessText(text: string) {
-  message.success(text);
+  message.success({
+    title: i18n.t("TOAST_TITLE_SUCCESS", { ns: "common" }),
+    description: text,
+  });
   console.info(text);
 }

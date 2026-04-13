@@ -41,7 +41,7 @@ export function AuthPaneHeader(props: {
       </div>
       <div className="grid gap-2">
         <h1 className="select-none text-largetitle  text-label-primary">{t(props.titleKey)}</h1>
-        <p className="max-w-[30ch] select-none text-title3 font-normal  text-label-secondary text-pretty">
+        <p className="select-none text-title3 font-normal  text-label-secondary text-pretty">
           {t(props.subtitleKey)}
         </p>
       </div>
