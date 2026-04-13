@@ -35,6 +35,23 @@ Longer-lived agent behavior rules: `docs/guidelines/agents-guide.md`.
   - Portal: Vike + React (custom Node server entry).
   - Styling/i18n: follow the design guideline and i18n guideline.
 
+## Repo-Local Frontend Skill
+
+- This repo provides a repo-local skill at `.agents/skills/arclayer-frontend-design`.
+- Use it for any frontend task that changes UI direction, page hierarchy, panel structure, theming, tokens, spacing, typography, interaction styling, or user-facing copy.
+- Default trigger areas:
+  - `apps/admin`
+  - `apps/portal`
+  - `apps/studio`
+  - `packages/ui`
+  - design-sensitive frontend docs and stories
+- Treat this skill as mandatory for:
+  - new pages, layouts, dialogs, command surfaces, settings surfaces, tables, forms, and empty states
+  - copywriting for labels, descriptions, onboarding text, helper text, error text, and CTA text
+  - design-sensitive refactors where there is a risk of card nesting, decorative surfaces, or engineering-flavored product copy
+- Pair it with `karpathy-guidelines` by default. Pair it with generic frontend skills such as `shadcn`, `tailwind-design-system`, `vercel-composition-patterns`, or `vercel-react-best-practices` only for implementation mechanics.
+- The repo-local skill sets direction and copy guardrails. Generic frontend skills must not override it on visual hierarchy or product-writing decisions.
+
 ## Agent Priorities
 
 - Correctness first: minimal scope, targeted edits, keep diffs reviewable.
