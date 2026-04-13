@@ -138,6 +138,23 @@ def build_guard_config(settings: Settings) -> GuardSecurityConfig:
     return GuardSecurityConfig(**payload)
 
 
+async def _reset_guard_singletons(config: GuardSecurityConfig | None) -> None:
+    ip_ban_manager.banned_ips.clear()
+    ip_ban_manager.redis_handler = None
+    ip_ban_manager.agent_handler = None
+
+    if config is not None:
+        rate_limit_manager = RateLimitManager(config)
+        rate_limit_manager.request_timestamps.clear()
+        rate_limit_manager.redis_handler = None
+        rate_limit_manager.agent_handler = None
+        rate_limit_manager.rate_limit_script_sha = None
+
+    cloud_handler.redis_handler = None
+    cloud_handler.agent_handler = None
+    await sus_patterns_handler.reset()
+
+
 async def _sync_custom_penetration_patterns(patterns: list[str]) -> None:
     current = set(await sus_patterns_handler.get_custom_patterns())
     desired = set(patterns)
@@ -154,6 +171,7 @@ async def initialize_guard_runtime(app: FastAPI, settings: Settings) -> None:
         return
 
     config = build_guard_config(settings)
+    await _reset_guard_singletons(config)
     app.state.guard_security_config = config
 
     redis_manager: RedisManager | None = None
@@ -177,8 +195,9 @@ async def initialize_guard_runtime(app: FastAPI, settings: Settings) -> None:
 
 
 async def close_guard_runtime(app: FastAPI) -> None:
+    config: GuardSecurityConfig | None = getattr(app.state, "guard_security_config", None)
     redis_manager: RedisManager | None = getattr(app.state, "guard_redis_manager", None)
-    if redis_manager is None:
-        return
-    await redis_manager.close()
+    if redis_manager is not None:
+        await redis_manager.close()
     app.state.guard_redis_manager = None
+    await _reset_guard_singletons(config)

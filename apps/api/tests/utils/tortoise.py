@@ -31,5 +31,19 @@ BEGIN
     EXECUTE format('DROP TABLE IF EXISTS %I.%I CASCADE', '{schema}', r.tablename);
   END LOOP;
 END $$;
-"""
+    """
     await conn.execute_script(sql)
+
+
+async def rebuild_postgres_schema(*, schema: str = "public") -> None:
+    """
+    Rebuild the current ORM schema from models for integration tests.
+
+    We do not run Tortoise migrations inside pytest. A reused test database can
+    therefore drift from the current model graph and miss newer tables such as
+    RBAC catalog tables. Rebuilding the schema keeps the test DB aligned with
+    the live models deterministically.
+    """
+
+    await reset_postgres_schema(schema=schema)
+    await Tortoise.generate_schemas(safe=True)

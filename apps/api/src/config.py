@@ -710,13 +710,13 @@ class Settings(BaseSettings):
 
     def _apply_test_mode_overrides(self) -> None:
         if self.app_env == "test":
-            if self.testing.database_enabled:
+            if self.testing.database_enabled and self.database.enabled:
                 updates: dict[str, Any] = {
                     "enabled": True,
                     "database": self.testing.database_name,
                 }
                 self.database = self.database.model_copy(update=updates)
-            if self.testing.valkey_enabled:
+            if self.testing.valkey_enabled and self.valkey.enabled:
                 updates: dict[str, Any] = {
                     "enabled": True,
                     "db": self.testing.valkey_db,

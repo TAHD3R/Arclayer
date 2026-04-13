@@ -9,7 +9,6 @@ import asyncpg
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
-from tortoise import Tortoise
 
 API_ROOT = Path(__file__).resolve().parents[1]
 if str(API_ROOT) not in sys.path:
@@ -18,7 +17,7 @@ if str(API_ROOT) not in sys.path:
 from src.config import get_settings
 from src.core.database.orm import close_orm, init_orm, verify_db_ready
 from src.platform.cache.valkey import ValkeyClient, close_valkey, init_valkey
-from tests.utils.tortoise import reset_postgres_schema
+from tests.utils.tortoise import rebuild_postgres_schema
 
 
 @pytest.fixture(autouse=True)
@@ -71,6 +70,8 @@ def _activate_integration_env(monkeypatch) -> None:
     """
 
     monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("DATABASE__ENABLED", "1")
+    monkeypatch.setenv("VALKEY__ENABLED", "1")
     # Integration tests may hit email invitation flows. Enable mail but suppress actual sending.
     monkeypatch.setenv("MAIL__ENABLED", "1")
     monkeypatch.setenv("MAIL__SUPPRESS_SEND", "1")
@@ -141,6 +142,7 @@ async def db(integration_db_settings) -> AsyncGenerator[None, None]:
     settings = get_settings()
     await _ensure_test_database(settings)
     await init_orm(settings)
+    await rebuild_postgres_schema()
     await verify_db_ready(settings)
     try:
         yield
@@ -153,8 +155,7 @@ async def prepared_db(integration_db_settings) -> AsyncGenerator[None, None]:
     settings = get_settings()
     await _ensure_test_database(settings)
     await init_orm(settings)
-    await reset_postgres_schema()
-    await Tortoise.generate_schemas(safe=True)
+    await rebuild_postgres_schema()
     try:
         yield
     finally:
@@ -163,8 +164,7 @@ async def prepared_db(integration_db_settings) -> AsyncGenerator[None, None]:
 
 @pytest_asyncio.fixture
 async def db_schema(db) -> AsyncGenerator[None, None]:
-    await reset_postgres_schema()
-    await Tortoise.generate_schemas(safe=True)
+    await rebuild_postgres_schema()
     yield
 
 
