@@ -65,11 +65,13 @@ class UserRepository(BaseRepository):
         email: str | None,
         display_name: str | None,
         password_hash: str,
+        is_super_admin: bool = False,
     ) -> User:
         user = await User.create(
             username=username,
             email=email,
             status=UserStatus.ACTIVE,
+            is_super_admin=is_super_admin,
             display_name=display_name,
             avatar_url=None,
         )

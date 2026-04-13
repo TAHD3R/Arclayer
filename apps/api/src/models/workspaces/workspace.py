@@ -16,6 +16,13 @@ class WorkspaceMembershipStatus(StrEnum):
     DISABLED = "disabled"
 
 
+class WorkspaceKind(StrEnum):
+    """Workspace identity kind."""
+
+    PERSONAL = "personal"
+    TEAM = "team"
+
+
 # Workspace (admin governance boundary).
 class Workspace(BaseModel):
     """Domain model for workspaces."""
@@ -28,17 +35,21 @@ class Workspace(BaseModel):
     # workspaceSlug is the public portal identifier; keep it globally unique.
     slug = fields.CharField(max_length=64, unique=True)
     name = fields.CharField(max_length=128)
+    kind = fields.CharEnumField(WorkspaceKind, default=WorkspaceKind.TEAM, db_index=True)
+    owner_user_id = fields.UUIDField(null=True, db_index=True)
     description = fields.CharField(max_length=256, null=True)
     icon_url = fields.CharField(max_length=1024, null=True)
     is_active = fields.BooleanField(default=True, db_index=True)
     archived_at = fields.DatetimeField(null=True, db_index=True)
     archived_by_user_id = fields.UUIDField(null=True, db_index=True)
+    deleted_at = fields.DatetimeField(null=True, db_index=True)
 
     created_by_user_id = fields.UUIDField(db_index=True)
 
     class Meta(BaseModel.Meta):
         table = "domain_workspaces"
         abstract = False
+        unique_together = (("kind", "owner_user_id"),)
 
 
 @post_save(Workspace)

@@ -7,12 +7,17 @@ from tortoise.expressions import Q
 
 from src.common.repositories import BaseRepository
 from src.models.organization.user import User
-from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembership, WorkspaceMembershipStatus
 
 
 class OrganizationWorkspaceRepository(BaseRepository):
     async def list_active_workspaces_for_org(self, *, organization_id: UUID) -> list[Workspace]:
-        return await Workspace.filter(organization_id=organization_id, is_active=True).order_by("created_at").all()
+        return (
+            await Workspace
+            .filter(organization_id=organization_id, is_active=True, deleted_at__isnull=True)
+            .order_by("created_at")
+            .all()
+        )
 
     async def list_active_workspaces_for_member(self, *, organization_id: UUID, user_id: UUID) -> list[Workspace]:
         rows = await WorkspaceMembership.filter(
@@ -20,6 +25,7 @@ class OrganizationWorkspaceRepository(BaseRepository):
             status=WorkspaceMembershipStatus.ACTIVE,
             workspace__organization_id=organization_id,
             workspace__is_active=True,
+            workspace__deleted_at__isnull=True,
         ).values_list("workspace_id", flat=True)
         workspace_ids = [UUID(str(item)) for item in rows]
         if not workspace_ids:
@@ -27,10 +33,17 @@ class OrganizationWorkspaceRepository(BaseRepository):
         return await Workspace.filter(id__in=workspace_ids, is_active=True).order_by("created_at").all()
 
     async def get_active_workspace(self, *, organization_id: UUID, workspace_id: UUID) -> Workspace | None:
-        return await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
+        return await Workspace.get_or_none(
+            id=workspace_id,
+            organization_id=organization_id,
+            is_active=True,
+            deleted_at__isnull=True,
+        )
 
     async def count_active_workspaces(self, *, organization_id: UUID) -> int:
-        return int(await Workspace.filter(organization_id=organization_id, is_active=True).count())
+        return int(
+            await Workspace.filter(organization_id=organization_id, is_active=True, deleted_at__isnull=True).count()
+        )
 
     async def count_active_non_archived_workspaces(self, *, organization_id: UUID) -> int:
         return int(
@@ -38,6 +51,7 @@ class OrganizationWorkspaceRepository(BaseRepository):
                 organization_id=organization_id,
                 is_active=True,
                 archived_at__isnull=True,
+                deleted_at__isnull=True,
             ).count()
         )
 
@@ -53,13 +67,18 @@ class OrganizationWorkspaceRepository(BaseRepository):
         name: str,
         description: str | None,
         created_by_user_id: UUID,
+        kind: WorkspaceKind = WorkspaceKind.TEAM,
+        owner_user_id: UUID | None = None,
     ) -> Workspace:
         return await Workspace.create(
             organization_id=organization_id,
             slug=slug,
             name=name,
+            kind=kind,
+            owner_user_id=owner_user_id,
             description=description,
             is_active=True,
+            deleted_at=None,
             created_by_user_id=created_by_user_id,
         )
 

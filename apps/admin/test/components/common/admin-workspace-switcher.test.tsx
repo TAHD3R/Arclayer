@@ -3,8 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MyWorkspace } from "@/types/api";
-import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
+import type { MyWorkspace, MyWorkspaceListResult } from "@/types/api";
+import { getWorkspaceDetail, listMyWorkspaces, retryMyPersonalSpace } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -31,6 +31,25 @@ vi.mock("react-i18next", () => ({
       if (key === "common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES") {
         return "View all workspaces";
       }
+      if (key === "common:WORKSPACE_SWITCHER_TEAM_SECTION") return "Team spaces";
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_SECTION") return "Personal Space";
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_LABEL") return "Personal Space";
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_PENDING") {
+        return "Personal Space is being prepared";
+      }
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_PENDING_HINT") {
+        return "It will appear here automatically when it is ready.";
+      }
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_FAILED") {
+        return "Personal Space is temporarily unavailable";
+      }
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_FAILED_HINT") {
+        return "You can keep working in team spaces and retry later.";
+      }
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_RETRY") return "Retry";
+      if (key === "common:WORKSPACE_SWITCHER_PERSONAL_SPACE_FAILED_TOAST") {
+        return "Your Personal Space is not ready yet. You can retry it from the switcher later.";
+      }
       if (key === "common:WORKSPACE_SWITCHER_ADD_WORKSPACE") return "Add workspace";
       return key;
     },
@@ -40,6 +59,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/api/workspaces", () => ({
   getWorkspaceDetail: vi.fn(),
   listMyWorkspaces: vi.fn(),
+  retryMyPersonalSpace: vi.fn(),
 }));
 
 const workspaceFixtures: MyWorkspace[] = [
@@ -48,6 +68,7 @@ const workspaceFixtures: MyWorkspace[] = [
     organizationId: "org-1",
     slug: "alpha",
     name: "Workspace Alpha",
+    kind: "team",
     iconUrl: "https://example.com/workspace-alpha-icon.png",
     memberCount: 3,
     membersPreview: [
@@ -72,12 +93,14 @@ const workspaceFixtures: MyWorkspace[] = [
     ],
     visibleOnly: false,
     isCreatorAdmin: true,
+    isLegacy: false,
   },
   {
     workspaceId: "ws-beta",
     organizationId: "org-1",
     slug: "beta",
     name: "Workspace Beta",
+    kind: "team",
     iconUrl: null,
     memberCount: 1,
     membersPreview: [
@@ -90,8 +113,45 @@ const workspaceFixtures: MyWorkspace[] = [
     ],
     visibleOnly: false,
     isCreatorAdmin: true,
+    isLegacy: false,
   },
 ];
+
+const personalSpaceFixture: MyWorkspace = {
+  workspaceId: "ws-personal",
+  organizationId: "org-personal",
+  slug: "personal-space",
+  name: "Personal Space",
+  kind: "personal",
+  iconUrl: null,
+  memberCount: 1,
+  membersPreview: [],
+  visibleOnly: false,
+  isCreatorAdmin: true,
+  isLegacy: false,
+};
+
+function createWorkspaceListResult(
+  overrides: Partial<MyWorkspaceListResult> = {},
+): MyWorkspaceListResult {
+  return {
+    items: [...workspaceFixtures, personalSpaceFixture],
+    switcher: {
+      teams: workspaceFixtures,
+      personalSpace: {
+        status: "ready",
+        workspace: personalSpaceFixture,
+        retryAvailable: false,
+        lastError: null,
+      },
+    },
+    instanceSetup: {
+      status: "ready",
+      repairReason: null,
+    },
+    ...overrides,
+  };
+}
 
 function renderWithQueryClient(component: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -161,7 +221,13 @@ beforeEach(() => {
   useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
   useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
 
-  vi.mocked(listMyWorkspaces).mockResolvedValue({ items: workspaceFixtures });
+  vi.mocked(listMyWorkspaces).mockResolvedValue(createWorkspaceListResult());
+  vi.mocked(retryMyPersonalSpace).mockResolvedValue({
+    status: "pending",
+    workspace: null,
+    retryAvailable: false,
+    lastError: null,
+  });
   vi.mocked(getWorkspaceDetail).mockResolvedValue({
     id: "ws-alpha",
     organizationId: "org-1",
@@ -270,6 +336,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
 
     expect(within(panel).getByRole("button", { name: /Workspace Alpha/ })).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: /Workspace Beta/ })).toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: /Personal Space/ })).toBeInTheDocument();
     expect(within(panel).queryByRole("button", { name: /Org Alpha/ })).not.toBeInTheDocument();
     expect(
       within(panel).queryByRole("button", { name: "common:WORKSPACE_SWITCHER_ORG_SETTINGS" }),
@@ -411,5 +478,69 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-beta/assets" });
     });
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
+  });
+
+  it("workspace scope: shows a pending placeholder for personal space preparation", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listMyWorkspaces).mockResolvedValue(
+      createWorkspaceListResult({
+        items: workspaceFixtures,
+        switcher: {
+          teams: workspaceFixtures,
+          personalSpace: {
+            status: "pending",
+            workspace: null,
+            retryAvailable: false,
+            lastError: null,
+          },
+        },
+      }),
+    );
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    expect(within(panel).getByText("Personal Space is being prepared")).toBeInTheDocument();
+    expect(
+      within(panel).getByText("It will appear here automatically when it is ready."),
+    ).toBeInTheDocument();
+  });
+
+  it("workspace scope: shows retry action when personal space preparation failed", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listMyWorkspaces).mockResolvedValue(
+      createWorkspaceListResult({
+        items: workspaceFixtures,
+        switcher: {
+          teams: workspaceFixtures,
+          personalSpace: {
+            status: "failed",
+            workspace: null,
+            retryAvailable: true,
+            lastError: "boom",
+          },
+        },
+      }),
+    );
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const retryButton = within(panel).getByRole("button", { name: "Retry" });
+    expect(
+      within(panel).getByText("Personal Space is temporarily unavailable"),
+    ).toBeInTheDocument();
+    await user.click(retryButton);
+    expect(retryMyPersonalSpace).toHaveBeenCalledTimes(1);
   });
 });

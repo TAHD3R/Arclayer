@@ -38,12 +38,15 @@ from src.modules.workspaces.danger_service import WorkspaceDangerService
 from src.modules.workspaces.extensions.router import router as workspace_extensions_router
 from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import get_workspace_context, require_workspace_manage_access
+from src.modules.workspaces.personal_space.service import PersonalSpaceProvisionStatus, PersonalSpaceService
 from src.modules.workspaces.publish.router import router as workspace_publish_router
 from src.modules.workspaces.rbac.router import router as workspace_rbac_router
 from src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
     LeaveWorkspaceResult,
     MyWorkspaceListResult,
+    PersonalSpaceStatus,
+    PersonalSpaceSwitcherOut,
     WorkspaceDangerCapabilitiesOut,
     WorkspaceDeleteResult,
     WorkspaceDetailOut,
@@ -87,8 +90,32 @@ async def list_my_workspaces(
 ) -> ResponseModel[MyWorkspaceListResult]:
     """List workspaces visible to current user."""
     service = WorkspaceService(settings)
-    items = await service.list_my_workspaces(user_id=user_id)
-    return ApiResponse.success(data=MyWorkspaceListResult(items=items))
+    result = await service.list_my_workspaces(user_id=user_id)
+    return ApiResponse.success(data=result)
+
+
+@router.post(
+    "/me/workspaces/personal-space/retry",
+    response_model=ResponseModel[PersonalSpaceSwitcherOut],
+    summary="Retry preparing the current user's personal space",
+)
+async def retry_my_personal_space(
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[PersonalSpaceSwitcherOut]:
+    personal_space_service = PersonalSpaceService(settings)
+    state = await personal_space_service.retry_prepare(user_id=user_id)
+    if state.status == PersonalSpaceProvisionStatus.READY:
+        switcher = (await WorkspaceService(settings).list_my_workspaces(user_id=user_id)).switcher.personal_space
+        return ApiResponse.success(data=switcher)
+    return ApiResponse.success(
+        data=PersonalSpaceSwitcherOut(
+            status=PersonalSpaceStatus(state.status.value),
+            workspace=None,
+            retry_available=state.retry_available,
+            last_error=state.last_error,
+        )
+    )
 
 
 @router.get(

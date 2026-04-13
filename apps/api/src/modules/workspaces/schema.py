@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from pydantic import Field
 
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
+
+
+class PersonalSpaceStatus(StrEnum):
+    PENDING = "pending"
+    READY = "ready"
+    FAILED = "failed"
 
 
 class MyWorkspaceMemberPreviewOut(BaseSchema):
@@ -18,6 +26,7 @@ class MyWorkspaceOut(BaseOut):
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
+    kind: str = Field(default="team", description="Workspace kind: team or personal.")
     icon_url: str | None = Field(default=None, description="Workspace icon URL.")
     member_count: int = Field(default=0, ge=0, description="Active member count.")
     members_preview: list[MyWorkspaceMemberPreviewOut] = Field(
@@ -33,10 +42,33 @@ class MyWorkspaceOut(BaseOut):
         default=False,
         description="If true, current user is org owner and workspace creator; has implicit admin management rights.",
     )
+    is_legacy: bool = Field(
+        default=False,
+        description="Whether the underlying organization is in legacy multi-workspace compatibility mode.",
+    )
+
+
+class InstanceSetupStateOut(BaseSchema):
+    status: str = Field(..., description="Instance setup state: uninitialized, ready, repair_required.")
+    repair_reason: str | None = Field(default=None, description="Explicit repair reason code when setup is invalid.")
+
+
+class PersonalSpaceSwitcherOut(BaseSchema):
+    status: PersonalSpaceStatus = Field(..., description="Personal space preparation state.")
+    workspace: MyWorkspaceOut | None = Field(default=None, description="Resolved personal workspace when ready.")
+    retry_available: bool = Field(default=False, description="Whether inline retry is currently available.")
+    last_error: str | None = Field(default=None, description="Latest non-sensitive failure code.")
+
+
+class WorkspaceSwitcherOut(BaseSchema):
+    teams: list[MyWorkspaceOut] = Field(default_factory=list, description="Team workspaces visible to current user.")
+    personal_space: PersonalSpaceSwitcherOut = Field(..., description="Personal space switcher state.")
 
 
 class MyWorkspaceListResult(BaseSchema):
     items: list[MyWorkspaceOut] = Field(default_factory=list, description="Workspaces visible to current user.")
+    switcher: WorkspaceSwitcherOut = Field(..., description="Pre-grouped switcher state from the backend.")
+    instance_setup: InstanceSetupStateOut = Field(..., description="Canonical instance setup status for this runtime.")
 
 
 class WorkspaceDetailOut(BaseOut):

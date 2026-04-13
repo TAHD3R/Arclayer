@@ -38,7 +38,19 @@ vi.mock("@/api/notifications", () => ({
 }));
 
 vi.mock("@/api/workspaces", () => ({
-  listMyWorkspaces: vi.fn().mockResolvedValue({ items: [] }),
+  listMyWorkspaces: vi.fn().mockResolvedValue({
+    items: [],
+    switcher: {
+      teams: [],
+      personalSpace: {
+        status: "pending",
+        workspace: null,
+        retryAvailable: false,
+        lastError: null,
+      },
+    },
+    instanceSetup: { status: "ready", repairReason: null },
+  }),
 }));
 
 function renderPanel() {

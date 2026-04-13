@@ -53,6 +53,7 @@ from src.modules.auth.tokens.service import (
     hash_password,
     verify_password,
 )
+from src.modules.workspaces.personal_space.service import PersonalSpaceService
 from src.platform.cache.valkey import ValkeyClientLike
 
 _FATAL_AUTH_EVENT_ERRORS: tuple[type[BaseException], ...] = (
@@ -534,6 +535,7 @@ class AuthService(BaseService):
         identifier: str,
         password: str,
         request_context: AuthRequestContext | None = None,
+        ensure_personal_space: bool = True,
     ) -> TokenPair:
         store = self._require_refresh_store()
         user = await self.user_repo.get_by_identifier(identifier)
@@ -554,6 +556,8 @@ class AuthService(BaseService):
             )
 
         user_id = self._coerce_user_id(user)
+        if ensure_personal_space:
+            await PersonalSpaceService(self.settings).ensure_for_login(user_id=user_id)
         token_version = self._coerce_token_version(user)
         session_id = uuid7().hex
 
@@ -625,6 +629,7 @@ class AuthService(BaseService):
         *,
         request_context: AuthRequestContext | None = None,
         auth_method: str = "password",
+        ensure_personal_space: bool = True,
     ) -> TokenPair:
         """
         Issue a TokenPair for a user without password verification.
@@ -643,6 +648,8 @@ class AuthService(BaseService):
             raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
 
         resolved_user_id = self._coerce_user_id(user)
+        if ensure_personal_space:
+            await PersonalSpaceService(self.settings).ensure_for_login(user_id=resolved_user_id)
         token_version = self._coerce_token_version(user)
         session_id = uuid7().hex
 
@@ -715,6 +722,7 @@ class AuthService(BaseService):
         password: str,
         email: str | None = None,
         display_name: str | None = None,
+        is_super_admin: bool = False,
     ) -> UserLike:
         username = username.strip()
         email = email.strip() if email else None
@@ -732,6 +740,7 @@ class AuthService(BaseService):
             email=email,
             display_name=display_name,
             password_hash=password_hash,
+            is_super_admin=is_super_admin,
         )
 
     async def refresh(
@@ -1214,7 +1223,7 @@ class AuthService(BaseService):
         return await self.invitation_service.accept_invitation(
             payload=payload,
             ensure_password_strength=self._ensure_password_strength,
-            issue_tokens=self.login,
+            issue_tokens=lambda **kwargs: self.login(ensure_personal_space=False, **kwargs),
         )
 
     async def preview_invitation(self, *, token: str) -> InvitationPreviewResult:
@@ -1226,4 +1235,6 @@ class AuthService(BaseService):
         payload: AcceptExistingInvitationRequest,
         user: User,
     ) -> AcceptExistingInvitationResult:
-        return await self.invitation_service.accept_existing_invitation(payload=payload, user=user)
+        result = await self.invitation_service.accept_existing_invitation(payload=payload, user=user)
+        await PersonalSpaceService(self.settings).trigger_background_ensure(user_id=UUID(str(user.id)))
+        return result

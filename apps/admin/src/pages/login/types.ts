@@ -1,6 +1,14 @@
 import type { LoginMode } from "@/lib/auth/auth-mode";
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
 
+export interface BootstrapFormValues {
+  displayName: string;
+  email: string;
+  username: string;
+  password: string;
+  confirmPassword: string;
+}
+
 export interface LoginFormValues {
   account: string;
   password: string;
@@ -35,4 +43,14 @@ export interface LoginViewProps {
   onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => void;
   onCancelTwoFactorChallenge: () => void;
   twoFactorLoading?: boolean;
+}
+
+export interface BootstrapPaneProps {
+  onSubmit: (values: BootstrapFormValues) => void;
+  loading?: boolean;
+}
+
+export interface InstanceRepairRequiredPaneProps {
+  repairReason?: string | null;
+  onRefresh: () => void;
 }

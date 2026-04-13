@@ -89,7 +89,19 @@ beforeEach(() => {
     currentWorkspaceId: "ws-current",
     lastWorkspaceId: "ws-current",
   });
-  listMyWorkspacesMock.mockResolvedValue({ items: [] });
+  listMyWorkspacesMock.mockResolvedValue({
+    items: [],
+    switcher: {
+      teams: [],
+      personalSpace: {
+        status: "pending",
+        workspace: null,
+        retryAvailable: false,
+        lastError: null,
+      },
+    },
+    instanceSetup: { status: "ready", repairReason: null },
+  });
   mockPathname = "/";
 });
 
@@ -114,10 +126,33 @@ describe("workspace destructive flows", () => {
           organizationId: "org-2",
           slug: "beta",
           name: "Beta",
+          kind: "team",
           visibleOnly: false,
           isCreatorAdmin: true,
+          isLegacy: false,
         },
       ],
+      switcher: {
+        teams: [
+          {
+            workspaceId: "ws-2",
+            organizationId: "org-2",
+            slug: "beta",
+            name: "Beta",
+            kind: "team",
+            visibleOnly: false,
+            isCreatorAdmin: true,
+            isLegacy: false,
+          },
+        ],
+        personalSpace: {
+          status: "pending",
+          workspace: null,
+          retryAvailable: false,
+          lastError: null,
+        },
+      },
+      instanceSetup: { status: "ready", repairReason: null },
     });
 
     renderWithProviders(<WorkspaceSettingsDangerView workspaceId="ws-1" />);

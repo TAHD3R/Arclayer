@@ -507,6 +507,19 @@ class AuthInvitationAcceptanceService(BaseService):
                     error=str(exc),
                 )
 
+        if accepted_user_id is not None:
+            try:
+                from src.modules.workspaces.personal_space.service import PersonalSpaceService
+
+                await PersonalSpaceService(self.settings).trigger_background_ensure(user_id=accepted_user_id)
+            except BaseException as exc:
+                _raise_if_fatal(exc)
+                self.logger.warning(
+                    "Personal space background trigger failed after invite acceptance",
+                    user_id=str(accepted_user_id),
+                    error=str(exc),
+                )
+
         return tokens
 
     async def accept_existing_invitation(

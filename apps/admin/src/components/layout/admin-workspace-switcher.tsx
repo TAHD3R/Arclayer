@@ -1,6 +1,6 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -14,13 +14,14 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { listMyWorkspaces, getWorkspaceDetail } from "@/api/workspaces";
+import { getWorkspaceDetail, listMyWorkspaces, retryMyPersonalSpace } from "@/api/workspaces";
 import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
+import { notifyError, notifyErrorText } from "@/lib/notifications";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { MyWorkspace } from "@/types/api";
+import type { MyWorkspace, PersonalSpaceSwitcher } from "@/types/api";
 import { AvatarGroup, AvatarGroupCount } from "@arclayer/ui/avatar";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -343,6 +344,7 @@ function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: b
 }
 
 function WorkspacePickerSection(props: {
+  title: string;
   workspaces: readonly MyWorkspace[];
   activeWorkspaceId: string | null;
   onSelect: (workspaceId: string) => void;
@@ -351,9 +353,7 @@ function WorkspacePickerSection(props: {
 
   return (
     <div className="min-w-0">
-      <div className="px-2 py-1.5 text-callout text-label-secondary">
-        {t("common:WORKSPACE_SWITCHER_SELECT_WORKSPACE")}
-      </div>
+      <div className="px-2 py-1.5 text-callout text-label-secondary">{props.title}</div>
       <div
         style={WORKSPACE_PICKER_MAX_HEIGHT_STYLE}
         className={cn(PANEL_SECTION_CLASSNAME, "overflow-y-auto overscroll-contain")}
@@ -378,6 +378,95 @@ function WorkspacePickerSection(props: {
             </PanelMenuButton>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function PersonalSpaceSection(props: {
+  personalSpace: PersonalSpaceSwitcher;
+  activeWorkspaceId: string | null;
+  onSelect: (workspaceId: string) => void;
+  onRetry: () => void;
+  retryPending: boolean;
+}) {
+  const { t } = useTranslation(["common"]);
+  const workspace = props.personalSpace.workspace;
+  const title = workspace?.name || t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_LABEL");
+  const isSelected =
+    workspace != null && String(props.activeWorkspaceId || "") === String(workspace.workspaceId);
+
+  return (
+    <div className="min-w-0">
+      <div className="px-2 py-1.5 text-callout text-label-secondary">
+        {t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_SECTION")}
+      </div>
+      <div className={PANEL_SECTION_CLASSNAME}>
+        {props.personalSpace.status === "ready" && workspace ? (
+          <PanelMenuButton
+            onClick={() => props.onSelect(workspace.workspaceId)}
+            className={cn(
+              "min-h-[4.5rem] items-start px-3 py-2.5",
+              isSelected && "bg-card/95 text-label-primary",
+            )}
+          >
+            <WorkspacePickerItemContent workspace={workspace} selected={isSelected} />
+          </PanelMenuButton>
+        ) : null}
+
+        {props.personalSpace.status === "pending" ? (
+          <PanelMenuButton disabled className="min-h-[4.25rem] items-start px-3 py-2.5">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <WorkspaceAvatar
+                name={t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_LABEL")}
+                assetRef={null}
+                size={28}
+                className="mt-0.5 shrink-0"
+              />
+              <div className="min-w-0 flex-1 text-left">
+                <ClampedText
+                  text={t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_PENDING")}
+                  className="truncate text-callout font-semibold text-label-primary"
+                />
+                <ClampedText
+                  text={t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_PENDING_HINT")}
+                  className="mt-1 text-footnote text-label-secondary"
+                />
+              </div>
+            </div>
+          </PanelMenuButton>
+        ) : null}
+
+        {props.personalSpace.status === "failed" ? (
+          <div
+            className={cn(
+              "flex min-h-[4.25rem] items-center gap-3 rounded-xl px-3 py-2.5",
+              "bg-accent/20 text-label-primary",
+            )}
+          >
+            <WorkspaceAvatar name={title} assetRef={null} size={28} className="shrink-0" />
+            <div className="min-w-0 flex-1">
+              <ClampedText
+                text={t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_FAILED")}
+                className="truncate text-callout font-semibold text-label-primary"
+              />
+              <ClampedText
+                text={t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_FAILED_HINT")}
+                className="mt-1 text-footnote text-label-secondary"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              disabled={props.retryPending}
+              onClick={props.onRetry}
+            >
+              {t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_RETRY")}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -430,6 +519,8 @@ function PanelContentInner() {
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const personalSpaceFailureToastShownRef = useRef(false);
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", "switcher", sessionVersion],
@@ -440,16 +531,55 @@ function PanelContentInner() {
     meta: { silent: true },
   });
 
-  const workspaces = useMemo(
+  const teamWorkspaces = useMemo(
     () =>
-      [...(workspacesQuery.data?.items ?? [])].sort((left, right) =>
+      [...(workspacesQuery.data?.switcher.teams ?? [])].sort((left, right) =>
         left.name.localeCompare(right.name),
       ),
-    [workspacesQuery.data?.items],
+    [workspacesQuery.data?.switcher.teams],
   );
+  const personalSpace = workspacesQuery.data?.switcher.personalSpace ?? {
+    status: "pending" as const,
+    workspace: null,
+    retryAvailable: false,
+    lastError: null,
+  };
+  const retryPersonalSpaceMutation = useMutation({
+    mutationFn: retryMyPersonalSpace,
+    onSuccess: (nextPersonalSpace) => {
+      queryClient.setQueryData(
+        ["me", "workspaces", "switcher", sessionVersion],
+        (current: typeof workspacesQuery.data | undefined) => {
+          if (!current) return current;
+          return {
+            ...current,
+            switcher: {
+              ...current.switcher,
+              personalSpace: nextPersonalSpace,
+            },
+          };
+        },
+      );
+    },
+    onError: (error) => {
+      notifyError(error);
+    },
+  });
 
   const currentWorkspaceBase = currentWorkspaceId ? `/w/${currentWorkspaceId}` : null;
   const divider = <div className="mx-3 h-px bg-border/45" />;
+  const sectionDivider = <div className="mx-3 h-px bg-border/45" />;
+
+  useEffect(() => {
+    if (personalSpace.status !== "failed") {
+      return;
+    }
+    if (personalSpaceFailureToastShownRef.current) {
+      return;
+    }
+    personalSpaceFailureToastShownRef.current = true;
+    notifyErrorText(t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_FAILED_TOAST"));
+  }, [personalSpace.status, t]);
 
   return (
     <div className="w-[min(21rem,calc(100vw-1rem))] max-w-full">
@@ -459,20 +589,42 @@ function PanelContentInner() {
         ) : workspacesQuery.isLoading ? (
           <PanelPickerSkeleton rows={4} />
         ) : (
-          <WorkspacePickerSection
-            workspaces={workspaces}
-            activeWorkspaceId={currentWorkspaceId}
-            onSelect={(nextWorkspaceId) => {
-              closeFloatingPanel();
-              setCurrentWorkspaceId(nextWorkspaceId);
-              const nextPath = switchWorkspacePath({
-                pathname,
-                currentWorkspaceId,
-                nextWorkspaceId,
-              });
-              void navigate({ to: nextPath as never });
-            }}
-          />
+          <div className="space-y-1.5">
+            <WorkspacePickerSection
+              title={t("common:WORKSPACE_SWITCHER_TEAM_SECTION")}
+              workspaces={teamWorkspaces}
+              activeWorkspaceId={currentWorkspaceId}
+              onSelect={(nextWorkspaceId) => {
+                closeFloatingPanel();
+                setCurrentWorkspaceId(nextWorkspaceId);
+                const nextPath = switchWorkspacePath({
+                  pathname,
+                  currentWorkspaceId,
+                  nextWorkspaceId,
+                });
+                void navigate({ to: nextPath as never });
+              }}
+            />
+            {sectionDivider}
+            <PersonalSpaceSection
+              personalSpace={personalSpace}
+              activeWorkspaceId={currentWorkspaceId}
+              onSelect={(nextWorkspaceId) => {
+                closeFloatingPanel();
+                setCurrentWorkspaceId(nextWorkspaceId);
+                const nextPath = switchWorkspacePath({
+                  pathname,
+                  currentWorkspaceId,
+                  nextWorkspaceId,
+                });
+                void navigate({ to: nextPath as never });
+              }}
+              onRetry={() => {
+                retryPersonalSpaceMutation.mutate();
+              }}
+              retryPending={retryPersonalSpaceMutation.isPending}
+            />
+          </div>
         )}
       </div>
 

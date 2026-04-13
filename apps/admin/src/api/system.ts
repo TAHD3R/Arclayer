@@ -1,5 +1,5 @@
 import { api } from "@/lib/http";
-import type { SystemRuntime } from "@/types/api";
+import type { SystemBootstrapPayload, SystemRuntime, TokenPair } from "@/types/api";
 
 /**
  * Public runtime probe endpoint.
@@ -10,4 +10,8 @@ import type { SystemRuntime } from "@/types/api";
  */
 export async function getSystemRuntime(): Promise<SystemRuntime> {
   return api.get<SystemRuntime>("/system/runtime", { auth: { skipRefresh: true } });
+}
+
+export async function bootstrapInstance(payload: SystemBootstrapPayload): Promise<TokenPair> {
+  return api.post<TokenPair>("/system/setup/bootstrap", payload, { auth: { skipRefresh: true } });
 }

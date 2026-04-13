@@ -11,6 +11,8 @@ import { useAuthChallengeStore } from "@/stores/use-auth-challenge-store";
 type RuntimeState = {
   runtime: Record<string, unknown> | null;
   publicRegisterEnabled: boolean | null;
+  instanceSetupStatus: "uninitialized" | "ready" | "repair_required" | null;
+  instanceSetupRepairReason: string | null;
 };
 
 const {
@@ -33,6 +35,8 @@ const {
   runtimeState: {
     runtime: {} as RuntimeState["runtime"],
     publicRegisterEnabled: true as RuntimeState["publicRegisterEnabled"],
+    instanceSetupStatus: "ready" as RuntimeState["instanceSetupStatus"],
+    instanceSetupRepairReason: null as RuntimeState["instanceSetupRepairReason"],
   },
   authState: {
     applyLogin: vi.fn(),
@@ -163,6 +167,8 @@ describe("LoginPage two-factor challenge flow", () => {
     sessionStorage.clear();
     runtimeState.runtime = {};
     runtimeState.publicRegisterEnabled = true;
+    runtimeState.instanceSetupStatus = "ready";
+    runtimeState.instanceSetupRepairReason = null;
   });
 
   it("switches to otp pane when login returns TWO_FACTOR_REQUIRED", async () => {
@@ -214,6 +220,8 @@ describe("LoginPage two-factor challenge flow", () => {
   it("keeps public register entry visible while runtime is unresolved", async () => {
     runtimeState.runtime = null;
     runtimeState.publicRegisterEnabled = null;
+    runtimeState.instanceSetupStatus = null;
+    runtimeState.instanceSetupRepairReason = null;
 
     renderPage();
 
@@ -226,6 +234,8 @@ describe("LoginPage two-factor challenge flow", () => {
     currentSearch = { mode: "register" };
     runtimeState.runtime = null;
     runtimeState.publicRegisterEnabled = null;
+    runtimeState.instanceSetupStatus = null;
+    runtimeState.instanceSetupRepairReason = null;
 
     renderPage();
 

@@ -16,7 +16,19 @@ describe("post-auth-routing", () => {
   });
 
   test("lands on organization overview when no workspace is available", async () => {
-    mocked.listMyWorkspaces.mockResolvedValue({ items: [] });
+    mocked.listMyWorkspaces.mockResolvedValue({
+      items: [],
+      switcher: {
+        teams: [],
+        personalSpace: {
+          status: "pending",
+          workspace: null,
+          retryAvailable: false,
+          lastError: null,
+        },
+      },
+      instanceSetup: { status: "ready", repairReason: null },
+    });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
     expect(decision.path).toBe("/");
@@ -24,8 +36,29 @@ describe("post-auth-routing", () => {
   });
 
   test("uses the remembered workspace when it still exists", async () => {
+    const workspace = {
+      workspaceId: "w-a",
+      organizationId: "org-a",
+      slug: "a",
+      name: "A",
+      kind: "team" as const,
+      visibleOnly: false,
+      isCreatorAdmin: true,
+      isLegacy: false,
+    };
+
     mocked.listMyWorkspaces.mockResolvedValue({
-      items: [{ workspaceId: "w-a", name: "A" }],
+      items: [workspace],
+      switcher: {
+        teams: [workspace],
+        personalSpace: {
+          status: "pending",
+          workspace: null,
+          retryAvailable: false,
+          lastError: null,
+        },
+      },
+      instanceSetup: { status: "ready", repairReason: null },
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-a" });
@@ -34,7 +67,19 @@ describe("post-auth-routing", () => {
   });
 
   test("falls back to root when no workspace can be resolved", async () => {
-    mocked.listMyWorkspaces.mockResolvedValue({ items: [] });
+    mocked.listMyWorkspaces.mockResolvedValue({
+      items: [],
+      switcher: {
+        teams: [],
+        personalSpace: {
+          status: "pending",
+          workspace: null,
+          retryAvailable: false,
+          lastError: null,
+        },
+      },
+      instanceSetup: { status: "ready", repairReason: null },
+    });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
     expect(decision.path).toBe("/");

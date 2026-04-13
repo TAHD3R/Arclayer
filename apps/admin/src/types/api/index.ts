@@ -22,5 +22,21 @@ export type {
   AuthSessionList,
   AuthSessionRevokeOthersResult,
 } from "./auth";
+export type {
+  AuthzSnapshot,
+  InstanceSetupState,
+  LeaveWorkspaceResult,
+  MyWorkspace,
+  MyWorkspaceListResult,
+  PersonalSpaceSwitcher,
+  WorkspaceAssignRoleResult,
+  WorkspaceDangerAction,
+  WorkspaceDangerCapabilities,
+  WorkspaceDeleteResult,
+  WorkspaceDetail,
+  WorkspaceRolePolicy,
+  WorkspaceSwitcher,
+} from "./workspaces";
+export type { SystemBootstrapPayload, SystemInstanceSetupStatus, SystemRuntime } from "./system";
 
 export * from "@arclayer/openapi/admin-types";

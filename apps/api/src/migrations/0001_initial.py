@@ -8,10 +8,11 @@ from src.models.assets.upload import UploadStatus
 from src.models.content._enums import ContentBootstrapPresetState, ContentContinuationPosture, ContentContinuationRole, ContentContinuationSurface, ContentItemStatus, ContentItemVisibility, ContentModelFieldType, ContentModelRelationType, ContentModelViewType, ContentPresentationKind, ContentShapeState, ContentVersionState, PublishArtifactKind
 from src.models.extensions.app import AppStatus
 from src.models.organization.org_membership import OrgRole
+from src.models.organization.organization import OrganizationKind
 from src.models.organization.user import UserStatus
 from src.models.system.notification import NotificationCategory
 from src.models.system.rbac import PermissionScope
-from src.models.workspaces.workspace import WorkspaceMembershipStatus
+from src.models.workspaces.workspace import WorkspaceKind, WorkspaceMembershipStatus
 from tortoise.fields.base import OnDelete
 from tortoise.fields.data import JSON_DUMPS
 from tortoise import fields
@@ -213,10 +214,13 @@ class Migration(migrations.Migration):
                 ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
                 ('slug', fields.CharField(unique=True, db_index=True, max_length=64)),
                 ('name', fields.CharField(max_length=128)),
+                ('kind', fields.CharEnumField(default=OrganizationKind.TEAM, db_index=True, description='PERSONAL: personal\nTEAM: team', enum_type=OrganizationKind, max_length=8)),
+                ('owner_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('logo_url', fields.CharField(null=True, max_length=512)),
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
+                ('deleted_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
             ],
-            options={'table': 'domain_organizations', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for organizations.'},
+            options={'table': 'domain_organizations', 'app': 'models', 'unique_together': (('kind', 'owner_user_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for organizations.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(
@@ -573,14 +577,17 @@ class Migration(migrations.Migration):
                 ('organization', fields.ForeignKeyField('models.Organization', source_field='organization_id', db_constraint=True, to_field='id', related_name='workspaces', on_delete=OnDelete.CASCADE)),
                 ('slug', fields.CharField(unique=True, max_length=64)),
                 ('name', fields.CharField(max_length=128)),
+                ('kind', fields.CharEnumField(default=WorkspaceKind.TEAM, db_index=True, description='PERSONAL: personal\nTEAM: team', enum_type=WorkspaceKind, max_length=8)),
+                ('owner_user_id', fields.UUIDField(null=True, db_index=True)),
                 ('description', fields.CharField(null=True, max_length=256)),
                 ('icon_url', fields.CharField(null=True, max_length=1024)),
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
                 ('archived_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('archived_by_user_id', fields.UUIDField(null=True, db_index=True)),
+                ('deleted_at', fields.DatetimeField(null=True, db_index=True, auto_now=False, auto_now_add=False)),
                 ('created_by_user_id', fields.UUIDField(db_index=True)),
             ],
-            options={'table': 'domain_workspaces', 'app': 'models', 'pk_attr': 'id', 'table_description': 'Domain model for workspaces.'},
+            options={'table': 'domain_workspaces', 'app': 'models', 'unique_together': (('kind', 'owner_user_id'),), 'pk_attr': 'id', 'table_description': 'Domain model for workspaces.'},
             bases=['BaseModel'],
         ),
         ops.CreateModel(

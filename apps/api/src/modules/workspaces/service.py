@@ -16,16 +16,24 @@ from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
 from src.models.system.rbac import Role
-from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
 from src.modules.assets.scope import AssetScope
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.system.rbac.constants.service import ROLE_OWNER
+from src.modules.system.setup.service import InstanceSetupService
+from src.modules.workspaces.personal_space.service import PersonalSpaceProvisionStatus, PersonalSpaceService
 from src.modules.workspaces.schema import (
+    InstanceSetupStateOut,
     LeaveWorkspaceResult,
+    MyWorkspaceListResult,
     MyWorkspaceMemberPreviewOut,
     MyWorkspaceOut,
+    PersonalSpaceStatus,
+    PersonalSpaceSwitcherOut,
     WorkspaceDetailOut,
+    WorkspaceSwitcherOut,
     WorkspaceUpdateRequest,
 )
 from src.modules.workspaces.slug.service import parse_explicit_workspace_slug
@@ -35,7 +43,7 @@ def _resolve_organization_id(value: object) -> UUID:
     return UUID(str(cast(HasOrganizationId, value).organization_id))
 
 
-def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorkspaceOut]:
+def _build_guest_workspace_list(*, workspaces: list[Workspace], user_id: UUID) -> list[MyWorkspaceOut]:
     """
     Build workspace list for users without any org memberships.
 
@@ -45,6 +53,8 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
 
     out: list[MyWorkspaceOut] = []
     for ws in workspaces:
+        if ws.kind == WorkspaceKind.PERSONAL and UUID(str(ws.owner_user_id)) != user_id:
+            continue
         out.append(
             MyWorkspaceOut(
                 id=ws.id,
@@ -52,6 +62,7 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
                 organization_id=_resolve_organization_id(ws),
                 slug=ws.slug,
                 name=ws.name,
+                kind=ws.kind,
                 icon_url=ws.icon_url,
                 member_count=0,
                 members_preview=[],
@@ -109,6 +120,8 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
             ws_id = UUID(str(ws.id))
             if ws_id in seen_workspace_ids:
                 continue
+            if ws.kind == WorkspaceKind.PERSONAL and UUID(str(ws.owner_user_id)) != UUID(str(args["user_id"])):
+                continue
             seen_workspace_ids.add(ws_id)
 
             is_creator_admin = is_owner and (UUID(str(ws.created_by_user_id)) == UUID(str(args["user_id"])))
@@ -122,6 +135,7 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                     organization_id=org_id,
                     slug=ws.slug,
                     name=ws.name,
+                    kind=ws.kind,
                     icon_url=ws.icon_url,
                     member_count=0,
                     members_preview=[],
@@ -175,8 +189,11 @@ async def _build_workspace_member_meta(
 class WorkspaceService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
+        self.repo = OrganizationWorkspaceRepository()
+        self.personal_space_service = PersonalSpaceService(settings)
+        self.instance_setup_service = InstanceSetupService(settings)
 
-    async def list_my_workspaces(self, *, user_id: UUID) -> list[MyWorkspaceOut]:
+    async def list_my_workspaces(self, *, user_id: UUID) -> MyWorkspaceListResult:
         """
         List workspaces visible to the current user.
 
@@ -202,7 +219,10 @@ class WorkspaceService(BaseService):
         membership_workspaces: list[Workspace] = []
         if membership_workspace_ids:
             membership_workspaces = (
-                await Workspace.filter(id__in=membership_workspace_ids, is_active=True).order_by("created_at").all()
+                await Workspace
+                .filter(id__in=membership_workspace_ids, is_active=True, deleted_at__isnull=True)
+                .order_by("created_at")
+                .all()
             )
 
         if not orgms:
@@ -210,11 +230,15 @@ class WorkspaceService(BaseService):
                 workspaces=membership_workspaces,
                 memberships=memberships,
             )
-            items = _build_guest_workspace_list(workspaces=membership_workspaces)
-            return self._hydrate_workspace_meta(
+            items = _build_guest_workspace_list(workspaces=membership_workspaces, user_id=user_id)
+            items = self._hydrate_workspace_meta(
                 items=items,
                 member_count_by_workspace=member_count_by_workspace,
                 preview_by_workspace=preview_by_workspace,
+            )
+            return await self._build_workspace_list_result(
+                user_id=user_id,
+                items=items,
             )
 
         org_roles, org_order = _collect_org_roles(orgms)
@@ -224,7 +248,10 @@ class WorkspaceService(BaseService):
         owner_workspaces: list[Workspace] = []
         if owner_org_ids:
             owner_workspaces = (
-                await Workspace.filter(organization_id__in=owner_org_ids, is_active=True).order_by("created_at").all()
+                await Workspace
+                .filter(organization_id__in=owner_org_ids, is_active=True, deleted_at__isnull=True)
+                .order_by("created_at")
+                .all()
             )
         owner_workspaces_by_org = _group_workspaces_by_org(owner_workspaces)
         visible_workspaces_by_id = {
@@ -250,14 +277,23 @@ class WorkspaceService(BaseService):
             "owner_workspaces_by_org": owner_workspaces_by_org,
             "user_id": user_id,
         })
-        return self._hydrate_workspace_meta(
+        items = self._hydrate_workspace_meta(
             items=items,
             member_count_by_workspace=member_count_by_workspace,
             preview_by_workspace=preview_by_workspace,
         )
+        return await self._build_workspace_list_result(
+            user_id=user_id,
+            items=items,
+        )
 
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
-        ws = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
+        ws = await Workspace.get_or_none(
+            id=workspace_id,
+            organization_id=organization_id,
+            is_active=True,
+            deleted_at__isnull=True,
+        )
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
         return WorkspaceDetailOut(
@@ -282,6 +318,46 @@ class WorkspaceService(BaseService):
             item.members_preview = preview_by_workspace.get(workspace_id, [])
         return items
 
+    async def _build_workspace_list_result(
+        self,
+        *,
+        user_id: UUID,
+        items: list[MyWorkspaceOut],
+    ) -> MyWorkspaceListResult:
+        legacy_by_org_id = await self._load_legacy_org_flags(
+            organization_ids=[UUID(str(item.organization_id)) for item in items],
+        )
+        for item in items:
+            item.is_legacy = legacy_by_org_id.get(UUID(str(item.organization_id)), False)
+
+        personal_item = next((item for item in items if item.kind == WorkspaceKind.PERSONAL.value), None)
+        team_items = [item for item in items if item.kind != WorkspaceKind.PERSONAL.value]
+        personal_state = await self.personal_space_service.get_state(user_id=user_id)
+        setup_state = await self.instance_setup_service.get_state()
+
+        return MyWorkspaceListResult(
+            items=items,
+            switcher=WorkspaceSwitcherOut(
+                teams=team_items,
+                personal_space=PersonalSpaceSwitcherOut(
+                    status=PersonalSpaceStatus(personal_state.status.value),
+                    workspace=personal_item if personal_state.status == PersonalSpaceProvisionStatus.READY else None,
+                    retry_available=personal_state.retry_available,
+                    last_error=personal_state.last_error,
+                ),
+            ),
+            instance_setup=InstanceSetupStateOut(
+                status=setup_state.status,
+                repair_reason=setup_state.repair_reason,
+            ),
+        )
+
+    async def _load_legacy_org_flags(self, *, organization_ids: list[UUID]) -> dict[UUID, bool]:
+        out: dict[UUID, bool] = {}
+        for organization_id in dict.fromkeys(organization_ids):
+            out[organization_id] = await self.repo.count_active_workspaces(organization_id=organization_id) > 1
+        return out
+
     async def update_workspace(
         self,
         *,
@@ -290,7 +366,12 @@ class WorkspaceService(BaseService):
         payload: WorkspaceUpdateRequest,
         actor_user_id: UUID,
     ) -> WorkspaceDetailOut:
-        ws = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
+        ws = await Workspace.get_or_none(
+            id=workspace_id,
+            organization_id=organization_id,
+            is_active=True,
+            deleted_at__isnull=True,
+        )
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
 
@@ -314,6 +395,11 @@ class WorkspaceService(BaseService):
                     message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_SLUG_RESERVED"
                 )
 
+            if ws.kind == WorkspaceKind.PERSONAL and ws.slug != normalized:
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    error="WORKSPACE_SLUG_IMMUTABLE",
+                )
             if ws.slug != normalized:
                 exists = await Workspace.filter(slug=normalized).exclude(id=ws.id).exists()
                 if exists:
@@ -375,9 +461,19 @@ class WorkspaceService(BaseService):
                 error="WORKSPACE_LEAVE_CONFIRM_TEXT_MISMATCH",
             )
 
-        ws = await Workspace.get_or_none(id=workspace_id, organization_id=organization_id, is_active=True)
+        ws = await Workspace.get_or_none(
+            id=workspace_id,
+            organization_id=organization_id,
+            is_active=True,
+            deleted_at__isnull=True,
+        )
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        if ws.kind == WorkspaceKind.PERSONAL:
+            raise Forbidden(
+                message=t("errors", "PERMISSION_DENIED", default="权限不足"),
+                error="PERSONAL_SPACE_LEAVE_FORBIDDEN",
+            )
 
         membership = await WorkspaceMembership.get_or_none(
             workspace_id=workspace_id,

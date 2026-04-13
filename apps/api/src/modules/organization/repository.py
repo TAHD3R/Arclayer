@@ -4,7 +4,7 @@ from uuid import UUID
 
 from src.common.repositories import BaseRepository
 from src.models.organization.org_membership import OrgMembership, OrgRole
-from src.models.organization.organization import Organization
+from src.models.organization.organization import Organization, OrganizationKind
 
 
 class OrganizationRepository(BaseRepository):
@@ -16,8 +16,24 @@ class OrganizationRepository(BaseRepository):
       "list my orgs" helpers anymore.
     """
 
-    async def create_organization(self, *, slug: str, name: str, logo_url: str | None = None) -> Organization:
-        return await Organization.create(slug=slug, name=name, logo_url=logo_url, is_active=True)
+    async def create_organization(
+        self,
+        *,
+        slug: str,
+        name: str,
+        logo_url: str | None = None,
+        kind: OrganizationKind = OrganizationKind.TEAM,
+        owner_user_id: UUID | None = None,
+    ) -> Organization:
+        return await Organization.create(
+            slug=slug,
+            name=name,
+            kind=kind,
+            owner_user_id=owner_user_id,
+            logo_url=logo_url,
+            is_active=True,
+            deleted_at=None,
+        )
 
     async def ensure_org_membership(
         self,
@@ -27,13 +43,17 @@ class OrganizationRepository(BaseRepository):
         role: OrgRole = OrgRole.MEMBER,
     ) -> OrgMembership:
         orgm, _ = await OrgMembership.get_or_create(
+            organization_id=organization_id,
             user_id=user_id,
             defaults={
-                "organization_id": organization_id,
                 "role": role,
                 "role_code": role.value,
                 "status": "active",
             },
         )
-        # Defensive: if the user already belongs to another org, we do not auto-migrate here.
+        if orgm.status != "active" or orgm.role != role or orgm.role_code != role.value:
+            orgm.status = "active"
+            orgm.role = role
+            orgm.role_code = role.value
+            await orgm.save(update_fields=["status", "role", "role_code", "updated_at"])
         return orgm

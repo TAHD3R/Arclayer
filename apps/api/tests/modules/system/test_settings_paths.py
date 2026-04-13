@@ -14,6 +14,13 @@ def test_application_static_dir_resolves_repo_relative_path() -> None:
     assert "/apps/api/static" not in _norm(settings.static_dir)
 
 
+def test_application_data_dir_resolves_repo_relative_path() -> None:
+    settings = ApplicationSettings(data_dir=Path("data"))
+    assert settings.data_dir.is_absolute()
+    assert _norm(settings.data_dir).endswith("/data")
+    assert "/apps/api/data" not in _norm(settings.data_dir)
+
+
 def test_storage_paths_resolve_repo_relative_path() -> None:
     settings = StorageSettings(local_root_dir=Path("data/uploads"), local_tmp_dir=Path("data/uploads/.tmp"))
     assert settings.local_root_dir.is_absolute()

@@ -15,7 +15,7 @@ from src.core.i18n import t
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
 from src.models.system.rbac import Role
-from src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
+from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembershipRole
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -27,6 +27,7 @@ from src.modules.organization.workspaces.schema import (
 )
 from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.system.rbac.service import RBACService
+from src.modules.workspaces.policy.service import OrgWorkspaceCreationPolicy
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
 from src.modules.workspaces.site.service import WorkspaceSiteService
 from src.modules.workspaces.slug.service import next_available_workspace_slug
@@ -54,6 +55,7 @@ class OrganizationWorkspaceService(BaseService):
         super().__init__(settings)
         self.repo = OrganizationWorkspaceRepository()
         self.site_service = WorkspaceSiteService(settings)
+        self.creation_policy = OrgWorkspaceCreationPolicy(settings)
 
     async def list_workspaces(
         self,
@@ -235,6 +237,8 @@ class OrganizationWorkspaceService(BaseService):
 
         description = str(payload.description or "").strip() or None
 
+        await self.creation_policy.assert_can_create(organization_id=organization_id)
+
         slug = await self._next_available_workspace_slug(base_slug=name)
 
         ws = await self.repo.create_workspace(
@@ -313,6 +317,10 @@ class OrganizationWorkspaceService(BaseService):
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        if workspace.kind == WorkspaceKind.PERSONAL:
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="参数错误"), error="PERSONAL_SPACE_ARCHIVE_FORBIDDEN"
+            )
 
         if workspace.archived_at is None:
             workspace.archived_at = datetime.now(UTC)
@@ -345,6 +353,11 @@ class OrganizationWorkspaceService(BaseService):
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        if workspace.kind == WorkspaceKind.PERSONAL:
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="参数错误"),
+                error="PERSONAL_SPACE_ARCHIVE_FORBIDDEN",
+            )
 
         if workspace.archived_at is not None or workspace.archived_by_user_id is not None:
             mutable_workspace = cast(WorkspaceArchiveMutableFields, workspace)
@@ -379,6 +392,10 @@ class OrganizationWorkspaceService(BaseService):
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND", default="资源不存在"), error="NOT_FOUND")
+        if workspace.kind == WorkspaceKind.PERSONAL:
+            raise BadRequest(
+                message=t("errors", "BAD_REQUEST", default="参数错误"), error="PERSONAL_SPACE_DELETE_FORBIDDEN"
+            )
 
         normalized_confirm_name = str(confirm_name or "").strip()
         if normalized_confirm_name != str(workspace.name):

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import * as authSsoApi from "@/api/auth-sso";
+import * as systemApi from "@/api/system";
 import { useSystemRuntime } from "@/hooks/use-system-runtime";
 import { resolveLoginMode } from "@/lib/auth/auth-mode";
 import type { LoginMode } from "@/lib/auth/auth-mode";
@@ -27,7 +28,15 @@ import {
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
-import type { LoginFormValues, LoginTwoFactorFormValues, RegisterFormValues } from "../types";
+import type {
+  BootstrapFormValues,
+  BootstrapPaneProps,
+  InstanceRepairRequiredPaneProps,
+  LoginFormValues,
+  LoginTwoFactorFormValues,
+  LoginViewProps,
+  RegisterFormValues,
+} from "../types";
 
 const loginRouteApi = getRouteApi("/login/");
 const TWO_FACTOR_REQUIRED_ERROR = "TWO_FACTOR_REQUIRED";
@@ -82,7 +91,12 @@ function isHandledTwoFactorError(error: unknown): error is ApiError {
   return error instanceof ApiError && resolveTwoFactorChallengeMeta(error) !== null;
 }
 
-export function useLoginPage() {
+type LoginPageState =
+  | { entry: "auth"; props: LoginViewProps }
+  | { entry: "bootstrap"; props: BootstrapPaneProps }
+  | { entry: "repair_required"; props: InstanceRepairRequiredPaneProps };
+
+export function useLoginPage(): LoginPageState {
   const applyLogin = useAuthStore((s) => s.applyLogin);
   const keepSession = useAuthStore((s) => s.keepSession);
   const lastWorkspaceId = useWorkspaceStore((s) => s.lastWorkspaceId);
@@ -138,6 +152,16 @@ export function useLoginPage() {
         email: values.email,
         password: values.password,
         confirm_password: values.confirmPassword,
+      }),
+  });
+  const bootstrapMutation = useMutation({
+    mutationFn: async (values: BootstrapFormValues) =>
+      systemApi.bootstrapInstance({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+        confirm_password: values.confirmPassword,
+        ...(values.displayName.trim() ? { display_name: values.displayName.trim() } : {}),
       }),
   });
 
@@ -361,24 +385,60 @@ export function useLoginPage() {
       }
     }
   };
+  const onBootstrapFinish = async (values: BootstrapFormValues) => {
+    try {
+      const tokens = await bootstrapMutation.mutateAsync(values);
+      clearChallenge();
+      applyLogin(tokens, { keepSession: true });
+      void queryClient.cancelQueries();
+      queryClient.clear();
+      notifySuccessText(t("auth:INSTANCE_BOOTSTRAP_SUCCESS"));
+      await navigateAfterAuth();
+    } catch (error) {
+      notifyError(error);
+    }
+  };
 
   const runtimeLoading = !runtimeReady;
 
+  if (runtime.instanceSetupStatus === "uninitialized") {
+    return {
+      entry: "bootstrap",
+      props: {
+        onSubmit: onBootstrapFinish,
+        loading: bootstrapMutation.isPending,
+      },
+    };
+  }
+
+  if (runtime.instanceSetupStatus === "repair_required") {
+    return {
+      entry: "repair_required",
+      props: {
+        repairReason: runtime.instanceSetupRepairReason,
+        onRefresh: () => window.location.reload(),
+      },
+    };
+  }
+
   return {
-    mode: effectiveMode,
-    onModeChange,
-    onLoginSubmit: onLoginFinish,
-    loginLoading: loginMutation.isPending || ssoExchangeMutation.isPending,
-    initialKeepSession: keepSession,
-    redirect: redirectTo,
-    onForgotPasswordSubmit: onForgotPassword,
-    forgotPasswordLoading: forgotPasswordMutation.isPending,
-    onRegisterSubmit: onRegisterFinish,
-    registerLoading: registerMutation.isPending || runtimeLoading,
-    publicRegisterEnabled,
-    challenge: activeChallenge,
-    onLoginTwoFactorSubmit: onLoginTwoFactorFinish,
-    onCancelTwoFactorChallenge,
-    twoFactorLoading: loginTwoFactorMutation.isPending,
+    entry: "auth",
+    props: {
+      mode: effectiveMode,
+      onModeChange,
+      onLoginSubmit: onLoginFinish,
+      loginLoading: loginMutation.isPending || ssoExchangeMutation.isPending,
+      initialKeepSession: keepSession,
+      redirect: redirectTo,
+      onForgotPasswordSubmit: onForgotPassword,
+      forgotPasswordLoading: forgotPasswordMutation.isPending,
+      onRegisterSubmit: onRegisterFinish,
+      registerLoading: registerMutation.isPending || runtimeLoading,
+      publicRegisterEnabled,
+      challenge: activeChallenge,
+      onLoginTwoFactorSubmit: onLoginTwoFactorFinish,
+      onCancelTwoFactorChallenge,
+      twoFactorLoading: loginTwoFactorMutation.isPending,
+    },
   };
 }

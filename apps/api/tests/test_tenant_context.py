@@ -167,6 +167,7 @@ async def test_get_workspace_context_raises_not_found(monkeypatch: pytest.Monkey
 
 
 def test_build_guest_workspace_list_uses_workspace_org_id() -> None:
+    user_id = uuid4()
     workspace_id = uuid4()
     organization_id = uuid4()
 
@@ -176,10 +177,12 @@ def test_build_guest_workspace_list_uses_workspace_org_id() -> None:
         organization_id=organization_id,
         slug="ws",
         name="Workspace",
+        kind="team",
+        owner_user_id=None,
         icon_url=None,
         created_by_user_id=uuid4(),
     )
 
-    out = ws_service._build_guest_workspace_list(workspaces=[ws])  # type: ignore[arg-type]
+    out = ws_service._build_guest_workspace_list(workspaces=[ws], user_id=user_id)  # type: ignore[arg-type]
     assert len(out) == 1
     assert UUID(str(out[0].organization_id)) == organization_id

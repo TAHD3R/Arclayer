@@ -110,6 +110,10 @@ class ApplicationSettings(BaseSettings):
         default=_REPO_ROOT / "static",
         validation_alias=AliasChoices("STATIC_DIR", "APP_STATIC_DIR"),
     )
+    data_dir: Path = Field(
+        default=_REPO_ROOT / "data",
+        validation_alias=AliasChoices("DATA_DIR", "APP_DATA_DIR"),
+    )
     static_url: str = Field(
         default="/static",
         validation_alias=AliasChoices("STATIC_URL", "APP_STATIC_URL"),
@@ -120,9 +124,9 @@ class ApplicationSettings(BaseSettings):
         description="Base URL for the frontend application (used in emails, e.g. reset-password links).",
     )
 
-    @field_validator("static_dir", mode="after")
+    @field_validator("static_dir", "data_dir", mode="after")
     @classmethod
-    def _normalize_static_dir(cls, value: Path) -> Path:
+    def _normalize_application_path(cls, value: Path) -> Path:
         return _normalize_fs_path(value, default_base=_REPO_ROOT)
 
 

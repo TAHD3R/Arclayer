@@ -10,15 +10,36 @@ export type MyWorkspace = {
   organizationId: string;
   slug: string;
   name: string;
+  kind: "team" | "personal";
   iconUrl?: string | null;
   memberCount?: number;
   membersPreview?: MyWorkspaceMemberPreview[];
   visibleOnly: boolean;
   isCreatorAdmin: boolean;
+  isLegacy: boolean;
+};
+
+export type InstanceSetupState = {
+  status: "uninitialized" | "ready" | "repair_required";
+  repairReason: string | null;
+};
+
+export type PersonalSpaceSwitcher = {
+  status: "pending" | "ready" | "failed";
+  workspace: MyWorkspace | null;
+  retryAvailable: boolean;
+  lastError: string | null;
+};
+
+export type WorkspaceSwitcher = {
+  teams: MyWorkspace[];
+  personalSpace: PersonalSpaceSwitcher;
 };
 
 export type MyWorkspaceListResult = {
   items: MyWorkspace[];
+  switcher: WorkspaceSwitcher;
+  instanceSetup: InstanceSetupState;
 };
 
 export type AuthzSnapshot = {
