@@ -119,7 +119,7 @@ For Antd popups rendered inside dialog-like overlays:
 
 ## 9. Typography and Token Discipline
 
-- Shared visual tokens belong to `packages/ui/tokens`.
+- Shared visual tokens belong to `packages/ui`.
 - New authored UI should use semantic typography classes such as `text-body`, `text-footnote`, and `text-caption`.
 - Prefer semantic text colors such as `text-label-secondary`; do not add new `text-muted-foreground` usage.
 - Do not bypass the token system with app-local one-off typography or color scales unless the deviation is intentional and justified.

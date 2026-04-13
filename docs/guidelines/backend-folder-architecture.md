@@ -18,7 +18,7 @@ It is normative: new backend code should follow these placement and dependency r
 | Domain modules | `src/modules/**` | product capabilities, router/service/repository/schema implementation | framework bootstrap and generic infrastructure |
 | Persistence models | `src/models/**` | Tortoise models and DB table metadata | request parsing, HTTP routing, business orchestration |
 | Core runtime | `src/core/**` | app factory, middleware, exception handling, HTTP protocol contracts, runtime initialization | product-specific business rules |
-| Infrastructure | `src/infra/**` | cache, storage, jobs, limiter, external adapters | product policy and endpoint logic |
+| Infrastructure | `src/platform/**` | cache, storage, jobs, limiter, external adapters | product policy and endpoint logic |
 | Shared primitives | `src/common/**` | reusable types, base classes, protocols, helpers, shared constants | feature-specific workflows |
 | Runtime settings | `src/settings/**` | settings schema, validation, crypto helpers, runtime scope semantics | domain routing and business orchestration |
 | Migrations | `src/migrations/**` | schema transitions for live databases | runtime business logic |
@@ -79,7 +79,7 @@ When docs or skills need an example module, prefer `analytics` unless the exampl
 | `src/modules/**/service.py` | same-module `repository/schema`, `common/**`, targeted `core/**` helpers when truly cross-cutting |
 | `src/modules/**/repository.py` | `src/models/**`, targeted `infra/**`, reusable `common/**` helpers |
 | `src/core/**` | `src/modules/**` only for app/runtime wiring, plus `infra/**`, `settings/**`, `common/**` |
-| `src/infra/**` | `common/**`, external drivers, low-level adapters |
+| `src/platform/**` | `common/**`, external drivers, low-level adapters |
 
 Hard prohibitions:
 

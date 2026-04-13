@@ -10,7 +10,8 @@
     "uv": "uv run",
     "lock": "uv lock",
     "install": "uv sync",
-    "dev": "uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev": "pnpm openapi:sync && uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000",
+    "openapi:sync": "uv run python -m scripts.sync_openapi_sdk",
     "openapi:export": "uv run python -m scripts.export_openapi",
     "lint": "uv run ruff check . --fix",
     "format": "uv run ruff format .",
@@ -20,7 +21,7 @@
     "test:quick": "uv run pytest -c pyproject.toml -q tests/test_tenant_context.py tests/modules/assets/test_org_assets_router_unit.py tests/modules/auth/test_auth_me_avatar_binding_align_unit.py --no-cov",
     "db:migrate": "uv run python -m tortoise -c src.core.database.orm.TORTOISE_ORM makemigrations",
     "db:upgrade": "uv run python -m tortoise -c src.core.database.orm.TORTOISE_ORM upgrade",
-    "jobs:worker": "uv run taskiq worker src.infra.jobs.taskiq_app:broker src.infra.jobs.tasks",
-    "jobs:scheduler": "uv run taskiq scheduler src.infra.jobs.taskiq_app:scheduler src.infra.jobs.tasks"
+    "jobs:worker": "uv run taskiq worker src.platform.jobs.taskiq_app:broker src.platform.jobs.tasks",
+    "jobs:scheduler": "uv run taskiq scheduler src.platform.jobs.taskiq_app:scheduler src.platform.jobs.tasks"
   }
 }

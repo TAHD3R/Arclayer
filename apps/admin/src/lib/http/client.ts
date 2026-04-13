@@ -2,7 +2,7 @@ import {
   createApiClient,
   type ApiRequestOptions,
   type UnauthorizedHandler,
-} from "@arclayer/runtime/http";
+} from "@arclayer/web/http";
 
 import { getAppConfig } from "@/lib/config/app-config";
 import { getLocaleHeaders, getRequestCredentials } from "@/lib/http/request-context";

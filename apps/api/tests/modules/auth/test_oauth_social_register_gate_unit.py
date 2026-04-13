@@ -11,9 +11,9 @@ from fastapi import FastAPI
 from starlette.requests import Request
 
 from src.config import get_settings
-from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.oauth.social.schema import OAuthStatePayload
 from src.modules.auth.oauth.social.service import OAuthSocialService
+from src.platform.cache.valkey import ValkeyClientLike
 
 
 class _FakeValkey(ValkeyClientLike):

@@ -9,7 +9,7 @@ import { SelectedCountTag } from "@/components/ui/tags";
 import { BaseTag } from "@/components/ui/tags/tag-base";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../../..");
-const TOKENS_CSS_PATH = path.join(REPO_ROOT, "packages/ui/tokens/src/tokens.css");
+const TOKENS_CSS_PATH = path.join(REPO_ROOT, "packages/ui/src/tokens.css");
 
 describe("semantic typography contract", () => {
   it("uses the updated small-text scale in tokens", async () => {

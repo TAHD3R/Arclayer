@@ -17,7 +17,7 @@ This guideline applies to:
 - backend endpoint definitions in `apps/api/src/modules/**/router.py`
 - backend request/response schemas in `apps/api/src/modules/**/schema.py`
 - shared backend HTTP primitives in `apps/api/src/core/http/*`
-- frontend consumers in `apps/admin/src/api/**`, `apps/portal/src/**`, and `packages/api-client/**`
+- frontend consumers in `apps/admin/src/api/**`, `apps/portal/src/**`, and `packages/openapi/**`
 
 ## 3. Endpoint Contract Rules
 

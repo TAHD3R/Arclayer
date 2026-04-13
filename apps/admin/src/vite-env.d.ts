@@ -13,7 +13,7 @@ interface ImportMeta {
 }
 
 declare module "virtual:arclayer-app-config" {
-  import type { AppConfig } from "@arclayer/runtime/config";
+  import type { AppConfig } from "@arclayer/web/config";
 
   export const appConfig: AppConfig;
   export default appConfig;

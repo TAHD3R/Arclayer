@@ -21,7 +21,6 @@ from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden
 from src.core.i18n import t
-from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.oauth.social.repository import OAuthSocialRepository
 from src.modules.auth.oauth.social.schema import (
     GitHubEmailItem,
@@ -33,6 +32,7 @@ from src.modules.auth.oauth.social.schema import (
 )
 from src.modules.auth.sso.repository import issue_exchange_code
 from src.modules.auth.sso.schema import AuthSSOExchangePayload
+from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.runtime import get_core_settings_value_cached
 
 _FATAL_OAUTH_ERRORS: tuple[type[BaseException], ...] = (

@@ -2,7 +2,7 @@ import { FilmIcon } from "lucide-react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { Toolbar, ToolbarButton } from "../../../../../packages/ui/shadcn/src/editor/ui/toolbar";
+import { Toolbar, ToolbarButton } from "../../../../../packages/ui/src/editor/ui/toolbar";
 
 describe("ToolbarButton", () => {
   it("keeps icon-only dropdown indicators inside the trigger layout", () => {

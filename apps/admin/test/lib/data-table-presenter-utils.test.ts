@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveCellPinStyle,
   resolveHeaderPinStyle,
-} from "../../../../packages/ui/shadcn/src/data-table/data-table-presenter-utils";
+} from "../../../../packages/ui/src/data-table/data-table-presenter-utils";
 
 function buildPinnedColumn(size: number) {
   return {

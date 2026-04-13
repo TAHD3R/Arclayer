@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.infra.storage.s3 import S3GetObject, S3HeadObject
-from src.infra.storage.s3_stream import stream_s3_object
+from src.platform.storage.s3 import S3GetObject, S3HeadObject
+from src.platform.storage.s3_stream import stream_s3_object
 
 
 class _FakeBody:

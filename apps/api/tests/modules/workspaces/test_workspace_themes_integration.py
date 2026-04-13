@@ -13,7 +13,6 @@ from src.common.utils.public_ids import encode_uuid
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
-from src.infra.storage.local import safe_object_key_to_path
 from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
@@ -23,6 +22,7 @@ from src.modules.assets.naming.service import build_asset_object_key
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
+from src.platform.storage.local import safe_object_key_to_path
 
 pytestmark = pytest.mark.integration
 

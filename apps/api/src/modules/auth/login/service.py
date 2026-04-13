@@ -7,12 +7,12 @@ from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized
 from src.core.i18n import t
-from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.service import AuthService
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.tokens.service import verify_password
 from src.modules.auth.two_factor.challenge_store import TwoFactorChallengeStore
+from src.platform.cache.valkey import ValkeyClientLike
 
 
 class TwoFactorLoginLike(Protocol):

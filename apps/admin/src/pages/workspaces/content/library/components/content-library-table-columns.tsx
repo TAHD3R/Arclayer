@@ -24,14 +24,15 @@ import {
 
 function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
   const showAddress = contentHasAddress(props.row);
-  const RoleIcon = getContentLibraryRoleIcon(props.row.role);
-  const roleLabelKey = getContentLibraryRoleLabelKey(props.row.role);
   const { t } = useTranslation("content");
+  const role = props.row.role;
+  const RoleIcon = role ? getContentLibraryRoleIcon(role) : null;
+  const roleLabelKey = role ? getContentLibraryRoleLabelKey(role) : null;
   const summary = props.row.summary?.trim();
   const fallbackSummary =
-    props.row.role === "article"
+    role === "article"
       ? t("CONTENT_LIBRARY_ROW_SUMMARY_EMPTY_ARTICLE")
-      : props.row.role === "page"
+      : role === "page"
         ? t("CONTENT_LIBRARY_ROW_SUMMARY_EMPTY_PAGE")
         : null;
   const summaryText = summary || fallbackSummary;
@@ -40,13 +41,15 @@ function ContentLibraryNameCell(props: { row: ContentLibraryTableRow }) {
     <div className="min-w-0">
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
-          <span
-            className="inline-flex shrink-0 text-label-secondary"
-            title={t(roleLabelKey)}
-            aria-label={t(roleLabelKey)}
-          >
-            <RoleIcon className="size-4" />
-          </span>
+          {RoleIcon && roleLabelKey ? (
+            <span
+              className="inline-flex shrink-0 text-label-secondary"
+              title={t(roleLabelKey)}
+              aria-label={t(roleLabelKey)}
+            >
+              <RoleIcon className="size-4" />
+            </span>
+          ) : null}
           <OverflowTooltipText className="min-w-0 flex-1 truncate text-headline text-label-primary">
             {props.row.name}
           </OverflowTooltipText>

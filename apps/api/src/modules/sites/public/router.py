@@ -10,9 +10,9 @@ from fastapi import Response as FastAPIResponse
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
-from src.infra.cache.valkey import get_valkey
 from src.modules.sites.schema import SiteResolveOut
 from src.modules.sites.service import SiteService
+from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(prefix="/sites", tags=["external.sites"])
 

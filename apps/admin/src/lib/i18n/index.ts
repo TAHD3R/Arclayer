@@ -8,7 +8,7 @@ import {
   SUPPORTED_LOCALES,
   detectBrowserLocale,
   normalizeLocale,
-} from "@arclayer/runtime/i18n";
+} from "@arclayer/web/i18n";
 
 export type { AppLocale } from "@/lib/i18n/resources";
 export { DEFAULT_LOCALE, SUPPORTED_LOCALES, detectBrowserLocale, normalizeLocale };

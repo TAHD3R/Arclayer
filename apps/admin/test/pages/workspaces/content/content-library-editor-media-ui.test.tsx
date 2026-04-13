@@ -232,13 +232,13 @@ vi.mock("@arclayer/lib/utils", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
 }));
 
-import { MediaUploadProvider } from "../../../../../../packages/ui/shadcn/src/editor/media-upload-context";
-import { ArticleEditorCommandProvider } from "../../../../../../packages/ui/shadcn/src/editor/article-editor-command-context";
-import { EquationElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/equation-node";
-import { MediaCaption } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-caption";
-import { MediaPlaceholderElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-placeholder-node";
-import { MediaToolbar } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-toolbar";
-import { VideoElement } from "../../../../../../packages/ui/shadcn/src/editor/ui/media-video-node";
+import { MediaUploadProvider } from "../../../../../../packages/ui/src/editor/media-upload-context";
+import { ArticleEditorCommandProvider } from "../../../../../../packages/ui/src/editor/article-editor-command-context";
+import { EquationElement } from "../../../../../../packages/ui/src/editor/ui/equation-node";
+import { MediaCaption } from "../../../../../../packages/ui/src/editor/ui/media-caption";
+import { MediaPlaceholderElement } from "../../../../../../packages/ui/src/editor/ui/media-placeholder-node";
+import { MediaToolbar } from "../../../../../../packages/ui/src/editor/ui/media-toolbar";
+import { VideoElement } from "../../../../../../packages/ui/src/editor/ui/media-video-node";
 
 const MediaPlaceholderElementAny = MediaPlaceholderElement as React.ComponentType<any>;
 const EquationElementAny = EquationElement as React.ComponentType<any>;

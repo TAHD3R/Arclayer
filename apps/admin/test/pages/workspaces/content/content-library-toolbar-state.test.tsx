@@ -234,37 +234,37 @@ vi.mock("@arclayer/ui/tooltip", () => ({
   TooltipTrigger: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/transforms", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/transforms", () => ({
   captureEditorSelection: () => ({ anchor: [0], focus: [0] }),
   runEditorTransformPreservingSelection: (_editor: unknown, fn: () => void, _options: unknown) =>
     fn(),
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/font-color-toolbar-button", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/font-color-toolbar-button", () => ({
   FontColorToolbarButton: () => null,
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/equation-toolbar-button", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/equation-toolbar-button", () => ({
   InlineEquationToolbarButton: () => null,
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/link-toolbar-button", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/link-toolbar-button", () => ({
   LinkToolbarButton: () => null,
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/more-toolbar-button", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/more-toolbar-button", () => ({
   MoreToolbarButton: () => null,
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/turn-into-toolbar-button", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/turn-into-toolbar-button", () => ({
   TurnIntoToolbarButton: () => null,
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/ui/mark-toolbar-button", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/ui/mark-toolbar-button", () => ({
   MarkToolbarButton: () => null,
 }));
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/ui/toolbar", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/ui/toolbar", () => ({
   Toolbar: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   ToolbarButton: ({
     children,
@@ -290,9 +290,9 @@ vi.mock("../../../../../../packages/ui/shadcn/src/editor/ui/toolbar", () => ({
   ToolbarTooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
-import { AlignToolbarButton } from "../../../../../../packages/ui/shadcn/src/editor/align-toolbar-button";
-import { LineHeightToolbarButton } from "../../../../../../packages/ui/shadcn/src/editor/line-height-toolbar-button";
-import { PlateFloatingToolbar } from "../../../../../../packages/ui/shadcn/src/editor/plugins/floating-toolbar-kit";
+import { AlignToolbarButton } from "../../../../../../packages/ui/src/editor/align-toolbar-button";
+import { LineHeightToolbarButton } from "../../../../../../packages/ui/src/editor/line-height-toolbar-button";
+import { PlateFloatingToolbar } from "../../../../../../packages/ui/src/editor/plugins/floating-toolbar-kit";
 
 describe("content-library-toolbar-state", () => {
   beforeEach(() => {

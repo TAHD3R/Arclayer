@@ -11,10 +11,10 @@ from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, ServiceUnavailable
 from src.core.i18n import t
-from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.sso.repository import consume_exchange_payload
+from src.platform.cache.valkey import ValkeyClientLike
 from src.settings.runtime import get_core_settings_value_cached
 
 _FATAL_SSO_ERRORS: tuple[type[BaseException], ...] = (

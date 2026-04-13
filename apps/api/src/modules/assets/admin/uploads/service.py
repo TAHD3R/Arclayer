@@ -22,10 +22,6 @@ from src.core.events import Event, events
 from src.core.exceptions import BadRequest, NotFound
 from src.core.i18n import t
 from src.core.logging import get_logger
-from src.infra.storage.factory import build_storage_provider_for
-from src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
-from src.infra.storage.merge import merge_parts_to_file
-from src.infra.storage.s3 import S3StorageProvider
 from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
 from src.models.assets.asset_folder import AssetFolderRecord
 from src.models.assets.upload import UploadSessionRecord, UploadStatus
@@ -43,6 +39,10 @@ from src.modules.assets.naming.service import (
     compute_total_parts,
 )
 from src.modules.assets.scope import AssetScope, scope_filter_kwargs
+from src.platform.storage.factory import build_storage_provider_for
+from src.platform.storage.local import LocalStorageProvider, safe_object_key_to_path
+from src.platform.storage.merge import merge_parts_to_file
+from src.platform.storage.s3 import S3StorageProvider
 from src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)

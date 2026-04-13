@@ -12,10 +12,6 @@ from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.file_stream import stream_file_response
 from src.core.http.pagination import PageData, PageParams, paginate_queryset
 from src.core.i18n import t
-from src.infra.storage.factory import build_storage_provider_for
-from src.infra.storage.local import safe_object_key_to_path
-from src.infra.storage.s3 import S3StorageProvider
-from src.infra.storage.s3_stream import stream_s3_object
 from src.models.assets.asset import AssetRecord
 from src.models.organization.user import User
 from src.modules.assets.admin.assets.repository import AdminAssetsRepository
@@ -42,6 +38,10 @@ from src.modules.assets.admin.assets.schema import (
 )
 from src.modules.assets.admin.uploads.policy.service import normalize_original_filename
 from src.modules.assets.scope import AssetScope
+from src.platform.storage.factory import build_storage_provider_for
+from src.platform.storage.local import safe_object_key_to_path
+from src.platform.storage.s3 import S3StorageProvider
+from src.platform.storage.s3_stream import stream_s3_object
 from src.settings.runtime import get_effective_settings
 
 

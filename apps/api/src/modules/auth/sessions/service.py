@@ -7,11 +7,11 @@ from src.common.services import BaseService
 from src.config import Settings
 from src.core.exceptions import BadRequest, NotFound, ServiceUnavailable
 from src.core.i18n import t
-from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.repository import RefreshTokenStore
 from src.modules.auth.sessions.device_label import build_device_label
 from src.modules.auth.sessions.location_lookup import AuthSessionLocationLookup
 from src.modules.auth.sessions.schema import AuthSessionListOut, AuthSessionOut
+from src.platform.cache.valkey import ValkeyClientLike
 
 
 def _parse_ts(raw: object | None) -> datetime | None:

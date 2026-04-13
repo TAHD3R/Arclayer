@@ -38,7 +38,7 @@ import enRbac from "@locales/en-US/rbac.json";
 import enSys from "@locales/en-US/sys.json";
 import enContent from "@locales/en-US/content.json";
 
-import type { AppLocale } from "@arclayer/runtime/i18n";
+import type { AppLocale } from "@arclayer/web/i18n";
 
 export const I18N_NAMESPACES = [
   "common",

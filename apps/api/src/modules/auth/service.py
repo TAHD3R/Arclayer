@@ -25,7 +25,6 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable, Unauthorized
 from src.core.http.pagination import PageData, PageParams
 from src.core.i18n import t
-from src.infra.cache.valkey import ValkeyClientLike
 from src.models.organization.org_membership import OrgMembership
 from src.models.organization.user import User
 from src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
@@ -54,6 +53,7 @@ from src.modules.auth.tokens.service import (
     hash_password,
     verify_password,
 )
+from src.platform.cache.valkey import ValkeyClientLike
 
 _FATAL_AUTH_EVENT_ERRORS: tuple[type[BaseException], ...] = (
     asyncio.CancelledError,

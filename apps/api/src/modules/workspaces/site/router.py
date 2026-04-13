@@ -7,7 +7,6 @@ from fastapi import APIRouter, Body, Depends, Request, status
 
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
-from src.infra.cache.valkey import get_valkey
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.sites.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from src.modules.sites.service import SiteService
@@ -16,6 +15,7 @@ from src.modules.workspaces.http.schema import WorkspaceContext
 from src.modules.workspaces.http.service import require_workspace_manage_access
 from src.modules.workspaces.site.schema import WorkspaceSiteOut
 from src.modules.workspaces.site.service import WorkspaceSiteService
+from src.platform.cache.valkey import get_valkey
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/site",

@@ -12,11 +12,11 @@ from src.core.exceptions import NotFound
 from src.core.http.content_disposition import build_attachment_content_disposition
 from src.core.http.file_stream import stream_file_response
 from src.core.logging import get_logger
-from src.infra.storage.factory import build_storage_provider_for
-from src.infra.storage.local import safe_object_key_to_path
-from src.infra.storage.s3 import S3StorageProvider
 from src.modules.assets.repository import AssetsRepository
 from src.modules.assets.schema import AssetPublicView
+from src.platform.storage.factory import build_storage_provider_for
+from src.platform.storage.local import safe_object_key_to_path
+from src.platform.storage.s3 import S3StorageProvider
 from src.settings.runtime import get_effective_settings
 
 logger = get_logger(__name__)

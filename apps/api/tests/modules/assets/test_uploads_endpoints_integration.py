@@ -132,8 +132,8 @@ async def test_uploads_resumable_flow(prepared_db, tmp_path: Path, monkeypatch) 
         assert asset.owner_user_id == user.id
 
         # Verify file content on disk (local provider).
-        from src.infra.storage.local import safe_object_key_to_path
         from src.modules.assets.naming.service import build_asset_object_key
+        from src.platform.storage.local import safe_object_key_to_path
 
         key = build_asset_object_key(workspace_id=ws.id, asset_id=asset_uuid, ext="png")
         out_path = safe_object_key_to_path(root, key)

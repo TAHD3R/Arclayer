@@ -1,4 +1,4 @@
-import { SUPPORTED_LOCALES, type AppLocale } from "@arclayer/runtime/i18n";
+import { SUPPORTED_LOCALES, type AppLocale } from "@arclayer/web/i18n";
 
 type TranslateFn = (key: string) => string;
 

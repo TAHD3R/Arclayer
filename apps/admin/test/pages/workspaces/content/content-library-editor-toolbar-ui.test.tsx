@@ -257,14 +257,14 @@ vi.mock(
   }),
 );
 
-vi.mock("../../../../../../packages/ui/shadcn/src/editor/transforms", () => ({
+vi.mock("../../../../../../packages/ui/src/editor/transforms", () => ({
   captureEditorSelection: () => ({ anchor: [0], focus: [0] }),
   runEditorTransformPreservingSelection: (_editor: unknown, fn: () => void, _options: unknown) =>
     fn(),
 }));
 
 import { ContentLibraryArticleEditorPageToolbar } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-page-toolbar";
-import { FontColorToolbarButton } from "../../../../../../packages/ui/shadcn/src/editor/font-color-toolbar-button";
+import { FontColorToolbarButton } from "../../../../../../packages/ui/src/editor/font-color-toolbar-button";
 
 describe("content-library-editor-toolbar-ui", () => {
   beforeEach(() => {

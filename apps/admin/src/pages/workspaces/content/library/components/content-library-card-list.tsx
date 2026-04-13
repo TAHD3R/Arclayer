@@ -69,8 +69,8 @@ export function ContentLibraryCardList(props: ContentLibraryCardListProps) {
             <div className="min-w-0 flex-1">
               <div className="text-headline text-label-primary">{row.name}</div>
               <div className="mt-1 flex flex-wrap gap-2">
-                <ContentLibraryRoleTag role={row.role} />
-                <ContentLibraryEditWithTag editWith={row.editWith} />
+                {row.role ? <ContentLibraryRoleTag role={row.role} /> : null}
+                {row.editWith ? <ContentLibraryEditWithTag editWith={row.editWith} /> : null}
                 <BaseTag>
                   {getContentTypeLabel({
                     modelKey: row.modelKey,

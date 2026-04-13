@@ -29,11 +29,7 @@ from src.models.content.route_binding import RouteBindingRecord
 from src.modules.workspaces.content.contracts import schema as contracts_schema
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
-MIGRATION_0011 = REPO_ROOT / "apps/api/src/migrations/0011_content_kernel_initial.py"
-MIGRATION_0013 = REPO_ROOT / "apps/api/src/migrations/0013_content_platform_rebuild.py"
-MIGRATION_0014 = REPO_ROOT / "apps/api/src/migrations/0014_drop_legacy_content_models.py"
-MIGRATION_0015 = REPO_ROOT / "apps/api/src/migrations/0015_content_bootstrap_shape.py"
-MIGRATION_0016 = REPO_ROOT / "apps/api/src/migrations/0016_content_continuation_truth.py"
+MIGRATION_BASELINE = REPO_ROOT / "apps/api/src/migrations/0001_initial.py"
 SEO_PROFILE_MODEL = REPO_ROOT / "apps/api/src/models/content/seo_profile.py"
 COMPONENT_BINDING_MODEL = REPO_ROOT / "apps/api/src/models/content/component_binding.py"
 PUBLISH_ARTIFACT_MODEL = REPO_ROOT / "apps/api/src/models/content/publish_artifact.py"
@@ -172,8 +168,8 @@ def test_route_binding_and_hierarchy_are_different_persistence_records() -> None
     route_fields = _field_names(RouteBindingRecord)
     hierarchy_fields = _field_names(HierarchyNodeRecord)
 
-    assert getattr(RouteBindingRecord.Meta, "table", None) == "content_route_bindings"
-    assert getattr(HierarchyNodeRecord.Meta, "table", None) == "content_hierarchy_nodes"
+    assert getattr(RouteBindingRecord.Meta, "table", None) == "domain_content_route_bindings"
+    assert getattr(HierarchyNodeRecord.Meta, "table", None) == "domain_content_hierarchy_nodes"
 
     assert "path" in route_fields
     assert "path" not in hierarchy_fields
@@ -202,84 +198,38 @@ def test_rebuild_kernel_requires_first_class_seo_component_binding_and_publish_a
     assert PUBLISH_ARTIFACT_MODEL.exists()
 
 
-def test_migration_0011_matches_kernel_constraints() -> None:
-    migration = MIGRATION_0011.read_text(encoding="utf-8")
+def test_migration_baseline_matches_content_kernel_constraints() -> None:
+    migration = MIGRATION_BASELINE.read_text(encoding="utf-8")
 
-    assert '"target_model_key"' in migration
-    assert '"category"' in migration
-    assert '"default_editor"' in migration
-    assert '"presentation_policy"' in migration
-    assert '"seo_policy"' in migration
-    assert "fields.CharEnumField(ContentModelFieldType" in migration
-    assert "fields.CharEnumField(ContentModelRelationType" in migration
-    assert "fields.CharEnumField(ContentModelViewType" in migration
-    assert "fields.CharEnumField(ContentItemStatus" in migration
-    assert "fields.CharEnumField(ContentItemVisibility" in migration
-    assert "fields.CharEnumField(ContentVersionState" in migration
-    assert "fields.CharEnumField(ContentPresentationKind" in migration
-    assert '"last_transition_by_user_id"' in migration
-    assert '"unique_together": (("model_definition_id", "locale", "slug"),)' in migration
-    assert '"field_values"' not in migration
-    assert '"unique_together": (("site_id", "item_id"),)' not in migration
-    assert 'name="ck_content_model_fields_field_type"' in migration
-    assert 'name="ck_content_model_relations_relation_type"' in migration
-    assert 'name="ck_content_model_views_view_type"' in migration
-    assert 'name="ck_content_items_status"' in migration
-    assert 'name="ck_content_items_visibility"' in migration
-    assert 'name="ck_content_versions_state"' in migration
-    assert 'name="ck_content_presentation_documents_kind"' in migration
+    assert "'target_model_key'" in migration
+    assert "'category'" in migration
+    assert "'default_editor'" in migration
+    assert "'presentation_policy'" in migration
+    assert "'seo_policy'" in migration
+    assert "'bootstrap_preset_key'" in migration
+    assert "'bootstrap_preset_state'" in migration
+    assert "'capability_pack_ids'" in migration
+    assert "'shape_state'" in migration
+    assert "'last_transition_by_user_id'" in migration
+    assert "'unique_together': (('model_definition_id', 'locale', 'slug'),)" in migration
+    assert "'field_values'" not in migration
 
-    hierarchy_node_section = migration.split('name="HierarchyNodeRecord"', maxsplit=1)[1]
-    hierarchy_node_section = hierarchy_node_section.split('name="PublishedGraphRecord"', maxsplit=1)[0]
-    assert '"unique_together"' not in hierarchy_node_section
+    hierarchy_node_section = migration.split("name='HierarchyNodeRecord'", maxsplit=1)[1]
+    hierarchy_node_section = hierarchy_node_section.split("name='PresentationDocumentRecord'", maxsplit=1)[0]
+    assert "'unique_together'" not in hierarchy_node_section
 
 
-def test_migration_0014_removes_direct_relations_before_deleting_legacy_models() -> None:
-    migration = MIGRATION_0014.read_text(encoding="utf-8")
-
-    assert 'RemoveField(model_name="RouteTemplateRecord", name="site")' in migration
-    assert 'RemoveField(model_name="RouteTemplateRecord", name="entry_type")' in migration
-    assert 'RemoveField(model_name="RouteTemplateRecord", name="template_page_revision")' in migration
-    assert migration.index('RemoveField(model_name="RouteTemplateRecord", name="site")') < migration.index(
-        'DeleteModel(name="RouteTemplateRecord")'
-    )
-
-    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="workspace")' in migration
-    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="site")' in migration
-    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="entry")' in migration
-    assert 'RemoveField(model_name="ContentTreeNodeRecord", name="parent_entry")' in migration
-    assert migration.index('RemoveField(model_name="ContentTreeNodeRecord", name="workspace")') < migration.index(
-        'DeleteModel(name="ContentTreeNodeRecord")'
-    )
+def test_migration_baseline_includes_rebuild_kernel_records() -> None:
+    migration = MIGRATION_BASELINE.read_text(encoding="utf-8")
+    assert "name='SEOProfileRecord'" in migration
+    assert "name='ComponentBindingRecord'" in migration
+    assert "name='PublishArtifactRecord'" in migration
 
 
-def test_migration_0016_backfills_shape_state_before_enforcing_not_null() -> None:
-    migration = MIGRATION_0016.read_text(encoding="utf-8")
-
-    assert 'name="shape_state"' in migration
+def test_migration_baseline_includes_content_bootstrap_shape_storage() -> None:
+    migration = MIGRATION_BASELINE.read_text(encoding="utf-8")
+    assert "'model_definition'" in migration
     assert "null=True" in migration
-    assert "UPDATE content_items" in migration
-    assert "SET shape_state = 'unshaped'" in migration
-    assert "ops.AlterField(" in migration
-    assert migration.index("SET shape_state = 'unshaped'") < migration.rindex("ops.AlterField(")
-
-
-def test_migration_0013_adds_rebuild_kernel_records() -> None:
-    assert MIGRATION_0013.exists()
-
-    migration = MIGRATION_0013.read_text(encoding="utf-8")
-    assert 'name="SEOProfileRecord"' in migration
-    assert 'name="ComponentBindingRecord"' in migration
-    assert 'name="PublishArtifactRecord"' in migration
-
-
-def test_migration_0015_adds_content_bootstrap_shape_storage() -> None:
-    assert MIGRATION_0015.exists()
-
-    migration = MIGRATION_0015.read_text(encoding="utf-8")
-    assert 'name="model_definition"' in migration
-    assert "null=True" in migration
-    assert 'name="bootstrap_preset_key"' in migration
-    assert 'name="bootstrap_preset_state"' in migration
-    assert 'name="capability_pack_ids"' in migration
-    assert "content_model_definitions AS models" in migration
+    assert "'bootstrap_preset_key'" in migration
+    assert "'bootstrap_preset_state'" in migration
+    assert "'capability_pack_ids'" in migration

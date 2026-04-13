@@ -23,7 +23,7 @@
     "./use-scene-reveal-transition": "./src/use-scene-reveal-transition.ts"
   },
   "dependencies": {
-    "motion": "^12.29.0"
+    "motion": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:",

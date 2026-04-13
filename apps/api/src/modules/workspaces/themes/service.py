@@ -16,9 +16,6 @@ from src.config import Settings
 from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.content_disposition import build_attachment_content_disposition
 from src.core.http.file_stream import stream_file_response
-from src.infra.storage.factory import build_storage_provider, build_storage_provider_for
-from src.infra.storage.local import LocalStorageProvider, safe_object_key_to_path
-from src.infra.storage.s3 import S3StorageProvider
 from src.models.assets.asset import AssetPurpose, AssetRecord, AssetVisibility
 from src.models.system.setting import SettingRecord
 from src.modules.assets.naming.service import build_asset_object_key
@@ -28,6 +25,9 @@ from src.modules.workspaces.themes.schema import (
     ThemeVariantPayloadIn,
     WorkspaceThemeOut,
 )
+from src.platform.storage.factory import build_storage_provider, build_storage_provider_for
+from src.platform.storage.local import LocalStorageProvider, safe_object_key_to_path
+from src.platform.storage.s3 import S3StorageProvider
 from src.settings.runtime import get_effective_settings
 from src.settings.scopes import SCOPE_TYPE_SITE
 

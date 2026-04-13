@@ -7,8 +7,8 @@ from typing import Any, cast
 
 from pydantic import ValidationError
 
-from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.sso.schema import AuthSSOExchangePayload
+from src.platform.cache.valkey import ValkeyClientLike
 
 SSO_EXCHANGE_TTL_SECONDS = 60
 _EXCHANGE_KEY_PREFIX = "auth:sso:exchange"

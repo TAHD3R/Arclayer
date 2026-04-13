@@ -13,46 +13,46 @@ import {
   ARTICLE_EDITOR_INSERT_TOGGLE,
   filterArticleEditorInsertGroups,
   getArticleEditorInsertGroups,
-} from "../../../../../../packages/ui/shadcn/src/editor/article-editor-insert-groups";
+} from "../../../../../../packages/ui/src/editor/article-editor-insert-groups";
 import {
   insertArticleEditorTable,
   insertHorizontalRule,
   insertToggleBlock,
-} from "../../../../../../packages/ui/shadcn/src/editor/article-editor-insert-items";
+} from "../../../../../../packages/ui/src/editor/article-editor-insert-items";
 import {
   isEditorDocumentHydrated,
   shouldApplyExternalDocumentSync,
 } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-document-sync";
-import { resolveLineHeightOptions } from "../../../../../../packages/ui/shadcn/src/editor/line-height-toolbar-button";
+import { resolveLineHeightOptions } from "../../../../../../packages/ui/src/editor/line-height-toolbar-button";
 import {
   hasSlashInputChild,
   shouldShowParagraphPlaceholder,
-} from "../../../../../../packages/ui/shadcn/src/editor/ui/paragraph-placeholder";
-import { buildSlashCommandGroups } from "../../../../../../packages/ui/shadcn/src/editor/ui/slash-node";
+} from "../../../../../../packages/ui/src/editor/ui/paragraph-placeholder";
+import { buildSlashCommandGroups } from "../../../../../../packages/ui/src/editor/ui/slash-node";
 import {
   captureEditorSelection,
   restoreEditorSelection,
-} from "../../../../../../packages/ui/shadcn/src/editor/transforms";
-import { toggleToolbarMark } from "../../../../../../packages/ui/shadcn/src/editor/mark-toolbar-utils";
+} from "../../../../../../packages/ui/src/editor/transforms";
+import { toggleToolbarMark } from "../../../../../../packages/ui/src/editor/mark-toolbar-utils";
 import {
   applyTurnInto,
   getTurnIntoValue,
-} from "../../../../../../packages/ui/shadcn/src/editor/turn-into-helpers";
+} from "../../../../../../packages/ui/src/editor/turn-into-helpers";
 import {
   isArticleEditorBlockSelectableAtPath,
   getBlockContextMenuActionIds,
   isArticleEditorBlockSelectable,
-} from "../../../../../../packages/ui/shadcn/src/editor/block-menu-helpers";
+} from "../../../../../../packages/ui/src/editor/block-menu-helpers";
 import {
   clearEditorMarkColorForBlocks,
   getEditorMarkColorValue,
   getEditorMarkValueForBlocks,
   normalizeColorToHex,
   setEditorMarkColorForBlocks,
-} from "../../../../../../packages/ui/shadcn/src/editor/mark-color-utils";
-import { useEditorCustomColorsStore } from "../../../../../../packages/ui/shadcn/src/editor/use-editor-custom-colors-store";
+} from "../../../../../../packages/ui/src/editor/mark-color-utils";
+import { useEditorCustomColorsStore } from "../../../../../../packages/ui/src/editor/use-editor-custom-colors-store";
 import { getContentLibraryArticleEditorBodyEditorClass } from "@/pages/workspaces/content/library/article-editor/components/content-library-article-editor-body-layout";
-import { exitEmptyToggle } from "../../../../../../packages/ui/shadcn/src/editor/toggle-plugin-helpers";
+import { exitEmptyToggle } from "../../../../../../packages/ui/src/editor/toggle-plugin-helpers";
 import {
   getDateKeyInTimeZone,
   zonedDateKeyToIso,

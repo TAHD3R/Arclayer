@@ -1,4 +1,4 @@
-import { createApiClient, type ApiRequestOptions } from "@arclayer/runtime/http";
+import { createApiClient, type ApiRequestOptions } from "@arclayer/web/http";
 
 import { getAppConfig } from "@/lib/config/app-config";
 import { getLocaleHeaders, getRequestCredentials } from "@/lib/http/request-context";

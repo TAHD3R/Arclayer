@@ -10,7 +10,6 @@ from pydantic import BaseModel, ConfigDict
 from src.common.protocols.tortoise import HasOrganizationId, SiteDomainRecordView
 from src.common.services import BaseService
 from src.core.exceptions import Conflict, NotFound, ServiceUnavailable
-from src.infra.cache.valkey import ValkeyClientLike
 from src.models.organization.org_plan import OrgPlan
 from src.models.sites.site_domain import SiteDomainRecord
 from src.models.workspaces.workspace import Workspace
@@ -21,6 +20,7 @@ from src.modules.sites.domains.schema import (
     domain_datetime_to_ms,
 )
 from src.modules.workspaces.site.service import WorkspaceSiteService
+from src.platform.cache.valkey import ValkeyClientLike
 
 _CACHE_KEY_PREFIX = "site:resolve:host"
 _TXT_PREFIX = "arclayer-site-verification="

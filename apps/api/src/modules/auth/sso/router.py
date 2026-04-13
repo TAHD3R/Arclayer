@@ -8,8 +8,6 @@ from starlette.responses import RedirectResponse
 from src.config import Settings, get_settings
 from src.core.exceptions import ServiceUnavailable
 from src.core.http.response import ApiResponse, ResponseModel
-from src.infra.cache.valkey import get_valkey
-from src.infra.limiter.limiter import rate_limit
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.organization.user import User, UserCredential
 from src.modules.auth.http.service import get_current_user
@@ -28,6 +26,8 @@ from src.modules.auth.sso.schema import (
 )
 from src.modules.auth.sso.service import AuthSSOService
 from src.modules.auth.two_factor.service import AuthTwoFactorService
+from src.platform.cache.valkey import get_valkey
+from src.platform.limiter.limiter import rate_limit
 
 router = APIRouter(prefix="/sso", tags=["global.auth.sso"])
 

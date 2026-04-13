@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 from pydantic import EmailStr, SecretStr, TypeAdapter, ValidationError
 
 from src.common.utils.ids import uuid7
-from src.infra.storage.s3 import S3StorageProvider
 from src.modules.sys.settings.schema import SysConfigTestCheck
+from src.platform.storage.s3 import S3StorageProvider
 
 if TYPE_CHECKING:
     from src.config import Settings

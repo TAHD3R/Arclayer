@@ -12,7 +12,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--out",
         required=True,
-        help="输出文件路径（建议指向 packages/api-client/openapi.json）",
+        help="输出文件路径（建议指向 packages/openapi/openapi.json）",
     )
     return parser.parse_args()
 
@@ -75,23 +75,28 @@ def _assign_stable_operation_ids(app) -> None:
         raise ValueError(f"Non-unique operationId detected (showing first 5): {preview}")
 
 
-def main() -> None:
-    args = _parse_args()
-    out_path = Path(args.out).expanduser().resolve()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
+def build_openapi_schema() -> dict[str, Any]:
     # 仅构建路由与 OpenAPI，不触发 lifespan（不会连接 DB/Valkey）
     from src.core.registry import create_app
 
     app = create_app()
     _assign_stable_operation_ids(app)
+    return app.openapi()
 
-    schema: dict[str, Any] = app.openapi()
 
-    out_path.write_text(
-        json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+def render_openapi_schema(schema: dict[str, Any]) -> str:
+    return json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def write_openapi_schema(out_path: Path, schema: dict[str, Any]) -> None:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(render_openapi_schema(schema), encoding="utf-8")
+
+
+def main() -> None:
+    args = _parse_args()
+    out_path = Path(args.out).expanduser().resolve()
+    write_openapi_schema(out_path, build_openapi_schema())
 
 
 if __name__ == "__main__":

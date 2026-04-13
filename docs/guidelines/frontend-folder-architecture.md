@@ -12,8 +12,8 @@ This guideline applies to:
 
 Current shared package surfaces relevant to Admin:
 
-- `packages/api-client`
-- `packages/core/runtime`
+- `packages/openapi`
+- `packages/web`
 - `packages/hooks`
 - `packages/lib`
 - `packages/ui/*`
@@ -195,8 +195,8 @@ Promote code into `packages/*` when it is reused across apps or is clearly found
 
 Current package placement rules:
 
-- `packages/api-client`: generated API client and generated contract artifacts
-- `packages/core/runtime`: runtime utilities and shared non-UI primitives
+- `packages/openapi`: generated API client and generated contract artifacts
+- `packages/web`: runtime utilities and shared non-UI primitives
 - `packages/hooks`: reusable hooks that are not Admin-only
 - `packages/lib`: shared helpers used across multiple apps
 - `packages/ui/*`: shared UI primitives, tokens, and styling infrastructure

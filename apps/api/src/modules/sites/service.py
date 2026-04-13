@@ -7,7 +7,6 @@ from uuid import UUID
 
 from src.common.services import BaseService
 from src.core.exceptions import Conflict, Forbidden, ServiceUnavailable
-from src.infra.cache.valkey import ValkeyClientLike
 from src.models.sites.site import SiteRecord
 from src.modules.sites import schema as sites_schema
 from src.modules.sites.content.service import SiteContentService
@@ -18,6 +17,7 @@ from src.modules.sites.runtime.config.service import SiteRuntimeConfigMixin
 from src.modules.sites.runtime.context.service import SiteRuntimeContextMixin
 from src.modules.sites.settings.service import SiteSettingsMixin
 from src.modules.sites.stores.service import PresenceStore, PreviewTokenStore
+from src.platform.cache.valkey import ValkeyClientLike
 
 MIN_PREVIEW_TOKEN_TTL_SECONDS = 60
 MAX_PREVIEW_TOKEN_TTL_SECONDS = 60 * 60

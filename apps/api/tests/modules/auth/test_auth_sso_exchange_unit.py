@@ -9,12 +9,12 @@ import pytest
 
 from src.config import get_settings
 from src.core.exceptions import BadRequest
-from src.infra.cache.valkey import ValkeyClientLike
 from src.modules.auth.schema import TokenPair
 from src.modules.auth.sessions.request_context import AuthRequestContext
 from src.modules.auth.sso.repository import _valkey_getdel_best_effort, issue_exchange_code
 from src.modules.auth.sso.schema import AuthSSOExchangePayload
 from src.modules.auth.sso.service import AuthSSOService
+from src.platform.cache.valkey import ValkeyClientLike
 
 
 class _FakeValkey(ValkeyClientLike):

@@ -26,6 +26,8 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceDateTimeFormatter } from "@/hooks/use-workspace-date-time-formatter";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type {
+  AdminContentLibraryViewColumns,
+  AdminContentLibraryViewSorting,
   AdminContentLibraryViewsState,
   AdminContentModel,
   CreateAdminContentLibraryViewPayload,
@@ -124,10 +126,14 @@ type ContentLibraryViewDialogState = {
   viewId: string;
 };
 
-type ContentLibraryViewWorkbenchState = Pick<
-  CreateAdminContentLibraryViewPayload,
-  "baseViewId" | "query" | "filters" | "sorting" | "viewMode" | "columns"
->;
+type ContentLibraryViewWorkbenchState = {
+  baseViewId: CreateAdminContentLibraryViewPayload["baseViewId"];
+  query: string;
+  filters: ContentLibraryToolbarFilters;
+  sorting: AdminContentLibraryViewSorting[];
+  viewMode?: CreateAdminContentLibraryViewPayload["viewMode"];
+  columns?: AdminContentLibraryViewColumns;
+};
 
 type ContentLibraryViewDiffItem = {
   id: string;
@@ -282,13 +288,17 @@ function doesSavedViewMatchWorkbench(
   savedView: ContentLibrarySavedView,
   currentWorkbench: ContentLibraryViewWorkbenchState,
 ) {
+  const savedFilters = savedView.filters ?? {};
+  const savedSorting = savedView.sorting ?? [];
+  const savedColumns = savedView.columns ?? undefined;
+
   return (
     savedView.baseViewId === currentWorkbench.baseViewId &&
-    savedView.query === currentWorkbench.query &&
-    areContentLibraryToolbarFiltersEqual(savedView.filters, currentWorkbench.filters) &&
-    areSavedViewSortingEqual(savedView.sorting, currentWorkbench.sorting) &&
+    (savedView.query ?? "") === currentWorkbench.query &&
+    areContentLibraryToolbarFiltersEqual(savedFilters, currentWorkbench.filters) &&
+    areSavedViewSortingEqual(savedSorting, currentWorkbench.sorting) &&
     (!savedView.viewMode || savedView.viewMode === currentWorkbench.viewMode) &&
-    (!savedView.columns || areSavedViewColumnsEqual(savedView.columns, currentWorkbench.columns))
+    (!savedColumns || areSavedViewColumnsEqual(savedColumns, currentWorkbench.columns))
   );
 }
 
@@ -399,7 +409,7 @@ function buildViewDiffItems(
       ? {
           id: "filters",
           label: t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_FILTERS"),
-          savedValue: summarizeViewFilters(savedView.filters, t),
+          savedValue: summarizeViewFilters(savedView.filters ?? {}, t),
           nextValue: summarizeViewFilters(currentWorkbench.filters, t),
         }
       : null,
@@ -407,7 +417,7 @@ function buildViewDiffItems(
       ? {
           id: "sorting",
           label: t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_SORTING"),
-          savedValue: summarizeViewSorting(savedView.sorting, t),
+          savedValue: summarizeViewSorting(savedView.sorting ?? [], t),
           nextValue: summarizeViewSorting(currentWorkbench.sorting, t),
         }
       : null,
@@ -423,7 +433,7 @@ function buildViewDiffItems(
       ? {
           id: "columns",
           label: t("content:CONTENT_LIBRARY_UPDATE_VIEW_DIFF_COLUMNS"),
-          savedValue: summarizeViewColumns(savedView.columns, t),
+          savedValue: summarizeViewColumns(savedView.columns ?? undefined, t),
           nextValue: summarizeViewColumns(currentWorkbench.columns, t),
         }
       : null,
@@ -1045,9 +1055,9 @@ export function ContentLibraryPage() {
   );
   const applySavedViewWorkbench = React.useCallback(
     (savedView: ContentLibrarySavedView) => {
-      setToolbarFilters(savedView.filters);
-      tableHook.setSearchInput(savedView.query);
-      tableHook.setSorting(savedView.sorting);
+      setToolbarFilters(savedView.filters ?? {});
+      tableHook.setSearchInput(savedView.query ?? "");
+      tableHook.setSorting(savedView.sorting ?? []);
       if (savedView.viewMode) setManualViewMode(savedView.viewMode);
       if (savedView.columns) {
         if (savedView.columns.visibility) {

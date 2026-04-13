@@ -1,4 +1,4 @@
-import type { ThemeMode } from "@arclayer/theme/theme-mode";
+import type { ThemeMode } from "@arclayer/ui/theme-mode";
 
 import type { AppLocale } from "@/lib/i18n";
 

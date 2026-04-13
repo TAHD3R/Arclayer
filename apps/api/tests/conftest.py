@@ -17,7 +17,7 @@ if str(API_ROOT) not in sys.path:
 
 from src.config import get_settings
 from src.core.database.orm import close_orm, init_orm, verify_db_ready
-from src.infra.cache.valkey import ValkeyClient, close_valkey, init_valkey
+from src.platform.cache.valkey import ValkeyClient, close_valkey, init_valkey
 from tests.utils.tortoise import reset_postgres_schema
 
 

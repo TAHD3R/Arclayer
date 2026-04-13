@@ -4,7 +4,7 @@ import builtins
 import time
 from uuid import UUID
 
-from src.infra.cache.valkey import ValkeyClientLike
+from src.platform.cache.valkey import ValkeyClientLike
 
 
 class PreviewTokenStore:

@@ -12,9 +12,9 @@ from src.common.protocols.tortoise import UserMutableFields
 from src.common.repositories import BaseRepository
 from src.common.utils.ids import uuid7
 from src.config import AuthSettings
-from src.infra.cache.valkey import ValkeyClientLike
 from src.models.organization.user import User, UserCredential, UserStatus
 from src.modules.auth.contracts.schema import UserLike
+from src.platform.cache.valkey import ValkeyClientLike
 
 
 class UserRepository(BaseRepository):

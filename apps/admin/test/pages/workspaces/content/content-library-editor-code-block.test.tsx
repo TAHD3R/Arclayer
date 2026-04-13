@@ -28,8 +28,8 @@ vi.mock("platejs/react", async (importOriginal) => {
   };
 });
 
-import { articleEditorCodeBlockLowlight } from "../../../../../../packages/ui/shadcn/src/editor/code-block-highlighting";
-import { CodeSyntaxLeaf } from "../../../../../../packages/ui/shadcn/src/editor/ui/code-block-node";
+import { articleEditorCodeBlockLowlight } from "../../../../../../packages/ui/src/editor/code-block-highlighting";
+import { CodeSyntaxLeaf } from "../../../../../../packages/ui/src/editor/ui/code-block-node";
 
 describe("content-library-editor-code-block", () => {
   it("registers lowlight-backed syntax highlighting languages for code blocks", () => {

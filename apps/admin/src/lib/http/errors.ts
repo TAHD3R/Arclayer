@@ -1,1 +1,1 @@
-export { ApiError } from "@arclayer/runtime/http";
+export { ApiError } from "@arclayer/web/http";

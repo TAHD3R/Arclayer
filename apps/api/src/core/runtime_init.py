@@ -9,11 +9,11 @@ from src.common.constants.assets import ASSET_UPLOADED_EVENT
 from src.config import Settings
 from src.core.events import Event, EventBus
 from src.core.logging import get_logger
-from src.infra.jobs.assets_thumbnails import generate_asset_thumbnails
-from src.infra.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
-from src.infra.jobs.tasks import task_generate_asset_thumbnails
 from src.modules.analytics.ingest.service import ActivityIngestor
 from src.modules.system.rbac.service import RBACService
+from src.platform.jobs.assets_thumbnails import generate_asset_thumbnails
+from src.platform.jobs.client import is_taskiq_enabled, try_dedupe_enqueue, try_enqueue_task
+from src.platform.jobs.tasks import task_generate_asset_thumbnails
 
 logger = get_logger(__name__)
 _FATAL_RUNTIME_INIT_ERRORS: tuple[type[BaseException], ...] = (

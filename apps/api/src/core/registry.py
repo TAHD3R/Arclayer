@@ -22,9 +22,9 @@ from src.core.logging import configure_logging, get_logger
 from src.core.middleware.guard_integration import build_guard_config, close_guard_runtime, initialize_guard_runtime
 from src.core.routes import register_routes
 from src.core.runtime_init import close_domain_runtime, init_domain_runtime
-from src.infra.cache.valkey import close_valkey, init_valkey
-from src.infra.jobs.client import close_taskiq_client, init_taskiq_client
-from src.infra.limiter.limiter import close_rate_limiter, init_rate_limiter
+from src.platform.cache.valkey import close_valkey, init_valkey
+from src.platform.jobs.client import close_taskiq_client, init_taskiq_client
+from src.platform.limiter.limiter import close_rate_limiter, init_rate_limiter
 
 logger = get_logger(__name__)
 _FATAL_REGISTRY_ERRORS: tuple[type[BaseException], ...] = (

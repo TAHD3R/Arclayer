@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = path.resolve(__dirname, "../../../..");
 const adminRoot = path.join(repoRoot, "apps/admin/src");
-const uiRoot = path.join(repoRoot, "packages/ui/shadcn/src");
-const uiPackageJsonPath = path.join(repoRoot, "packages/ui/shadcn/package.json");
+const uiRoot = path.join(repoRoot, "packages/ui/src");
+const uiPackageJsonPath = path.join(repoRoot, "packages/ui/package.json");
 
 function collectFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
