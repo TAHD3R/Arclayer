@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+import time
 from contextvars import ContextVar
 from http.cookies import SimpleCookie
 
@@ -15,6 +16,7 @@ from guard import (
     SecurityConfig as GuardSecurityConfig,
 )
 from guard.adapters import StarletteGuardRequest, StarletteGuardResponse
+from guard.middleware import SecurityMiddleware
 from guard_core.handlers.ratelimit_handler import RateLimitManager
 from guard_core.protocols.request_protocol import GuardRequest
 from guard_core.protocols.response_protocol import GuardResponse
@@ -26,6 +28,21 @@ from src.core.http.response import ApiResponse as ResponseBuilder
 from src.core.i18n import get_request_locale, t
 
 _pending_csrf_cookie: ContextVar[str | None] = ContextVar("pending_csrf_cookie", default=None)
+
+
+class ArclayerSecurityMiddleware(SecurityMiddleware):
+    async def refresh_cloud_ip_ranges(self) -> None:
+        if not self.config.block_cloud_providers:
+            return
+
+        if self.config.enable_redis and self.redis_handler:
+            await cloud_handler.refresh_async(
+                self.config.block_cloud_providers,
+                ttl=self.config.cloud_ip_refresh_interval,
+            )
+        else:
+            await cloud_handler.refresh(self.config.block_cloud_providers)
+        self.last_cloud_ip_refresh = int(time.time())
 
 
 def _get_starlette_request(guard_request: GuardRequest) -> Request | None:

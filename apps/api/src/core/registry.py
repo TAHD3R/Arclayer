@@ -5,7 +5,6 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from guard.middleware import SecurityMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -19,7 +18,12 @@ from src.core.database.orm import (
 from src.core.events import events
 from src.core.exceptions import init_exception_handlers
 from src.core.logging import configure_logging, get_logger
-from src.core.middleware.guard_integration import build_guard_config, close_guard_runtime, initialize_guard_runtime
+from src.core.middleware.guard_integration import (
+    ArclayerSecurityMiddleware,
+    build_guard_config,
+    close_guard_runtime,
+    initialize_guard_runtime,
+)
 from src.core.routes import register_routes
 from src.core.runtime_init import close_domain_runtime, init_domain_runtime
 from src.platform.cache.valkey import close_valkey, init_valkey
@@ -154,8 +158,8 @@ class AppFactory:
 
         if security.enabled:
             guard_config = build_guard_config(self.settings)
-            SecurityMiddleware.configure_cors(self.app, guard_config)
-            self.app.add_middleware(SecurityMiddleware, config=guard_config)
+            ArclayerSecurityMiddleware.configure_cors(self.app, guard_config)
+            self.app.add_middleware(ArclayerSecurityMiddleware, config=guard_config)
 
         if middleware.gzip_enabled:
             self.app.add_middleware(
