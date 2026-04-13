@@ -55,4 +55,18 @@ describe("ContentGuard", () => {
 
     expect(screen.getByTestId("illustration-403")).toHaveAttribute("data-reduced-motion", "true");
   });
+
+  it("supports flush wrapper spacing for full-height page content surfaces", () => {
+    const { container } = render(
+      <ContentGuard
+        loading={false}
+        error={new ApiError({ status: 403, message: "forbidden" })}
+        wrapperSpacing="flush"
+      />,
+    );
+
+    const wrapper = container.firstElementChild;
+    expect(wrapper).toHaveClass("py-0");
+    expect(wrapper).not.toHaveClass("py-10");
+  });
 });

@@ -168,9 +168,7 @@ export function PageMainRegion(props: {
               </div>
             ) : null}
             {props.description ? (
-              <div className="text-callout text-label-secondary select-none">
-                {props.description}
-              </div>
+              <div className="text-body text-label-secondary select-none">{props.description}</div>
             ) : null}
             {props.extra ? <div className="mt-3.5">{props.extra}</div> : null}
           </header>

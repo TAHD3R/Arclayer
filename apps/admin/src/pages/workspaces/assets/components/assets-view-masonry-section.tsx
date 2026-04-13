@@ -361,6 +361,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
       loadingVariant="masonry"
       error={assetsQuery.isError ? assetsQuery.error : null}
       onRetry={() => void assetsQuery.refetch()}
+      wrapperSpacing="flush"
       errorDescription={assetsQuery.isError ? t("assets:ASSET_LIST_LOAD_FAILED_DESC") : undefined}
       empty={items.length === 0}
       emptyTitle={

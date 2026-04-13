@@ -49,6 +49,7 @@ export type ContentGuardProps = {
   errorTitle?: ReactNode;
   errorDescription?: ReactNode;
   errorExtra?: ReactNode;
+  wrapperSpacing?: "default" | "flush";
   className?: string;
   children?: ReactNode;
 };
@@ -104,7 +105,10 @@ export function ContentGuard(props: ContentGuardProps) {
   const error = props.error ?? null;
   const variant = props.variant ?? "default";
   const mediaVariant = props.mediaVariant ?? "illustration";
-  const wrapperClassName = props.className || (variant === "compact" ? "py-6" : "py-10");
+  const wrapperSpacing = props.wrapperSpacing ?? "default";
+  const wrapperClassName =
+    props.className ||
+    (wrapperSpacing === "flush" ? "py-0" : variant === "compact" ? "py-6" : "py-10");
   const container = props.container ?? "raw";
   const emptyClassName = variant === "compact" ? "gap-4 p-4 md:p-8" : undefined;
   const titleClassName = variant === "compact" ? "text-title md:text-largetitle" : undefined;

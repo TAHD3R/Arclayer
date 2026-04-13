@@ -178,6 +178,24 @@ export function WorkspacesPage() {
           setWrapHeaders: setArchivedWrapHeaders,
         };
   const deleteConfirmMatches = deleteConfirmName.trim() === (confirmDelete?.name || "");
+  const pageToolbar = (
+    <UserCenterWorkspacesToolbar
+      t={t}
+      table={currentTableConfig.tableHook.table}
+      searchInput={currentTableConfig.tableHook.searchInput}
+      onSearchInputChange={currentTableConfig.tableHook.setSearchInput}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      rowHeight={currentTableConfig.rowHeight}
+      onRowHeightChange={currentTableConfig.setRowHeight}
+      wrapHeaders={currentTableConfig.wrapHeaders}
+      onWrapHeadersChange={currentTableConfig.setWrapHeaders}
+      onRefresh={() => void currentTableConfig.tableHook.refetch()}
+      refreshing={currentTableConfig.tableHook.isFetching}
+      onResetColumnVisibility={currentTableConfig.tableHook.resetColumnVisibility}
+      labels={toolsLabels}
+    />
+  );
 
   return (
     <ChromeTabs
@@ -200,26 +218,7 @@ export function WorkspacesPage() {
             {t("common:ORG_WORKSPACES_CREATE")}
           </Button>
         }
-        extra={
-          viewMode === "card" ? (
-            <UserCenterWorkspacesToolbar
-              t={t}
-              table={currentTableConfig.tableHook.table}
-              searchInput={currentTableConfig.tableHook.searchInput}
-              onSearchInputChange={currentTableConfig.tableHook.setSearchInput}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              rowHeight={currentTableConfig.rowHeight}
-              onRowHeightChange={currentTableConfig.setRowHeight}
-              wrapHeaders={currentTableConfig.wrapHeaders}
-              onWrapHeadersChange={currentTableConfig.setWrapHeaders}
-              onRefresh={() => void currentTableConfig.tableHook.refetch()}
-              refreshing={currentTableConfig.tableHook.isFetching}
-              onResetColumnVisibility={currentTableConfig.tableHook.resetColumnVisibility}
-              labels={toolsLabels}
-            />
-          ) : undefined
-        }
+        extra={pageToolbar}
       >
         <ChromeTabsContent value="active" className="min-h-0 flex-1">
           <WorkspacesContentSection
@@ -237,26 +236,6 @@ export function WorkspacesPage() {
             searchInput={activeTableHook.searchInput}
             buildMenuItems={buildCardMenuItems}
             onCardClick={(workspace) => handleEnterWorkspace(workspace.workspaceId)}
-            toolbar={
-              tab === "active" && viewMode === "table" ? (
-                <UserCenterWorkspacesToolbar
-                  t={t}
-                  table={activeTableHook.table}
-                  searchInput={activeTableHook.searchInput}
-                  onSearchInputChange={activeTableHook.setSearchInput}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  rowHeight={activeRowHeight}
-                  onRowHeightChange={setActiveRowHeight}
-                  wrapHeaders={activeWrapHeaders}
-                  onWrapHeadersChange={setActiveWrapHeaders}
-                  onRefresh={() => void activeTableHook.refetch()}
-                  refreshing={activeTableHook.isFetching}
-                  onResetColumnVisibility={activeTableHook.resetColumnVisibility}
-                  labels={toolsLabels}
-                />
-              ) : undefined
-            }
           />
         </ChromeTabsContent>
 
@@ -274,26 +253,6 @@ export function WorkspacesPage() {
             archived
             searchInput={archivedTableHook.searchInput}
             buildMenuItems={buildCardMenuItems}
-            toolbar={
-              tab === "archived" && viewMode === "table" ? (
-                <UserCenterWorkspacesToolbar
-                  t={t}
-                  table={archivedTableHook.table}
-                  searchInput={archivedTableHook.searchInput}
-                  onSearchInputChange={archivedTableHook.setSearchInput}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  rowHeight={archivedRowHeight}
-                  onRowHeightChange={setArchivedRowHeight}
-                  wrapHeaders={archivedWrapHeaders}
-                  onWrapHeadersChange={setArchivedWrapHeaders}
-                  onRefresh={() => void archivedTableHook.refetch()}
-                  refreshing={archivedTableHook.isFetching}
-                  onResetColumnVisibility={archivedTableHook.resetColumnVisibility}
-                  labels={toolsLabels}
-                />
-              ) : undefined
-            }
           />
         </ChromeTabsContent>
       </DefaultPage>

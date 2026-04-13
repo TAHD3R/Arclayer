@@ -8,8 +8,6 @@ export function Illust401LockedTerminal(props: IllustrationProps) {
 
   return (
     <IllustrationWrapper {...props}>
-      <circle cx="100" cy="80" r="50" stroke="currentColor" strokeWidth="0.5" strokeOpacity="0.1" />
-
       <motion.g
         initial={animate ? { rotate: 0 } : undefined}
         animate={animate ? { rotate: 360 } : undefined}

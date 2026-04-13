@@ -316,7 +316,7 @@ export function AdminNotificationsPanel({
   return (
     <motion.div
       data-slot="admin-notifications-panel"
-      className={cn("flex min-w-0 flex-col bg-card border-r border-border ", className)}
+      className={cn("flex min-w-0 flex-col bg-background border-r border-border", className)}
       variants={PANEL_VARIANTS}
       transition={PANEL_TRANSITION}
       initial={initialState}

@@ -59,15 +59,6 @@ export function Illust403ForbiddenGateway(props: IllustrationProps) {
           />
         ))}
       </g>
-
-      <motion.circle
-        cx="100"
-        cy="80"
-        r="1.5"
-        fill="#00FFCC"
-        animate={animate ? { opacity: [1, 0.4, 1], scale: [1, 1.2, 1] } : undefined}
-        transition={{ duration: 1.5, repeat: Infinity }}
-      />
     </IllustrationWrapper>
   );
 }

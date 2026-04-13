@@ -91,7 +91,7 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
       empty={empty}
       emptyTitle={emptyTitle}
       emptyDescription={emptyDescription}
-      className="py-4"
+      wrapperSpacing="flush"
     >
       <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2 xl:grid-cols-3">
         {items.map((workspace) => (

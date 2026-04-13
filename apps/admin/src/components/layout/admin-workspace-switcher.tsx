@@ -35,7 +35,7 @@ import { Button } from "@arclayer/ui/button";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
 const SIDEBAR_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
-const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-8";
+const HEADER_TRIGGER_HEIGHT_CLASSNAME = "!h-10";
 const INTERACTION_EASING = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const WORKSPACE_PICKER_VISIBLE_ROWS = 5;
 const WORKSPACE_PICKER_ITEM_MIN_HEIGHT_REM = 4.5;
@@ -157,7 +157,7 @@ const sidebarTriggerButtonClassName = cn(
 export const headerTriggerButtonClassName = cn(
   HEADER_TRIGGER_HEIGHT_CLASSNAME,
   "group/panel-trigger",
-  "inline-flex max-w-full min-w-0 items-center gap-2 rounded-lg border border-transparent",
+  "inline-flex max-w-full min-w-0 items-center gap-2 rounded-md border border-transparent",
   "bg-transparent px-2 text-label-secondary ",
   "transition-[border-color,background-color,color] duration-200",
   "hover:bg-accent/60 hover:text-label-primary",
@@ -487,7 +487,7 @@ function WorkspaceActionButton(props: {
       <PanelMenuItemContent
         icon={props.icon}
         text={props.text}
-        textClassName=" text-label-primary"
+        textClassName=" text-label-primary "
       />
     </PanelMenuButton>
   );

@@ -135,7 +135,7 @@ function MenuItemContent(props: { icon?: ReactNode; label: string; right?: React
     <>
       <span className="flex min-w-0 flex-1 items-center gap-3">
         {props.icon ? <span className="shrink-0">{normalizeIcon(props.icon)}</span> : null}
-        <span className="min-w-0 truncate text-callout">{props.label}</span>
+        <span className="min-w-0 truncate text-body">{props.label}</span>
       </span>
       {props.right ? (
         <span className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
