@@ -11,8 +11,8 @@ export function InviteLayout({ children }: PropsWithChildren) {
   useLockViewport();
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-card text-label-primary">
-      <div className="absolute inset-0 bg-card" />
+    <div className="fixed inset-0 overflow-hidden bg-background text-label-primary">
+      <div className="absolute inset-0 bg-background" />
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between p-4">

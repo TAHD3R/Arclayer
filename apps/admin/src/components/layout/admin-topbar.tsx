@@ -16,10 +16,10 @@ import { useSidebar } from "@arclayer/ui/sidebar";
 import type { CommandScope } from "@/lib/command/command-types";
 
 const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
-  "relative inline-flex size-11 items-center justify-center rounded-xl border border-transparent",
+  "relative inline-flex size-10 items-center justify-center rounded-md border border-transparent",
   "bg-transparent text-label-secondary transition-[background-color,color,border-color] duration-200",
-  "hover:bg-card/60 hover:text-label-primary",
-  "data-[state=open]:border-border/60 data-[state=open]:bg-card/70 data-[state=open]:text-label-primary",
+  "hover:bg-accent hover:text-label-primary",
+  "data-[state=open]:border-border/60 data-[state=open]:bg-accent/70 data-[state=open]:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 const TOPBAR_CONTENT_PADDING_CLASSNAME = "pl-2 pr-4";
@@ -163,8 +163,8 @@ export function AdminTopbar(props: {
   return (
     <header
       className={cn(
-        "relative z-30 border-b border-sidebar-border inset-y-auto",
-        "bg-header supports-backdrop-filter:bg-header/95 backdrop-blur-xl",
+        "relative z-30 border-b border-border inset-y-auto",
+        "bg-header",
         props.className,
       )}
     >

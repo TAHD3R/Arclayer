@@ -9,7 +9,7 @@ export function AuthLayout({ children }: PropsWithChildren) {
   useLockViewport();
 
   return (
-    <div className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-card text-label-primary">
+    <div className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-background text-label-primary">
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex shrink-0 items-center justify-end p-3 sm:p-4">
         <div className="pointer-events-auto flex items-center gap-2">
           <AdminLocaleToggle />

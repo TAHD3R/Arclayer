@@ -76,7 +76,7 @@ function DocumentMenuShortcut(props: {
         {props.keys.map((key) => (
           <Kbd
             key={key}
-            className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-card/70 px-2 text-caption font-semibold text-label-secondary"
+            className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-card/70 px-2 text-caption! font-semibold text-label-secondary"
           >
             {resolveShortcutKeyLabel(key, props.platform)}
           </Kbd>

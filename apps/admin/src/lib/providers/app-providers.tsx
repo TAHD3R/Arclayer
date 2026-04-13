@@ -14,7 +14,7 @@ export function AppProviders({ children }: PropsWithChildren) {
   const userReducedMotion = usePreferencesStore((s) => s.reduceMotion);
 
   return (
-    <ProgressProvider color="var(--primary)" height="2px">
+    <ProgressProvider color="hsl(var(--primary))" height="2px">
       <QueryClientProvider client={queryClient}>
         <ChromeTabsProvider
           userReducedMotion={userReducedMotion}

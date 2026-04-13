@@ -334,7 +334,7 @@ export function AdminNotificationsPanel({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-11"
+            className="size-8"
             aria-label={isPinned ? t("NOTIFICATIONS_PANEL_UNPIN") : t("NOTIFICATIONS_PANEL_PIN")}
             onClick={() => onPinChange(!isPinned)}
           >
@@ -348,7 +348,7 @@ export function AdminNotificationsPanel({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-11"
+            className="size-8"
             aria-label={t("NOTIFICATIONS_PANEL_CLOSE")}
             onClick={onClose}
           >

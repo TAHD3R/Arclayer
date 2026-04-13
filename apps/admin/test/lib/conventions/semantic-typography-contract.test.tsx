@@ -16,7 +16,7 @@ describe("semantic typography contract", () => {
     const tokensCss = await fs.readFile(TOKENS_CSS_PATH, "utf-8");
 
     expect(tokensCss).toContain("--font-size-footnote: 0.875rem;");
-    expect(tokensCss).toContain("--font-size-caption: 0.8125rem;");
+    expect(tokensCss).toContain("--font-size-caption: 0.75rem;");
   });
 
   it("uses semibold text in shared button variants", () => {

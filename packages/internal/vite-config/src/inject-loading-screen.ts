@@ -32,9 +32,9 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
   justify-content: center;
   gap: 16px;
   pointer-events: none;
-  background: var(--background, #ffffff);
-  color: var(--foreground, #111111);
-  --app-loading-ink: var(--primary, #1677ff);
+  background: hsl(var(--background, 0 0% 100%));
+  color: hsl(var(--foreground, 0 0% 6.7%));
+  --app-loading-ink: hsl(var(--primary, 211 100% 45.9%));
   font-family: var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
   z-index: 9999;
   opacity: 1;
@@ -42,8 +42,8 @@ export function injectLoadingScreen(options: InjectLoadingScreenOptions = {}): P
   transition: opacity 360ms ease-out;
 }
 [data-theme="dark"] #app-loading {
-  background: var(--background, #000000);
-  color: var(--foreground, #e5e5e5);
+  background: hsl(var(--background, 0 0% 0%));
+  color: hsl(var(--foreground, 0 0% 89.8%));
 }
 #app-loading.is-hiding {
   opacity: 0;

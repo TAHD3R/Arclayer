@@ -95,7 +95,7 @@ export function AdminSceneLayout({
       }
     >
       <RouteProgress />
-      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-card">
+      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
         {renderTopbar({
           notificationOpen: notificationPanelOpen,
           showNotificationsBadge,
@@ -113,11 +113,11 @@ export function AdminSceneLayout({
             resolvePermissionName={resolvePermissionName}
             pathnameOverride={sidebarPathnameOverride}
             collapsible={sidebarCollapsible}
-            className="top-[var(--admin-topbar-height)] inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"
+            className="top-(--admin-topbar-height) inset-y-auto bottom-0 h-[calc(100svh-var(--admin-topbar-height))]"
           />
 
           <div className="relative flex min-w-0 flex-1">
-            <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden">
+            <SidebarInset className="w-auto flex-1 min-w-0 overflow-hidden bg-background">
               <div className="flex-1 min-h-0 overflow-auto">
                 <ContentGuard
                   loading={loading}

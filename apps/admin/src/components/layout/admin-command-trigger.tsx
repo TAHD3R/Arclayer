@@ -51,7 +51,7 @@ function ShortcutKeys(props: {
         <Kbd
           key={key}
           className={cn(
-            "h-6 min-w-6 rounded-md border border-transparent px-2.5 text-caption font-semibold ",
+            "h-6 min-w-6 rounded-md border border-transparent px-2.5 text-caption! font-semibold",
             props.keyClassName,
           )}
         >
@@ -68,7 +68,7 @@ function EntryShortcut(props: { shortcut: readonly string[] }) {
       {props.shortcut.map((key) => (
         <Kbd
           key={key}
-          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-card/70 px-2 text-caption font-semibold text-label-secondary"
+          className="h-5 min-w-5 rounded-[6px] border border-border/50 bg-card/70 px-2 text-caption! font-semibold text-label-secondary"
         >
           {key}
         </Kbd>
@@ -93,8 +93,8 @@ function CommandTriggerButton(props: {
       onClick={props.onClick}
       data-state={props.open ? "open" : "closed"}
       className={cn(
-        "group flex h-8 w-full items-center gap-3 rounded-lg border border-border/50",
-        "bg-muted/85 px-3 text-left text-footnote text-label-secondary ",
+        "group flex h-10 w-full items-center gap-3 rounded-lg border border-border/50",
+        "bg-muted px-3 text-left text-footnote text-label-secondary ",
         TRANSITION_CLASSNAME,
         "hover:bg-accent/70 hover:text-label-primary",
         "data-[state=open]:bg-accent data-[state=open]:text-label-primary",
@@ -115,7 +115,7 @@ function CommandTriggerButton(props: {
         platform={props.platform}
         className={cn("ml-auto hidden shrink-0 gap-1.5 sm:inline-flex", TRANSITION_CLASSNAME)}
         keyClassName={cn(
-          "bg-card/60 text-label-tertiary",
+          "bg-card/60 text-caption! text-label-tertiary",
           TRANSITION_CLASSNAME,
           "group-hover:bg-card/72 group-hover:text-label-secondary",
           "group-data-[state=open]:bg-card/84 group-data-[state=open]:text-label-primary",

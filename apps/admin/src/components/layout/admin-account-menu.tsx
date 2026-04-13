@@ -51,10 +51,10 @@ import { useSidebar } from "@arclayer/ui/sidebar";
 
 const SHORTCUTS_HELP_HASH = "#shortcuts";
 const HEADER_TRIGGER_CLASSNAME = cn(
-  "group/panel-trigger flex h-11 items-center gap-1.5 rounded-xl border border-transparent bg-transparent pl-0.5 pr-1.5",
+  "group/panel-trigger flex h-10 items-center gap-1.5 rounded-md border border-transparent bg-transparent",
   "text-label-secondary transition-[background-color,color,border-color] duration-200",
-  "hover:bg-accent/70 hover:text-label-primary",
-  "data-[state=open]:border-border/70 data-[state=open]:bg-accent data-[state=open]:text-label-primary",
+  "hover:text-label-primary",
+  "data-[state=open]:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 );
 const SIDEBAR_TRIGGER_CLASSNAME = cn(
@@ -458,7 +458,7 @@ function HeaderAccountMenuTrigger(props: { displayName: string; avatarUrl: strin
       <UserAvatar
         name={props.displayName}
         assetRef={props.avatarUrl}
-        size={36}
+        size={40}
         className="shrink-0"
       />
     </FloatingPanelTrigger>
@@ -486,7 +486,7 @@ function SidebarAccountMenuTrigger(props: {
         name={props.displayName}
         assetRef={props.avatarUrl}
         size={40}
-        className="shrink-0"
+        className="shrink-0 bg-accent"
       />
 
       <div className={cn("min-w-0 flex-1 text-left", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>

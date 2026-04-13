@@ -16,19 +16,19 @@ html[data-theme="dark"] {
 }
 
 html[data-contrast="more"] {
-  --muted-foreground: hsl(206 18% 28%);
-  --tertiary-foreground: hsl(206 18% 22%);
-  --quaternary-foreground: hsl(206 18% 18%);
-  --border: hsl(210 14% 82%);
-  --input: hsl(210 14% 82%);
+  --muted-foreground: 206 18% 28%;
+  --tertiary-foreground: 206 18% 22%;
+  --quaternary-foreground: 206 18% 18%;
+  --border: 210 14% 82%;
+  --input: 210 14% 82%;
 }
 
 html[data-theme="dark"][data-contrast="more"] {
-  --muted-foreground: hsl(206 6% 64%);
-  --tertiary-foreground: hsl(206 6% 72%);
-  --quaternary-foreground: hsl(206 6% 78%);
-  --border: hsl(206 8% 34%);
-  --input: hsl(206 8% 34%);
+  --muted-foreground: 206 6% 64%;
+  --tertiary-foreground: 206 6% 72%;
+  --quaternary-foreground: 206 6% 78%;
+  --border: 206 8% 34%;
+  --input: 206 8% 34%;
 }
 
 html,
