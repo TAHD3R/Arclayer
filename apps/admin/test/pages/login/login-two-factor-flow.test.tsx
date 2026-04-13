@@ -17,7 +17,10 @@ type RuntimeState = {
 
 const {
   navigateMock,
+  emailCheckMock,
   loginMock,
+  requestLoginEmailCodeMock,
+  verifyLoginEmailCodeMock,
   exchangeSSOMock,
   applyLoginMock,
   queryClientClearMock,
@@ -27,7 +30,10 @@ const {
   workspaceState,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
+  emailCheckMock: vi.fn(),
   loginMock: vi.fn(),
+  requestLoginEmailCodeMock: vi.fn(),
+  verifyLoginEmailCodeMock: vi.fn(),
   exchangeSSOMock: vi.fn(),
   applyLoginMock: vi.fn(),
   queryClientClearMock: vi.fn(),
@@ -62,7 +68,10 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/api/auth", () => ({
+  emailCheck: (...args: unknown[]) => emailCheckMock(...args),
   login: (...args: unknown[]) => loginMock(...args),
+  requestLoginEmailCode: (...args: unknown[]) => requestLoginEmailCodeMock(...args),
+  verifyLoginEmailCode: (...args: unknown[]) => verifyLoginEmailCodeMock(...args),
   register: vi.fn(),
   forgotPassword: vi.fn(),
   refresh: vi.fn(),
@@ -75,7 +84,20 @@ vi.mock("@/api/auth-sso", () => ({
 }));
 
 vi.mock("@/components/ui/oauth-buttons", () => ({
-  AuthOauthButtons: () => null,
+  AuthOauthButtons: ({
+    leadingActions = [],
+  }: {
+    leadingActions?: Array<{ key: string; label: string; onClick: () => void }>;
+  }) =>
+    leadingActions.length > 0 ? (
+      <div>
+        {leadingActions.map((action) => (
+          <button key={action.key} type="button" onClick={action.onClick}>
+            {action.label}
+          </button>
+        ))}
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/hooks/use-system-runtime", () => ({
@@ -151,12 +173,19 @@ beforeEach(() => {
       dispatchEvent: vi.fn(),
     })),
   });
+  Object.defineProperty(document, "elementFromPoint", {
+    writable: true,
+    value: vi.fn(() => null),
+  });
 });
 
 describe("LoginPage two-factor challenge flow", () => {
   beforeEach(() => {
     currentSearch = { mode: "login" };
+    emailCheckMock.mockReset();
     loginMock.mockReset();
+    requestLoginEmailCodeMock.mockReset();
+    verifyLoginEmailCodeMock.mockReset();
     exchangeSSOMock.mockReset();
     applyLoginMock.mockReset();
     queryClientClearMock.mockReset();
@@ -169,9 +198,16 @@ describe("LoginPage two-factor challenge flow", () => {
     runtimeState.publicRegisterEnabled = true;
     runtimeState.instanceSetupStatus = "ready";
     runtimeState.instanceSetupRepairReason = null;
+    navigateMock.mockImplementation(({ search }: { search?: Record<string, unknown> }) => {
+      if (search) {
+        currentSearch = search;
+      }
+      return Promise.resolve();
+    });
   });
 
   it("switches to otp pane when login returns TWO_FACTOR_REQUIRED", async () => {
+    emailCheckMock.mockResolvedValueOnce({ exists: true });
     loginMock.mockRejectedValueOnce(
       new ApiError({
         status: 401,
@@ -184,10 +220,14 @@ describe("LoginPage two-factor challenge flow", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("auth:FIELD_ACCOUNT_LABEL"), "demo");
-    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret");
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+    expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
 
+    expect(emailCheckMock).toHaveBeenCalledWith({ email: "demo@example.com" });
+    expect(loginMock).toHaveBeenCalledWith({ email: "demo@example.com", password: "secret123" });
     expect(await screen.findByText("auth:LOGIN_TWO_FACTOR_TITLE")).toBeInTheDocument();
     expect(screen.getByLabelText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
     expect(applyLoginMock).not.toHaveBeenCalled();
@@ -243,5 +283,47 @@ describe("LoginPage two-factor challenge flow", () => {
       expect(screen.getByText("auth:REGISTER_PAGE_TITLE")).toBeInTheDocument();
     });
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("starts a two-factor challenge after verifying an email login code", async () => {
+    emailCheckMock.mockResolvedValueOnce({ exists: true });
+    requestLoginEmailCodeMock.mockResolvedValueOnce({ expires_in: 600, retry_after: 0 });
+    verifyLoginEmailCodeMock.mockRejectedValueOnce(
+      new ApiError({
+        status: 401,
+        message: "需要进行 2FA 验证",
+        error: "TWO_FACTOR_REQUIRED",
+        meta: { two_factor_token: "challenge-email-code", expires_in: 300 },
+      }),
+    );
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+    expect(await screen.findByLabelText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
+    expect(await screen.findByText("auth:LOGIN_EMAIL_CODE_VERIFY_TITLE")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(requestLoginEmailCodeMock).toHaveBeenCalledWith({ email: "demo@example.com" });
+    });
+
+    await user.type(screen.getByLabelText("auth:LOGIN_EMAIL_CODE_FIELD_LABEL"), "123456");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_BUTTON" }));
+
+    expect(verifyLoginEmailCodeMock).toHaveBeenCalledWith({
+      email: "demo@example.com",
+      code: "123456",
+    });
+    expect(await screen.findByText("auth:LOGIN_TWO_FACTOR_TITLE")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "auth:TWO_FACTOR_BACK_TO_EMAIL_CODE" }),
+    ).toBeInTheDocument();
+    expect(useAuthChallengeStore.getState().source).toBe("email-code");
+    expect(applyLoginMock).not.toHaveBeenCalled();
+    expect(queryClientClearMock).not.toHaveBeenCalled();
   });
 });

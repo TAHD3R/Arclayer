@@ -11,6 +11,8 @@ export type {
   DeleteMyAccountCapability,
   DeleteMyAccountReauthMethod,
   ResetTokenPayload,
+  EmailCheckOut,
+  LoginEmailCodeRequestOut,
   RegisterPayload,
   TwoFactorChallengeMeta,
   TwoFactorReauthMethod,

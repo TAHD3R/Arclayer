@@ -1,12 +1,12 @@
 import { Lock, Mail, User } from "lucide-react";
-import type { ReactNode } from "react";
-import { useMemo } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { zodResolver } from "@/lib/forms/zod-resolver";
-import { AuthInputControl, AuthPasswordControl } from "@arclayer/ui/auth-controls";
+import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
@@ -16,16 +16,28 @@ import {
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
   AUTH_PANE_STACK_CLASS,
+  AuthButtonLabel,
+  AuthInlineNotice,
   AuthPaneHeader,
   AuthPaneLegal,
   AuthPaneTitleRow,
 } from "./auth-pane-primitives";
 
-function BootstrapField(props: { title: string; error?: string; children: ReactNode }) {
+const ACCOUNT_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,128}$/;
+
+type BootstrapStep = "email" | "details";
+
+function BootstrapField(props: {
+  title: string;
+  helpText?: string;
+  error?: string;
+  children: ReactNode;
+}) {
   return (
     <Field className={AUTH_FIELD_CLASS}>
       <FieldContent className="gap-2">
-        <AuthPaneTitleRow title={props.title} />
+        <AuthPaneTitleRow title={props.title} helpText={props.helpText} />
         {props.children}
         <FieldError>{props.error}</FieldError>
       </FieldContent>
@@ -35,40 +47,71 @@ function BootstrapField(props: { title: string; error?: string; children: ReactN
 
 export function BootstrapPane(props: BootstrapPaneProps) {
   const { t } = useTranslation();
-  const schema = useMemo(
-    () =>
-      z
-        .object({
-          displayName: z.string().min(1, t("auth:VALIDATION_DISPLAY_NAME_REQUIRED")),
-          email: z
-            .string()
-            .min(1, t("auth:VALIDATION_EMAIL_REQUIRED"))
-            .email(t("auth:VALIDATION_EMAIL_INVALID")),
-          username: z.string().min(1, t("auth:VALIDATION_USERNAME_REQUIRED")),
-          password: z.string().min(1, t("auth:VALIDATION_PASSWORD_REQUIRED")),
-          confirmPassword: z.string().min(1, t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")),
-        })
-        .superRefine((value, ctx) => {
-          if (value.password === value.confirmPassword) return;
-          ctx.addIssue({
-            code: "custom",
-            path: ["confirmPassword"],
-            message: t("auth:VALIDATION_PASSWORD_MISMATCH"),
-          });
-        }),
-    [t],
-  );
+  const [step, setStep] = useState<BootstrapStep>("email");
+  const [emailExists, setEmailExists] = useState(false);
   const form = useForm<BootstrapFormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(
+      z.object({
+        displayName: z.string().min(1, t("auth:VALIDATION_DISPLAY_NAME_REQUIRED")),
+        email: z
+          .string()
+          .min(1, t("auth:VALIDATION_EMAIL_REQUIRED"))
+          .email(t("auth:VALIDATION_EMAIL_INVALID")),
+        username: z
+          .string()
+          .min(1, t("auth:VALIDATION_USERNAME_REQUIRED"))
+          .regex(ACCOUNT_NAME_PATTERN, t("auth:VALIDATION_USERNAME_INVALID")),
+        password: z
+          .string()
+          .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
+          .regex(PASSWORD_PATTERN, t("auth:PASSWORD_INVALID")),
+      }),
+    ),
     defaultValues: {
       displayName: "",
       email: "",
       username: "",
       password: "",
-      confirmPassword: "",
     },
     mode: "onSubmit",
   });
+
+  const submitDetails = form.handleSubmit(async (values) => {
+    setEmailExists(false);
+    await props.onSubmit(values);
+  });
+
+  const handleContinue = async () => {
+    const isValid = await form.trigger("email");
+    if (!isValid) return;
+    setEmailExists(false);
+    const exists = await props.onEmailSubmit(form.getValues("email"));
+    if (exists) {
+      setStep("email");
+      setEmailExists(true);
+      return;
+    }
+    setStep("details");
+    form.clearErrors(["displayName", "username", "password"]);
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (step === "email") {
+      void handleContinue();
+      return;
+    }
+    void submitDetails();
+  };
+
+  const handleUseAnotherEmail = () => {
+    setStep("email");
+    setEmailExists(false);
+    form.setValue("displayName", "");
+    form.setValue("username", "");
+    form.setValue("password", "");
+    form.clearErrors(["displayName", "username", "password"]);
+  };
 
   return (
     <div className={AUTH_PANE_STACK_CLASS}>
@@ -77,98 +120,116 @@ export function BootstrapPane(props: BootstrapPaneProps) {
         subtitleKey="auth:INSTANCE_BOOTSTRAP_SUBTITLE"
         variants={{}}
       />
-      <form onSubmit={form.handleSubmit(props.onSubmit)} className="grid gap-2" autoComplete="on">
-        <BootstrapField
-          title={t("auth:FIELD_DISPLAY_NAME_LABEL")}
-          error={form.formState.errors.displayName?.message}
-        >
-          <AuthInputControl
-            autoComplete="name"
-            aria-label={t("auth:FIELD_DISPLAY_NAME_LABEL")}
-            aria-invalid={form.formState.errors.displayName ? true : undefined}
-            className={AUTH_INPUT_GROUP_CLASS}
-            inputClassName={AUTH_INPUT_CLASS}
-            placeholder={t("auth:FIELD_DISPLAY_NAME_PLACEHOLDER")}
-            startIcon={<User size={16} />}
-            disabled={props.loading}
-            spellCheck={false}
-            {...form.register("displayName")}
-          />
-        </BootstrapField>
+      {emailExists ? (
+        <AuthInlineNotice tone="danger">
+          {t("auth:INSTANCE_BOOTSTRAP_EMAIL_EXISTS")}
+        </AuthInlineNotice>
+      ) : null}
+      <form onSubmit={handleSubmit} className="grid gap-2" autoComplete="on">
+        <Field className={AUTH_FIELD_CLASS}>
+          <FieldContent className="gap-2">
+            <AuthPaneTitleRow
+              title={t("auth:FIELD_EMAIL_LABEL")}
+              action={
+                step === "details" ? (
+                  <AuthLinkButton
+                    disabled={props.emailLoading || props.loading}
+                    onClick={handleUseAnotherEmail}
+                    type="button"
+                  >
+                    {t("auth:AUTH_CHANGE_EMAIL")}
+                  </AuthLinkButton>
+                ) : undefined
+              }
+            />
+            <AuthInputControl
+              autoComplete="email"
+              aria-label={t("auth:FIELD_EMAIL_LABEL")}
+              aria-invalid={form.formState.errors.email ? true : undefined}
+              className={AUTH_INPUT_GROUP_CLASS}
+              inputClassName={AUTH_INPUT_CLASS}
+              placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
+              startIcon={<Mail size={16} />}
+              disabled={props.emailLoading || props.loading || step === "details"}
+              readOnly={step === "details"}
+              spellCheck={false}
+              {...form.register("email")}
+            />
+            <FieldError>{form.formState.errors.email?.message}</FieldError>
+          </FieldContent>
+        </Field>
 
-        <BootstrapField
-          title={t("auth:FIELD_EMAIL_LABEL")}
-          error={form.formState.errors.email?.message}
-        >
-          <AuthInputControl
-            autoComplete="email"
-            aria-label={t("auth:FIELD_EMAIL_LABEL")}
-            aria-invalid={form.formState.errors.email ? true : undefined}
-            className={AUTH_INPUT_GROUP_CLASS}
-            inputClassName={AUTH_INPUT_CLASS}
-            placeholder={t("auth:FIELD_EMAIL_PLACEHOLDER")}
-            startIcon={<Mail size={16} />}
-            disabled={props.loading}
-            spellCheck={false}
-            {...form.register("email")}
-          />
-        </BootstrapField>
+        {step === "details" ? (
+          <>
+            <BootstrapField
+              title={t("auth:FIELD_DISPLAY_NAME_LABEL")}
+              helpText={t("auth:FIELD_DISPLAY_NAME_HELP")}
+              error={form.formState.errors.displayName?.message}
+            >
+              <AuthInputControl
+                autoComplete="name"
+                aria-label={t("auth:FIELD_DISPLAY_NAME_LABEL")}
+                aria-invalid={form.formState.errors.displayName ? true : undefined}
+                className={AUTH_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_INPUT_CLASS}
+                placeholder={t("auth:FIELD_DISPLAY_NAME_PLACEHOLDER")}
+                startIcon={<User size={16} />}
+                disabled={props.loading}
+                spellCheck={false}
+                {...form.register("displayName")}
+              />
+            </BootstrapField>
 
-        <BootstrapField
-          title={t("auth:FIELD_USERNAME_LABEL")}
-          error={form.formState.errors.username?.message}
-        >
-          <AuthInputControl
-            autoComplete="username"
-            aria-label={t("auth:FIELD_USERNAME_LABEL")}
-            aria-invalid={form.formState.errors.username ? true : undefined}
-            className={AUTH_INPUT_GROUP_CLASS}
-            inputClassName={AUTH_INPUT_CLASS}
-            placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
-            startIcon={<User size={16} />}
-            disabled={props.loading}
-            spellCheck={false}
-            {...form.register("username")}
-          />
-        </BootstrapField>
+            <BootstrapField
+              title={t("auth:FIELD_USERNAME_LABEL")}
+              helpText={t("auth:FIELD_USERNAME_HELP")}
+              error={form.formState.errors.username?.message}
+            >
+              <AuthInputControl
+                autoComplete="username"
+                aria-label={t("auth:FIELD_USERNAME_LABEL")}
+                aria-invalid={form.formState.errors.username ? true : undefined}
+                className={AUTH_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_INPUT_CLASS}
+                placeholder={t("auth:FIELD_USERNAME_PLACEHOLDER")}
+                startIcon={<User size={16} />}
+                disabled={props.loading}
+                spellCheck={false}
+                {...form.register("username")}
+              />
+            </BootstrapField>
 
-        <BootstrapField
-          title={t("auth:FIELD_PASSWORD_LABEL")}
-          error={form.formState.errors.password?.message}
-        >
-          <AuthPasswordControl
-            autoComplete="new-password"
-            aria-label={t("auth:FIELD_PASSWORD_LABEL")}
-            aria-invalid={form.formState.errors.password ? true : undefined}
-            className={AUTH_INPUT_GROUP_CLASS}
-            inputClassName={AUTH_INPUT_CLASS}
-            placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
-            startIcon={<Lock size={16} />}
-            disabled={props.loading}
-            {...form.register("password")}
-          />
-        </BootstrapField>
-
-        <BootstrapField
-          title={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
-          error={form.formState.errors.confirmPassword?.message}
-        >
-          <AuthPasswordControl
-            autoComplete="new-password"
-            aria-label={t("auth:FIELD_CONFIRM_PASSWORD_LABEL")}
-            aria-invalid={form.formState.errors.confirmPassword ? true : undefined}
-            className={AUTH_INPUT_GROUP_CLASS}
-            inputClassName={AUTH_INPUT_CLASS}
-            placeholder={t("auth:FIELD_CONFIRM_PASSWORD_PLACEHOLDER")}
-            startIcon={<Lock size={16} />}
-            disabled={props.loading}
-            {...form.register("confirmPassword")}
-          />
-        </BootstrapField>
+            <BootstrapField
+              title={t("auth:FIELD_PASSWORD_LABEL")}
+              error={form.formState.errors.password?.message}
+            >
+              <AuthPasswordControl
+                autoComplete="new-password"
+                aria-label={t("auth:FIELD_PASSWORD_LABEL")}
+                aria-invalid={form.formState.errors.password ? true : undefined}
+                className={AUTH_INPUT_GROUP_CLASS}
+                inputClassName={AUTH_INPUT_CLASS}
+                placeholder={t("auth:FIELD_PASSWORD_PLACEHOLDER")}
+                startIcon={<Lock size={16} />}
+                disabled={props.loading}
+                {...form.register("password")}
+              />
+            </BootstrapField>
+          </>
+        ) : null}
 
         <div className="grid gap-3 pt-1">
-          <Button className="w-full" type="submit" size="lg" loading={props.loading}>
-            {t("auth:INSTANCE_BOOTSTRAP_BUTTON")}
+          <Button
+            className="w-full"
+            type="submit"
+            size="lg"
+            loading={step === "email" ? props.emailLoading : props.loading}
+          >
+            <AuthButtonLabel>
+              {step === "email"
+                ? t("auth:INSTANCE_BOOTSTRAP_NEXT_BUTTON")
+                : t("auth:INSTANCE_BOOTSTRAP_BUTTON")}
+            </AuthButtonLabel>
           </Button>
         </div>
       </form>

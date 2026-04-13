@@ -85,14 +85,14 @@ export function useAcceptInvite(rawToken: string | null) {
   const loginMutation = useMutation({
     mutationFn: async (payload: { password: string }) => {
       const email = previewQuery.data?.invitation.email || "";
-      return authApi.login({ identifier: email, password: payload.password });
+      return authApi.login({ email, password: payload.password });
     },
   });
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async () => {
       const email = previewQuery.data?.invitation.email || "";
-      return authApi.forgotPassword({ identifier: email });
+      return authApi.forgotPassword({ email });
     },
   });
 

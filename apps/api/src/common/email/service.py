@@ -413,6 +413,79 @@ class EmailService:
                 user_id=user_id,
             )
 
+    async def send_login_code(
+        self,
+        *,
+        recipient: str,
+        code: str,
+        expires_in: int,
+        user_id: str | None = None,
+        locale: str | None = None,
+    ) -> None:
+        if not await self._enabled():
+            self.logger.info(
+                "Attempt to send login code while email sending is disabled",
+                recipient=recipient,
+                type="login_code",
+                user_id=user_id,
+            )
+            return
+        if not valid_recipient(recipient):
+            self.logger.warning(
+                "Recipient email is invalid, skip sending mail",
+                recipient=recipient,
+                type="login_code",
+                user_id=user_id,
+            )
+            return
+
+        cid = uuid7().hex
+        try:
+            fm = await self._get_fast_mail()
+            subject = t(
+                "auth",
+                "LOGIN_CODE_SUBJECT",
+                default="Your Arclayer login code",
+                locale=locale,
+            )
+            plain_body = t(
+                "auth",
+                "LOGIN_CODE_PLAIN",
+                default=(
+                    "Your Arclayer login code is: {code}\n"
+                    "This code expires in {expires_in} seconds.\n"
+                    "If you did not request this code, you can ignore this email."
+                ),
+                locale=locale,
+                code=code,
+                expires_in=expires_in,
+            )
+            message = MessageSchema(
+                subject=subject,
+                recipients=[to_name_email(recipient)],
+                body=plain_body,
+                subtype=MessageType.plain,
+            )
+            await fm.send_message(message)
+            self.logger.info(
+                "Successfully sent login code",
+                recipient=recipient,
+                type="login_code",
+                cid=cid,
+                user_id=user_id,
+            )
+        except BaseException as exc:
+            raise_if_fatal(exc)
+            self.logger.exception(
+                "Failed to send login code",
+                recipient=recipient,
+                type="login_code",
+                cid=cid,
+                error=str(exc),
+                user_id=user_id,
+            )
+            raise
+
     async def send_invitation(
         self,
         *,

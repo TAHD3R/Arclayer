@@ -29,6 +29,8 @@ from src.modules.auth.limits.service import (
     ACCOUNT_DELETE_RATE_LIMIT,
     EMAIL_CHANGE_CONFIRM_RATE_LIMIT,
     EMAIL_CHANGE_REQUEST_RATE_LIMIT,
+    EMAIL_LOGIN_CODE_REQUEST_RATE_LIMIT,
+    EMAIL_LOGIN_CODE_VERIFY_RATE_LIMIT,
     FORGOT_PASSWORD_RATE_LIMIT,
     LOGIN_RATE_LIMIT,
     REFRESH_RATE_LIMIT,
@@ -49,8 +51,13 @@ from src.modules.auth.schema import (
     ConfirmMyEmailChangeRequest,
     DeleteMyAccountCapabilityOut,
     DeleteMyAccountRequest,
+    EmailCheckOut,
+    EmailCheckRequest,
     ForgotPasswordRequest,
     InvitationPreviewResult,
+    LoginEmailCodeRequest,
+    LoginEmailCodeRequestOut,
+    LoginEmailCodeVerifyRequest,
     LoginRequest,
     LogoutRequest,
     MyInvitationListQuery,
@@ -258,6 +265,20 @@ def _enforce_refresh_cookie_origin_policy(request: Request, *, settings: Setting
 
 
 @router.post(
+    "/email-check",
+    response_model=ResponseModel[EmailCheckOut],
+    dependencies=[rate_limit(*LOGIN_RATE_LIMIT)],
+    summary="Check whether an email address already has an account",
+)
+async def email_check(
+    payload: EmailCheckRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[EmailCheckOut]:
+    exists = await service.email_exists(email=str(payload.email))
+    return ApiResponse.success(data=EmailCheckOut(exists=exists))
+
+
+@router.post(
     "/login",
     response_model=ResponseModel[TokenPair],
     dependencies=[rate_limit(*LOGIN_RATE_LIMIT)],
@@ -271,8 +292,54 @@ async def login(
 ) -> ResponseModel[TokenPair]:
     """Login and issue access/refresh tokens."""
     tokens = await service.login(
-        identifier=payload.username,
+        email=str(payload.email),
         password=payload.password,
+        request_context=build_auth_request_context(request),
+    )
+    _set_refresh_cookie(
+        fastapi_response,
+        settings=service.settings,
+        refresh_token=tokens.refresh_token,
+        refresh_ttl_seconds=tokens.refresh_expires_in,
+    )
+    return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS", default="登录成功"), data=tokens)
+
+
+@router.post(
+    "/login/email-code/request",
+    response_model=ResponseModel[LoginEmailCodeRequestOut],
+    dependencies=[rate_limit(*EMAIL_LOGIN_CODE_REQUEST_RATE_LIMIT)],
+    summary="Request a one-time login code by email",
+)
+async def login_email_code_request(
+    payload: LoginEmailCodeRequest,
+    service: AuthLoginService = Depends(_get_auth_login_service),
+) -> ResponseModel[LoginEmailCodeRequestOut]:
+    metadata = await service.request_login_email_code(
+        email=str(payload.email),
+        locale=get_current_locale(),
+    )
+    return ApiResponse.success(
+        message=t("auth", "LOGIN_CODE_SENT", default="登录验证码已发送"),
+        data=metadata,
+    )
+
+
+@router.post(
+    "/login/email-code/verify",
+    response_model=ResponseModel[TokenPair],
+    dependencies=[rate_limit(*EMAIL_LOGIN_CODE_VERIFY_RATE_LIMIT)],
+    summary="Verify an email login code and issue access/refresh tokens",
+)
+async def login_email_code_verify(
+    payload: LoginEmailCodeVerifyRequest,
+    request: Request,
+    fastapi_response: FastAPIResponse,
+    service: AuthLoginService = Depends(_get_auth_login_service),
+) -> ResponseModel[TokenPair]:
+    tokens = await service.verify_login_email_code(
+        email=str(payload.email),
+        code=payload.code,
         request_context=build_auth_request_context(request),
     )
     _set_refresh_cookie(
@@ -419,7 +486,7 @@ async def forgot_password(
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[ResetTokenPayload]:
     """Request password reset."""
-    token_payload, issued = await service.request_password_reset(identifier=payload.identifier)
+    token_payload, issued = await service.request_password_reset(email=str(payload.email))
     if issued:
         token, ttl, recipient, user_id = issued
         locale = get_current_locale()

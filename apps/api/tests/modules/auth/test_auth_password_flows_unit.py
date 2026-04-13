@@ -118,6 +118,9 @@ class FakeUserRepository:
     async def get_by_identifier(self, identifier: str) -> FakeUser | None:
         return self._user if identifier == self._user.username else None
 
+    async def get_by_email(self, email: str) -> FakeUser | None:
+        return self._user if email == self._user.email else None
+
     async def get_by_id(self, user_id: UUID) -> FakeUser | None:
         return self._user if self._user.id == user_id else None
 
@@ -208,7 +211,7 @@ async def test_change_password_invalid(monkeypatch) -> None:
 async def test_forgot_reset_password(monkeypatch) -> None:
     service, user = _build_service(monkeypatch)
 
-    issued = await service.forgot_password(identifier=user.username)
+    issued = await service.forgot_password(email=cast(str, user.email))
     assert issued is not None
     token, _, _recipient, _user_id = issued
 

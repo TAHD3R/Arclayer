@@ -9,19 +9,75 @@ from src.common.constants.auth import PASSWORD_REGEX, RESET_TOKEN_REGEX
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
 
+ACCOUNT_NAME_REGEX = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+DISPLAY_NAME_REGEX = re.compile(r"^[a-zA-Z0-9_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5 ._-]*$")
+
+
+def _normalize_account_name(value: str) -> str:
+    normalized = value.strip().lower()
+    if not ACCOUNT_NAME_REGEX.fullmatch(normalized):
+        raise ValueError("Account name may only contain lowercase letters, numbers, and hyphens.")
+    return normalized
+
+
+def _normalize_display_name(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if not DISPLAY_NAME_REGEX.fullmatch(normalized):
+        raise ValueError(
+            "Display name may only contain letters, numbers, underscore, CJK characters, space, dot and hyphen."
+        )
+    return normalized
+
 
 class LoginRequest(BaseSchema):
     """Login request."""
 
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 
-    username: str = Field(
-        min_length=1,
-        max_length=255,
-        description="Username or email.",
-        validation_alias=AliasChoices("username", "identifier"),
-    )
+    email: EmailStr = Field(description="Email address.")
     password: str = Field(min_length=1, max_length=128, description="Password.")
+
+
+class LoginEmailCodeRequest(BaseSchema):
+    """Request a login code by email."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    email: EmailStr = Field(description="Email address.")
+
+
+class LoginEmailCodeRequestOut(BaseSchema):
+    """Login code request metadata."""
+
+    expires_in: int = Field(ge=1, description="Code expires in seconds.")
+    retry_after: int = Field(ge=0, description="Seconds before the code can be resent.")
+
+
+class LoginEmailCodeVerifyRequest(BaseSchema):
+    """Verify a login code by email."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    email: EmailStr = Field(description="Email address.")
+    code: str = Field(min_length=4, max_length=16, description="Email login verification code.")
+
+
+class EmailCheckRequest(BaseSchema):
+    """Email existence precheck request."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    email: EmailStr = Field(description="Email address.")
+
+
+class EmailCheckOut(BaseSchema):
+    """Email existence precheck result."""
+
+    exists: bool = Field(description="Whether an account already exists for the email address.")
 
 
 class RegisterRequest(BaseSchema):
@@ -30,35 +86,33 @@ class RegisterRequest(BaseSchema):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 
     username: str = Field(
-        min_length=6,
-        max_length=18,
-        description="Username (6-18 chars). Allowed: letters, numbers, underscore, and CJK characters.",
-        examples=["john_doe", "user123"],
+        min_length=3,
+        max_length=32,
+        description="Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.",
+        examples=["jasar", "team-owner"],
     )
-    email: EmailStr | None = Field(default=None, description="Email address.", examples=["user@example.com"])
+    email: EmailStr = Field(description="Email address.", examples=["user@example.com"])
     password: str = Field(min_length=8, max_length=128, description="Password (min 8 chars).")
-    confirm_password: str = Field(min_length=8, max_length=128, description="Confirm password.")
-    display_name: str | None = Field(default=None, max_length=64, description="Display name.")
+    display_name: str = Field(min_length=1, max_length=64, description="Display name.")
 
     @field_validator("username")
     @classmethod
     def validate_username(cls, value: str) -> str:
-        if not re.match(r"^[a-zA-Z0-9_\u4e00-\u9fa5]+$", value):
-            raise ValueError("Username may only contain letters, numbers, underscore, and CJK characters.")
-        return value.lower()
+        return _normalize_account_name(value)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str) -> str:
+        normalized = _normalize_display_name(value)
+        if normalized is None:
+            raise ValueError("Display name is required.")
+        return normalized
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, value: str) -> str:
         if not re.match(PASSWORD_REGEX, value):
             raise ValueError("Password must contain letters and numbers, and be 8-128 characters long.")
-        return value
-
-    @field_validator("confirm_password")
-    @classmethod
-    def passwords_match(cls, value: str, info) -> str:
-        if info.data.get("password") and value != info.data["password"]:
-            raise ValueError("Confirm password does not match password.")
         return value
 
 
@@ -162,7 +216,7 @@ class SetMyPasswordRequest(BaseSchema):
 class ForgotPasswordRequest(BaseSchema):
     """Forgot password request."""
 
-    identifier: str = Field(min_length=1, description="Username or email.")
+    email: EmailStr = Field(description="Email address.")
 
 
 class ResetPasswordRequest(BaseSchema):
@@ -233,16 +287,7 @@ class UpdateMyProfileRequest(BaseSchema):
     @field_validator("display_name")
     @classmethod
     def normalize_display_name(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        normalized = value.strip()
-        if not normalized:
-            return None
-        if not re.match(r"^[a-zA-Z0-9_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5 ._-]*$", normalized):
-            raise ValueError(
-                "Display name may only contain letters, numbers, underscore, CJK characters, space, dot and hyphen."
-            )
-        return normalized
+        return _normalize_display_name(value)
 
 
 class AvatarUploadInitRequest(BaseSchema):

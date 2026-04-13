@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
@@ -32,10 +32,14 @@ import type {
   BootstrapFormValues,
   BootstrapPaneProps,
   InstanceRepairRequiredPaneProps,
+  LoginEmailCodeFormValues,
+  LoginEmailCodePaneSeed,
   LoginFormValues,
+  LoginPaneSeed,
   LoginTwoFactorFormValues,
   LoginViewProps,
   RegisterFormValues,
+  RegisterPaneSeed,
 } from "../types";
 
 const loginRouteApi = getRouteApi("/login/");
@@ -115,6 +119,10 @@ export function useLoginPage(): LoginPageState {
     redirect: challengeRedirect,
     source: challengeSource,
   });
+  const [loginSeed, setLoginSeed] = useState<LoginPaneSeed | null>(null);
+  const [loginEmailCodeSeed, setLoginEmailCodeSeed] = useState<LoginEmailCodePaneSeed | null>(null);
+  const [registerSeed, setRegisterSeed] = useState<RegisterPaneSeed | null>(null);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const runtime = useSystemRuntime();
@@ -131,28 +139,41 @@ export function useLoginPage(): LoginPageState {
   const effectiveMode =
     runtime.publicRegisterEnabled === false ? resolveLoginMode(mode, false) : mode;
 
+  const emailCheckMutation = useMutation({
+    mutationFn: async (email: string) => authApi.emailCheck({ email }),
+    onError: notifyError,
+  });
   const loginMutation = useMutation({
     mutationFn: async (values: LoginFormValues) =>
-      authApi.login({ identifier: values.account, password: values.password }),
+      authApi.login({ email: values.email, password: values.password }),
     onError: (error) => {
       if (isHandledTwoFactorError(error)) return;
       notifyError(error);
     },
   });
-
+  const loginEmailCodeRequestMutation = useMutation({
+    mutationFn: async (email: string) => authApi.requestLoginEmailCode({ email }),
+  });
+  const loginEmailCodeVerifyMutation = useMutation({
+    mutationFn: async (values: LoginEmailCodeFormValues) =>
+      authApi.verifyLoginEmailCode({ email: values.email, code: values.code }),
+    onError: (error) => {
+      if (isHandledTwoFactorError(error)) return;
+    },
+  });
   const loginTwoFactorMutation = useMutation({
     mutationFn: async (values: { twoFactorToken: string; code?: string; backupCode?: string }) =>
       authApi.loginTwoFactor(values),
   });
-
   const registerMutation = useMutation({
     mutationFn: async (values: RegisterFormValues) =>
       authApi.register({
         username: values.username,
         email: values.email,
         password: values.password,
-        confirm_password: values.confirmPassword,
+        display_name: values.displayName.trim(),
       }),
+    onError: notifyError,
   });
   const bootstrapMutation = useMutation({
     mutationFn: async (values: BootstrapFormValues) =>
@@ -160,19 +181,18 @@ export function useLoginPage(): LoginPageState {
         username: values.username,
         email: values.email,
         password: values.password,
-        confirm_password: values.confirmPassword,
-        ...(values.displayName.trim() ? { display_name: values.displayName.trim() } : {}),
+        display_name: values.displayName.trim(),
       }),
+    onError: notifyError,
   });
-
   const ssoExchangeMutation = useMutation({
     mutationFn: async (code: string) => authSsoApi.exchangeSSOCode(code),
     retry: false,
     meta: { silent: true },
   });
-
   const forgotPasswordMutation = useMutation({
-    mutationFn: async (identifier: string) => authApi.forgotPassword({ identifier }),
+    mutationFn: async (email: string) => authApi.forgotPassword({ email }),
+    onError: notifyError,
   });
 
   const navigateAfterAuth = useCallback(
@@ -193,7 +213,7 @@ export function useLoginPage(): LoginPageState {
       }
       await navigate({ to: decision.path, replace: true });
     },
-    [lastWorkspaceId, navigate, redirectTo, setCurrentWorkspaceId, t],
+    [lastWorkspaceId, navigate, redirectTo, setCurrentWorkspaceId],
   );
 
   const startTwoFactorChallenge = useCallback(
@@ -238,6 +258,7 @@ export function useLoginPage(): LoginPageState {
   useEffect(() => {
     if (runtime.publicRegisterEnabled !== false) return;
     if (mode !== "register") return;
+    setRegisterSeed(null);
     void navigate({
       to: "/login",
       search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: "login" },
@@ -291,9 +312,55 @@ export function useLoginPage(): LoginPageState {
     });
   }, [effectiveMode, navigate, oauthError, redirectTo, t]);
 
-  const onModeChange = (next: LoginMode) => {
+  const onModeChange = (
+    next: LoginMode,
+    options?: {
+      email?: string;
+      step?: "email" | "password" | "details" | "verify";
+      keepSession?: boolean;
+    },
+  ) => {
     const nextMode = resolveLoginMode(next, publicRegisterEnabled);
+
+    setLoginSeed(
+      nextMode === "login" && options?.email
+        ? { email: options.email, step: options.step === "password" ? "password" : "email" }
+        : null,
+    );
+    setLoginEmailCodeSeed(
+      nextMode === "email-code" && options?.email
+        ? {
+            email: options.email,
+            autoRequest: options.step === "verify",
+            keepSession: options.keepSession ?? keepSession,
+          }
+        : null,
+    );
+    setRegisterSeed(
+      nextMode === "register" && options?.email
+        ? { email: options.email, step: options.step === "details" ? "details" : "email" }
+        : null,
+    );
+    setForgotPasswordEmail(
+      nextMode === "forgot-password" ? options?.email?.trim() || undefined : undefined,
+    );
+
     void navigate({ to: "/login", search: { redirect: redirectTo, mode: nextMode } });
+  };
+
+  const onLoginEmailSubmit = async (email: string) => {
+    const result = await emailCheckMutation.mutateAsync(email);
+    return result.exists;
+  };
+
+  const onRegisterEmailSubmit = async (email: string) => {
+    const result = await emailCheckMutation.mutateAsync(email);
+    return result.exists;
+  };
+
+  const onBootstrapEmailSubmit = async (email: string) => {
+    const result = await emailCheckMutation.mutateAsync(email);
+    return result.exists;
   };
 
   const onLoginFinish = async (values: LoginFormValues) => {
@@ -315,6 +382,34 @@ export function useLoginPage(): LoginPageState {
       ) {
         return;
       }
+    }
+  };
+
+  const onLoginEmailCodeRequest = async (email: string) =>
+    loginEmailCodeRequestMutation.mutateAsync(email);
+
+  const onLoginEmailCodeFinish = async (values: LoginEmailCodeFormValues) => {
+    const keepSessionForEmailCode = loginEmailCodeSeed?.keepSession ?? keepSession;
+
+    try {
+      const tokens = await loginEmailCodeVerifyMutation.mutateAsync(values);
+      clearChallenge();
+      applyLogin(tokens, { keepSession: keepSessionForEmailCode });
+      void queryClient.cancelQueries();
+      queryClient.clear();
+      notifySuccessText(t("auth:LOGIN_SUCCESS"));
+      await navigateAfterAuth();
+    } catch (error) {
+      if (
+        startTwoFactorChallenge(error, {
+          keepSession: keepSessionForEmailCode,
+          redirect: redirectTo,
+          source: "email-code",
+        })
+      ) {
+        return;
+      }
+      throw error;
     }
   };
 
@@ -345,16 +440,17 @@ export function useLoginPage(): LoginPageState {
   };
 
   const onCancelTwoFactorChallenge = () => {
+    const nextMode = activeChallenge?.source === "email-code" ? "email-code" : "login";
     clearChallenge();
     void navigate({
       to: "/login",
-      search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: "login" },
+      search: { ...(redirectTo ? { redirect: redirectTo } : {}), mode: nextMode },
       replace: true,
     });
   };
 
-  const onForgotPassword = async (identifier: string) => {
-    await forgotPasswordMutation.mutateAsync(identifier);
+  const onForgotPassword = async (email: string) => {
+    await forgotPasswordMutation.mutateAsync(email);
     notifyInfoText(t("auth:RESET_SENT"));
   };
 
@@ -363,7 +459,7 @@ export function useLoginPage(): LoginPageState {
     try {
       await registerMutation.mutateAsync(values);
       const tokens = await loginMutation.mutateAsync({
-        account: values.email || values.username,
+        email: values.email,
         password: values.password,
         keepSession: true,
       });
@@ -385,18 +481,15 @@ export function useLoginPage(): LoginPageState {
       }
     }
   };
+
   const onBootstrapFinish = async (values: BootstrapFormValues) => {
-    try {
-      const tokens = await bootstrapMutation.mutateAsync(values);
-      clearChallenge();
-      applyLogin(tokens, { keepSession: true });
-      void queryClient.cancelQueries();
-      queryClient.clear();
-      notifySuccessText(t("auth:INSTANCE_BOOTSTRAP_SUCCESS"));
-      await navigateAfterAuth();
-    } catch (error) {
-      notifyError(error);
-    }
+    const tokens = await bootstrapMutation.mutateAsync(values);
+    clearChallenge();
+    applyLogin(tokens, { keepSession: true });
+    void queryClient.cancelQueries();
+    queryClient.clear();
+    notifySuccessText(t("auth:INSTANCE_BOOTSTRAP_SUCCESS"));
+    await navigateAfterAuth();
   };
 
   const runtimeLoading = !runtimeReady;
@@ -405,7 +498,9 @@ export function useLoginPage(): LoginPageState {
     return {
       entry: "bootstrap",
       props: {
+        onEmailSubmit: onBootstrapEmailSubmit,
         onSubmit: onBootstrapFinish,
+        emailLoading: emailCheckMutation.isPending,
         loading: bootstrapMutation.isPending,
       },
     };
@@ -426,13 +521,25 @@ export function useLoginPage(): LoginPageState {
     props: {
       mode: effectiveMode,
       onModeChange,
+      onLoginEmailSubmit,
       onLoginSubmit: onLoginFinish,
+      loginSeed,
+      onLoginEmailCodeRequest,
+      onLoginEmailCodeVerify: onLoginEmailCodeFinish,
+      loginEmailCodeSeed,
+      loginEmailLoading: emailCheckMutation.isPending,
       loginLoading: loginMutation.isPending || ssoExchangeMutation.isPending,
+      loginEmailCodeRequestLoading: loginEmailCodeRequestMutation.isPending,
+      loginEmailCodeVerifyLoading: loginEmailCodeVerifyMutation.isPending,
       initialKeepSession: keepSession,
       redirect: redirectTo,
       onForgotPasswordSubmit: onForgotPassword,
+      forgotPasswordInitialEmail: forgotPasswordEmail,
       forgotPasswordLoading: forgotPasswordMutation.isPending,
+      onRegisterEmailSubmit,
       onRegisterSubmit: onRegisterFinish,
+      registerSeed,
+      registerEmailLoading: emailCheckMutation.isPending,
       registerLoading: registerMutation.isPending || runtimeLoading,
       publicRegisterEnabled,
       challenge: activeChallenge,

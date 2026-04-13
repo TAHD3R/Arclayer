@@ -100,6 +100,10 @@ class AuthService(BaseService):
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
 
+    @staticmethod
+    def _normalize_email(email: str) -> str:
+        return email.strip().lower()
+
     def _build_session_metadata(
         self, *, request_context: AuthRequestContext | None, auth_method: str
     ) -> dict[str, object | None]:
@@ -743,6 +747,9 @@ class AuthService(BaseService):
             is_super_admin=is_super_admin,
         )
 
+    async def email_exists(self, *, email: str) -> bool:
+        return await self.user_repo.exists_email(self._normalize_email(email))
+
     async def refresh(
         self,
         *,
@@ -927,9 +934,9 @@ class AuthService(BaseService):
         if self.refresh_store is not None:
             await self.refresh_store.revoke_all(self._coerce_user_id(user))
 
-    async def forgot_password(self, *, identifier: str) -> tuple[str, int, str, UUID] | None:
+    async def forgot_password(self, *, email: str) -> tuple[str, int, str, UUID] | None:
         store = self._require_reset_store()
-        user = await self.user_repo.get_by_identifier(identifier)
+        user = await self.user_repo.get_by_email(self._normalize_email(email))
         if not user or not self.user_repo.is_active(user):
             return None
         email_raw = getattr(user, "email", None)
@@ -1191,7 +1198,7 @@ class AuthService(BaseService):
     async def request_password_reset(
         self,
         *,
-        identifier: str,
+        email: str,
     ) -> tuple[ResetTokenPayload | None, tuple[str, int, str, UUID] | None]:
         # Password reset is a critical flow: without email, the user can't complete the loop.
         # To avoid "fake success" and confusion, fail fast when email sending is disabled.
@@ -1201,7 +1208,7 @@ class AuthService(BaseService):
                 error="MAIL_DISABLED",
             )
 
-        issued = await self.forgot_password(identifier=identifier)
+        issued = await self.forgot_password(email=email)
         token_payload = None
         if issued and self.settings.app_env in {"development", "test"}:
             token, ttl, _recipient, _user_id = issued

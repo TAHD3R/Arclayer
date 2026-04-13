@@ -188,6 +188,16 @@ def _build(monkeypatch) -> tuple[AuthService, AuthSessionService, FakeValkeyClie
     repo = FakeUserRepository(user)
     auth = AuthService(settings, valkey=valkey, user_repo=repo)
     sessions = AuthSessionService(settings, valkey=valkey)
+
+    async def _ensure_for_login(_self, *, user_id: UUID):
+        assert user_id == user.id
+        return None
+
+    monkeypatch.setattr(
+        "src.modules.auth.service.PersonalSpaceService.ensure_for_login",
+        _ensure_for_login,
+        raising=True,
+    )
     return auth, sessions, valkey, user
 
 

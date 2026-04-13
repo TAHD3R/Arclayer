@@ -9,7 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
-from src.modules.auth.repository import UserRepository
+from src.modules.auth.repository import EmailLoginCodeStore, UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.auth.two_factor.totp import generate_totp_code
 from src.settings.crypto import ensure_master_key
@@ -38,10 +38,10 @@ def _access_token(tokens: dict) -> str:
     return str(tokens.get("accessToken") or tokens.get("access_token") or "")
 
 
-async def _login(client: AsyncClient, *, identifier: str, password: str, headers: dict[str, str] | None = None) -> dict:
+async def _login(client: AsyncClient, *, email: str, password: str, headers: dict[str, str] | None = None) -> dict:
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"identifier": identifier, "password": password},
+        json={"email": email, "password": password},
         headers=headers,
     )
     assert resp.status_code == 200, resp.text
@@ -70,7 +70,15 @@ async def test_auth_security_endpoints_two_factor_flow(
     async with app.router.lifespan_context(app):
         await verify_db_ready(settings)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            tokens = await _login(client, identifier=user.username, password="pass1234")
+            email_check = await client.post("/api/v1/auth/email-check", json={"email": user.email})
+            assert email_check.status_code == 200, email_check.text
+            assert (email_check.json().get("data") or {}).get("exists") is True
+
+            missing_check = await client.post("/api/v1/auth/email-check", json={"email": "missing@example.com"})
+            assert missing_check.status_code == 200, missing_check.text
+            assert (missing_check.json().get("data") or {}).get("exists") is False
+
+            tokens = await _login(client, email=user.email, password="pass1234")
             auth_headers = {"Authorization": f"Bearer {_access_token(tokens)}"}
 
             cap_before = await client.get("/api/v1/auth/2fa/capabilities", headers=auth_headers)
@@ -109,7 +117,7 @@ async def test_auth_security_endpoints_two_factor_flow(
 
             challenged = await client.post(
                 "/api/v1/auth/login",
-                json={"identifier": user.username, "password": "pass1234"},
+                json={"email": user.email, "password": "pass1234"},
             )
             assert challenged.status_code == 401, challenged.text
             assert challenged.json().get("error") == "TWO_FACTOR_REQUIRED"
@@ -146,6 +154,63 @@ async def test_auth_security_endpoints_two_factor_flow(
             assert (status_disabled.json().get("data") or {}).get("enabled") is False
 
 
+async def test_auth_email_code_login_flow(
+    prepared_db,
+    integration_valkey_settings,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+    _set_test_env(monkeypatch, base_dir=tmp_path)
+
+    sent: list[str] = []
+
+    class DummyMail:
+        async def send_message(self, message, **kwargs):  # type: ignore[no-untyped-def]
+            recipients = getattr(message, "recipients", None)
+            if recipients:
+                sent.append(str(recipients[0].email))
+
+    async def _dummy_get_fast_mail(self):  # type: ignore[no-untyped-def]
+        return DummyMail()
+
+    monkeypatch.setattr("src.common.email.service.EmailService._get_fast_mail", _dummy_get_fast_mail)
+
+    settings = get_settings()
+    ensure_master_key(Path(settings.security.master_key_path))
+    user = await _create_user(password="pass1234")
+
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            request_resp = await client.post(
+                "/api/v1/auth/login/email-code/request",
+                json={"email": user.email},
+            )
+            assert request_resp.status_code == 200, request_resp.text
+            request_data = request_resp.json().get("data") or {}
+            assert (request_data.get("retryAfter") or request_data.get("retry_after")) == 20
+            assert sent == [user.email]
+
+            store = EmailLoginCodeStore(app.state.valkey)
+            record = await store.get(email=user.email)
+            assert isinstance(record, dict)
+            code = str(record.get("code") or "")
+            assert code
+
+            verify_resp = await client.post(
+                "/api/v1/auth/login/email-code/verify",
+                json={"email": user.email, "code": code},
+            )
+            assert verify_resp.status_code == 200, verify_resp.text
+            payload = verify_resp.json().get("data") or {}
+            assert _access_token(payload)
+
+
 async def test_auth_sessions_endpoints_include_metadata_and_revoke_others(
     prepared_db,
     integration_valkey_settings,
@@ -168,7 +233,7 @@ async def test_auth_sessions_endpoints_include_metadata_and_revoke_others(
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             await _login(
                 client,
-                identifier=user.username,
+                email=user.email,
                 password="pass1234",
                 headers={
                     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4)",
@@ -177,7 +242,7 @@ async def test_auth_sessions_endpoints_include_metadata_and_revoke_others(
             )
             latest_tokens = await _login(
                 client,
-                identifier=user.username,
+                email=user.email,
                 password="pass1234",
                 headers={
                     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/123.0.0.0",

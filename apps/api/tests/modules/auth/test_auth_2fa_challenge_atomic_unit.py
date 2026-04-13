@@ -148,6 +148,9 @@ class FakeUserRepository:
     async def get_by_identifier(self, identifier: str) -> FakeUser | None:
         return self._user if identifier == self._user.username else None
 
+    async def get_by_email(self, email: str) -> FakeUser | None:
+        return self._user if email == self._user.email else None
+
     async def get_by_id(self, user_id: UUID) -> FakeUser | None:
         return self._user if self._user.id == user_id else None
 
@@ -207,7 +210,7 @@ def _build(monkeypatch) -> tuple[AuthLoginService, FakeValkeyClient]:
     monkeypatch.setenv("JWT_SECRET", "test-secret")
     settings = get_settings()
 
-    user = FakeUser(id=uuid4(), username="demo")
+    user = FakeUser(id=uuid4(), username="demo", email="demo@example.com")
     user.credential = FakeCredential(password_hash=hash_password("pass", settings.auth))
 
     valkey = FakeValkeyClient()
@@ -223,7 +226,7 @@ async def test_two_factor_challenge_cannot_be_reused_even_if_record_still_exists
     service, valkey = _build(monkeypatch)
 
     with pytest.raises(Unauthorized) as exc:
-        await service.login(identifier="demo", password="pass")
+        await service.login(email="demo@example.com", password="pass")
 
     assert exc.value.meta is not None
     token = str(exc.value.meta["two_factor_token"])

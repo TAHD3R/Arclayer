@@ -51,7 +51,7 @@ async def test_forgot_password_fails_fast_when_mail_disabled(
         )
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post("/api/v1/auth/forgot-password", json={"identifier": "any@example.com"})
+            resp = await client.post("/api/v1/auth/forgot-password", json={"email": "any@example.com"})
             assert resp.status_code == 400
             assert resp.json().get("error") == "MAIL_DISABLED"
 
@@ -95,7 +95,7 @@ async def test_forgot_password_works_when_mail_enabled(
         await _create_user_with_email(email="user@example.com")
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post("/api/v1/auth/forgot-password", json={"identifier": "user@example.com"})
+            resp = await client.post("/api/v1/auth/forgot-password", json={"email": "user@example.com"})
             assert resp.status_code == 200
             # Data may be hidden depending on environment; ensure endpoint succeeds and sends email.
             # BackgroundTasks should send the email via DummyMail.

@@ -1,7 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { AnchorHTMLAttributes } from "react";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 
+import { ApiError } from "@/lib/http";
 import { LoginView } from "@/pages/login/components/login-view";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -46,12 +47,16 @@ function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginVie
     <LoginView
       mode="login"
       onModeChange={() => undefined}
-      onLoginSubmit={() => undefined}
+      onLoginEmailSubmit={async () => true}
+      onLoginSubmit={async () => undefined}
+      onLoginEmailCodeRequest={async () => ({ expiresIn: 600, retryAfter: 0 })}
+      onLoginEmailCodeVerify={async () => undefined}
       onForgotPasswordSubmit={async () => undefined}
-      onRegisterSubmit={() => undefined}
+      onRegisterEmailSubmit={async () => false}
+      onRegisterSubmit={async () => undefined}
       publicRegisterEnabled
       challenge={null}
-      onLoginTwoFactorSubmit={() => undefined}
+      onLoginTwoFactorSubmit={async () => undefined}
       onCancelTwoFactorChallenge={() => undefined}
       {...overrides}
     />,
@@ -74,19 +79,14 @@ describe("LoginView register entry visibility", () => {
 });
 
 describe("LoginView auth pane hierarchy", () => {
-  test("renders login pane with pane-local branding, titled fields, and legal copy under submit", () => {
+  test("renders login pane email-first with pane-local branding and legal copy under submit", () => {
     renderLoginView();
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
-    expect(screen.getByText("auth:FIELD_ACCOUNT_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
 
-    const passwordRow = screen.getByText("auth:FIELD_PASSWORD_LABEL").parentElement;
-    expect(passwordRow).not.toBeNull();
-    expect(
-      within(passwordRow as HTMLDivElement).getByText("auth:FORGOT_PASSWORD"),
-    ).toBeInTheDocument();
-
-    const submitButton = screen.getByRole("button", { name: "auth:LOGIN_BUTTON" });
+    const submitButton = screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" });
     const oauthSection = screen.getByTestId("oauth-section");
     const registerEntry = screen.getByText("auth:NO_ACCOUNT").parentElement;
     const legalCopy = screen.getByText("auth:LEGAL_LOGIN");
@@ -106,16 +106,16 @@ describe("LoginView auth pane hierarchy", () => {
     ).toBeTruthy();
   });
 
-  test("renders register pane with titled fields and legal copy under submit", () => {
+  test("renders register pane email-first with legal copy under submit", () => {
     renderLoginView({ mode: "register" });
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
     expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("auth:FIELD_USERNAME_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("auth:FIELD_PASSWORD_LABEL")).toBeInTheDocument();
-    expect(screen.getByText("auth:FIELD_CONFIRM_PASSWORD_LABEL")).toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_DISPLAY_NAME_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_USERNAME_LABEL")).not.toBeInTheDocument();
+    expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
 
-    const submitButton = screen.getByRole("button", { name: "auth:REGISTER_BUTTON" });
+    const submitButton = screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" });
     const oauthSection = screen.getByTestId("oauth-section");
     const signInEntry = screen.getByText("auth:HAVE_ACCOUNT").parentElement;
     const legalCopy = screen.getByText("auth:LEGAL_REGISTER");
@@ -140,11 +140,47 @@ describe("LoginView auth pane hierarchy", () => {
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
     expect(screen.getByText("auth:FORGOT_PASSWORD_MODAL_TITLE")).toBeInTheDocument();
-    expect(screen.getByText("auth:FIELD_ACCOUNT_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "auth:FORGOT_PASSWORD_SUBMIT_BUTTON" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "auth:BACK_TO_LOGIN" })).toBeInTheDocument();
+  });
+
+  test("renders email-code pane as an inline auth pane with legal copy under the action", () => {
+    renderLoginView({
+      mode: "email-code",
+      loginEmailCodeSeed: { email: "demo@example.com" },
+    });
+
+    expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
+    expect(screen.getByText("auth:LOGIN_EMAIL_CODE_TITLE")).toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
+
+    const submitButton = screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_SEND_BUTTON" });
+    const oauthSection = screen.getByTestId("oauth-section");
+    const legalCopy = screen.getByText("auth:LEGAL_LOGIN");
+
+    expect(
+      submitButton.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      oauthSection.compareDocumentPosition(legalCopy) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("shows inline request recovery when auto-requesting an email code fails", async () => {
+    renderLoginView({
+      mode: "email-code",
+      loginEmailCodeSeed: { email: "demo@example.com", autoRequest: true },
+      onLoginEmailCodeRequest: async () => {
+        throw new ApiError({ status: 429, message: "Too many requests" });
+      },
+    });
+
+    expect(await screen.findByText("Too many requests")).toBeInTheDocument();
+    expect(screen.getByLabelText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
+    expect(screen.getByTestId("oauth-section")).toBeInTheDocument();
   });
 
   test("renders two-factor pane with pane-local branding and legal copy under verify", () => {

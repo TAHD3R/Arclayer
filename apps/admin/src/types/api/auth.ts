@@ -85,12 +85,22 @@ export type ResetTokenPayload = {
   expires_in: number;
 };
 
+export type EmailCheckOut = {
+  exists: boolean;
+};
+
+export type LoginEmailCodeRequestOut = {
+  expiresIn: number;
+  retryAfter: number;
+  expires_in?: number;
+  retry_after?: number;
+};
+
 export type RegisterPayload = {
   username: string;
-  email?: string;
+  email: string;
   password: string;
-  confirm_password: string;
-  display_name?: string;
+  display_name: string;
 };
 
 export type TwoFactorChallengeMeta = {

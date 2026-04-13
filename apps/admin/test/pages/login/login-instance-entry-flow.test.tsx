@@ -15,6 +15,7 @@ type RuntimeState = {
 
 const {
   navigateMock,
+  emailCheckMock,
   bootstrapInstanceMock,
   queryClientClearMock,
   queryClientCancelQueriesMock,
@@ -23,6 +24,7 @@ const {
   workspaceState,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
+  emailCheckMock: vi.fn(),
   bootstrapInstanceMock: vi.fn(),
   queryClientClearMock: vi.fn(),
   queryClientCancelQueriesMock: vi.fn(),
@@ -56,7 +58,10 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/api/auth", () => ({
+  emailCheck: (...args: unknown[]) => emailCheckMock(...args),
   login: vi.fn(),
+  requestLoginEmailCode: vi.fn(),
+  verifyLoginEmailCode: vi.fn(),
   register: vi.fn(),
   forgotPassword: vi.fn(),
   refresh: vi.fn(),
@@ -153,6 +158,7 @@ beforeEach(() => {
 
   currentSearch = { mode: "login" };
   bootstrapInstanceMock.mockReset();
+  emailCheckMock.mockReset();
   navigateMock.mockReset();
   authState.applyLogin.mockReset();
   queryClientClearMock.mockReset();
@@ -175,6 +181,7 @@ describe("LoginPage instance entry flow", () => {
   });
 
   it("submits bootstrap form and continues with the issued session", async () => {
+    emailCheckMock.mockResolvedValueOnce({ exists: false });
     bootstrapInstanceMock.mockResolvedValueOnce({
       access_token: "access-token",
       refresh_token: "refresh-token",
@@ -186,11 +193,13 @@ describe("LoginPage instance entry flow", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("auth:FIELD_DISPLAY_NAME_LABEL"), "Founder");
     await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "founder@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:INSTANCE_BOOTSTRAP_NEXT_BUTTON" }));
+    expect(emailCheckMock).toHaveBeenCalledWith({ email: "founder@example.com" });
+
+    await user.type(await screen.findByLabelText("auth:FIELD_DISPLAY_NAME_LABEL"), "Founder");
     await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "founder01");
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "bootstrap123");
-    await user.type(screen.getByLabelText("auth:FIELD_CONFIRM_PASSWORD_LABEL"), "bootstrap123");
     await user.click(screen.getByRole("button", { name: "auth:INSTANCE_BOOTSTRAP_BUTTON" }));
 
     await waitFor(() => {
@@ -198,7 +207,6 @@ describe("LoginPage instance entry flow", () => {
         username: "founder01",
         email: "founder@example.com",
         password: "bootstrap123",
-        confirm_password: "bootstrap123",
         display_name: "Founder",
       });
     });

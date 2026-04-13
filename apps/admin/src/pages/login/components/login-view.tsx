@@ -6,6 +6,7 @@ import type { LoginMode } from "@/lib/auth/auth-mode";
 
 import type { LoginViewProps } from "../types";
 import { ForgotPasswordPane } from "./forgot-password-pane";
+import { LoginEmailCodePane } from "./login-email-code-pane";
 import { LoginPane } from "./login-pane";
 import { LoginTwoFactorPane } from "./login-two-factor-pane";
 import { RegisterPane } from "./register-pane";
@@ -15,13 +16,25 @@ type LoginViewPane = LoginMode | "two-factor";
 export function LoginView({
   mode,
   onModeChange,
+  onLoginEmailSubmit,
   onLoginSubmit,
+  loginSeed,
+  onLoginEmailCodeRequest,
+  onLoginEmailCodeVerify,
+  loginEmailCodeSeed,
+  loginEmailLoading = false,
   loginLoading = false,
+  loginEmailCodeRequestLoading = false,
+  loginEmailCodeVerifyLoading = false,
   initialKeepSession = false,
   redirect,
   onForgotPasswordSubmit,
+  forgotPasswordInitialEmail,
   forgotPasswordLoading = false,
+  onRegisterEmailSubmit,
   onRegisterSubmit,
+  registerSeed,
+  registerEmailLoading = false,
   registerLoading = false,
   publicRegisterEnabled = true,
   challenge,
@@ -95,28 +108,55 @@ export function LoginView({
                 />
               ) : currentPane === "login" ? (
                 <LoginPane
+                  onEmailSubmit={onLoginEmailSubmit}
                   onSubmit={onLoginSubmit}
+                  emailCheckLoading={loginEmailLoading}
                   loading={loginLoading}
                   initialKeepSession={initialKeepSession}
+                  loginSeed={loginSeed}
                   redirect={redirect}
-                  onForgotPassword={() => onModeChange("forgot-password")}
-                  onSwitchToRegister={() => onModeChange("register")}
+                  onForgotPassword={(email) => onModeChange("forgot-password", { email })}
+                  onSwitchToEmailCode={(email, keepSession) =>
+                    onModeChange("email-code", { email, step: "verify", keepSession })
+                  }
+                  onSwitchToRegister={(email, step) => onModeChange("register", { email, step })}
                   publicRegisterEnabled={publicRegisterEnabled}
+                  reducedMotion={reducedMotion}
+                  itemVariants={itemVariants}
+                />
+              ) : currentPane === "email-code" ? (
+                <LoginEmailCodePane
+                  seed={loginEmailCodeSeed}
+                  requestLoading={loginEmailCodeRequestLoading ?? false}
+                  verifyLoading={loginEmailCodeVerifyLoading ?? false}
+                  onRequestCode={onLoginEmailCodeRequest}
+                  onSubmit={onLoginEmailCodeVerify}
+                  onBackToPassword={(email) =>
+                    onModeChange("login", {
+                      email,
+                      step: "password",
+                      keepSession: loginEmailCodeSeed?.keepSession,
+                    })
+                  }
                   reducedMotion={reducedMotion}
                   itemVariants={itemVariants}
                 />
               ) : currentPane === "register" ? (
                 <RegisterPane
+                  onEmailSubmit={onRegisterEmailSubmit}
                   onSubmit={onRegisterSubmit}
+                  emailCheckLoading={registerEmailLoading}
                   loading={registerLoading}
+                  registerSeed={registerSeed}
                   redirect={redirect}
-                  onSwitchToLogin={() => onModeChange("login")}
+                  onSwitchToLogin={(email, step) => onModeChange("login", { email, step })}
                   reducedMotion={reducedMotion}
                   itemVariants={itemVariants}
                 />
               ) : (
                 <ForgotPasswordPane
                   onSubmit={onForgotPasswordSubmit}
+                  initialEmail={forgotPasswordInitialEmail}
                   loading={forgotPasswordLoading}
                   onBackToLogin={() => onModeChange("login")}
                   reducedMotion={reducedMotion}

@@ -6,11 +6,10 @@ export interface BootstrapFormValues {
   email: string;
   username: string;
   password: string;
-  confirmPassword: string;
 }
 
 export interface LoginFormValues {
-  account: string;
+  email: string;
   password: string;
   keepSession: boolean;
 }
@@ -20,33 +19,83 @@ export interface LoginTwoFactorFormValues {
   backupCode?: string;
 }
 
+export interface LoginEmailCodeFormValues {
+  email: string;
+  code: string;
+}
+
+export interface LoginEmailCodeRequestResult {
+  expiresIn: number;
+  retryAfter: number;
+  expires_in?: number;
+  retry_after?: number;
+}
+
 export interface RegisterFormValues {
   email: string;
+  displayName: string;
   username: string;
   password: string;
-  confirmPassword: string;
+}
+
+export interface LoginPaneSeed {
+  email: string;
+  step: "email" | "password";
+}
+
+export interface RegisterPaneSeed {
+  email: string;
+  step: "email" | "details";
+}
+
+export interface LoginEmailCodePaneSeed {
+  email: string;
+  autoRequest?: boolean;
+  keepSession?: boolean;
+}
+
+export type AuthModeStep = "email" | "password" | "details" | "verify";
+
+export interface LoginModeChangeOptions {
+  email?: string;
+  step?: AuthModeStep;
+  keepSession?: boolean;
 }
 
 export interface LoginViewProps {
   mode: LoginMode;
-  onModeChange: (mode: LoginMode) => void;
-  onLoginSubmit: (values: LoginFormValues) => void;
+  onModeChange: (mode: LoginMode, options?: LoginModeChangeOptions) => void;
+  onLoginEmailSubmit: (email: string) => Promise<boolean>;
+  onLoginSubmit: (values: LoginFormValues) => Promise<void>;
+  loginSeed?: LoginPaneSeed | null;
+  loginEmailLoading?: boolean;
   loginLoading?: boolean;
+  onLoginEmailCodeRequest: (email: string) => Promise<LoginEmailCodeRequestResult>;
+  onLoginEmailCodeVerify: (values: LoginEmailCodeFormValues) => Promise<void>;
+  loginEmailCodeSeed?: LoginEmailCodePaneSeed | null;
+  loginEmailCodeRequestLoading?: boolean;
+  loginEmailCodeVerifyLoading?: boolean;
   initialKeepSession?: boolean;
   redirect?: string | undefined;
-  onForgotPasswordSubmit: (identifier: string) => Promise<void>;
+  onForgotPasswordSubmit: (email: string) => Promise<void>;
+  forgotPasswordInitialEmail?: string;
   forgotPasswordLoading?: boolean;
-  onRegisterSubmit: (values: RegisterFormValues) => void;
+  onRegisterEmailSubmit: (email: string) => Promise<boolean>;
+  onRegisterSubmit: (values: RegisterFormValues) => Promise<void>;
+  registerSeed?: RegisterPaneSeed | null;
+  registerEmailLoading?: boolean;
   registerLoading?: boolean;
   publicRegisterEnabled?: boolean;
   challenge: AuthChallengeSnapshot | null;
-  onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => void;
+  onLoginTwoFactorSubmit: (values: LoginTwoFactorFormValues) => Promise<void>;
   onCancelTwoFactorChallenge: () => void;
   twoFactorLoading?: boolean;
 }
 
 export interface BootstrapPaneProps {
-  onSubmit: (values: BootstrapFormValues) => void;
+  onEmailSubmit: (email: string) => Promise<boolean>;
+  onSubmit: (values: BootstrapFormValues) => Promise<void>;
+  emailLoading?: boolean;
   loading?: boolean;
 }
 

@@ -53,6 +53,7 @@ class TwoFactorChallengeStore:
             "issued_at": now_ts,
             "expires_at": now_ts + ttl,
             "attempts": 0,
+            "auth_method": (auth_method or "password").strip() or "password",
         }
         await self._client.set_json(self._key(token), record, ex=ttl)
         return token, ttl

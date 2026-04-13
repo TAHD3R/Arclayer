@@ -48,4 +48,35 @@ describe("AuthOauthButtons", () => {
       "text-footnote",
     );
   });
+
+  it("renders leading auth actions before oauth providers", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthOauthButtons
+          leadingActions={[
+            {
+              key: "email-code",
+              label: "auth:LOGIN_EMAIL_CODE_ACTION",
+              onClick: vi.fn(),
+            },
+          ]}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
+    });
+
+    const buttons = screen.getAllByRole("button");
+    expect(buttons[0]).toHaveAccessibleName("auth:LOGIN_EMAIL_CODE_ACTION");
+  });
 });

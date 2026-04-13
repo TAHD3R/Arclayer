@@ -5,7 +5,7 @@ import { STORAGE_KEYS } from "@/constants/storage";
 
 const AUTH_CHALLENGE_STORE_VERSION = 1;
 
-export type AuthChallengeSource = "password" | "sso";
+export type AuthChallengeSource = "password" | "email-code" | "sso";
 
 export type AuthChallengeSnapshot = {
   twoFactorToken: string;

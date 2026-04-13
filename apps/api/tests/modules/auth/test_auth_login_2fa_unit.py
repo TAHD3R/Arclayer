@@ -142,6 +142,9 @@ class FakeUserRepository:
     async def get_by_identifier(self, identifier: str) -> FakeUser | None:
         return self._user if identifier == self._user.username else None
 
+    async def get_by_email(self, email: str) -> FakeUser | None:
+        return self._user if email == self._user.email else None
+
     async def get_by_id(self, user_id: UUID) -> FakeUser | None:
         return self._user if self._user.id == user_id else None
 
@@ -205,12 +208,22 @@ def _build_login_service(
     monkeypatch.setenv("JWT_SECRET", "test-secret")
     settings = get_settings()
 
-    user = FakeUser(id=uuid4(), username="demo")
+    user = FakeUser(id=uuid4(), username="demo", email="demo@example.com")
     user.credential = FakeCredential(password_hash=hash_password("pass", settings.auth))
 
     valkey = FakeValkeyClient()
     repo = FakeUserRepository(user)
     auth = AuthService(settings, valkey=valkey, user_repo=repo)
+
+    async def _ensure_for_login(_self, *, user_id: UUID):
+        assert user_id == user.id
+        return None
+
+    monkeypatch.setattr(
+        "src.modules.auth.service.PersonalSpaceService.ensure_for_login",
+        _ensure_for_login,
+        raising=True,
+    )
 
     two_factor = FakeTwoFactor(enabled=two_factor_enabled)
     login = AuthLoginService(settings, valkey=valkey, auth_service=auth, two_factor=two_factor)
@@ -221,7 +234,7 @@ async def test_login_returns_two_factor_challenge(monkeypatch) -> None:
     service, _, _ = _build_login_service(monkeypatch, two_factor_enabled=True)
 
     with pytest.raises(Unauthorized) as exc:
-        await service.login(identifier="demo", password="pass")
+        await service.login(email="demo@example.com", password="pass")
 
     assert exc.value.error == "TWO_FACTOR_REQUIRED"
     assert isinstance(exc.value.meta, dict)
@@ -233,7 +246,7 @@ async def test_complete_two_factor_login_issues_tokens(monkeypatch) -> None:
     service, valkey, user = _build_login_service(monkeypatch, two_factor_enabled=True)
 
     with pytest.raises(Unauthorized) as exc:
-        await service.login(identifier="demo", password="pass")
+        await service.login(email="demo@example.com", password="pass")
 
     assert exc.value.meta is not None
     token = str(exc.value.meta["two_factor_token"])
@@ -253,7 +266,7 @@ async def test_complete_two_factor_login_bumps_attempts(monkeypatch) -> None:
     service, valkey, _ = _build_login_service(monkeypatch, two_factor_enabled=True)
 
     with pytest.raises(Unauthorized) as exc:
-        await service.login(identifier="demo", password="pass")
+        await service.login(email="demo@example.com", password="pass")
 
     assert exc.value.meta is not None
     token = str(exc.value.meta["two_factor_token"])
@@ -264,3 +277,89 @@ async def test_complete_two_factor_login_bumps_attempts(monkeypatch) -> None:
     record = valkey._store.get(f"auth:2fa:challenge:{token}")
     assert isinstance(record, dict)
     assert int(record.get("attempts") or 0) == 1
+
+
+async def test_request_login_email_code_stores_code_and_returns_metadata(monkeypatch) -> None:
+    service, valkey, user = _build_login_service(monkeypatch, two_factor_enabled=False)
+    sent: list[dict[str, object]] = []
+
+    async def _fake_is_enabled() -> bool:
+        return True
+
+    async def _fake_send_login_code(*, recipient: str, code: str, expires_in: int, **kwargs) -> None:
+        sent.append({"recipient": recipient, "code": code, "expires_in": expires_in})
+
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_is_enabled)
+    monkeypatch.setattr(service.auth_service.email_service, "send_login_code", _fake_send_login_code)
+
+    metadata = await service.request_login_email_code(email="demo@example.com")
+
+    assert metadata.expires_in >= 60
+    assert metadata.retry_after == 20
+    record = valkey._store.get("auth:login_code:email:demo@example.com")
+    assert isinstance(record, dict)
+    assert record.get("user_id") == str(user.id)
+    assert sent == [
+        {
+            "recipient": "demo@example.com",
+            "code": str(record.get("code")),
+            "expires_in": metadata.expires_in,
+        }
+    ]
+
+
+async def test_verify_login_email_code_issues_tokens(monkeypatch) -> None:
+    service, valkey, user = _build_login_service(monkeypatch, two_factor_enabled=False)
+
+    async def _fake_is_enabled() -> bool:
+        return True
+
+    async def _fake_send_login_code(*, recipient: str, code: str, expires_in: int, **kwargs) -> None:
+        return None
+
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_is_enabled)
+    monkeypatch.setattr(service.auth_service.email_service, "send_login_code", _fake_send_login_code)
+
+    await service.request_login_email_code(email="demo@example.com")
+    record = valkey._store.get("auth:login_code:email:demo@example.com")
+    assert isinstance(record, dict)
+
+    tokens = await service.verify_login_email_code(email="demo@example.com", code=str(record.get("code")))
+    assert tokens.access_token
+    assert tokens.refresh_token
+    assert "auth:login_code:email:demo@example.com" not in valkey._store
+
+    refresh_payload = decode_token(tokens.refresh_token, service.settings.auth)
+    jti = refresh_payload.get("jti")
+    assert isinstance(jti, str)
+    refresh_record = valkey._store.get(f"auth:refresh:{jti}")
+    assert isinstance(refresh_record, dict)
+    assert refresh_record.get("auth_method") == "email_code"
+    assert UUID(str(refresh_payload.get("sub"))) == user.id
+
+
+async def test_verify_login_email_code_starts_two_factor_challenge(monkeypatch) -> None:
+    service, valkey, _ = _build_login_service(monkeypatch, two_factor_enabled=True)
+
+    async def _fake_is_enabled() -> bool:
+        return True
+
+    async def _fake_send_login_code(*, recipient: str, code: str, expires_in: int, **kwargs) -> None:
+        return None
+
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_is_enabled)
+    monkeypatch.setattr(service.auth_service.email_service, "send_login_code", _fake_send_login_code)
+
+    await service.request_login_email_code(email="demo@example.com")
+    record = valkey._store.get("auth:login_code:email:demo@example.com")
+    assert isinstance(record, dict)
+
+    with pytest.raises(Unauthorized) as exc:
+        await service.verify_login_email_code(email="demo@example.com", code=str(record.get("code")))
+
+    assert exc.value.error == "TWO_FACTOR_REQUIRED"
+    challenge_token = str((exc.value.meta or {}).get("two_factor_token") or "")
+    assert challenge_token
+    challenge_record = valkey._store.get(f"auth:2fa:challenge:{challenge_token}")
+    assert isinstance(challenge_record, dict)
+    assert challenge_record.get("auth_method") == "email_code"

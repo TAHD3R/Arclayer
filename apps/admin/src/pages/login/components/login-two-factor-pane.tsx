@@ -76,6 +76,10 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
     method === "backup_code"
       ? t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")
       : t("auth:TWO_FACTOR_CODE_LABEL");
+  const backToLoginLabel =
+    props.challenge.source === "email-code"
+      ? t("auth:TWO_FACTOR_BACK_TO_EMAIL_CODE")
+      : t("auth:TWO_FACTOR_BACK_TO_PASSWORD");
 
   return (
     <div className={AUTH_PANE_STACK_CLASS}>
@@ -85,8 +89,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
         variants={variants}
       />
 
-      <motion.form
-        variants={variants}
+      <form
         className="grid gap-4"
         autoComplete="on"
         onSubmit={(event) => {
@@ -94,47 +97,49 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
           handleSubmit();
         }}
       >
-        <Field className={AUTH_FIELD_CLASS}>
-          <FieldContent className="gap-2">
-            <AuthPaneTitleRow title={primaryLabel} />
-            {method === "backup_code" ? (
-              <Input
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-                aria-label={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
-                aria-invalid={error ? true : undefined}
-                className={AUTH_PLAIN_INPUT_CLASS}
-                placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
-                autoComplete="one-time-code"
-                disabled={props.loading}
-                spellCheck={false}
-              />
-            ) : (
-              <InputOTP
-                value={value}
-                onChange={setValue}
-                maxLength={OTP_LENGTH}
-                aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
-                aria-invalid={error ? true : undefined}
-                inputMode="numeric"
-                disabled={props.loading}
-                containerClassName="justify-start"
-              >
-                <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
-                  <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
-                </InputOTPGroup>
-              </InputOTP>
-            )}
-            <FieldError>{error}</FieldError>
-          </FieldContent>
-        </Field>
+        <motion.div variants={variants}>
+          <Field className={AUTH_FIELD_CLASS}>
+            <FieldContent className="gap-2">
+              <AuthPaneTitleRow title={primaryLabel} />
+              {method === "backup_code" ? (
+                <Input
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                  aria-label={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
+                  aria-invalid={error ? true : undefined}
+                  className={AUTH_PLAIN_INPUT_CLASS}
+                  placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
+                  autoComplete="one-time-code"
+                  disabled={props.loading}
+                  spellCheck={false}
+                />
+              ) : (
+                <InputOTP
+                  value={value}
+                  onChange={setValue}
+                  maxLength={OTP_LENGTH}
+                  aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
+                  aria-invalid={error ? true : undefined}
+                  inputMode="numeric"
+                  disabled={props.loading}
+                  containerClassName="justify-start"
+                >
+                  <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
+                    <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
+                    <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
+                    <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
+                    <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
+                    <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
+                    <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
+                  </InputOTPGroup>
+                </InputOTP>
+              )}
+              <FieldError>{error}</FieldError>
+            </FieldContent>
+          </Field>
+        </motion.div>
 
-        <div className="grid gap-3">
+        <motion.div variants={variants} className="grid gap-3">
           <Button type="submit" size="lg" loading={props.loading}>
             {t("auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON")}
           </Button>
@@ -149,10 +154,10 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
               : t("auth:TWO_FACTOR_USE_AUTHENTICATOR")}
           </AuthLinkButton>
           <AuthLinkButton className="justify-start" onClick={props.onBackToLogin} type="button">
-            {t("auth:TWO_FACTOR_BACK_TO_PASSWORD")}
+            {backToLoginLabel}
           </AuthLinkButton>
-        </div>
-      </motion.form>
+        </motion.div>
+      </form>
     </div>
   );
 }

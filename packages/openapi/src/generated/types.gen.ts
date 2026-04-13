@@ -4888,17 +4888,45 @@ export type DesignTypographyV1 = {
 };
 
 /**
+ * EmailCheckOut
+ *
+ * Email existence precheck result.
+ */
+export type EmailCheckOut = {
+    /**
+     * Exists
+     *
+     * Whether an account already exists for the email address.
+     */
+    exists: boolean;
+};
+
+/**
+ * EmailCheckRequest
+ *
+ * Email existence precheck request.
+ */
+export type EmailCheckRequest = {
+    /**
+     * Email
+     *
+     * Email address.
+     */
+    email: string;
+};
+
+/**
  * ForgotPasswordRequest
  *
  * Forgot password request.
  */
 export type ForgotPasswordRequest = {
     /**
-     * Identifier
+     * Email
      *
-     * Username or email.
+     * Email address.
      */
-    identifier: string;
+    email: string;
 };
 
 /**
@@ -5251,23 +5279,77 @@ export type LeaveWorkspaceResult = {
 };
 
 /**
+ * LoginEmailCodeRequest
+ *
+ * Request a login code by email.
+ */
+export type LoginEmailCodeRequest = {
+    /**
+     * Email
+     *
+     * Email address.
+     */
+    email: string;
+};
+
+/**
+ * LoginEmailCodeRequestOut
+ *
+ * Login code request metadata.
+ */
+export type LoginEmailCodeRequestOut = {
+    /**
+     * Expiresin
+     *
+     * Code expires in seconds.
+     */
+    expiresIn: number;
+    /**
+     * Retryafter
+     *
+     * Seconds before the code can be resent.
+     */
+    retryAfter: number;
+};
+
+/**
+ * LoginEmailCodeVerifyRequest
+ *
+ * Verify a login code by email.
+ */
+export type LoginEmailCodeVerifyRequest = {
+    /**
+     * Code
+     *
+     * Email login verification code.
+     */
+    code: string;
+    /**
+     * Email
+     *
+     * Email address.
+     */
+    email: string;
+};
+
+/**
  * LoginRequest
  *
  * Login request.
  */
 export type LoginRequest = {
     /**
+     * Email
+     *
+     * Email address.
+     */
+    email: string;
+    /**
      * Password
      *
      * Password.
      */
     password: string;
-    /**
-     * Username
-     *
-     * Username or email.
-     */
-    username: string;
 };
 
 /**
@@ -9387,23 +9469,17 @@ export type RefreshRequest = {
  */
 export type RegisterRequest = {
     /**
-     * Confirmpassword
-     *
-     * Confirm password.
-     */
-    confirmPassword: string;
-    /**
      * Displayname
      *
      * Display name.
      */
-    displayName?: string | null;
+    displayName: string;
     /**
      * Email
      *
      * Email address.
      */
-    email?: string | null;
+    email: string;
     /**
      * Password
      *
@@ -9413,7 +9489,7 @@ export type RegisterRequest = {
     /**
      * Username
      *
-     * Username (6-18 chars). Allowed: letters, numbers, underscore, and CJK characters.
+     * Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.
      */
     username: string;
 };
@@ -10313,6 +10389,31 @@ export type ResponseModelDeliveryStyleOut = {
 };
 
 /**
+ * ResponseModel[EmailCheckOut]
+ */
+export type ResponseModelEmailCheckOut = {
+    data?: EmailCheckOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[HierarchyNodeOut]
  */
 export type ResponseModelHierarchyNodeOut = {
@@ -10392,6 +10493,31 @@ export type ResponseModelLeaveOrganizationResult = {
  */
 export type ResponseModelLeaveWorkspaceResult = {
     data?: LeaveWorkspaceResult | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[LoginEmailCodeRequestOut]
+ */
+export type ResponseModelLoginEmailCodeRequestOut = {
+    data?: LoginEmailCodeRequestOut | null;
     /**
      * Error
      */
@@ -14955,23 +15081,17 @@ export type SysStepUpResult = {
  */
 export type SystemBootstrapRequest = {
     /**
-     * Confirmpassword
-     *
-     * Confirm password.
-     */
-    confirmPassword: string;
-    /**
      * Displayname
      *
      * Display name.
      */
-    displayName?: string | null;
+    displayName: string;
     /**
      * Email
      *
      * Email address.
      */
-    email?: string | null;
+    email: string;
     /**
      * Password
      *
@@ -14981,7 +15101,7 @@ export type SystemBootstrapRequest = {
     /**
      * Username
      *
-     * Username (6-18 chars). Allowed: letters, numbers, underscore, and CJK characters.
+     * Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.
      */
     username: string;
 };
@@ -17428,6 +17548,31 @@ export type GlobalAuthChangePasswordResponses = {
 
 export type GlobalAuthChangePasswordResponse = GlobalAuthChangePasswordResponses[keyof GlobalAuthChangePasswordResponses];
 
+export type GlobalAuthEmailCheckData = {
+    body: EmailCheckRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/email-check';
+};
+
+export type GlobalAuthEmailCheckErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthEmailCheckError = GlobalAuthEmailCheckErrors[keyof GlobalAuthEmailCheckErrors];
+
+export type GlobalAuthEmailCheckResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelEmailCheckOut;
+};
+
+export type GlobalAuthEmailCheckResponse = GlobalAuthEmailCheckResponses[keyof GlobalAuthEmailCheckResponses];
+
 export type GlobalAuthForgotPasswordData = {
     body: ForgotPasswordRequest;
     path?: never;
@@ -17584,6 +17729,56 @@ export type GlobalAuthLoginTwoFactorResponses = {
 };
 
 export type GlobalAuthLoginTwoFactorResponse = GlobalAuthLoginTwoFactorResponses[keyof GlobalAuthLoginTwoFactorResponses];
+
+export type GlobalAuthLoginEmailCodeRequestData = {
+    body: LoginEmailCodeRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/login/email-code/request';
+};
+
+export type GlobalAuthLoginEmailCodeRequestErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthLoginEmailCodeRequestError = GlobalAuthLoginEmailCodeRequestErrors[keyof GlobalAuthLoginEmailCodeRequestErrors];
+
+export type GlobalAuthLoginEmailCodeRequestResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelLoginEmailCodeRequestOut;
+};
+
+export type GlobalAuthLoginEmailCodeRequestResponse = GlobalAuthLoginEmailCodeRequestResponses[keyof GlobalAuthLoginEmailCodeRequestResponses];
+
+export type GlobalAuthLoginEmailCodeVerifyData = {
+    body: LoginEmailCodeVerifyRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/login/email-code/verify';
+};
+
+export type GlobalAuthLoginEmailCodeVerifyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthLoginEmailCodeVerifyError = GlobalAuthLoginEmailCodeVerifyErrors[keyof GlobalAuthLoginEmailCodeVerifyErrors];
+
+export type GlobalAuthLoginEmailCodeVerifyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelTokenPair;
+};
+
+export type GlobalAuthLoginEmailCodeVerifyResponse = GlobalAuthLoginEmailCodeVerifyResponses[keyof GlobalAuthLoginEmailCodeVerifyResponses];
 
 export type GlobalAuthLogoutData = {
     body: LogoutRequest;

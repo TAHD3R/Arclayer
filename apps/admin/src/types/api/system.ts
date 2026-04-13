@@ -13,8 +13,7 @@ export type SystemRuntime = {
 
 export type SystemBootstrapPayload = {
   username: string;
-  email?: string;
+  email: string;
   password: string;
-  confirm_password: string;
-  display_name?: string;
+  display_name: string;
 };

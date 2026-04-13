@@ -14,12 +14,10 @@ function isStructuredToastContent(content: AdminToastContent): content is {
   title: React.ReactNode;
   description?: React.ReactNode;
 } {
-  return (
-    Boolean(content) &&
-    typeof content === "object" &&
-    !React.isValidElement(content) &&
-    "title" in content
-  );
+  if (content == null) {
+    return false;
+  }
+  return typeof content === "object" && !React.isValidElement(content) && "title" in content;
 }
 
 function normalizeToastContent(content: AdminToastContent) {

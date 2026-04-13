@@ -5,6 +5,8 @@ import type {
   ConfirmMyEmailChangePayload,
   DeleteMyAccountCapability,
   DeleteMyAccountPayload,
+  EmailCheckOut,
+  LoginEmailCodeRequestOut,
   MySecurityCapability,
   RegisterPayload,
   RequestMyEmailChangeOut,
@@ -20,8 +22,29 @@ import type {
   UserProfile,
 } from "@/types/api";
 
-export async function login(payload: { identifier: string; password: string }): Promise<TokenPair> {
+export async function emailCheck(payload: { email: string }): Promise<EmailCheckOut> {
+  return api.post<EmailCheckOut>("/auth/email-check", payload, { auth: { skipRefresh: true } });
+}
+
+export async function login(payload: { email: string; password: string }): Promise<TokenPair> {
   return api.post<TokenPair>("/auth/login", payload, { auth: { skipRefresh: true } });
+}
+
+export async function requestLoginEmailCode(payload: {
+  email: string;
+}): Promise<LoginEmailCodeRequestOut> {
+  return api.post<LoginEmailCodeRequestOut>("/auth/login/email-code/request", payload, {
+    auth: { skipRefresh: true },
+  });
+}
+
+export async function verifyLoginEmailCode(payload: {
+  email: string;
+  code: string;
+}): Promise<TokenPair> {
+  return api.post<TokenPair>("/auth/login/email-code/verify", payload, {
+    auth: { skipRefresh: true },
+  });
 }
 
 export async function loginTwoFactor(payload: {
@@ -103,7 +126,7 @@ export async function changePassword(payload: {
 }
 
 export async function forgotPassword(payload: {
-  identifier: string;
+  email: string;
 }): Promise<ResetTokenPayload | null> {
   return api.post<ResetTokenPayload | null>("/auth/forgot-password", payload, {
     auth: { skipRefresh: true },

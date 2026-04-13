@@ -41,7 +41,6 @@ async def test_system_bootstrap_creates_super_admin_lock_and_personal_space(
                     "email": "founder@example.com",
                     "display_name": "Founder",
                     "password": "bootstrap123",
-                    "confirm_password": "bootstrap123",
                 },
             )
 

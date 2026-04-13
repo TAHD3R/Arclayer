@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { CircleEllipsisIcon } from "lucide-react";
@@ -16,6 +17,13 @@ import { cn } from "@arclayer/lib/utils";
 export interface AuthOauthButtonsProps {
   disabled?: boolean;
   redirect?: string | undefined;
+  leadingActions?: Array<{
+    key: string;
+    label: string;
+    shortLabel?: string;
+    icon?: ReactNode;
+    onClick: () => void;
+  }>;
 }
 
 function normalizeProvider(value: unknown): string {
@@ -70,7 +78,11 @@ function resolveProviderMeta(
   };
 }
 
-export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButtonsProps) {
+export function AuthOauthButtons({
+  disabled = false,
+  redirect,
+  leadingActions = [],
+}: AuthOauthButtonsProps) {
   const { t } = useTranslation();
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const isDark = themeMode === "dark";
@@ -85,10 +97,32 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
   const providers = (providersQuery.data?.providers ?? []).map((provider) =>
     resolveProviderMeta(provider, t, isDark),
   );
-  if (providers.length === 0) return null;
+  const actions = [
+    ...leadingActions.map((action) => ({
+      key: action.key,
+      fullLabel: action.label,
+      shortLabel: action.shortLabel ?? action.label,
+      icon: action.icon,
+      onClick: action.onClick,
+    })),
+    ...providers.map((provider) => ({
+      key: provider.provider,
+      fullLabel: provider.fullLabel,
+      shortLabel: provider.shortLabel,
+      icon: provider.icon,
+      onClick: () => {
+        if (!provider.startUrl) {
+          notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
+          return;
+        }
+        window.location.assign(provider.startUrl);
+      },
+    })),
+  ];
+  if (actions.length === 0) return null;
 
   const isBusy = disabled || providersQuery.isLoading;
-  const isSingleProvider = providers.length === 1;
+  const isSingleProvider = actions.length === 1;
 
   return (
     <div className="grid gap-2.5">
@@ -104,30 +138,24 @@ export function AuthOauthButtons({ disabled = false, redirect }: AuthOauthButton
             : "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         )}
       >
-        {providers.map((provider) => (
+        {actions.map((action) => (
           <Button
-            key={provider.provider}
+            key={action.key}
             className={cn(
-              "rounded-xl border-border/80 bg-card/80  transition-colors hover:bg-accent/35",
+              "rounded-md border-border/80 bg-card/80  transition-colors hover:bg-accent/35",
               isSingleProvider
                 ? "h-10 w-full justify-center px-4"
-                : "h-10 min-w-[7.5rem] flex-1 justify-center px-3 text-footnote sm:min-w-0",
+                : "h-10 min-w-30 flex-1 justify-center px-3 text-footnote sm:min-w-0",
             )}
             variant="outline"
             size={isSingleProvider ? "lg" : "default"}
             disabled={isBusy}
-            aria-label={provider.fullLabel}
-            onClick={() => {
-              if (!provider.startUrl) {
-                notifyErrorText(t("auth:OAUTH_ERROR_GENERIC"));
-                return;
-              }
-              window.location.assign(provider.startUrl);
-            }}
+            aria-label={action.fullLabel}
+            onClick={action.onClick}
           >
-            <span className="shrink-0">{provider.icon}</span>
+            {action.icon ? <span className="shrink-0">{action.icon}</span> : null}
             <span className="min-w-0 truncate">
-              {isSingleProvider ? provider.fullLabel : provider.shortLabel}
+              {isSingleProvider ? action.fullLabel : action.shortLabel}
             </span>
           </Button>
         ))}

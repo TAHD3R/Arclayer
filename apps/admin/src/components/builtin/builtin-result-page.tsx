@@ -93,7 +93,7 @@ export function BuiltinResultPage({
 
   if (variant === "fullscreen") {
     return (
-      <div className="fixed inset-0 z-2147483647 flex items-center justify-center bg-card p-6">
+      <div className="fixed inset-0 z-2147483647 flex items-center justify-center bg-background">
         <div className="w-full max-w-2xl">{content}</div>
       </div>
     );
