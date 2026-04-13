@@ -14,37 +14,37 @@ const colorTokens = [
     label: "Background",
     token: "--background",
     usage: "Canvas and neutral surfaces",
-    valueStyle: { background: "hsl(var(--background))" },
+    valueStyle: { background: "var(--background)" },
   },
   {
     label: "Card",
     token: "--card",
     usage: "Elevated containers and grouped regions",
-    valueStyle: { background: "hsl(var(--card))" },
+    valueStyle: { background: "var(--card)" },
   },
   {
     label: "Primary",
     token: "--primary",
     usage: "Primary call-to-action and focus brand",
-    valueStyle: { background: "hsl(var(--primary))" },
+    valueStyle: { background: "var(--primary)" },
   },
   {
     label: "Accent",
     token: "--accent",
     usage: "Hover layers and secondary emphasis",
-    valueStyle: { background: "hsl(var(--accent))" },
+    valueStyle: { background: "var(--accent)" },
   },
   {
     label: "Border",
     token: "--border",
     usage: "Container separation and control outlines",
-    valueStyle: { background: "hsl(var(--border))" },
+    valueStyle: { background: "var(--border)" },
   },
   {
     label: "Label Secondary",
     token: "--muted-foreground",
     usage: "Supporting copy and annotations",
-    valueStyle: { background: "hsl(var(--muted-foreground))" },
+    valueStyle: { background: "var(--muted-foreground)" },
   },
 ] as const;
 

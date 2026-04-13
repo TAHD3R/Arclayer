@@ -18,7 +18,8 @@ export function DataTableScrollOverflowGradient(props: {
       )}
       style={{
         right: props.rightOffset,
-        background: "linear-gradient(to right, transparent, hsl(var(--background) / 0.6))",
+        background:
+          "linear-gradient(to right, transparent, color-mix(in srgb, var(--background) 60%, transparent))",
       }}
     />
   );

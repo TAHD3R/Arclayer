@@ -187,7 +187,7 @@ export function LoginPane(props: LoginPaneProps) {
         onSubmit={props.onSubmit}
         onForgotPassword={props.onForgotPassword}
       />
-      <motion.div variants={variants} className="pt-1.5">
+      <motion.div variants={variants} className="pt-1.5 empty:hidden">
         <AuthOauthButtons disabled={props.loading} redirect={props.redirect} />
       </motion.div>
       <LoginPaneFooter
