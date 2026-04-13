@@ -11,7 +11,6 @@ from src.modules.sites.delivery.router import router as delivery_router
 from src.modules.sites.patterns.router import router as patterns_router
 from src.modules.sites.public.router import router as sites_public_router
 from src.modules.sites.router import router as sites_router
-from src.modules.sys.router import router as sys_router
 from src.modules.system.router import router as system_router
 from src.modules.workspaces.router import router as workspaces_router
 
@@ -75,7 +74,6 @@ def register_routes(app: FastAPI, settings: Settings) -> None:
     include_router_with_global_prefix_prepended(app, delivery_router, settings=settings)
     include_router_with_global_prefix_prepended(app, patterns_router, settings=settings)
     include_router_with_global_prefix_prepended(app, sites_public_router, settings=settings)
-    include_router_with_global_prefix_prepended(app, sys_router, settings=settings, prefix="/sys")
     include_router_with_global_prefix_prepended(app, system_router, settings=settings, prefix="/system")
     include_router_with_global_prefix_prepended(app, organization_router, settings=settings)
     include_router_with_global_prefix_prepended(app, workspaces_router, settings=settings)

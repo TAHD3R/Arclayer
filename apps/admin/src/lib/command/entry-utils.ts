@@ -21,8 +21,7 @@ export function matchesCommandEntry(entry: CommandEntry, query: string): boolean
   return tokens.every((token) => haystack.includes(token));
 }
 
-export function buildNotificationsPath(workspaceId: string | null): string {
-  if (workspaceId) return `/w/${encodeURIComponent(workspaceId)}/notifications/`;
+export function buildNotificationsPath(_workspaceId: string | null): string {
   return "/notifications/";
 }
 

@@ -16,7 +16,6 @@ import zhDebug from "@locales/zh-CN/debug.json";
 import zhActivity from "@locales/zh-CN/activity.json";
 import zhAppearance from "@locales/zh-CN/appearance.json";
 import zhRbac from "@locales/zh-CN/rbac.json";
-import zhSys from "@locales/zh-CN/sys.json";
 import zhContent from "@locales/zh-CN/content.json";
 
 import enCommon from "@locales/en-US/common.json";
@@ -37,7 +36,6 @@ import enDebug from "@locales/en-US/debug.json";
 import enActivity from "@locales/en-US/activity.json";
 import enAppearance from "@locales/en-US/appearance.json";
 import enRbac from "@locales/en-US/rbac.json";
-import enSys from "@locales/en-US/sys.json";
 import enContent from "@locales/en-US/content.json";
 
 import type { AppLocale } from "@arclayer/web/i18n";
@@ -46,7 +44,6 @@ export const I18N_NAMESPACES = [
   "common",
   "nav",
   "rbac",
-  "sys",
   "setup",
   "onboarding",
   "invite",
@@ -70,7 +67,6 @@ export const i18nResources = {
     common: zhCommon,
     nav: zhNav,
     rbac: zhRbac,
-    sys: zhSys,
     setup: zhSetup,
     onboarding: zhOnboarding,
     invite: zhInvite,
@@ -92,7 +88,6 @@ export const i18nResources = {
     common: enCommon,
     nav: enNav,
     rbac: enRbac,
-    sys: enSys,
     setup: enSetup,
     onboarding: enOnboarding,
     invite: enInvite,

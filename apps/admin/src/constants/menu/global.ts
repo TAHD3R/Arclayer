@@ -1,4 +1,4 @@
-import { House, Settings, Users } from "lucide-react";
+import { House, Users } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
@@ -16,12 +16,5 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "account:ACCOUNT_NAV_WORKSPACES",
     to: "/workspaces",
     icon: Users,
-  },
-  {
-    key: "global.settings",
-    label: "Settings",
-    labelKey: "sys:SYS_SETTINGS_TITLE",
-    icon: Settings,
-    disabled: true,
   },
 ] as const;

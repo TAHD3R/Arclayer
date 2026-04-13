@@ -185,11 +185,6 @@ def test_assets_domains_notifications_and_extensions_use_granular_permissions() 
     upload_init = _route_permissions(uploads_router, path="/workspaces/{workspace_id}/uploads/init", method="POST")
     domains_list = _route_permissions(domains_router, path="/workspaces/{workspace_id}/site/domains", method="GET")
     domains_create = _route_permissions(domains_router, path="/workspaces/{workspace_id}/site/domains", method="POST")
-    notif_list = _route_permissions(
-        notifications_router,
-        path="/workspaces/{workspace_id}/notifications",
-        method="GET",
-    )
     notif_seed = _route_permissions(
         notifications_router,
         path="/workspaces/{workspace_id}/notifications/dev/seed",
@@ -202,7 +197,6 @@ def test_assets_domains_notifications_and_extensions_use_granular_permissions() 
     assert upload_init == {"system:assets:manage"}
     assert domains_list == {"system:domains:read"}
     assert domains_create == {"system:domains:read", "system:domains:manage"}
-    assert notif_list == {"system:notifications:read"}
     assert notif_seed == {"system:notifications:read", "system:notifications:manage"}
 
 
