@@ -2,6 +2,7 @@
   "ignorePatterns": [
     "**/node_modules/**",
     "**/dist/**",
+    "packages/openapi/src/generated/**",
     "**/src/routeTree.gen.ts",
     "**/auto-imports.d.ts",
     "static/spotlight*/**"

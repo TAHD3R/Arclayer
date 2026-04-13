@@ -41,6 +41,7 @@ repos:
         entry: pnpm -w exec oxfmt
         language: system
         files: ^(apps/(admin|portal|studio)|packages|plugins)/
+        exclude: ^packages/openapi/src/generated/
         # 兼容较旧 identify：使用 ts/tsx 而非 typescript
         types_or: [javascript, jsx, ts, tsx]
         pass_filenames: true
@@ -51,6 +52,7 @@ repos:
         entry: pnpm -w exec oxlint
         language: system
         files: ^(apps/(admin|portal|studio)|packages|plugins)/
+        exclude: ^packages/openapi/src/generated/
         # 兼容较旧 identify：使用 ts/tsx 而非 typescript
         types_or: [javascript, jsx, ts, tsx]
         pass_filenames: true
