@@ -299,7 +299,7 @@ export function ContentLibraryArticleEditorSearchOverlay(props: {
               value={query}
               aria-label={t("CONTENT_LIBRARY_EDITOR_SEARCH_LABEL")}
               placeholder={t("CONTENT_LIBRARY_EDITOR_SEARCH_LABEL")}
-              className="border-0 bg-transparent px-0 pr-12 text-callout shadow-none focus-visible:ring-0"
+              className="border-0 bg-transparent px-0 pr-12 text-callout focus-visible:ring-0"
               onChange={(event) => {
                 setQuery(event.target.value);
               }}

@@ -185,7 +185,7 @@ export const LoaderFour = ({ text = "Loading..." }: { text?: string }) => {
 
 export const LoaderFive = ({ text }: { text: string }) => {
   return (
-    <div className="font-sans font-bold [--shadow-color:var(--color-neutral-500)] dark:[--shadow-color:var(--color-neutral-100)]">
+    <div className="font-sans font-bold">
       {text.split("").map((char, i) => (
         <motion.span
           key={i}
@@ -193,11 +193,6 @@ export const LoaderFive = ({ text }: { text: string }) => {
           initial={{ scale: 1, opacity: 0.5 }}
           animate={{
             scale: [1, 1.1, 1],
-            textShadow: [
-              "0 0 0 var(--shadow-color)",
-              "0 0 1px var(--shadow-color)",
-              "0 0 0 var(--shadow-color)",
-            ],
             opacity: [0.5, 1, 0.5],
           }}
           transition={{

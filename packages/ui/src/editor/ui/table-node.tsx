@@ -202,7 +202,7 @@ function TableElementToolbar() {
   );
 
   return (
-    <div className="flex items-center gap-1 rounded-md border border-border/70 bg-card/96 p-1 shadow-xl backdrop-blur">
+    <div className="flex items-center gap-1 rounded-md border border-border/70 bg-card/96 p-1 backdrop-blur">
       <TableToolbarButton
         tooltip={t("CONTENT_LIBRARY_EDITOR_TABLE_INSERT_ROW_BEFORE")}
         onMouseDown={(event) => {
@@ -689,7 +689,7 @@ function TableElementContent(props: PlateElementProps) {
       <PopoverContent
         align="center"
         side="bottom"
-        className="w-auto border-0 bg-transparent p-0 shadow-none"
+        className="w-auto border-0 bg-transparent p-0"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <TableElementToolbar />

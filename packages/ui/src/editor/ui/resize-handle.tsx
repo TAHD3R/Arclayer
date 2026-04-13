@@ -17,7 +17,7 @@ import { cn } from "@arclayer/lib/utils";
 export const mediaResizeHandleVariants = cva(
   cn(
     "top-0 flex w-3 select-none flex-col justify-center",
-    "after:flex after:h-20 after:w-[3px] after:rounded-full after:bg-primary after:shadow-[0_0_0_3px_rgba(0,0,0,0.18)] after:opacity-0 after:transition-opacity after:content-[''] group-hover/media:after:opacity-100 data-[resizing=true]:after:opacity-100",
+    "after:flex after:h-20 after:w-[3px] after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity after:content-[''] group-hover/media:after:opacity-100 data-[resizing=true]:after:opacity-100",
   ),
   {
     variants: {

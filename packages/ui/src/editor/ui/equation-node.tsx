@@ -160,7 +160,7 @@ function EquationPopoverContent({
 
   return (
     <PopoverContent
-      className="flex w-[min(34rem,calc(100vw-2rem))] items-end gap-2 rounded-md border border-border/70 bg-card/96 p-2 shadow-xl backdrop-blur"
+      className="flex w-[min(34rem,calc(100vw-2rem))] items-end gap-2 rounded-md border border-border/70 bg-card/96 p-2 backdrop-blur"
       onEscapeKeyDown={(event) => {
         event.preventDefault();
       }}

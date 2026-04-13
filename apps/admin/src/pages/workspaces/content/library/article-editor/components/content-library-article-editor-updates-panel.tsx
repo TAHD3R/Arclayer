@@ -57,7 +57,7 @@ export function ContentLibraryArticleEditorUpdatesPanel(props: {
   const items = (updatesQuery.data?.pages ?? []).flatMap((page) => page.items ?? []);
 
   return (
-    <aside className="absolute inset-y-12 right-0 z-30 flex w-[28rem] flex-col border-l border-border/70 bg-card shadow-2xl">
+    <aside className="absolute inset-y-12 right-0 z-30 flex w-[28rem] flex-col border-l border-border/70 bg-card">
       <ChromeTabs value="updates" className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
           <ChromeTabsList className="w-auto">

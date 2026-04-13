@@ -22,8 +22,6 @@ const recentCardBaseClassName =
 const recentCardInactiveClassName =
   "border-border/60 bg-card hover:border-border hover:-translate-y-[1px] dark:border-white/10 dark:bg-[#111111] dark:hover:border-white/16";
 const recentCardActiveClassName = "border-border bg-card dark:border-white/18 dark:bg-[#161616]";
-const recentTextShadowClassName =
-  "[text-shadow:0_1px_2px_rgba(15,23,42,0.14)] dark:[text-shadow:0_1px_2px_rgba(255,255,255,0.14)]";
 const recentMetaValueClassName = "text-caption text-label-primary/72 dark:text-white/74";
 const recentMetaDescriptionClassName = "text-caption text-label-primary/62 dark:text-white/66";
 
@@ -93,9 +91,7 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
 
 function RecentMetaLine(props: { sizeText?: string | null; lastOpenedText: string }) {
   return (
-    <div
-      className={cn("mt-1 flex flex-wrap items-center gap-x-3 gap-y-1", recentTextShadowClassName)}
-    >
+    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
       {props.sizeText ? <span className={recentMetaValueClassName}>{props.sizeText}</span> : null}
       {props.sizeText ? <span className="size-1 rounded-full bg-border/90" /> : null}
       <span className={recentMetaDescriptionClassName}>{props.lastOpenedText}</span>
@@ -114,10 +110,7 @@ function RecentAssetActions(props: {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className={cn(
-            "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-label-secondary opacity-0 transition hover:bg-accent/70 hover:text-label-primary focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100",
-            recentTextShadowClassName,
-          )}
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-label-secondary opacity-0 transition hover:bg-accent/70 hover:text-label-primary focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
           aria-label={props.t("common:MORE")}
         >
           <EllipsisVertical className="size-4" />
@@ -197,12 +190,7 @@ export function RecentAssetCard(props: {
             onClick={() => props.onOpenAsset(props.entry.asset)}
             className="mt-5 flex flex-1 flex-col justify-end text-left"
           >
-            <div
-              className={cn(
-                "line-clamp-2 text-headline font-semibold text-label-primary",
-                recentTextShadowClassName,
-              )}
-            >
+            <div className="line-clamp-2 text-headline font-semibold text-label-primary">
               {props.entry.asset.name}
             </div>
             <RecentMetaLine
@@ -224,12 +212,7 @@ export function RecentAssetCard(props: {
           onClick={() => props.onOpenAsset(props.entry.asset)}
           className="min-w-0 flex-1 text-left"
         >
-          <div
-            className={cn(
-              "truncate text-headline font-semibold text-label-primary",
-              recentTextShadowClassName,
-            )}
-          >
+          <div className="truncate text-headline font-semibold text-label-primary">
             {props.entry.asset.name}
           </div>
           <RecentMetaLine

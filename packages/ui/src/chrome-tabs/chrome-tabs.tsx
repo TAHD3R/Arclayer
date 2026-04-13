@@ -31,7 +31,7 @@ export const ChromeTabsTrigger = React.forwardRef<
       "text-footnote font-bold",
       "text-label-secondary",
       "transition-colors",
-      "bg-transparent! data-[state=active]:text-label-primary data-[state=active]:shadow-none",
+      "bg-transparent! data-[state=active]:text-label-primary",
       "hover:text-label-primary hover:cursor-pointer",
       "aria-selected:text-label-primary",
       "after:absolute after:left-8 after:right-8 after:bottom-2 after:h-0.5 after:rounded-full after:bg-transparent after:transition-colors first:after:left-0",

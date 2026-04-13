@@ -111,7 +111,7 @@ export function EditorColorPicker(props: {
                   <CheckIcon
                     className={cn(
                       "size-3",
-                      isBrightColor(swatchColor) ? "text-black" : "text-white drop-shadow-sm",
+                      isBrightColor(swatchColor) ? "text-black" : "text-white",
                     )}
                   />
                 ) : null}
@@ -150,7 +150,7 @@ export function EditorColorPicker(props: {
                     "size-3",
                     isBrightColor(getEditorMarkColorValue(props.nodeType, color))
                       ? "text-black"
-                      : "text-white drop-shadow-sm",
+                      : "text-white",
                   )}
                 />
               ) : null}

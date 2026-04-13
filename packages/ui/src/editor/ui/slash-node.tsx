@@ -429,7 +429,7 @@ function SlashMenuContent(props: PlateElementProps<TComboboxInputElement>) {
     <>
       <InlineComboboxInput className="text-footnote text-label-primary" />
 
-      <InlineComboboxContent className="z-500 max-h-[24rem] w-[18rem] overflow-y-auto rounded-md border border-border/70 bg-popover p-0 shadow-lg">
+      <InlineComboboxContent className="z-500 max-h-[24rem] w-[18rem] overflow-y-auto rounded-md border border-border/70 bg-popover p-0">
         <InlineComboboxEmpty className="py-2 text-label-secondary">
           {t("CONTENT_LIBRARY_EDITOR_INSERT_EMPTY")}
         </InlineComboboxEmpty>

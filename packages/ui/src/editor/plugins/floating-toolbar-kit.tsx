@@ -229,7 +229,7 @@ function PlateLinkFloatingToolbar() {
           ref={insert.ref}
           {...insert.props}
           className={cn(
-            "z-50 w-[24rem] overflow-hidden rounded-md border border-border/70 bg-card/96 p-0 shadow-xl backdrop-blur",
+            "z-50 w-[24rem] overflow-hidden rounded-md border border-border/70 bg-card/96 p-0 backdrop-blur",
             insert.props.className,
           )}
         >
@@ -258,7 +258,7 @@ function PlateLinkFloatingToolbar() {
         ref={edit.ref}
         {...edit.props}
         className={cn(
-          "z-50 overflow-hidden rounded-md border border-border/70 bg-card/96 p-0 shadow-xl backdrop-blur",
+          "z-50 overflow-hidden rounded-md border border-border/70 bg-card/96 p-0 backdrop-blur",
           edit.props.className,
         )}
       >

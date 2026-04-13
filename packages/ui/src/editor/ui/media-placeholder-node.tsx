@@ -249,7 +249,7 @@ export const MediaPlaceholderElement = withHOC(
                 !isUploading && "hover:border-primary/40 hover:bg-accent/40",
               )}
             >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-card text-label-secondary shadow-sm">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-card text-label-secondary">
                 {isUploading ? (
                   <Loader2Icon className="size-5 animate-spin" />
                 ) : (

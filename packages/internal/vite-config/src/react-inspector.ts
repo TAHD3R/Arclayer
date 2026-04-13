@@ -164,14 +164,14 @@ export function injectReactInspectorOverlay(): Plugin {
 
     var css = [
       '#ce-react-inspector-toggle{position:fixed;right:16px;bottom:16px;z-index:2147483647;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}',
-      '#ce-react-inspector-toggle button{all:unset;cursor:pointer;user-select:none;padding:8px 10px;border-radius:10px;background:rgba(17,24,39,.92);color:#fff;font-size:12px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.22);}',
+      '#ce-react-inspector-toggle button{all:unset;cursor:pointer;user-select:none;padding:8px 10px;border-radius:10px;background:rgba(17,24,39,.92);color:#fff;font-size:12px;line-height:1;}',
       '#ce-react-inspector-toggle button[data-active="1"]{background:rgba(22,119,255,.95);}',
       '#ce-react-inspector-tooltip{position:fixed;z-index:2147483647;max-width:720px;pointer-events:auto;display:none;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.78);color:#fff;font-size:12px;line-height:1.35;white-space:nowrap;backdrop-filter:blur(6px);}',
       '#ce-react-inspector-tooltip code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}',
       '#ce-react-inspector-tooltip .ce-ri-row{display:flex;align-items:center;gap:10px;}',
       '#ce-react-inspector-tooltip .ce-ri-row code{display:block;max-width:600px;overflow:hidden;text-overflow:ellipsis;}',
       '#ce-react-inspector-tooltip .ce-ri-meta{opacity:.92;margin-top:4px;}',
-      '#ce-react-inspector-copy{all:unset;cursor:pointer;user-select:none;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.12);color:#fff;font-size:12px;line-height:1;box-shadow:0 4px 14px rgba(0,0,0,.18);}',
+      '#ce-react-inspector-copy{all:unset;cursor:pointer;user-select:none;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.12);color:#fff;font-size:12px;line-height:1;}',
       '#ce-react-inspector-copy:hover{background:rgba(255,255,255,.18);}',
       '#ce-react-inspector-copy:active{transform:translateY(1px);}',
       '#ce-react-inspector-highlight{position:fixed;left:0;top:0;width:0;height:0;display:none;pointer-events:none;z-index:2147483646;border:2px solid rgba(22,119,255,.95);background:rgba(22,119,255,.10);border-radius:10px;box-sizing:border-box;}',

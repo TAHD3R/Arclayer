@@ -150,7 +150,7 @@ export function ContentLibraryArticleEditorTocSidebar(props: { mode: "page" | "s
         {...navProps}
         className="-top-2.5 pointer-events-none absolute right-0 translate-x-[10px] px-2.5 opacity-0 transition-all duration-300 group-hover/toc:pointer-events-auto group-hover/toc:translate-x-0 group-hover/toc:opacity-100 group-focus-within/toc:pointer-events-auto group-focus-within/toc:translate-x-0 group-focus-within/toc:opacity-100"
       >
-        <div className="-mr-2.5 max-h-96 w-[242px] overflow-auto rounded-2xl border border-border/70 bg-card/96 p-3 shadow-lg backdrop-blur">
+        <div className="-mr-2.5 max-h-96 w-[242px] overflow-auto rounded-2xl border border-border/70 bg-card/96 p-3 backdrop-blur">
           <div className="relative z-10 p-1.5">
             <div className="px-1 py-1 text-sm font-semibold text-label-primary">
               {t("CONTENT_LIBRARY_EDITOR_INSERT_TOC")}
