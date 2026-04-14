@@ -6,13 +6,16 @@ from fastapi import APIRouter, Body, Depends, status
 
 from src.common.types.public_uuid import PublicUUID
 from src.core.http.response import ApiResponse, ResponseModel
+from src.core.middleware.guard_decorators import guard_rate_limit
 from src.modules.sites.http.service import get_site_service
 from src.modules.sites.preview.tokens.schema import SitePreviewTokenCreateIn, SitePreviewTokenOut
 from src.modules.sites.service import SiteService
 
 router = APIRouter(tags=["external.sites.preview"])
+PREVIEW_TOKEN_CREATE_RATE_LIMIT = (10, 60)
 
 
+@guard_rate_limit(*PREVIEW_TOKEN_CREATE_RATE_LIMIT)
 @router.post(
     "/sites/{site_id}/preview-tokens",
     response_model=ResponseModel[SitePreviewTokenOut],

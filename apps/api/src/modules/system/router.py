@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from src.config import Settings, get_settings
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
+from src.core.middleware.guard_decorators import guard_rate_limit
 from src.modules.analytics.system.router import router as system_activity_router
 from src.modules.auth.limits.service import REGISTER_RATE_LIMIT
 from src.modules.auth.schema import TokenPair
@@ -22,7 +23,6 @@ from src.modules.system.settings.router import router as system_settings_router
 from src.modules.system.setup.bootstrap_service import InstanceBootstrapService
 from src.modules.system.setup.service import InstanceSetupService
 from src.platform.cache.valkey import get_valkey
-from src.platform.limiter.limiter import rate_limit
 
 router = APIRouter(tags=["internal.system"])
 
@@ -59,10 +59,10 @@ async def get_system_runtime(
     )
 
 
+@guard_rate_limit(*REGISTER_RATE_LIMIT)
 @router.post(
     "/setup/bootstrap",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
     summary="Bootstrap an uninitialized instance",
 )
 async def bootstrap_instance(

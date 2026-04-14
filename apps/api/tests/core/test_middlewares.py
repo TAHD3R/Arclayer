@@ -2,6 +2,7 @@ import warnings
 from pathlib import Path
 
 from src.config import get_settings
+from src.core.middleware.guard_decorators import guard_rate_limit
 from src.core.registry import create_app
 from tests.utils.asgi_client import asgi_client
 
@@ -17,7 +18,7 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "0")
     monkeypatch.setenv("VALKEY__ENABLED", "0")
     monkeypatch.setenv("TEST_VALKEY__ENABLED", "0")
-    monkeypatch.setenv("VALKEY__LIMITER_ENABLED", "0")
+    monkeypatch.setenv("SECURITY__ENABLE_RATE_LIMITING", "0")
     monkeypatch.setenv("SECURITY__ENABLE_REDIS", "0")
     monkeypatch.setenv("TASKIQ__ENABLED", "0")
     get_settings.cache_clear()
@@ -178,6 +179,30 @@ async def test_guard_security_headers(monkeypatch, tmp_path: Path) -> None:
     assert response.headers.get("x-frame-options") == "DENY"
     assert response.headers.get("x-content-type-options") == "nosniff"
     assert response.headers.get("referrer-policy") == "same-origin"
+
+
+async def test_guard_route_specific_rate_limit(monkeypatch, tmp_path: Path) -> None:
+    _configure_logging_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("SECURITY__ENABLED", "1")
+    monkeypatch.setenv("SECURITY__ENABLE_RATE_LIMITING", "1")
+    monkeypatch.setenv("SECURITY__RATE_LIMIT", "100")
+    monkeypatch.setenv("SECURITY__RATE_LIMIT_WINDOW", "60")
+    get_settings.cache_clear()
+
+    app = create_app()
+
+    @guard_rate_limit(1, 60)
+    @app.get("/guard-rate-limit")
+    async def guard_rate_limit_route() -> dict[str, str]:
+        return {"ok": "1"}
+
+    async with asgi_client(app) as client:
+        first = await client.get("/guard-rate-limit")
+        second = await client.get("/guard-rate-limit")
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.text == "Too many requests"
 
 
 async def test_guard_custom_penetration_pattern(monkeypatch, tmp_path: Path) -> None:

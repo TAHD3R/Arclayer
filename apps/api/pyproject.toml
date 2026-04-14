@@ -26,7 +26,6 @@ dependencies = [
   "uvicorn[standard]>=0.40.0",
   "valkey>=6.1.1",
   "watchfiles>=1.1.1",
-  "fastapi-limiter>=0.2.0",
   "uuid6>=2024.7.10",
   "setuptools>=80.9.0",
   "fastapi-mail>=1.6.1",

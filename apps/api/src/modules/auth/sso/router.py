@@ -9,10 +9,17 @@ from src.config import Settings, get_settings
 from src.core.exceptions import ServiceUnavailable
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
+from src.core.middleware.guard_decorators import guard_rate_limit
 from src.models.auth.oauth_identity import OAuthIdentity
 from src.models.organization.user import User, UserCredential
 from src.modules.auth.http.service import get_current_user
-from src.modules.auth.limits.service import SSO_EXCHANGE_RATE_LIMIT, SSO_PROVIDERS_RATE_LIMIT
+from src.modules.auth.limits.service import (
+    SSO_EXCHANGE_RATE_LIMIT,
+    SSO_LINK_STATE_RATE_LIMIT,
+    SSO_OAUTH_CALLBACK_RATE_LIMIT,
+    SSO_OAUTH_START_RATE_LIMIT,
+    SSO_PROVIDERS_RATE_LIMIT,
+)
 from src.modules.auth.login.service import AuthLoginService
 from src.modules.auth.oauth.schema import OAuthLinkedIdentityListOut
 from src.modules.auth.oauth.service import OAuthSocialService
@@ -28,7 +35,6 @@ from src.modules.auth.sso.schema import (
 from src.modules.auth.sso.service import AuthSSOService
 from src.modules.auth.two_factor.service import AuthTwoFactorService
 from src.platform.cache.valkey import get_valkey
-from src.platform.limiter.limiter import rate_limit
 
 router = APIRouter(prefix="/sso", tags=["global.auth.sso"])
 
@@ -83,10 +89,10 @@ def get_oauth_social_service(
     return OAuthSocialService(settings, valkey=valkey)
 
 
+@guard_rate_limit(*SSO_PROVIDERS_RATE_LIMIT)
 @router.get(
     "/providers",
     response_model=ResponseModel[AuthSSOProvidersOut],
-    dependencies=[rate_limit(*SSO_PROVIDERS_RATE_LIMIT)],
     summary="List enabled SSO providers for current instance",
 )
 async def list_providers(
@@ -100,10 +106,10 @@ async def list_providers(
     return ApiResponse.success(data=AuthSSOProvidersOut(providers=providers))
 
 
+@guard_rate_limit(*SSO_EXCHANGE_RATE_LIMIT)
 @router.post(
     "/exchange",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*SSO_EXCHANGE_RATE_LIMIT)],
     summary="Exchange a one-time OAuth/SSO code for a token pair",
 )
 async def exchange(
@@ -116,6 +122,7 @@ async def exchange(
     return ApiResponse.success(data=tokens)
 
 
+@guard_rate_limit(*SSO_LINK_STATE_RATE_LIMIT)
 @router.post(
     "/link-state",
     response_model=ResponseModel[AuthSSOLinkStateOut],
@@ -139,11 +146,11 @@ async def issue_link_state(
     return ApiResponse.success(data=AuthSSOLinkStateOut(token=token, expires_in=_SSO_LINK_STATE_EXPIRES_IN))
 
 
+@guard_rate_limit(*SSO_OAUTH_START_RATE_LIMIT)
 @router.get(
     "/start/{provider}",
     summary="Start OAuth social login flow",
     name="auth_sso_oauth_start",
-    dependencies=[rate_limit(20, 60)],
 )
 async def start_oauth(
     provider: str,
@@ -156,11 +163,11 @@ async def start_oauth(
     return await service.start(request, provider=provider, redirect=redirect, link_state=link_state)
 
 
+@guard_rate_limit(*SSO_OAUTH_CALLBACK_RATE_LIMIT)
 @router.get(
     "/callback/{provider}",
     summary="OAuth social login callback",
     name="auth_sso_oauth_callback",
-    dependencies=[rate_limit(20, 60)],
 )
 async def callback_oauth(
     provider: str,

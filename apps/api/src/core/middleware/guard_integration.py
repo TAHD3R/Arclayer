@@ -26,6 +26,7 @@ from src.config import Settings
 from src.config_runtime import SecuritySettings
 from src.core.http.response import ApiResponse as ResponseBuilder
 from src.core.i18n import get_request_locale, t
+from src.core.middleware.guard_decorators import guard_decorator
 
 _pending_csrf_cookie: ContextVar[str | None] = ContextVar("pending_csrf_cookie", default=None)
 
@@ -190,6 +191,8 @@ async def initialize_guard_runtime(app: FastAPI, settings: Settings) -> None:
     config = build_guard_config(settings)
     await _reset_guard_singletons(config)
     app.state.guard_security_config = config
+    guard_decorator.config = config
+    app.state.guard_decorator = guard_decorator
 
     redis_manager: RedisManager | None = None
     if config.enable_redis:
@@ -217,4 +220,5 @@ async def close_guard_runtime(app: FastAPI) -> None:
     if redis_manager is not None:
         await redis_manager.close()
     app.state.guard_redis_manager = None
+    app.state.guard_decorator = None
     await _reset_guard_singletons(config)

@@ -12,6 +12,7 @@ from src.core.exceptions import BadRequest, Forbidden, Unauthorized
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import get_current_locale, t
+from src.core.middleware.guard_decorators import guard_rate_limit
 from src.models.organization.user import User
 from src.modules.assets.admin.uploads.schema import (
     UploadAbortOut,
@@ -33,13 +34,16 @@ from src.modules.auth.limits.service import (
     EMAIL_LOGIN_CODE_VERIFY_RATE_LIMIT,
     FORGOT_PASSWORD_RATE_LIMIT,
     LOGIN_RATE_LIMIT,
+    PASSWORD_CHANGE_RATE_LIMIT,
     REFRESH_RATE_LIMIT,
     REGISTER_RATE_LIMIT,
     RESET_PASSWORD_RATE_LIMIT,
+    SET_PASSWORD_RATE_LIMIT,
     TWO_FACTOR_BACKUP_REGEN_RATE_LIMIT,
     TWO_FACTOR_CONFIRM_RATE_LIMIT,
     TWO_FACTOR_DISABLE_RATE_LIMIT,
     TWO_FACTOR_LOGIN_RATE_LIMIT,
+    TWO_FACTOR_SETUP_RATE_LIMIT,
 )
 from src.modules.auth.login.service import AuthLoginService
 from src.modules.auth.schema import (
@@ -94,7 +98,6 @@ from src.modules.auth.two_factor.schema import (
 )
 from src.modules.auth.two_factor.service import AuthTwoFactorService
 from src.platform.cache.valkey import get_valkey
-from src.platform.limiter.limiter import rate_limit
 
 router = APIRouter(tags=["global.auth"])
 
@@ -264,10 +267,10 @@ def _enforce_refresh_cookie_origin_policy(request: Request, *, settings: Setting
     )
 
 
+@guard_rate_limit(*LOGIN_RATE_LIMIT)
 @router.post(
     "/email-check",
     response_model=ResponseModel[EmailCheckOut],
-    dependencies=[rate_limit(*LOGIN_RATE_LIMIT)],
     summary="Check whether an email address already has an account",
 )
 async def email_check(
@@ -278,10 +281,10 @@ async def email_check(
     return ApiResponse.success(data=EmailCheckOut(exists=exists))
 
 
+@guard_rate_limit(*LOGIN_RATE_LIMIT)
 @router.post(
     "/login",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*LOGIN_RATE_LIMIT)],
     summary="Login and issue access/refresh tokens",
 )
 async def login(
@@ -305,10 +308,10 @@ async def login(
     return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS"), data=tokens)
 
 
+@guard_rate_limit(*EMAIL_LOGIN_CODE_REQUEST_RATE_LIMIT)
 @router.post(
     "/login/email-code/request",
     response_model=ResponseModel[LoginEmailCodeRequestOut],
-    dependencies=[rate_limit(*EMAIL_LOGIN_CODE_REQUEST_RATE_LIMIT)],
     summary="Request a one-time login code by email",
 )
 async def login_email_code_request(
@@ -325,10 +328,10 @@ async def login_email_code_request(
     )
 
 
+@guard_rate_limit(*EMAIL_LOGIN_CODE_VERIFY_RATE_LIMIT)
 @router.post(
     "/login/email-code/verify",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*EMAIL_LOGIN_CODE_VERIFY_RATE_LIMIT)],
     summary="Verify an email login code and issue access/refresh tokens",
 )
 async def login_email_code_verify(
@@ -351,10 +354,10 @@ async def login_email_code_verify(
     return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS"), data=tokens)
 
 
+@guard_rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)
 @router.post(
     "/login/2fa",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*TWO_FACTOR_LOGIN_RATE_LIMIT)],
     summary="Complete login with 2FA challenge token",
 )
 async def login_two_factor(
@@ -379,10 +382,10 @@ async def login_two_factor(
     return ApiResponse.success(message=t("auth", "LOGIN_SUCCESS"), data=tokens)
 
 
+@guard_rate_limit(*REGISTER_RATE_LIMIT)
 @router.post(
     "/register",
     response_model=ResponseModel[UserProfile],
-    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
     summary="Register a new account",
 )
 async def register(
@@ -410,10 +413,10 @@ async def register(
     return ApiResponse.success(message=t("auth", "REGISTER_SUCCESS"), data=profile)
 
 
+@guard_rate_limit(*REFRESH_RATE_LIMIT)
 @router.post(
     "/refresh",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*REFRESH_RATE_LIMIT)],
     summary="Refresh access token",
 )
 async def refresh(
@@ -436,10 +439,10 @@ async def refresh(
     return ApiResponse.success(message=t("auth", "REFRESH_SUCCESS"), data=tokens)
 
 
+@guard_rate_limit(*REFRESH_RATE_LIMIT)
 @router.post(
     "/refresh-cookie",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*REFRESH_RATE_LIMIT)],
     summary="Refresh tokens using refresh cookie",
 )
 async def refresh_cookie(
@@ -474,10 +477,10 @@ async def refresh_cookie(
     return ApiResponse.success(message=t("auth", "REFRESH_SUCCESS"), data=tokens)
 
 
+@guard_rate_limit(*FORGOT_PASSWORD_RATE_LIMIT)
 @router.post(
     "/forgot-password",
     response_model=ResponseModel[ResetTokenPayload],
-    dependencies=[rate_limit(*FORGOT_PASSWORD_RATE_LIMIT)],
     summary="Request password reset",
 )
 async def forgot_password(
@@ -504,10 +507,10 @@ async def forgot_password(
     )
 
 
+@guard_rate_limit(*RESET_PASSWORD_RATE_LIMIT)
 @router.post(
     "/reset-password",
     response_model=ResponseModel[None],
-    dependencies=[rate_limit(*RESET_PASSWORD_RATE_LIMIT)],
     summary="Reset password using token",
 )
 async def reset_password(
@@ -519,6 +522,7 @@ async def reset_password(
     return ApiResponse.success(message=t("auth", "RESET_SUCCESS"))
 
 
+@guard_rate_limit(*PASSWORD_CHANGE_RATE_LIMIT)
 @router.post(
     "/change-password",
     response_model=ResponseModel[None],
@@ -538,6 +542,7 @@ async def change_password(
     return ApiResponse.success(message=t("auth", "PASSWORD_CHANGED"))
 
 
+@guard_rate_limit(*SET_PASSWORD_RATE_LIMIT)
 @router.post(
     "/me/set-password",
     response_model=ResponseModel[None],
@@ -674,6 +679,7 @@ async def get_two_factor_capabilities(
     return ApiResponse.success(data=out)
 
 
+@guard_rate_limit(*TWO_FACTOR_SETUP_RATE_LIMIT)
 @router.post(
     "/2fa/setup",
     response_model=ResponseModel[TwoFactorSetupOut],
@@ -696,10 +702,10 @@ async def begin_two_factor_setup(
     return ApiResponse.success(data=TwoFactorSetupOut(secret=secret, otpauth_uri=otpauth_uri))
 
 
+@guard_rate_limit(*TWO_FACTOR_CONFIRM_RATE_LIMIT)
 @router.post(
     "/2fa/confirm",
     response_model=ResponseModel[TwoFactorConfirmOut],
-    dependencies=[rate_limit(*TWO_FACTOR_CONFIRM_RATE_LIMIT)],
     summary="Confirm 2FA setup (TOTP code required)",
 )
 async def confirm_two_factor_setup(
@@ -712,10 +718,10 @@ async def confirm_two_factor_setup(
     return ApiResponse.success(data=TwoFactorConfirmOut(backup_codes=codes))
 
 
+@guard_rate_limit(*TWO_FACTOR_DISABLE_RATE_LIMIT)
 @router.post(
     "/2fa/disable",
     response_model=ResponseModel[None],
-    dependencies=[rate_limit(*TWO_FACTOR_DISABLE_RATE_LIMIT)],
     summary="Disable 2FA (TOTP or backup code required)",
 )
 async def disable_two_factor(
@@ -728,10 +734,10 @@ async def disable_two_factor(
     return ApiResponse.success(message=t("auth", "TWO_FACTOR_DISABLED"))
 
 
+@guard_rate_limit(*TWO_FACTOR_BACKUP_REGEN_RATE_LIMIT)
 @router.post(
     "/2fa/backup-codes/regenerate",
     response_model=ResponseModel[TwoFactorRegenerateBackupCodesOut],
-    dependencies=[rate_limit(*TWO_FACTOR_BACKUP_REGEN_RATE_LIMIT)],
     summary="Regenerate 2FA backup codes (TOTP or backup code required)",
 )
 async def regenerate_two_factor_backup_codes(
@@ -940,10 +946,10 @@ async def commit_avatar_upload_part(
     return ApiResponse.success(data=None)
 
 
+@guard_rate_limit(*EMAIL_CHANGE_REQUEST_RATE_LIMIT)
 @router.post(
     "/me/email/request",
     response_model=ResponseModel[RequestMyEmailChangeOut],
-    dependencies=[rate_limit(*EMAIL_CHANGE_REQUEST_RATE_LIMIT)],
     summary="Request email change verification code",
 )
 async def request_email_change(
@@ -969,10 +975,10 @@ async def request_email_change(
     )
 
 
+@guard_rate_limit(*EMAIL_CHANGE_CONFIRM_RATE_LIMIT)
 @router.post(
     "/me/email/confirm",
     response_model=ResponseModel[UserProfile],
-    dependencies=[rate_limit(*EMAIL_CHANGE_CONFIRM_RATE_LIMIT)],
     summary="Confirm email change",
 )
 async def confirm_email_change(
@@ -1011,10 +1017,10 @@ async def get_delete_my_account_capabilities(
     return ApiResponse.success(data=out)
 
 
+@guard_rate_limit(*ACCOUNT_DELETE_RATE_LIMIT)
 @router.post(
     "/me/delete",
     response_model=ResponseModel[None],
-    dependencies=[rate_limit(*ACCOUNT_DELETE_RATE_LIMIT)],
     summary="Delete current account",
 )
 async def delete_my_account(
@@ -1056,10 +1062,10 @@ async def me_invitations(
     return ApiResponse.success(data=page)
 
 
+@guard_rate_limit(*REGISTER_RATE_LIMIT)
 @router.post(
     "/invitations/accept",
     response_model=ResponseModel[TokenPair],
-    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
     summary="Accept invitation and create account",
 )
 async def accept_invitation(
@@ -1071,10 +1077,10 @@ async def accept_invitation(
     return ApiResponse.success(message=t("auth", "INVITE_ACCEPTED"), data=tokens)
 
 
+@guard_rate_limit(*REGISTER_RATE_LIMIT)
 @router.get(
     "/invitations/preview",
     response_model=ResponseModel[InvitationPreviewResult],
-    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
     summary="Preview invitation details",
 )
 async def preview_invitation(
@@ -1086,10 +1092,10 @@ async def preview_invitation(
     return ApiResponse.success(data=out)
 
 
+@guard_rate_limit(*REGISTER_RATE_LIMIT)
 @router.post(
     "/invitations/accept-existing",
     response_model=ResponseModel[AcceptExistingInvitationResult],
-    dependencies=[rate_limit(*REGISTER_RATE_LIMIT)],
     summary="Accept invitation for existing account",
 )
 async def accept_existing_invitation(

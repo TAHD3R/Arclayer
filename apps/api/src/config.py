@@ -425,8 +425,6 @@ class ValkeySettings(BaseSettings):
     default_ttl: int | None = Field(
         default=180, validation_alias=AliasChoices("VALKEY_DEFAULT_TTL", "CACHE_DEFAULT_TTL")
     )
-    limiter_enabled: bool = Field(default=False)
-    limiter_prefix: str = Field(default="fastapi-limiter")
 
     @computed_field
     @property
