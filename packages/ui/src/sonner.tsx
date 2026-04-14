@@ -20,7 +20,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         "rounded-xl border border-border/70 bg-popover text-popover-foreground shadow-lg shadow-black/5",
       content: "grid gap-1.5",
       title: "!text-headline !text-current",
-      description: "!text-callout text-current/80",
+      description: "!text-callout !text-current",
       icon: "mt-0.5 shrink-0 text-current",
       closeButton:
         "border-border/60 bg-background text-label-secondary hover:bg-accent hover:text-label-primary",

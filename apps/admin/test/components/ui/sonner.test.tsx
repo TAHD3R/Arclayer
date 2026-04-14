@@ -29,7 +29,7 @@ describe("shared Toaster", () => {
     expect(capturedProps?.toastOptions).toMatchObject({
       classNames: {
         title: "!text-headline !text-current",
-        description: "!text-callout text-current/80",
+        description: "!text-callout text-label-secondary",
         success: "border-positive/25 text-positive",
         error: "border-negative/25 text-negative",
         warning: "border-warning/35 text-warning",
