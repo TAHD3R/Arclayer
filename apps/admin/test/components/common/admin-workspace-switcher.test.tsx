@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MyWorkspace, MyWorkspaceListResult } from "@/types/api";
-import { getWorkspaceDetail, listMyWorkspaces, retryMyPersonalSpace } from "@/api/workspaces";
+import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { AdminWorkspaceSwitcher } from "@/components/layout/admin-workspace-switcher";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -17,19 +17,8 @@ const translations: Record<string, string> = {
   "common:WORKSPACE_SWITCHER_SELECT_WORKSPACE": "Select workspace",
   "common:WORKSPACE_SWITCHER_WORKSPACE_SETTINGS": "Workspace settings",
   "team:TEAM_INVITE_MEMBER": "Invite members",
-  "account:ACCOUNT_SECTION_PERSONAL": "Personal",
   "common:WORKSPACE_SWITCHER_VIEW_ALL_WORKSPACES": "View all workspaces",
-  "common:WORKSPACE_SWITCHER_TEAM_SECTION": "Team spaces",
-  "common:WORKSPACE_SWITCHER_PERSONAL_PENDING": "Personal workspace is being prepared",
-  "common:WORKSPACE_SWITCHER_PERSONAL_PENDING_HINT":
-    "It will appear here automatically when it is ready.",
-  "common:WORKSPACE_SWITCHER_PERSONAL_FAILED":
-    "Personal workspace is temporarily unavailable",
-  "common:WORKSPACE_SWITCHER_PERSONAL_FAILED_HINT":
-    "You can keep working in team spaces and retry later.",
-  "common:WORKSPACE_SWITCHER_PERSONAL_RETRY": "Retry",
-  "common:WORKSPACE_SWITCHER_PERSONAL_FAILED_TOAST":
-    "Your personal workspace is not ready yet. You can retry it from the switcher later.",
+  "common:WORKSPACE_SWITCHER_WORKSPACE_EMPTY": "No workspaces yet",
   "common:WORKSPACE_SWITCHER_ADD_WORKSPACE": "Add workspace",
   "common:WORKSPACE_SWITCHER_ORG_SETTINGS": "Organization settings",
   "common:WORKSPACE_SWITCHER_SELECT_ORG": "Select organization",
@@ -56,7 +45,6 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/api/workspaces", () => ({
   getWorkspaceDetail: vi.fn(),
   listMyWorkspaces: vi.fn(),
-  retryMyPersonalSpace: vi.fn(),
 }));
 
 const workspaceFixtures: MyWorkspace[] = [
@@ -114,33 +102,13 @@ const workspaceFixtures: MyWorkspace[] = [
   },
 ];
 
-const personalSpaceFixture: MyWorkspace = {
-  workspaceId: "ws-personal",
-  organizationId: "org-personal",
-  slug: "personal-space",
-  name: "Personal Space",
-  kind: "personal",
-  iconUrl: null,
-  memberCount: 1,
-  membersPreview: [],
-  visibleOnly: false,
-  isCreatorAdmin: true,
-  isLegacy: false,
-};
-
 function createWorkspaceListResult(
   overrides: Partial<MyWorkspaceListResult> = {},
 ): MyWorkspaceListResult {
   return {
-    items: [...workspaceFixtures, personalSpaceFixture],
+    items: workspaceFixtures,
     switcher: {
       teams: workspaceFixtures,
-      personalSpace: {
-        status: "ready",
-        workspace: personalSpaceFixture,
-        retryAvailable: false,
-        lastError: null,
-      },
     },
     instanceSetup: {
       status: "ready",
@@ -219,12 +187,6 @@ beforeEach(() => {
   useWorkspaceStore.setState({ currentWorkspaceId: "ws-alpha", lastWorkspaceId: "ws-alpha" });
 
   vi.mocked(listMyWorkspaces).mockResolvedValue(createWorkspaceListResult());
-  vi.mocked(retryMyPersonalSpace).mockResolvedValue({
-    status: "pending",
-    workspace: null,
-    retryAvailable: false,
-    lastError: null,
-  });
   vi.mocked(getWorkspaceDetail).mockResolvedValue({
     id: "ws-alpha",
     organizationId: "org-1",
@@ -321,7 +283,7 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     });
   });
 
-  it("workspace scope: opening panel shows workspaces only", async () => {
+  it("workspace scope: opening panel shows team workspaces only", async () => {
     const user = userEvent.setup();
 
     renderWithQueryClient(<AdminWorkspaceSwitcher />);
@@ -335,38 +297,11 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
 
     expect(within(panel).getByRole("button", { name: /Workspace Alpha/ })).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: /Workspace Beta/ })).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: /Personal Space/ })).toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: /Org Alpha/ })).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: "Organization settings" })).not.toBeInTheDocument();
-  });
-
-  it("workspace scope: hides the team section when only personal space is available", async () => {
-    const user = userEvent.setup();
-    vi.mocked(listMyWorkspaces).mockResolvedValue(
-      createWorkspaceListResult({
-        items: [personalSpaceFixture],
-        switcher: {
-          teams: [],
-          personalSpace: {
-            status: "ready",
-            workspace: personalSpaceFixture,
-            retryAvailable: false,
-            lastError: null,
-          },
-        },
-      }),
-    );
-
-    renderWithQueryClient(<AdminWorkspaceSwitcher />);
-
-    const trigger = await screen.findByRole("button", {
-      name: "Select workspace",
-    });
-    await user.click(trigger);
-
-    const panel = getLatestDialog();
     expect(within(panel).queryByText("Team spaces")).not.toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: /Personal Space/ })).toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: /Org Alpha/ })).not.toBeInTheDocument();
+    expect(
+      within(panel).queryByRole("button", { name: "Organization settings" }),
+    ).not.toBeInTheDocument();
   });
 
   it("workspace scope: panel omits any organization picker affordance", async () => {
@@ -406,25 +341,6 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(within(workspaceAlphaButton).getByLabelText("Linus Torvalds")).toBeInTheDocument();
   });
 
-  it("workspace scope: personal workspace row shows a Personal tag instead of member meta", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient(<AdminWorkspaceSwitcher />);
-
-    const trigger = await screen.findByRole("button", {
-      name: "Select workspace",
-    });
-    await user.click(trigger);
-
-    const panel = getLatestDialog();
-    const personalWorkspaceButton = within(panel).getByRole("button", {
-      name: /Personal Space/,
-    });
-
-    expect(within(personalWorkspaceButton).getByText("Personal")).toBeInTheDocument();
-    expect(within(personalWorkspaceButton).queryByText("1 member")).not.toBeInTheDocument();
-  });
-
   it("workspace scope: action groups expose settings, invites, workspaces index, and add workspace", async () => {
     const user = userEvent.setup();
 
@@ -448,7 +364,9 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(inviteMembersButton).toBeInTheDocument();
     expect(viewAllWorkspacesButton).toBeInTheDocument();
     expect(addWorkspaceButton).toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: "Open organization workspaces" })).not.toBeInTheDocument();
+    expect(
+      within(panel).queryByRole("button", { name: "Open organization workspaces" }),
+    ).not.toBeInTheDocument();
 
     const buttons = within(panel).getAllByRole("button");
     expect(buttons.indexOf(settingsButton)).toBeGreaterThan(buttons.indexOf(workspaceBetaButton));
@@ -497,35 +415,6 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     });
   });
 
-  it("workspace scope: hides the invite action when the current workspace is personal", async () => {
-    const user = userEvent.setup();
-    useWorkspaceStore.setState({ currentWorkspaceId: "ws-personal", lastWorkspaceId: "ws-personal" });
-    vi.mocked(listMyWorkspaces).mockResolvedValue(
-      createWorkspaceListResult({
-        items: [personalSpaceFixture, ...workspaceFixtures],
-      }),
-    );
-    vi.mocked(getWorkspaceDetail).mockResolvedValue({
-      id: "ws-personal",
-      organizationId: "org-personal",
-      slug: "personal-space",
-      name: "Personal Space",
-      kind: "personal",
-      iconUrl: null,
-    });
-
-    renderWithQueryClient(<AdminWorkspaceSwitcher />);
-
-    const trigger = await screen.findByRole("button", {
-      name: "Select workspace",
-    });
-    await user.click(trigger);
-
-    const panel = getLatestDialog();
-    expect(within(panel).queryByRole("button", { name: /Invite members/ })).not.toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: /Workspace settings/ })).toBeInTheDocument();
-  });
-
   it("workspace scope: selecting a workspace navigates and updates store", async () => {
     const user = userEvent.setup();
 
@@ -546,69 +435,5 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-beta/assets" });
     });
     expect(useWorkspaceStore.getState().currentWorkspaceId).toBe("ws-beta");
-  });
-
-  it("workspace scope: shows a pending placeholder for personal space preparation", async () => {
-    const user = userEvent.setup();
-    vi.mocked(listMyWorkspaces).mockResolvedValue(
-      createWorkspaceListResult({
-        items: workspaceFixtures,
-        switcher: {
-          teams: workspaceFixtures,
-          personalSpace: {
-            status: "pending",
-            workspace: null,
-            retryAvailable: false,
-            lastError: null,
-          },
-        },
-      }),
-    );
-
-    renderWithQueryClient(<AdminWorkspaceSwitcher />);
-
-    const trigger = await screen.findByRole("button", {
-      name: "Select workspace",
-    });
-    await user.click(trigger);
-
-    const panel = getLatestDialog();
-    expect(within(panel).getByText("Personal workspace is being prepared")).toBeInTheDocument();
-    expect(
-      within(panel).getByText("It will appear here automatically when it is ready."),
-    ).toBeInTheDocument();
-  });
-
-  it("workspace scope: shows retry action when personal space preparation failed", async () => {
-    const user = userEvent.setup();
-    vi.mocked(listMyWorkspaces).mockResolvedValue(
-      createWorkspaceListResult({
-        items: workspaceFixtures,
-        switcher: {
-          teams: workspaceFixtures,
-          personalSpace: {
-            status: "failed",
-            workspace: null,
-            retryAvailable: true,
-            lastError: "boom",
-          },
-        },
-      }),
-    );
-
-    renderWithQueryClient(<AdminWorkspaceSwitcher />);
-
-    const trigger = await screen.findByRole("button", {
-      name: "Select workspace",
-    });
-    await user.click(trigger);
-
-    const panel = getLatestDialog();
-    const retryButton = within(panel).getByRole("button", { name: "Retry" });
-    expect(
-      within(panel).getByText("Personal workspace is temporarily unavailable"),
-    ).toBeInTheDocument();
-    await user.click(retryButton);
-    expect(retryMyPersonalSpace).toHaveBeenCalledTimes(1);
   });
 });

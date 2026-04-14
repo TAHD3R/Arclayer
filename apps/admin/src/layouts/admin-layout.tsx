@@ -59,11 +59,8 @@ export function AdminLayout({ children }: PropsWithChildren) {
   });
 
   const workspaceNav = useMemo(
-    () =>
-      workspaceBase
-        ? mapWorkspaceNavItems(getWorkspaceNavItems(workspaceDetailQuery.data?.kind), workspaceBase)
-        : [],
-    [workspaceBase, workspaceDetailQuery.data?.kind],
+    () => (workspaceBase ? mapWorkspaceNavItems(getWorkspaceNavItems(), workspaceBase) : []),
+    [workspaceBase],
   );
 
   const mainItems = useMemo(

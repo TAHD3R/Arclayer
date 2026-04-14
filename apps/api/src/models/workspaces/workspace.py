@@ -19,7 +19,6 @@ class WorkspaceMembershipStatus(StrEnum):
 class WorkspaceKind(StrEnum):
     """Workspace identity kind."""
 
-    PERSONAL = "personal"
     TEAM = "team"
 
 
@@ -49,7 +48,6 @@ class Workspace(BaseModel):
     class Meta(BaseModel.Meta):
         table = "domain_workspaces"
         abstract = False
-        unique_together = (("kind", "owner_user_id"),)
 
 
 @post_save(Workspace)

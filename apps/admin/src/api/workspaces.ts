@@ -18,13 +18,6 @@ export async function listMyWorkspaces(): Promise<MyWorkspaceListResult> {
   return api.get<MyWorkspaceListResult>("/me/workspaces");
 }
 
-export async function retryMyPersonalSpace() {
-  return api.post<MyWorkspaceListResult["switcher"]["personalSpace"]>(
-    "/me/workspaces/personal-space/retry",
-    {},
-  );
-}
-
 export async function checkMyOnboardingWorkspaceSlugAvailability(
   slug: string,
 ): Promise<WorkspaceSlugAvailability> {

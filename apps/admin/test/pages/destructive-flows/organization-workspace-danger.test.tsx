@@ -93,12 +93,6 @@ beforeEach(() => {
     items: [],
     switcher: {
       teams: [],
-      personalSpace: {
-        status: "pending",
-        workspace: null,
-        retryAvailable: false,
-        lastError: null,
-      },
     },
     instanceSetup: { status: "ready", repairReason: null },
   });
@@ -145,12 +139,6 @@ describe("workspace destructive flows", () => {
             isLegacy: false,
           },
         ],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
     });

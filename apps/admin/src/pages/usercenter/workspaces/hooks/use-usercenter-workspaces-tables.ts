@@ -1,13 +1,10 @@
 import { type ColumnDef } from "@tanstack/react-table";
 
 import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
-import { listMyWorkspaces } from "@/api/workspaces";
 import { useDataTable, type UseDataTableResult } from "@arclayer/ui/data-table";
 
 import {
   mapOrganizationWorkspaceToListItem,
-  mapPersonalWorkspaceToListItem,
-  matchesWorkspaceSearch,
   paginateWorkspaceList,
   type UserCenterWorkspaceListItem,
 } from "../workspace-list-items";
@@ -33,30 +30,15 @@ export function useUserCenterWorkspacesTables(options: UseUserCenterWorkspacesTa
     columns,
     initialState: { pageSize: 10 },
     fetcher: async (params) => {
-      const [organizationItems, myWorkspaces] = await Promise.all([
-        listAllOrganizationWorkspaces({
-          organizationId,
-          q: params.q,
-          ordering: params.ordering,
-          archived: false,
-        }),
-        organizationId ? Promise.resolve(null) : listMyWorkspaces(),
-      ]);
-
-      const personalWorkspace =
-        !organizationId && myWorkspaces?.switcher.personalSpace.status === "ready"
-          ? myWorkspaces.switcher.personalSpace.workspace
-          : null;
-      const personalListItem = personalWorkspace
-        ? mapPersonalWorkspaceToListItem(personalWorkspace)
-        : null;
-      const personalItem =
-        personalListItem && matchesWorkspaceSearch(personalListItem, params.q ?? "")
-          ? [personalListItem]
-          : [];
+      const organizationItems = await listAllOrganizationWorkspaces({
+        organizationId,
+        q: params.q,
+        ordering: params.ordering,
+        archived: false,
+      });
       const teamItems = organizationItems.map(mapOrganizationWorkspaceToListItem);
 
-      return paginateWorkspaceList([...personalItem, ...teamItems], params.page, params.size);
+      return paginateWorkspaceList(teamItems, params.page, params.size);
     },
     queryOptions: {
       staleTime: 30 * 1000,

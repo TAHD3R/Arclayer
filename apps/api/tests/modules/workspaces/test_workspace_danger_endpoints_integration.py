@@ -22,7 +22,6 @@ from src.models.workspaces.workspace import (
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
-from src.modules.workspaces.personal_space.service import PersonalSpaceService
 
 pytestmark = pytest.mark.integration
 
@@ -296,60 +295,3 @@ async def test_workspace_danger_capabilities_report_constraints(prepared_db, int
             spare_cap = spare_cap_resp.json()["data"]
             assert spare_cap["deleteAction"]["enabled"] is False
             assert spare_cap["deleteAction"]["blockedReason"] == "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE"
-
-
-@pytest.mark.asyncio
-async def test_personal_workspace_leave_and_delete_endpoints_are_forbidden(
-    prepared_db, integration_valkey_settings
-) -> None:
-    _ = prepared_db
-    _ = integration_valkey_settings
-
-    settings = get_settings()
-    app = create_app()
-    transport = ASGITransport(app=app, raise_app_exceptions=False)
-
-    async with app.router.lifespan_context(app):
-        await verify_db_ready(settings)
-
-        user_repo = UserRepository()
-        personal_space_service = PersonalSpaceService(settings)
-
-        owner = await user_repo.create_user(
-            username=f"personal_owner_{uuid4().hex[:8]}",
-            email=f"personal_owner_{uuid4().hex[:8]}@example.com",
-            display_name="Personal Owner",
-            password_hash=hash_password("owner_pass_123", settings.auth),
-        )
-        personal_space = await personal_space_service.ensure_personal_space(user_id=owner.id)
-        personal_workspace = await Workspace.get(id=personal_space.workspace_id)
-
-        current_user: User | None = owner
-
-        async def _get_user() -> User:
-            assert current_user is not None
-            return current_user
-
-        async def _get_user_id() -> UUID:
-            assert current_user is not None
-            return current_user.id
-
-        app.dependency_overrides[get_current_user] = _get_user
-        app.dependency_overrides[get_current_user_id] = _get_user_id
-
-        workspace_pid = encode_uuid(personal_space.workspace_id)
-
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            leave_resp = await client.post(
-                f"/api/v1/workspaces/{workspace_pid}/leave",
-                json={"confirmText": "LEAVE"},
-            )
-            assert leave_resp.status_code == 403, leave_resp.text
-            assert leave_resp.json().get("error") == "PERSONAL_SPACE_LEAVE_FORBIDDEN"
-
-            delete_resp = await client.delete(
-                f"/api/v1/workspaces/{workspace_pid}",
-                params={"confirmName": personal_workspace.name},
-            )
-            assert delete_resp.status_code == 400, delete_resp.text
-            assert delete_resp.json().get("error") == "PERSONAL_SPACE_DELETE_FORBIDDEN"

@@ -31,25 +31,18 @@ vi.mock(
   }),
 );
 
-function createController(isTeamWorkspace: boolean) {
+function createController() {
   return {
     form: {},
     onTabChange: vi.fn(),
-    isTeamWorkspace,
   } as unknown as React.ComponentProps<typeof WorkspaceSettingsBasicsForm>["controller"];
 }
 
 describe("WorkspaceSettingsBasicsForm", () => {
-  it("hides the access panel for personal workspaces", () => {
-    render(<WorkspaceSettingsBasicsForm controller={createController(false)} />);
+  it("shows the access panel for every workspace", () => {
+    render(<WorkspaceSettingsBasicsForm controller={createController()} />);
 
     expect(screen.getByTestId("workspace-settings-core-panels")).toBeInTheDocument();
-    expect(screen.queryByTestId("workspace-settings-access-panel")).not.toBeInTheDocument();
-  });
-
-  it("shows the access panel for team workspaces", () => {
-    render(<WorkspaceSettingsBasicsForm controller={createController(true)} />);
-
     expect(screen.getByTestId("workspace-settings-access-panel")).toBeInTheDocument();
   });
 });

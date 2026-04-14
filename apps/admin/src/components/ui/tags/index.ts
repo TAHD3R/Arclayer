@@ -12,4 +12,3 @@ export * from "./profile-tags";
 export * from "./security-tags";
 export * from "./system-tags";
 export * from "./team-member-tags";
-export * from "./workspace-tags";

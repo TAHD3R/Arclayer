@@ -13,7 +13,6 @@ from src.core.i18n import t
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.workspaces.workspace import (
     Workspace,
-    WorkspaceKind,
     WorkspaceMembership,
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
@@ -21,13 +20,6 @@ from src.models.workspaces.workspace import (
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceContext
 from src.modules.workspaces.runtime.service import set_current_workspace_context
-
-
-def _raise_personal_space_team_operation_forbidden() -> None:
-    raise Forbidden(
-        message=t("errors", "PERMISSION_DENIED"),
-        error="PERSONAL_SPACE_TEAM_OPERATION_FORBIDDEN",
-    )
 
 
 async def _require_active_workspace(*, workspace_id: PublicUUID) -> Workspace:
@@ -175,11 +167,6 @@ async def get_workspace_context(
     """Resolve workspace request context (member vs guest)."""
 
     workspace = await _require_active_workspace(workspace_id=workspace_id)
-    if workspace.kind == WorkspaceKind.PERSONAL and UUID(str(workspace.owner_user_id)) != user_id:
-        raise Forbidden(
-            message=t("errors", "PERMISSION_DENIED"),
-            error="WORKSPACE_ACCESS_DENIED",
-        )
     organization_id = _resolve_workspace_org_id(workspace=workspace)
 
     orgm = await _find_active_org_membership(organization_id=organization_id, user_id=user_id)
@@ -213,7 +200,4 @@ async def require_team_workspace_manage_access(
     ctx: WorkspaceContext = Depends(require_workspace_manage_access),
 ) -> WorkspaceContext:
     """Ensure the current user can manage a Team workspace."""
-
-    if ctx.workspace_kind != WorkspaceKind.TEAM:
-        _raise_personal_space_team_operation_forbidden()
     return ctx

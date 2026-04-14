@@ -42,12 +42,6 @@ vi.mock("@/api/workspaces", () => ({
     items: [],
     switcher: {
       teams: [],
-      personalSpace: {
-        status: "pending",
-        workspace: null,
-        retryAvailable: false,
-        lastError: null,
-      },
     },
     instanceSetup: { status: "ready", repairReason: null },
   }),

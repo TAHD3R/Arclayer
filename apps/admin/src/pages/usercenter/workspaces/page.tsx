@@ -91,16 +91,6 @@ export function WorkspacesPage() {
 
   const buildCardMenuItems = useCallback(
     (workspace: UserCenterWorkspaceListItem): WorkspaceMenuItem[] => {
-      if (workspace.kind === "personal") {
-        return [
-          {
-            key: "enter",
-            icon: <LogIn className="size-4" />,
-            label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
-            onClick: () => handleEnterWorkspace(workspace.workspaceId),
-          },
-        ];
-      }
       if (workspace.isArchived) {
         return [
           {

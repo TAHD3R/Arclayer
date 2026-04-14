@@ -1,5 +1,5 @@
 import type { PageData } from "@/types/api";
-import type { MyWorkspace, OrganizationWorkspace } from "@/types/api";
+import type { OrganizationWorkspace } from "@/types/api";
 
 export type UserCenterWorkspaceListItemMemberPreview = {
   userId: string;
@@ -15,7 +15,7 @@ export type UserCenterWorkspaceListItem = {
   organizationId: string;
   slug: string;
   name: string;
-  kind: "team" | "personal";
+  kind: "team";
   description: string | null;
   iconUrl: string | null;
   isArchived: boolean;
@@ -40,34 +40,6 @@ export function mapOrganizationWorkspaceToListItem(
       avatarUrl: member.avatarUrl,
       email: member.email,
     })),
-  };
-}
-
-export function mapPersonalWorkspaceToListItem(
-  workspace: MyWorkspace,
-): UserCenterWorkspaceListItem {
-  return {
-    id: workspace.workspaceId,
-    workspaceId: workspace.workspaceId,
-    organizationId: workspace.organizationId,
-    slug: workspace.slug,
-    name: workspace.name,
-    kind: "personal",
-    description: workspace.description ?? null,
-    iconUrl: workspace.iconUrl ?? null,
-    isArchived: false,
-    archivedAt: null,
-    archivedByUserId: null,
-    memberCount: workspace.memberCount ?? 0,
-    membersPreview: (workspace.membersPreview ?? []).map((member) => ({
-      userId: member.userId,
-      username: member.username,
-      displayName: member.displayName,
-      avatarUrl: member.avatarUrl,
-      email: null,
-    })),
-    createdAt: workspace.createdAt ?? null,
-    enterable: true,
   };
 }
 

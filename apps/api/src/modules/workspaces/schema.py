@@ -10,13 +10,6 @@ from src.common.types.public_uuid import PublicUUID
 from src.models.workspaces.workspace import WorkspaceKind
 
 
-class PersonalSpaceStatus(StrEnum):
-    PENDING = "pending"
-    READY = "ready"
-    FAILED = "failed"
-    NOT_CREATED = "not_created"
-
-
 class WorkspaceFirstOnboardingStatus(StrEnum):
     PENDING_WORKSPACE = "pending_workspace"
     PENDING_WORKSPACE_DEFAULTS = "pending_workspace_defaults"
@@ -35,7 +28,7 @@ class MyWorkspaceOut(BaseOut):
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
-    kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind: team or personal.")
+    kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind.")
     description: str | None = Field(default=None, description="Workspace description.")
     icon_url: str | None = Field(default=None, description="Workspace icon URL.")
     member_count: int = Field(default=0, ge=0, description="Active member count.")
@@ -64,16 +57,8 @@ class InstanceSetupStateOut(BaseSchema):
     repair_reason: str | None = Field(default=None, description="Explicit repair reason code when setup is invalid.")
 
 
-class PersonalSpaceSwitcherOut(BaseSchema):
-    status: PersonalSpaceStatus = Field(..., description="Personal space preparation state.")
-    workspace: MyWorkspaceOut | None = Field(default=None, description="Resolved personal workspace when ready.")
-    retry_available: bool = Field(default=False, description="Whether inline retry is currently available.")
-    last_error: str | None = Field(default=None, description="Latest non-sensitive failure code.")
-
-
 class WorkspaceSwitcherOut(BaseSchema):
     teams: list[MyWorkspaceOut] = Field(default_factory=list, description="Team workspaces visible to current user.")
-    personal_space: PersonalSpaceSwitcherOut = Field(..., description="Personal space switcher state.")
 
 
 class WorkspaceFirstOnboardingOut(BaseSchema):
@@ -87,7 +72,6 @@ class WorkspaceFirstOnboardingOut(BaseSchema):
 
 
 class OnboardingWorkspaceCreateRequest(BaseSchema):
-    kind: WorkspaceKind = Field(..., description="Workspace kind chosen during onboarding.")
     name: str | None = Field(
         default=None, min_length=1, max_length=128, description="Workspace name chosen during onboarding."
     )
@@ -98,7 +82,6 @@ class OnboardingWorkspaceCreateRequest(BaseSchema):
 
 class OnboardingWorkspaceCreateOut(BaseSchema):
     workspace_id: PublicUUID = Field(..., description="Created workspace id.")
-    kind: WorkspaceKind = Field(..., description="Created workspace kind.")
 
 
 class MyWorkspaceListResult(BaseSchema):
@@ -114,7 +97,7 @@ class WorkspaceDetailOut(BaseOut):
     """Workspace metadata used by the admin workspace settings page."""
 
     organization_id: PublicUUID = Field(..., description="Organization id.")
-    kind: WorkspaceKind = Field(..., description="Workspace kind: team or personal.")
+    kind: WorkspaceKind = Field(..., description="Workspace kind.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     icon_url: str | None = Field(default=None, description="Workspace icon/logo URL (optional).")

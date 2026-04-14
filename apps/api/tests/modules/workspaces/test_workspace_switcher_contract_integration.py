@@ -17,12 +17,11 @@ from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.organization.repository import OrganizationRepository
 from src.modules.system.setup.service import InstanceSetupService
-from src.modules.workspaces.personal_space.service import PersonalSpaceService
 
 pytestmark = pytest.mark.integration
 
 
-async def test_me_workspaces_returns_switcher_and_personal_space_truth(
+async def test_me_workspaces_returns_team_switcher_items_only(
     prepared_db, integration_valkey_settings, tmp_path: Path
 ) -> None:
     _ = prepared_db
@@ -42,8 +41,6 @@ async def test_me_workspaces_returns_switcher_and_personal_space_truth(
         setup_service = InstanceSetupService(settings)
         org_repo = OrganizationRepository()
         user_repo = UserRepository()
-        personal_space_service = PersonalSpaceService(settings)
-
         founder = await user_repo.create_user(
             username=f"founder_{uuid4().hex[:10]}",
             email="founder@example.com",
@@ -74,7 +71,6 @@ async def test_me_workspaces_returns_switcher_and_personal_space_truth(
             user_id=user.id,
             status=WorkspaceMembershipStatus.ACTIVE,
         )
-        await personal_space_service.ensure_for_login(user_id=user.id)
 
         async def _get_user() -> User:
             return user
@@ -98,15 +94,13 @@ async def test_me_workspaces_returns_switcher_and_personal_space_truth(
     data = response.json()["data"]
 
     assert data["instanceSetup"]["status"] == "ready"
-    assert len(data["items"]) == 2
+    assert len(data["items"]) == 1
     assert len(data["switcher"]["teams"]) == 1
     assert data["switcher"]["teams"][0]["kind"] == "team"
-    assert data["switcher"]["personalSpace"]["status"] == "ready"
-    assert data["switcher"]["personalSpace"]["workspace"]["kind"] == "personal"
-    assert data["switcher"]["personalSpace"]["retryAvailable"] is False
+    assert "personalSpace" not in data["switcher"]
 
 
-async def test_me_workspaces_reports_team_only_existing_user_without_fake_personal_workspace(
+async def test_me_workspaces_reports_existing_team_only_user_without_special_personal_state(
     prepared_db, integration_valkey_settings, tmp_path: Path
 ) -> None:
     _ = prepared_db
@@ -182,5 +176,4 @@ async def test_me_workspaces_reports_team_only_existing_user_without_fake_person
     assert len(data["items"]) == 1
     assert data["items"][0]["kind"] == "team"
     assert data["switcher"]["teams"][0]["workspaceId"] == data["items"][0]["workspaceId"]
-    assert data["switcher"]["personalSpace"]["status"] == "not_created"
-    assert data["switcher"]["personalSpace"]["workspace"] is None
+    assert "personalSpace" not in data["switcher"]

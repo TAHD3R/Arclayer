@@ -118,13 +118,9 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   },
 ] as const;
 
-export function getWorkspaceNavItems(workspaceKind?: "team" | "personal" | null): AdminNavItem[] {
-  if (workspaceKind === "personal") {
-    return BASE_WORKSPACE_NAV_ITEMS.filter((item) => item.key !== "team");
-  }
-
+export function getWorkspaceNavItems(): AdminNavItem[] {
   return BASE_WORKSPACE_NAV_ITEMS;
 }
 
-export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = getWorkspaceNavItems("team");
+export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = getWorkspaceNavItems();
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = WORKSPACE_NAV_ITEMS;

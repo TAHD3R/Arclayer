@@ -17,7 +17,7 @@ def _auth_headers(access_token: str) -> dict[str, str]:
 
 
 @pytest.mark.asyncio
-async def test_personal_onboarding_flow_creates_personal_workspace_then_completes_defaults(
+async def test_team_onboarding_flow_creates_team_workspace_then_completes_defaults(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -33,11 +33,11 @@ async def test_personal_onboarding_flow_creates_personal_workspace_then_complete
 
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
             suffix = uuid4().hex[:8]
-            username = f"onboarding-personal-{suffix}"
+            username = f"onboarding-team-{suffix}"
             email = f"{username}@example.com"
             password = "onboarding_pass_123"
-            workspace_name = "Founder Workspace"
-            workspace_slug = f"founder-space-{suffix}"
+            workspace_name = "Founder Team"
+            workspace_slug = f"founder-team-{suffix}"
 
             register_response = await client.post(
                 "/api/v1/auth/register",
@@ -64,13 +64,12 @@ async def test_personal_onboarding_flow_creates_personal_workspace_then_complete
             assert initial_payload["items"] == []
             assert initial_payload["onboarding"]["status"] == "pending_workspace"
             assert initial_payload["onboarding"]["workspaceId"] is None
-            assert initial_payload["switcher"]["personalSpace"]["status"] == "pending"
             assert initial_payload["switcher"]["teams"] == []
+            assert "personalSpace" not in initial_payload["switcher"]
 
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
                 json={
-                    "kind": "personal",
                     "name": workspace_name,
                     "slug": workspace_slug,
                 },
@@ -79,24 +78,20 @@ async def test_personal_onboarding_flow_creates_personal_workspace_then_complete
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]
             workspace_id = created_workspace["workspaceId"]
-            assert created_workspace["kind"] == "personal"
 
             post_create_workspaces_resp = await client.get("/api/v1/me/workspaces", headers=headers)
             assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text
             post_create_payload = post_create_workspaces_resp.json()["data"]
             assert len(post_create_payload["items"]) == 1
-            personal_workspace = post_create_payload["items"][0]
-            assert personal_workspace["workspaceId"] == workspace_id
-            assert personal_workspace["kind"] == "personal"
-            assert personal_workspace["name"] == workspace_name
-            assert personal_workspace["slug"] == workspace_slug
+            team_workspace = post_create_payload["items"][0]
+            assert team_workspace["workspaceId"] == workspace_id
+            assert team_workspace["kind"] == "team"
+            assert team_workspace["name"] == workspace_name
+            assert team_workspace["slug"] == workspace_slug
             assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
             assert post_create_payload["onboarding"]["workspaceId"] == workspace_id
-            assert post_create_payload["switcher"]["personalSpace"]["status"] == "ready"
-            assert post_create_payload["switcher"]["personalSpace"]["workspace"]["workspaceId"] == workspace_id
-            assert post_create_payload["switcher"]["personalSpace"]["workspace"]["name"] == workspace_name
-            assert post_create_payload["switcher"]["personalSpace"]["workspace"]["slug"] == workspace_slug
-            assert post_create_payload["switcher"]["teams"] == []
+            assert post_create_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
+            assert "personalSpace" not in post_create_payload["switcher"]
 
             patch_defaults_resp = await client.patch(
                 f"/api/v1/workspaces/{workspace_id}/settings/core",
@@ -120,12 +115,12 @@ async def test_personal_onboarding_flow_creates_personal_workspace_then_complete
             completed_payload = completed_workspaces_resp.json()["data"]
             assert completed_payload["onboarding"]["status"] == "completed"
             assert completed_payload["onboarding"]["workspaceId"] == workspace_id
-            assert completed_payload["switcher"]["personalSpace"]["status"] == "ready"
-            assert completed_payload["switcher"]["personalSpace"]["workspace"]["workspaceId"] == workspace_id
+            assert completed_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
+            assert "personalSpace" not in completed_payload["switcher"]
 
 
 @pytest.mark.asyncio
-async def test_team_onboarding_flow_finishes_without_fake_personal_workspace(
+async def test_completed_onboarding_reuses_existing_team_workspace_in_response(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -168,7 +163,6 @@ async def test_team_onboarding_flow_finishes_without_fake_personal_workspace(
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
                 json={
-                    "kind": "team",
                     "name": "Blog Team",
                     "slug": workspace_slug,
                 },
@@ -177,7 +171,6 @@ async def test_team_onboarding_flow_finishes_without_fake_personal_workspace(
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
             created_workspace = create_workspace_resp.json()["data"]
             workspace_id = created_workspace["workspaceId"]
-            assert created_workspace["kind"] == "team"
 
             post_create_workspaces_resp = await client.get("/api/v1/me/workspaces", headers=headers)
             assert post_create_workspaces_resp.status_code == 200, post_create_workspaces_resp.text
@@ -190,8 +183,7 @@ async def test_team_onboarding_flow_finishes_without_fake_personal_workspace(
             assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
             assert post_create_payload["onboarding"]["workspaceId"] == workspace_id
             assert post_create_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
-            assert post_create_payload["switcher"]["personalSpace"]["status"] == "pending"
-            assert post_create_payload["switcher"]["personalSpace"]["workspace"] is None
+            assert "personalSpace" not in post_create_payload["switcher"]
 
             patch_defaults_resp = await client.patch(
                 f"/api/v1/workspaces/{workspace_id}/settings/core",
@@ -216,5 +208,12 @@ async def test_team_onboarding_flow_finishes_without_fake_personal_workspace(
             assert completed_payload["onboarding"]["status"] == "completed"
             assert completed_payload["onboarding"]["workspaceId"] == workspace_id
             assert completed_payload["switcher"]["teams"][0]["workspaceId"] == workspace_id
-            assert completed_payload["switcher"]["personalSpace"]["status"] == "not_created"
-            assert completed_payload["switcher"]["personalSpace"]["workspace"] is None
+            assert "personalSpace" not in completed_payload["switcher"]
+
+            repeated_create_resp = await client.post(
+                "/api/v1/me/workspaces/onboarding",
+                json={"name": "Ignored", "slug": f"ignored-{suffix}"},
+                headers=headers,
+            )
+            assert repeated_create_resp.status_code == 400, repeated_create_resp.text
+            assert repeated_create_resp.json()["error"] == "WORKSPACE_ONBOARDING_COMPLETED"

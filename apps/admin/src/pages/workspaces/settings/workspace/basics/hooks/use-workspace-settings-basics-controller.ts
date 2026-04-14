@@ -102,12 +102,10 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
     staleTime: 5 * 60 * 1000,
     meta: { silent: true },
   });
-  const workspaceKind = detailQuery.data?.kind ?? null;
-  const isTeamWorkspace = workspaceKind === "team";
 
   const rolesQuery = useQuery({
     queryKey: ["workspace", "rbac", "roles", workspaceId],
-    enabled: Boolean(workspaceId) && isTeamWorkspace,
+    enabled: Boolean(workspaceId),
     queryFn: async () => listWorkspaceRoles(workspaceId, { page: 1, size: 200 }),
     staleTime: 5 * 60 * 1000,
     retry: false,
@@ -283,8 +281,6 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
 
   return {
     workspaceId,
-    workspaceKind,
-    isTeamWorkspace,
     t,
     navigate,
     queryClient,

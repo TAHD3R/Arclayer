@@ -23,7 +23,7 @@ export function WorkspaceSettingsBasicsForm(props: {
         <ChromeTabsContent value="basics">
           <div className="flex flex-col gap-8">
             <WorkspaceSettingsBasicsCorePanels controller={c} />
-            {c.isTeamWorkspace ? <WorkspaceSettingsBasicsAccessPanel controller={c} /> : null}
+            <WorkspaceSettingsBasicsAccessPanel controller={c} />
           </div>
         </ChromeTabsContent>
       </ChromeTabs>

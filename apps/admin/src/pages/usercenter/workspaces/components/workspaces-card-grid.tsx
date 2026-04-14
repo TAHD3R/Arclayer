@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { listOrganizationWorkspaces } from "@/api/organization-workspaces";
-import { listMyWorkspaces } from "@/api/workspaces";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Spinner } from "@arclayer/ui/spinner";
 
@@ -12,11 +11,7 @@ import type {
   UserCenterWorkspacesTranslateFn,
   WorkspaceMenuItem,
 } from "../types";
-import {
-  mapOrganizationWorkspaceToListItem,
-  mapPersonalWorkspaceToListItem,
-  matchesWorkspaceSearch,
-} from "../workspace-list-items";
+import { mapOrganizationWorkspaceToListItem } from "../workspace-list-items";
 import { WorkspaceCard } from "./workspace-card";
 
 interface WorkspacesCardGridProps {
@@ -46,7 +41,6 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
 
   const scope = organizationId ?? "me";
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const includePersonalWorkspace = !organizationId && !archived;
 
   const query = useInfiniteQuery({
     queryKey: ["organization-workspaces-cards", scope, archived, searchInput],
@@ -64,37 +58,16 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
     meta: { silent: true },
   });
 
-  const personalWorkspaceQuery = useQuery({
-    queryKey: ["me", "workspaces", "usercenter-cards"],
-    queryFn: listMyWorkspaces,
-    enabled: includePersonalWorkspace,
-    staleTime: 30 * 1000,
-    retry: false,
-    meta: { silent: true },
-  });
-
   const items = useMemo(
-    () => {
-      const teamItems = (query.data?.pages ?? [])
+    () =>
+      (query.data?.pages ?? [])
         .flatMap((page) => page.items ?? [])
-        .map(mapOrganizationWorkspaceToListItem);
-      const personalWorkspace =
-        includePersonalWorkspace &&
-        personalWorkspaceQuery.data?.switcher.personalSpace.status === "ready"
-          ? personalWorkspaceQuery.data.switcher.personalSpace.workspace
-          : null;
-      const personalItem =
-        personalWorkspace && matchesWorkspaceSearch(mapPersonalWorkspaceToListItem(personalWorkspace), searchInput)
-          ? [mapPersonalWorkspaceToListItem(personalWorkspace)]
-          : [];
-
-      return [...personalItem, ...teamItems];
-    },
-    [includePersonalWorkspace, personalWorkspaceQuery.data, query.data?.pages, searchInput],
+        .map(mapOrganizationWorkspaceToListItem),
+    [query.data?.pages],
   );
 
-  const loading = query.isLoading || (includePersonalWorkspace && personalWorkspaceQuery.isLoading);
-  const error = personalWorkspaceQuery.error ?? query.error;
+  const loading = query.isLoading;
+  const error = query.error;
   const empty = !loading && items.length === 0;
 
   // IntersectionObserver: auto-load next page when sentinel enters viewport
@@ -125,9 +98,6 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
       error={error}
       onRetry={() => {
         void query.refetch();
-        if (includePersonalWorkspace) {
-          void personalWorkspaceQuery.refetch();
-        }
       }}
       empty={empty}
       emptyTitle={emptyTitle}

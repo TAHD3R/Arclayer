@@ -16,12 +16,6 @@ export async function resolvePostAuthRoute(params: {
     items: [],
     switcher: {
       teams: [],
-      personalSpace: {
-        status: "pending" as const,
-        workspace: null,
-        retryAvailable: false,
-        lastError: null,
-      },
     },
     instanceSetup: { status: "ready" as const, repairReason: null },
     onboarding: {
@@ -60,15 +54,6 @@ export async function resolvePostAuthRoute(params: {
     return {
       path: workspaceHomePath(workspaceId),
       workspaceId,
-      onboardingRequired: false,
-    };
-  }
-
-  const personalSpaceWorkspaceId = workspaces.switcher.personalSpace.workspace?.workspaceId ?? null;
-  if (workspaces.switcher.personalSpace.status === "ready" && personalSpaceWorkspaceId) {
-    return {
-      path: workspaceHomePath(personalSpaceWorkspaceId),
-      workspaceId: personalSpaceWorkspaceId,
       onboardingRequired: false,
     };
   }

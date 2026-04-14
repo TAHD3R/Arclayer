@@ -35,9 +35,7 @@ const translations: Record<string, string> = {
   "common:NEXT": "Next",
   "common:ORG_WORKSPACES_FIELD_NAME_REQUIRED": "Workspace name is required",
   "onboarding:WORKSPACE_FIRST_WELCOME_TITLE": "Welcome to Arclayer",
-  "onboarding:WORKSPACE_SETUP_STEP_TITLE": "Choose how you work",
-  "onboarding:WORKSPACE_SETUP_MODE_PERSONAL_TITLE": "Personal work",
-  "onboarding:WORKSPACE_SETUP_MODE_TEAM_TITLE": "Team work",
+  "onboarding:WORKSPACE_SETUP_STEP_TITLE": "Name your workspace",
   "onboarding:WORKSPACE_NAME_LABEL": "Workspace name",
   "onboarding:WORKSPACE_NAME_HELP": "Choose the name people see when they enter this workspace.",
   "onboarding:WORKSPACE_NAME_PLACEHOLDER": "e.g. Product studio",
@@ -139,7 +137,6 @@ beforeEach(() => {
   });
   createMyOnboardingWorkspaceMock.mockResolvedValue({
     workspaceId: "ws-1",
-    kind: "team",
   });
   patchCoreSettingsMock.mockResolvedValue({
     namespace: "core",
@@ -150,47 +147,43 @@ beforeEach(() => {
 });
 
 describe("WorkspaceFirstOnboardingPage", () => {
-  it("redirects completed onboarding into the resolved personal workspace", async () => {
+  it("redirects completed onboarding into the resolved workspace", async () => {
     listMyWorkspacesMock.mockResolvedValue({
       items: [
         {
-          workspaceId: "ws-personal",
-          organizationId: "org-personal",
+          workspaceId: "ws-team",
+          organizationId: "org-team",
           slug: "founder",
           name: "Founder Workspace",
-          kind: "personal",
+          kind: "team",
           visibleOnly: false,
           isCreatorAdmin: true,
           isLegacy: false,
         },
       ],
       switcher: {
-        teams: [],
-        personalSpace: {
-          status: "ready",
-          workspace: {
-            workspaceId: "ws-personal",
-            organizationId: "org-personal",
+        teams: [
+          {
+            workspaceId: "ws-team",
+            organizationId: "org-team",
             slug: "founder",
             name: "Founder Workspace",
-            kind: "personal",
+            kind: "team",
             visibleOnly: false,
             isCreatorAdmin: true,
             isLegacy: false,
           },
-          retryAvailable: false,
-          lastError: null,
-        },
+        ],
       },
       instanceSetup: { status: "ready", repairReason: null },
-      onboarding: { status: "completed", workspaceId: "ws-personal" },
+      onboarding: { status: "completed", workspaceId: "ws-team" },
     });
 
     renderPage();
 
     await waitFor(() => {
-      expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-personal");
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-personal", replace: true });
+      expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-team");
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-team", replace: true });
     });
   });
 
@@ -200,12 +193,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
         items: [],
         switcher: {
           teams: [],
-          personalSpace: {
-            status: "pending",
-            workspace: null,
-            retryAvailable: false,
-            lastError: null,
-          },
         },
         instanceSetup: { status: "ready", repairReason: null },
         onboarding: { status: "pending_workspace", workspaceId: null },
@@ -236,12 +223,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
               isLegacy: false,
             },
           ],
-          personalSpace: {
-            status: "not_created",
-            workspace: null,
-            retryAvailable: false,
-            lastError: null,
-          },
         },
         instanceSetup: { status: "ready", repairReason: null },
         onboarding: { status: "pending_workspace_defaults", workspaceId: "ws-1" },
@@ -272,12 +253,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
               isLegacy: false,
             },
           ],
-          personalSpace: {
-            status: "pending",
-            workspace: null,
-            retryAvailable: false,
-            lastError: null,
-          },
         },
         instanceSetup: { status: "ready", repairReason: null },
         onboarding: { status: "completed", workspaceId: "ws-1" },
@@ -288,13 +263,12 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await screen.findByText("Welcome to Arclayer");
     await advanceIntroToWorkspaceStep(user);
-    await screen.findByText("Choose how you work");
-    await user.click(screen.getByRole("button", { name: /Team work/i }));
+    await screen.findByText("Name your workspace");
     const nameInput = screen.getByLabelText("Workspace name");
     const slugInput = screen.getByLabelText("Workspace slug");
 
     await waitFor(() => expect(slugInput).toHaveValue("founder-team"));
-    await waitFor(() => expect(nameInput).toHaveValue("Founder's Team"));
+    await waitFor(() => expect(nameInput).toHaveValue("Founder's Workspace"));
 
     await user.clear(nameInput);
     await user.type(nameInput, "Studio Team");
@@ -304,7 +278,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await waitFor(() => {
       expect(createMyOnboardingWorkspaceMock).toHaveBeenCalledWith({
-        kind: "team",
         name: "Studio Team",
         slug: "founder-team",
       });
@@ -350,12 +323,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
       items: [],
       switcher: {
         teams: [],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "pending_workspace", workspaceId: null },
@@ -366,122 +333,9 @@ describe("WorkspaceFirstOnboardingPage", () => {
 
     await screen.findByText("Welcome to Arclayer");
     await advanceIntroToWorkspaceStep(user);
-    await screen.findByText("Choose how you work");
-    await user.click(screen.getByRole("button", { name: /Team work/i }));
+    await screen.findByText("Name your workspace");
     await waitFor(() => {
-      expect(screen.getByLabelText("Workspace name")).toHaveValue("Founder 的团队");
-    });
-  });
-
-  it("creates a personal workspace after choosing personal work", async () => {
-    listMyWorkspacesMock
-      .mockResolvedValueOnce({
-        items: [],
-        switcher: {
-          teams: [],
-          personalSpace: {
-            status: "pending",
-            workspace: null,
-            retryAvailable: false,
-            lastError: null,
-          },
-        },
-        instanceSetup: { status: "ready", repairReason: null },
-        onboarding: { status: "pending_workspace", workspaceId: null },
-      })
-      .mockResolvedValueOnce({
-        items: [
-          {
-            workspaceId: "ws-personal",
-            organizationId: "org-personal",
-            slug: "founder-team",
-            name: "Founder Personal Space",
-            kind: "personal",
-            visibleOnly: false,
-            isCreatorAdmin: true,
-            isLegacy: false,
-          },
-        ],
-        switcher: {
-          teams: [],
-          personalSpace: {
-            status: "ready",
-            workspace: {
-              workspaceId: "ws-personal",
-              organizationId: "org-personal",
-              slug: "founder-team",
-              name: "Founder Personal Space",
-              kind: "personal",
-              visibleOnly: false,
-              isCreatorAdmin: true,
-              isLegacy: false,
-            },
-            retryAvailable: false,
-            lastError: null,
-          },
-        },
-        instanceSetup: { status: "ready", repairReason: null },
-        onboarding: { status: "pending_workspace_defaults", workspaceId: "ws-personal" },
-      })
-      .mockResolvedValueOnce({
-        items: [
-          {
-            workspaceId: "ws-personal",
-            organizationId: "org-personal",
-            slug: "founder-team",
-            name: "Founder Personal Space",
-            kind: "personal",
-            visibleOnly: false,
-            isCreatorAdmin: true,
-            isLegacy: false,
-          },
-        ],
-        switcher: {
-          teams: [],
-          personalSpace: {
-            status: "ready",
-            workspace: {
-              workspaceId: "ws-personal",
-              organizationId: "org-personal",
-              slug: "founder-team",
-              name: "Founder Personal Space",
-              kind: "personal",
-              visibleOnly: false,
-              isCreatorAdmin: true,
-              isLegacy: false,
-            },
-            retryAvailable: false,
-            lastError: null,
-          },
-        },
-        instanceSetup: { status: "ready", repairReason: null },
-        onboarding: { status: "completed", workspaceId: "ws-personal" },
-      });
-    createMyOnboardingWorkspaceMock.mockResolvedValueOnce({
-      workspaceId: "ws-personal",
-      kind: "personal",
-    });
-
-    renderPage();
-    const user = userEvent.setup();
-
-    await screen.findByText("Welcome to Arclayer");
-    await advanceIntroToWorkspaceStep(user);
-    await user.click(screen.getByRole("button", { name: /Personal work/i }));
-    const nameInput = screen.getByLabelText("Workspace name");
-    const slugInput = screen.getByLabelText("Workspace slug");
-
-    await waitFor(() => expect(nameInput).toHaveValue("Founder's Workspace"));
-    await waitFor(() => expect(slugInput).toHaveValue("founder-team"));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Next" })).toBeEnabled());
-    await user.click(screen.getByRole("button", { name: "Next" }));
-
-    await waitFor(() => {
-      expect(createMyOnboardingWorkspaceMock).toHaveBeenCalledWith({
-        kind: "personal",
-        name: "Founder's Workspace",
-        slug: "founder-team",
-      });
+      expect(screen.getByLabelText("Workspace name")).toHaveValue("Founder 的工作区");
     });
   });
 
@@ -512,12 +366,6 @@ describe("WorkspaceFirstOnboardingPage", () => {
             isLegacy: false,
           },
         ],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "pending_workspace_defaults", workspaceId: "ws-1" },

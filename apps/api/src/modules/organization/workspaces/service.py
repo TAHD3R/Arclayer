@@ -15,7 +15,7 @@ from src.core.i18n import t
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
 from src.models.system.rbac import Role
-from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembershipRole
+from src.models.workspaces.workspace import Workspace, WorkspaceMembershipRole
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -367,8 +367,6 @@ class OrganizationWorkspaceService(BaseService):
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if workspace.kind == WorkspaceKind.PERSONAL:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="PERSONAL_SPACE_ARCHIVE_FORBIDDEN")
 
         if workspace.archived_at is None:
             workspace.archived_at = datetime.now(UTC)
@@ -401,11 +399,6 @@ class OrganizationWorkspaceService(BaseService):
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if workspace.kind == WorkspaceKind.PERSONAL:
-            raise BadRequest(
-                message=t("errors", "BAD_REQUEST"),
-                error="PERSONAL_SPACE_ARCHIVE_FORBIDDEN",
-            )
 
         if workspace.archived_at is not None or workspace.archived_by_user_id is not None:
             mutable_workspace = cast(WorkspaceArchiveMutableFields, workspace)
@@ -440,8 +433,6 @@ class OrganizationWorkspaceService(BaseService):
         workspace = await self.repo.get_active_workspace(organization_id=organization_id, workspace_id=workspace_id)
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if workspace.kind == WorkspaceKind.PERSONAL:
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="PERSONAL_SPACE_DELETE_FORBIDDEN")
 
         normalized_confirm_name = str(confirm_name or "").strip()
         if normalized_confirm_name != str(workspace.name):

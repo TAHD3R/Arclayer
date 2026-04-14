@@ -17,7 +17,7 @@ from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User
 from src.models.system.rbac import Role
-from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
 from src.modules.assets.scope import AssetScope
@@ -28,7 +28,6 @@ from src.modules.organization.workspaces.schema import OrganizationWorkspaceCrea
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.system.setup.service import InstanceSetupService
-from src.modules.workspaces.personal_space.service import PersonalSpaceProvisionStatus, PersonalSpaceService
 from src.modules.workspaces.schema import (
     InstanceSetupStateOut,
     LeaveWorkspaceResult,
@@ -37,8 +36,6 @@ from src.modules.workspaces.schema import (
     MyWorkspaceOut,
     OnboardingWorkspaceCreateOut,
     OnboardingWorkspaceCreateRequest,
-    PersonalSpaceStatus,
-    PersonalSpaceSwitcherOut,
     WorkspaceDetailOut,
     WorkspaceFirstOnboardingOut,
     WorkspaceFirstOnboardingStatus,
@@ -52,7 +49,7 @@ def _resolve_organization_id(value: object) -> UUID:
     return UUID(str(cast(HasOrganizationId, value).organization_id))
 
 
-def _build_guest_workspace_list(*, workspaces: list[Workspace], user_id: UUID) -> list[MyWorkspaceOut]:
+def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorkspaceOut]:
     """
     Build workspace list for users without any org memberships.
 
@@ -62,8 +59,6 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace], user_id: UUID) -
 
     out: list[MyWorkspaceOut] = []
     for ws in workspaces:
-        if ws.kind == WorkspaceKind.PERSONAL and UUID(str(ws.owner_user_id)) != user_id:
-            continue
         out.append(
             MyWorkspaceOut(
                 id=ws.id,
@@ -130,8 +125,6 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
         for ws in org_workspaces:
             ws_id = UUID(str(ws.id))
             if ws_id in seen_workspace_ids:
-                continue
-            if ws.kind == WorkspaceKind.PERSONAL and UUID(str(ws.owner_user_id)) != UUID(str(args["user_id"])):
                 continue
             seen_workspace_ids.add(ws_id)
 
@@ -204,7 +197,6 @@ class WorkspaceService(BaseService):
         super().__init__(settings)
         self.repo = OrganizationWorkspaceRepository()
         self.org_repo = OrganizationRepository()
-        self.personal_space_service = PersonalSpaceService(settings)
         self.instance_setup_service = InstanceSetupService(settings)
         self.onboarding_service = WorkspaceFirstOnboardingService(settings)
 
@@ -245,7 +237,7 @@ class WorkspaceService(BaseService):
                 workspaces=membership_workspaces,
                 memberships=memberships,
             )
-            items = _build_guest_workspace_list(workspaces=membership_workspaces, user_id=user_id)
+            items = _build_guest_workspace_list(workspaces=membership_workspaces)
             items = self._hydrate_workspace_meta(
                 items=items,
                 member_count_by_workspace=member_count_by_workspace,
@@ -324,13 +316,7 @@ class WorkspaceService(BaseService):
             )
             if existing_workspace is None:
                 raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-            return OnboardingWorkspaceCreateOut(
-                workspace_id=UUID(str(existing_workspace.id)),
-                kind=existing_workspace.kind,
-            )
-
-        if payload.kind not in (WorkspaceKind.PERSONAL, WorkspaceKind.TEAM):
-            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_KIND_INVALID")
+            return OnboardingWorkspaceCreateOut(workspace_id=UUID(str(existing_workspace.id)))
 
         workspace_name = str(payload.name or "").strip()
         workspace_slug = str(payload.slug or "").strip()
@@ -344,29 +330,8 @@ class WorkspaceService(BaseService):
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_INVALID")
         if slug_error == "reserved":
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_RESERVED")
-        existing_personal_workspace = (
-            await Workspace.get_or_none(kind=WorkspaceKind.PERSONAL, owner_user_id=user_id)
-            if payload.kind == WorkspaceKind.PERSONAL
-            else None
-        )
         if await self.repo.slug_exists(slug=normalized_slug):
-            if existing_personal_workspace is None or existing_personal_workspace.slug != normalized_slug:
-                raise Conflict(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_EXISTS")
-
-        if payload.kind == WorkspaceKind.PERSONAL:
-            personal_space = await self.personal_space_service.ensure_personal_space(
-                user_id=user_id,
-                workspace_name=workspace_name,
-                workspace_slug=normalized_slug,
-            )
-            await self.onboarding_service.mark_workspace_created(
-                user_id=user_id,
-                workspace_id=personal_space.workspace_id,
-            )
-            return OnboardingWorkspaceCreateOut(
-                workspace_id=personal_space.workspace_id,
-                kind=WorkspaceKind.PERSONAL,
-            )
+            raise Conflict(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_EXISTS")
 
         organization = await self._ensure_onboarding_team_organization(
             user_id=user_id,
@@ -386,10 +351,7 @@ class WorkspaceService(BaseService):
             user_id=user_id,
             workspace_id=UUID(str(created_workspace.workspace_id)),
         )
-        return OnboardingWorkspaceCreateOut(
-            workspace_id=UUID(str(created_workspace.workspace_id)),
-            kind=WorkspaceKind.TEAM,
-        )
+        return OnboardingWorkspaceCreateOut(workspace_id=UUID(str(created_workspace.workspace_id)))
 
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
         ws = await Workspace.get_or_none(
@@ -435,30 +397,12 @@ class WorkspaceService(BaseService):
         for item in items:
             item.is_legacy = legacy_by_org_id.get(UUID(str(item.organization_id)), False)
 
-        personal_item = next((item for item in items if item.kind == WorkspaceKind.PERSONAL.value), None)
-        team_items = [item for item in items if item.kind != WorkspaceKind.PERSONAL.value]
-        personal_state = await self.personal_space_service.get_state(user_id=user_id)
         setup_state = await self.instance_setup_service.get_state()
         onboarding_state = await self.onboarding_service.get_state(user_id=user_id)
-        personal_space_status = PersonalSpaceStatus(personal_state.status.value)
-        if (
-            personal_item is None
-            and onboarding_state.status == WorkspaceFirstOnboardingStatus.COMPLETED
-            and personal_state.status != PersonalSpaceProvisionStatus.FAILED
-        ):
-            personal_space_status = PersonalSpaceStatus.NOT_CREATED
 
         return MyWorkspaceListResult(
             items=items,
-            switcher=WorkspaceSwitcherOut(
-                teams=team_items,
-                personal_space=PersonalSpaceSwitcherOut(
-                    status=personal_space_status,
-                    workspace=personal_item if personal_state.status == PersonalSpaceProvisionStatus.READY else None,
-                    retry_available=personal_state.retry_available,
-                    last_error=personal_state.last_error,
-                ),
-            ),
+            switcher=WorkspaceSwitcherOut(teams=items),
             instance_setup=InstanceSetupStateOut(
                 status=setup_state.status,
                 repair_reason=setup_state.repair_reason,
@@ -549,11 +493,6 @@ class WorkspaceService(BaseService):
             if err == "reserved":
                 raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_RESERVED")
 
-            if ws.kind == WorkspaceKind.PERSONAL and ws.slug != normalized:
-                raise BadRequest(
-                    message=t("errors", "BAD_REQUEST"),
-                    error="WORKSPACE_SLUG_IMMUTABLE",
-                )
             if ws.slug != normalized:
                 exists = await Workspace.filter(slug=normalized).exclude(id=ws.id).exists()
                 if exists:
@@ -622,11 +561,6 @@ class WorkspaceService(BaseService):
         )
         if ws is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
-        if ws.kind == WorkspaceKind.PERSONAL:
-            raise Forbidden(
-                message=t("errors", "PERMISSION_DENIED"),
-                error="PERSONAL_SPACE_LEAVE_FORBIDDEN",
-            )
 
         membership = await WorkspaceMembership.get_or_none(
             workspace_id=workspace_id,

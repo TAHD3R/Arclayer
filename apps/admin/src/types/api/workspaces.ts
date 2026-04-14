@@ -10,7 +10,7 @@ export type MyWorkspace = {
   organizationId: string;
   slug: string;
   name: string;
-  kind: "team" | "personal";
+  kind: "team";
   description?: string | null;
   iconUrl?: string | null;
   memberCount?: number;
@@ -26,16 +26,8 @@ export type InstanceSetupState = {
   repairReason: string | null;
 };
 
-export type PersonalSpaceSwitcher = {
-  status: "pending" | "ready" | "failed" | "not_created";
-  workspace: MyWorkspace | null;
-  retryAvailable: boolean;
-  lastError: string | null;
-};
-
 export type WorkspaceSwitcher = {
   teams: MyWorkspace[];
-  personalSpace: PersonalSpaceSwitcher;
 };
 
 export type WorkspaceFirstOnboardingStatus =
@@ -57,14 +49,12 @@ export type WorkspaceSlugAvailability = {
 };
 
 export type OnboardingWorkspaceCreatePayload = {
-  kind: "team" | "personal";
   name?: string;
   slug?: string;
 };
 
 export type OnboardingWorkspaceCreateResult = {
   workspaceId: string;
-  kind: "team" | "personal";
   workspace_id?: string;
 };
 
@@ -87,7 +77,7 @@ export type WorkspaceDetail = {
   organizationId: string;
   slug: string;
   name: string;
-  kind?: "team" | "personal";
+  kind?: "team";
   iconUrl: string | null;
   iconAssetAligned?: boolean;
 };

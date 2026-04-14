@@ -65,7 +65,7 @@ describe("WorkspacesCardGrid", () => {
     expect(screen.getByTestId("content-guard")).toHaveAttribute("data-wrapper-spacing", "flush");
   });
 
-  it("prepends the personal workspace to the active card list", () => {
+  it("renders only the organization workspace cards in the active list", () => {
     useInfiniteQueryMock.mockReturnValue({
       isLoading: false,
       error: null,
@@ -103,26 +103,7 @@ describe("WorkspacesCardGrid", () => {
       isLoading: false,
       error: null,
       refetch: vi.fn(),
-      data: {
-        switcher: {
-          personalSpace: {
-            status: "ready",
-            workspace: {
-              workspaceId: "personal-1",
-              organizationId: "org-personal",
-              slug: "personal-space",
-              name: "Personal Space",
-              kind: "personal",
-              iconUrl: null,
-              memberCount: 0,
-              membersPreview: [],
-              visibleOnly: false,
-              isCreatorAdmin: true,
-              isLegacy: false,
-            },
-          },
-        },
-      },
+      data: undefined,
     });
 
     render(
@@ -137,7 +118,6 @@ describe("WorkspacesCardGrid", () => {
     );
 
     expect(screen.getAllByTestId("workspace-card").map((node) => node.textContent)).toEqual([
-      "Personal Space:personal",
       "Workspace Alpha:team",
     ]);
   });

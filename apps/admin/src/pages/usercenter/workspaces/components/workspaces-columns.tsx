@@ -4,7 +4,6 @@ import { Archive, LogIn, MoreVertical, Trash2, Undo2 } from "lucide-react";
 
 import { WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
-import { PersonalWorkspaceTag } from "@/components/ui/tags";
 import type { OrganizationWorkspace } from "@/types/api";
 import { Button } from "@arclayer/ui/button";
 import {
@@ -50,55 +49,45 @@ export function useUserCenterWorkspacesColumns(
         header: t("common:ORG_WORKSPACES_TABLE_WORKSPACE"),
         cell: ({ row }) => {
           const item = row.original;
-          const menuItems =
-            item.kind === "personal"
-              ? [
-                  {
-                    key: "enter",
-                    icon: <LogIn className="size-4" />,
-                    label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
-                    onClick: () => onEnterWorkspace(item.workspaceId),
-                  },
-                ]
-              : item.isArchived
-                ? [
-                    {
-                      key: "unarchive",
-                      icon: <Undo2 className="size-4" />,
-                      label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
-                      onClick: () => onUnarchiveWorkspace(item.workspaceId),
-                    },
-                    { type: "divider" },
-                    {
-                      key: "delete",
-                      danger: true,
-                      icon: <Trash2 className="size-4" />,
-                      label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-                      onClick: () => onRequestDeleteWorkspace(item as OrganizationWorkspace),
-                    },
-                  ]
-                : [
-                    {
-                      key: "enter",
-                      icon: <LogIn className="size-4" />,
-                      label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
-                      onClick: () => onEnterWorkspace(item.workspaceId),
-                    },
-                    { type: "divider" },
-                    {
-                      key: "archive",
-                      icon: <Archive className="size-4" />,
-                      label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
-                      onClick: () => onArchiveWorkspace(item as OrganizationWorkspace),
-                    },
-                    {
-                      key: "delete",
-                      danger: true,
-                      icon: <Trash2 className="size-4" />,
-                      label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-                      onClick: () => onRequestDeleteWorkspace(item as OrganizationWorkspace),
-                    },
-                  ];
+          const menuItems = item.isArchived
+            ? [
+                {
+                  key: "unarchive",
+                  icon: <Undo2 className="size-4" />,
+                  label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
+                  onClick: () => onUnarchiveWorkspace(item.workspaceId),
+                },
+                { type: "divider" },
+                {
+                  key: "delete",
+                  danger: true,
+                  icon: <Trash2 className="size-4" />,
+                  label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
+                  onClick: () => onRequestDeleteWorkspace(item as OrganizationWorkspace),
+                },
+              ]
+            : [
+                {
+                  key: "enter",
+                  icon: <LogIn className="size-4" />,
+                  label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
+                  onClick: () => onEnterWorkspace(item.workspaceId),
+                },
+                { type: "divider" },
+                {
+                  key: "archive",
+                  icon: <Archive className="size-4" />,
+                  label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
+                  onClick: () => onArchiveWorkspace(item as OrganizationWorkspace),
+                },
+                {
+                  key: "delete",
+                  danger: true,
+                  icon: <Trash2 className="size-4" />,
+                  label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
+                  onClick: () => onRequestDeleteWorkspace(item as OrganizationWorkspace),
+                },
+              ];
 
           return (
             <div className="flex min-w-0 items-center gap-3">
@@ -147,15 +136,9 @@ export function useUserCenterWorkspacesColumns(
           kind: "meta",
         },
         header: t("common:ORG_WORKSPACES_TABLE_MEMBERS"),
-        cell: ({ row }) =>
-          row.original.kind === "personal" ? (
-            <PersonalWorkspaceTag
-              label={t("account:ACCOUNT_SECTION_PERSONAL")}
-              textStyle="footnote"
-            />
-          ) : (
-            <WorkspaceMembersPopover workspace={row.original as OrganizationWorkspace} />
-          ),
+        cell: ({ row }) => (
+          <WorkspaceMembersPopover workspace={row.original as OrganizationWorkspace} />
+        ),
         size: 200,
         minSize: 180,
       },

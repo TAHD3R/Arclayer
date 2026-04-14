@@ -20,12 +20,6 @@ describe("post-auth-routing", () => {
       items: [],
       switcher: {
         teams: [],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
@@ -53,12 +47,6 @@ describe("post-auth-routing", () => {
       items: [workspace],
       switcher: {
         teams: [workspace],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
@@ -70,8 +58,18 @@ describe("post-auth-routing", () => {
     expect(decision.onboardingRequired).toBe(false);
   });
 
-  test("prefers the personal workspace when no remembered workspace can be used", async () => {
-    const teamWorkspace = {
+  test("falls back to root when multiple team workspaces are available without a remembered match", async () => {
+    const firstWorkspace = {
+      workspaceId: "w-a",
+      organizationId: "org-a",
+      slug: "alpha",
+      name: "Alpha",
+      kind: "team" as const,
+      visibleOnly: false,
+      isCreatorAdmin: true,
+      isLegacy: false,
+    };
+    const secondWorkspace = {
       workspaceId: "w-team",
       organizationId: "org-team",
       slug: "team-space",
@@ -81,35 +79,19 @@ describe("post-auth-routing", () => {
       isCreatorAdmin: true,
       isLegacy: false,
     };
-    const personalWorkspace = {
-      workspaceId: "w-personal",
-      organizationId: "org-personal",
-      slug: "personal-space",
-      name: "Personal Space",
-      kind: "personal" as const,
-      visibleOnly: false,
-      isCreatorAdmin: true,
-      isLegacy: false,
-    };
 
     mocked.listMyWorkspaces.mockResolvedValue({
-      items: [teamWorkspace, personalWorkspace],
+      items: [firstWorkspace, secondWorkspace],
       switcher: {
-        teams: [teamWorkspace],
-        personalSpace: {
-          status: "ready",
-          workspace: personalWorkspace,
-          retryAvailable: false,
-          lastError: null,
-        },
+        teams: [firstWorkspace, secondWorkspace],
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
-    expect(decision.path).toBe("/w/w-personal");
-    expect(decision.workspaceId).toBe("w-personal");
+    expect(decision.path).toBe("/");
+    expect(decision.workspaceId).toBeNull();
     expect(decision.onboardingRequired).toBe(false);
   });
 
@@ -118,12 +100,6 @@ describe("post-auth-routing", () => {
       items: [],
       switcher: {
         teams: [],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "completed", workspaceId: null },
@@ -151,12 +127,6 @@ describe("post-auth-routing", () => {
       items: [workspace],
       switcher: {
         teams: [workspace],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "pending_workspace", workspaceId: null },
@@ -173,12 +143,6 @@ describe("post-auth-routing", () => {
       items: [],
       switcher: {
         teams: [],
-        personalSpace: {
-          status: "pending",
-          workspace: null,
-          retryAvailable: false,
-          lastError: null,
-        },
       },
       instanceSetup: { status: "ready", repairReason: null },
       onboarding: { status: "pending_workspace_defaults", workspaceId: "w-step-2" },

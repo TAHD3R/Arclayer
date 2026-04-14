@@ -41,7 +41,6 @@ export type {
   MyWorkspaceListResult,
   OnboardingWorkspaceCreatePayload,
   OnboardingWorkspaceCreateResult,
-  PersonalSpaceSwitcher,
   WorkspaceAssignRoleResult,
   WorkspaceDangerAction,
   WorkspaceDangerCapabilities,

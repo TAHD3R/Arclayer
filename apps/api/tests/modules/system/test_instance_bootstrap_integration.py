@@ -68,8 +68,7 @@ async def test_system_bootstrap_requires_onboarding_workspace_choice_after_regis
             assert workspace_payload["items"] == []
             assert workspace_payload["onboarding"]["status"] == "pending_workspace"
             assert workspace_payload["onboarding"]["workspaceId"] is None
-            assert workspace_payload["switcher"]["personalSpace"]["status"] == "pending"
-            assert workspace_payload["switcher"]["personalSpace"]["workspace"] is None
             assert workspace_payload["switcher"]["teams"] == []
+            assert "personalSpace" not in workspace_payload["switcher"]
 
     app.dependency_overrides.clear()

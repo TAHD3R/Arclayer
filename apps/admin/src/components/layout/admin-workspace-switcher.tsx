@@ -1,6 +1,6 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -14,15 +14,13 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { getWorkspaceDetail, listMyWorkspaces, retryMyPersonalSpace } from "@/api/workspaces";
+import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
 import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
-import { PersonalWorkspaceTag } from "@/components/ui/tags";
-import { notifyError, notifyErrorText } from "@/lib/notifications";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-import type { MyWorkspace, PersonalSpaceSwitcher } from "@/types/api";
+import type { MyWorkspace } from "@/types/api";
 import { AvatarGroup, AvatarGroupCount } from "@arclayer/ui/avatar";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -315,14 +313,6 @@ function WorkspaceMemberMeta(props: { workspace: MyWorkspace }) {
   );
 }
 
-function PersonalWorkspaceBadge() {
-  const { t } = useTranslation(["account"]);
-
-  return (
-    <PersonalWorkspaceTag label={t("account:ACCOUNT_SECTION_PERSONAL")} textStyle="footnote" />
-  );
-}
-
 function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: boolean }) {
   const title = props.workspace.name || props.workspace.slug || props.workspace.workspaceId;
 
@@ -340,13 +330,7 @@ function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: b
             text={title}
             className="truncate text-callout font-semibold  text-label-primary"
           />
-          {props.workspace.kind === "personal" ? (
-            <div className="mt-2">
-              <PersonalWorkspaceBadge />
-            </div>
-          ) : (
-            <WorkspaceMemberMeta workspace={props.workspace} />
-          )}
+          <WorkspaceMemberMeta workspace={props.workspace} />
         </div>
       </div>
       {props.selected ? (
@@ -400,79 +384,6 @@ function WorkspacePickerSection(props: {
   );
 }
 
-function PersonalSpaceStatusPanel(props: {
-  personalSpace: PersonalSpaceSwitcher;
-  onRetry: () => void;
-  retryPending: boolean;
-}) {
-  const { t } = useTranslation(["account", "common"]);
-
-  return (
-    <div className="min-w-0">
-      <div className={PANEL_SECTION_CLASSNAME}>
-        {props.personalSpace.status === "pending" ? (
-          <PanelMenuButton disabled className="min-h-[4.25rem] items-start px-3 py-2.5">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              <WorkspaceAvatar
-                name={t("account:ACCOUNT_SECTION_PERSONAL")}
-                assetRef={null}
-                size={28}
-                className="mt-0.5 shrink-0"
-              />
-              <div className="min-w-0 flex-1 text-left">
-                <ClampedText
-                  text={t("common:WORKSPACE_SWITCHER_PERSONAL_PENDING")}
-                  className="truncate text-callout font-semibold text-label-primary"
-                />
-                <ClampedText
-                  text={t("common:WORKSPACE_SWITCHER_PERSONAL_PENDING_HINT")}
-                  className="mt-1 text-footnote text-label-secondary"
-                />
-              </div>
-            </div>
-          </PanelMenuButton>
-        ) : null}
-
-        {props.personalSpace.status === "failed" ? (
-          <div
-            className={cn(
-              "flex min-h-[4.25rem] items-center gap-3 rounded-xl px-3 py-2.5",
-              "bg-accent/20 text-label-primary",
-            )}
-          >
-            <WorkspaceAvatar
-              name={t("account:ACCOUNT_SECTION_PERSONAL")}
-              assetRef={null}
-              size={28}
-              className="shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <ClampedText
-                text={t("common:WORKSPACE_SWITCHER_PERSONAL_FAILED")}
-                className="truncate text-callout font-semibold text-label-primary"
-              />
-              <ClampedText
-                text={t("common:WORKSPACE_SWITCHER_PERSONAL_FAILED_HINT")}
-                className="mt-1 text-footnote text-label-secondary"
-              />
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="shrink-0"
-              disabled={props.retryPending}
-              onClick={props.onRetry}
-            >
-              {t("common:WORKSPACE_SWITCHER_PERSONAL_RETRY")}
-            </Button>
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 function WorkspaceActionButton(props: {
   icon?: ReactNode;
   text: string;
@@ -520,8 +431,6 @@ function PanelContentInner() {
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const personalSpaceFailureToastShownRef = useRef(false);
 
   const workspacesQuery = useQuery({
     queryKey: ["me", "workspaces", "switcher", sessionVersion],
@@ -539,58 +448,11 @@ function PanelContentInner() {
       ),
     [workspacesQuery.data?.switcher.teams],
   );
-  const personalSpace = workspacesQuery.data?.switcher.personalSpace ?? {
-    status: "pending" as const,
-    workspace: null,
-    retryAvailable: false,
-    lastError: null,
-  };
-  const readyPersonalWorkspace =
-    personalSpace.status === "ready" && personalSpace.workspace ? personalSpace.workspace : null;
-  const pickerWorkspaces = readyPersonalWorkspace
-    ? [readyPersonalWorkspace, ...teamWorkspaces]
-    : teamWorkspaces;
+  const pickerWorkspaces = teamWorkspaces;
   const hasWorkspaceItems = pickerWorkspaces.length > 0;
-  const retryPersonalSpaceMutation = useMutation({
-    mutationFn: retryMyPersonalSpace,
-    onSuccess: (nextPersonalSpace) => {
-      queryClient.setQueryData(
-        ["me", "workspaces", "switcher", sessionVersion],
-        (current: typeof workspacesQuery.data | undefined) => {
-          if (!current) return current;
-          return {
-            ...current,
-            switcher: {
-              ...current.switcher,
-              personalSpace: nextPersonalSpace,
-            },
-          };
-        },
-      );
-    },
-    onError: (error) => {
-      notifyError(error);
-    },
-  });
 
   const currentWorkspaceBase = currentWorkspaceId ? `/w/${currentWorkspaceId}` : null;
-  const currentWorkspaceKind =
-    (workspacesQuery.data?.items ?? []).find(
-      (workspace) => workspace.workspaceId === currentWorkspaceId,
-    )?.kind ?? null;
   const divider = <div className="mx-3 h-px bg-border/45" />;
-  const sectionDivider = <div className="mx-3 h-px bg-border/45" />;
-
-  useEffect(() => {
-    if (personalSpace.status !== "failed") {
-      return;
-    }
-    if (personalSpaceFailureToastShownRef.current) {
-      return;
-    }
-    personalSpaceFailureToastShownRef.current = true;
-    notifyErrorText(t("common:WORKSPACE_SWITCHER_PERSONAL_FAILED_TOAST"));
-  }, [personalSpace.status, t]);
 
   return (
     <div className="w-[min(21rem,calc(100vw-1rem))] max-w-full">
@@ -603,7 +465,7 @@ function PanelContentInner() {
           <div className="space-y-1.5">
             {hasWorkspaceItems ? (
               <WorkspacePickerSection
-                title={readyPersonalWorkspace ? null : t("common:WORKSPACE_SWITCHER_TEAM_SECTION")}
+                title={null}
                 workspaces={pickerWorkspaces}
                 activeWorkspaceId={currentWorkspaceId}
                 onSelect={(nextWorkspaceId) => {
@@ -617,18 +479,6 @@ function PanelContentInner() {
                   void navigate({ to: nextPath as never });
                 }}
               />
-            ) : null}
-            {personalSpace.status !== "ready" ? (
-              <>
-                {hasWorkspaceItems ? sectionDivider : null}
-                <PersonalSpaceStatusPanel
-                  personalSpace={personalSpace}
-                  onRetry={() => {
-                    retryPersonalSpaceMutation.mutate();
-                  }}
-                  retryPending={retryPersonalSpaceMutation.isPending}
-                />
-              </>
             ) : null}
           </div>
         )}
@@ -647,7 +497,7 @@ function PanelContentInner() {
             void navigate({ to: `${currentWorkspaceBase}/settings/workspace/` as never });
           }}
         />
-        {currentWorkspaceKind === "team" ? (
+        {currentWorkspaceBase ? (
           <WorkspaceActionButton
             icon={<Users className="h-4 w-4" aria-hidden="true" />}
             text={t("team:TEAM_INVITE_MEMBER")}

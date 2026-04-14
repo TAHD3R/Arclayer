@@ -52,21 +52,17 @@ describe("workspace nav regression", () => {
     ).toEqual(["extensions", "activity", "settings.workspace"]);
   });
 
-  test("removes the Team nav group for personal workspaces", () => {
-    const personalNav = getWorkspaceNavItems("personal");
+  test("returns the single team-first workspace nav tree", () => {
+    const workspaceNav = getWorkspaceNavItems();
 
-    expect(personalNav.map((item) => item.key)).toEqual(["dashboard", "content", "workspace"]);
-    expect(listWorkspaceNavTargets(personalNav)).not.toContain("/team/members");
-    expect(listWorkspaceNavTargets(personalNav)).not.toContain("/team/invitations");
-    expect(listWorkspaceNavTargets(personalNav)).not.toContain("/team/roles");
-  });
-
-  test("keeps the Team nav group for team workspaces", () => {
-    const teamNav = getWorkspaceNavItems("team");
-
-    expect(teamNav.map((item) => item.key)).toEqual(["dashboard", "content", "team", "workspace"]);
-    expect(listWorkspaceNavTargets(teamNav)).toContain("/team/members");
-    expect(listWorkspaceNavTargets(teamNav)).toContain("/team/invitations");
-    expect(listWorkspaceNavTargets(teamNav)).toContain("/team/roles");
+    expect(workspaceNav.map((item) => item.key)).toEqual([
+      "dashboard",
+      "content",
+      "team",
+      "workspace",
+    ]);
+    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/members");
+    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/invitations");
+    expect(listWorkspaceNavTargets(workspaceNav)).toContain("/team/roles");
   });
 });
