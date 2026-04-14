@@ -9,10 +9,7 @@ export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
 export const NAV_ITEM_BUTTON_PADDING_CLASSNAME = "!pl-3 !pr-2.5 !py-1.5";
 export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1.5 group-data-[collapsible=icon]:gap-2.5";
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-0 gap-1 pl-7 border-l-0";
-export const NAV_SUBTREE_GUIDE_CLASSNAME = cn(
-  "relative",
-  "before:pointer-events-none before:absolute before:bottom-2 before:left-4 before:top-1.5 before:w-px before:bg-border/60",
-);
+export const NAV_SUBTREE_GUIDE_CLASSNAME = cn("relative");
 export const NAV_DIVIDER_CLASSNAME = "mx-4 my-1";
 
 function normalizePath(input: string): string {

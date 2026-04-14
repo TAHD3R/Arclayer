@@ -106,6 +106,7 @@ function AdminSidebarFooterMenuArea(props: {
       ) : (
         <AdminSiderNav
           items={props.footerItems}
+          showFavorites={false}
           resolvePermissionName={props.resolvePermissionName}
           className="mt-0 mb-0"
         />
@@ -135,6 +136,7 @@ function AdminSidebarContentArea(props: {
     <AdminSiderNav
       items={props.mainItems}
       favoriteWorkspaceBase={props.favoriteWorkspaceBase}
+      showFavorites
       resolvePermissionName={props.resolvePermissionName}
       pathnameOverride={props.pathnameOverride}
     />

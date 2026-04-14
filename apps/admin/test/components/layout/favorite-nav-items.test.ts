@@ -2,7 +2,10 @@ import { Activity, Globe, Home, Settings, UserPlus, Users } from "lucide-react";
 import { describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 
-import { resolveFavoriteNavItems } from "@/components/layout/admin-side-nav/favorite-nav-items";
+import {
+  flattenFavoriteNavItems,
+  resolveFavoriteNavItems,
+} from "@/components/layout/admin-side-nav/favorite-nav-items";
 import type { AdminNavItem } from "@/types/admin-nav";
 
 const items: AdminNavItem[] = [
@@ -74,23 +77,51 @@ const items: AdminNavItem[] = [
 ];
 
 describe("resolveFavoriteNavItems", () => {
-  it("prioritizes current workspace favorites before other workspace favorites", () => {
+  it("preserves the persisted favorites order across workspaces", () => {
     const favorites = resolveFavoriteNavItems({
-      favoritePaths: ["/w/ws-2/team/invitations", "/w/ws-1/activity", "/w/ws-3/unknown"],
+      favorites: [
+        { id: "item:/w/ws-2/team/invitations", type: "item", path: "/w/ws-2/team/invitations" },
+        { id: "item:/w/ws-1/activity", type: "item", path: "/w/ws-1/activity" },
+        { id: "item:/w/ws-3/unknown", type: "item", path: "/w/ws-3/unknown" },
+      ],
       items,
       workspaceBase: "/w/ws-1",
       t: ((key: string) => key) as TFunction,
     });
 
-    expect(favorites).toEqual([
+    expect(flattenFavoriteNavItems(favorites)).toEqual([
+      expect.objectContaining({
+        path: "/w/ws-2/team/invitations",
+        label: "nav:NAV_SETTINGS_TEAM_MEMBERS",
+        isCurrentWorkspace: false,
+      }),
       expect.objectContaining({
         path: "/w/ws-1/activity",
         label: "Activity",
         isCurrentWorkspace: true,
       }),
+    ]);
+  });
+
+  it("resolves workspace favorites from the global view via workspace templates", () => {
+    const favorites = resolveFavoriteNavItems({
+      favorites: [
+        { id: "item:/w/ws-9/team/invitations", type: "item", path: "/w/ws-9/team/invitations" },
+        { id: "item:/w/ws-9/settings/workspace", type: "item", path: "/w/ws-9/settings/workspace" },
+      ],
+      items: [],
+      t: ((key: string) => key) as TFunction,
+    });
+
+    expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
-        path: "/w/ws-2/team/invitations",
-        label: "Invitations",
+        path: "/w/ws-9/team/invitations",
+        label: "nav:NAV_SETTINGS_TEAM_MEMBERS",
+        isCurrentWorkspace: false,
+      }),
+      expect.objectContaining({
+        path: "/w/ws-9/settings/workspace",
+        label: "nav:NAV_SETTINGS_WORKSPACE",
         isCurrentWorkspace: false,
       }),
     ]);
@@ -98,13 +129,24 @@ describe("resolveFavoriteNavItems", () => {
 
   it("resolves favorited settings child routes back to their nearest nav entry", () => {
     const favorites = resolveFavoriteNavItems({
-      favoritePaths: ["/w/ws-1/settings/site/basics", "/w/ws-1/settings/workspace/basics"],
+      favorites: [
+        {
+          id: "item:/w/ws-1/settings/site/basics",
+          type: "item",
+          path: "/w/ws-1/settings/site/basics",
+        },
+        {
+          id: "item:/w/ws-1/settings/workspace/basics",
+          type: "item",
+          path: "/w/ws-1/settings/workspace/basics",
+        },
+      ],
       items,
       workspaceBase: "/w/ws-1",
       t: ((key: string) => key) as TFunction,
     });
 
-    expect(favorites).toEqual([
+    expect(flattenFavoriteNavItems(favorites)).toEqual([
       expect.objectContaining({
         path: "/w/ws-1/settings/site/basics",
         label: "Site Settings",
@@ -114,6 +156,38 @@ describe("resolveFavoriteNavItems", () => {
         path: "/w/ws-1/settings/workspace/basics",
         label: "Workspace Settings",
         isCurrentWorkspace: true,
+      }),
+    ]);
+  });
+
+  it("preserves folder structure while resolving leaf items", () => {
+    const favorites = resolveFavoriteNavItems({
+      favorites: [
+        {
+          id: "folder:launches",
+          type: "folder",
+          name: "Launches",
+          expanded: true,
+          children: [{ id: "item:/w/ws-1/activity", type: "item", path: "/w/ws-1/activity" }],
+        },
+      ],
+      items,
+      workspaceBase: "/w/ws-1",
+      t: ((key: string) => key) as TFunction,
+    });
+
+    expect(favorites).toEqual([
+      expect.objectContaining({
+        type: "folder",
+        id: "folder:launches",
+        name: "Launches",
+        children: [
+          expect.objectContaining({
+            type: "item",
+            path: "/w/ws-1/activity",
+            label: "Activity",
+          }),
+        ],
       }),
     ]);
   });

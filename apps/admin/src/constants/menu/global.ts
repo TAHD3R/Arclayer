@@ -1,4 +1,4 @@
-import { House, Settings2, Users } from "lucide-react";
+import { History, House, Settings2, Users } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
@@ -9,6 +9,12 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_HOME",
     to: "/",
     icon: House,
+  },
+  {
+    key: "global.recents",
+    label: "Recents",
+    labelKey: "nav:NAV_RECENTS",
+    icon: History,
   },
   {
     key: "global.workspaces",

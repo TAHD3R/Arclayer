@@ -36,7 +36,7 @@ function renderCollapsedNav(items: readonly AdminNavItem[]) {
   return render(
     <SidebarProvider defaultOpen={false} className="h-screen">
       <Sidebar collapsible="icon" animateOnHover={false}>
-        <AdminSiderNav items={items} />
+        <AdminSiderNav items={items} showFavorites />
       </Sidebar>
     </SidebarProvider>,
   );
@@ -61,6 +61,7 @@ function renderTreeNav(args: {
           items={args.items}
           favoriteWorkspaceBase={args.favoriteWorkspaceBase}
           pathnameOverride={args.pathnameOverride}
+          showFavorites
         />
       </Sidebar>
     </SidebarProvider>,
@@ -265,7 +266,7 @@ describe("AdminSiderNav collapsed groups", () => {
     vi.clearAllMocks();
     mockLanguage = "en-US";
     mockPathname = "/w/ws-1/team/invitations";
-    useFavoritesStore.setState({ paths: [] });
+    useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
   });
 
   it("forwards refs through SidebarMenuButton to the real button element", () => {
@@ -299,7 +300,7 @@ describe("AdminSiderNav collapsed groups", () => {
 
   it("updates favorite tooltip text when language changes", async () => {
     const user = userEvent.setup();
-    useFavoritesStore.setState({ paths: ["/w/ws-1/"] });
+    useFavoritesStore.setState({ paths: ["/w/ws-1/"], sectionExpanded: false });
 
     const favoriteItems: AdminNavItem[] = [
       {
@@ -325,7 +326,7 @@ describe("AdminSiderNav collapsed groups", () => {
     view.rerender(
       <SidebarProvider defaultOpen={false} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={favoriteItems} />
+          <AdminSiderNav items={favoriteItems} showFavorites />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -478,27 +479,119 @@ describe("AdminSiderNav collapsed groups", () => {
     });
   });
 
-  it("shows starred as a top-level group only when favorites exist", () => {
-    useFavoritesStore.setState({ paths: ["/w/ws-1/assets"] });
+  it("shows favorites as a top-level group even when there are no favorites yet", () => {
+    useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
 
     renderTreeNav({
       items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toBeVisible();
   });
 
-  it("suppresses duplicate base-nav highlighting when the active page comes from Starred", () => {
-    mockPathname = "/w/ws-1/content/seo-analyze";
-    useFavoritesStore.setState({ paths: ["/w/ws-1/content/seo-analyze"] });
+  it("creates a new favorites folder and immediately focuses the rename input", async () => {
+    const user = userEvent.setup();
+    useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: true });
 
     renderTreeNav({
       items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+    await user.click(screen.getByRole("button", { name: "en-US:NAV_FAVORITES_SECTION_ACTIONS" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "en-US:NAV_FAVORITES_ACTION_NEW_FOLDER" }),
+    );
+
+    const input = await screen.findByRole("textbox", {
+      name: "en-US:NAV_FAVORITES_FOLDER_NAME_INPUT",
+    });
+
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("en-US:NAV_FAVORITES_NEW_FOLDER_NAME");
+
+    await user.clear(input);
+    await user.type(input, "Pinned{enter}");
+
+    await waitFor(() => {
+      expect(useFavoritesStore.getState().items).toEqual([
+        expect.objectContaining({
+          type: "folder",
+          name: "Pinned",
+        }),
+      ]);
+    });
+  });
+
+  it("does not render an empty nested subtree for expanded favorites folders without children", () => {
+    useFavoritesStore.setState({
+      paths: [],
+      items: [
+        {
+          id: "folder:empty",
+          type: "folder",
+          name: "Pinned",
+          expanded: true,
+          children: [],
+        },
+      ],
+      sectionExpanded: true,
+    });
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    const folderButton = screen.getByRole("button", { name: "Pinned" });
+    const folderWrapper = folderButton.closest(".flex.flex-col.gap-1");
+
+    expect(folderWrapper).not.toBeNull();
+    expect(folderWrapper?.querySelector(".pt-1\\.5.overflow-hidden")).toBeNull();
+  });
+
+  it("keeps favorites inside folders aligned without adding another subtree indent", () => {
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/assets"],
+      items: [
+        {
+          id: "folder:launches",
+          type: "folder",
+          name: "Pinned",
+          expanded: true,
+          children: [{ id: "item:/w/ws-1/assets", type: "item", path: "/w/ws-1/assets" }],
+        },
+      ],
+      sectionExpanded: true,
+    });
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    const assetsButton = screen.getByRole("button", { name: "Assets" });
+    const nestedSubtree = assetsButton
+      .closest(".pt-1\\.5.overflow-hidden")
+      ?.querySelector(".flex.flex-col");
+
+    expect(nestedSubtree?.className).not.toContain("pl-7");
+  });
+
+  it("suppresses duplicate base-nav highlighting when the active page comes from Favorites", () => {
+    mockPathname = "/w/ws-1/content/seo-analyze";
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/content/seo-analyze"],
+      sectionExpanded: false,
+    });
+
+    renderTreeNav({
+      items: treeItems,
+      favoriteWorkspaceBase: "/w/ws-1",
+    });
+
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toHaveAttribute(
       "data-active",
       "true",
     );
@@ -513,14 +606,17 @@ describe("AdminSiderNav collapsed groups", () => {
   it("lets users switch the active trail back to the base nav for the same favorited page", async () => {
     const user = userEvent.setup();
     mockPathname = "/w/ws-1/content/seo-analyze";
-    useFavoritesStore.setState({ paths: ["/w/ws-1/content/seo-analyze"] });
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/content/seo-analyze"],
+      sectionExpanded: false,
+    });
 
     renderTreeNav({
       items: samePathPreferenceItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toHaveAttribute(
       "data-active",
       "true",
     );
@@ -529,7 +625,7 @@ describe("AdminSiderNav collapsed groups", () => {
     await user.click(screen.getByRole("button", { name: "Content" }));
 
     expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "true");
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toHaveAttribute(
       "data-active",
       "false",
     );
@@ -539,7 +635,10 @@ describe("AdminSiderNav collapsed groups", () => {
   it("keeps the content branch active after navigating from overview to a favorited page via base nav", async () => {
     const user = userEvent.setup();
     mockPathname = "/w/ws-1/";
-    useFavoritesStore.setState({ paths: ["/w/ws-1/content/seo-analyze"] });
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/content/seo-analyze"],
+      sectionExpanded: false,
+    });
 
     const view = renderTreeNav({
       items: treeItems,
@@ -559,13 +658,13 @@ describe("AdminSiderNav collapsed groups", () => {
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
         </Sidebar>
       </SidebarProvider>,
     );
 
     expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "true");
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toHaveAttribute(
       "data-active",
       "false",
     );
@@ -576,6 +675,7 @@ describe("AdminSiderNav collapsed groups", () => {
     mockPathname = "/w/ws-1/";
     useFavoritesStore.setState({
       paths: ["/w/ws-1/settings/site/basics", "/w/ws-1/settings/workspace/basics"],
+      sectionExpanded: false,
     });
 
     const view = renderTreeNav({
@@ -596,13 +696,17 @@ describe("AdminSiderNav collapsed groups", () => {
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={redirectedPreferenceItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav
+            items={redirectedPreferenceItems}
+            favoriteWorkspaceBase="/w/ws-1"
+            showFavorites
+          />
         </Sidebar>
       </SidebarProvider>,
     );
 
     expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "true");
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toHaveAttribute(
       "data-active",
       "false",
     );
@@ -613,6 +717,7 @@ describe("AdminSiderNav collapsed groups", () => {
     mockPathname = "/w/ws-1/";
     useFavoritesStore.setState({
       paths: ["/w/ws-1/settings/site/basics", "/w/ws-1/settings/workspace/basics"],
+      sectionExpanded: false,
     });
 
     const view = renderTreeNav({
@@ -633,7 +738,11 @@ describe("AdminSiderNav collapsed groups", () => {
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={redirectedPreferenceItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav
+            items={redirectedPreferenceItems}
+            favoriteWorkspaceBase="/w/ws-1"
+            showFavorites
+          />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -642,7 +751,7 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "true",
     );
-    expect(screen.getByRole("button", { name: "en-US:nav:NAV_STARRED" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" })).toHaveAttribute(
       "data-active",
       "false",
     );
@@ -750,7 +859,7 @@ describe("AdminSiderNav collapsed groups", () => {
     view.rerender(
       <SidebarProvider open={false} onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
         </Sidebar>
       </SidebarProvider>,
     );
@@ -761,7 +870,7 @@ describe("AdminSiderNav collapsed groups", () => {
     view.rerender(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
         </Sidebar>
       </SidebarProvider>,
     );

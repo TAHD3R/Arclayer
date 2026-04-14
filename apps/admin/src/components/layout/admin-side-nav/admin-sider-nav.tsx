@@ -4,6 +4,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
+import type { FavoriteNode } from "@/types/stores/favorites";
 import { cn } from "@arclayer/lib/utils";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import {
@@ -25,10 +26,16 @@ import { resolveFavoriteNavItems } from "./favorite-nav-items";
 import { NavNode } from "./nav-node";
 import { useCollapsedDropdownController } from "./collapsed-dropdown";
 import { NAV_DIVIDER_CLASSNAME, NAV_ROOT_MENU_GAP_CLASSNAME } from "./nav-utils";
+import {
+  buildFavoriteAdminChildren,
+  flattenFavoriteNavItems,
+  type FavoriteNavNode,
+} from "./favorite-nav-items";
 
 type AdminSiderNavProps = {
   items?: readonly AdminNavItem[];
   favoriteWorkspaceBase?: string | null;
+  showFavorites?: boolean;
   resolvePermissionName?: (code: string) => string | null;
   pathnameOverride?: string;
   className?: string;
@@ -37,6 +44,7 @@ type AdminSiderNavProps = {
 type AdminSiderNavState = {
   pathname: string;
   items: readonly AdminNavItem[];
+  commandNavItems: readonly AdminNavItem[];
   activeSource: ActiveSource;
   activeKeys: ReadonlySet<string>;
   baseActiveKeys: ReadonlySet<string>;
@@ -63,23 +71,14 @@ function deriveOpenByParent(activeTrail: readonly string[], items: readonly Admi
   return next;
 }
 
-function buildStarredItem(
-  items: ReturnType<typeof resolveFavoriteNavItems>,
-  pathname: string,
-): AdminNavItem {
+function buildStarredItem(items: FavoriteNavNode[], pathname: string): AdminNavItem {
   return {
-    key: "starred",
-    label: "Starred",
-    labelKey: "nav:NAV_STARRED",
+    key: "favorites",
+    label: "Favorites",
+    labelKey: "nav:NAV_FAVORITES",
     icon: Star,
-    isActive: items.some((item) => isExactMatch(item.path, pathname)),
-    children: items.map((item) => ({
-      key: item.key,
-      label: item.label,
-      icon: item.Icon,
-      to: item.path,
-      isActive: isExactMatch(item.path, pathname),
-    })),
+    isActive: flattenFavoriteNavItems(items).some((item) => isExactMatch(item.path, pathname)),
+    children: buildFavoriteAdminChildren(items, pathname),
   };
 }
 
@@ -136,32 +135,40 @@ function useOpenChain(activeTrail: readonly string[], items: readonly AdminNavIt
 }
 
 function useDisplayItems(
-  props: Pick<AdminSiderNavProps, "items" | "favoriteWorkspaceBase">,
+  props: Pick<AdminSiderNavProps, "items" | "favoriteWorkspaceBase" | "showFavorites">,
   pathname: string,
 ) {
   const { t, i18n } = useTranslation();
+  const storedFavoriteTree = useFavoritesStore((state) => state.items);
   const favoritePaths = useFavoritesStore((state) => state.paths);
+  const favoriteTree = useMemo(
+    () =>
+      storedFavoriteTree.length > 0
+        ? storedFavoriteTree
+        : favoritePaths.map(
+            (path) =>
+              ({
+                id: `item:${normalizePath(path)}`,
+                type: "item",
+                path: normalizePath(path),
+              }) satisfies FavoriteNode,
+          ),
+    [favoritePaths, storedFavoriteTree],
+  );
   const baseItems = props.items ?? [];
   const favoriteItems = useMemo(
     () =>
       resolveFavoriteNavItems({
-        favoritePaths,
+        favorites: favoriteTree,
         items: baseItems,
         t,
         workspaceBase: props.favoriteWorkspaceBase,
       }),
-    [
-      favoritePaths,
-      baseItems,
-      props.favoriteWorkspaceBase,
-      i18n.language,
-      i18n.resolvedLanguage,
-      t,
-    ],
+    [favoriteTree, baseItems, props.favoriteWorkspaceBase, i18n.language, i18n.resolvedLanguage, t],
   );
   const starredItem = useMemo(
-    () => (favoriteItems.length > 0 ? buildStarredItem(favoriteItems, pathname) : null),
-    [favoriteItems, pathname],
+    () => (props.showFavorites ? buildStarredItem(favoriteItems, pathname) : null),
+    [favoriteItems, pathname, props.showFavorites],
   );
   const displayItems = useMemo(
     () => injectStarredItem(baseItems, starredItem),
@@ -190,7 +197,10 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   );
   const baseActiveKeys = useMemo(() => new Set(baseActiveTrail), [baseActiveTrail]);
   const starredActive = useMemo(
-    () => favoriteItems.some((item) => isExactMatch(item.path, activePathname)),
+    () =>
+      flattenFavoriteNavItems(favoriteItems).some((item) =>
+        isExactMatch(item.path, activePathname),
+      ),
     [activePathname, favoriteItems],
   );
   const starredActiveTrail = useMemo(
@@ -228,6 +238,7 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
   return {
     pathname: activePathname,
     items: displayItems,
+    commandNavItems: baseItems,
     activeSource,
     activeKeys,
     baseActiveKeys,
@@ -242,6 +253,7 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
 
 function NavItemsTree(props: {
   items: readonly AdminNavItem[];
+  commandNavItems: readonly AdminNavItem[];
   pathname: string;
   activeSource: ActiveSource;
   activeKeys: ReadonlySet<string>;
@@ -270,6 +282,7 @@ function NavItemsTree(props: {
             <Fragment key={item.key}>
               <NavNode
                 item={item}
+                commandNavItems={props.commandNavItems}
                 depth={0}
                 parentKey="__root__"
                 pathname={props.pathname}
@@ -301,6 +314,7 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
     <nav className={cn("mt-4 mb-8", props.className)}>
       <NavItemsTree
         items={state.items}
+        commandNavItems={state.commandNavItems}
         pathname={state.pathname}
         activeSource={state.activeSource}
         activeKeys={state.activeKeys}

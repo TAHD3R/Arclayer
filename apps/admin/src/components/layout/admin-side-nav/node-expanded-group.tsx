@@ -296,17 +296,17 @@ export function NodeExpandedGroupSub({
               type="button"
               tapScale={1}
               onClick={onToggle}
-              className="w-full justify-start text-left"
+              className="relative flex w-full items-center justify-start text-left"
             >
-              <span className="min-w-0 flex-1 truncate">{label}</span>
               <ChevronRight
                 size={16}
                 className={cn(
-                  "ml-auto shrink-0 text-label-secondary transition-transform duration-150",
+                  "pointer-events-none absolute -left-4 top-1/2 -translate-y-1/2 text-label-secondary transition-transform duration-150",
                   isOpen && "rotate-90",
                 )}
                 aria-hidden="true"
               />
+              <span className="min-w-0 flex-1 truncate">{label}</span>
             </ButtonPrimitive>
           </SidebarMenuSubButton>
         </WithBlockedTooltip>

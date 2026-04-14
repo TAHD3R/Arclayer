@@ -1,15 +1,30 @@
 import type { TFunction } from "i18next";
+import { ChevronRight } from "lucide-react";
 
+import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
+import type { FavoriteNode } from "@/types/stores/favorites";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { normalizePath } from "./nav-utils";
 
-export type FavoriteNavItem = {
+export type FavoriteNavLeaf = {
+  type: "item";
   key: string;
   path: string;
   label: string;
   Icon: AdminNavItem["icon"];
   isCurrentWorkspace: boolean;
 };
+
+export type FavoriteNavFolder = {
+  type: "folder";
+  key: string;
+  id: string;
+  name: string;
+  expanded: boolean;
+  children: FavoriteNavNode[];
+};
+
+export type FavoriteNavNode = FavoriteNavLeaf | FavoriteNavFolder;
 
 type FavoriteTemplate = {
   label: string;
@@ -36,16 +51,6 @@ function findNearestAncestorTemplate(
   return undefined;
 }
 
-function buildWorkspaceSuffix(path: string, workspaceBase: string): string | null {
-  const normalizedPath = normalizePath(path);
-  const normalizedBase = normalizePath(workspaceBase);
-  if (normalizedPath === normalizedBase) return "/";
-  if (normalizedPath.startsWith(`${normalizedBase}/`)) {
-    return normalizedPath.slice(normalizedBase.length);
-  }
-  return null;
-}
-
 function parseWorkspaceSuffix(path: string): string | null {
   const normalizedPath = normalizePath(path);
   const match = /^\/w\/[^/]+(?:\/(.*))?$/.exec(normalizedPath);
@@ -54,28 +59,17 @@ function parseWorkspaceSuffix(path: string): string | null {
   return normalizePath(suffix);
 }
 
-function buildTemplateIndex(
-  items: readonly AdminNavItem[],
-  t: TFunction,
-  workspaceBase: string | null,
-): FavoriteTemplateIndex {
+function buildTemplateIndex(items: readonly AdminNavItem[], t: TFunction): FavoriteTemplateIndex {
   const exactByPath = new Map<string, FavoriteTemplate>();
   const workspaceBySuffix = new Map<string, FavoriteTemplate>();
 
   const walk = (nodes: readonly AdminNavItem[]) => {
     for (const item of nodes) {
       if (item.to) {
-        const template = {
+        exactByPath.set(normalizePath(item.to), {
           label: item.labelKey ? t(item.labelKey) : item.label,
           Icon: item.icon,
-        };
-        const normalizedPath = normalizePath(item.to);
-        exactByPath.set(normalizedPath, template);
-
-        if (workspaceBase) {
-          const suffix = buildWorkspaceSuffix(normalizedPath, workspaceBase);
-          if (suffix) workspaceBySuffix.set(suffix, template);
-        }
+        });
       }
 
       if (item.children?.length) walk(item.children);
@@ -83,6 +77,20 @@ function buildTemplateIndex(
   };
 
   walk(items);
+
+  const workspaceWalk = (nodes: readonly AdminNavItem[]) => {
+    for (const item of nodes) {
+      if (item.to) {
+        workspaceBySuffix.set(normalizePath(item.to), {
+          label: item.labelKey ? t(item.labelKey) : item.label,
+          Icon: item.icon,
+        });
+      }
+      if (item.children?.length) workspaceWalk(item.children);
+    }
+  };
+
+  workspaceWalk(WORKSPACE_NAV_ITEMS);
   return { exactByPath, workspaceBySuffix };
 }
 
@@ -91,45 +99,108 @@ function isWithinWorkspace(path: string, workspaceBase: string | null): boolean 
   return path === workspaceBase || path.startsWith(`${workspaceBase}/`);
 }
 
+function resolveFavoriteItem(
+  path: string,
+  templates: FavoriteTemplateIndex,
+  workspaceBase: string | null,
+): FavoriteNavLeaf | null {
+  const normalizedPath = normalizePath(path);
+  const exactTemplate =
+    templates.exactByPath.get(normalizedPath) ??
+    findNearestAncestorTemplate(normalizedPath, templates.exactByPath);
+  const workspaceSuffix = parseWorkspaceSuffix(normalizedPath);
+  const workspaceTemplate = workspaceSuffix
+    ? (templates.workspaceBySuffix.get(workspaceSuffix) ??
+      findNearestAncestorTemplate(workspaceSuffix, templates.workspaceBySuffix))
+    : undefined;
+  const template = exactTemplate ?? workspaceTemplate;
+
+  if (!template) return null;
+
+  return {
+    type: "item",
+    key: `favorite:${normalizedPath}`,
+    path: normalizedPath,
+    label: template.label,
+    Icon: template.Icon,
+    isCurrentWorkspace: isWithinWorkspace(normalizedPath, workspaceBase),
+  };
+}
+
 export function resolveFavoriteNavItems(params: {
-  favoritePaths: readonly string[];
+  favorites: readonly FavoriteNode[];
   items: readonly AdminNavItem[];
   t: TFunction;
   workspaceBase?: string | null;
-}): FavoriteNavItem[] {
+}): FavoriteNavNode[] {
   const workspaceBase = params.workspaceBase ? normalizePath(params.workspaceBase) : null;
-  const templates = buildTemplateIndex(params.items, params.t, workspaceBase);
+  const templates = buildTemplateIndex(params.items, params.t);
 
-  return params.favoritePaths
-    .map((path, order) => {
-      const normalizedPath = normalizePath(path);
-      const exactTemplate =
-        templates.exactByPath.get(normalizedPath) ??
-        findNearestAncestorTemplate(normalizedPath, templates.exactByPath);
-      const workspaceSuffix = parseWorkspaceSuffix(normalizedPath);
-      const workspaceTemplate = workspaceSuffix
-        ? (templates.workspaceBySuffix.get(workspaceSuffix) ??
-          findNearestAncestorTemplate(workspaceSuffix, templates.workspaceBySuffix))
-        : undefined;
-      const template = exactTemplate ?? workspaceTemplate;
-
-      if (!template) return null;
-
-      return {
-        key: `favorite:${normalizedPath}`,
-        path: normalizedPath,
-        label: template.label,
-        Icon: template.Icon,
-        isCurrentWorkspace: isWithinWorkspace(normalizedPath, workspaceBase),
-        order,
-      };
-    })
-    .filter((item): item is FavoriteNavItem & { order: number } => Boolean(item))
-    .sort((left, right) => {
-      if (left.isCurrentWorkspace !== right.isCurrentWorkspace) {
-        return left.isCurrentWorkspace ? -1 : 1;
+  const walk = (nodes: readonly FavoriteNode[]): FavoriteNavNode[] => {
+    const next: FavoriteNavNode[] = [];
+    for (const node of nodes) {
+      if (node.type === "item") {
+        const resolved = resolveFavoriteItem(node.path, templates, workspaceBase);
+        if (resolved) next.push(resolved);
+        continue;
       }
-      return left.order - right.order;
-    })
-    .map(({ order: _order, ...item }) => item);
+
+      next.push({
+        type: "folder",
+        key: `favorite-folder:${node.id}`,
+        id: node.id,
+        name: node.name,
+        expanded: node.expanded,
+        children: walk(node.children),
+      });
+    }
+    return next;
+  };
+
+  return walk(params.favorites);
+}
+
+export function flattenFavoriteNavItems(nodes: readonly FavoriteNavNode[]): FavoriteNavLeaf[] {
+  const items: FavoriteNavLeaf[] = [];
+  const walk = (entries: readonly FavoriteNavNode[]) => {
+    for (const entry of entries) {
+      if (entry.type === "item") {
+        items.push(entry);
+        continue;
+      }
+      walk(entry.children);
+    }
+  };
+  walk(nodes);
+  return items;
+}
+
+function favoriteNodeMatchesPath(node: FavoriteNavNode, pathname: string): boolean {
+  if (node.type === "item") return normalizePath(node.path) === normalizePath(pathname);
+  return node.children.some((child) => favoriteNodeMatchesPath(child, pathname));
+}
+
+export function buildFavoriteAdminChildren(
+  nodes: readonly FavoriteNavNode[],
+  pathname: string,
+): AdminNavItem[] {
+  return nodes.map((node) => {
+    if (node.type === "item") {
+      return {
+        key: node.key,
+        label: node.label,
+        icon: node.Icon,
+        to: node.path,
+        isActive: normalizePath(node.path) === normalizePath(pathname),
+      };
+    }
+
+    return {
+      key: node.key,
+      label: node.name,
+      icon: ChevronRight,
+      children: buildFavoriteAdminChildren(node.children, pathname),
+      isActive: node.children.some((child) => favoriteNodeMatchesPath(child, pathname)),
+    };
+  });
 }

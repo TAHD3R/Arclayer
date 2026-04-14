@@ -7,13 +7,16 @@ import type { OpenByParent } from "./nav-utils";
 import { findPreferredGroupTarget, isExactMatch } from "./nav-utils";
 import { useBlockedTooltipText } from "./blocked-tooltip";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
+import { FavoritesNode } from "./favorites-node";
 import type { ResolvedChildItem } from "./node-collapsed-group";
 import { NodeLeaf } from "./node-leaf";
 import { NodeAction } from "./node-action";
 import { NodeExpandedGroupRoot, NodeExpandedGroupSub } from "./node-expanded-group";
+import { RecentsNode } from "./recents-node";
 
 type NodeProps = {
   item: AdminNavItem;
+  commandNavItems: readonly AdminNavItem[];
   depth: number;
   parentKey: string;
   pathname: string;
@@ -61,6 +64,7 @@ function renderChildNodes(props: NodeProps): ReactNode {
     <NavNode
       key={child.key}
       item={child}
+      commandNavItems={props.commandNavItems}
       depth={props.depth + 1}
       parentKey={props.item.key}
       pathname={props.pathname}
@@ -211,7 +215,8 @@ function NavNodeImpl(
 ) {
   const item = props.item;
   const label = resolveLabel(t, item);
-  const branchSource = item.key === "starred" || props.parentKey === "starred" ? "starred" : "base";
+  const branchSource =
+    item.key === "favorites" || props.parentKey === "favorites" ? "starred" : "base";
   const allowSamePathNavigate = branchSource === props.activeSource;
   const branchActiveKeys =
     branchSource === "starred" ? props.starredActiveKeys : props.baseActiveKeys;
@@ -222,6 +227,33 @@ function NavNodeImpl(
   const isTrailActive = !isSuppressed && (props.activeKeys.has(item.key) || Boolean(item.isActive));
   const selectBranchSource = (targetPath?: string) =>
     props.selectActiveSource(branchSource, targetPath);
+
+  if (item.key === "favorites" && props.depth === 0) {
+    return (
+      <FavoritesNode
+        item={item}
+        label={label}
+        isCollapsed={props.isCollapsed}
+        isTrailActive={isTrailActive}
+        pathname={props.pathname}
+        activeKeys={props.activeKeys}
+        suppressedKeys={props.suppressedKeys}
+        allowSamePathNavigate={allowSamePathNavigate}
+        onSelectPath={selectBranchSource}
+      />
+    );
+  }
+
+  if (item.key === "global.recents" && props.depth === 0) {
+    return (
+      <RecentsNode
+        item={item}
+        label={label}
+        navItems={props.commandNavItems}
+        isCollapsed={props.isCollapsed}
+      />
+    );
+  }
 
   if (!hasChildren && !item.to) {
     return renderActionNode({

@@ -173,7 +173,8 @@ describe("AdminSiderNav spacing", () => {
     const submenuButton = within(subtree as HTMLElement).getByRole("button", { name: "Overview" });
 
     expect(subtree).toHaveClass("ml-0", "pl-7", "border-l-0");
-    expect(subtree?.parentElement).toHaveClass("before:left-4");
+    expect(subtree?.parentElement?.className).not.toContain("before:left-4");
+    expect(subtree?.parentElement?.className).not.toContain("before:bg-border/60");
     expect(submenuButton).toHaveClass("[&:not([data-highlight])]:hover:bg-transparent");
   });
 
@@ -187,7 +188,7 @@ describe("AdminSiderNav spacing", () => {
     );
 
     const leftSidebar = container.querySelector('[data-slot="sidebar"]');
-    expect(leftSidebar).toHaveClass("border-r", "border-sidebar-border");
+    expect(leftSidebar).toHaveClass("border-r", "border-border");
     expect(leftSidebar?.className).not.toContain("border-l");
 
     rerender(
@@ -199,7 +200,7 @@ describe("AdminSiderNav spacing", () => {
     );
 
     const rightSidebar = container.querySelector('[data-slot="sidebar"]');
-    expect(rightSidebar).toHaveClass("border-l", "border-sidebar-border");
+    expect(rightSidebar).toHaveClass("border-l", "border-border");
     expect(rightSidebar?.className).not.toContain("border-r");
   });
 });

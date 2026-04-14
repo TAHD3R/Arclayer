@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { CommandEntry, CommandSection } from "@/lib/command/command-types";
+import { addAdminCommandOpenListener } from "@/lib/command/command-bridge";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { useClientPlatform } from "@arclayer/hooks/use-client-platform";
@@ -224,6 +225,15 @@ export function AdminCommandTrigger(props: {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(
+    () =>
+      addAdminCommandOpenListener((detail) => {
+        setOpen(true);
+        props.onQueryChange(detail.query ?? "");
+      }),
+    [props.onQueryChange],
+  );
 
   return (
     <>

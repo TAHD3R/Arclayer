@@ -1,5 +1,10 @@
 export type { AuthState } from "./auth";
-export type { FavoritesState } from "./favorites";
+export type {
+  FavoriteFolderNode,
+  FavoriteItemNode,
+  FavoriteNode,
+  FavoritesState,
+} from "./favorites";
 export type { CommandRecentState } from "./command-recent";
 export type {
   ThemePreference,
