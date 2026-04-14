@@ -740,11 +740,15 @@ class AuthService(BaseService):
             password_hash=password_hash,
             is_super_admin=is_super_admin,
         )
-        await WorkspaceFirstOnboardingService(self.settings).ensure_initialized(user_id=UUID(str(user.id)))
+        user_id = UUID(str(user.id))
+        await WorkspaceFirstOnboardingService(self.settings).ensure_initialized(user_id=user_id)
         return user
 
     async def email_exists(self, *, email: str) -> bool:
         return await self.user_repo.exists_email(self._normalize_email(email))
+
+    async def username_exists(self, *, username: str) -> bool:
+        return await self.user_repo.exists_username(username.strip().lower())
 
     async def refresh(
         self,

@@ -13,7 +13,7 @@ import {
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
-export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
+const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   {
     key: "dashboard",
     label: "Overview",
@@ -118,4 +118,13 @@ export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
   },
 ] as const;
 
+export function getWorkspaceNavItems(workspaceKind?: "team" | "personal" | null): AdminNavItem[] {
+  if (workspaceKind === "personal") {
+    return BASE_WORKSPACE_NAV_ITEMS.filter((item) => item.key !== "team");
+  }
+
+  return BASE_WORKSPACE_NAV_ITEMS;
+}
+
+export const WORKSPACE_NAV_ITEMS: AdminNavItem[] = getWorkspaceNavItems("team");
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = WORKSPACE_NAV_ITEMS;

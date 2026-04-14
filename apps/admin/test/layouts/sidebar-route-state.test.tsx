@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
 import { AdminLayout } from "@/layouts/admin-layout";
 import { UserCenterLayout } from "@/layouts/usercenter-layout";
+import { getWorkspaceDetail } from "@/api/workspaces";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -73,6 +74,10 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
   },
 }));
 
+vi.mock("@/api/workspaces", () => ({
+  getWorkspaceDetail: vi.fn(),
+}));
+
 function renderWithQueryClient(component: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -109,6 +114,14 @@ describe("sidebar route state wiring", () => {
       cacheWorkspaceLocale: vi.fn(),
     });
     useWorkspaceStore.setState({ currentWorkspaceId: null, lastWorkspaceId: null });
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-1",
+      organizationId: "org-1",
+      slug: "workspace-alpha",
+      name: "Workspace Alpha",
+      kind: "team",
+      iconUrl: null,
+    });
   });
 
   it("derives workspace sidebar items from the pathname even before workspace store hydration", () => {
@@ -157,5 +170,29 @@ describe("sidebar route state wiring", () => {
     expect(props.mainItems.map((item) => item.key)).toContain("account.personal");
     expect(props.mainItems.map((item) => item.key)).not.toContain("content");
     expect(props.sidebarPathnameOverride).toBeUndefined();
+  });
+
+  it("removes team nav items when the current workspace is personal", async () => {
+    useAuthStore.setState({ accessToken: "token", sessionVersion: 1 });
+    useWorkspaceStore.setState({ currentWorkspaceId: "ws-1", lastWorkspaceId: "ws-1" });
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-1",
+      organizationId: "org-1",
+      slug: "workspace-alpha",
+      name: "Workspace Alpha",
+      kind: "personal",
+      iconUrl: null,
+    });
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div>content</div>
+      </AdminLayout>,
+    );
+
+    await waitFor(() => {
+      const props = latestSceneProps();
+      expect(props.mainItems.map((item) => item.key)).not.toContain("team");
+    });
   });
 });

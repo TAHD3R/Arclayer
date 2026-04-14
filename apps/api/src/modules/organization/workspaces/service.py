@@ -16,7 +16,6 @@ from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembershipRole
-from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -58,7 +57,6 @@ class OrganizationWorkspaceService(BaseService):
         self.repo = OrganizationWorkspaceRepository()
         self.site_service = WorkspaceSiteService(settings)
         self.creation_policy = OrgWorkspaceCreationPolicy(settings)
-        self.onboarding_service = WorkspaceFirstOnboardingService(settings)
 
     async def list_workspaces(
         self,
@@ -278,10 +276,6 @@ class OrganizationWorkspaceService(BaseService):
         await self.site_service.get_or_create_site_for_workspace(
             workspace_id=UUID(str(ws.id)),
             actor_user_id=user_id,
-        )
-        await self.onboarding_service.mark_workspace_created(
-            user_id=user_id,
-            workspace_id=UUID(str(ws.id)),
         )
 
         # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.

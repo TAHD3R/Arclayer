@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import type { AnchorHTMLAttributes } from "react";
 import { beforeAll, describe, expect, test, vi } from "vitest";
@@ -17,6 +18,10 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/components/ui/oauth-buttons", () => ({
   AuthOauthButtons: () => <div data-testid="oauth-section">oauth-section</div>,
+}));
+
+vi.mock("@/api/auth", () => ({
+  usernameCheck: vi.fn(async () => ({ available: true })),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -43,23 +48,29 @@ beforeAll(() => {
 });
 
 function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginView>> = {}) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+
   return render(
-    <LoginView
-      mode="login"
-      onModeChange={() => undefined}
-      onLoginEmailSubmit={async () => true}
-      onLoginSubmit={async () => undefined}
-      onLoginEmailCodeRequest={async () => ({ expiresIn: 600, retryAfter: 0 })}
-      onLoginEmailCodeVerify={async () => undefined}
-      onForgotPasswordSubmit={async () => undefined}
-      onRegisterEmailSubmit={async () => false}
-      onRegisterSubmit={async () => undefined}
-      publicRegisterEnabled
-      challenge={null}
-      onLoginTwoFactorSubmit={async () => undefined}
-      onCancelTwoFactorChallenge={() => undefined}
-      {...overrides}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <LoginView
+        mode="login"
+        onModeChange={() => undefined}
+        onLoginEmailSubmit={async () => true}
+        onLoginSubmit={async () => undefined}
+        onLoginEmailCodeRequest={async () => ({ expiresIn: 600, retryAfter: 0 })}
+        onLoginEmailCodeVerify={async () => undefined}
+        onForgotPasswordSubmit={async () => undefined}
+        onRegisterEmailSubmit={async () => false}
+        onRegisterSubmit={async () => undefined}
+        publicRegisterEnabled
+        challenge={null}
+        onLoginTwoFactorSubmit={async () => undefined}
+        onCancelTwoFactorChallenge={() => undefined}
+        {...overrides}
+      />
+    </QueryClientProvider>,
   );
 }
 

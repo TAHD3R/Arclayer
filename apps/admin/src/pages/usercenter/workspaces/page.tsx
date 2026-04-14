@@ -4,7 +4,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { type OrganizationWorkspace } from "@/types/api";
+import type { OrganizationWorkspace } from "@/types/api";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { Button } from "@arclayer/ui/button";
@@ -25,6 +25,7 @@ import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/
 import { useUserCenterWorkspacesTables } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-tables";
 import type {
   UserCenterWorkspacesTab,
+  UserCenterWorkspaceListItem,
   UserCenterWorkspacesViewMode,
   WorkspaceMenuItem,
 } from "@/pages/usercenter/workspaces/types";
@@ -60,7 +61,6 @@ export function WorkspacesPage() {
     },
     [navigate, setCurrentWorkspaceId],
   );
-
   const handleRequestDeleteWorkspace = useCallback((workspace: OrganizationWorkspace) => {
     setDeleteConfirmName("");
     setConfirmDelete(workspace);
@@ -90,7 +90,17 @@ export function WorkspacesPage() {
   );
 
   const buildCardMenuItems = useCallback(
-    (workspace: OrganizationWorkspace): WorkspaceMenuItem[] => {
+    (workspace: UserCenterWorkspaceListItem): WorkspaceMenuItem[] => {
+      if (workspace.kind === "personal") {
+        return [
+          {
+            key: "enter",
+            icon: <LogIn className="size-4" />,
+            label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
+            onClick: () => handleEnterWorkspace(workspace.workspaceId),
+          },
+        ];
+      }
       if (workspace.isArchived) {
         return [
           {
@@ -105,7 +115,7 @@ export function WorkspacesPage() {
             danger: true,
             icon: <Trash2 className="size-4" />,
             label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-            onClick: () => handleRequestDeleteWorkspace(workspace),
+            onClick: () => handleRequestDeleteWorkspace(workspace as OrganizationWorkspace),
           },
         ];
       }
@@ -121,14 +131,14 @@ export function WorkspacesPage() {
           key: "archive",
           icon: <Archive className="size-4" />,
           label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
-          onClick: () => setConfirmArchive(workspace),
+          onClick: () => setConfirmArchive(workspace as OrganizationWorkspace),
         },
         {
           key: "delete",
           danger: true,
           icon: <Trash2 className="size-4" />,
           label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-          onClick: () => handleRequestDeleteWorkspace(workspace),
+          onClick: () => handleRequestDeleteWorkspace(workspace as OrganizationWorkspace),
         },
       ];
     },
@@ -215,46 +225,48 @@ export function WorkspacesPage() {
             }}
           >
             <Plus size={16} />
-            {t("common:ORG_WORKSPACES_CREATE")}
+            {t("common:ORG_WORKSPACES_CREATE_TEAM")}
           </Button>
         }
         extra={pageToolbar}
       >
-        <ChromeTabsContent value="active" className="min-h-0 flex-1">
-          <WorkspacesContentSection
-            viewMode={viewMode}
-            tableHook={activeTableHook}
-            emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
-            emptyDescription={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC")}
-            onRetry={() => void activeTableHook.refetch()}
-            onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
-            t={t}
-            rowHeight={activeRowHeight}
-            wrapHeaders={activeWrapHeaders}
-            organizationId={undefined}
-            archived={false}
-            searchInput={activeTableHook.searchInput}
-            buildMenuItems={buildCardMenuItems}
-            onCardClick={(workspace) => handleEnterWorkspace(workspace.workspaceId)}
-          />
-        </ChromeTabsContent>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <ChromeTabsContent value="active" className="min-h-0 flex-1">
+            <WorkspacesContentSection
+              viewMode={viewMode}
+              tableHook={activeTableHook}
+              emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
+              emptyDescription={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC")}
+              onRetry={() => void activeTableHook.refetch()}
+              onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
+              t={t}
+              rowHeight={activeRowHeight}
+              wrapHeaders={activeWrapHeaders}
+              organizationId={undefined}
+              archived={false}
+              searchInput={activeTableHook.searchInput}
+              buildMenuItems={buildCardMenuItems}
+              onCardClick={(workspace) => handleEnterWorkspace(workspace.workspaceId)}
+            />
+          </ChromeTabsContent>
 
-        <ChromeTabsContent value="archived" className="min-h-0 flex-1">
-          <WorkspacesContentSection
-            viewMode={viewMode}
-            tableHook={archivedTableHook}
-            emptyTitle={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}
-            emptyDescription={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC")}
-            onRetry={() => void archivedTableHook.refetch()}
-            t={t}
-            rowHeight={archivedRowHeight}
-            wrapHeaders={archivedWrapHeaders}
-            organizationId={undefined}
-            archived
-            searchInput={archivedTableHook.searchInput}
-            buildMenuItems={buildCardMenuItems}
-          />
-        </ChromeTabsContent>
+          <ChromeTabsContent value="archived" className="min-h-0 flex-1">
+            <WorkspacesContentSection
+              viewMode={viewMode}
+              tableHook={archivedTableHook}
+              emptyTitle={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_TITLE")}
+              emptyDescription={t("common:ORG_WORKSPACES_ARCHIVED_EMPTY_DESC")}
+              onRetry={() => void archivedTableHook.refetch()}
+              t={t}
+              rowHeight={archivedRowHeight}
+              wrapHeaders={archivedWrapHeaders}
+              organizationId={undefined}
+              archived
+              searchInput={archivedTableHook.searchInput}
+              buildMenuItems={buildCardMenuItems}
+            />
+          </ChromeTabsContent>
+        </div>
       </DefaultPage>
 
       <UserCenterWorkspacesDialogs

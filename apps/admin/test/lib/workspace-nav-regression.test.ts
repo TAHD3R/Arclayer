@@ -1,16 +1,16 @@
 import { describe, expect, test } from "vitest";
 
-import { ADMIN_NAV_ITEMS } from "@/constants/menu/workspaces";
+import { ADMIN_NAV_ITEMS, getWorkspaceNavItems } from "@/constants/menu/workspaces";
 
-function listWorkspaceNavTargets(): string[] {
+function listWorkspaceNavTargets(items = ADMIN_NAV_ITEMS): string[] {
   const out: string[] = [];
-  const walk = (items: typeof ADMIN_NAV_ITEMS) => {
-    for (const item of items) {
+  const walk = (navItems: typeof ADMIN_NAV_ITEMS) => {
+    for (const item of navItems) {
       if (item.to) out.push(item.to);
       if (item.children?.length) walk(item.children);
     }
   };
-  walk(ADMIN_NAV_ITEMS);
+  walk(items);
   return out;
 }
 
@@ -50,5 +50,23 @@ describe("workspace nav regression", () => {
     expect(
       ADMIN_NAV_ITEMS.find((item) => item.key === "workspace")?.children?.map((item) => item.key),
     ).toEqual(["extensions", "activity", "settings.workspace"]);
+  });
+
+  test("removes the Team nav group for personal workspaces", () => {
+    const personalNav = getWorkspaceNavItems("personal");
+
+    expect(personalNav.map((item) => item.key)).toEqual(["dashboard", "content", "workspace"]);
+    expect(listWorkspaceNavTargets(personalNav)).not.toContain("/team/members");
+    expect(listWorkspaceNavTargets(personalNav)).not.toContain("/team/invitations");
+    expect(listWorkspaceNavTargets(personalNav)).not.toContain("/team/roles");
+  });
+
+  test("keeps the Team nav group for team workspaces", () => {
+    const teamNav = getWorkspaceNavItems("team");
+
+    expect(teamNav.map((item) => item.key)).toEqual(["dashboard", "content", "team", "workspace"]);
+    expect(listWorkspaceNavTargets(teamNav)).toContain("/team/members");
+    expect(listWorkspaceNavTargets(teamNav)).toContain("/team/invitations");
+    expect(listWorkspaceNavTargets(teamNav)).toContain("/team/roles");
   });
 });

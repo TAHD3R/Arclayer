@@ -89,6 +89,10 @@ export type EmailCheckOut = {
   exists: boolean;
 };
 
+export type UsernameCheckOut = {
+  available: boolean;
+};
+
 export type LoginEmailCodeRequestOut = {
   expiresIn: number;
   retryAfter: number;

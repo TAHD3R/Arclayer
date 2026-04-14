@@ -18,6 +18,9 @@ from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceM
 from src.modules.organization.repository import OrganizationRepository
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.workspaces.policy.service import OrgWorkspaceCreationPolicy
+from src.modules.workspaces.settings.service import WorkspaceSettingsService
+from src.modules.workspaces.site.service import WorkspaceSiteService
+from src.modules.workspaces.slug.service import next_available_workspace_slug
 from src.settings.scopes import SCOPE_TYPE_USER
 
 PERSONAL_SPACE_STATE_NAMESPACE = "onboarding.personal_space"
@@ -53,6 +56,8 @@ class PersonalSpaceService(BaseService):
         self.org_repo = OrganizationRepository()
         self.workspace_repo = OrganizationWorkspaceRepository()
         self.workspace_policy = OrgWorkspaceCreationPolicy(settings)
+        self.site_service = WorkspaceSiteService(settings)
+        self.settings_service = WorkspaceSettingsService(settings)
 
     async def get_state(self, *, user_id: UUID) -> PersonalSpaceProvisionState:
         workspace = await self._get_ready_workspace(user_id=user_id)
@@ -174,7 +179,7 @@ class PersonalSpaceService(BaseService):
             await self.workspace_policy.assert_can_create(organization_id=UUID(str(organization.id)))
             workspace = await self.workspace_repo.create_workspace(
                 organization_id=UUID(str(organization.id)),
-                slug=self._personal_workspace_slug(user_id=user_id),
+                slug=await self._next_personal_workspace_slug(user=user),
                 name=self._personal_space_name(user=user),
                 description=None,
                 created_by_user_id=user_id,
@@ -205,6 +210,7 @@ class PersonalSpaceService(BaseService):
                 restored = True
 
         await self._ensure_workspace_membership(workspace_id=UUID(str(workspace.id)), user_id=user_id)
+        await self._ensure_workspace_baseline(workspace_id=UUID(str(workspace.id)), user_id=user_id)
         await self._sync_user_status(user=user, workspace=workspace)
 
         return EnsurePersonalSpaceResult(
@@ -283,6 +289,22 @@ class PersonalSpaceService(BaseService):
             deleted_at__isnull=True,
         )
 
+    async def _ensure_workspace_baseline(self, *, workspace_id: UUID, user_id: UUID) -> None:
+        await self.site_service.get_or_create_site_for_workspace(
+            workspace_id=workspace_id,
+            actor_user_id=user_id,
+        )
+        await self.settings_service.patch_core(
+            workspace_id=workspace_id,
+            patch={
+                "content_strategy": {
+                    "autosave": {"enabled": True, "interval_sec": 30, "save_on_blur": True},
+                    "retention": {"draft_max_revisions": 100},
+                }
+            },
+            updated_by=user_id,
+        )
+
     async def _get_state_record(self, *, user_id: UUID) -> SettingRecord | None:
         return await SettingRecord.get_or_none(
             scope_type=SCOPE_TYPE_USER,
@@ -323,9 +345,12 @@ class PersonalSpaceService(BaseService):
     def _personal_org_slug(*, user_id: UUID) -> str:
         return f"personal-org-{user_id.hex}"
 
-    @staticmethod
-    def _personal_workspace_slug(*, user_id: UUID) -> str:
-        return f"personal-{user_id.hex}"
+    async def _next_personal_workspace_slug(self, *, user: User) -> str:
+        seed = str(user.username or user.display_name or f"personal-{UUID(str(user.id)).hex[:12]}").strip()
+        return await next_available_workspace_slug(
+            base_slug=seed,
+            exists_fn=lambda slug: self.workspace_repo.slug_exists(slug=slug),
+        )
 
     @staticmethod
     def _personal_space_name(*, user: User) -> str:

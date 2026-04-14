@@ -18,6 +18,7 @@ type RuntimeState = {
 const {
   navigateMock,
   emailCheckMock,
+  usernameCheckMock,
   loginMock,
   requestLoginEmailCodeMock,
   verifyLoginEmailCodeMock,
@@ -31,6 +32,7 @@ const {
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   emailCheckMock: vi.fn(),
+  usernameCheckMock: vi.fn(),
   loginMock: vi.fn(),
   requestLoginEmailCodeMock: vi.fn(),
   verifyLoginEmailCodeMock: vi.fn(),
@@ -69,6 +71,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/api/auth", () => ({
   emailCheck: (...args: unknown[]) => emailCheckMock(...args),
+  usernameCheck: (...args: unknown[]) => usernameCheckMock(...args),
   login: (...args: unknown[]) => loginMock(...args),
   requestLoginEmailCode: (...args: unknown[]) => requestLoginEmailCodeMock(...args),
   verifyLoginEmailCode: (...args: unknown[]) => verifyLoginEmailCodeMock(...args),
@@ -183,6 +186,7 @@ describe("LoginPage two-factor challenge flow", () => {
   beforeEach(() => {
     currentSearch = { mode: "login" };
     emailCheckMock.mockReset();
+    usernameCheckMock.mockReset();
     loginMock.mockReset();
     requestLoginEmailCodeMock.mockReset();
     verifyLoginEmailCodeMock.mockReset();

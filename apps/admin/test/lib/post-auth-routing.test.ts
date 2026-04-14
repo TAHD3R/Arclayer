@@ -65,8 +65,51 @@ describe("post-auth-routing", () => {
     });
 
     const decision = await resolvePostAuthRoute({ lastWorkspaceId: "w-a" });
-    expect(decision.path).toBe("/");
+    expect(decision.path).toBe("/w/w-a");
     expect(decision.workspaceId).toBe("w-a");
+    expect(decision.onboardingRequired).toBe(false);
+  });
+
+  test("prefers the personal workspace when no remembered workspace can be used", async () => {
+    const teamWorkspace = {
+      workspaceId: "w-team",
+      organizationId: "org-team",
+      slug: "team-space",
+      name: "Team Space",
+      kind: "team" as const,
+      visibleOnly: false,
+      isCreatorAdmin: true,
+      isLegacy: false,
+    };
+    const personalWorkspace = {
+      workspaceId: "w-personal",
+      organizationId: "org-personal",
+      slug: "personal-space",
+      name: "Personal Space",
+      kind: "personal" as const,
+      visibleOnly: false,
+      isCreatorAdmin: true,
+      isLegacy: false,
+    };
+
+    mocked.listMyWorkspaces.mockResolvedValue({
+      items: [teamWorkspace, personalWorkspace],
+      switcher: {
+        teams: [teamWorkspace],
+        personalSpace: {
+          status: "ready",
+          workspace: personalWorkspace,
+          retryAvailable: false,
+          lastError: null,
+        },
+      },
+      instanceSetup: { status: "ready", repairReason: null },
+      onboarding: { status: "completed", workspaceId: null },
+    });
+
+    const decision = await resolvePostAuthRoute({ lastWorkspaceId: null });
+    expect(decision.path).toBe("/w/w-personal");
+    expect(decision.workspaceId).toBe("w-personal");
     expect(decision.onboardingRequired).toBe(false);
   });
 

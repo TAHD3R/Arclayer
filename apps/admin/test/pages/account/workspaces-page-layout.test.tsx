@@ -7,6 +7,12 @@ import { WorkspacesPage } from "@/pages/usercenter/workspaces/page";
 
 const mockNavigate = vi.fn();
 const mockSetCurrentWorkspaceId = vi.fn();
+const translations: Record<string, string> = {
+  "account:ACCOUNT_PAGE_WORKSPACES_TITLE": "Workspaces",
+  "account:ACCOUNT_PAGE_WORKSPACES_DESC":
+    "Open your personal workspace and manage team workspaces from one place.",
+  "common:ORG_WORKSPACES_CREATE_TEAM": "Create team workspace",
+};
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mockNavigate,
@@ -14,7 +20,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => translations[key] ?? key }),
 }));
 
 vi.mock("@/stores/use-workspace-store", () => ({
@@ -29,8 +35,22 @@ vi.mock("@arclayer/ui/data-table", () => ({
 }));
 
 vi.mock("@/layouts/page-shell/default-page", () => ({
-  DefaultPage: ({ extra, children }: PropsWithChildren<{ extra?: ReactNode }>) => (
+  DefaultPage: ({
+    title,
+    description,
+    action,
+    extra,
+    children,
+  }: PropsWithChildren<{
+    title?: ReactNode;
+    description?: ReactNode;
+    action?: ReactNode;
+    extra?: ReactNode;
+  }>) => (
     <div>
+      <div data-testid="default-page-title">{title}</div>
+      <div data-testid="default-page-description">{description}</div>
+      <div data-testid="default-page-action">{action}</div>
       <div data-testid="default-page-extra">{extra}</div>
       <div data-testid="default-page-children">{children}</div>
     </div>
@@ -75,6 +95,10 @@ vi.mock("@/pages/usercenter/workspaces/components/workspaces-table-section", () 
 
 vi.mock("@/pages/usercenter/workspaces/components/workspaces-columns", () => ({
   useUserCenterWorkspacesColumns: () => [],
+}));
+
+vi.mock("@/components/common/entity-avatar", () => ({
+  WorkspaceAvatar: (props: { name: string }) => <div data-testid="workspace-avatar">{props.name}</div>,
 }));
 
 vi.mock("@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations", () => ({
@@ -131,5 +155,18 @@ describe("WorkspacesPage layout", () => {
     expect(extra).toContainElement(screen.getByTestId("workspaces-toolbar"));
     expect(screen.getByTestId("active-section")).toHaveAttribute("data-has-toolbar", "false");
     expect(screen.getByTestId("archived-section")).toHaveAttribute("data-has-toolbar", "false");
+  });
+
+  it("keeps the page chrome and team-oriented create action without the removed personal summary block", () => {
+    render(<WorkspacesPage />);
+
+    expect(screen.getByTestId("default-page-title")).toHaveTextContent("Workspaces");
+    expect(screen.getByTestId("default-page-description")).toHaveTextContent(
+      "Open your personal workspace and manage team workspaces from one place.",
+    );
+    expect(screen.queryByText("Personal workspace")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open personal workspace" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Team workspaces")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create team workspace" })).toBeInTheDocument();
   });
 });

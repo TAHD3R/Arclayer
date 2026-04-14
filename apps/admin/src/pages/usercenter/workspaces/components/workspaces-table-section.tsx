@@ -1,11 +1,11 @@
 import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
 
-import type { OrganizationWorkspace } from "@/types/api";
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import type { DataTableRowHeight } from "@arclayer/ui/data-table";
 
 import type {
+  UserCenterWorkspaceListItem,
   UserCenterWorkspacesTranslateFn,
   UserCenterWorkspacesViewMode,
   WorkspaceMenuItem,
@@ -19,15 +19,15 @@ interface WorkspacesContentSectionProps {
   emptyTitle: string;
   emptyDescription: string;
   onRetry: () => void;
-  onRowClick?: (row: Row<OrganizationWorkspace>) => void;
+  onRowClick?: (row: Row<UserCenterWorkspaceListItem>) => void;
   t: UserCenterWorkspacesTranslateFn;
   rowHeight: DataTableRowHeight;
   wrapHeaders: boolean;
   organizationId?: string;
   archived: boolean;
   searchInput: string;
-  buildMenuItems: (ws: OrganizationWorkspace) => WorkspaceMenuItem[];
-  onCardClick?: (ws: OrganizationWorkspace) => void;
+  buildMenuItems: (ws: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
+  onCardClick?: (ws: UserCenterWorkspaceListItem) => void;
   toolbar?: React.ReactNode;
 }
 

@@ -23,6 +23,13 @@ from src.modules.workspaces.http.schema import WorkspaceAccessType, WorkspaceCon
 from src.modules.workspaces.runtime.service import set_current_workspace_context
 
 
+def _raise_personal_space_team_operation_forbidden() -> None:
+    raise Forbidden(
+        message=t("errors", "PERMISSION_DENIED"),
+        error="PERSONAL_SPACE_TEAM_OPERATION_FORBIDDEN",
+    )
+
+
 async def _require_active_workspace(*, workspace_id: PublicUUID) -> Workspace:
     ws = await Workspace.get_or_none(id=workspace_id, deleted_at__isnull=True)
     if ws is None or not ws.is_active:
@@ -110,6 +117,7 @@ async def _resolve_guest_workspace_context(
     return WorkspaceContext(
         workspace_id=workspace_uuid,
         organization_id=organization_id,
+        workspace_kind=workspace.kind,
         access_type=WorkspaceAccessType.GUEST,
         org_membership_id=None,
         is_org_owner=False,
@@ -150,6 +158,7 @@ async def _resolve_member_workspace_context(
     return WorkspaceContext(
         workspace_id=workspace_uuid,
         organization_id=organization_id,
+        workspace_kind=workspace.kind,
         access_type=WorkspaceAccessType.MEMBER,
         org_membership_id=UUID(str(orgm.id)),
         is_org_owner=is_owner,
@@ -197,4 +206,14 @@ async def require_workspace_manage_access(
 
     if ctx.visible_only or ctx.workspace_membership_id is None:
         raise Forbidden(message=t("errors", "PERMISSION_DENIED"), error="WORKSPACE_ACCESS_DENIED")
+    return ctx
+
+
+async def require_team_workspace_manage_access(
+    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+) -> WorkspaceContext:
+    """Ensure the current user can manage a Team workspace."""
+
+    if ctx.workspace_kind != WorkspaceKind.TEAM:
+        _raise_personal_space_team_operation_forbidden()
     return ctx

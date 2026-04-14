@@ -73,8 +73,8 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
             createDialog.setOpen(open);
           }
         }}
-        title={t("common:ORG_WORKSPACES_CREATE")}
-        description={t("common:ORG_WORKSPACES_CREATE_DIALOG_DESC")}
+        title={t("common:ORG_WORKSPACES_CREATE_TEAM")}
+        description={t("common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC")}
         contentClassName="sm:max-w-155"
         footer={
           <div className="flex w-full items-center justify-end gap-2">

@@ -9,10 +9,8 @@ const {
   navigateMock,
   listMyWorkspacesMock,
   checkSlugMock,
+  createMyOnboardingWorkspaceMock,
   meMock,
-  listMyOrganizationsMock,
-  createMyOrganizationMock,
-  createOrganizationWorkspaceMock,
   patchCoreSettingsMock,
   workspaceState,
   i18nState,
@@ -20,10 +18,8 @@ const {
   navigateMock: vi.fn(),
   listMyWorkspacesMock: vi.fn(),
   checkSlugMock: vi.fn(),
+  createMyOnboardingWorkspaceMock: vi.fn(),
   meMock: vi.fn(),
-  listMyOrganizationsMock: vi.fn(),
-  createMyOrganizationMock: vi.fn(),
-  createOrganizationWorkspaceMock: vi.fn(),
   patchCoreSettingsMock: vi.fn(),
   workspaceState: {
     currentWorkspaceId: null as string | null,
@@ -35,6 +31,25 @@ const {
     language: "en-US",
   },
 }));
+const translations: Record<string, string> = {
+  "common:NEXT": "Next",
+  "common:ORG_WORKSPACES_FIELD_NAME": "Workspace name",
+  "onboarding:WORKSPACE_FIRST_WELCOME_TITLE": "Welcome to Arclayer",
+  "onboarding:WORKSPACE_SETUP_STEP_TITLE": "Choose how you work",
+  "onboarding:WORKSPACE_SETUP_MODE_PERSONAL_TITLE": "Personal work",
+  "onboarding:WORKSPACE_SETUP_MODE_TEAM_TITLE": "Team work",
+  "onboarding:WORKSPACE_SLUG_LABEL": "Workspace slug",
+  "onboarding:PREFERENCES_STEP_TITLE": "Set workspace preferences",
+  "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE":
+    "Use relative datetime by default",
+  "onboarding:PERSONALIZE_TITLE": "Personalize your experience",
+  "onboarding:PERSONALIZE_ROLE_FOUNDER": "Founder",
+  "onboarding:PERSONALIZE_GOAL_AI_AGENTS": "Building AI agents",
+  "onboarding:PERSONALIZE_SKIP": "Skip for now",
+  "onboarding:PERSONALIZE_QUESTION_2": "What do you want to create?",
+  "onboarding:READY_TITLE": "You're ready to go!",
+  "onboarding:READY_CTA": "Start Creating",
+};
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
@@ -43,19 +58,11 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/api/workspaces", () => ({
   listMyWorkspaces: (...args: unknown[]) => listMyWorkspacesMock(...args),
   checkMyOnboardingWorkspaceSlugAvailability: (...args: unknown[]) => checkSlugMock(...args),
+  createMyOnboardingWorkspace: (...args: unknown[]) => createMyOnboardingWorkspaceMock(...args),
 }));
 
 vi.mock("@/api/auth", () => ({
   me: (...args: unknown[]) => meMock(...args),
-}));
-
-vi.mock("@/api/me", () => ({
-  listMyOrganizations: (...args: unknown[]) => listMyOrganizationsMock(...args),
-  createMyOrganization: (...args: unknown[]) => createMyOrganizationMock(...args),
-}));
-
-vi.mock("@/api/organization-workspaces", () => ({
-  createOrganizationWorkspace: (...args: unknown[]) => createOrganizationWorkspaceMock(...args),
 }));
 
 vi.mock("@/api/settings", () => ({
@@ -77,7 +84,7 @@ vi.mock("@/stores/use-workspace-store", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string) => translations[key] ?? key,
     i18n: i18nState,
   }),
 }));
@@ -98,17 +105,15 @@ function renderPage() {
 }
 
 async function advanceIntroToWorkspaceStep(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "common:NEXT" }));
+  await user.click(screen.getByRole("button", { name: "Next" }));
 }
 
 beforeEach(() => {
   navigateMock.mockReset();
   listMyWorkspacesMock.mockReset();
   checkSlugMock.mockReset();
+  createMyOnboardingWorkspaceMock.mockReset();
   meMock.mockReset();
-  listMyOrganizationsMock.mockReset();
-  createMyOrganizationMock.mockReset();
-  createOrganizationWorkspaceMock.mockReset();
   patchCoreSettingsMock.mockReset();
   workspaceState.setCurrentWorkspaceId.mockReset();
   workspaceState.lastWorkspaceId = null;
@@ -129,33 +134,9 @@ beforeEach(() => {
     avatarAssetId: null,
     isSuperAdmin: false,
   });
-  listMyOrganizationsMock.mockResolvedValue({ items: [], total: 0 });
-  createMyOrganizationMock.mockResolvedValue({
-    organization: { id: "org-1", name: "Studio Team", slug: "studio-team", logoUrl: null },
-    membership: {
-      id: "orgm-1",
-      organizationId: "org-1",
-      role: "owner",
-      status: "active",
-    },
-    memberCount: 1,
-    membersPreview: [],
-  });
-  createOrganizationWorkspaceMock.mockResolvedValue({
-    id: "ws-row-1",
+  createMyOnboardingWorkspaceMock.mockResolvedValue({
     workspaceId: "ws-1",
-    organizationId: "org-1",
-    slug: "founder-team",
-    name: "Studio Team",
-    description: null,
-    iconUrl: null,
-    isArchived: false,
-    archivedAt: null,
-    archivedByUserId: null,
-    memberCount: 1,
-    membersPreview: [],
-    createdAt: "2026-04-14T00:00:00Z",
-    enterable: true,
+    kind: "team",
   });
   patchCoreSettingsMock.mockResolvedValue({
     namespace: "core",
@@ -166,6 +147,50 @@ beforeEach(() => {
 });
 
 describe("WorkspaceFirstOnboardingPage", () => {
+  it("redirects completed onboarding into the resolved personal workspace", async () => {
+    listMyWorkspacesMock.mockResolvedValue({
+      items: [
+        {
+          workspaceId: "ws-personal",
+          organizationId: "org-personal",
+          slug: "founder",
+          name: "Founder Workspace",
+          kind: "personal",
+          visibleOnly: false,
+          isCreatorAdmin: true,
+          isLegacy: false,
+        },
+      ],
+      switcher: {
+        teams: [],
+        personalSpace: {
+          status: "ready",
+          workspace: {
+            workspaceId: "ws-personal",
+            organizationId: "org-personal",
+            slug: "founder",
+            name: "Founder Workspace",
+            kind: "personal",
+            visibleOnly: false,
+            isCreatorAdmin: true,
+            isLegacy: false,
+          },
+          retryAvailable: false,
+          lastError: null,
+        },
+      },
+      instanceSetup: { status: "ready", repairReason: null },
+      onboarding: { status: "completed", workspaceId: "ws-personal" },
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(workspaceState.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-personal");
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-personal", replace: true });
+    });
+  });
+
   it("creates the first workspace, saves defaults, and enters the workspace", async () => {
     listMyWorkspacesMock
       .mockResolvedValueOnce({
@@ -209,7 +234,7 @@ describe("WorkspaceFirstOnboardingPage", () => {
             },
           ],
           personalSpace: {
-            status: "pending",
+            status: "not_created",
             workspace: null,
             retryAvailable: false,
             lastError: null,
@@ -258,43 +283,41 @@ describe("WorkspaceFirstOnboardingPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await screen.findByText("onboarding:WORKSPACE_FIRST_WELCOME_TITLE");
+    await screen.findByText("Welcome to Arclayer");
     await advanceIntroToWorkspaceStep(user);
-    await screen.findByText("onboarding:WORKSPACE_STEP_TITLE");
-    const nameInput = screen.getByLabelText("common:ORG_WORKSPACES_FIELD_NAME");
-    const slugInput = screen.getByLabelText("onboarding:WORKSPACE_SLUG_LABEL");
+    await screen.findByText("Choose how you work");
+    await user.click(screen.getByRole("button", { name: /Team work/i }));
+    const nameInput = screen.getByLabelText("Workspace name");
+    const slugInput = screen.getByLabelText("Workspace slug");
 
     await waitFor(() => expect(slugInput).toHaveValue("founder-team"));
-    await waitFor(() => expect(nameInput).toHaveValue("Founder's Workspace"));
+    await waitFor(() => expect(nameInput).toHaveValue("Founder's Team"));
 
     await user.clear(nameInput);
     await user.type(nameInput, "Studio Team");
-    await waitFor(() => expect(screen.getByRole("button", { name: "common:NEXT" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Next" })).toBeEnabled());
 
-    await user.click(screen.getByRole("button", { name: "common:NEXT" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
 
     await waitFor(() => {
-      expect(createMyOrganizationMock).toHaveBeenCalledWith({ name: "Studio Team" });
-      expect(createOrganizationWorkspaceMock).toHaveBeenCalledWith("org-1", {
+      expect(createMyOnboardingWorkspaceMock).toHaveBeenCalledWith({
+        kind: "team",
         name: "Studio Team",
         slug: "founder-team",
-        template: "blank",
       });
     });
 
-    await screen.findByText("onboarding:PREFERENCES_STEP_TITLE");
-    expect(
-      screen.getByText("settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE"),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "common:NEXT" }));
+    await screen.findByText("Set workspace preferences");
+    expect(screen.getByText("Use relative datetime by default")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next" }));
 
-    await screen.findByText("onboarding:PERSONALIZE_TITLE");
-    await user.click(screen.getByRole("button", { name: "onboarding:PERSONALIZE_ROLE_FOUNDER" }));
-    await user.click(screen.getByRole("button", { name: "common:NEXT" }));
-    await user.click(screen.getByRole("button", { name: "onboarding:PERSONALIZE_GOAL_AI_AGENTS" }));
-    await user.click(screen.getByRole("button", { name: "common:NEXT" }));
-    await screen.findByText("onboarding:READY_TITLE");
-    await user.click(screen.getByRole("button", { name: "onboarding:READY_CTA" }));
+    await screen.findByText("Personalize your experience");
+    await user.click(screen.getByRole("button", { name: "Founder" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Building AI agents" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("You're ready to go!");
+    await user.click(screen.getByRole("button", { name: "Start Creating" }));
 
     await waitFor(() => {
       expect(patchCoreSettingsMock).toHaveBeenCalledWith(
@@ -338,13 +361,114 @@ describe("WorkspaceFirstOnboardingPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await screen.findByText("onboarding:WORKSPACE_FIRST_WELCOME_TITLE");
+    await screen.findByText("Welcome to Arclayer");
     await advanceIntroToWorkspaceStep(user);
-    await screen.findByText("onboarding:WORKSPACE_STEP_TITLE");
+    await screen.findByText("Choose how you work");
+    await user.click(screen.getByRole("button", { name: /Team work/i }));
     await waitFor(() => {
-      expect(screen.getByLabelText("common:ORG_WORKSPACES_FIELD_NAME")).toHaveValue(
-        "Founder 的工作区",
-      );
+      expect(screen.getByLabelText("Workspace name")).toHaveValue("Founder 的团队");
+    });
+  });
+
+  it("creates a personal workspace after choosing personal work", async () => {
+    listMyWorkspacesMock
+      .mockResolvedValueOnce({
+        items: [],
+        switcher: {
+          teams: [],
+          personalSpace: {
+            status: "pending",
+            workspace: null,
+            retryAvailable: false,
+            lastError: null,
+          },
+        },
+        instanceSetup: { status: "ready", repairReason: null },
+        onboarding: { status: "pending_workspace", workspaceId: null },
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            workspaceId: "ws-personal",
+            organizationId: "org-personal",
+            slug: "founder-team",
+            name: "Founder Personal Space",
+            kind: "personal",
+            visibleOnly: false,
+            isCreatorAdmin: true,
+            isLegacy: false,
+          },
+        ],
+        switcher: {
+          teams: [],
+          personalSpace: {
+            status: "ready",
+            workspace: {
+              workspaceId: "ws-personal",
+              organizationId: "org-personal",
+              slug: "founder-team",
+              name: "Founder Personal Space",
+              kind: "personal",
+              visibleOnly: false,
+              isCreatorAdmin: true,
+              isLegacy: false,
+            },
+            retryAvailable: false,
+            lastError: null,
+          },
+        },
+        instanceSetup: { status: "ready", repairReason: null },
+        onboarding: { status: "pending_workspace_defaults", workspaceId: "ws-personal" },
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            workspaceId: "ws-personal",
+            organizationId: "org-personal",
+            slug: "founder-team",
+            name: "Founder Personal Space",
+            kind: "personal",
+            visibleOnly: false,
+            isCreatorAdmin: true,
+            isLegacy: false,
+          },
+        ],
+        switcher: {
+          teams: [],
+          personalSpace: {
+            status: "ready",
+            workspace: {
+              workspaceId: "ws-personal",
+              organizationId: "org-personal",
+              slug: "founder-team",
+              name: "Founder Personal Space",
+              kind: "personal",
+              visibleOnly: false,
+              isCreatorAdmin: true,
+              isLegacy: false,
+            },
+            retryAvailable: false,
+            lastError: null,
+          },
+        },
+        instanceSetup: { status: "ready", repairReason: null },
+        onboarding: { status: "completed", workspaceId: "ws-personal" },
+      });
+    createMyOnboardingWorkspaceMock.mockResolvedValueOnce({
+      workspaceId: "ws-personal",
+      kind: "personal",
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText("Welcome to Arclayer");
+    await advanceIntroToWorkspaceStep(user);
+    await user.click(screen.getByRole("button", { name: /Personal work/i }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(createMyOnboardingWorkspaceMock).toHaveBeenCalledWith({ kind: "personal" });
     });
   });
 
@@ -389,12 +513,12 @@ describe("WorkspaceFirstOnboardingPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    await screen.findByText("onboarding:PREFERENCES_STEP_TITLE");
-    await user.click(screen.getByRole("button", { name: "common:NEXT" }));
-    await screen.findByText("onboarding:PERSONALIZE_TITLE");
-    await user.click(screen.getByRole("button", { name: "onboarding:PERSONALIZE_SKIP" }));
-    await screen.findByText("onboarding:PERSONALIZE_QUESTION_2");
-    await user.click(screen.getByRole("button", { name: "onboarding:PERSONALIZE_SKIP" }));
-    await screen.findByText("onboarding:READY_TITLE");
+    await screen.findByText("Set workspace preferences");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("Personalize your experience");
+    await user.click(screen.getByRole("button", { name: "Skip for now" }));
+    await screen.findByText("What do you want to create?");
+    await user.click(screen.getByRole("button", { name: "Skip for now" }));
+    await screen.findByText("You're ready to go!");
   });
 });

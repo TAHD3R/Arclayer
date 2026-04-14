@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import type { UserCenterWorkspaceListItem } from "./workspace-list-items";
+
 export type UserCenterWorkspacesTab = "active" | "archived";
 
 export type UserCenterWorkspacesViewMode = "card" | "table";
@@ -18,3 +20,5 @@ export type WorkspaceMenuItem = {
   onClick?: () => void;
   type?: "divider";
 };
+
+export type { UserCenterWorkspaceListItem };

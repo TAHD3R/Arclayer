@@ -19,14 +19,16 @@ export function AuthFieldError({ message, className }: AuthFieldErrorProps) {
 type AuthInputControlProps = React.ComponentProps<typeof InputGroupInput> & {
   inputClassName?: string;
   startIcon?: React.ReactNode;
+  endIcon?: React.ReactNode;
 };
 
 export const AuthInputControl = React.forwardRef<HTMLInputElement, AuthInputControlProps>(
-  function AuthInputControl({ className, inputClassName, startIcon, ...props }, ref) {
+  function AuthInputControl({ className, inputClassName, startIcon, endIcon, ...props }, ref) {
     return (
       <InputGroup className={className}>
         {startIcon ? <InputGroupAddon>{startIcon}</InputGroupAddon> : null}
         <InputGroupInput ref={ref} className={inputClassName} {...props} />
+        {endIcon ? <InputGroupAddon align="inline-end">{endIcon}</InputGroupAddon> : null}
       </InputGroup>
     );
   },

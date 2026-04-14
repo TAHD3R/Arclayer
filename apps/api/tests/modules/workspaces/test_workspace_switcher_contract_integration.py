@@ -104,3 +104,83 @@ async def test_me_workspaces_returns_switcher_and_personal_space_truth(
     assert data["switcher"]["personalSpace"]["status"] == "ready"
     assert data["switcher"]["personalSpace"]["workspace"]["kind"] == "personal"
     assert data["switcher"]["personalSpace"]["retryAvailable"] is False
+
+
+async def test_me_workspaces_reports_team_only_existing_user_without_fake_personal_workspace(
+    prepared_db, integration_valkey_settings, tmp_path: Path
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    base_settings = get_settings()
+    settings = base_settings.model_copy(deep=True)
+    settings.application.data_dir = tmp_path
+
+    app = create_app()
+    app.dependency_overrides[get_settings] = lambda: settings
+    transport = ASGITransport(app=app)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+
+        setup_service = InstanceSetupService(settings)
+        org_repo = OrganizationRepository()
+        user_repo = UserRepository()
+
+        founder = await user_repo.create_user(
+            username=f"founder_{uuid4().hex[:10]}",
+            email="founder@example.com",
+            display_name="Founder",
+            password_hash=hash_password("switcher_password_123", settings.auth),
+            is_super_admin=True,
+        )
+        setup_service.write_install_lock(setup_service.build_install_lock_metadata(initialized_by_user_id=founder.id))
+
+        org = await org_repo.create_organization(slug=f"legacy_org_{uuid4().hex}", name="Legacy Org")
+        user = await user_repo.create_user(
+            username=f"legacy_user_{uuid4().hex[:10]}",
+            email="legacy-switcher@example.com",
+            display_name="Legacy Switcher User",
+            password_hash=hash_password("switcher_password_123", settings.auth),
+        )
+        await OrgMembership.create(organization_id=org.id, user_id=user.id, role=OrgRole.OWNER, status="active")
+
+        team_workspace = await Workspace.create(
+            organization_id=org.id,
+            slug=f"legacy_workspace_{uuid4().hex[:8]}",
+            name="Legacy Team Workspace",
+            is_active=True,
+            created_by_user_id=user.id,
+        )
+        await WorkspaceMembership.create(
+            workspace_id=team_workspace.id,
+            user_id=user.id,
+            status=WorkspaceMembershipStatus.ACTIVE,
+        )
+
+        async def _get_user() -> User:
+            return user
+
+        async def _get_user_id():
+            return user.id
+
+        app.dependency_overrides[get_current_user] = _get_user
+        app.dependency_overrides[get_current_user_id] = _get_user_id
+
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Forwarded-For": uuid4().hex},
+        ) as client:
+            response = await client.get("/api/v1/me/workspaces")
+
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+
+    assert len(data["items"]) == 1
+    assert data["items"][0]["kind"] == "team"
+    assert data["switcher"]["teams"][0]["workspaceId"] == data["items"][0]["workspaceId"]
+    assert data["switcher"]["personalSpace"]["status"] == "not_created"
+    assert data["switcher"]["personalSpace"]["workspace"] is None

@@ -46,6 +46,8 @@ from src.modules.workspaces.schema import (
     LeaveWorkspaceRequest,
     LeaveWorkspaceResult,
     MyWorkspaceListResult,
+    OnboardingWorkspaceCreateOut,
+    OnboardingWorkspaceCreateRequest,
     PersonalSpaceStatus,
     PersonalSpaceSwitcherOut,
     WorkspaceDangerCapabilitiesOut,
@@ -107,6 +109,21 @@ async def check_my_onboarding_workspace_slug_availability(
     """Check workspace slug availability for first-workspace onboarding."""
     service = OrganizationWorkspaceService(settings)
     result = await service.check_slug_availability(slug=slug)
+    return ApiResponse.success(data=result)
+
+
+@router.post(
+    "/me/workspaces/onboarding",
+    response_model=ResponseModel[OnboardingWorkspaceCreateOut],
+    summary="Create the workspace selected during onboarding",
+)
+async def create_my_onboarding_workspace(
+    payload: OnboardingWorkspaceCreateRequest,
+    user_id: UUID = Depends(get_current_user_id),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[OnboardingWorkspaceCreateOut]:
+    service = WorkspaceService(settings)
+    result = await service.create_onboarding_workspace(user_id=user_id, payload=payload)
     return ApiResponse.success(data=result)
 
 

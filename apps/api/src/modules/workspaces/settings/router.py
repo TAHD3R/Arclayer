@@ -9,7 +9,7 @@ from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
-from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.http.service import require_team_workspace_manage_access, require_workspace_manage_access
 from src.modules.workspaces.settings.integrations.webhooks.router import router as workspace_webhooks_router
 from src.modules.workspaces.settings.schema import (
     WorkspaceAssignRoleToMembersRequest,
@@ -66,7 +66,7 @@ async def patch_workspace_core_settings(
     dependencies=[require_workspace_permission("system:settings:read")],
 )
 async def get_workspace_role_policy(
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
     """Get workspace role policy."""
@@ -83,7 +83,7 @@ async def get_workspace_role_policy(
 )
 async def patch_workspace_role_policy(
     payload: WorkspaceRolePolicyPatch,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceRolePolicyOut]:
     """Patch workspace role policy."""
@@ -103,7 +103,7 @@ async def patch_workspace_role_policy(
 )
 async def assign_workspace_role_to_regular_members(
     payload: WorkspaceAssignRoleToMembersRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceAssignRoleToMembersResult]:
     """Assign role to all regular members in workspace."""

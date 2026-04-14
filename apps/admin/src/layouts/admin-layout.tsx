@@ -3,7 +3,7 @@ import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { WORKSPACE_NAV_ITEMS } from "@/constants/menu/workspaces";
+import { getWorkspaceNavItems } from "@/constants/menu/workspaces";
 import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
@@ -47,16 +47,6 @@ export function AdminLayout({ children }: PropsWithChildren) {
     return Boolean(workspaceBase);
   }, [workspaceBase]);
 
-  const workspaceNav = useMemo(
-    () => (workspaceBase ? mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, workspaceBase) : []),
-    [workspaceBase],
-  );
-
-  const mainItems = useMemo(
-    () => workspaceNav.filter((item) => item.position !== "footer"),
-    [workspaceNav],
-  );
-
   const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
 
   const workspaceDetailQuery = useQuery({
@@ -67,6 +57,19 @@ export function AdminLayout({ children }: PropsWithChildren) {
     retry: false,
     meta: { silent: true },
   });
+
+  const workspaceNav = useMemo(
+    () =>
+      workspaceBase
+        ? mapWorkspaceNavItems(getWorkspaceNavItems(workspaceDetailQuery.data?.kind), workspaceBase)
+        : [],
+    [workspaceBase, workspaceDetailQuery.data?.kind],
+  );
+
+  const mainItems = useMemo(
+    () => workspaceNav.filter((item) => item.position !== "footer"),
+    [workspaceNav],
+  );
 
   const workspaceLocalization = useWorkspaceLocalization();
 

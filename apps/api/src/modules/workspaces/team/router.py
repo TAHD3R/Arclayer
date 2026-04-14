@@ -13,7 +13,7 @@ from src.core.i18n import get_current_locale, t
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.workspaces.authz.http.service import require_workspace_permission
 from src.modules.workspaces.http.schema import WorkspaceContext
-from src.modules.workspaces.http.service import require_workspace_manage_access
+from src.modules.workspaces.http.service import require_team_workspace_manage_access
 from src.modules.workspaces.team.schema import (
     WorkspaceEmailInviteCreateRequest,
     WorkspaceEmailInviteCreateResult,
@@ -46,7 +46,7 @@ router = APIRouter(prefix="/workspaces/{workspace_id}/team", tags=["domain.works
 async def list_user_options(
     q: str | None = Query(default=None, description="Search query (username/email/display_name)."),
     params: PageParams = Depends(get_page_params),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceTeamUserOptionOut]]:
     """Search workspace users for Select options (pagination)."""
@@ -64,7 +64,7 @@ async def list_user_options(
 async def list_members(
     query: WorkspaceTeamMemberListQuery = Depends(),
     params=Depends(get_page_params),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceTeamMemberOut]]:
     """List workspace team members."""
@@ -82,7 +82,7 @@ async def list_members(
 async def set_member_roles(
     membership_id: PublicUUID,
     payload: WorkspaceTeamMemberRoleSetRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
@@ -107,7 +107,7 @@ async def set_member_roles(
 async def update_member_user(
     membership_id: PublicUUID,
     payload: WorkspaceTeamUserUpdateRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberOut]:
@@ -131,7 +131,7 @@ async def update_member_user(
 )
 async def enable_member(
     membership_id: PublicUUID,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
@@ -155,7 +155,7 @@ async def enable_member(
 )
 async def disable_member(
     membership_id: PublicUUID,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceTeamMemberStatusResult]:
@@ -180,7 +180,7 @@ async def disable_member(
 async def reset_member_password(
     membership_id: PublicUUID,
     payload: WorkspaceTeamResetPasswordRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
@@ -205,7 +205,7 @@ async def reset_member_password(
 async def create_email_invite(
     payload: WorkspaceEmailInviteCreateRequest,
     background_tasks: BackgroundTasks,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceEmailInviteCreateResult]:
@@ -263,7 +263,7 @@ async def list_email_invites(
     status: str | None = Query(default=None, description="pending|accepted|revoked|expired"),
     mine: bool | None = Query(default=None, description="Only mine"),
     params=Depends(get_page_params),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceEmailInviteOut]]:
@@ -291,7 +291,7 @@ async def list_email_invites(
 async def renew_email_invite(
     invite_id: PublicUUID,
     payload: WorkspaceEmailInviteRenewRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceEmailInviteCreateResult]:
@@ -315,7 +315,7 @@ async def renew_email_invite(
 )
 async def revoke_email_invite(
     invite_id: PublicUUID,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:
@@ -338,7 +338,7 @@ async def revoke_email_invite(
 )
 async def create_invite_link(
     payload: WorkspaceInviteLinkCreateRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceInviteLinkCreateResult]:
@@ -367,7 +367,7 @@ async def list_invite_links(
     ),
     mine: bool | None = Query(default=None, description="Only mine"),
     params=Depends(get_page_params),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceInviteLinkOut]]:
@@ -395,7 +395,7 @@ async def list_invite_link_participants(
     link_id: PublicUUID,
     q: str | None = Query(default=None, description="Search query (username/email/display_name)."),
     params=Depends(get_page_params),
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[PageData[WorkspaceInviteLinkParticipantOut]]:
     """List invite link participants (usage events)."""
@@ -419,7 +419,7 @@ async def list_invite_link_participants(
 async def renew_invite_link(
     link_id: PublicUUID,
     payload: WorkspaceInviteLinkRenewRequest,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[WorkspaceInviteLinkCreateResult]:
@@ -443,7 +443,7 @@ async def renew_invite_link(
 )
 async def disable_invite_link(
     link_id: PublicUUID,
-    ctx: WorkspaceContext = Depends(require_workspace_manage_access),
+    ctx: WorkspaceContext = Depends(require_team_workspace_manage_access),
     user_id: UUID = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
 ) -> ResponseModel[None]:

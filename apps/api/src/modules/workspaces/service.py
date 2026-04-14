@@ -14,6 +14,7 @@ from src.core.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from src.core.i18n import t
 from src.models.assets.asset import AssetPurpose
 from src.models.organization.org_membership import OrgMembership, OrgRole
+from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembership, WorkspaceMembershipStatus
@@ -21,6 +22,9 @@ from src.modules.assets.admin.assets.binding_align import align_asset_for_bindin
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
+from src.modules.organization.repository import OrganizationRepository
+from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
+from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.system.setup.service import InstanceSetupService
@@ -29,6 +33,8 @@ from src.modules.workspaces.schema import (
     InstanceSetupStateOut,
     LeaveWorkspaceResult,
     MyWorkspaceListResult,
+    OnboardingWorkspaceCreateOut,
+    OnboardingWorkspaceCreateRequest,
     MyWorkspaceMemberPreviewOut,
     MyWorkspaceOut,
     PersonalSpaceStatus,
@@ -193,6 +199,7 @@ class WorkspaceService(BaseService):
     def __init__(self, settings: Settings) -> None:
         super().__init__(settings)
         self.repo = OrganizationWorkspaceRepository()
+        self.org_repo = OrganizationRepository()
         self.personal_space_service = PersonalSpaceService(settings)
         self.instance_setup_service = InstanceSetupService(settings)
         self.onboarding_service = WorkspaceFirstOnboardingService(settings)
@@ -291,6 +298,77 @@ class WorkspaceService(BaseService):
             items=items,
         )
 
+    async def create_onboarding_workspace(
+        self,
+        *,
+        user_id: UUID,
+        payload: OnboardingWorkspaceCreateRequest,
+    ) -> OnboardingWorkspaceCreateOut:
+        onboarding_state = await self.onboarding_service.get_state(user_id=user_id)
+        if onboarding_state.status == WorkspaceFirstOnboardingStatus.COMPLETED:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ONBOARDING_COMPLETED")
+        if onboarding_state.status == WorkspaceFirstOnboardingStatus.PENDING_WORKSPACE_DEFAULTS:
+            if onboarding_state.workspace_id is None:
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST"),
+                    error="WORKSPACE_ONBOARDING_STATE_INVALID",
+                )
+            existing_workspace = await Workspace.get_or_none(
+                id=onboarding_state.workspace_id,
+                is_active=True,
+                deleted_at__isnull=True,
+            )
+            if existing_workspace is None:
+                raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
+            return OnboardingWorkspaceCreateOut(
+                workspace_id=UUID(str(existing_workspace.id)),
+                kind=existing_workspace.kind,
+            )
+
+        if payload.kind == WorkspaceKind.PERSONAL:
+            personal_space = await self.personal_space_service.ensure_personal_space(user_id=user_id)
+            await self.onboarding_service.mark_workspace_created(
+                user_id=user_id,
+                workspace_id=personal_space.workspace_id,
+            )
+            return OnboardingWorkspaceCreateOut(
+                workspace_id=personal_space.workspace_id,
+                kind=WorkspaceKind.PERSONAL,
+            )
+
+        if payload.kind != WorkspaceKind.TEAM:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_KIND_INVALID")
+
+        workspace_name = str(payload.name or "").strip()
+        workspace_slug = str(payload.slug or "").strip()
+        if not workspace_name:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
+        if not workspace_slug:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_REQUIRED")
+
+        organization = await self._ensure_onboarding_team_organization(
+            user_id=user_id,
+            organization_name=workspace_name,
+        )
+        created_workspace = await OrganizationWorkspaceService(self.settings).create_workspace(
+            organization_id=UUID(str(organization.id)),
+            user_id=user_id,
+            org_role=OrgRole.OWNER,
+            payload=OrganizationWorkspaceCreateRequest(
+                name=workspace_name,
+                slug=workspace_slug,
+                template="blank",
+            ),
+        )
+        await self.onboarding_service.mark_workspace_created(
+            user_id=user_id,
+            workspace_id=UUID(str(created_workspace.workspace_id)),
+        )
+        return OnboardingWorkspaceCreateOut(
+            workspace_id=UUID(str(created_workspace.workspace_id)),
+            kind=WorkspaceKind.TEAM,
+        )
+
     async def get_workspace_detail(self, *, organization_id: UUID, workspace_id: UUID) -> WorkspaceDetailOut:
         ws = await Workspace.get_or_none(
             id=workspace_id,
@@ -303,6 +381,7 @@ class WorkspaceService(BaseService):
         return WorkspaceDetailOut(
             id=ws.id,
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
+            kind=ws.kind,
             slug=ws.slug,
             name=ws.name,
             icon_url=ws.icon_url,
@@ -339,13 +418,20 @@ class WorkspaceService(BaseService):
         personal_state = await self.personal_space_service.get_state(user_id=user_id)
         setup_state = await self.instance_setup_service.get_state()
         onboarding_state = await self.onboarding_service.get_state(user_id=user_id)
+        personal_space_status = PersonalSpaceStatus(personal_state.status.value)
+        if (
+            personal_item is None
+            and onboarding_state.status == WorkspaceFirstOnboardingStatus.COMPLETED
+            and personal_state.status != PersonalSpaceProvisionStatus.FAILED
+        ):
+            personal_space_status = PersonalSpaceStatus.NOT_CREATED
 
         return MyWorkspaceListResult(
             items=items,
             switcher=WorkspaceSwitcherOut(
                 teams=team_items,
                 personal_space=PersonalSpaceSwitcherOut(
-                    status=PersonalSpaceStatus(personal_state.status.value),
+                    status=personal_space_status,
                     workspace=personal_item if personal_state.status == PersonalSpaceProvisionStatus.READY else None,
                     retry_available=personal_state.retry_available,
                     last_error=personal_state.last_error,
@@ -360,6 +446,45 @@ class WorkspaceService(BaseService):
                 workspace_id=onboarding_state.workspace_id,
             ),
         )
+
+    async def _ensure_onboarding_team_organization(
+        self,
+        *,
+        user_id: UUID,
+        organization_name: str,
+    ) -> Organization:
+        organization = (
+            await Organization
+            .filter(
+                kind=OrganizationKind.TEAM,
+                owner_user_id=user_id,
+            )
+            .order_by("created_at", "id")
+            .first()
+        )
+        if organization is None:
+            organization = await self.org_repo.create_organization(
+                slug=f"team-org-{user_id.hex[:12]}",
+                name=organization_name,
+                kind=OrganizationKind.TEAM,
+                owner_user_id=user_id,
+            )
+        else:
+            update_fields: list[str] = []
+            if organization.deleted_at is not None:
+                organization.deleted_at = None
+                update_fields.append("deleted_at")
+            if not organization.is_active:
+                organization.is_active = True
+                update_fields.append("is_active")
+            if update_fields:
+                await organization.save(update_fields=[*update_fields, "updated_at"])
+        await self.org_repo.ensure_org_membership(
+            user_id=user_id,
+            organization_id=UUID(str(organization.id)),
+            role=OrgRole.OWNER,
+        )
+        return organization
 
     async def _load_legacy_org_flags(self, *, organization_ids: list[UUID]) -> dict[UUID, bool]:
         out: dict[UUID, bool] = {}
@@ -446,6 +571,7 @@ class WorkspaceService(BaseService):
         return WorkspaceDetailOut(
             id=ws.id,
             organization_id=UUID(str(cast(HasOrganizationId, ws).organization_id)),
+            kind=ws.kind,
             slug=ws.slug,
             name=ws.name,
             icon_url=ws.icon_url,

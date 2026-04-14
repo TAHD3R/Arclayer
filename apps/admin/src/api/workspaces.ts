@@ -4,6 +4,8 @@ import type {
   AuthzSnapshot,
   LeaveWorkspaceResult,
   MyWorkspaceListResult,
+  OnboardingWorkspaceCreatePayload,
+  OnboardingWorkspaceCreateResult,
   WorkspaceSlugAvailability,
   WorkspaceAssignRoleResult,
   WorkspaceDangerCapabilities,
@@ -29,6 +31,12 @@ export async function checkMyOnboardingWorkspaceSlugAvailability(
   return api.get<WorkspaceSlugAvailability>(
     `/me/workspaces/onboarding/slug-availability${toQueryString({ slug })}`,
   );
+}
+
+export async function createMyOnboardingWorkspace(
+  payload: OnboardingWorkspaceCreatePayload,
+): Promise<OnboardingWorkspaceCreateResult> {
+  return api.post<OnboardingWorkspaceCreateResult>("/me/workspaces/onboarding", payload);
 }
 
 export async function getMyWorkspaceAuthz(workspaceId: string): Promise<AuthzSnapshot> {

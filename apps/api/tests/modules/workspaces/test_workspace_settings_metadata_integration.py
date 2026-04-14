@@ -76,6 +76,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             data = resp.json()["data"]
             assert data["id"] == ws_pid
             assert data["organizationId"] == encode_uuid(org.id)
+            assert data["kind"] == "team"
             assert data["name"] == "Default"
             assert data["slug"] == "default"
 
@@ -85,6 +86,7 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             )
             assert resp.status_code == 200
             data = resp.json()["data"]
+            assert data["kind"] == "team"
             assert data["name"] == "My Blog"
             assert data["slug"] == "default"
 
@@ -95,4 +97,5 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             )
             assert resp.status_code == 200
             data = resp.json()["data"]
+            assert data["kind"] == "team"
             assert data["slug"] == "my-blog"

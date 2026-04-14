@@ -1,5 +1,5 @@
 import { listMyWorkspaces } from "@/api/workspaces";
-import { pickDefaultWorkspaceId } from "@/lib/routing/workspace-routing";
+import { pickDefaultWorkspaceId, workspaceHomePath } from "@/lib/routing/workspace-routing";
 
 export interface PostAuthRouteDecision {
   path: string;
@@ -58,21 +58,16 @@ export async function resolvePostAuthRoute(params: {
 
   if (workspaceId) {
     return {
-      path: "/",
+      path: workspaceHomePath(workspaceId),
       workspaceId,
       onboardingRequired: false,
     };
   }
 
   const personalSpaceWorkspaceId = workspaces.switcher.personalSpace.workspace?.workspaceId ?? null;
-  if (
-    !lastWorkspaceId &&
-    workspaces.switcher.personalSpace.status === "ready" &&
-    personalSpaceWorkspaceId &&
-    (workspaces.switcher.teams?.length ?? 0) === 0
-  ) {
+  if (workspaces.switcher.personalSpace.status === "ready" && personalSpaceWorkspaceId) {
     return {
-      path: "/",
+      path: workspaceHomePath(personalSpaceWorkspaceId),
       workspaceId: personalSpaceWorkspaceId,
       onboardingRequired: false,
     };

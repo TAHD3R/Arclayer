@@ -19,11 +19,18 @@ import type {
   TwoFactorSetupResult,
   TwoFactorStatus,
   UpdateMyProfilePayload,
+  UsernameCheckOut,
   UserProfile,
 } from "@/types/api";
 
 export async function emailCheck(payload: { email: string }): Promise<EmailCheckOut> {
   return api.post<EmailCheckOut>("/auth/email-check", payload, { auth: { skipRefresh: true } });
+}
+
+export async function usernameCheck(payload: { username: string }): Promise<UsernameCheckOut> {
+  return api.post<UsernameCheckOut>("/auth/username-check", payload, {
+    auth: { skipRefresh: true },
+  });
 }
 
 export async function login(payload: { email: string; password: string }): Promise<TokenPair> {

@@ -6,16 +6,18 @@ import pytest
 
 from src.config import get_settings
 from src.core.exceptions import BadRequest, Conflict
+from src.models.workspaces.workspace import WorkspaceKind
 from src.modules.workspaces.schema import WorkspaceUpdateRequest
 from src.modules.workspaces.service import WorkspaceService
 from src.modules.workspaces.slug.service import parse_explicit_workspace_slug
 
 
 class _FakeWorkspace:
-    def __init__(self, *, organization_id: UUID, slug: str) -> None:
+    def __init__(self, *, organization_id: UUID, slug: str, kind: WorkspaceKind = WorkspaceKind.TEAM) -> None:
         self.id = uuid4()
         self.organization_id = organization_id
         self.slug = slug
+        self.kind = kind
         self.name = "demo"
         self.icon_url = None
         self.is_active = True
@@ -120,6 +122,51 @@ async def test_update_workspace_updates_slug_when_unique(monkeypatch) -> None:
     assert ws.slug == "new-slug"
     assert ws.saved_update_fields is not None
     assert "slug" in ws.saved_update_fields
+
+
+async def test_update_personal_workspace_rejects_slug_change(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = WorkspaceService(settings)
+
+    org_id = uuid4()
+    ws = _FakeWorkspace(organization_id=org_id, slug="personal-home", kind=WorkspaceKind.PERSONAL)
+    _install_workspace_fakes(monkeypatch, ws=ws, duplicate_slug_exists=False)
+
+    with pytest.raises(BadRequest) as exc:
+        await service.update_workspace(
+            organization_id=org_id,
+            workspace_id=ws.id,
+            payload=WorkspaceUpdateRequest(slug="renamed-personal"),
+            actor_user_id=uuid4(),
+        )
+
+    assert exc.value.error == "WORKSPACE_SLUG_IMMUTABLE"
+
+
+async def test_update_personal_workspace_name_keeps_slug(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = WorkspaceService(settings)
+
+    org_id = uuid4()
+    ws = _FakeWorkspace(organization_id=org_id, slug="personal-home", kind=WorkspaceKind.PERSONAL)
+    _install_workspace_fakes(monkeypatch, ws=ws, duplicate_slug_exists=False)
+
+    out = await service.update_workspace(
+        organization_id=org_id,
+        workspace_id=ws.id,
+        payload=WorkspaceUpdateRequest(name="Renamed Personal Space"),
+        actor_user_id=uuid4(),
+    )
+
+    assert out.slug == "personal-home"
+    assert out.name == "Renamed Personal Space"
+    assert ws.slug == "personal-home"
+    assert ws.name == "Renamed Personal Space"
+    assert ws.saved_update_fields is not None
+    assert "name" in ws.saved_update_fields
+    assert "slug" not in ws.saved_update_fields
 
 
 async def test_update_workspace_rejects_icon_url_too_long(monkeypatch) -> None:

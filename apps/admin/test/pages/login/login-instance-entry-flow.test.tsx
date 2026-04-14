@@ -16,6 +16,7 @@ type RuntimeState = {
 const {
   navigateMock,
   emailCheckMock,
+  usernameCheckMock,
   bootstrapInstanceMock,
   queryClientClearMock,
   queryClientCancelQueriesMock,
@@ -25,6 +26,7 @@ const {
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   emailCheckMock: vi.fn(),
+  usernameCheckMock: vi.fn(),
   bootstrapInstanceMock: vi.fn(),
   queryClientClearMock: vi.fn(),
   queryClientCancelQueriesMock: vi.fn(),
@@ -59,6 +61,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@/api/auth", () => ({
   emailCheck: (...args: unknown[]) => emailCheckMock(...args),
+  usernameCheck: (...args: unknown[]) => usernameCheckMock(...args),
   login: vi.fn(),
   requestLoginEmailCode: vi.fn(),
   verifyLoginEmailCode: vi.fn(),
@@ -159,6 +162,7 @@ beforeEach(() => {
   currentSearch = { mode: "login" };
   bootstrapInstanceMock.mockReset();
   emailCheckMock.mockReset();
+  usernameCheckMock.mockReset();
   navigateMock.mockReset();
   authState.applyLogin.mockReset();
   queryClientClearMock.mockReset();
@@ -168,6 +172,7 @@ beforeEach(() => {
   runtimeState.publicRegisterEnabled = true;
   runtimeState.instanceSetupStatus = "uninitialized";
   runtimeState.instanceSetupRepairReason = null;
+  usernameCheckMock.mockResolvedValue({ available: true });
 });
 
 describe("LoginPage instance entry flow", () => {

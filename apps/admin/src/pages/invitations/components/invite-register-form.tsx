@@ -10,6 +10,7 @@ import {
   AuthLinkButton,
   AuthPasswordControl,
 } from "@arclayer/ui/auth-controls";
+import { getPasswordStrengthFeedback, PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { Button } from "@arclayer/ui/button";
@@ -30,9 +31,6 @@ type InviteRegisterFormState = {
   confirmPassword: string;
 };
 
-// Keep behavior aligned with backend PASSWORD_REGEX (apps/api/common/constants/auth.py).
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[[A-Za-z\d~!@#$%^&*()_\-+=\]{}|;:'",.<>?/]{8,128}$/;
-
 function createInviteRegisterSchema(t: (key: string) => string, emailLocked: boolean) {
   return z
     .object({
@@ -50,7 +48,7 @@ function createInviteRegisterSchema(t: (key: string) => string, emailLocked: boo
       password: z
         .string()
         .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
-        .refine((value) => PASSWORD_REGEX.test(value), t("auth:PASSWORD_INVALID")),
+        .refine((value) => PASSWORD_PATTERN.test(value), t("auth:PASSWORD_INVALID")),
       confirmPassword: z.string().min(1, t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")),
     })
     .superRefine((value, ctx) => {
@@ -88,6 +86,13 @@ export function InviteRegisterForm(props: {
   const submitHandler = form.handleSubmit((values) => {
     props.onSubmit(emailLocked ? { ...values, email: undefined } : values);
   });
+  const passwordFeedback = getPasswordStrengthFeedback(form.watch("password"), t);
+  const passwordFeedbackClassName =
+    passwordFeedback.tone === "success"
+      ? "text-success"
+      : passwordFeedback.tone === "danger"
+        ? "text-destructive"
+        : "text-label-secondary";
 
   return (
     <div>
@@ -170,6 +175,11 @@ export function InviteRegisterForm(props: {
             disabled={props.loading}
             {...form.register("password")}
           />
+          {passwordFeedback.message ? (
+            <div className={`text-footnote ${passwordFeedbackClassName}`}>
+              {passwordFeedback.message}
+            </div>
+          ) : null}
           <AuthFieldError
             message={
               form.formState.errors.password?.message

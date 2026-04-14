@@ -19,15 +19,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toast:
         "rounded-xl border border-border/70 bg-popover text-popover-foreground shadow-lg shadow-black/5",
       content: "grid gap-1.5",
-      title: "!text-headline",
-      description: "!text-callout !text-label-secondary",
+      title: "!text-headline !text-current",
+      description: "!text-callout text-current/80",
       icon: "mt-0.5 shrink-0 text-current",
       closeButton:
         "border-border/60 bg-background text-label-secondary hover:bg-accent hover:text-label-primary",
-      success: "border-positive/25",
-      error: "border-negative/25",
-      warning: "border-warning/35",
-      info: "border-primary/20",
+      success: "border-positive/25 text-positive",
+      error: "border-negative/25 text-negative",
+      warning: "border-warning/35 text-warning",
+      info: "border-primary/20 text-primary",
       ...toastOptions?.classNames,
     },
   };

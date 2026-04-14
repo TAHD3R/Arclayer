@@ -28,8 +28,12 @@ describe("shared Toaster", () => {
     expect(capturedProps?.position).toBe("top-right");
     expect(capturedProps?.toastOptions).toMatchObject({
       classNames: {
-        title: "!text-headline",
-        description: "!text-callout !text-label-secondary",
+        title: "!text-headline !text-current",
+        description: "!text-callout text-current/80",
+        success: "border-positive/25 text-positive",
+        error: "border-negative/25 text-negative",
+        warning: "border-warning/35 text-warning",
+        info: "border-primary/20 text-primary",
       },
     });
     expect(capturedProps?.style).toMatchObject({

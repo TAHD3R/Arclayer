@@ -25,7 +25,7 @@ export type InstanceSetupState = {
 };
 
 export type PersonalSpaceSwitcher = {
-  status: "pending" | "ready" | "failed";
+  status: "pending" | "ready" | "failed" | "not_created";
   workspace: MyWorkspace | null;
   retryAvailable: boolean;
   lastError: string | null;
@@ -54,6 +54,18 @@ export type WorkspaceSlugAvailability = {
   normalized_slug?: string | null;
 };
 
+export type OnboardingWorkspaceCreatePayload = {
+  kind: "team" | "personal";
+  name?: string;
+  slug?: string;
+};
+
+export type OnboardingWorkspaceCreateResult = {
+  workspaceId: string;
+  kind: "team" | "personal";
+  workspace_id?: string;
+};
+
 export type MyWorkspaceListResult = {
   items: MyWorkspace[];
   switcher: WorkspaceSwitcher;
@@ -73,6 +85,7 @@ export type WorkspaceDetail = {
   organizationId: string;
   slug: string;
   name: string;
+  kind?: "team" | "personal";
   iconUrl: string | null;
   iconAssetAligned?: boolean;
 };

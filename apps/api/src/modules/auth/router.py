@@ -76,6 +76,8 @@ from src.modules.auth.schema import (
     SetMyPasswordRequest,
     TokenPair,
     UpdateMyProfileRequest,
+    UsernameCheckOut,
+    UsernameCheckRequest,
     UserProfile,
 )
 from src.modules.auth.service import AuthService
@@ -279,6 +281,20 @@ async def email_check(
 ) -> ResponseModel[EmailCheckOut]:
     exists = await service.email_exists(email=str(payload.email))
     return ApiResponse.success(data=EmailCheckOut(exists=exists))
+
+
+@guard_rate_limit(*LOGIN_RATE_LIMIT)
+@router.post(
+    "/username-check",
+    response_model=ResponseModel[UsernameCheckOut],
+    summary="Check whether an account name is available",
+)
+async def username_check(
+    payload: UsernameCheckRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[UsernameCheckOut]:
+    exists = await service.username_exists(username=payload.username)
+    return ApiResponse.success(data=UsernameCheckOut(available=not exists))
 
 
 @guard_rate_limit(*LOGIN_RATE_LIMIT)

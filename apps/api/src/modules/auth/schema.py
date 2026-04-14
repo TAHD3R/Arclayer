@@ -80,6 +80,29 @@ class EmailCheckOut(BaseSchema):
     exists: bool = Field(description="Whether an account already exists for the email address.")
 
 
+class UsernameCheckRequest(BaseSchema):
+    """Username availability precheck request."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    username: str = Field(
+        min_length=3,
+        max_length=32,
+        description="Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.",
+    )
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        return _normalize_account_name(value)
+
+
+class UsernameCheckOut(BaseSchema):
+    """Username availability precheck result."""
+
+    available: bool = Field(description="Whether the account name is currently available.")
+
+
 class RegisterRequest(BaseSchema):
     """User registration request."""
 

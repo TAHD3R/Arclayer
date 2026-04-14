@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -16,15 +16,19 @@ import {
   Rocket,
   SlidersHorizontal,
   UserRound,
+  Users,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { me } from "@/api/auth";
-import { createMyOrganization, listMyOrganizations } from "@/api/me";
-import { createOrganizationWorkspace } from "@/api/organization-workspaces";
 import { patchCoreSettings } from "@/api/settings";
-import { checkMyOnboardingWorkspaceSlugAvailability, listMyWorkspaces } from "@/api/workspaces";
+import {
+  checkMyOnboardingWorkspaceSlugAvailability,
+  createMyOnboardingWorkspace,
+  listMyWorkspaces,
+} from "@/api/workspaces";
 import { FeatureCarousel, Onboarding, StepIndicator } from "@/components/ui/onboarding";
+import { useDebouncedValue } from "@/lib/auth/form-feedback";
 import {
   buildDateFormatOptions,
   buildLocaleOptions,
@@ -49,17 +53,6 @@ function normalizeWorkspaceSlugInput(value: string) {
     .slice(0, 64);
 }
 
-function useDebouncedValue(value: string, delayMs: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delayMs);
-    return () => window.clearTimeout(timeoutId);
-  }, [delayMs, value]);
-
-  return debouncedValue;
-}
-
 function getBrowserTimeZone() {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
@@ -80,12 +73,12 @@ function resolveWorkspaceOwnerName(profile: Awaited<ReturnType<typeof me>> | und
   return String(profile?.username ?? "").trim();
 }
 
-function buildDefaultWorkspaceName(ownerName: string, language: string) {
+function buildDefaultTeamWorkspaceName(ownerName: string, language: string) {
   const normalized = normalizeLocale(language || DEFAULT_LOCALE);
   if (normalized.startsWith("zh")) {
-    return `${ownerName} 的工作区`;
+    return `${ownerName} 的团队`;
   }
-  return `${ownerName}'s Workspace`;
+  return `${ownerName}'s Team`;
 }
 
 function FieldHint(props: { children: ReactNode; tone?: "default" | "success" | "danger" }) {
@@ -99,11 +92,11 @@ function FieldHint(props: { children: ReactNode; tone?: "default" | "success" | 
 }
 
 const RELATIVE_DATETIME_OPTION_VALUE = "__relative_datetime__";
+type WorkspaceSetupMode = "personal" | "team";
 
 export function WorkspaceFirstOnboardingPage() {
   const { t, i18n } = useTranslation(["onboarding", "common", "settings", "setup"]);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const lastWorkspaceId = useWorkspaceStore((state) => state.lastWorkspaceId);
   const redirectingRef = useRef(false);
@@ -120,17 +113,12 @@ export function WorkspaceFirstOnboardingPage() {
     retry: false,
     meta: { silent: true },
   });
-  const organizationsQuery = useQuery({
-    queryKey: ["me", "organizations", "onboarding"],
-    queryFn: listMyOrganizations,
-    retry: false,
-    meta: { silent: true },
-  });
 
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceSlug, setWorkspaceSlug] = useState("");
   const [workspaceNameTouched, setWorkspaceNameTouched] = useState(false);
   const [workspaceSlugTouched, setWorkspaceSlugTouched] = useState(false);
+  const [workspaceSetupMode, setWorkspaceSetupMode] = useState<WorkspaceSetupMode | null>(null);
   const [step, setStep] = useState(1);
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [personalizeSubstep, setPersonalizeSubstep] = useState(0);
@@ -228,7 +216,7 @@ export function WorkspaceFirstOnboardingPage() {
   const autoWorkspaceName = useMemo(
     () =>
       ownerName
-        ? buildDefaultWorkspaceName(ownerName, i18n.resolvedLanguage || DEFAULT_LOCALE)
+        ? buildDefaultTeamWorkspaceName(ownerName, i18n.resolvedLanguage || DEFAULT_LOCALE)
         : "",
     [i18n.resolvedLanguage, ownerName],
   );
@@ -245,7 +233,7 @@ export function WorkspaceFirstOnboardingPage() {
     step === 1
       ? t("onboarding:WORKSPACE_FIRST_WELCOME_TITLE")
       : step === 2
-        ? t("onboarding:WORKSPACE_STEP_TITLE")
+        ? t("onboarding:WORKSPACE_SETUP_STEP_TITLE")
         : step === 3
           ? t("onboarding:PREFERENCES_STEP_TITLE")
           : step === 4
@@ -255,7 +243,7 @@ export function WorkspaceFirstOnboardingPage() {
     step === 1
       ? t("onboarding:WORKSPACE_FIRST_MARKETING_DESC")
       : step === 2
-        ? t("onboarding:WORKSPACE_STEP_DESC")
+        ? t("onboarding:WORKSPACE_SETUP_STEP_DESC")
         : step === 3
           ? t("onboarding:PREFERENCES_STEP_DESC")
           : step === 4
@@ -283,6 +271,7 @@ export function WorkspaceFirstOnboardingPage() {
 
   useEffect(() => {
     if (!lockedWorkspace) return;
+    setWorkspaceSetupMode(lockedWorkspace.kind === "personal" ? "personal" : "team");
     if (!workspaceNameTouched) {
       setWorkspaceName(lockedWorkspace.name);
     }
@@ -304,6 +293,7 @@ export function WorkspaceFirstOnboardingPage() {
     }
     if (onboarding.status === "pending_workspace") {
       setCreatedWorkspaceId(null);
+      setWorkspaceSetupMode(null);
       setStep(1);
       return;
     }
@@ -326,14 +316,14 @@ export function WorkspaceFirstOnboardingPage() {
 
   const slugAvailabilityQuery = useQuery({
     queryKey: ["me", "workspaces", "onboarding", "slug", debouncedSlug],
-    enabled: step === 2 && debouncedSlug.length > 0,
+    enabled: step === 2 && workspaceSetupMode === "team" && debouncedSlug.length > 0,
     queryFn: async () => checkMyOnboardingWorkspaceSlugAvailability(debouncedSlug),
     retry: false,
     meta: { silent: true },
   });
 
-  const workspaceNameMissing = !workspaceName.trim();
-  const workspaceSlugMissing = !workspaceSlug.trim();
+  const workspaceNameMissing = workspaceSetupMode === "team" && !workspaceName.trim();
+  const workspaceSlugMissing = workspaceSetupMode === "team" && !workspaceSlug.trim();
   const slugAvailability = slugAvailabilityQuery.data;
   const slugAvailable = slugAvailability?.available === true;
   const slugUnavailableReason = slugAvailability?.reason ?? null;
@@ -344,51 +334,58 @@ export function WorkspaceFirstOnboardingPage() {
 
   const createWorkspaceMutation = useMutation({
     mutationFn: async () => {
-      const nextName = workspaceName.trim();
-      const nextSlug = workspaceSlug.trim();
-
-      if (!nextName) {
-        throw new Error("WORKSPACE_NAME_REQUIRED");
-      }
-      if (!nextSlug) {
-        throw new Error("WORKSPACE_SLUG_REQUIRED");
+      if (!workspaceSetupMode) {
+        throw new Error("WORKSPACE_SETUP_MODE_REQUIRED");
       }
 
-      const availability = await checkMyOnboardingWorkspaceSlugAvailability(nextSlug);
-      if (!availability.available || !availability.normalizedSlug) {
-        if (availability.reason === "reserved") {
-          throw new Error("WORKSPACE_SLUG_RESERVED");
+      const nextPayload =
+        workspaceSetupMode === "personal"
+          ? { kind: "personal" as const }
+          : (() => {
+              const nextName = workspaceName.trim();
+              const nextSlug = workspaceSlug.trim();
+
+              if (!nextName) {
+                throw new Error("WORKSPACE_NAME_REQUIRED");
+              }
+              if (!nextSlug) {
+                throw new Error("WORKSPACE_SLUG_REQUIRED");
+              }
+
+              return { kind: "team" as const, name: nextName, slug: nextSlug };
+            })();
+
+      if (nextPayload.kind === "team") {
+        const availability = await checkMyOnboardingWorkspaceSlugAvailability(nextPayload.slug);
+        if (!availability.available || !availability.normalizedSlug) {
+          if (availability.reason === "reserved") {
+            throw new Error("WORKSPACE_SLUG_RESERVED");
+          }
+          if (availability.reason === "exists") {
+            throw new Error("WORKSPACE_SLUG_EXISTS");
+          }
+          throw new Error("WORKSPACE_SLUG_INVALID");
         }
-        if (availability.reason === "exists") {
-          throw new Error("WORKSPACE_SLUG_EXISTS");
-        }
-        throw new Error("WORKSPACE_SLUG_INVALID");
+        nextPayload.slug = availability.normalizedSlug;
       }
 
-      let organizationId = organizationsQuery.data?.items?.[0]?.organization.id;
-      if (!organizationId) {
-        const createdOrganization = await createMyOrganization({ name: nextName });
-        organizationId = createdOrganization.organization.id;
-        await queryClient.invalidateQueries({ queryKey: ["me", "organizations", "onboarding"] });
+      const createdWorkspace = await createMyOnboardingWorkspace(nextPayload);
+      const createdWorkspaceId = createdWorkspace.workspaceId ?? createdWorkspace.workspace_id;
+      if (!createdWorkspaceId) {
+        throw new Error("ONBOARDING_WORKSPACE_STATE_MISMATCH");
       }
-
-      const createdWorkspace = await createOrganizationWorkspace(organizationId, {
-        name: nextName,
-        slug: availability.normalizedSlug,
-        template: "blank",
-      });
 
       const refreshed = await workspacesQuery.refetch();
       const onboarding = refreshed.data?.onboarding;
       if (
         !onboarding ||
         onboarding.status !== "pending_workspace_defaults" ||
-        onboarding.workspaceId !== createdWorkspace.workspaceId
+        onboarding.workspaceId !== createdWorkspaceId
       ) {
         throw new Error("ONBOARDING_WORKSPACE_STATE_MISMATCH");
       }
 
-      return createdWorkspace.workspaceId;
+      return createdWorkspaceId;
     },
     onSuccess: (workspaceId) => {
       setStepError(null);
@@ -456,10 +453,12 @@ export function WorkspaceFirstOnboardingPage() {
     (step === 2
       ? workspaceCreated
         ? false
-        : workspaceNameMissing ||
-          workspaceSlugMissing ||
-          slugAvailabilityQuery.isFetching ||
-          !slugAvailable
+        : !workspaceSetupMode ||
+          (workspaceSetupMode === "team" &&
+            (workspaceNameMissing ||
+              workspaceSlugMissing ||
+              slugAvailabilityQuery.isFetching ||
+              !slugAvailable))
       : step === 3
         ? workspacePreferencesInvalid
         : step === 4
@@ -471,7 +470,7 @@ export function WorkspaceFirstOnboardingPage() {
             : false);
   const backButtonDisabled = primaryActionPending || step === 1;
 
-  if (workspacesQuery.isLoading || profileQuery.isLoading || organizationsQuery.isLoading) {
+  if (workspacesQuery.isLoading || profileQuery.isLoading) {
     return (
       <div className="flex min-h-90 items-center justify-center rounded-2xl border border-border bg-background px-6 py-10">
         <div className="flex items-center gap-3 text-body text-label-secondary">
@@ -578,77 +577,148 @@ export function WorkspaceFirstOnboardingPage() {
 
         <Onboarding.Step step={2} className="h-full">
           <div className="mx-auto flex h-full w-full max-w-2xl flex-col justify-start gap-4">
-            <div className="grid gap-1.5">
-              <label
-                className="text-callout font-semibold text-label-primary"
-                htmlFor="workspace-name"
-              >
-                {t("common:ORG_WORKSPACES_FIELD_NAME")}
-              </label>
-              <FieldHint>{t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}</FieldHint>
-              <Input
-                id="workspace-name"
-                value={workspaceName}
-                readOnly={workspaceCreated}
-                onChange={(event) => {
-                  setWorkspaceNameTouched(true);
-                  setWorkspaceName(event.target.value);
+            <div className="grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                className={`rounded-xl border px-5 py-4 text-left transition ${
+                  workspaceSetupMode === "personal"
+                    ? "border-foreground/20 bg-muted"
+                    : "border-border hover:bg-muted/60"
+                }`}
+                onClick={() => {
+                  setStepError(null);
+                  setWorkspaceSetupMode("personal");
                 }}
-                onBlur={() => setWorkspaceNameTouched(true)}
-                placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
-                aria-invalid={workspaceNameTouched && workspaceNameMissing}
-              />
-              {workspaceNameTouched && workspaceNameMissing ? (
-                <FieldHint tone="danger">
-                  {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
-                </FieldHint>
-              ) : null}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-background p-2 text-label-primary">
+                    <UserRound className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-callout font-semibold text-label-primary">
+                      {t("onboarding:WORKSPACE_SETUP_MODE_PERSONAL_TITLE")}
+                    </div>
+                    <div className="mt-1 text-footnote text-label-secondary">
+                      {t("onboarding:WORKSPACE_SETUP_MODE_PERSONAL_DESC")}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={`rounded-xl border px-5 py-4 text-left transition ${
+                  workspaceSetupMode === "team"
+                    ? "border-foreground/20 bg-muted"
+                    : "border-border hover:bg-muted/60"
+                }`}
+                onClick={() => {
+                  setStepError(null);
+                  setWorkspaceSetupMode("team");
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-background p-2 text-label-primary">
+                    <Users className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-callout font-semibold text-label-primary">
+                      {t("onboarding:WORKSPACE_SETUP_MODE_TEAM_TITLE")}
+                    </div>
+                    <div className="mt-1 text-footnote text-label-secondary">
+                      {t("onboarding:WORKSPACE_SETUP_MODE_TEAM_DESC")}
+                    </div>
+                  </div>
+                </div>
+              </button>
             </div>
 
-            <div className="grid gap-1.5">
-              <label
-                className="text-callout font-semibold text-label-primary"
-                htmlFor="workspace-slug"
-              >
-                {t("onboarding:WORKSPACE_SLUG_LABEL")}
-              </label>
-              <FieldHint>{t("onboarding:WORKSPACE_SLUG_HELP")}</FieldHint>
-              <Input
-                id="workspace-slug"
-                value={workspaceSlug}
-                readOnly={workspaceCreated}
-                onChange={(event) => {
-                  setWorkspaceSlugTouched(true);
-                  setWorkspaceSlug(normalizeWorkspaceSlugInput(event.target.value));
-                }}
-                onBlur={() => setWorkspaceSlugTouched(true)}
-                placeholder={t("onboarding:WORKSPACE_SLUG_PLACEHOLDER")}
-                aria-invalid={
-                  (workspaceSlugTouched && workspaceSlugMissing) || slugUnavailableReason
-                    ? true
-                    : undefined
-                }
-              />
-              {workspaceNameTouched && workspaceNameMissing ? null : workspaceSlugTouched &&
-                workspaceSlugMissing ? (
-                <FieldHint tone="danger">{t("onboarding:WORKSPACE_SLUG_REQUIRED")}</FieldHint>
-              ) : workspaceCreated ? (
-                <FieldHint>{t("onboarding:WORKSPACE_STEP_REVIEW_HELP")}</FieldHint>
-              ) : slugAvailabilityQuery.isFetching ? (
-                <FieldHint>{t("onboarding:WORKSPACE_SLUG_CHECKING")}</FieldHint>
-              ) : slugAvailable ? (
-                <div className="flex items-center gap-2 text-footnote text-success">
-                  <CheckCircle2 className="size-4" />
-                  <span>{t("onboarding:WORKSPACE_SLUG_AVAILABLE")}</span>
+            {workspaceSetupMode === "personal" ? (
+              <div className="rounded-xl border border-border bg-muted/40 px-5 py-4">
+                <div className="text-callout font-semibold text-label-primary">
+                  {t("onboarding:WORKSPACE_SETUP_MODE_PERSONAL_REVIEW_TITLE")}
                 </div>
-              ) : slugAvailabilityQuery.isError ? (
-                <FieldHint tone="danger">{t("onboarding:WORKSPACE_SLUG_CHECK_FAILED")}</FieldHint>
-              ) : slugUnavailableReason ? (
-                <FieldHint tone="danger">
-                  {resolveSlugReasonText(slugUnavailableReason, t)}
-                </FieldHint>
-              ) : null}
-            </div>
+                <div className="mt-1 text-footnote text-label-secondary">
+                  {t("onboarding:WORKSPACE_SETUP_MODE_PERSONAL_REVIEW_DESC")}
+                </div>
+              </div>
+            ) : null}
+
+            {workspaceSetupMode === "team" ? (
+              <>
+                <div className="grid gap-1.5">
+                  <label
+                    className="text-callout font-semibold text-label-primary"
+                    htmlFor="workspace-name"
+                  >
+                    {t("common:ORG_WORKSPACES_FIELD_NAME")}
+                  </label>
+                  <FieldHint>{t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}</FieldHint>
+                  <Input
+                    id="workspace-name"
+                    value={workspaceName}
+                    readOnly={workspaceCreated}
+                    onChange={(event) => {
+                      setWorkspaceNameTouched(true);
+                      setWorkspaceName(event.target.value);
+                    }}
+                    onBlur={() => setWorkspaceNameTouched(true)}
+                    placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
+                    aria-invalid={workspaceNameTouched && workspaceNameMissing}
+                  />
+                  {workspaceNameTouched && workspaceNameMissing ? (
+                    <FieldHint tone="danger">
+                      {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
+                    </FieldHint>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-1.5">
+                  <label
+                    className="text-callout font-semibold text-label-primary"
+                    htmlFor="workspace-slug"
+                  >
+                    {t("onboarding:WORKSPACE_SLUG_LABEL")}
+                  </label>
+                  <FieldHint>{t("onboarding:WORKSPACE_SLUG_HELP")}</FieldHint>
+                  <Input
+                    id="workspace-slug"
+                    value={workspaceSlug}
+                    readOnly={workspaceCreated}
+                    onChange={(event) => {
+                      setWorkspaceSlugTouched(true);
+                      setWorkspaceSlug(normalizeWorkspaceSlugInput(event.target.value));
+                    }}
+                    onBlur={() => setWorkspaceSlugTouched(true)}
+                    placeholder={t("onboarding:WORKSPACE_SLUG_PLACEHOLDER")}
+                    aria-invalid={
+                      (workspaceSlugTouched && workspaceSlugMissing) || slugUnavailableReason
+                        ? true
+                        : undefined
+                    }
+                  />
+                  {workspaceNameTouched && workspaceNameMissing ? null : workspaceSlugTouched &&
+                    workspaceSlugMissing ? (
+                    <FieldHint tone="danger">{t("onboarding:WORKSPACE_SLUG_REQUIRED")}</FieldHint>
+                  ) : workspaceCreated ? (
+                    <FieldHint>{t("onboarding:WORKSPACE_STEP_REVIEW_HELP")}</FieldHint>
+                  ) : slugAvailabilityQuery.isFetching ? (
+                    <FieldHint>{t("onboarding:WORKSPACE_SLUG_CHECKING")}</FieldHint>
+                  ) : slugAvailable ? (
+                    <div className="flex items-center gap-2 text-footnote text-success">
+                      <CheckCircle2 className="size-4" />
+                      <span>{t("onboarding:WORKSPACE_SLUG_AVAILABLE")}</span>
+                    </div>
+                  ) : slugAvailabilityQuery.isError ? (
+                    <FieldHint tone="danger">{t("onboarding:WORKSPACE_SLUG_CHECK_FAILED")}</FieldHint>
+                  ) : slugUnavailableReason ? (
+                    <FieldHint tone="danger">
+                      {resolveSlugReasonText(slugUnavailableReason, t)}
+                    </FieldHint>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
 
             {stepError ? <FieldHint tone="danger">{stepError}</FieldHint> : null}
           </div>
@@ -963,6 +1033,9 @@ function resolveSlugReasonText(
 }
 
 function resolveWorkspaceCreateErrorMessage(message: string, t: (key: string) => string) {
+  if (message === "WORKSPACE_SETUP_MODE_REQUIRED") {
+    return t("onboarding:WORKSPACE_SETUP_MODE_REQUIRED");
+  }
   if (message === "WORKSPACE_NAME_REQUIRED") return t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED");
   if (message === "WORKSPACE_SLUG_REQUIRED") return t("onboarding:WORKSPACE_SLUG_REQUIRED");
   if (message === "WORKSPACE_SLUG_RESERVED") return t("onboarding:WORKSPACE_SLUG_RESERVED");

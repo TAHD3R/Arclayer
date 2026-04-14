@@ -1,21 +1,34 @@
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WorkspacesCardGrid } from "@/pages/usercenter/workspaces/components/workspaces-card-grid";
 
 const useInfiniteQueryMock = vi.fn();
+const useQueryMock = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
   useInfiniteQuery: () => useInfiniteQueryMock(),
+  useQuery: () => useQueryMock(),
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
-  ContentGuard: (props: { wrapperSpacing?: string; className?: string }) => (
+  ContentGuard: (props: { wrapperSpacing?: string; className?: string; children?: ReactNode }) => (
     <div
       data-testid="content-guard"
       data-wrapper-spacing={props.wrapperSpacing ?? ""}
       data-class-name={props.className ?? ""}
-    />
+    >
+      {props.children}
+    </div>
+  ),
+}));
+
+vi.mock("@/pages/usercenter/workspaces/components/workspace-card", () => ({
+  WorkspaceCard: (props: { workspace: { name: string; kind: string } }) => (
+    <div data-testid="workspace-card">
+      {props.workspace.name}:{props.workspace.kind}
+    </div>
   ),
 }));
 
@@ -31,6 +44,12 @@ describe("WorkspacesCardGrid", () => {
       fetchNextPage: vi.fn(),
       isError: true,
     });
+    useQueryMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      data: undefined,
+    });
 
     render(
       <WorkspacesCardGrid
@@ -44,5 +63,82 @@ describe("WorkspacesCardGrid", () => {
     );
 
     expect(screen.getByTestId("content-guard")).toHaveAttribute("data-wrapper-spacing", "flush");
+  });
+
+  it("prepends the personal workspace to the active card list", () => {
+    useInfiniteQueryMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      data: {
+        pages: [
+          {
+            items: [
+              {
+                id: "team-1",
+                workspaceId: "team-1",
+                organizationId: "org-1",
+                slug: "alpha",
+                name: "Workspace Alpha",
+                description: null,
+                iconUrl: null,
+                isArchived: false,
+                archivedAt: null,
+                archivedByUserId: null,
+                memberCount: 2,
+                membersPreview: [],
+                createdAt: "2026-04-14T00:00:00Z",
+                enterable: true,
+              },
+            ],
+          },
+        ],
+      },
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      isError: false,
+    });
+    useQueryMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      data: {
+        switcher: {
+          personalSpace: {
+            status: "ready",
+            workspace: {
+              workspaceId: "personal-1",
+              organizationId: "org-personal",
+              slug: "personal-space",
+              name: "Personal Space",
+              kind: "personal",
+              iconUrl: null,
+              memberCount: 0,
+              membersPreview: [],
+              visibleOnly: false,
+              isCreatorAdmin: true,
+              isLegacy: false,
+            },
+          },
+        },
+      },
+    });
+
+    render(
+      <WorkspacesCardGrid
+        archived={false}
+        searchInput=""
+        buildMenuItems={() => []}
+        emptyTitle="Empty"
+        emptyDescription="No workspaces"
+        t={(key) => key}
+      />,
+    );
+
+    expect(screen.getAllByTestId("workspace-card").map((node) => node.textContent)).toEqual([
+      "Personal Space:personal",
+      "Workspace Alpha:team",
+    ]);
   });
 });

@@ -6,12 +6,14 @@ from pydantic import Field
 
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
+from src.models.workspaces.workspace import WorkspaceKind
 
 
 class PersonalSpaceStatus(StrEnum):
     PENDING = "pending"
     READY = "ready"
     FAILED = "failed"
+    NOT_CREATED = "not_created"
 
 
 class WorkspaceFirstOnboardingStatus(StrEnum):
@@ -32,7 +34,7 @@ class MyWorkspaceOut(BaseOut):
     organization_id: PublicUUID = Field(..., description="Organization id.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
-    kind: str = Field(default="team", description="Workspace kind: team or personal.")
+    kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind: team or personal.")
     icon_url: str | None = Field(default=None, description="Workspace icon URL.")
     member_count: int = Field(default=0, ge=0, description="Active member count.")
     members_preview: list[MyWorkspaceMemberPreviewOut] = Field(
@@ -81,6 +83,17 @@ class WorkspaceFirstOnboardingOut(BaseSchema):
     )
 
 
+class OnboardingWorkspaceCreateRequest(BaseSchema):
+    kind: WorkspaceKind = Field(..., description="Workspace kind chosen during onboarding.")
+    name: str | None = Field(default=None, min_length=1, max_length=128, description="Workspace name for team setup.")
+    slug: str | None = Field(default=None, min_length=1, max_length=64, description="Workspace slug for team setup.")
+
+
+class OnboardingWorkspaceCreateOut(BaseSchema):
+    workspace_id: PublicUUID = Field(..., description="Created workspace id.")
+    kind: WorkspaceKind = Field(..., description="Created workspace kind.")
+
+
 class MyWorkspaceListResult(BaseSchema):
     items: list[MyWorkspaceOut] = Field(default_factory=list, description="Workspaces visible to current user.")
     switcher: WorkspaceSwitcherOut = Field(..., description="Pre-grouped switcher state from the backend.")
@@ -94,6 +107,7 @@ class WorkspaceDetailOut(BaseOut):
     """Workspace metadata used by the admin workspace settings page."""
 
     organization_id: PublicUUID = Field(..., description="Organization id.")
+    kind: WorkspaceKind = Field(..., description="Workspace kind: team or personal.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     icon_url: str | None = Field(default=None, description="Workspace icon/logo URL (optional).")
