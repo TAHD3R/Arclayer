@@ -28,7 +28,7 @@ class ActivityService(BaseService):
     async def list_events(
         self,
         *,
-        organization_id: UUID,
+        organization_id: UUID | None,
         params: PageParams,
         filters: AuditEventListQuery,
     ) -> PageData[AuditEventOut]:
@@ -86,11 +86,13 @@ class ActivityService(BaseService):
     async def get_event(
         self,
         *,
-        organization_id: UUID,
+        organization_id: UUID | None,
         event_id: UUID,
     ) -> AuditEventOut:
-        row = await AuditEvent.get_or_none(id=event_id, organization_id=organization_id)
+        row = await AuditEvent.get_or_none(id=event_id)
         if row is None:
+            raise NotFound(error="NOT_FOUND")
+        if organization_id is not None and UUID(str(row.organization_id)) != organization_id:
             raise NotFound(error="NOT_FOUND")
         out = AuditEventOut.model_validate(row, from_attributes=True)
 

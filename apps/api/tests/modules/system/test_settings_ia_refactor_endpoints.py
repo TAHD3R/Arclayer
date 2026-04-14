@@ -154,3 +154,28 @@ async def test_system_settings_require_super_admin() -> None:
 
     assert res.status_code == 403
     assert res.json().get("error") == "SUPER_ADMIN_REQUIRED"
+
+
+async def test_system_activity_requires_super_admin() -> None:
+    app = FastAPI()
+
+    from src.core.exceptions import init_exception_handlers
+
+    init_exception_handlers(app, get_settings())
+    app.include_router(system_router, prefix="/api/v1/system")
+
+    class DummyUser(BaseModel):
+        model_config = ConfigDict(extra="forbid", frozen=True)
+
+        is_super_admin: bool = False
+
+    async def _user_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _user_override
+
+    async with asgi_client(app) as client:
+        res = await client.get("/api/v1/system/activity")
+
+    assert res.status_code == 403
+    assert res.json().get("error") == "SUPER_ADMIN_REQUIRED"

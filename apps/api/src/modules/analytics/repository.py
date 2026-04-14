@@ -16,12 +16,15 @@ class AuditEventRepository(BaseRepository):
     def build_queryset(
         self,
         *,
-        organization_id: UUID,
+        organization_id: UUID | None,
         filters: AuditEventListQuery,
         conn: BaseDBAsyncClient | None = None,
     ) -> QuerySet[AuditEvent]:
-        qs = AuditEvent.filter(organization_id=organization_id)
+        qs = AuditEvent.all()
         qs = self.using_db(qs, conn)
+
+        if organization_id is not None:
+            qs = qs.filter(organization_id=organization_id)
 
         if filters.workspace_id is not None:
             qs = qs.filter(workspace_id=filters.workspace_id)

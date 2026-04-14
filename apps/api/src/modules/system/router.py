@@ -92,8 +92,8 @@ async def bootstrap_instance(
 
 
 # System-scoped administration endpoints (v2).
-# Note: they are placed under `/api/v1/system/*` and guarded by Org owner,
-# not the legacy org-scoped RBAC engine.
+# They live under `/api/v1/system/*` and are guarded directly by super-admin checks
+# rather than the org-scoped RBAC engine.
 router.include_router(system_settings_router, prefix="/settings")
 router.include_router(system_mail_router, prefix="/mail")
 router.include_router(system_rbac_router, prefix="/rbac")

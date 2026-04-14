@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
-import { Checkbox } from "@arclayer/ui/checkbox";
 import { Input } from "@arclayer/ui/input";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
@@ -20,8 +19,6 @@ import {
   getSystemSettingsSecrets,
   readBooleanValue,
   readNumberValue,
-  readRecordValue,
-  readStringArrayValue,
   readStringValue,
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
@@ -43,18 +40,14 @@ type EmailFormValues = {
   mailFromName: string;
   mailStarttls: boolean;
   mailSslTls: boolean;
-  mailEnabledTemplates: string[];
-  notificationInviteEnabled: boolean;
 };
 
-type EmailOverlayKey = "smtp" | "policy";
+type EmailOverlayKey = "smtp";
 
 function buildInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
 ): EmailFormValues {
   const mail = getSystemSettingsSection(input, "mail");
-  const notifications = getSystemSettingsSection(input, "notifications");
-  const preferences = readRecordValue(mail, "preferences");
 
   return {
     mailEnabled: Boolean(readBooleanValue(mail, "enabled")),
@@ -66,8 +59,6 @@ function buildInitialValues(
     mailFromName: readStringValue(mail, "mail_from_name") ?? "Arclayer",
     mailStarttls: Boolean(readBooleanValue(mail, "starttls")),
     mailSslTls: Boolean(readBooleanValue(mail, "ssl_tls")),
-    mailEnabledTemplates: readStringArrayValue(preferences, "enabled_templates"),
-    notificationInviteEnabled: Boolean(readBooleanValue(notifications, "invite_enabled")),
   };
 }
 
@@ -114,10 +105,6 @@ export function SystemSettingsEmailPage() {
   const mailServer = form.watch("mailServer") ?? initialValues.mailServer;
   const mailPort = form.watch("mailPort") ?? initialValues.mailPort;
   const mailFrom = form.watch("mailFrom") ?? initialValues.mailFrom;
-  const mailEnabledTemplates =
-    form.watch("mailEnabledTemplates") ?? initialValues.mailEnabledTemplates;
-  const notificationInviteEnabled =
-    form.watch("notificationInviteEnabled") ?? initialValues.notificationInviteEnabled;
 
   const persistPatch = async (patch: Record<string, unknown>, nextValues: EmailFormValues) => {
     try {
@@ -217,52 +204,6 @@ export function SystemSettingsEmailPage() {
           mailFromName: initialValues.mailFromName,
           mailStarttls: initialValues.mailStarttls,
           mailSslTls: initialValues.mailSslTls,
-        },
-      );
-    });
-
-  const savePolicy = () =>
-    withSavingKey("mail.policy", async () => {
-      const nextTemplates = Array.from(new Set(form.getValues("mailEnabledTemplates") || []));
-      const inviteEnabled = Boolean(form.getValues("notificationInviteEnabled"));
-      await persistPatch(
-        {
-          mail: {
-            preferences: {
-              enabled_templates: nextTemplates,
-            },
-          },
-          notifications: {
-            invite_enabled: inviteEnabled,
-          },
-        },
-        {
-          ...form.getValues(),
-          mailEnabledTemplates: nextTemplates,
-          notificationInviteEnabled: inviteEnabled,
-          mailPassword: "",
-        },
-      );
-    });
-
-  const resetPolicy = () =>
-    withSavingKey("reset:mail.policy", async () => {
-      await persistPatch(
-        {
-          mail: {
-            preferences: {
-              enabled_templates: initialValues.mailEnabledTemplates,
-            },
-          },
-          notifications: {
-            invite_enabled: initialValues.notificationInviteEnabled,
-          },
-        },
-        {
-          ...form.getValues(),
-          mailEnabledTemplates: initialValues.mailEnabledTemplates,
-          notificationInviteEnabled: initialValues.notificationInviteEnabled,
-          mailPassword: "",
         },
       );
     });
@@ -409,131 +350,18 @@ export function SystemSettingsEmailPage() {
           </div>
         ),
       },
-      {
-        key: "policy",
-        type: "dialog",
-        title: t("settings:SETTINGS_SYSTEM_EMAIL_POLICY_TITLE"),
-        description: t("settings:SETTINGS_SYSTEM_EMAIL_POLICY_DESC"),
-        footer: (ctx) => (
-          <SettingOverlayFooter
-            close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:mail.policy"}
-            saveText={t("settings:SETTINGS_SAVE")}
-            saveLoading={savingKey === "mail.policy"}
-            disabled={patchMutation.isPending}
-            onReset={resetPolicy}
-            onSave={savePolicy}
-          />
-        ),
-        content: () => (
-          <div className="space-y-5">
-            <div className="space-y-3">
-              <div className="text-footnote font-medium text-label-primary">
-                {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATES_TITLE")}
-              </div>
-              <label className="flex items-start gap-3 rounded-xl border border-border p-4">
-                <Checkbox
-                  checked={mailEnabledTemplates.includes("registration_prompt")}
-                  onCheckedChange={(checked) => {
-                    const next = checked
-                      ? [...mailEnabledTemplates, "registration_prompt"]
-                      : mailEnabledTemplates.filter((value) => value !== "registration_prompt");
-                    form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
-                      shouldDirty: true,
-                    });
-                  }}
-                  className="mt-1"
-                />
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
-                  </div>
-                  <div className="text-footnote text-label-secondary">
-                    {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
-                  </div>
-                </div>
-              </label>
-              <label className="flex items-start gap-3 rounded-xl border border-border p-4">
-                <Checkbox
-                  checked={mailEnabledTemplates.includes("welcome_email")}
-                  onCheckedChange={(checked) => {
-                    const next = checked
-                      ? [...mailEnabledTemplates, "welcome_email"]
-                      : mailEnabledTemplates.filter((value) => value !== "welcome_email");
-                    form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
-                      shouldDirty: true,
-                    });
-                  }}
-                  className="mt-1"
-                />
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
-                  </div>
-                  <div className="text-footnote text-label-secondary">
-                    {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            <div className="space-y-3">
-              <div className="text-footnote font-medium text-label-primary">
-                {t("settings:SETTINGS_MESSAGING_NOTIFICATION_TYPES_TITLE")}
-              </div>
-              <label className="flex items-start gap-3 rounded-xl border border-border p-4">
-                <Checkbox
-                  checked={notificationInviteEnabled}
-                  onCheckedChange={(checked) => {
-                    form.setValue("notificationInviteEnabled", Boolean(checked), {
-                      shouldDirty: true,
-                    });
-                  }}
-                  className="mt-1"
-                />
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
-                  </div>
-                  <div className="text-footnote text-label-secondary">
-                    {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
-                  </div>
-                </div>
-              </label>
-            </div>
-          </div>
-        ),
-      },
     ] as const;
   }, [
     form,
     hasMailPasswordSecret,
-    initialValues.mailEnabledTemplates,
-    initialValues.notificationInviteEnabled,
-    mailEnabledTemplates,
-    notificationInviteEnabled,
     patchMutation.isPending,
     resetMailConfig,
-    resetPolicy,
     saveMailConfig,
-    savePolicy,
     savingKey,
     t,
   ]);
 
   const overlays = useSettingOverlays(overlayConfigs);
-  const policySummary = joinSummaryParts(
-    [
-      mailEnabledTemplates.length > 0
-        ? t("settings:SETTINGS_MESSAGING_SELECTED_COUNT", { count: mailEnabledTemplates.length })
-        : null,
-      notificationInviteEnabled ? t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE") : null,
-    ],
-    t("settings:SETTINGS_SYSTEM_EMAIL_POLICY_EMPTY"),
-  );
 
   return (
     <ContentGuard
@@ -584,12 +412,6 @@ export function SystemSettingsEmailPage() {
                 </SystemSettingsStatusBadge>
               }
               onTrigger={() => overlays.open("smtp")}
-            />
-            <SettingActionItem
-              title={t("settings:SETTINGS_SYSTEM_EMAIL_POLICY_TITLE")}
-              summary={policySummary}
-              description={t("settings:SETTINGS_SYSTEM_EMAIL_POLICY_DESC")}
-              onTrigger={() => overlays.open("policy")}
             />
           </div>
         </SettingPanel>

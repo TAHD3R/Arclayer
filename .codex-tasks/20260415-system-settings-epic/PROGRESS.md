@@ -120,3 +120,44 @@
 ### Notes
 
 - An exploratory validation pass that included `tests/core/test_exception_handlers.py` still exposes unrelated localization drift: those tests assert raw English messages while live payloads are localized. That drift remains visible and was intentionally not folded into this env-contract cleanup slice.
+
+## 2026-04-15 03:30 CST
+
+### Epic Resumed
+
+- Reopened the epic after re-reading the approved product scope against live `/system` code.
+- Current implementation truth: the first rollout delivered `overview/storage/email/oauth` plus env cleanup, but the approved super-admin control-plane scope still lacks dedicated Access, Notifications, and Activity domains.
+- Added three new child tasks to continue the same epic instead of starting a disconnected follow-up:
+  - `#11` system governance domains (`/system/access`, `/system/notifications`)
+  - `#12` system activity audit domain and backend contract cleanup
+  - `#13` phase-4 focused validation and artifact reconciliation
+
+### Current Focus
+
+- Child `#11` is now `IN_PROGRESS`.
+- Next action: land the expanded `/system` route graph and move the existing policy editors onto the new Access and Notifications pages before touching the activity contract.
+
+## 2026-04-15 03:55 CST
+
+### Phase 6 Complete
+
+- Split the super-admin console into clearer instance domains:
+  - added `Access` and `Notifications` tabs/pages
+  - shrank `Email` back to SMTP transport + test-send
+  - shrank `OAuth` back to provider credentials
+- Promoted `/system/activity` into a real super-admin audit surface with instance-wide listing/detail semantics instead of the old org-admin contract.
+- Updated overview summaries and locale/title coverage so the expanded ChromeTabs IA is consistent across the global system console.
+
+### Verification
+
+- `pnpm -C apps/admin exec vitest run test/lib/global-nav-regression.test.ts test/layouts/global-layout.test.tsx test/lib/route-identity.test.ts test/routes/route-title-registry.test.ts test/api/activity.test.ts`
+  - PASS
+- `pnpm -C apps/admin typecheck`
+  - PASS
+- `timeout 60s env RUN_INTEGRATION_TESTS=1 MAIL__ENABLED=1 MAIL__SUPPRESS_SEND=1 pnpm -C apps/api uv -- pytest -q tests/modules/analytics/test_audit_log_endpoints_integration.py tests/modules/system/test_settings_ia_refactor_endpoints.py::test_system_settings_require_super_admin tests/modules/system/test_settings_ia_refactor_endpoints.py::test_system_activity_requires_super_admin`
+  - PASS
+
+### Notes
+
+- The unrelated `test_system_runtime_public_endpoint` DB-less baseline issue remains visible and was not folded into this rollout's success boundary.
+- Child tasks `#11`, `#12`, and `#13` are now complete and the epic truth files are back in sync with the validated repo state.

@@ -8,12 +8,26 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 
-type SystemNavKey = "overview" | "storage" | "email" | "oauth";
+type SystemNavKey =
+  | "overview"
+  | "access"
+  | "storage"
+  | "email"
+  | "notifications"
+  | "oauth"
+  | "activity";
 
 type SystemNavRoute = {
   key: SystemNavKey;
   labelKey: string;
-  to: "/system" | "/system/storage" | "/system/email" | "/system/oauth";
+  to:
+    | "/system"
+    | "/system/access"
+    | "/system/storage"
+    | "/system/email"
+    | "/system/notifications"
+    | "/system/oauth"
+    | "/system/activity";
 };
 
 const SYSTEM_NAV_ROUTES: readonly SystemNavRoute[] = [
@@ -21,6 +35,11 @@ const SYSTEM_NAV_ROUTES: readonly SystemNavRoute[] = [
     key: "overview",
     labelKey: "settings:SETTINGS_SYSTEM_NAV_OVERVIEW",
     to: "/system",
+  },
+  {
+    key: "access",
+    labelKey: "settings:SETTINGS_SYSTEM_NAV_ACCESS",
+    to: "/system/access",
   },
   {
     key: "storage",
@@ -33,16 +52,29 @@ const SYSTEM_NAV_ROUTES: readonly SystemNavRoute[] = [
     to: "/system/email",
   },
   {
+    key: "notifications",
+    labelKey: "settings:SETTINGS_SYSTEM_NAV_NOTIFICATIONS",
+    to: "/system/notifications",
+  },
+  {
     key: "oauth",
     labelKey: "settings:SETTINGS_SYSTEM_NAV_OAUTH",
     to: "/system/oauth",
   },
+  {
+    key: "activity",
+    labelKey: "settings:SETTINGS_SYSTEM_NAV_ACTIVITY",
+    to: "/system/activity",
+  },
 ] as const;
 
 function resolveSystemNavKey(pathname: string): SystemNavKey {
+  if (pathname.startsWith("/system/access")) return "access";
   if (pathname.startsWith("/system/storage")) return "storage";
   if (pathname.startsWith("/system/email")) return "email";
+  if (pathname.startsWith("/system/notifications")) return "notifications";
   if (pathname.startsWith("/system/oauth")) return "oauth";
+  if (pathname.startsWith("/system/activity")) return "activity";
   return "overview";
 }
 

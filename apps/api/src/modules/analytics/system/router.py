@@ -1,62 +1,51 @@
 from __future__ import annotations
 
-from typing import cast
-from uuid import UUID
-
 from fastapi import APIRouter, Depends
 
-from src.common.protocols.tortoise import HasOrganizationId
 from src.common.types.public_uuid import PublicUUID
 from src.config import Settings, get_settings
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.modules.analytics.schema import AuditEventListQuery, AuditEventOut
 from src.modules.analytics.service import ActivityService
-from src.modules.auth.http.service import get_current_user
-from src.modules.organization.http.service import require_org_admin
+from src.modules.auth.http.service import get_current_user, require_super_admin
 
 router = APIRouter(
     tags=["domain.analytics"],
-    dependencies=[Depends(require_org_admin)],
+    dependencies=[Depends(require_super_admin)],
 )
 
 
 @router.get(
     "",
     response_model=ResponseModel[PageData[AuditEventOut]],
-    summary="List activity events (org-scoped)",
+    summary="List activity events (system-scoped)",
 )
 async def list_activity(
     query: AuditEventListQuery = Depends(),
     params: PageParams = Depends(get_page_params),
     settings: Settings = Depends(get_settings),
-    orgm=Depends(require_org_admin),
+    _super_admin=Depends(require_super_admin),
     _user=Depends(get_current_user),
 ) -> ResponseModel[PageData[AuditEventOut]]:
-    """List activity events (org-scoped)."""
-    orgm_like = cast(HasOrganizationId, orgm)
-    org_id = UUID(str(orgm_like.organization_id))
-
+    """List activity events (system-scoped)."""
     service = ActivityService(settings)
-    page = await service.list_events(organization_id=org_id, params=params, filters=query)
+    page = await service.list_events(organization_id=None, params=params, filters=query)
     return ApiResponse.success(data=page)
 
 
 @router.get(
     "/{event_id}",
     response_model=ResponseModel[AuditEventOut],
-    summary="Get activity event detail (org-scoped)",
+    summary="Get activity event detail (system-scoped)",
 )
 async def get_activity_detail(
     event_id: PublicUUID,
     settings: Settings = Depends(get_settings),
-    orgm=Depends(require_org_admin),
+    _super_admin=Depends(require_super_admin),
     _user=Depends(get_current_user),
 ) -> ResponseModel[AuditEventOut]:
-    """Get activity event detail (org-scoped)."""
-    orgm_like = cast(HasOrganizationId, orgm)
-    org_id = UUID(str(orgm_like.organization_id))
-
+    """Get activity event detail (system-scoped)."""
     service = ActivityService(settings)
-    event = await service.get_event(organization_id=org_id, event_id=event_id)
+    event = await service.get_event(organization_id=None, event_id=event_id)
     return ApiResponse.success(data=event)
