@@ -19,7 +19,6 @@ import {
   useSystemCoreSettings,
 } from "@/pages/system/hooks/use-system-core-settings";
 import { OverlayBooleanField, joinSummaryParts } from "@/pages/system/system-settings-form-utils";
-import { SystemSettingsStatusBadge } from "@/pages/system/system-settings-primitives";
 
 type NotificationsFormValues = {
   mailEnabledTemplates: string[];
@@ -242,15 +241,6 @@ export function SystemSettingsNotificationsPage() {
             title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE")}
             summary={emailSummary}
             description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_DESC")}
-            right={
-              <SystemSettingsStatusBadge
-                tone={mailEnabledTemplates.length > 0 ? "success" : "default"}
-              >
-                {mailEnabledTemplates.length > 0
-                  ? t("settings:SETTINGS_ENABLED")
-                  : t("settings:SETTINGS_DISABLED")}
-              </SystemSettingsStatusBadge>
-            }
             onTrigger={() => openOverlay("email")}
           />
           <SettingActionItem
@@ -261,13 +251,6 @@ export function SystemSettingsNotificationsPage() {
                 : t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_EMPTY")
             }
             description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_DESC")}
-            right={
-              <SystemSettingsStatusBadge tone={notificationInviteEnabled ? "success" : "default"}>
-                {notificationInviteEnabled
-                  ? t("settings:SETTINGS_ENABLED")
-                  : t("settings:SETTINGS_DISABLED")}
-              </SystemSettingsStatusBadge>
-            }
             onTrigger={() => openOverlay("inApp")}
           />
         </SettingActionGroup>

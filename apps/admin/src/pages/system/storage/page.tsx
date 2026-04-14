@@ -28,7 +28,6 @@ import {
   joinSummaryParts,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
-import { SystemSettingsStatusBadge } from "@/pages/system/system-settings-primitives";
 
 type StorageFormValues = {
   storageProvider: "local" | "s3";
@@ -404,11 +403,6 @@ export function SystemSettingsStoragePage() {
             title={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
             summary={formatProviderSummary(storageProvider, t)}
             description={t("settings:SETTINGS_STORAGE_PROVIDER_DESC")}
-            right={
-              <SystemSettingsStatusBadge tone={storageProvider === "s3" ? "success" : "default"}>
-                {formatProviderSummary(storageProvider, t)}
-              </SystemSettingsStatusBadge>
-            }
             onTrigger={() => openOverlay("provider")}
           />
           {storageProvider === "s3" ? (
@@ -416,13 +410,6 @@ export function SystemSettingsStoragePage() {
               title={t("settings:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
               summary={connectionSummary}
               description={t("settings:SETTINGS_STORAGE_S3_CONFIG_DESC")}
-              right={
-                <SystemSettingsStatusBadge tone={hasS3Secret ? "success" : "warning"}>
-                  {hasS3Secret
-                    ? t("settings:SETTINGS_SYSTEM_CONFIGURED")
-                    : t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED")}
-                </SystemSettingsStatusBadge>
-              }
               onTrigger={() => openOverlay("s3")}
             />
           ) : null}

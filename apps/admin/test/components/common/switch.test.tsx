@@ -13,7 +13,8 @@ describe("Switch", () => {
     expect(root).toBeTruthy();
     expect(knot).toBeTruthy();
 
-    expect(root).toHaveClass("group/switch", "overflow-hidden", "justify-start");
+    expect(root).toHaveClass("group/switch", "overflow-hidden", "justify-start", "px-0.5");
+    expect(knot).toHaveClass("w-4");
     expect(knot).toHaveClass("group-data-[state=checked]/switch:translate-x-3");
     expect(container.querySelector('[data-slot="switch-thumb"]')).toHaveClass(
       "data-[state=checked]:translate-x-3",

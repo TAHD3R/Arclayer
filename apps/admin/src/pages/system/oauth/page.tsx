@@ -26,7 +26,6 @@ import {
   formatSummaryText,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
-import { SystemSettingsStatusBadge } from "@/pages/system/system-settings-primitives";
 
 type OAuthFormValues = {
   googleEnabled: boolean;
@@ -323,13 +322,6 @@ export function SystemSettingsOAuthPage() {
               googleClientId,
               t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED"),
             )}
-            right={
-              <SystemSettingsStatusBadge
-                tone={googleConfigured ? "success" : googleEnabled ? "warning" : "default"}
-              >
-                {googleEnabled ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")}
-              </SystemSettingsStatusBadge>
-            }
             onTrigger={() => openOverlay("google")}
           />
           <SettingActionItem
@@ -339,13 +331,6 @@ export function SystemSettingsOAuthPage() {
               githubClientId,
               t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED"),
             )}
-            right={
-              <SystemSettingsStatusBadge
-                tone={githubConfigured ? "success" : githubEnabled ? "warning" : "default"}
-              >
-                {githubEnabled ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")}
-              </SystemSettingsStatusBadge>
-            }
             onTrigger={() => openOverlay("github")}
           />
         </SettingActionGroup>

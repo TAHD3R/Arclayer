@@ -30,7 +30,6 @@ import {
   joinSummaryParts,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
-import { SystemSettingsStatusBadge } from "@/pages/system/system-settings-primitives";
 
 type EmailFormValues = {
   mailEnabled: boolean;
@@ -374,13 +373,6 @@ export function SystemSettingsEmailPage() {
                   t,
                 }),
               ])}
-              right={
-                <SystemSettingsStatusBadge tone={hasMailPasswordSecret ? "success" : "warning"}>
-                  {hasMailPasswordSecret
-                    ? t("settings:SETTINGS_SYSTEM_CONFIGURED")
-                    : t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED")}
-                </SystemSettingsStatusBadge>
-              }
               onTrigger={() => openOverlay("smtp")}
             />
           </SettingActionGroup>

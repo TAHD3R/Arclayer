@@ -25,7 +25,6 @@ import {
   joinSummaryParts,
   splitLineList,
 } from "@/pages/system/system-settings-form-utils";
-import { SystemSettingsStatusBadge } from "@/pages/system/system-settings-primitives";
 
 type AccessFormValues = {
   oauthAutoProvisionEnabled: boolean;
@@ -303,38 +302,12 @@ export function SystemSettingsAccessPage() {
             title={t("settings:SETTINGS_SYSTEM_ACCESS_PROVISIONING_TITLE")}
             summary={provisioningSummary}
             description={t("settings:SETTINGS_SYSTEM_ACCESS_PROVISIONING_DESC")}
-            right={
-              <SystemSettingsStatusBadge
-                tone={
-                  oauthAutoProvisionEnabled || oauthAutoAcceptEmailInvites ? "success" : "default"
-                }
-              >
-                {oauthAutoProvisionEnabled || oauthAutoAcceptEmailInvites
-                  ? t("settings:SETTINGS_ENABLED")
-                  : t("settings:SETTINGS_DISABLED")}
-              </SystemSettingsStatusBadge>
-            }
             onTrigger={() => openOverlay("provisioning")}
           />
           <SettingActionItem
             title={t("settings:SETTINGS_SYSTEM_ACCESS_REGISTRATION_TITLE")}
             summary={registrationSummary}
             description={t("settings:SETTINGS_SYSTEM_ACCESS_REGISTRATION_DESC")}
-            right={
-              <SystemSettingsStatusBadge
-                tone={
-                  publicRegisterEnabled
-                    ? "success"
-                    : publicRegisterRequireEmail
-                      ? "warning"
-                      : "default"
-                }
-              >
-                {publicRegisterEnabled
-                  ? t("settings:SETTINGS_ENABLED")
-                  : t("settings:SETTINGS_DISABLED")}
-              </SystemSettingsStatusBadge>
-            }
             onTrigger={() => openOverlay("registration")}
           />
         </SettingActionGroup>

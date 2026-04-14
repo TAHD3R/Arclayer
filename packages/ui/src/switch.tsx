@@ -26,7 +26,7 @@ function Switch({
   return (
     <SwitchPrimitive
       className={cn(
-        "group/switch relative peer flex h-5 w-8 shrink-0 items-center justify-start overflow-hidden rounded-full border border-transparent px-px  outline-none transition-[background-color,box-shadow] duration-200 ease-out focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none",
+        "group/switch relative peer flex h-5 w-8 shrink-0 items-center justify-start overflow-hidden rounded-full border border-transparent px-0.5 outline-none transition-[background-color,box-shadow] duration-200 ease-out focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none",
         "data-[state=checked]:bg-primary data-[state=unchecked]:bg-input dark:data-[state=unchecked]:bg-input/80",
         className,
       )}
@@ -36,7 +36,7 @@ function Switch({
         aria-hidden="true"
         data-slot="switch-knot"
         className={cn(
-          "pointer-events-none absolute inset-y-0.5 left-0.5 z-0 w-5 rounded-full bg-card/60 opacity-80 transition-[transform,background-color,opacity] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] transform-gpu will-change-transform group-data-[state=checked]/switch:translate-x-3 group-data-[state=checked]/switch:bg-primary-foreground/18 group-data-[state=checked]/switch:opacity-100 dark:bg-foreground/18 dark:group-data-[state=checked]/switch:bg-primary-foreground/24 motion-reduce:transition-none",
+          "pointer-events-none absolute inset-y-0.5 left-0.5 z-0 w-4 rounded-full bg-card/60 opacity-80 transition-[transform,background-color,opacity] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] transform-gpu will-change-transform group-data-[state=checked]/switch:translate-x-3 group-data-[state=checked]/switch:bg-primary-foreground/18 group-data-[state=checked]/switch:opacity-100 dark:bg-foreground/18 dark:group-data-[state=checked]/switch:bg-primary-foreground/24 motion-reduce:transition-none",
         )}
       />
       <SwitchThumbPrimitive
