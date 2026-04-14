@@ -8,34 +8,20 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 
-type SystemNavKey =
-  | "overview"
-  | "access"
-  | "storage"
-  | "email"
-  | "notifications"
-  | "oauth"
-  | "activity";
+type SystemNavKey = "access" | "storage" | "email" | "notifications" | "oauth";
 
 type SystemNavRoute = {
   key: SystemNavKey;
   labelKey: string;
   to:
-    | "/system"
     | "/system/access"
     | "/system/storage"
     | "/system/email"
     | "/system/notifications"
-    | "/system/oauth"
-    | "/system/activity";
+    | "/system/oauth";
 };
 
 const SYSTEM_NAV_ROUTES: readonly SystemNavRoute[] = [
-  {
-    key: "overview",
-    labelKey: "settings:SETTINGS_SYSTEM_NAV_OVERVIEW",
-    to: "/system",
-  },
   {
     key: "access",
     labelKey: "settings:SETTINGS_SYSTEM_NAV_ACCESS",
@@ -61,11 +47,6 @@ const SYSTEM_NAV_ROUTES: readonly SystemNavRoute[] = [
     labelKey: "settings:SETTINGS_SYSTEM_NAV_OAUTH",
     to: "/system/oauth",
   },
-  {
-    key: "activity",
-    labelKey: "settings:SETTINGS_SYSTEM_NAV_ACTIVITY",
-    to: "/system/activity",
-  },
 ] as const;
 
 function resolveSystemNavKey(pathname: string): SystemNavKey {
@@ -74,8 +55,7 @@ function resolveSystemNavKey(pathname: string): SystemNavKey {
   if (pathname.startsWith("/system/email")) return "email";
   if (pathname.startsWith("/system/notifications")) return "notifications";
   if (pathname.startsWith("/system/oauth")) return "oauth";
-  if (pathname.startsWith("/system/activity")) return "activity";
-  return "overview";
+  return "access";
 }
 
 export function SystemSettingsShell(props: { children: ReactNode }) {

@@ -32,7 +32,6 @@ import { Route as SystemStorageIndexRouteImport } from './routes/system/storage/
 import { Route as SystemOauthIndexRouteImport } from './routes/system/oauth/index'
 import { Route as SystemNotificationsIndexRouteImport } from './routes/system/notifications/index'
 import { Route as SystemEmailIndexRouteImport } from './routes/system/email/index'
-import { Route as SystemActivityIndexRouteImport } from './routes/system/activity/index'
 import { Route as SystemAccessIndexRouteImport } from './routes/system/access/index'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdExtensionsIndexRouteImport } from './routes/w/$workspaceId/extensions/index'
@@ -180,11 +179,6 @@ const SystemNotificationsIndexRoute =
 const SystemEmailIndexRoute = SystemEmailIndexRouteImport.update({
   id: '/email/',
   path: '/email/',
-  getParentRoute: () => SystemRoute,
-} as any)
-const SystemActivityIndexRoute = SystemActivityIndexRouteImport.update({
-  id: '/activity/',
-  path: '/activity/',
   getParentRoute: () => SystemRoute,
 } as any)
 const SystemAccessIndexRoute = SystemAccessIndexRouteImport.update({
@@ -400,7 +394,6 @@ export interface FileRoutesByFullPath {
   '/usercenter/': typeof UsercenterIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
-  '/system/activity/': typeof SystemActivityIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
   '/system/notifications/': typeof SystemNotificationsIndexRoute
   '/system/oauth/': typeof SystemOauthIndexRoute
@@ -445,7 +438,6 @@ export interface FileRoutesByTo {
   '/usercenter': typeof UsercenterIndexRoute
   '/workspaces': typeof WorkspacesIndexRoute
   '/system/access': typeof SystemAccessIndexRoute
-  '/system/activity': typeof SystemActivityIndexRoute
   '/system/email': typeof SystemEmailIndexRoute
   '/system/notifications': typeof SystemNotificationsIndexRoute
   '/system/oauth': typeof SystemOauthIndexRoute
@@ -494,7 +486,6 @@ export interface FileRoutesById {
   '/usercenter/': typeof UsercenterIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
   '/system/access/': typeof SystemAccessIndexRoute
-  '/system/activity/': typeof SystemActivityIndexRoute
   '/system/email/': typeof SystemEmailIndexRoute
   '/system/notifications/': typeof SystemNotificationsIndexRoute
   '/system/oauth/': typeof SystemOauthIndexRoute
@@ -544,7 +535,6 @@ export interface FileRouteTypes {
     | '/usercenter/'
     | '/workspaces/'
     | '/system/access/'
-    | '/system/activity/'
     | '/system/email/'
     | '/system/notifications/'
     | '/system/oauth/'
@@ -589,7 +579,6 @@ export interface FileRouteTypes {
     | '/usercenter'
     | '/workspaces'
     | '/system/access'
-    | '/system/activity'
     | '/system/email'
     | '/system/notifications'
     | '/system/oauth'
@@ -637,7 +626,6 @@ export interface FileRouteTypes {
     | '/usercenter/'
     | '/workspaces/'
     | '/system/access/'
-    | '/system/activity/'
     | '/system/email/'
     | '/system/notifications/'
     | '/system/oauth/'
@@ -848,13 +836,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemEmailIndexRouteImport
       parentRoute: typeof SystemRoute
     }
-    '/system/activity/': {
-      id: '/system/activity/'
-      path: '/activity'
-      fullPath: '/system/activity/'
-      preLoaderRoute: typeof SystemActivityIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
     '/system/access/': {
       id: '/system/access/'
       path: '/access'
@@ -1015,7 +996,6 @@ declare module '@tanstack/react-router' {
 interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
   SystemAccessIndexRoute: typeof SystemAccessIndexRoute
-  SystemActivityIndexRoute: typeof SystemActivityIndexRoute
   SystemEmailIndexRoute: typeof SystemEmailIndexRoute
   SystemNotificationsIndexRoute: typeof SystemNotificationsIndexRoute
   SystemOauthIndexRoute: typeof SystemOauthIndexRoute
@@ -1025,7 +1005,6 @@ interface SystemRouteChildren {
 const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
   SystemAccessIndexRoute: SystemAccessIndexRoute,
-  SystemActivityIndexRoute: SystemActivityIndexRoute,
   SystemEmailIndexRoute: SystemEmailIndexRoute,
   SystemNotificationsIndexRoute: SystemNotificationsIndexRoute,
   SystemOauthIndexRoute: SystemOauthIndexRoute,

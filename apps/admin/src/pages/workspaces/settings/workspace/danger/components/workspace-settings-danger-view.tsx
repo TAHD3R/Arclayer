@@ -187,6 +187,7 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
             <SettingPanel
               title={t("settings:SETTINGS_WORKSPACE_DANGER_PANEL_TITLE")}
               description={t("settings:SETTINGS_WORKSPACE_DANGER_PANEL_DESC")}
+              bordered={false}
             >
               <SettingActionGroup>
                 <SettingActionItem

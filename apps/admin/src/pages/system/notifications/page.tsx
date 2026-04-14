@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Checkbox } from "@arclayer/ui/checkbox";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
@@ -18,7 +18,7 @@ import {
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
 } from "@/pages/system/hooks/use-system-core-settings";
-import { joinSummaryParts } from "@/pages/system/system-settings-form-utils";
+import { OverlayBooleanField, joinSummaryParts } from "@/pages/system/system-settings-form-utils";
 import { SystemSettingsStatusBadge } from "@/pages/system/system-settings-primitives";
 
 type NotificationsFormValues = {
@@ -63,11 +63,6 @@ export function SystemSettingsNotificationsPage() {
     form.reset(initialValues);
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
-  const mailEnabledTemplates =
-    form.watch("mailEnabledTemplates") ?? initialValues.mailEnabledTemplates;
-  const notificationInviteEnabled =
-    form.watch("notificationInviteEnabled") ?? initialValues.notificationInviteEnabled;
-
   const persistPatch = async (
     patch: Record<string, unknown>,
     nextValues: NotificationsFormValues,
@@ -100,23 +95,6 @@ export function SystemSettingsNotificationsPage() {
       );
     });
 
-  const resetEmailDelivery = () =>
-    withSavingKey("reset:notifications.email", async () => {
-      await persistPatch(
-        {
-          mail: {
-            preferences: {
-              enabled_templates: initialValues.mailEnabledTemplates,
-            },
-          },
-        },
-        {
-          ...form.getValues(),
-          mailEnabledTemplates: initialValues.mailEnabledTemplates,
-        },
-      );
-    });
-
   const saveInAppDelivery = () =>
     withSavingKey("notifications.inApp", async () => {
       const inviteEnabled = Boolean(form.getValues("notificationInviteEnabled"));
@@ -133,21 +111,6 @@ export function SystemSettingsNotificationsPage() {
       );
     });
 
-  const resetInAppDelivery = () =>
-    withSavingKey("reset:notifications.inApp", async () => {
-      await persistPatch(
-        {
-          notifications: {
-            invite_enabled: initialValues.notificationInviteEnabled,
-          },
-        },
-        {
-          ...form.getValues(),
-          notificationInviteEnabled: initialValues.notificationInviteEnabled,
-        },
-      );
-    });
-
   const overlayConfigs = useMemo<readonly SettingOverlayConfig<NotificationsOverlayKey>[]>(() => {
     return [
       {
@@ -158,63 +121,55 @@ export function SystemSettingsNotificationsPage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:notifications.email"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "notifications.email"}
             disabled={patchMutation.isPending}
-            onReset={resetEmailDelivery}
             onSave={saveEmailDelivery}
           />
         ),
         content: () => (
-          <div className="space-y-3">
-            <label className="flex items-start gap-3 rounded-xl border border-border p-4">
-              <Checkbox
-                checked={mailEnabledTemplates.includes("registration_prompt")}
-                onCheckedChange={(checked) => {
-                  const next = checked
-                    ? [...mailEnabledTemplates, "registration_prompt"]
-                    : mailEnabledTemplates.filter((value) => value !== "registration_prompt");
-                  form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
-                    shouldDirty: true,
-                  });
-                }}
-                className="mt-1"
-              />
-              <div className="space-y-1">
-                <div className="font-medium">
-                  {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
-                </div>
-                <div className="text-footnote text-label-secondary">
-                  {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
-                </div>
-              </div>
-            </label>
-            <label className="flex items-start gap-3 rounded-xl border border-border p-4">
-              <Checkbox
-                checked={mailEnabledTemplates.includes("welcome_email")}
-                onCheckedChange={(checked) => {
-                  const next = checked
-                    ? [...mailEnabledTemplates, "welcome_email"]
-                    : mailEnabledTemplates.filter((value) => value !== "welcome_email");
-                  form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
-                    shouldDirty: true,
-                  });
-                }}
-                className="mt-1"
-              />
-              <div className="space-y-1">
-                <div className="font-medium">
-                  {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
-                </div>
-                <div className="text-footnote text-label-secondary">
-                  {t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
-                </div>
-              </div>
-            </label>
+          <div className="space-y-5">
+            <OverlayBooleanField
+              variant="checkbox"
+              label={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
+              description={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_DESC")}
+              checked={Boolean(form.watch("mailEnabledTemplates")?.includes("registration_prompt"))}
+              onCheckedChange={(checked) => {
+                const current = form.getValues("mailEnabledTemplates") || [];
+                const next = checked
+                  ? [...current, "registration_prompt"]
+                  : current.filter((value) => value !== "registration_prompt");
+                form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
+                  shouldDirty: true,
+                });
+              }}
+              stateLabel={t(
+                form.watch("mailEnabledTemplates")?.includes("registration_prompt")
+                  ? "settings:SETTINGS_ENABLED"
+                  : "settings:SETTINGS_DISABLED",
+              )}
+            />
+            <OverlayBooleanField
+              variant="checkbox"
+              label={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_TITLE")}
+              description={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_WELCOME_DESC")}
+              checked={Boolean(form.watch("mailEnabledTemplates")?.includes("welcome_email"))}
+              onCheckedChange={(checked) => {
+                const current = form.getValues("mailEnabledTemplates") || [];
+                const next = checked
+                  ? [...current, "welcome_email"]
+                  : current.filter((value) => value !== "welcome_email");
+                form.setValue("mailEnabledTemplates", Array.from(new Set(next)), {
+                  shouldDirty: true,
+                });
+              }}
+              stateLabel={t(
+                form.watch("mailEnabledTemplates")?.includes("welcome_email")
+                  ? "settings:SETTINGS_ENABLED"
+                  : "settings:SETTINGS_DISABLED",
+              )}
+            />
           </div>
         ),
       },
@@ -226,56 +181,42 @@ export function SystemSettingsNotificationsPage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:notifications.inApp"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "notifications.inApp"}
             disabled={patchMutation.isPending}
-            onReset={resetInAppDelivery}
             onSave={saveInAppDelivery}
           />
         ),
         content: () => (
-          <label className="flex items-start gap-3 rounded-xl border border-border p-4">
-            <Checkbox
-              checked={notificationInviteEnabled}
-              onCheckedChange={(checked) => {
-                form.setValue("notificationInviteEnabled", Boolean(checked), {
-                  shouldDirty: true,
-                });
-              }}
-              className="mt-1"
-            />
-            <div className="space-y-1">
-              <div className="font-medium">
-                {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
-              </div>
-              <div className="text-footnote text-label-secondary">
-                {t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
-              </div>
-            </div>
-          </label>
+          <OverlayBooleanField
+            variant="checkbox"
+            label={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_TITLE")}
+            description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_INVITE_DESC")}
+            checked={Boolean(form.watch("notificationInviteEnabled"))}
+            onCheckedChange={(checked) => {
+              form.setValue("notificationInviteEnabled", Boolean(checked), {
+                shouldDirty: true,
+              });
+            }}
+            stateLabel={t(
+              form.watch("notificationInviteEnabled")
+                ? "settings:SETTINGS_ENABLED"
+                : "settings:SETTINGS_DISABLED",
+            )}
+          />
         ),
       },
     ] as const;
-  }, [
-    form,
-    initialValues.mailEnabledTemplates,
-    initialValues.notificationInviteEnabled,
-    mailEnabledTemplates,
-    notificationInviteEnabled,
-    patchMutation.isPending,
-    resetEmailDelivery,
-    resetInAppDelivery,
-    saveEmailDelivery,
-    saveInAppDelivery,
-    savingKey,
-    t,
-  ]);
+  }, [form, patchMutation.isPending, saveEmailDelivery, saveInAppDelivery, savingKey, t]);
 
   const overlays = useSettingOverlays(overlayConfigs);
+  const openOverlay = (key: NotificationsOverlayKey) => {
+    form.reset(initialValues);
+    overlays.open(key);
+  };
+  const mailEnabledTemplates = initialValues.mailEnabledTemplates;
+  const notificationInviteEnabled = initialValues.notificationInviteEnabled;
   const emailSummary = joinSummaryParts(
     [
       mailEnabledTemplates.length > 0
@@ -294,8 +235,9 @@ export function SystemSettingsNotificationsPage() {
       <SettingPanel
         title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PAGE_TITLE")}
         description={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_PAGE_DESC")}
+        bordered={false}
       >
-        <div className="divide-y overflow-hidden rounded-2xl border border-border bg-card">
+        <SettingActionGroup>
           <SettingActionItem
             title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_EMAIL_TITLE")}
             summary={emailSummary}
@@ -309,7 +251,7 @@ export function SystemSettingsNotificationsPage() {
                   : t("settings:SETTINGS_DISABLED")}
               </SystemSettingsStatusBadge>
             }
-            onTrigger={() => overlays.open("email")}
+            onTrigger={() => openOverlay("email")}
           />
           <SettingActionItem
             title={t("settings:SETTINGS_SYSTEM_NOTIFICATIONS_IN_APP_TITLE")}
@@ -326,9 +268,9 @@ export function SystemSettingsNotificationsPage() {
                   : t("settings:SETTINGS_DISABLED")}
               </SystemSettingsStatusBadge>
             }
-            onTrigger={() => overlays.open("inApp")}
+            onTrigger={() => openOverlay("inApp")}
           />
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       {overlays.renderOverlays()}

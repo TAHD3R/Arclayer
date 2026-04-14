@@ -21,6 +21,7 @@ import { Accordion } from "@arclayer/ui/accordion";
 import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
@@ -161,8 +162,9 @@ export function WorkspaceSettingsContentView(props: { workspaceId: string }) {
             <SettingPanel
               title={t("settings:SETTINGS_WORKSPACE_CONTENT_STRATEGY_TITLE")}
               description={t("settings:SETTINGS_WORKSPACE_CONTENT_STRATEGY_DESC")}
+              bordered={false}
             >
-              <div className="rounded-lg border border-border">
+              <SettingActionGroup>
                 <Accordion type="single" collapsible className="px-0">
                   <SettingAccordionItem
                     value="workspace_content_autosave"
@@ -374,7 +376,7 @@ export function WorkspaceSettingsContentView(props: { workspaceId: string }) {
                     </div>
                   </SettingAccordionItem>
                 </Accordion>
-              </div>
+              </SettingActionGroup>
             </SettingPanel>
           </ChromeTabsContent>
         </ChromeTabs>

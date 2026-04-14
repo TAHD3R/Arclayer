@@ -2,6 +2,7 @@ import { Controller } from "react-hook-form";
 
 import { Accordion } from "@arclayer/ui/accordion";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import {
@@ -32,8 +33,9 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
     <SettingPanel
       title={t("settings:SETTINGS_WORKSPACE_LOCALIZATION_PANEL_TITLE")}
       description={t("settings:SETTINGS_WORKSPACE_LOCALIZATION_PANEL_DESC")}
+      bordered={false}
     >
-      <div className="rounded-lg border border-border">
+      <SettingActionGroup>
         <Accordion type="single" collapsible className="px-0">
           <SettingAccordionItem
             value="workspace_locale"
@@ -278,7 +280,7 @@ export function WorkspaceSettingsBasicsLocalizationPanel(props: {
             </div>
           </SettingAccordionItem>
         </Accordion>
-      </div>
+      </SettingActionGroup>
     </SettingPanel>
   );
 }

@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+import { Checkbox } from "@arclayer/ui/checkbox";
+import { Switch } from "@arclayer/ui/switch";
+
 export function normalizeOptionalString(value: string | null | undefined): string | null {
   const normalized = String(value || "").trim();
   return normalized || null;
@@ -65,5 +68,35 @@ export function OverlayField(props: {
       ) : null}
       <FieldMessage message={props.message} />
     </div>
+  );
+}
+
+export function OverlayBooleanField(props: {
+  label: ReactNode;
+  description?: ReactNode;
+  message?: string | null;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  variant?: "switch" | "checkbox";
+  stateLabel?: ReactNode;
+}) {
+  const variant = props.variant ?? "switch";
+
+  return (
+    <OverlayField label={props.label} description={props.description} message={props.message}>
+      <div className="flex items-center gap-3">
+        {variant === "switch" ? (
+          <Switch checked={props.checked} onCheckedChange={props.onCheckedChange} />
+        ) : (
+          <Checkbox
+            checked={props.checked}
+            onCheckedChange={(checked) => props.onCheckedChange(Boolean(checked))}
+          />
+        )}
+        {props.stateLabel ? (
+          <div className="text-footnote text-label-secondary">{props.stateLabel}</div>
+        ) : null}
+      </div>
+    </OverlayField>
   );
 }

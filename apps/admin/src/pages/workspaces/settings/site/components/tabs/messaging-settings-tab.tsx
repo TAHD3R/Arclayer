@@ -9,6 +9,7 @@ import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { Switch } from "@arclayer/ui/switch";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
@@ -442,7 +443,7 @@ export function MessagingSettingsTab({
         description={t("settings:SETTINGS_MESSAGING_MAIL_PANEL_DESC")}
         bordered={false}
       >
-        <div className="divide-y rounded-xl bg-card">
+        <SettingActionGroup>
           <SettingActionItem
             as="div"
             title={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_TITLE")}
@@ -541,7 +542,7 @@ export function MessagingSettingsTab({
               </Accordion>
             </>
           ) : null}
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       <SettingPanel
@@ -549,7 +550,7 @@ export function MessagingSettingsTab({
         description={t("settings:SETTINGS_MESSAGING_NOTIFICATION_PANEL_DESC")}
         bordered={false}
       >
-        <div className="divide-y rounded-xl bg-card">
+        <SettingActionGroup>
           <Accordion type="single" collapsible className="px-0">
             <SettingAccordionItem
               value="notificationTypes"
@@ -589,7 +590,7 @@ export function MessagingSettingsTab({
               </label>
             </SettingAccordionItem>
           </Accordion>
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       {overlays.renderOverlays()}

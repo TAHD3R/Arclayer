@@ -2,10 +2,10 @@ import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Input } from "@arclayer/ui/input";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
-import { Switch } from "@arclayer/ui/switch";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
@@ -22,6 +22,7 @@ import {
 } from "@/pages/system/hooks/use-system-core-settings";
 import {
   OverlayField,
+  OverlayBooleanField,
   formatSummaryText,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
@@ -86,14 +87,6 @@ export function SystemSettingsOAuthPage() {
     form.reset(initialValues);
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
-  const googleEnabled = form.watch("googleEnabled") ?? initialValues.googleEnabled;
-  const googleClientId = form.watch("googleClientId") ?? initialValues.googleClientId;
-  const githubEnabled = form.watch("githubEnabled") ?? initialValues.githubEnabled;
-  const githubClientId = form.watch("githubClientId") ?? initialValues.githubClientId;
-
-  const googleConfigured = Boolean(googleClientId.trim() && hasGoogleSecret);
-  const githubConfigured = Boolean(githubClientId.trim() && hasGithubSecret);
-
   const persistPatch = async (patch: Record<string, unknown>, nextValues: OAuthFormValues) => {
     try {
       await patchMutation.mutateAsync(patch);
@@ -151,31 +144,6 @@ export function SystemSettingsOAuthPage() {
       );
     });
 
-  const resetProvider = (provider: "google" | "github") =>
-    withSavingKey(`reset:oauth.${provider}`, async () => {
-      const enabledName = provider === "google" ? "googleEnabled" : "githubEnabled";
-      const clientIdName = provider === "google" ? "googleClientId" : "githubClientId";
-      const clientSecretName = provider === "google" ? "googleClientSecret" : "githubClientSecret";
-      const initialEnabled = initialValues[enabledName];
-      const initialClientId = initialValues[clientIdName];
-      const sectionKey = provider === "google" ? "oauth_google" : "oauth_github";
-
-      await persistPatch(
-        {
-          [sectionKey]: {
-            enabled: initialEnabled,
-            client_id: normalizeOptionalString(initialClientId),
-          },
-        },
-        {
-          ...form.getValues(),
-          [enabledName]: initialEnabled,
-          [clientIdName]: initialClientId,
-          [clientSecretName]: "",
-        },
-      );
-    });
-
   const overlayConfigs = useMemo<readonly SettingOverlayConfig<OAuthOverlayKey>[]>(() => {
     const googleClientIdError = getFieldErrorMessage(form, "googleClientId");
     const googleClientSecretError = getFieldErrorMessage(form, "googleClientSecret");
@@ -191,14 +159,10 @@ export function SystemSettingsOAuthPage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:oauth.google"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "oauth.google"}
             disabled={patchMutation.isPending}
-            onReset={() => resetProvider("google")}
             onSave={() => saveProvider("google")}
           />
         ),
@@ -208,14 +172,15 @@ export function SystemSettingsOAuthPage() {
               control={form.control}
               name="googleEnabled"
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_TITLE")}>
-                  <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_DESC")}
-                    </div>
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </div>
-                </OverlayField>
+                <OverlayBooleanField
+                  label={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_TITLE")}
+                  description={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_DESC")}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
               )}
             />
             <Controller
@@ -263,14 +228,10 @@ export function SystemSettingsOAuthPage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:oauth.github"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "oauth.github"}
             disabled={patchMutation.isPending}
-            onReset={() => resetProvider("github")}
             onSave={() => saveProvider("github")}
           />
         ),
@@ -280,14 +241,15 @@ export function SystemSettingsOAuthPage() {
               control={form.control}
               name="githubEnabled"
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_TITLE")}>
-                  <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_DESC")}
-                    </div>
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </div>
-                </OverlayField>
+                <OverlayBooleanField
+                  label={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_TITLE")}
+                  description={t("settings:SETTINGS_SYSTEM_OAUTH_PROVIDER_ENABLED_DESC")}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
               )}
             />
             <Controller
@@ -328,18 +290,19 @@ export function SystemSettingsOAuthPage() {
         ),
       },
     ] as const;
-  }, [
-    form,
-    hasGithubSecret,
-    hasGoogleSecret,
-    patchMutation.isPending,
-    resetProvider,
-    saveProvider,
-    savingKey,
-    t,
-  ]);
+  }, [form, hasGithubSecret, hasGoogleSecret, patchMutation.isPending, saveProvider, savingKey, t]);
 
   const overlays = useSettingOverlays(overlayConfigs);
+  const openOverlay = (key: OAuthOverlayKey) => {
+    form.reset(initialValues);
+    overlays.open(key);
+  };
+  const googleEnabled = initialValues.googleEnabled;
+  const googleClientId = initialValues.googleClientId;
+  const githubEnabled = initialValues.githubEnabled;
+  const githubClientId = initialValues.githubClientId;
+  const googleConfigured = Boolean(googleClientId.trim() && hasGoogleSecret);
+  const githubConfigured = Boolean(githubClientId.trim() && hasGithubSecret);
 
   return (
     <ContentGuard
@@ -350,8 +313,9 @@ export function SystemSettingsOAuthPage() {
       <SettingPanel
         title={t("settings:SETTINGS_SYSTEM_OAUTH_PAGE_TITLE")}
         description={t("settings:SETTINGS_SYSTEM_OAUTH_PAGE_DESC")}
+        bordered={false}
       >
-        <div className="divide-y overflow-hidden rounded-2xl border border-border bg-card">
+        <SettingActionGroup>
           <SettingActionItem
             title={t("settings:SETTINGS_SYSTEM_OAUTH_GOOGLE_TITLE")}
             summary={formatProviderSummary(googleEnabled, googleConfigured, t)}
@@ -366,7 +330,7 @@ export function SystemSettingsOAuthPage() {
                 {googleEnabled ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")}
               </SystemSettingsStatusBadge>
             }
-            onTrigger={() => overlays.open("google")}
+            onTrigger={() => openOverlay("google")}
           />
           <SettingActionItem
             title={t("settings:SETTINGS_SYSTEM_OAUTH_GITHUB_TITLE")}
@@ -382,9 +346,9 @@ export function SystemSettingsOAuthPage() {
                 {githubEnabled ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")}
               </SystemSettingsStatusBadge>
             }
-            onTrigger={() => overlays.open("github")}
+            onTrigger={() => openOverlay("github")}
           />
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       {overlays.renderOverlays()}

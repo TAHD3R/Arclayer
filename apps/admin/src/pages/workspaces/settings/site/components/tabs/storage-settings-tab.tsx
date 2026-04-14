@@ -8,6 +8,7 @@ import { PasswordInput } from "@arclayer/ui/password-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Switch } from "@arclayer/ui/switch";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
@@ -629,8 +630,9 @@ export function StorageSettingsTab({
       <SettingPanel
         title={t("settings:SETTINGS_STORAGE_PANEL_GLOBAL_TITLE")}
         description={t("settings:SETTINGS_STORAGE_PANEL_GLOBAL_DESC")}
+        bordered={false}
       >
-        <div className="divide-y">
+        <SettingActionGroup>
           <SettingActionItem
             title={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
             summary={storageProviderLabel}
@@ -656,15 +658,16 @@ export function StorageSettingsTab({
             disabled={disabled}
             onTrigger={() => overlays.open("uploadPolicy")}
           />
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       {storageProvider === "s3" ? (
         <SettingPanel
           title={t("settings:SETTINGS_STORAGE_PANEL_S3_TITLE")}
           description={t("settings:SETTINGS_STORAGE_PANEL_S3_DESC")}
+          bordered={false}
         >
-          <div className="divide-y">
+          <SettingActionGroup>
             <SettingActionItem
               title={t("settings:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
               summary={s3Summary ? formatSummaryText(s3Summary, 64) : null}
@@ -678,7 +681,7 @@ export function StorageSettingsTab({
               disabled={disabled}
               onTrigger={() => overlays.open("s3Config")}
             />
-          </div>
+          </SettingActionGroup>
         </SettingPanel>
       ) : null}
 

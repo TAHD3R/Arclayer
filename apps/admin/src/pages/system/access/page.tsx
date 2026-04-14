@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Switch } from "@arclayer/ui/switch";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { Textarea } from "@arclayer/ui/textarea";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
@@ -20,6 +20,7 @@ import {
 } from "@/pages/system/hooks/use-system-core-settings";
 import {
   OverlayField,
+  OverlayBooleanField,
   joinLineList,
   joinSummaryParts,
   splitLineList,
@@ -77,19 +78,6 @@ export function SystemSettingsAccessPage() {
     form.reset(initialValues);
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
-  const oauthAutoProvisionEnabled =
-    form.watch("oauthAutoProvisionEnabled") ?? initialValues.oauthAutoProvisionEnabled;
-  const oauthAutoAcceptEmailInvites =
-    form.watch("oauthAutoAcceptEmailInvites") ?? initialValues.oauthAutoAcceptEmailInvites;
-  const publicRegisterEnabled =
-    form.watch("publicRegisterEnabled") ?? initialValues.publicRegisterEnabled;
-  const publicRegisterRequireEmail =
-    form.watch("publicRegisterRequireEmail") ?? initialValues.publicRegisterRequireEmail;
-  const allowlist = splitLineList(
-    form.watch("publicRegisterEmailDomainsAllowlist") ??
-      initialValues.publicRegisterEmailDomainsAllowlist,
-  );
-
   const persistPatch = async (patch: Record<string, unknown>, nextValues: AccessFormValues) => {
     try {
       await patchMutation.mutateAsync(patch);
@@ -119,23 +107,6 @@ export function SystemSettingsAccessPage() {
       );
     });
 
-  const resetProvisioning = () =>
-    withSavingKey("reset:access.provisioning", async () => {
-      await persistPatch(
-        {
-          oauth_provisioning: {
-            auto_provision_enabled: initialValues.oauthAutoProvisionEnabled,
-            auto_accept_email_invites: initialValues.oauthAutoAcceptEmailInvites,
-          },
-        },
-        {
-          ...form.getValues(),
-          oauthAutoProvisionEnabled: initialValues.oauthAutoProvisionEnabled,
-          oauthAutoAcceptEmailInvites: initialValues.oauthAutoAcceptEmailInvites,
-        },
-      );
-    });
-
   const saveRegistration = () =>
     withSavingKey("access.registration", async () => {
       const nextAllowlist = splitLineList(form.getValues("publicRegisterEmailDomainsAllowlist"));
@@ -157,27 +128,6 @@ export function SystemSettingsAccessPage() {
       );
     });
 
-  const resetRegistration = () =>
-    withSavingKey("reset:access.registration", async () => {
-      await persistPatch(
-        {
-          auth: {
-            public_register_enabled: initialValues.publicRegisterEnabled,
-            public_register_require_email: initialValues.publicRegisterRequireEmail,
-            public_register_email_domains_allowlist: splitLineList(
-              initialValues.publicRegisterEmailDomainsAllowlist,
-            ),
-          },
-        },
-        {
-          ...form.getValues(),
-          publicRegisterEnabled: initialValues.publicRegisterEnabled,
-          publicRegisterRequireEmail: initialValues.publicRegisterRequireEmail,
-          publicRegisterEmailDomainsAllowlist: initialValues.publicRegisterEmailDomainsAllowlist,
-        },
-      );
-    });
-
   const overlayConfigs = useMemo<readonly SettingOverlayConfig<AccessOverlayKey>[]>(() => {
     return [
       {
@@ -188,14 +138,10 @@ export function SystemSettingsAccessPage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:access.provisioning"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "access.provisioning"}
             disabled={patchMutation.isPending}
-            onReset={resetProvisioning}
             onSave={saveProvisioning}
           />
         ),
@@ -205,28 +151,30 @@ export function SystemSettingsAccessPage() {
               control={form.control}
               name="oauthAutoProvisionEnabled"
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_PROVISION_TITLE")}>
-                  <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_PROVISION_DESC")}
-                    </div>
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </div>
-                </OverlayField>
+                <OverlayBooleanField
+                  label={t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_PROVISION_TITLE")}
+                  description={t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_PROVISION_DESC")}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
               )}
             />
             <Controller
               control={form.control}
               name="oauthAutoAcceptEmailInvites"
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_ACCEPT_INVITES_TITLE")}>
-                  <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_ACCEPT_INVITES_DESC")}
-                    </div>
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </div>
-                </OverlayField>
+                <OverlayBooleanField
+                  label={t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_ACCEPT_INVITES_TITLE")}
+                  description={t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_ACCEPT_INVITES_DESC")}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
               )}
             />
           </div>
@@ -240,14 +188,10 @@ export function SystemSettingsAccessPage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:access.registration"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "access.registration"}
             disabled={patchMutation.isPending}
-            onReset={resetRegistration}
             onSave={saveRegistration}
           />
         ),
@@ -257,32 +201,32 @@ export function SystemSettingsAccessPage() {
               control={form.control}
               name="publicRegisterEnabled"
               render={({ field }) => (
-                <OverlayField
+                <OverlayBooleanField
                   label={t("settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_ENABLED_TITLE")}
-                >
-                  <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_ENABLED_DESC")}
-                    </div>
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </div>
-                </OverlayField>
+                  description={t("settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_ENABLED_DESC")}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
               )}
             />
             <Controller
               control={form.control}
               name="publicRegisterRequireEmail"
               render={({ field }) => (
-                <OverlayField
+                <OverlayBooleanField
                   label={t("settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_REQUIRE_EMAIL_TITLE")}
-                >
-                  <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_REQUIRE_EMAIL_DESC")}
-                    </div>
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </div>
-                </OverlayField>
+                  description={t(
+                    "settings:SETTINGS_SYSTEM_OAUTH_PUBLIC_REGISTER_REQUIRE_EMAIL_DESC",
+                  )}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
               )}
             />
             <Controller
@@ -307,18 +251,18 @@ export function SystemSettingsAccessPage() {
         ),
       },
     ] as const;
-  }, [
-    form.control,
-    patchMutation.isPending,
-    resetProvisioning,
-    resetRegistration,
-    saveProvisioning,
-    saveRegistration,
-    savingKey,
-    t,
-  ]);
+  }, [form.control, patchMutation.isPending, saveProvisioning, saveRegistration, savingKey, t]);
 
   const overlays = useSettingOverlays(overlayConfigs);
+  const openOverlay = (key: AccessOverlayKey) => {
+    form.reset(initialValues);
+    overlays.open(key);
+  };
+  const oauthAutoProvisionEnabled = initialValues.oauthAutoProvisionEnabled;
+  const oauthAutoAcceptEmailInvites = initialValues.oauthAutoAcceptEmailInvites;
+  const publicRegisterEnabled = initialValues.publicRegisterEnabled;
+  const publicRegisterRequireEmail = initialValues.publicRegisterRequireEmail;
+  const allowlist = splitLineList(initialValues.publicRegisterEmailDomainsAllowlist);
   const provisioningSummary = joinSummaryParts(
     [
       oauthAutoProvisionEnabled ? t("settings:SETTINGS_SYSTEM_OAUTH_AUTO_PROVISION_TITLE") : null,
@@ -352,8 +296,9 @@ export function SystemSettingsAccessPage() {
       <SettingPanel
         title={t("settings:SETTINGS_SYSTEM_ACCESS_PAGE_TITLE")}
         description={t("settings:SETTINGS_SYSTEM_ACCESS_PAGE_DESC")}
+        bordered={false}
       >
-        <div className="divide-y overflow-hidden rounded-2xl border border-border bg-card">
+        <SettingActionGroup>
           <SettingActionItem
             title={t("settings:SETTINGS_SYSTEM_ACCESS_PROVISIONING_TITLE")}
             summary={provisioningSummary}
@@ -369,7 +314,7 @@ export function SystemSettingsAccessPage() {
                   : t("settings:SETTINGS_DISABLED")}
               </SystemSettingsStatusBadge>
             }
-            onTrigger={() => overlays.open("provisioning")}
+            onTrigger={() => openOverlay("provisioning")}
           />
           <SettingActionItem
             title={t("settings:SETTINGS_SYSTEM_ACCESS_REGISTRATION_TITLE")}
@@ -390,9 +335,9 @@ export function SystemSettingsAccessPage() {
                   : t("settings:SETTINGS_DISABLED")}
               </SystemSettingsStatusBadge>
             }
-            onTrigger={() => overlays.open("registration")}
+            onTrigger={() => openOverlay("registration")}
           />
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       {overlays.renderOverlays()}

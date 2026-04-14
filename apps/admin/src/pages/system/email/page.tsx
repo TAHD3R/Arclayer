@@ -3,6 +3,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
@@ -25,6 +26,7 @@ import {
 } from "@/pages/system/hooks/use-system-core-settings";
 import {
   OverlayField,
+  OverlayBooleanField,
   joinSummaryParts,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
@@ -101,11 +103,6 @@ export function SystemSettingsEmailPage() {
     form.reset(initialValues);
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
-  const mailEnabled = form.watch("mailEnabled") ?? initialValues.mailEnabled;
-  const mailServer = form.watch("mailServer") ?? initialValues.mailServer;
-  const mailPort = form.watch("mailPort") ?? initialValues.mailPort;
-  const mailFrom = form.watch("mailFrom") ?? initialValues.mailFrom;
-
   const persistPatch = async (patch: Record<string, unknown>, nextValues: EmailFormValues) => {
     try {
       await patchMutation.mutateAsync(patch);
@@ -180,34 +177,6 @@ export function SystemSettingsEmailPage() {
       );
     });
 
-  const resetMailConfig = () =>
-    withSavingKey("reset:mail.config", async () => {
-      await persistPatch(
-        {
-          mail: {
-            server: initialValues.mailServer,
-            port: Number(initialValues.mailPort || 587),
-            username: normalizeOptionalString(initialValues.mailUsername),
-            mail_from: initialValues.mailFrom,
-            mail_from_name: initialValues.mailFromName,
-            starttls: initialValues.mailStarttls,
-            ssl_tls: initialValues.mailSslTls,
-          },
-        },
-        {
-          ...form.getValues(),
-          mailServer: initialValues.mailServer,
-          mailPort: initialValues.mailPort,
-          mailUsername: initialValues.mailUsername,
-          mailPassword: "",
-          mailFrom: initialValues.mailFrom,
-          mailFromName: initialValues.mailFromName,
-          mailStarttls: initialValues.mailStarttls,
-          mailSslTls: initialValues.mailSslTls,
-        },
-      );
-    });
-
   const overlayConfigs = useMemo<readonly SettingOverlayConfig<EmailOverlayKey>[]>(() => {
     const mailServerError = getFieldErrorMessage(form, "mailServer");
     const mailPortError = getFieldErrorMessage(form, "mailPort");
@@ -223,14 +192,10 @@ export function SystemSettingsEmailPage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:mail.config"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "mail.config"}
             disabled={patchMutation.isPending}
-            onReset={resetMailConfig}
             onSave={saveMailConfig}
           />
         ),
@@ -322,28 +287,30 @@ export function SystemSettingsEmailPage() {
                 control={form.control}
                 name="mailStarttls"
                 render={({ field }) => (
-                  <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}>
-                    <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                      <div className="text-footnote text-label-secondary">
-                        {t("settings:SETTINGS_SYSTEM_EMAIL_STARTTLS_HELP")}
-                      </div>
-                      <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                    </div>
-                  </OverlayField>
+                  <OverlayBooleanField
+                    label={t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}
+                    description={t("settings:SETTINGS_SYSTEM_EMAIL_STARTTLS_HELP")}
+                    checked={Boolean(field.value)}
+                    onCheckedChange={field.onChange}
+                    stateLabel={
+                      field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                    }
+                  />
                 )}
               />
               <Controller
                 control={form.control}
                 name="mailSslTls"
                 render={({ field }) => (
-                  <OverlayField label={t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}>
-                    <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                      <div className="text-footnote text-label-secondary">
-                        {t("settings:SETTINGS_SYSTEM_EMAIL_SSL_TLS_HELP")}
-                      </div>
-                      <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                    </div>
-                  </OverlayField>
+                  <OverlayBooleanField
+                    label={t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}
+                    description={t("settings:SETTINGS_SYSTEM_EMAIL_SSL_TLS_HELP")}
+                    checked={Boolean(field.value)}
+                    onCheckedChange={field.onChange}
+                    stateLabel={
+                      field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                    }
+                  />
                 )}
               />
             </div>
@@ -351,17 +318,19 @@ export function SystemSettingsEmailPage() {
         ),
       },
     ] as const;
-  }, [
-    form,
-    hasMailPasswordSecret,
-    patchMutation.isPending,
-    resetMailConfig,
-    saveMailConfig,
-    savingKey,
-    t,
-  ]);
+  }, [form, hasMailPasswordSecret, patchMutation.isPending, saveMailConfig, savingKey, t]);
 
   const overlays = useSettingOverlays(overlayConfigs);
+  const openOverlay = (key: EmailOverlayKey) => {
+    form.reset(initialValues);
+    overlays.open(key);
+  };
+  const mailEnabled = initialValues.mailEnabled;
+  const mailServer = initialValues.mailServer;
+  const mailPort = initialValues.mailPort;
+  const mailFrom = initialValues.mailFrom;
+  const mailStarttls = initialValues.mailStarttls;
+  const mailSslTls = initialValues.mailSslTls;
 
   return (
     <ContentGuard
@@ -373,8 +342,9 @@ export function SystemSettingsEmailPage() {
         <SettingPanel
           title={t("settings:SETTINGS_SYSTEM_EMAIL_PAGE_TITLE")}
           description={t("settings:SETTINGS_SYSTEM_EMAIL_PAGE_DESC")}
+          bordered={false}
         >
-          <div className="divide-y overflow-hidden rounded-2xl border border-border bg-card">
+          <SettingActionGroup>
             <SettingActionItem
               title={t("settings:SETTINGS_MESSAGING_MAIL_ENABLED_TITLE")}
               summary={
@@ -399,8 +369,8 @@ export function SystemSettingsEmailPage() {
               description={joinSummaryParts([
                 mailFrom,
                 formatTransportSummary({
-                  starttls: Boolean(form.watch("mailStarttls")),
-                  sslTls: Boolean(form.watch("mailSslTls")),
+                  starttls: mailStarttls,
+                  sslTls: mailSslTls,
                   t,
                 }),
               ])}
@@ -411,9 +381,9 @@ export function SystemSettingsEmailPage() {
                     : t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED")}
                 </SystemSettingsStatusBadge>
               }
-              onTrigger={() => overlays.open("smtp")}
+              onTrigger={() => openOverlay("smtp")}
             />
-          </div>
+          </SettingActionGroup>
         </SettingPanel>
 
         <section className="space-y-3 rounded-2xl border border-border bg-card p-5">

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Accordion } from "@arclayer/ui/accordion";
 import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Textarea } from "@arclayer/ui/textarea";
 
@@ -349,8 +350,9 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
       <SettingPanel
         title={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_TITLE")}
         description={t("settings:SETTINGS_SITE_BASICS_IDENTITY_PANEL_DESC")}
+        bordered={false}
       >
-        <div className="rounded-lg border border-border">
+        <SettingActionGroup>
           <Accordion type="single" collapsible className="px-0">
             <SettingAccordionItem
               value="site_name"
@@ -593,14 +595,15 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               </div>
             </SettingAccordionItem>
           </Accordion>
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       <SettingPanel
         title={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_TITLE")}
         description={t("settings:SETTINGS_SITE_BASICS_BROWSER_PANEL_DESC")}
+        bordered={false}
       >
-        <div className="rounded-lg border border-border">
+        <SettingActionGroup>
           <Accordion type="single" collapsible className="px-0">
             <SiteBrandAssetAccordionItem
               assetField="siteLogoAssetId"
@@ -699,7 +702,7 @@ export function SiteSettingsTab(props: GeneralSettingsTabBaseProps) {
               />
             </SettingAccordionItem>
           </Accordion>
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
     </div>
   );

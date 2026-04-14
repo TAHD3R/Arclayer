@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { SystemSettingsOverviewPage } from "@/pages/system/overview/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/system/")({
-  staticData: { titleKey: "settings:SETTINGS_SYSTEM_OVERVIEW_TITLE" },
-  component: SystemSettingsOverviewPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/system/access", replace: true });
+  },
 });

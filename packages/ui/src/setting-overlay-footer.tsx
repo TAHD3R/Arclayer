@@ -75,7 +75,7 @@ export function SettingOverlayFooter({
   return (
     <div className="flex w-full items-center justify-end gap-2">
       <Button
-        variant="ghost"
+        variant="outline"
         onClick={close}
         disabled={Boolean(disabled || saveLoading || resetLoading)}
       >

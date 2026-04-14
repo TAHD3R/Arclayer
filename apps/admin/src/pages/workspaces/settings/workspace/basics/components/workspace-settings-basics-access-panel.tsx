@@ -3,6 +3,7 @@ import { Controller } from "react-hook-form";
 import { Accordion } from "@arclayer/ui/accordion";
 import { Button } from "@arclayer/ui/button";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 
@@ -24,8 +25,9 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
     <SettingPanel
       title={t("settings:SETTINGS_WORKSPACE_ACCESS_PANEL_TITLE")}
       description={t("settings:SETTINGS_WORKSPACE_ACCESS_PANEL_DESC")}
+      bordered={false}
     >
-      <div className="rounded-lg border border-border">
+      <SettingActionGroup>
         <Accordion type="single" collapsible className="px-0">
           <SettingAccordionItem
             value="workspace_default_role"
@@ -149,7 +151,7 @@ export function WorkspaceSettingsBasicsAccessPanel(props: {
             </div>
           </SettingAccordionItem>
         </Accordion>
-      </div>
+      </SettingActionGroup>
     </SettingPanel>
   );
 }

@@ -1,6 +1,7 @@
 import { Accordion } from "@arclayer/ui/accordion";
 import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
@@ -32,8 +33,9 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
       <SettingPanel
         title={t("settings:SETTINGS_WORKSPACE_BASICS_PANEL_TITLE")}
         description={t("settings:SETTINGS_WORKSPACE_BASICS_PANEL_DESC")}
+        bordered={false}
       >
-        <div className="rounded-lg border border-border">
+        <SettingActionGroup>
           <Accordion type="single" collapsible className="px-0">
             <SettingAccordionItem
               value="workspace_name"
@@ -127,7 +129,7 @@ export function WorkspaceSettingsBasicsCorePanels(props: {
               </div>
             </SettingAccordionItem>
           </Accordion>
-        </div>
+        </SettingActionGroup>
       </SettingPanel>
 
       <WorkspaceSettingsBasicsLocalizationPanel controller={c} />

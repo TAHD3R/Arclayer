@@ -3,10 +3,10 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { RadioGroup, RadioGroupItem } from "@arclayer/ui/radio-group";
 import { Input } from "@arclayer/ui/input";
+import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
-import { Switch } from "@arclayer/ui/switch";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
 
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
@@ -23,14 +23,12 @@ import {
 } from "@/pages/system/hooks/use-system-core-settings";
 import {
   OverlayField,
+  OverlayBooleanField,
   isValidHttpUrl,
   joinSummaryParts,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
-import {
-  SystemSettingsField,
-  SystemSettingsStatusBadge,
-} from "@/pages/system/system-settings-primitives";
+import { SystemSettingsStatusBadge } from "@/pages/system/system-settings-primitives";
 
 type StorageFormValues = {
   storageProvider: "local" | "s3";
@@ -89,11 +87,6 @@ export function SystemSettingsStoragePage() {
     form.reset(initialValues);
   }, [coreSettingsQuery.coreSettings, form, initialValues]);
 
-  const storageProvider = form.watch("storageProvider") ?? initialValues.storageProvider;
-  const s3EndpointUrl = form.watch("s3EndpointUrl") ?? initialValues.s3EndpointUrl;
-  const s3Region = form.watch("s3Region") ?? initialValues.s3Region;
-  const s3Bucket = form.watch("s3Bucket") ?? initialValues.s3Bucket;
-
   const persistPatch = async (patch: Record<string, unknown>, nextValues: StorageFormValues) => {
     try {
       await patchMutation.mutateAsync(patch);
@@ -114,18 +107,6 @@ export function SystemSettingsStoragePage() {
         {
           ...form.getValues(),
           storageProvider: provider,
-          s3SecretAccessKey: "",
-        },
-      );
-    });
-
-  const resetProvider = () =>
-    withSavingKey("reset:storage.provider", async () => {
-      await persistPatch(
-        { storage: { provider: initialValues.storageProvider } },
-        {
-          ...form.getValues(),
-          storageProvider: initialValues.storageProvider,
           s3SecretAccessKey: "",
         },
       );
@@ -200,30 +181,6 @@ export function SystemSettingsStoragePage() {
       );
     });
 
-  const resetS3Connection = () =>
-    withSavingKey("reset:storage.s3", async () => {
-      await persistPatch(
-        {
-          storage: {
-            s3_endpoint_url: normalizeOptionalString(initialValues.s3EndpointUrl),
-            s3_region: normalizeOptionalString(initialValues.s3Region),
-            s3_bucket: normalizeOptionalString(initialValues.s3Bucket),
-            s3_access_key_id: normalizeOptionalString(initialValues.s3AccessKeyId),
-            s3_force_path_style: Boolean(initialValues.s3ForcePathStyle),
-          },
-        },
-        {
-          ...form.getValues(),
-          s3EndpointUrl: initialValues.s3EndpointUrl,
-          s3Region: initialValues.s3Region,
-          s3Bucket: initialValues.s3Bucket,
-          s3AccessKeyId: initialValues.s3AccessKeyId,
-          s3SecretAccessKey: "",
-          s3ForcePathStyle: initialValues.s3ForcePathStyle,
-        },
-      );
-    });
-
   const overlayConfigs = useMemo<readonly SettingOverlayConfig<StorageOverlayKey>[]>(() => {
     const providerError = getFieldErrorMessage(form, "storageProvider");
     const endpointError = getFieldErrorMessage(form, "s3EndpointUrl");
@@ -241,17 +198,10 @@ export function SystemSettingsStoragePage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible={
-              storageProvider !== initialValues.storageProvider ||
-              savingKey === "reset:storage.provider"
-            }
-            resetLoading={savingKey === "reset:storage.provider"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "storage.provider"}
             disabled={patchMutation.isPending}
-            onReset={resetProvider}
             onSave={saveProvider}
           />
         ),
@@ -307,14 +257,10 @@ export function SystemSettingsStoragePage() {
         footer: (ctx) => (
           <SettingOverlayFooter
             close={ctx.close}
-            backText={t("common:BACK")}
-            resetText={t("settings:SETTINGS_RESET")}
-            resetVisible
-            resetLoading={savingKey === "reset:storage.s3"}
+            backText={t("common:CANCEL")}
             saveText={t("settings:SETTINGS_SAVE")}
             saveLoading={savingKey === "storage.s3"}
             disabled={patchMutation.isPending}
-            onReset={resetS3Connection}
             onSave={saveS3Connection}
           />
         ),
@@ -404,14 +350,15 @@ export function SystemSettingsStoragePage() {
               control={form.control}
               name="s3ForcePathStyle"
               render={({ field }) => (
-                <OverlayField label={t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}>
-                  <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                    <div className="text-footnote text-label-secondary">
-                      {t("settings:SETTINGS_SYSTEM_STORAGE_FORCE_PATH_STYLE_HELP")}
-                    </div>
-                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-                  </div>
-                </OverlayField>
+                <OverlayBooleanField
+                  label={t("settings:SETTINGS_STORAGE_S3_FORCE_PATH_STYLE_LABEL")}
+                  description={t("settings:SETTINGS_SYSTEM_STORAGE_FORCE_PATH_STYLE_HELP")}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
               )}
             />
           </div>
@@ -423,17 +370,23 @@ export function SystemSettingsStoragePage() {
     hasS3Secret,
     initialValues.storageProvider,
     patchMutation.isPending,
-    resetProvider,
-    resetS3Connection,
     saveProvider,
     saveS3Connection,
     savingKey,
-    storageProvider,
     t,
   ]);
 
   const overlays = useSettingOverlays(overlayConfigs);
-  const connectionSummary = joinSummaryParts([s3Bucket, s3Region, s3EndpointUrl]);
+  const openOverlay = (key: StorageOverlayKey) => {
+    form.reset(initialValues);
+    overlays.open(key);
+  };
+  const storageProvider = initialValues.storageProvider;
+  const connectionSummary = joinSummaryParts([
+    initialValues.s3Bucket,
+    initialValues.s3Region,
+    initialValues.s3EndpointUrl,
+  ]);
 
   return (
     <ContentGuard
@@ -441,60 +394,42 @@ export function SystemSettingsStoragePage() {
       error={coreSettingsQuery.error}
       onRetry={() => void coreSettingsQuery.refetch()}
     >
-      <div className="space-y-8">
-        <SettingPanel
-          title={t("settings:SETTINGS_SYSTEM_STORAGE_PAGE_TITLE")}
-          description={t("settings:SETTINGS_SYSTEM_STORAGE_PAGE_DESC")}
-        >
-          <div className="divide-y overflow-hidden rounded-2xl border border-border bg-card">
+      <SettingPanel
+        title={t("settings:SETTINGS_SYSTEM_STORAGE_PAGE_TITLE")}
+        description={t("settings:SETTINGS_SYSTEM_STORAGE_PAGE_DESC")}
+        bordered={false}
+      >
+        <SettingActionGroup>
+          <SettingActionItem
+            title={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
+            summary={formatProviderSummary(storageProvider, t)}
+            description={t("settings:SETTINGS_STORAGE_PROVIDER_DESC")}
+            right={
+              <SystemSettingsStatusBadge tone={storageProvider === "s3" ? "success" : "default"}>
+                {formatProviderSummary(storageProvider, t)}
+              </SystemSettingsStatusBadge>
+            }
+            onTrigger={() => openOverlay("provider")}
+          />
+          {storageProvider === "s3" ? (
             <SettingActionItem
-              title={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
-              summary={formatProviderSummary(storageProvider, t)}
-              description={t("settings:SETTINGS_STORAGE_PROVIDER_DESC")}
+              title={t("settings:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
+              summary={connectionSummary}
+              description={t("settings:SETTINGS_STORAGE_S3_CONFIG_DESC")}
               right={
-                <SystemSettingsStatusBadge tone={storageProvider === "s3" ? "success" : "default"}>
-                  {formatProviderSummary(storageProvider, t)}
+                <SystemSettingsStatusBadge tone={hasS3Secret ? "success" : "warning"}>
+                  {hasS3Secret
+                    ? t("settings:SETTINGS_SYSTEM_CONFIGURED")
+                    : t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED")}
                 </SystemSettingsStatusBadge>
               }
-              onTrigger={() => overlays.open("provider")}
+              onTrigger={() => openOverlay("s3")}
             />
-            {storageProvider === "s3" ? (
-              <SettingActionItem
-                title={t("settings:SETTINGS_STORAGE_S3_CONFIG_LABEL")}
-                summary={connectionSummary}
-                description={t("settings:SETTINGS_STORAGE_S3_CONFIG_DESC")}
-                right={
-                  <SystemSettingsStatusBadge tone={hasS3Secret ? "success" : "warning"}>
-                    {hasS3Secret
-                      ? t("settings:SETTINGS_SYSTEM_CONFIGURED")
-                      : t("settings:SETTINGS_SYSTEM_NOT_CONFIGURED")}
-                  </SystemSettingsStatusBadge>
-                }
-                onTrigger={() => overlays.open("s3")}
-              />
-            ) : (
-              <SystemSettingsField
-                title={t("settings:SETTINGS_SYSTEM_STORAGE_DEPLOYMENT_NOTE_TITLE")}
-                summary={t("settings:SETTINGS_SYSTEM_STORAGE_DEPLOYMENT_NOTE_SUMMARY")}
-                description={t("settings:SETTINGS_SYSTEM_STORAGE_DEPLOYMENT_NOTE_DESC")}
-              />
-            )}
-          </div>
-        </SettingPanel>
-
-        <SettingPanel
-          title={t("settings:SETTINGS_SYSTEM_STORAGE_SURFACE_TITLE")}
-          description={t("settings:SETTINGS_SYSTEM_STORAGE_SURFACE_DESC")}
-        >
-          <SystemSettingsField
-            title={t("settings:SETTINGS_SYSTEM_STORAGE_RUNTIME_BOUNDARY_TITLE")}
-            summary={t("settings:SETTINGS_SYSTEM_STORAGE_RUNTIME_BOUNDARY_SUMMARY")}
-            description={t("settings:SETTINGS_SYSTEM_STORAGE_RUNTIME_BOUNDARY_DESC")}
-          />
-        </SettingPanel>
+          ) : null}
+        </SettingActionGroup>
 
         {overlays.renderOverlays()}
-      </div>
+      </SettingPanel>
     </ContentGuard>
   );
 }

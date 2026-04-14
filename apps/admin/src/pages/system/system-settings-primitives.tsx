@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { Badge } from "@arclayer/ui/badge";
-import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { cn } from "@arclayer/lib/utils";
 
 export function SystemSettingsStatusBadge(props: {
@@ -20,26 +19,5 @@ export function SystemSettingsStatusBadge(props: {
     >
       {props.children}
     </Badge>
-  );
-}
-
-export function SystemSettingsField(props: {
-  title: ReactNode;
-  summary?: ReactNode;
-  description?: ReactNode;
-  placeholder?: ReactNode;
-  right?: ReactNode;
-}) {
-  return (
-    <SettingActionItem
-      as="div"
-      title={props.title}
-      summary={props.summary}
-      description={props.description}
-      placeholder={props.placeholder}
-      right={props.right}
-      showChevron={false}
-      titleColumnWidth={220}
-    />
   );
 }
