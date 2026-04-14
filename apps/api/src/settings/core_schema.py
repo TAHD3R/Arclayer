@@ -288,6 +288,13 @@ def build_core_settings_schema() -> ConfigSchema:
                         label_i18n="settings:MAIL_PASSWORD_LABEL",
                     ),
                     ConfigField(
+                        key="use_credentials",
+                        type="bool",
+                        default=True,
+                        label="Use SMTP authentication",
+                        label_i18n="settings:MAIL_USE_CREDENTIALS_LABEL",
+                    ),
+                    ConfigField(
                         key="mail_from",
                         type="str",
                         default="noreply@example.com",

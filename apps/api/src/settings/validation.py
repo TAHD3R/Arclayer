@@ -82,6 +82,8 @@ def validate_config_schema(
                     error="SETTINGS_CONFIG_INVALID",
                 )
 
+        _validate_section_semantics(section_id, values_dict)
+
 
 def _is_type_valid(field_type: str, value: object) -> bool:
     if field_type == "str":
@@ -97,6 +99,19 @@ def _is_type_valid(field_type: str, value: object) -> bool:
     if field_type == "dict":
         return isinstance(value, dict)
     return False
+
+
+def _validate_section_semantics(section_id: str, values: dict[str, object]) -> None:
+    if section_id != "mail":
+        return
+
+    starttls = values.get("starttls")
+    ssl_tls = values.get("ssl_tls")
+    if starttls is True and ssl_tls is True:
+        raise BadRequest(
+            message=_ts("MAIL_TRANSPORT_CONFLICT", "STARTTLS 与 SSL/TLS 不能同时开启"),
+            error="MAIL_TRANSPORT_CONFLICT",
+        )
 
 
 def iter_secret_field_paths(schema: ConfigSchema) -> list[str]:

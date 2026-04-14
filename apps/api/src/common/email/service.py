@@ -96,6 +96,7 @@ class EmailService:
         mail_from_name = pick_str(mail.get("mail_from_name"), base.mail_from_name)
         starttls = pick_bool(mail.get("starttls"), base.starttls)
         ssl_tls = pick_bool(mail.get("ssl_tls"), base.ssl_tls)
+        use_credentials = pick_bool(mail.get("use_credentials"), base.use_credentials)
 
         # fastapi-mail expects EmailStr for MAIL_FROM, validate here so failures are explicit.
         try:
@@ -113,15 +114,15 @@ class EmailService:
             template_dir = default_template_dir()
 
         return ConnectionConfig(
-            MAIL_USERNAME=username or "",
-            MAIL_PASSWORD=password_secret if password_secret is not None else SecretStr(""),
+            MAIL_USERNAME=username if use_credentials else "",
+            MAIL_PASSWORD=(password_secret if use_credentials and password_secret is not None else SecretStr("")),
             MAIL_FROM=mail_from,
             MAIL_FROM_NAME=mail_from_name,
             MAIL_PORT=port,
             MAIL_SERVER=server,
             MAIL_STARTTLS=starttls,
             MAIL_SSL_TLS=ssl_tls,
-            USE_CREDENTIALS=base.use_credentials,
+            USE_CREDENTIALS=use_credentials,
             VALIDATE_CERTS=base.validate_certs,
             SUPPRESS_SEND=base.suppress_send,
             TEMPLATE_FOLDER=template_dir,

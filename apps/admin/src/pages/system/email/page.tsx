@@ -38,6 +38,7 @@ type EmailFormValues = {
   mailPort: string;
   mailUsername: string;
   mailPassword: string;
+  mailUseCredentials: boolean;
   mailFrom: string;
   mailFromName: string;
   mailStarttls: boolean;
@@ -57,6 +58,7 @@ function buildInitialValues(
     mailPort: String(readNumberValue(mail, "port") ?? 587),
     mailUsername: readStringValue(mail, "username") ?? "",
     mailPassword: "",
+    mailUseCredentials: readBooleanValue(mail, "use_credentials") ?? true,
     mailFrom: readStringValue(mail, "mail_from") ?? "noreply@example.com",
     mailFromName: readStringValue(mail, "mail_from_name") ?? "Arclayer",
     mailStarttls: Boolean(readBooleanValue(mail, "starttls")),
@@ -133,6 +135,7 @@ export function SystemSettingsEmailPage() {
         "mailPort",
         "mailUsername",
         "mailPassword",
+        "mailUseCredentials",
         "mailFrom",
         "mailFromName",
         "mailStarttls",
@@ -146,11 +149,18 @@ export function SystemSettingsEmailPage() {
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
+      if (values.mailStarttls && values.mailSslTls) {
+        const message = t("settings:MAIL_TRANSPORT_CONFLICT");
+        form.setError("mailStarttls", { type: "validate", message });
+        form.setError("mailSslTls", { type: "validate", message });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
 
       const patchValue: Record<string, unknown> = {
         server: String(values.mailServer || "").trim() || "localhost",
         port,
         username: normalizeOptionalString(values.mailUsername),
+        use_credentials: Boolean(values.mailUseCredentials),
         mail_from: String(values.mailFrom || "").trim() || "noreply@example.com",
         mail_from_name: String(values.mailFromName || "").trim() || "Arclayer",
         starttls: Boolean(values.mailStarttls),
@@ -169,6 +179,7 @@ export function SystemSettingsEmailPage() {
           mailPort: String(port),
           mailUsername: String(values.mailUsername || "").trim(),
           mailPassword: "",
+          mailUseCredentials: Boolean(values.mailUseCredentials),
           mailFrom: String(values.mailFrom || "").trim() || "noreply@example.com",
           mailFromName: String(values.mailFromName || "").trim() || "Arclayer",
           mailStarttls: Boolean(values.mailStarttls),
@@ -182,6 +193,9 @@ export function SystemSettingsEmailPage() {
     const mailPortError = getFieldErrorMessage(form, "mailPort");
     const mailFromError = getFieldErrorMessage(form, "mailFrom");
     const mailFromNameError = getFieldErrorMessage(form, "mailFromName");
+    const mailUseCredentialsError = getFieldErrorMessage(form, "mailUseCredentials");
+    const mailStarttlsError = getFieldErrorMessage(form, "mailStarttls");
+    const mailSslTlsError = getFieldErrorMessage(form, "mailSslTls");
 
     return [
       {
@@ -257,6 +271,22 @@ export function SystemSettingsEmailPage() {
             />
             <Controller
               control={form.control}
+              name="mailUseCredentials"
+              render={({ field }) => (
+                <OverlayBooleanField
+                  label={t("settings:SETTINGS_MESSAGING_MAIL_USE_CREDENTIALS")}
+                  description={t("settings:SETTINGS_SYSTEM_EMAIL_USE_CREDENTIALS_HELP")}
+                  message={mailUseCredentialsError}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  stateLabel={
+                    field.value ? t("settings:SETTINGS_ENABLED") : t("settings:SETTINGS_DISABLED")
+                  }
+                />
+              )}
+            />
+            <Controller
+              control={form.control}
               name="mailFrom"
               render={({ field }) => (
                 <OverlayField
@@ -287,6 +317,7 @@ export function SystemSettingsEmailPage() {
                   <OverlayBooleanField
                     label={t("settings:SETTINGS_MESSAGING_MAIL_STARTTLS")}
                     description={t("settings:SETTINGS_SYSTEM_EMAIL_STARTTLS_HELP")}
+                    message={mailStarttlsError}
                     checked={Boolean(field.value)}
                     onCheckedChange={field.onChange}
                     stateLabel={
@@ -302,6 +333,7 @@ export function SystemSettingsEmailPage() {
                   <OverlayBooleanField
                     label={t("settings:SETTINGS_MESSAGING_MAIL_SSL_TLS")}
                     description={t("settings:SETTINGS_SYSTEM_EMAIL_SSL_TLS_HELP")}
+                    message={mailSslTlsError}
                     checked={Boolean(field.value)}
                     onCheckedChange={field.onChange}
                     stateLabel={
