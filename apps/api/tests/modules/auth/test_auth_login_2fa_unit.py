@@ -205,7 +205,7 @@ class FakeTwoFactor:
 def _build_login_service(
     monkeypatch, *, two_factor_enabled: bool
 ) -> tuple[AuthLoginService, FakeValkeyClient, FakeUser]:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     user = FakeUser(id=uuid4(), username="demo", email="demo@example.com")

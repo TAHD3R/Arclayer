@@ -11,8 +11,8 @@ def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     # These unit tests must be hermetic: no external DB/Valkey connectivity and no reliance
     # on developer env files like `.env.development`.
     monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.setenv("LOG_DIR", str(log_dir))
-    monkeypatch.setenv("LOG_ASYNC", "0")
+    monkeypatch.setenv("LOGGING__LOG_DIR", str(log_dir))
+    monkeypatch.setenv("LOGGING__ASYNC_ENABLED", "0")
     # Make middleware unit tests hermetic: they should not depend on DB or cache connectivity.
     monkeypatch.setenv("DATABASE__ENABLED", "0")
     monkeypatch.setenv("TEST_DATABASE__ENABLED", "0")
@@ -54,8 +54,8 @@ async def test_cors_preflight(monkeypatch, tmp_path: Path) -> None:
 
 async def test_gzip_enabled(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
-    monkeypatch.setenv("APP_GZIP_ENABLED", "1")
-    monkeypatch.setenv("APP_GZIP_MINIMUM_SIZE", "10")
+    monkeypatch.setenv("MIDDLEWARE__GZIP_ENABLED", "1")
+    monkeypatch.setenv("MIDDLEWARE__GZIP_MINIMUM_SIZE", "10")
 
     app = create_app()
 
@@ -72,8 +72,8 @@ async def test_gzip_enabled(monkeypatch, tmp_path: Path) -> None:
 
 async def test_trusted_host(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
-    monkeypatch.setenv("APP_TRUSTED_HOST_ENABLED", "1")
-    monkeypatch.setenv("APP_TRUSTED_HOSTS", '["example.com"]')
+    monkeypatch.setenv("MIDDLEWARE__TRUSTED_HOST_ENABLED", "1")
+    monkeypatch.setenv("MIDDLEWARE__TRUSTED_HOSTS", '["example.com"]')
 
     app = create_app()
 
@@ -92,7 +92,7 @@ async def test_trusted_host(monkeypatch, tmp_path: Path) -> None:
 
 async def test_https_redirect_only_production(monkeypatch, tmp_path: Path) -> None:
     _configure_logging_env(monkeypatch, tmp_path)
-    monkeypatch.setenv("APP_HTTPS_REDIRECT_ENABLED", "1")
+    monkeypatch.setenv("MIDDLEWARE__HTTPS_REDIRECT_ENABLED", "1")
 
     monkeypatch.setenv("APP_ENV", "development")
     get_settings.cache_clear()

@@ -14,7 +14,7 @@ from src.modules.organization.workspaces.service import OrganizationWorkspaceSer
 
 
 async def test_create_organization_rejects_name_too_long(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     get_settings()
 
     payload = CreateMyOrganizationRequest.model_construct(name="x" * 129, slug=None)
@@ -25,7 +25,7 @@ async def test_create_organization_rejects_name_too_long(monkeypatch) -> None:
 
 
 async def test_create_workspace_rejects_name_too_long(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = OrganizationWorkspaceService(settings)
 

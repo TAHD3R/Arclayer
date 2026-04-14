@@ -63,7 +63,7 @@ class _FakeTwoFactorRepo:
 
 
 def _build_service(monkeypatch, *, user_id: UUID, used_counter_for_code) -> AuthTwoFactorService:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     monkeypatch.setattr(

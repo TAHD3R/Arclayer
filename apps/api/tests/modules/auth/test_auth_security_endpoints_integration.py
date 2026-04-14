@@ -18,7 +18,7 @@ pytestmark = pytest.mark.integration
 
 
 def _set_test_env(monkeypatch, *, base_dir: Path) -> None:
-    monkeypatch.setenv("JWT_SECRET", "0123456789abcdef0123456789abcdef")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "0123456789abcdef0123456789abcdef")
     monkeypatch.setenv("SECURITY__MASTER_KEY_PATH", str(base_dir / "master.key"))
     get_settings.cache_clear()
 

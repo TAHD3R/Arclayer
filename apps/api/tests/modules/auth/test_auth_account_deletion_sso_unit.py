@@ -99,7 +99,7 @@ class FakeTwoFactor:
 
 
 def _build_service(monkeypatch, *, user: FakeUser, two_factor_enabled: bool) -> AuthService:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     async def _stop(*_args, **_kwargs) -> None:

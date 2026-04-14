@@ -11,8 +11,8 @@ from src.core.registry import create_app
 
 def _configure_logging_env(monkeypatch, log_dir: Path) -> None:
     monkeypatch.setenv("APP_ENV", "test")
-    monkeypatch.setenv("LOG_DIR", str(log_dir))
-    monkeypatch.setenv("LOG_ASYNC", "0")
+    monkeypatch.setenv("LOGGING__LOG_DIR", str(log_dir))
+    monkeypatch.setenv("LOGGING__ASYNC_ENABLED", "0")
     # Keep exception handler tests isolated from external infra.
     monkeypatch.setenv("DATABASE__ENABLED", "0")
     monkeypatch.setenv("VALKEY__ENABLED", "0")

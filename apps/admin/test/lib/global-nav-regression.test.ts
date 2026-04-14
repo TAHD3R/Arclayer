@@ -1,16 +1,24 @@
 import { describe, expect, test } from "vitest";
 
-import { GLOBAL_NAV_ITEMS } from "@/constants/menu/global";
+import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global";
 
 describe("global nav regression", () => {
-  test("keeps settings as a disabled placeholder without a route target", () => {
-    const settingsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.settings");
+  test("registers system settings as a real global destination", () => {
+    const settingsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.system");
 
     expect(settingsItem).toMatchObject({
-      key: "global.settings",
-      label: "Settings",
-      disabled: true,
+      key: "global.system",
+      label: "System Settings",
+      to: "/system",
     });
-    expect(settingsItem?.to).toBeUndefined();
+  });
+
+  test("only exposes system settings to super admins", () => {
+    expect(resolveGlobalNavItems({ isSuperAdmin: false }).map((item) => item.key)).not.toContain(
+      "global.system",
+    );
+    expect(resolveGlobalNavItems({ isSuperAdmin: true }).map((item) => item.key)).toContain(
+      "global.system",
+    );
   });
 });

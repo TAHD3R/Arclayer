@@ -195,7 +195,7 @@ class FakeUserRepository:
 
 
 def _build_service(monkeypatch) -> tuple[AuthService, FakeValkeyClient, FakeUser]:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     user = FakeUser(id=uuid4(), username="demo")

@@ -1,0 +1,3 @@
+id,task,status,acceptance_criteria,validation_command,completed_at,retry_count,notes
+1,Replace the side rail with ChromeTabs,DONE,"`SystemSettingsShell` uses `ChromeTabs` and no longer imports `MiniCategoryNav`","rg -n \"ChromeTabs|MiniCategoryNav\" apps/admin/src/pages/system/system-settings-shell.tsx",2026-04-15T02:53:24+08:00,0,"Shell now renders ChromeTabs in the page header."
+2,Add the OAuth route into the system domain,DONE,"`/system/oauth` route file exists with a title key","rg -n \"/system/oauth|SETTINGS_SYSTEM_OAUTH_PAGE_TITLE\" apps/admin/src/routes/system apps/admin/src/pages/system",2026-04-15T02:53:24+08:00,0,"OAuth route and page were added."

@@ -10,7 +10,7 @@ from src.config import get_settings
 from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.models.system.setting import SettingRecord
-from src.modules.auth.http.service import get_current_user_id
+from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.settings.scopes import SCOPE_TYPE_SYSTEM, SYSTEM_SCOPE_ID
 
 pytestmark = pytest.mark.integration
@@ -18,7 +18,7 @@ pytestmark = pytest.mark.integration
 
 async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
     """
-    Create an organization + an org owner user (v2 system scope gate).
+    Create an organization + a super admin user.
 
     Returns (org_id, admin_user_id).
     """
@@ -39,13 +39,18 @@ async def _bootstrap_admin_user(app, *, org_name: str = "Test Org"):
         email="admin@example.com",
         display_name="Admin",
         password_hash=hash_password("admin_password_123", settings.auth),
+        is_super_admin=True,
     )
     await OrgMembership.create(organization_id=org.id, user_id=admin.id, role=OrgRole.OWNER, status="active")
 
     async def _current_user_id():
         return admin.id
 
+    async def _current_user():
+        return admin
+
     app.dependency_overrides[get_current_user_id] = _current_user_id
+    app.dependency_overrides[get_current_user] = _current_user
     return org.id, admin.id
 
 

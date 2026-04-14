@@ -8,14 +8,13 @@ from src.core.exceptions import ServiceUnavailable
 from src.core.http.pagination import PageData, PageParams, get_page_params
 from src.core.http.response import ApiResponse, ResponseModel
 from src.core.i18n import t
-from src.modules.auth.http.service import get_current_user
-from src.modules.organization.http.service import require_org_owner
+from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.system.settings.schema import SettingsDetail, SettingsNamespaceSummary, SettingsPatch
 from src.modules.system.settings.service import SettingsService
 
 router = APIRouter(
     tags=["internal.system.settings"],
-    dependencies=[Depends(require_org_owner)],
+    dependencies=[Depends(require_super_admin)],
 )
 
 

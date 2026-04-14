@@ -15,8 +15,17 @@ export function isAcceptInvitePath(pathname: string): boolean {
   return pathname === "/invitations" || pathname === "/invitations/";
 }
 
+export function isSystemPath(pathname: string): boolean {
+  return pathname === "/system" || pathname === "/system/" || pathname.startsWith("/system/");
+}
+
 export function isGlobalPath(pathname: string): boolean {
-  return pathname === "/" || pathname === "/workspaces" || pathname === "/workspaces/";
+  return (
+    pathname === "/" ||
+    pathname === "/workspaces" ||
+    pathname === "/workspaces/" ||
+    isSystemPath(pathname)
+  );
 }
 
 /** Auth scene paths — login & reset-password (used for layout switching). */

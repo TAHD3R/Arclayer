@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsercenterRouteImport } from './routes/usercenter'
+import { Route as SystemRouteImport } from './routes/system'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
 import { Route as UsercenterIndexRouteImport } from './routes/usercenter/index'
+import { Route as SystemIndexRouteImport } from './routes/system/index'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
@@ -26,6 +28,9 @@ import { Route as UsercenterNotificationsIndexRouteImport } from './routes/userc
 import { Route as UsercenterDangerIndexRouteImport } from './routes/usercenter/danger/index'
 import { Route as UsercenterBillingIndexRouteImport } from './routes/usercenter/billing/index'
 import { Route as UsercenterAppearanceIndexRouteImport } from './routes/usercenter/appearance/index'
+import { Route as SystemStorageIndexRouteImport } from './routes/system/storage/index'
+import { Route as SystemOauthIndexRouteImport } from './routes/system/oauth/index'
+import { Route as SystemEmailIndexRouteImport } from './routes/system/email/index'
 import { Route as WWorkspaceIdTeamIndexRouteImport } from './routes/w/$workspaceId/team/index'
 import { Route as WWorkspaceIdExtensionsIndexRouteImport } from './routes/w/$workspaceId/extensions/index'
 import { Route as WWorkspaceIdAssetsIndexRouteImport } from './routes/w/$workspaceId/assets/index'
@@ -53,6 +58,11 @@ const UsercenterRoute = UsercenterRouteImport.update({
   path: '/usercenter',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemRoute = SystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -67,6 +77,11 @@ const UsercenterIndexRoute = UsercenterIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => UsercenterRoute,
+} as any)
+const SystemIndexRoute = SystemIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SystemRoute,
 } as any)
 const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
   id: '/reset-password/',
@@ -143,6 +158,21 @@ const UsercenterAppearanceIndexRoute =
     path: '/appearance/',
     getParentRoute: () => UsercenterRoute,
   } as any)
+const SystemStorageIndexRoute = SystemStorageIndexRouteImport.update({
+  id: '/storage/',
+  path: '/storage/',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemOauthIndexRoute = SystemOauthIndexRouteImport.update({
+  id: '/oauth/',
+  path: '/oauth/',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemEmailIndexRoute = SystemEmailIndexRouteImport.update({
+  id: '/email/',
+  path: '/email/',
+  getParentRoute: () => SystemRoute,
+} as any)
 const WWorkspaceIdTeamIndexRoute = WWorkspaceIdTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -340,14 +370,19 @@ const WWorkspaceIdContentLibraryItemIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/system': typeof SystemRouteWithChildren
   '/usercenter': typeof UsercenterRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
+  '/system/': typeof SystemIndexRoute
   '/usercenter/': typeof UsercenterIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
+  '/system/email/': typeof SystemEmailIndexRoute
+  '/system/oauth/': typeof SystemOauthIndexRoute
+  '/system/storage/': typeof SystemStorageIndexRoute
   '/usercenter/appearance/': typeof UsercenterAppearanceIndexRoute
   '/usercenter/billing/': typeof UsercenterBillingIndexRoute
   '/usercenter/danger/': typeof UsercenterDangerIndexRoute
@@ -384,8 +419,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
+  '/system': typeof SystemIndexRoute
   '/usercenter': typeof UsercenterIndexRoute
   '/workspaces': typeof WorkspacesIndexRoute
+  '/system/email': typeof SystemEmailIndexRoute
+  '/system/oauth': typeof SystemOauthIndexRoute
+  '/system/storage': typeof SystemStorageIndexRoute
   '/usercenter/appearance': typeof UsercenterAppearanceIndexRoute
   '/usercenter/billing': typeof UsercenterBillingIndexRoute
   '/usercenter/danger': typeof UsercenterDangerIndexRoute
@@ -419,14 +458,19 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/system': typeof SystemRouteWithChildren
   '/usercenter': typeof UsercenterRouteWithChildren
   '/w/$workspaceId': typeof WWorkspaceIdRouteWithChildren
   '/invitations/': typeof InvitationsIndexRoute
   '/login/': typeof LoginIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
+  '/system/': typeof SystemIndexRoute
   '/usercenter/': typeof UsercenterIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
+  '/system/email/': typeof SystemEmailIndexRoute
+  '/system/oauth/': typeof SystemOauthIndexRoute
+  '/system/storage/': typeof SystemStorageIndexRoute
   '/usercenter/appearance/': typeof UsercenterAppearanceIndexRoute
   '/usercenter/billing/': typeof UsercenterBillingIndexRoute
   '/usercenter/danger/': typeof UsercenterDangerIndexRoute
@@ -461,14 +505,19 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/system'
     | '/usercenter'
     | '/w/$workspaceId'
     | '/invitations/'
     | '/login/'
     | '/notifications/'
     | '/reset-password/'
+    | '/system/'
     | '/usercenter/'
     | '/workspaces/'
+    | '/system/email/'
+    | '/system/oauth/'
+    | '/system/storage/'
     | '/usercenter/appearance/'
     | '/usercenter/billing/'
     | '/usercenter/danger/'
@@ -505,8 +554,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/reset-password'
+    | '/system'
     | '/usercenter'
     | '/workspaces'
+    | '/system/email'
+    | '/system/oauth'
+    | '/system/storage'
     | '/usercenter/appearance'
     | '/usercenter/billing'
     | '/usercenter/danger'
@@ -539,14 +592,19 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/system'
     | '/usercenter'
     | '/w/$workspaceId'
     | '/invitations/'
     | '/login/'
     | '/notifications/'
     | '/reset-password/'
+    | '/system/'
     | '/usercenter/'
     | '/workspaces/'
+    | '/system/email/'
+    | '/system/oauth/'
+    | '/system/storage/'
     | '/usercenter/appearance/'
     | '/usercenter/billing/'
     | '/usercenter/danger/'
@@ -580,6 +638,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SystemRoute: typeof SystemRouteWithChildren
   UsercenterRoute: typeof UsercenterRouteWithChildren
   WWorkspaceIdRoute: typeof WWorkspaceIdRouteWithChildren
   InvitationsIndexRoute: typeof InvitationsIndexRoute
@@ -596,6 +655,13 @@ declare module '@tanstack/react-router' {
       path: '/usercenter'
       fullPath: '/usercenter'
       preLoaderRoute: typeof UsercenterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system': {
+      id: '/system'
+      path: '/system'
+      fullPath: '/system'
+      preLoaderRoute: typeof SystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -618,6 +684,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/usercenter/'
       preLoaderRoute: typeof UsercenterIndexRouteImport
       parentRoute: typeof UsercenterRoute
+    }
+    '/system/': {
+      id: '/system/'
+      path: '/'
+      fullPath: '/system/'
+      preLoaderRoute: typeof SystemIndexRouteImport
+      parentRoute: typeof SystemRoute
     }
     '/reset-password/': {
       id: '/reset-password/'
@@ -709,6 +782,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/usercenter/appearance/'
       preLoaderRoute: typeof UsercenterAppearanceIndexRouteImport
       parentRoute: typeof UsercenterRoute
+    }
+    '/system/storage/': {
+      id: '/system/storage/'
+      path: '/storage'
+      fullPath: '/system/storage/'
+      preLoaderRoute: typeof SystemStorageIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/oauth/': {
+      id: '/system/oauth/'
+      path: '/oauth'
+      fullPath: '/system/oauth/'
+      preLoaderRoute: typeof SystemOauthIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/system/email/': {
+      id: '/system/email/'
+      path: '/email'
+      fullPath: '/system/email/'
+      preLoaderRoute: typeof SystemEmailIndexRouteImport
+      parentRoute: typeof SystemRoute
     }
     '/w/$workspaceId/team/': {
       id: '/w/$workspaceId/team/'
@@ -860,6 +954,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SystemRouteChildren {
+  SystemIndexRoute: typeof SystemIndexRoute
+  SystemEmailIndexRoute: typeof SystemEmailIndexRoute
+  SystemOauthIndexRoute: typeof SystemOauthIndexRoute
+  SystemStorageIndexRoute: typeof SystemStorageIndexRoute
+}
+
+const SystemRouteChildren: SystemRouteChildren = {
+  SystemIndexRoute: SystemIndexRoute,
+  SystemEmailIndexRoute: SystemEmailIndexRoute,
+  SystemOauthIndexRoute: SystemOauthIndexRoute,
+  SystemStorageIndexRoute: SystemStorageIndexRoute,
+}
+
+const SystemRouteWithChildren =
+  SystemRoute._addFileChildren(SystemRouteChildren)
+
 interface UsercenterRouteChildren {
   UsercenterIndexRoute: typeof UsercenterIndexRoute
   UsercenterAppearanceIndexRoute: typeof UsercenterAppearanceIndexRoute
@@ -951,6 +1062,7 @@ const WWorkspaceIdRouteWithChildren = WWorkspaceIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SystemRoute: SystemRouteWithChildren,
   UsercenterRoute: UsercenterRouteWithChildren,
   WWorkspaceIdRoute: WWorkspaceIdRouteWithChildren,
   InvitationsIndexRoute: InvitationsIndexRoute,

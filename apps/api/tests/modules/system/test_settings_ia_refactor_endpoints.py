@@ -8,8 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
 from src.models.organization.org_membership import OrgRole
-from src.modules.auth.http.service import get_current_user
-from src.modules.organization.http.service import require_org_owner
+from src.modules.auth.http.service import get_current_user, require_super_admin
 from src.modules.organization.router import router as me_router
 from src.modules.system.mail.router import get_mail_service
 from src.modules.system.mail.schema import MailTestResult
@@ -108,23 +107,20 @@ async def test_system_endpoints_available_without_deployment_mode_gate(monkeypat
     init_exception_handlers(app, get_settings())
     app.include_router(system_router, prefix="/api/v1/system")
 
-    class DummyOrgMembership(BaseModel):
+    class DummyUser(BaseModel):
         model_config = ConfigDict(extra="forbid", frozen=True)
 
-        role: OrgRole = OrgRole.OWNER
+        is_super_admin: bool = True
 
-    async def _org_owner_override() -> DummyOrgMembership:
-        return DummyOrgMembership(role=OrgRole.OWNER)
-
-    async def _user_override() -> object:
-        return object()
+    async def _super_admin_override() -> DummyUser:
+        return DummyUser()
 
     class DummyMailService:
         async def send_test_email(self, *, recipient: str, locale: str | None = None) -> MailTestResult:
             return MailTestResult(ok=True)
 
-    app.dependency_overrides[require_org_owner] = _org_owner_override
-    app.dependency_overrides[get_current_user] = _user_override
+    app.dependency_overrides[require_super_admin] = _super_admin_override
+    app.dependency_overrides[get_current_user] = _super_admin_override
     app.dependency_overrides[get_mail_service] = lambda: DummyMailService()
 
     async with asgi_client(app) as client:
@@ -133,3 +129,28 @@ async def test_system_endpoints_available_without_deployment_mode_gate(monkeypat
 
         res_mail = await client.post("/api/v1/system/mail/test", json={"recipient": "demo@example.com"})
         assert res_mail.status_code == 200
+
+
+async def test_system_settings_require_super_admin() -> None:
+    app = FastAPI()
+
+    from src.core.exceptions import init_exception_handlers
+
+    init_exception_handlers(app, get_settings())
+    app.include_router(system_router, prefix="/api/v1/system")
+
+    class DummyUser(BaseModel):
+        model_config = ConfigDict(extra="forbid", frozen=True)
+
+        is_super_admin: bool = False
+
+    async def _user_override() -> DummyUser:
+        return DummyUser()
+
+    app.dependency_overrides[get_current_user] = _user_override
+
+    async with asgi_client(app) as client:
+        res = await client.get("/api/v1/system/settings")
+
+    assert res.status_code == 403
+    assert res.json().get("error") == "SUPER_ADMIN_REQUIRED"

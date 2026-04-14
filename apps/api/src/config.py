@@ -2,10 +2,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from pydantic import AliasChoices, Field, PostgresDsn, SecretStr, computed_field, field_validator
+from pydantic import Field, PostgresDsn, SecretStr, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from src.config_runtime import (
+from src.settings.env_models import (
     AuthSettings,
     EmailSettings,
     PublicIdSettings,
@@ -74,53 +74,22 @@ class ApplicationSettings(BaseSettings):
         validate_default=True,
     )
 
-    api_prefix: str = Field(
-        default="/api",
-        validation_alias=AliasChoices("API_PREFIX"),
-    )
-    api_version_prefix: str = Field(
-        default="/v1",
-        validation_alias=AliasChoices("API_VERSION_PREFIX", "API_V1_PREFIX"),
-    )
-    app_host: str = Field(default="127.0.0.1", validation_alias="APP_HOST")
-    app_port: int = Field(default=8000, validation_alias="APP_PORT")
-    app_name: str = Field(default="Arclayer API", validation_alias="APP_NAME")
-    app_version: str = Field(default="2026.01.18-dev", validation_alias="APP_VERSION")
-    app_description: str = Field(
-        default="Structured content, visually built.",
-        validation_alias="APP_DESCRIPTION",
-    )
-    app_openapi_url: str | None = Field(
-        default="/openapi.json",
-        validation_alias="APP_OPENAPI_URL",
-    )
-    app_docs_url: str | None = Field(
-        default="/docs",
-        validation_alias="APP_DOCS_URL",
-    )
-    app_redoc_url: str | None = Field(
-        default="/redoc",
-        validation_alias="APP_REDOC_URL",
-    )
-    static_enabled: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("STATIC_ENABLED", "APP_STATIC_ENABLED"),
-    )
-    static_dir: Path = Field(
-        default=_REPO_ROOT / "static",
-        validation_alias=AliasChoices("STATIC_DIR", "APP_STATIC_DIR"),
-    )
-    data_dir: Path = Field(
-        default=_REPO_ROOT / "data",
-        validation_alias=AliasChoices("DATA_DIR", "APP_DATA_DIR"),
-    )
-    static_url: str = Field(
-        default="/static",
-        validation_alias=AliasChoices("STATIC_URL", "APP_STATIC_URL"),
-    )
+    api_prefix: str = Field(default="/api")
+    api_version_prefix: str = Field(default="/v1")
+    app_host: str = Field(default="127.0.0.1")
+    app_port: int = Field(default=8000)
+    app_name: str = Field(default="Arclayer API")
+    app_version: str = Field(default="2026.01.18-dev")
+    app_description: str = Field(default="Structured content, visually built.")
+    app_openapi_url: str | None = Field(default="/openapi.json")
+    app_docs_url: str | None = Field(default="/docs")
+    app_redoc_url: str | None = Field(default="/redoc")
+    static_enabled: bool = Field(default=False)
+    static_dir: Path = Field(default=_REPO_ROOT / "static")
+    data_dir: Path = Field(default=_REPO_ROOT / "data")
+    static_url: str = Field(default="/static")
     frontend_base_url: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("FRONTEND_BASE_URL", "APP_FRONTEND_BASE_URL"),
         description="Base URL for the frontend application (used in emails, e.g. reset-password links).",
     )
 
@@ -149,116 +118,90 @@ class StorageSettings(BaseSettings):
         validate_default=True,
     )
 
-    provider: Literal["local", "s3"] = Field(
-        default="local",
-        validation_alias=AliasChoices("PROVIDER", "STORAGE_PROVIDER", "APP_STORAGE_PROVIDER"),
-    )
-    local_root_dir: Path = Field(
-        default=_REPO_ROOT / "data" / "uploads",
-        validation_alias=AliasChoices("LOCAL_ROOT_DIR", "STORAGE_LOCAL_ROOT_DIR"),
-    )
-    local_tmp_dir: Path = Field(
-        default=_REPO_ROOT / "data" / "uploads" / ".tmp",
-        validation_alias=AliasChoices("LOCAL_TMP_DIR", "STORAGE_LOCAL_TMP_DIR"),
-    )
+    provider: Literal["local", "s3"] = Field(default="local")
+    local_root_dir: Path = Field(default=_REPO_ROOT / "data" / "uploads")
+    local_tmp_dir: Path = Field(default=_REPO_ROOT / "data" / "uploads" / ".tmp")
     public_base_url: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("PUBLIC_BASE_URL", "STORAGE_PUBLIC_BASE_URL"),
         description="Optional public base URL (e.g. CDN) used to build absolute asset URLs.",
     )
     public_delivery_mode: Literal["auto", "direct", "presign"] = Field(
         default="auto",
-        validation_alias=AliasChoices("PUBLIC_DELIVERY_MODE", "STORAGE_PUBLIC_DELIVERY_MODE"),
         description="Public asset delivery mode: direct (CDN/base URL), presign, or auto.",
     )
     s3_endpoint_url: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("S3_ENDPOINT_URL", "STORAGE_S3_ENDPOINT_URL"),
         description="S3-compatible endpoint URL (e.g. https://s3.amazonaws.com or MinIO endpoint).",
     )
     s3_region: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("S3_REGION", "STORAGE_S3_REGION"),
         description="S3 region (optional for some S3-compatible providers).",
     )
     s3_bucket: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("S3_BUCKET", "STORAGE_S3_BUCKET"),
         description="S3 bucket name.",
     )
     s3_public_bucket: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("S3_PUBLIC_BUCKET", "STORAGE_S3_PUBLIC_BUCKET"),
         description="Optional dedicated bucket for public assets (recommended for S3-compatible providers without ACL).",
     )
     s3_access_key_id: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("S3_ACCESS_KEY_ID", "STORAGE_S3_ACCESS_KEY_ID"),
         description="S3 access key id.",
     )
     s3_secret_access_key: SecretStr | None = Field(
         default=None,
-        validation_alias=AliasChoices("S3_SECRET_ACCESS_KEY", "STORAGE_S3_SECRET_ACCESS_KEY"),
         description="S3 secret access key.",
     )
     s3_force_path_style: bool = Field(
         default=False,
-        validation_alias=AliasChoices("S3_FORCE_PATH_STYLE", "STORAGE_S3_FORCE_PATH_STYLE"),
         description="Force path-style addressing (recommended for some MinIO setups).",
     )
     s3_presign_expires_seconds: int = Field(
         default=900,
         ge=60,
         le=24 * 3600,
-        validation_alias=AliasChoices("S3_PRESIGN_EXPIRES_SECONDS", "STORAGE_S3_PRESIGN_EXPIRES_SECONDS"),
         description="Presigned URL TTL (seconds) for multipart upload part URLs.",
     )
     recycle_bin_retention_days: int = Field(
         default=90,
         ge=1,
         le=3650,
-        validation_alias=AliasChoices("RECYCLE_BIN_RETENTION_DAYS", "STORAGE_RECYCLE_BIN_RETENTION_DAYS"),
     )
     upload_chunk_size_mb: int = Field(
         default=8,
         ge=1,
         le=128,
-        validation_alias=AliasChoices("UPLOAD_CHUNK_SIZE_MB", "STORAGE_UPLOAD_CHUNK_SIZE_MB"),
         description="Default chunk size (MiB) for resumable uploads.",
     )
     upload_max_file_size_mb: int = Field(
         default=2048,
         ge=1,
         le=1024 * 100,
-        validation_alias=AliasChoices("UPLOAD_MAX_FILE_SIZE_MB", "STORAGE_UPLOAD_MAX_FILE_SIZE_MB"),
         description="Max upload file size (MiB).",
     )
     upload_max_avatar_size_mb: int = Field(
         default=10,
         ge=1,
         le=1024 * 100,
-        validation_alias=AliasChoices("UPLOAD_MAX_AVATAR_SIZE_MB", "STORAGE_UPLOAD_MAX_AVATAR_SIZE_MB"),
         description="Max avatar upload size (MiB).",
     )
     upload_max_site_logo_size_mb: int = Field(
         default=20,
         ge=1,
         le=1024 * 100,
-        validation_alias=AliasChoices("UPLOAD_MAX_SITE_LOGO_SIZE_MB", "STORAGE_UPLOAD_MAX_SITE_LOGO_SIZE_MB"),
         description="Max site logo upload size (MiB).",
     )
     upload_max_favicon_size_mb: int = Field(
         default=2,
         ge=1,
         le=1024 * 100,
-        validation_alias=AliasChoices("UPLOAD_MAX_FAVICON_SIZE_MB", "STORAGE_UPLOAD_MAX_FAVICON_SIZE_MB"),
         description="Max favicon upload size (MiB).",
     )
     upload_session_ttl_seconds: int = Field(
         default=3600,
         ge=60,
         le=7 * 24 * 3600,
-        validation_alias=AliasChoices("UPLOAD_SESSION_TTL_SECONDS", "STORAGE_UPLOAD_SESSION_TTL_SECONDS"),
         description="Upload session TTL (seconds).",
     )
 
@@ -283,30 +226,15 @@ class LoggingSettings(BaseSettings):
         validate_default=True,
     )
 
-    level: str = Field(default="INFO", validation_alias=AliasChoices("LOG_LEVEL", "APP_LOG_LEVEL"))
-    json_logs: bool | None = Field(
-        default=False,
-        validation_alias=AliasChoices("LOG_JSON", "APP_LOG_JSON"),
-    )
-    log_dir: Path = Field(
-        default=_API_DIR / "logs",
-        validation_alias=AliasChoices("LOG_DIR", "APP_LOG_DIR"),
-    )
-    rotation: str = Field(default="1d", validation_alias=AliasChoices("LOG_ROTATION", "APP_LOG_ROTATION"))
-    retention: str = Field(default="7d", validation_alias=AliasChoices("LOG_RETENTION", "APP_LOG_RETENTION"))
-    async_enabled: bool = Field(default=False, validation_alias=AliasChoices("LOG_ASYNC", "APP_LOG_ASYNC"))
-    omit_tortoise_logs: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("OMIT_TORTOISE_LOGS", "TORTOISE_LOGS_OMIT"),
-    )
-    omit_uvicorn_access_logs: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("OMIT_UVICORN_ACCESS_LOGS", "UVICORN_ACCESS_LOGS_OMIT"),
-    )
-    trace_header_name: str = Field(
-        default="X-Trace-Id",
-        validation_alias=AliasChoices("TRACE_HEADER_NAME", "X_TRACE_ID_HEADER"),
-    )
+    level: str = Field(default="INFO")
+    json_logs: bool | None = Field(default=False)
+    log_dir: Path = Field(default=_API_DIR / "logs")
+    rotation: str = Field(default="1d")
+    retention: str = Field(default="7d")
+    async_enabled: bool = Field(default=False)
+    omit_tortoise_logs: bool = Field(default=False)
+    omit_uvicorn_access_logs: bool = Field(default=True)
+    trace_header_name: str = Field(default="X-Trace-Id")
     request_log_omit_paths: list[str] = Field(
         default_factory=lambda: [
             "/openapi.json",
@@ -314,17 +242,14 @@ class LoggingSettings(BaseSettings):
             "/redoc",
             "/favicon.ico",
         ],
-        validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATHS"),
     )
     request_log_omit_path_prefixes: list[str] = Field(
         default_factory=lambda: [
             "/static",
         ],
-        validation_alias=AliasChoices("REQUEST_LOG_OMIT_PATH_PREFIXES"),
     )
     watchfiles_level: str = Field(
         default="INFO",
-        validation_alias=AliasChoices("WATCHFILES_LEVEL"),
         description="Python logging level for watchfiles.* loggers (kept higher to avoid dev console spam).",
     )
 
@@ -349,30 +274,22 @@ class DatabaseSettings(BaseSettings):
         validate_default=True,
     )
 
-    enabled: bool = Field(default=False, validation_alias=AliasChoices("DB_ENABLED", "DATABASE_ENABLED"))
-    engine: str = Field(
-        default="tortoise.backends.asyncpg", validation_alias=AliasChoices("DB_ENGINE", "DATABASE_ENGINE")
-    )
-    host: str = Field(default="127.0.0.1", validation_alias=AliasChoices("DB_HOST", "DATABASE_HOST"))
-    port: int = Field(default=5432, validation_alias=AliasChoices("DB_PORT", "DATABASE_PORT"))
-    user: str = Field(default="postgres", validation_alias=AliasChoices("DB_USER", "DATABASE_USER"))
-    password: SecretStr = Field(
-        default=SecretStr(""), validation_alias=AliasChoices("DB_PASSWORD", "DATABASE_PASSWORD")
-    )
-    database: str = Field(default="arclayer", validation_alias=AliasChoices("DB_NAME", "DATABASE_NAME"))
-    pool_size: int = Field(default=10, validation_alias=AliasChoices("DB_POOL_SIZE", "DATABASE_POOL_SIZE"))
-    use_tz: bool = Field(default=True, validation_alias=AliasChoices("DB_USE_TZ", "DATABASE_USE_TZ"))
-    timezone: str = Field(default="UTC", validation_alias=AliasChoices("DB_TIMEZONE", "DATABASE_TIMEZONE"))
+    enabled: bool = Field(default=False)
+    engine: str = Field(default="tortoise.backends.asyncpg")
+    host: str = Field(default="127.0.0.1")
+    port: int = Field(default=5432)
+    user: str = Field(default="postgres")
+    password: SecretStr = Field(default=SecretStr(""))
+    database: str = Field(default="arclayer")
+    pool_size: int = Field(default=10)
+    use_tz: bool = Field(default=True)
+    timezone: str = Field(default="UTC")
     core_models: list[str] = Field(
         # ORM models live under `src.models`. Do not include `src.modules` here:
         # business modules do not contain Tortoise models by design.
         default_factory=lambda: ["src.models"],
-        validation_alias=AliasChoices("DB_CORE_MODELS", "DATABASE_CORE_MODELS"),
     )
-    models_max_depth: int | None = Field(
-        default=4,
-        validation_alias=AliasChoices("DB_MODELS_MAX_DEPTH", "DATABASE_MODELS_MAX_DEPTH"),
-    )
+    models_max_depth: int | None = Field(default=4)
 
     @computed_field
     @property
@@ -413,18 +330,14 @@ class ValkeySettings(BaseSettings):
         validate_default=True,
     )
 
-    enabled: bool = Field(default=False, validation_alias=AliasChoices("VALKEY_ENABLED", "CACHE_ENABLED"))
-    host: str = Field(default="127.0.0.1", validation_alias=AliasChoices("VALKEY_HOST", "CACHE_HOST"))
-    port: int = Field(default=6379, validation_alias=AliasChoices("VALKEY_PORT", "CACHE_PORT"))
-    db: int = Field(default=0, validation_alias=AliasChoices("VALKEY_DB", "CACHE_DB"))
-    username: str | None = Field(default=None, validation_alias=AliasChoices("VALKEY_USERNAME", "CACHE_USERNAME"))
-    password: SecretStr = Field(
-        default=SecretStr(""), validation_alias=AliasChoices("VALKEY_PASSWORD", "CACHE_PASSWORD")
-    )
-    prefix: str = Field(default="", validation_alias=AliasChoices("VALKEY_PREFIX", "CACHE_PREFIX"))
-    default_ttl: int | None = Field(
-        default=180, validation_alias=AliasChoices("VALKEY_DEFAULT_TTL", "CACHE_DEFAULT_TTL")
-    )
+    enabled: bool = Field(default=False)
+    host: str = Field(default="127.0.0.1")
+    port: int = Field(default=6379)
+    db: int = Field(default=0)
+    username: str | None = Field(default=None)
+    password: SecretStr = Field(default=SecretStr(""))
+    prefix: str = Field(default="")
+    default_ttl: int | None = Field(default=180)
 
     @computed_field
     @property
@@ -519,33 +432,15 @@ class MiddlewareSettings(BaseSettings):
         validate_default=True,
     )
 
-    gzip_enabled: bool = Field(default=False, validation_alias=AliasChoices("GZIP_ENABLED", "APP_GZIP_ENABLED"))
-    gzip_minimum_size: int = Field(
-        default=500,
-        validation_alias=AliasChoices("GZIP_MINIMUM_SIZE", "APP_GZIP_MINIMUM_SIZE"),
-    )
-    gzip_compresslevel: int = Field(
-        default=9,
-        validation_alias=AliasChoices("GZIP_COMPRESSLEVEL", "APP_GZIP_COMPRESSLEVEL"),
-    )
+    gzip_enabled: bool = Field(default=False)
+    gzip_minimum_size: int = Field(default=500)
+    gzip_compresslevel: int = Field(default=9)
 
-    trusted_host_enabled: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("TRUSTED_HOST_ENABLED", "APP_TRUSTED_HOST_ENABLED"),
-    )
-    trusted_hosts: list[str] = Field(
-        default_factory=lambda: ["*"],
-        validation_alias=AliasChoices("TRUSTED_HOSTS", "APP_TRUSTED_HOSTS"),
-    )
-    trusted_host_www_redirect: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("TRUSTED_HOST_WWW_REDIRECT", "APP_TRUSTED_HOST_WWW_REDIRECT"),
-    )
+    trusted_host_enabled: bool = Field(default=False)
+    trusted_hosts: list[str] = Field(default_factory=lambda: ["*"])
+    trusted_host_www_redirect: bool = Field(default=True)
 
-    https_redirect_enabled: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("HTTPS_REDIRECT_ENABLED", "APP_HTTPS_REDIRECT_ENABLED"),
-    )
+    https_redirect_enabled: bool = Field(default=False)
 
 
 class Settings(BaseSettings):
@@ -557,19 +452,7 @@ class Settings(BaseSettings):
         self,
         **data,
     ) -> None:
-        # Capture runtime env file config so we can reuse it for nested settings overrides.
-        #
-        # Why this exists:
-        # - `Settings(_env_file=...)` is used by get_settings() to load `.env.*`.
-        # - Nested BaseSettings models (e.g. MiddlewareSettings) support legacy APP_* aliases,
-        #   but those aliases are not discoverable via Settings' `env_nested_delimiter` mapping.
-        # - We re-parse nested settings once using the same dotenv sources, then merge only the
-        #   explicitly provided values (env/dotenv) into the already-initialized settings tree.
-        self._runtime_env_file = data.get("_env_file")
-        self._runtime_env_file_encoding = data.get("_env_file_encoding")
-
         super().__init__(**data)
-        self._apply_env_overrides()
         self._apply_test_mode_overrides()
 
         # In production, default to a hard cut-over: accept only public ids as inputs
@@ -590,10 +473,7 @@ class Settings(BaseSettings):
         populate_by_name=True,
         validate_default=True,
     )
-    app_env: Literal["development", "production", "test"] = Field(
-        default="development",
-        validation_alias=AliasChoices("APP_ENV", "ENV"),
-    )
+    app_env: Literal["development", "production", "test"] = Field(default="development")
 
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
@@ -641,75 +521,6 @@ class Settings(BaseSettings):
         # Order is highest priority -> lowest priority.
         return env_settings, dotenv_settings, file_secret_settings, init_settings
 
-    def _apply_env_overrides(self) -> None:
-        env_file = getattr(self, "_runtime_env_file", None)
-        env_file_encoding = getattr(self, "_runtime_env_file_encoding", None) or "utf-8"
-
-        def _merge_settings(current: Any, overrides: Any) -> Any:
-            updates = {name: getattr(overrides, name) for name in overrides.model_fields_set}
-            if not updates:
-                return current
-            return current.model_copy(update=updates)
-
-        # Re-parse nested settings so "APP_*" aliases (and other non-nested env keys) work even
-        # when Settings is primarily populated via nested delimiter env vars (e.g. MIDDLEWARE__*).
-        self.application = _merge_settings(
-            self.application,
-            _build_settings_from_env_file(ApplicationSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.storage = _merge_settings(
-            self.storage,
-            _build_settings_from_env_file(StorageSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.logging = _merge_settings(
-            self.logging,
-            _build_settings_from_env_file(LoggingSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.database = _merge_settings(
-            self.database,
-            _build_settings_from_env_file(DatabaseSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.valkey = _merge_settings(
-            self.valkey,
-            _build_settings_from_env_file(ValkeySettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.analytics = _merge_settings(
-            self.analytics,
-            _build_settings_from_env_file(AnalyticsSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.taskiq = _merge_settings(
-            self.taskiq,
-            _build_settings_from_env_file(TaskiqSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.middleware = _merge_settings(
-            self.middleware,
-            _build_settings_from_env_file(MiddlewareSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.auth = _merge_settings(
-            self.auth,
-            _build_settings_from_env_file(AuthSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.public_id = _merge_settings(
-            self.public_id,
-            _build_settings_from_env_file(PublicIdSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.email = _merge_settings(
-            self.email,
-            _build_settings_from_env_file(EmailSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.saas = _merge_settings(
-            self.saas,
-            _build_settings_from_env_file(SaasSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.security = _merge_settings(
-            self.security,
-            _build_settings_from_env_file(SecuritySettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-        self.testing = _merge_settings(
-            self.testing,
-            _build_settings_from_env_file(TestingSettings, env_file=env_file, env_file_encoding=env_file_encoding),
-        )
-
     def _apply_test_mode_overrides(self) -> None:
         if self.app_env == "test":
             if self.testing.database_enabled and self.database.enabled:
@@ -733,7 +544,7 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     import os
 
-    current = os.getenv("APP_ENV") or os.getenv("ENV") or "development"
+    current = os.getenv("APP_ENV") or "development"
     env_files = (
         str(_API_DIR / ".env"),
         str(_API_DIR / f".env.{current}"),

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -68,30 +68,12 @@ class TestingSettings(BaseSettings):
         validate_default=True,
     )
 
-    database_enabled: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("TEST_DATABASE__ENABLED", "TEST_DB_ENABLED"),
-    )
-    database_name: str = Field(
-        default="arclayer_test",
-        validation_alias=AliasChoices("TEST_DATABASE__NAME", "TEST_DB_NAME"),
-    )
-    valkey_enabled: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("TEST_VALKEY__ENABLED", "TEST_CACHE_ENABLED"),
-    )
-    valkey_db: int = Field(
-        default=15,
-        validation_alias=AliasChoices("TEST_VALKEY__DB", "TEST_CACHE_DB"),
-    )
-    valkey_prefix: str = Field(
-        default="test",
-        validation_alias=AliasChoices("TEST_VALKEY__PREFIX", "TEST_CACHE_PREFIX"),
-    )
-    valkey_default_ttl: int | None = Field(
-        default=5,
-        validation_alias=AliasChoices("TEST_VALKEY__DEFAULT_TTL", "TEST_CACHE_DEFAULT_TTL"),
-    )
+    database_enabled: bool = Field(default=True)
+    database_name: str = Field(default="arclayer_test")
+    valkey_enabled: bool = Field(default=True)
+    valkey_db: int = Field(default=15)
+    valkey_prefix: str = Field(default="test")
+    valkey_default_ttl: int | None = Field(default=5)
 
 
 class AuthSettings(BaseSettings):
@@ -135,54 +117,25 @@ class AuthSettings(BaseSettings):
         validate_default=True,
     )
 
-    jwt_secret: SecretStr = Field(
-        default=SecretStr(""),
-        validation_alias=AliasChoices("JWT_SECRET", "APP_JWT_SECRET"),
-    )
-    jwt_algorithm: str = Field(
-        default="HS256",
-        validation_alias=AliasChoices("JWT_ALGORITHM", "APP_JWT_ALGORITHM"),
-    )
-    jwt_issuer: str = Field(
-        default="arclayer",
-        validation_alias=AliasChoices("JWT_ISSUER", "APP_JWT_ISSUER"),
-    )
-    jwt_audience: str = Field(
-        default="arclayer",
-        validation_alias=AliasChoices("JWT_AUDIENCE", "APP_JWT_AUDIENCE"),
-    )
-    access_token_ttl_seconds: int = Field(
-        default=900,
-        validation_alias=AliasChoices("ACCESS_TOKEN_TTL_SECONDS", "ACCESS_TOKEN_TTL"),
-    )
+    jwt_secret: SecretStr = Field(default=SecretStr(""))
+    jwt_algorithm: str = Field(default="HS256")
+    jwt_issuer: str = Field(default="arclayer")
+    jwt_audience: str = Field(default="arclayer")
+    access_token_ttl_seconds: int = Field(default=900)
     sys_access_token_ttl_seconds: int = Field(
         default=300,
         ge=60,
         le=24 * 3600,
-        validation_alias=AliasChoices("SYS_ACCESS_TOKEN_TTL_SECONDS", "SYS_ACCESS_TOKEN_TTL"),
         description="Short-lived step-up token TTL (seconds) for /sys governance endpoints.",
     )
-    refresh_token_ttl_seconds: int = Field(
-        default=2592000,
-        validation_alias=AliasChoices("REFRESH_TOKEN_TTL_SECONDS", "REFRESH_TOKEN_TTL"),
-    )
-    reset_token_ttl_seconds: int = Field(
-        default=900,
-        validation_alias=AliasChoices("RESET_TOKEN_TTL_SECONDS", "RESET_TOKEN_TTL"),
-    )
+    refresh_token_ttl_seconds: int = Field(default=2592000)
+    reset_token_ttl_seconds: int = Field(default=900)
     allow_public_register: bool = Field(
         default=False,
-        validation_alias=AliasChoices("ALLOW_PUBLIC_REGISTER", "PUBLIC_REGISTER_ENABLED"),
         description="Whether to allow public registration via /api/v1/auth/register.",
     )
-    password_hash_iterations: int = Field(
-        default=120_000,
-        validation_alias=AliasChoices("PASSWORD_HASH_ITERATIONS", "APP_PASSWORD_HASH_ITERATIONS"),
-    )
-    password_hash_salt_bytes: int = Field(
-        default=16,
-        validation_alias=AliasChoices("PASSWORD_HASH_SALT_BYTES", "APP_PASSWORD_HASH_SALT_BYTES"),
-    )
+    password_hash_iterations: int = Field(default=120_000)
+    password_hash_salt_bytes: int = Field(default=16)
 
     cookie: CookieSettings = Field(default_factory=CookieSettings)
 
@@ -209,19 +162,16 @@ class PublicIdSettings(BaseSettings):
 
     secret: SecretStr = Field(
         default=SecretStr(""),
-        validation_alias=AliasChoices("SECRET", "APP_PUBLIC_ID_SECRET"),
         description="Secret used to encode/decode public ids. Must be stable across deploys.",
     )
     rounds: int = Field(
         default=8,
         ge=4,
         le=16,
-        validation_alias=AliasChoices("ROUNDS", "APP_PUBLIC_ID_ROUNDS"),
         description="Feistel rounds for the public id permutation (4-16).",
     )
     accept_raw_uuid_input: bool = Field(
         default=True,
-        validation_alias=AliasChoices("ACCEPT_RAW_UUID_INPUT", "APP_ACCEPT_RAW_UUID_INPUT"),
         description="If true, API accepts raw UUID strings as inputs in addition to public ids (dev/test convenience).",
     )
 
@@ -241,30 +191,19 @@ class EmailSettings(BaseSettings):
         validate_default=True,
     )
 
-    enabled: bool = Field(default=False, validation_alias=AliasChoices("MAIL_ENABLED", "APP_MAIL_ENABLED"))
-    username: str | None = Field(default=None, validation_alias=AliasChoices("MAIL_USERNAME", "APP_MAIL_USERNAME"))
-    password: SecretStr | None = Field(
-        default=None, validation_alias=AliasChoices("MAIL_PASSWORD", "APP_MAIL_PASSWORD")
-    )
-    mail_from: str = Field(default="noreply@example.com", validation_alias=AliasChoices("MAIL_FROM"))
-    mail_from_name: str = Field(default="Arclayer", validation_alias=AliasChoices("MAIL_FROM_NAME"))
-    server: str = Field(default="localhost", validation_alias=AliasChoices("MAIL_SERVER"))
-    port: int = Field(default=587, validation_alias=AliasChoices("MAIL_PORT"))
-    starttls: bool = Field(default=True, validation_alias=AliasChoices("MAIL_STARTTLS"))
-    ssl_tls: bool = Field(default=False, validation_alias=AliasChoices("MAIL_SSL_TLS"))
-    use_credentials: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("MAIL_USE_CREDENTIALS", "USE_CREDENTIALS"),
-    )
-    validate_certs: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("MAIL_VALIDATE_CERTS", "VALIDATE_CERTS"),
-    )
-    suppress_send: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("MAIL_SUPPRESS_SEND", "SUPPRESS_SEND"),
-    )
-    template_dir: Path | None = Field(default=None, validation_alias=AliasChoices("MAIL_TEMPLATE_DIR"))
+    enabled: bool = Field(default=False)
+    username: str | None = Field(default=None)
+    password: SecretStr | None = Field(default=None)
+    mail_from: str = Field(default="noreply@example.com")
+    mail_from_name: str = Field(default="Arclayer")
+    server: str = Field(default="localhost")
+    port: int = Field(default=587)
+    starttls: bool = Field(default=True)
+    ssl_tls: bool = Field(default=False)
+    use_credentials: bool = Field(default=True)
+    validate_certs: bool = Field(default=True)
+    suppress_send: bool = Field(default=False)
+    template_dir: Path | None = Field(default=None)
 
     @field_validator("template_dir", mode="after")
     @classmethod

@@ -39,7 +39,7 @@ class _FakeOrganizationRBACRepo:
 
 @pytest.mark.asyncio
 async def test_organization_rbac_localize_role_uses_i18n_refs(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = OrganizationRBACService(settings)
 
@@ -64,7 +64,7 @@ async def test_organization_rbac_localize_role_uses_i18n_refs(monkeypatch: pytes
 async def test_organization_rbac_ensure_defaults_creates_builtin_roles_with_i18n_refs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = OrganizationRBACService(settings)
     fake_repo = _FakeOrganizationRBACRepo()
@@ -106,7 +106,7 @@ def test_organization_rbac_permission_i18n_map_covers_all_templates() -> None:
 
 
 def test_organization_rbac_localize_permission_uses_i18n_map(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = OrganizationRBACService(settings)
 
@@ -136,7 +136,7 @@ def test_organization_rbac_localize_permission_uses_i18n_map(monkeypatch: pytest
 def test_organization_rbac_localize_permission_keeps_raw_when_no_i18n_mapping(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = OrganizationRBACService(settings)
     permission = SimpleNamespace(

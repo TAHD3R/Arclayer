@@ -29,7 +29,7 @@ class _FakeOrgMemberRepo:
 
 @pytest.mark.asyncio
 async def test_list_members_can_filter_by_role_code(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = OrganizationMemberService(settings)
 
@@ -104,7 +104,7 @@ async def test_list_members_can_filter_by_role_code(monkeypatch: pytest.MonkeyPa
 
 @pytest.mark.asyncio
 async def test_list_members_includes_workspace_icon_url(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = OrganizationMemberService(settings)
 

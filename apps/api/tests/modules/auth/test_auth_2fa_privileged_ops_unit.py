@@ -80,7 +80,7 @@ class _FakeTwoFactorRepo:
 
 
 def _build_service(monkeypatch, *, user: _FakeUser) -> AuthTwoFactorService:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     monkeypatch.setattr(
@@ -100,7 +100,7 @@ def _build_service(monkeypatch, *, user: _FakeUser) -> AuthTwoFactorService:
 
 
 def _user_with_password(monkeypatch, *, password: str) -> _FakeUser:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     return _FakeUser(
         id=uuid4(),

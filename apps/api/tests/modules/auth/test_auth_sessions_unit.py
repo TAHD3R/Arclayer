@@ -178,7 +178,7 @@ def _get_refresh_record(valkey: FakeValkeyClient, *, jti: str) -> dict[str, Any]
 
 
 def _build(monkeypatch) -> tuple[AuthService, AuthSessionService, FakeValkeyClient, FakeUser]:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     user = FakeUser(id=uuid4(), username="demo")

@@ -62,7 +62,7 @@ def test_parse_explicit_workspace_slug_rejects_reserved() -> None:
 
 
 async def test_update_workspace_rejects_reserved_slug(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = WorkspaceService(settings)
 
@@ -82,7 +82,7 @@ async def test_update_workspace_rejects_reserved_slug(monkeypatch) -> None:
 
 
 async def test_update_workspace_rejects_duplicate_slug(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = WorkspaceService(settings)
 
@@ -102,7 +102,7 @@ async def test_update_workspace_rejects_duplicate_slug(monkeypatch) -> None:
 
 
 async def test_update_workspace_updates_slug_when_unique(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = WorkspaceService(settings)
 
@@ -124,7 +124,7 @@ async def test_update_workspace_updates_slug_when_unique(monkeypatch) -> None:
 
 
 async def test_update_workspace_rejects_icon_url_too_long(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
     service = WorkspaceService(settings)
 

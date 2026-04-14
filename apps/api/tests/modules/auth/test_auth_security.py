@@ -20,7 +20,7 @@ from src.modules.auth.tokens.service import (
 
 
 def test_password_hash_and_verify(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     hashed = hash_password("secret", settings.auth)
@@ -30,7 +30,7 @@ def test_password_hash_and_verify(monkeypatch) -> None:
 
 
 def test_access_token_roundtrip(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     user_id = uuid4()
@@ -44,7 +44,7 @@ def test_access_token_roundtrip(monkeypatch) -> None:
 
 
 def test_refresh_token_roundtrip(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     user_id = uuid4()
@@ -59,7 +59,7 @@ def test_refresh_token_roundtrip(monkeypatch) -> None:
 
 
 def test_decode_expired_token(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     now = datetime.now(UTC)
@@ -81,7 +81,7 @@ def test_decode_expired_token(monkeypatch) -> None:
 
 
 def test_decode_invalid_token(monkeypatch) -> None:
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     settings = get_settings()
 
     token, _ = build_access_token(user_id=uuid4(), token_version=0, settings=settings.auth)

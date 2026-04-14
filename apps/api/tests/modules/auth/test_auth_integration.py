@@ -20,7 +20,7 @@ async def test_auth_login_refresh_integration(
 ) -> None:
     _ = db_schema
     client, _ = valkey_client
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
     get_settings.cache_clear()
 
     settings = get_settings()

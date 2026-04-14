@@ -11,14 +11,14 @@ from src.core.logging import configure_logging
 
 def _configure(monkeypatch, log_dir: Path, *, app_env: str, log_json: bool | None = None) -> None:
     monkeypatch.setenv("APP_ENV", app_env)
-    monkeypatch.setenv("LOG_LEVEL", "INFO")
-    monkeypatch.setenv("LOG_DIR", str(log_dir))
-    monkeypatch.setenv("LOG_ASYNC", "0")
+    monkeypatch.setenv("LOGGING__LEVEL", "INFO")
+    monkeypatch.setenv("LOGGING__LOG_DIR", str(log_dir))
+    monkeypatch.setenv("LOGGING__ASYNC_ENABLED", "0")
     if app_env == "production":
         # Production settings require a stable public-id secret; provide a test-only value.
         monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
     if log_json is not None:
-        monkeypatch.setenv("LOG_JSON", "1" if log_json else "0")
+        monkeypatch.setenv("LOGGING__JSON_LOGS", "1" if log_json else "0")
     settings = get_settings()
     configure_logging(settings)
 

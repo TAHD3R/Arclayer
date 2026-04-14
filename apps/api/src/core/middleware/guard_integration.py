@@ -23,10 +23,10 @@ from guard_core.protocols.response_protocol import GuardResponse
 from starlette.responses import JSONResponse
 
 from src.config import Settings
-from src.config_runtime import SecuritySettings
 from src.core.http.response import ApiResponse as ResponseBuilder
 from src.core.i18n import get_request_locale, t
 from src.core.middleware.guard_decorators import guard_decorator
+from src.settings.env_models import SecuritySettings
 
 _pending_csrf_cookie: ContextVar[str | None] = ContextVar("pending_csrf_cookie", default=None)
 

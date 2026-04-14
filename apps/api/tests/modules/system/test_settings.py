@@ -3,8 +3,7 @@ from src.config import ApplicationSettings, Settings, get_settings
 
 def test_settings_defaults(monkeypatch) -> None:
     monkeypatch.delenv("APP_ENV", raising=False)
-    monkeypatch.delenv("ENV", raising=False)
-    monkeypatch.delenv("APP_NAME", raising=False)
+    monkeypatch.delenv("APPLICATION__APP_NAME", raising=False)
 
     settings = get_settings()
 
@@ -16,7 +15,7 @@ def test_settings_defaults(monkeypatch) -> None:
 
 def test_settings_env_overrides(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("APP_NAME", "Arclayer API (Prod)")
+    monkeypatch.setenv("APPLICATION__APP_NAME", "Arclayer API (Prod)")
     monkeypatch.setenv("PUBLIC_ID__SECRET", "test-public-id-secret")
 
     settings = get_settings()

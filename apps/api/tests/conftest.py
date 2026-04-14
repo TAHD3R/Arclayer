@@ -52,7 +52,7 @@ def base_test_env(monkeypatch) -> Iterator[None]:
     monkeypatch.setenv("TASKIQ__ENABLED", "0")
 
     # Avoid async log queue threads in tests unless explicitly enabled.
-    monkeypatch.setenv("LOG_ASYNC", "0")
+    monkeypatch.setenv("LOGGING__ASYNC_ENABLED", "0")
     yield
 
 
