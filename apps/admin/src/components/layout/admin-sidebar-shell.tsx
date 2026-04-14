@@ -8,7 +8,7 @@ import {
   AdminSidebarMainMenuSkeleton,
 } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
-import { Sidebar, SidebarContent } from "@arclayer/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarRail } from "@arclayer/ui/sidebar";
 import { cn } from "@arclayer/lib/utils";
 
 export type AdminSidebarShellProps = {
@@ -203,6 +203,7 @@ export function AdminSidebarShell({
         resolvePermissionName={resolvePermissionName}
         pathnameOverride={pathnameOverride}
       />
+      {collapsible !== "none" ? <SidebarRail /> : null}
     </Sidebar>
   );
 }

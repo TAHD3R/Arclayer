@@ -34,7 +34,7 @@ export function GlobalLayout() {
       )}
       mainItems={GLOBAL_NAV_ITEMS}
       footerItems={footerItems}
-      sidebarCollapsible="none"
+      sidebarCollapsible="icon"
     >
       <Outlet />
     </AdminSceneLayout>

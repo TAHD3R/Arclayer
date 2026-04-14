@@ -116,7 +116,12 @@ export function AdminLayout({ children }: PropsWithChildren) {
     <AdminSceneLayout
       notificationQueryScope="admin"
       renderTopbar={(topbar) => (
-        <AdminTopbar navItems={mainItems} commandScope={commandScope} {...topbar} />
+        <AdminTopbar
+          navItems={mainItems}
+          commandScope={commandScope}
+          sidebarToggleMode="mobile-only"
+          {...topbar}
+        />
       )}
       mainItems={isWorkspaceScopeRoute ? mainItems : []}
       favoriteWorkspaceBase={isWorkspaceScopeRoute ? workspaceBase : null}

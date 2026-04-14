@@ -311,29 +311,92 @@ function SidebarTrigger({ className, onClick, ...props }: SidebarTriggerProps) {
 
 type SidebarRailProps = React.ComponentProps<typeof ButtonPrimitive>;
 
-function SidebarRail({ className, ...props }: SidebarRailProps) {
+function SidebarRail({
+  className,
+  "aria-label": ariaLabel,
+  onClick,
+  onMouseEnter,
+  onMouseMove,
+  onMouseLeave,
+  ...props
+}: SidebarRailProps) {
   const { toggleSidebar } = useSidebar();
+  const label = ariaLabel ?? "Toggle Sidebar";
+  const frameRef = React.useRef<number | null>(null);
+  const pointerRef = React.useRef<{ x: number; y: number } | null>(null);
+  const [tooltipOpen, setTooltipOpen] = React.useState(false);
+  const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
+
+  const flushPointerPosition = React.useCallback(() => {
+    frameRef.current = null;
+    if (!pointerRef.current) return;
+    setTooltipPosition(pointerRef.current);
+  }, []);
+
+  const schedulePointerPosition = React.useCallback(
+    (x: number, y: number) => {
+      pointerRef.current = { x, y };
+      if (frameRef.current !== null) return;
+      frameRef.current = window.requestAnimationFrame(flushPointerPosition);
+    },
+    [flushPointerPosition],
+  );
+
+  React.useEffect(() => {
+    return () => {
+      if (frameRef.current === null) return;
+      window.cancelAnimationFrame(frameRef.current);
+    };
+  }, []);
 
   return (
-    <ButtonPrimitive
-      data-sidebar="rail"
-      data-slot="sidebar-rail"
-      aria-label="Toggle Sidebar"
-      tabIndex={-1}
-      onClick={toggleSidebar}
-      title="Toggle Sidebar"
-      tapScale={1}
-      className={cn(
-        "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
-        "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
-        "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-        "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
-        "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
-        "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
-        className,
-      )}
-      {...props}
-    />
+    <>
+      <ButtonPrimitive
+        data-sidebar="rail"
+        data-slot="sidebar-rail"
+        aria-label={label}
+        tabIndex={-1}
+        onClick={(event) => {
+          onClick?.(event);
+          toggleSidebar();
+        }}
+        onMouseEnter={(event) => {
+          onMouseEnter?.(event);
+          schedulePointerPosition(event.clientX, event.clientY);
+          setTooltipOpen(true);
+        }}
+        onMouseMove={(event) => {
+          onMouseMove?.(event);
+          schedulePointerPosition(event.clientX, event.clientY);
+        }}
+        onMouseLeave={(event) => {
+          onMouseLeave?.(event);
+          setTooltipOpen(false);
+        }}
+        tapScale={1}
+        className={cn(
+          "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[transform,background-color] ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 sm:flex",
+          "cursor-pointer",
+          "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
+          "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
+          "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+          className,
+        )}
+        {...props}
+      />
+      {tooltipOpen ? (
+        <div
+          data-slot="sidebar-rail-tooltip"
+          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-md bg-primary px-3 py-1.5 text-callout text-balance text-primary-foreground"
+          style={{
+            left: `${tooltipPosition.x + 14}px`,
+            top: `${tooltipPosition.y}px`,
+          }}
+        >
+          {label}
+        </div>
+      ) : null}
+    </>
   );
 }
 

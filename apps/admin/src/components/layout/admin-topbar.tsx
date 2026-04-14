@@ -13,6 +13,7 @@ import { useAdminCommandPalette } from "@/hooks/use-admin-command-palette";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { useSidebar } from "@arclayer/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import type { CommandScope } from "@/lib/command/command-types";
 
 const TOPBAR_ICON_BUTTON_CLASSNAME = cn(
@@ -115,21 +116,26 @@ function TopbarTrailing(props: {
 }) {
   return (
     <div className="min-w-0 flex items-center justify-end gap-2">
-      <ButtonPrimitive
-        type="button"
-        tapScale={1}
-        aria-label={props.notificationLabel}
-        data-state={props.notificationOpen ? "open" : "closed"}
-        onClick={props.onNotificationToggle}
-        className={TOPBAR_ICON_BUTTON_CLASSNAME}
-      >
-        <Bell className="size-4" aria-hidden="true" />
-        {props.showNotificationsBadge && props.unreadCount > 0 ? (
-          <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold  text-primary-foreground">
-            {props.unreadCount > 99 ? "99+" : props.unreadCount}
-          </span>
-        ) : null}
-      </ButtonPrimitive>
+      <Tooltip>
+        <TooltipTrigger asChild focusTrigger={false}>
+          <ButtonPrimitive
+            type="button"
+            tapScale={1}
+            aria-label={props.notificationLabel}
+            data-state={props.notificationOpen ? "open" : "closed"}
+            onClick={props.onNotificationToggle}
+            className={TOPBAR_ICON_BUTTON_CLASSNAME}
+          >
+            <Bell className="size-4" aria-hidden="true" />
+            {props.showNotificationsBadge && props.unreadCount > 0 ? (
+              <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold  text-primary-foreground">
+                {props.unreadCount > 99 ? "99+" : props.unreadCount}
+              </span>
+            ) : null}
+          </ButtonPrimitive>
+        </TooltipTrigger>
+        <TooltipContent>{props.notificationLabel}</TooltipContent>
+      </Tooltip>
 
       <AdminAccountMenu variant="header" />
     </div>

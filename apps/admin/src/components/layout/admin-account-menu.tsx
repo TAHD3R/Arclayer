@@ -3,17 +3,19 @@ import {
   isValidElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
+  type MouseEventHandler,
+  type FocusEventHandler,
   type ReactNode,
 } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  ArrowLeft,
-  ArrowRight,
   Check,
+  ChevronRight,
   ChevronDown,
   Keyboard,
   Languages,
@@ -23,7 +25,6 @@ import {
   Sun,
   UserCog,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
@@ -47,6 +48,7 @@ import {
   FloatingPanelTrigger,
   useFloatingPanel,
 } from "@arclayer/ui/floating-panel";
+import { Popover, PopoverAnchor, PopoverContent } from "@arclayer/ui/popover";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
 const SHORTCUTS_HELP_HASH = "#shortcuts";
@@ -86,7 +88,7 @@ type AdminAccountMenuModel = {
   onShortcuts: () => void;
 };
 
-type AccountMenuView = "root" | "language" | "appearance";
+type AccountMenuSubmenu = "language" | "appearance";
 
 type PreferenceOption = {
   icon: ReactNode;
@@ -109,16 +111,13 @@ type AdminAccountPanelContentProps = {
 };
 
 const PANEL_WIDTH_CLASSNAME = "w-75";
+const SUBMENU_PANEL_WIDTH_CLASSNAME = "w-64";
+const SUBMENU_CLOSE_DELAY_MS = 120;
 const MENU_ITEM_CLASSNAME = cn(
   "group transition-[background-color,color] duration-200",
   "hover:bg-accent hover:text-label-primary",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
 );
-const VIEW_TRANSITIONS = {
-  enter: (direction: number) => ({ opacity: 0, x: direction > 0 ? 20 : -20 }),
-  center: { opacity: 1, x: 0 },
-  exit: (direction: number) => ({ opacity: 0, x: direction > 0 ? -20 : 20 }),
-};
 
 function normalizeIcon(node: ReactNode) {
   if (!isValidElement(node)) return node;
@@ -154,10 +153,21 @@ function MenuAction(props: {
   icon?: ReactNode;
   label: string;
   right?: ReactNode;
-  onClick: () => Promise<void> | void;
+  onClick?: () => Promise<void> | void;
+  onMouseEnter?: MouseEventHandler<HTMLButtonElement>;
+  onMouseLeave?: MouseEventHandler<HTMLButtonElement>;
+  onFocus?: FocusEventHandler<HTMLButtonElement>;
+  onBlur?: FocusEventHandler<HTMLButtonElement>;
 }) {
   return (
-    <FloatingPanelButton className={MENU_ITEM_CLASSNAME} onClick={props.onClick}>
+    <FloatingPanelButton
+      className={MENU_ITEM_CLASSNAME}
+      onClick={props.onClick}
+      onMouseEnter={props.onMouseEnter}
+      onMouseLeave={props.onMouseLeave}
+      onFocus={props.onFocus}
+      onBlur={props.onBlur}
+    >
       <MenuItemContent icon={props.icon} label={props.label} right={props.right} />
     </FloatingPanelButton>
   );
@@ -184,9 +194,13 @@ function ProfileSummary(props: {
 }
 
 function RootMenu(props: {
+  panelOpen: boolean;
+  locale: AppLocale;
+  themePreference: ThemePreference;
   onAccountSettings: () => Promise<void> | void;
-  onOpenAppearance: () => void;
-  onOpenLanguage: () => void;
+  onLocaleChange: (next: AppLocale) => Promise<void> | void;
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
   onShortcuts: () => Promise<void> | void;
   onLogout: () => Promise<void>;
 }) {
@@ -199,17 +213,27 @@ function RootMenu(props: {
           label={t("ACCOUNT_MENU_ACCOUNT")}
           onClick={props.onAccountSettings}
         />
-        <MenuAction
+        <PreferenceSubmenuAction
+          panelOpen={props.panelOpen}
           icon={<Languages />}
           label={t("ACCOUNT_MENU_LANGUAGE_PREFERENCES")}
-          right={<ArrowRight />}
-          onClick={props.onOpenLanguage}
+          submenu="language"
+          locale={props.locale}
+          themePreference={props.themePreference}
+          onLocaleChange={props.onLocaleChange}
+          onThemePreferenceChange={props.onThemePreferenceChange}
+          onSelectAndClose={props.onSelectAndClose}
         />
-        <MenuAction
+        <PreferenceSubmenuAction
+          panelOpen={props.panelOpen}
           icon={<Monitor />}
           label={t("ACCOUNT_MENU_APPEARANCE")}
-          right={<ArrowRight />}
-          onClick={props.onOpenAppearance}
+          submenu="appearance"
+          locale={props.locale}
+          themePreference={props.themePreference}
+          onLocaleChange={props.onLocaleChange}
+          onThemePreferenceChange={props.onThemePreferenceChange}
+          onSelectAndClose={props.onSelectAndClose}
         />
       </div>
       <MenuDivider />
@@ -229,14 +253,14 @@ function RootMenu(props: {
 }
 
 function buildPreferenceOptions(
-  view: Exclude<AccountMenuView, "root">,
+  submenu: AccountMenuSubmenu,
   t: (key: string) => string,
   locale: AppLocale,
   themePreference: ThemePreference,
   onLocaleChange: (next: AppLocale) => Promise<void> | void,
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void,
 ): PreferenceOption[] {
-  if (view === "language") {
+  if (submenu === "language") {
     return buildSupportedLocaleOptions(SUPPORTED_LOCALES, t).map((option) => ({
       icon: <Languages />,
       label: option.label,
@@ -267,21 +291,28 @@ function buildPreferenceOptions(
   ];
 }
 
-function PreferenceSubmenu(props: {
-  view: Exclude<AccountMenuView, "root">;
+function PreferenceSubmenuContent(props: {
+  submenu: AccountMenuSubmenu;
   locale: AppLocale;
   themePreference: ThemePreference;
-  onBack: () => void;
+  open: boolean;
+  shouldFocusInitialItem: boolean;
   onLocaleChange: (next: AppLocale) => Promise<void> | void;
   onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
   onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
+  onInitialItemFocused: () => void;
+  onMouseEnter: MouseEventHandler<HTMLDivElement>;
+  onMouseLeave: MouseEventHandler<HTMLDivElement>;
+  onFocusCapture: FocusEventHandler<HTMLDivElement>;
+  onBlurCapture: FocusEventHandler<HTMLDivElement>;
 }) {
   const { t } = useTranslation(["account", "common"]);
   const translate = (key: string) => t(key) as string;
   const translateLocaleLabel = (key: string) =>
     translate(key.startsWith("account:") ? key.slice("account:".length) : key);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const options = buildPreferenceOptions(
-    props.view,
+    props.submenu,
     translateLocaleLabel,
     props.locale,
     props.themePreference,
@@ -289,57 +320,147 @@ function PreferenceSubmenu(props: {
     props.onThemePreferenceChange,
   );
 
+  useEffect(() => {
+    if (!props.open || !props.shouldFocusInitialItem) return;
+
+    queueMicrotask(() => {
+      const firstButton = contentRef.current?.querySelector<HTMLButtonElement>("button");
+      firstButton?.focus();
+      props.onInitialItemFocused();
+    });
+  }, [props.open, props.shouldFocusInitialItem, props.onInitialItemFocused]);
+
   return (
-    <>
-      <div className="py-1">
-        <MenuAction icon={<ArrowLeft />} label={translate("common:BACK")} onClick={props.onBack} />
-      </div>
-      <MenuDivider />
-      <div className="pb-4">
-        {options.map((option) => (
-          <MenuAction
-            key={option.label}
-            icon={option.icon}
-            label={option.label}
-            right={option.selected ? <Check className="text-primary" /> : null}
-            onClick={() => props.onSelectAndClose(option.onClick)}
-          />
-        ))}
-      </div>
-    </>
+    <div
+      ref={contentRef}
+      className="py-1"
+      onMouseEnter={props.onMouseEnter}
+      onMouseLeave={props.onMouseLeave}
+      onFocusCapture={props.onFocusCapture}
+      onBlurCapture={props.onBlurCapture}
+    >
+      {options.map((option) => (
+        <MenuAction
+          key={option.label}
+          icon={option.icon}
+          label={option.label}
+          right={option.selected ? <Check className="text-primary" /> : null}
+          onClick={() => props.onSelectAndClose(option.onClick)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PreferenceSubmenuAction(props: {
+  panelOpen: boolean;
+  icon: ReactNode;
+  label: string;
+  submenu: AccountMenuSubmenu;
+  locale: AppLocale;
+  themePreference: ThemePreference;
+  onLocaleChange: (next: AppLocale) => Promise<void> | void;
+  onThemePreferenceChange: (next: ThemePreference) => Promise<void> | void;
+  onSelectAndClose: (fn: () => Promise<void> | void) => Promise<void>;
+}) {
+  const closeTimeoutRef = useRef<number | null>(null);
+  const [open, setOpen] = useState(false);
+  const [focusInitialItem, setFocusInitialItem] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current === null) return;
+      window.clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (props.panelOpen) return;
+    clearCloseTimeout();
+    setOpen(false);
+    setFocusInitialItem(false);
+  }, [props.panelOpen]);
+
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current === null) return;
+    window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = null;
+  };
+
+  const openSubmenu = (focusInitial = false) => {
+    clearCloseTimeout();
+    setFocusInitialItem(focusInitial);
+    setOpen(true);
+  };
+
+  const scheduleClose = () => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setOpen(false);
+      setFocusInitialItem(false);
+      closeTimeoutRef.current = null;
+    }, SUBMENU_CLOSE_DELAY_MS);
+  };
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        clearCloseTimeout();
+        setOpen(next);
+        if (!next) {
+          setFocusInitialItem(false);
+        }
+      }}
+    >
+      <PopoverAnchor className="block w-full">
+        <MenuAction
+          icon={props.icon}
+          label={props.label}
+          right={<ChevronRight />}
+          onClick={() => openSubmenu(true)}
+          onMouseEnter={() => openSubmenu(false)}
+          onMouseLeave={scheduleClose}
+          onFocus={() => openSubmenu(false)}
+          onBlur={scheduleClose}
+        />
+      </PopoverAnchor>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        className={cn(SUBMENU_PANEL_WIDTH_CLASSNAME, "p-1")}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        onMouseDownCapture={(event) => event.stopPropagation()}
+        onPointerDownCapture={(event) => event.stopPropagation()}
+      >
+        <PreferenceSubmenuContent
+          submenu={props.submenu}
+          locale={props.locale}
+          themePreference={props.themePreference}
+          open={open}
+          shouldFocusInitialItem={focusInitialItem}
+          onLocaleChange={props.onLocaleChange}
+          onThemePreferenceChange={props.onThemePreferenceChange}
+          onSelectAndClose={props.onSelectAndClose}
+          onInitialItemFocused={() => setFocusInitialItem(false)}
+          onMouseEnter={clearCloseTimeout}
+          onMouseLeave={scheduleClose}
+          onFocusCapture={clearCloseTimeout}
+          onBlurCapture={scheduleClose}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
 
 function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
   const { isOpen, closeFloatingPanel } = useFloatingPanel();
-  const [view, setView] = useState<AccountMenuView>("root");
-  const [direction, setDirection] = useState(1);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setView("root");
-      setDirection(1);
-    }
-  }, [isOpen]);
 
   const onClickAndClose = async (fn: () => Promise<void> | void) => {
     await fn();
     closeFloatingPanel();
-  };
-
-  const showAppearance = () => {
-    setDirection(1);
-    setView("appearance");
-  };
-
-  const showLanguage = () => {
-    setDirection(1);
-    setView("language");
-  };
-
-  const showRoot = () => {
-    setDirection(-1);
-    setView("root");
   };
 
   return (
@@ -350,39 +471,17 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
         avatarUrl={props.avatarUrl}
       />
       <MenuDivider />
-      <div className="relative overflow-hidden">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.div
-            key={view}
-            custom={direction}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            variants={VIEW_TRANSITIONS}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-          >
-            {view === "root" ? (
-              <RootMenu
-                onAccountSettings={() => onClickAndClose(props.onAccountSettings)}
-                onOpenAppearance={showAppearance}
-                onOpenLanguage={showLanguage}
-                onShortcuts={() => onClickAndClose(props.onShortcuts)}
-                onLogout={() => onClickAndClose(props.onLogout)}
-              />
-            ) : (
-              <PreferenceSubmenu
-                view={view}
-                locale={props.locale}
-                themePreference={props.themePreference}
-                onBack={showRoot}
-                onLocaleChange={props.onLocaleChange}
-                onThemePreferenceChange={props.onThemePreferenceChange}
-                onSelectAndClose={onClickAndClose}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      <RootMenu
+        panelOpen={isOpen}
+        locale={props.locale}
+        themePreference={props.themePreference}
+        onAccountSettings={() => onClickAndClose(props.onAccountSettings)}
+        onLocaleChange={props.onLocaleChange}
+        onThemePreferenceChange={props.onThemePreferenceChange}
+        onSelectAndClose={onClickAndClose}
+        onShortcuts={() => onClickAndClose(props.onShortcuts)}
+        onLogout={() => onClickAndClose(props.onLogout)}
+      />
     </div>
   );
 }

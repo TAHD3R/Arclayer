@@ -1,0 +1,114 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
+import { SidebarProvider } from "@arclayer/ui/sidebar";
+
+vi.mock("@/components/layout/admin-side-nav", () => ({
+  AdminSiderNav: () => <div data-testid="admin-sider-nav" />,
+}));
+
+vi.mock("@/components/layout/admin-sidebar-skeleton", () => ({
+  AdminSidebarMainMenuSkeleton: () => <div data-testid="admin-sidebar-main-skeleton" />,
+  AdminSidebarFooterMenuSkeleton: () => <div data-testid="admin-sidebar-footer-skeleton" />,
+}));
+
+vi.mock("@/components/ui/gradual-blur", () => ({
+  default: () => null,
+}));
+
+function renderWithSidebar(node: React.ReactElement) {
+  return render(
+    <SidebarProvider defaultOpen className="h-screen">
+      {node}
+    </SidebarProvider>,
+  );
+}
+
+describe("AdminSidebarShell", () => {
+  beforeAll(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    class ResizeObserverMock {
+      observe() {
+        return undefined;
+      }
+      unobserve() {
+        return undefined;
+      }
+      disconnect() {
+        return undefined;
+      }
+    }
+
+    vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+  });
+
+  it("renders the shared sidebar rail when the desktop sidebar is collapsible", () => {
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        footerItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    const rail = document.querySelector<HTMLButtonElement>('[data-sidebar="rail"]');
+    expect(rail).not.toBeNull();
+    if (!rail) throw new Error("Missing sidebar rail");
+    expect(rail.className).toContain("cursor-pointer");
+  });
+
+  it("does not render the sidebar rail when the sidebar is fixed", () => {
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        footerItems={[]}
+        collapsible="none"
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Toggle Sidebar" })).toBeNull();
+  });
+
+  it("shows a tooltip when hovering the shared sidebar rail", async () => {
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        footerItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    const rail = screen.getByRole("button", { name: "Toggle Sidebar" });
+    fireEvent.mouseEnter(rail, { clientX: 80, clientY: 120 });
+    fireEvent.mouseMove(rail, { clientX: 96, clientY: 144 });
+
+    await waitFor(() => {
+      const tooltip = document.body.querySelector<HTMLElement>(
+        '[data-slot="sidebar-rail-tooltip"]',
+      );
+      expect(tooltip).toHaveTextContent("Toggle Sidebar");
+      expect(tooltip?.style.left).toBe("110px");
+      expect(tooltip?.style.top).toBe("144px");
+    });
+  });
+});

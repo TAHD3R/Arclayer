@@ -168,41 +168,57 @@ describe("AdminAccountMenu", () => {
     expect(accountAction.querySelector(".size-4")).not.toBeNull();
   });
 
-  it("点击语言偏好入口后只展示语言二级菜单", async () => {
+  it("hover 语言偏好入口时会在右侧显示语言子浮层，不再切换整块菜单", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_ZH" })).toBeVisible();
       expect(screen.getByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeVisible();
-      expect(screen.getByRole("button", { name: "common:BACK" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeVisible();
     });
+    expect(screen.queryByRole("button", { name: "common:BACK" })).toBeNull();
     expect(screen.queryByRole("button", { name: "ACCOUNT_THEME_DARK" })).toBeNull();
   });
 
-  it("点击外观入口后会进入二级菜单并更新主题偏好", async () => {
+  it("hover 外观入口后会显示右侧子浮层并更新主题偏好", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_APPEARANCE" }));
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_APPEARANCE" }));
     await user.click(await screen.findByRole("button", { name: "ACCOUNT_THEME_DARK" }));
 
     expect(setThemePreferenceWithTransition).toHaveBeenCalledWith("dark", { direction: "ltr" });
   });
 
-  it("点击语言二级菜单项会更新语言偏好", async () => {
+  it("点击语言子浮层项会更新语言偏好", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
-    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
     await user.click(await screen.findByRole("button", { name: "ACCOUNT_LANGUAGE_EN" }));
 
     expect(usePreferencesStore.getState().locale).toBe("en-US");
+  });
+
+  it("选择语言后主浮层与子浮层会一起关闭，不会残留子浮层", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.hover(screen.getByRole("button", { name: "ACCOUNT_MENU_LANGUAGE_PREFERENCES" }));
+    await user.click(await screen.findByRole("button", { name: "ACCOUNT_LANGUAGE_EN" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "ACCOUNT_LANGUAGE_EN" })).toBeNull();
+      expect(document.body.querySelector('[data-slot="popover-content"]')).toBeNull();
+    });
   });
 
   it("点击退出会调用后端 logout，再清空本地登录态并跳转", async () => {

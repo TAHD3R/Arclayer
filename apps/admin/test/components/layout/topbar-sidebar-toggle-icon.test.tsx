@@ -4,6 +4,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { UserCenterTopbar } from "@/components/layout/usercenter-topbar";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
+import userEvent from "@testing-library/user-event";
 
 vi.mock("lucide-react", async () => {
   const actual = await vi.importActual<typeof import("lucide-react")>("lucide-react");
@@ -57,9 +59,11 @@ vi.mock("@tanstack/react-router", async () => {
 
 function renderWithSidebar(node: React.ReactElement) {
   return render(
-    <SidebarProvider defaultOpen className="h-screen">
-      {node}
-    </SidebarProvider>,
+    <TooltipProvider openDelay={0} closeDelay={0}>
+      <SidebarProvider defaultOpen className="h-screen">
+        {node}
+      </SidebarProvider>
+    </TooltipProvider>,
   );
 }
 
@@ -103,6 +107,28 @@ describe("topbar sidebar toggle icon", () => {
     );
 
     expectStaticHamburgerIcon();
+  });
+
+  it("AdminTopbar 在 workspace 桌面场景可将 sidebar toggle 收敛为仅移动端显示", () => {
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "workspace",
+          pathname: "/w/ws-1",
+          workspaceId: "ws-1",
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+        sidebarToggleMode="mobile-only"
+      />,
+    );
+
+    const toggleButton = screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" });
+    expect(toggleButton.className).toContain("md:hidden");
   });
 
   it("UserCenterTopbar 使用 lucide-react 的静态 Menu icon", () => {
@@ -185,6 +211,38 @@ describe("topbar sidebar toggle icon", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("command-trigger")).toBeInTheDocument();
+    });
+  });
+
+  it("AdminTopbar 的通知按钮在 hover 时显示 tooltip", async () => {
+    const user = userEvent.setup();
+
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "none",
+          pathname: "/workspaces",
+          workspaceId: null,
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: "notifications:NOTIFICATIONS_OPEN_CENTER",
+    });
+
+    await user.hover(trigger);
+
+    await waitFor(() => {
+      expect(document.body.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(
+        "notifications:NOTIFICATIONS_OPEN_CENTER",
+      );
     });
   });
 });
