@@ -353,7 +353,7 @@ function WorkspacePickerSection(props: {
 
   return (
     <div className="min-w-0">
-      <div className="px-2 py-1.5 text-callout text-label-secondary">{props.title}</div>
+      <div className="px-2 py-1.5 text-headline text-label-primary">{props.title}</div>
       <div
         style={WORKSPACE_PICKER_MAX_HEIGHT_STYLE}
         className={cn(PANEL_SECTION_CLASSNAME, "overflow-y-auto overscroll-contain")}
@@ -398,7 +398,7 @@ function PersonalSpaceSection(props: {
 
   return (
     <div className="min-w-0">
-      <div className="px-2 py-1.5 text-callout text-label-secondary">
+      <div className="px-2 py-1.5 text-headline text-label-primary">
         {t("common:WORKSPACE_SWITCHER_PERSONAL_SPACE_SECTION")}
       </div>
       <div className={PANEL_SECTION_CLASSNAME}>
