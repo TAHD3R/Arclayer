@@ -9,8 +9,10 @@ import { useMutation } from "@tanstack/react-query";
 import type { TeamMember } from "@/types/api";
 import { resetTeamMemberPassword } from "@/api/team";
 import { Button } from "@arclayer/ui/button";
+import { PasswordInput } from "@arclayer/ui/password-input";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
-import { Input } from "@arclayer/ui/input";
+import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
+import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -26,7 +28,7 @@ export function ResetUserPasswordDialog(props: {
   member: TeamMember | null;
   onReset?: () => void;
 }) {
-  const { t } = useTranslation(["team", "common"]);
+  const { t } = useTranslation(["team", "common", "auth"]);
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
   const schema = React.useMemo(() => {
@@ -34,8 +36,8 @@ export function ResetUserPasswordDialog(props: {
       .object({
         newPassword: z
           .string()
-          .min(8, t("team:TEAM_VALIDATION_PASSWORD_MIN"))
-          .max(128, t("team:TEAM_VALIDATION_PASSWORD_MAX")),
+          .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
+          .regex(PASSWORD_PATTERN, t("auth:PASSWORD_INVALID")),
         confirmPassword: z.string(),
       })
       .superRefine((val, ctx) => {
@@ -54,6 +56,7 @@ export function ResetUserPasswordDialog(props: {
     defaultValues: { newPassword: "", confirmPassword: "" },
     mode: "onSubmit",
   });
+  const newPasswordValue = form.watch("newPassword");
 
   React.useEffect(() => {
     if (!props.open) {
@@ -120,11 +123,16 @@ export function ResetUserPasswordDialog(props: {
           <div className="text-label-secondary">
             {t("team:TEAM_RESET_PASSWORD_FIELD_NEW_PASSWORD_HELP")}
           </div>
-          <Input
+          <PasswordInput
             id="newPassword"
-            type="password"
+            autoComplete="new-password"
             disabled={mutation.isPending}
             {...form.register("newPassword")}
+          />
+          <PasswordRequirementChecklist
+            password={newPasswordValue}
+            active={Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0}
+            t={t}
           />
           {form.formState.errors.newPassword?.message ? (
             <div className="text-footnote text-destructive">
@@ -140,9 +148,9 @@ export function ResetUserPasswordDialog(props: {
           <div className="text-label-secondary">
             {t("team:TEAM_RESET_PASSWORD_FIELD_CONFIRM_PASSWORD_HELP")}
           </div>
-          <Input
+          <PasswordInput
             id="confirmPassword"
-            type="password"
+            autoComplete="new-password"
             disabled={mutation.isPending}
             {...form.register("confirmPassword")}
           />

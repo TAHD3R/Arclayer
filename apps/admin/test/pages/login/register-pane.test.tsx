@@ -82,12 +82,27 @@ describe("RegisterPane oauth section", () => {
     expect(screen.getByRole("button", { name: "auth:REGISTER_BUTTON" })).toBeDisabled();
   });
 
-  it("shows live password strength guidance on the register form", async () => {
+  it("hides password guidance before interaction and shows the checklist while invalid", async () => {
     const user = userEvent.setup();
 
     renderPane({ registerSeed: { email: "founder@example.com", step: "details" } });
 
+    expect(screen.queryByText("auth:PASSWORD_REQUIREMENT_LENGTH")).not.toBeInTheDocument();
+
     await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "short");
-    expect(screen.getByText("auth:PASSWORD_STRENGTH_INVALID_LENGTH")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_LENGTH")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_LOWERCASE")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_UPPERCASE")).toBeInTheDocument();
+    expect(screen.getByText("auth:PASSWORD_REQUIREMENT_NUMBER")).toBeInTheDocument();
+  });
+
+  it("shows a single success message when all password requirements are met", async () => {
+    const user = userEvent.setup();
+
+    renderPane({ registerSeed: { email: "founder@example.com", step: "details" } });
+
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "ValidPass1");
+    expect(await screen.findByText("auth:PASSWORD_REQUIREMENTS_MET")).toBeInTheDocument();
+    expect(screen.queryByText("auth:PASSWORD_REQUIREMENT_LENGTH")).not.toBeInTheDocument();
   });
 });

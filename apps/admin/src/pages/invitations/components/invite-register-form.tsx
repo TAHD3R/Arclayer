@@ -10,7 +10,8 @@ import {
   AuthLinkButton,
   AuthPasswordControl,
 } from "@arclayer/ui/auth-controls";
-import { getPasswordStrengthFeedback, PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
+import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
+import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { Button } from "@arclayer/ui/button";
@@ -86,13 +87,7 @@ export function InviteRegisterForm(props: {
   const submitHandler = form.handleSubmit((values) => {
     props.onSubmit(emailLocked ? { ...values, email: undefined } : values);
   });
-  const passwordFeedback = getPasswordStrengthFeedback(form.watch("password"), t);
-  const passwordFeedbackClassName =
-    passwordFeedback.tone === "success"
-      ? "text-success"
-      : passwordFeedback.tone === "danger"
-        ? "text-destructive"
-        : "text-label-secondary";
+  const passwordValue = form.watch("password");
 
   return (
     <div>
@@ -175,11 +170,11 @@ export function InviteRegisterForm(props: {
             disabled={props.loading}
             {...form.register("password")}
           />
-          {passwordFeedback.message ? (
-            <div className={`text-footnote ${passwordFeedbackClassName}`}>
-              {passwordFeedback.message}
-            </div>
-          ) : null}
+          <PasswordRequirementChecklist
+            password={passwordValue}
+            active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
+            t={t}
+          />
           <AuthFieldError
             message={
               form.formState.errors.password?.message

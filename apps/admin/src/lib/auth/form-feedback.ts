@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { usernameCheck } from "@/api/auth";
 
 export const ACCOUNT_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-export const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,128}$/;
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 128;
+export const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/;
 
 export function useDebouncedValue(value: string, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -18,7 +20,9 @@ export function useDebouncedValue(value: string, delayMs: number) {
 }
 
 export function useUsernameAvailability(username: string, enabled: boolean) {
-  const normalizedUsername = String(username || "").trim().toLowerCase();
+  const normalizedUsername = String(username || "")
+    .trim()
+    .toLowerCase();
   const debouncedUsername = useDebouncedValue(normalizedUsername, 350);
   const formatValid = ACCOUNT_NAME_PATTERN.test(debouncedUsername);
 
@@ -41,46 +45,38 @@ export function useUsernameAvailability(username: string, enabled: boolean) {
   };
 }
 
-export type PasswordStrengthFeedback = {
-  tone: "default" | "success" | "danger";
-  valid: boolean;
-  message: string | null;
+export type PasswordRequirementKey = "length" | "lowercase" | "uppercase" | "number";
+
+export type PasswordRequirementState = {
+  key: PasswordRequirementKey;
+  label: string;
+  met: boolean;
 };
 
-export function getPasswordStrengthFeedback(
+export function getPasswordRequirementStates(
   password: string,
   t: (key: string) => string,
-): PasswordStrengthFeedback {
-  if (!password) {
-    return { tone: "default", valid: false, message: null };
-  }
-
-  if (password.length < 8 || password.length > 128) {
-    return {
-      tone: "danger",
-      valid: false,
-      message: t("auth:PASSWORD_STRENGTH_INVALID_LENGTH"),
-    };
-  }
-
-  const hasLetter = /[A-Za-z]/.test(password);
-  const hasDigit = /\d/.test(password);
-  if (!hasLetter || !hasDigit) {
-    return {
-      tone: "danger",
-      valid: false,
-      message: t("auth:PASSWORD_STRENGTH_NEEDS_LETTER_AND_NUMBER"),
-    };
-  }
-
-  const hasLowercase = /[a-z]/.test(password);
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasSymbol = /[^A-Za-z0-9]/.test(password);
-  const strong = password.length >= 12 && hasLowercase && hasUppercase && hasDigit && hasSymbol;
-
-  return {
-    tone: "success",
-    valid: true,
-    message: strong ? t("auth:PASSWORD_STRENGTH_STRONG") : t("auth:PASSWORD_STRENGTH_GOOD"),
-  };
+): PasswordRequirementState[] {
+  return [
+    {
+      key: "length",
+      label: t("auth:PASSWORD_REQUIREMENT_LENGTH"),
+      met: password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH,
+    },
+    {
+      key: "lowercase",
+      label: t("auth:PASSWORD_REQUIREMENT_LOWERCASE"),
+      met: /[a-z]/.test(password),
+    },
+    {
+      key: "uppercase",
+      label: t("auth:PASSWORD_REQUIREMENT_UPPERCASE"),
+      met: /[A-Z]/.test(password),
+    },
+    {
+      key: "number",
+      label: t("auth:PASSWORD_REQUIREMENT_NUMBER"),
+      met: /\d/.test(password),
+    },
+  ];
 }

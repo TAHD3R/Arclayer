@@ -9,10 +9,11 @@ import { z } from "zod";
 import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
+import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
-import { PASSWORD_PATTERN } from "../constants";
 import type { ResetPasswordFormValues, ResetPasswordViewProps } from "../types";
 import {
   AUTH_FIELD_CLASS,
@@ -81,6 +82,7 @@ export function ResetPasswordView({
     defaultValues: { resetToken: initialToken ?? "", newPassword: "", confirmPassword: "" },
     mode: "onSubmit",
   });
+  const newPasswordValue = form.watch("newPassword");
 
   return (
     <motion.div
@@ -145,6 +147,13 @@ export function ResetPasswordView({
               startIcon={<Lock size={16} />}
               disabled={loading}
               {...form.register("newPassword")}
+            />
+            <PasswordRequirementChecklist
+              password={newPasswordValue}
+              active={
+                Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0
+              }
+              t={t}
             />
           </ResetPasswordField>
 

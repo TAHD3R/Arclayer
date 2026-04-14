@@ -150,8 +150,6 @@
   "TEAM_FIELD_CONFIRM_PASSWORD": "Confirm password",
   "TEAM_VALIDATION_MAX_LENGTH": "Max {{max}} characters",
   "TEAM_VALIDATION_EMAIL_INVALID": "Invalid email address",
-  "TEAM_VALIDATION_PASSWORD_MIN": "Password must be at least 8 characters",
-  "TEAM_VALIDATION_PASSWORD_MAX": "Password must be at most 128 characters",
   "TEAM_VALIDATION_PASSWORD_MISMATCH": "Passwords do not match",
   "TEAM_INVITATIONS_RENEW_TITLE": "Renew invitation?",
   "TEAM_INVITATIONS_RENEW_DESC": "This will refresh the expiration time for {{email}}.",

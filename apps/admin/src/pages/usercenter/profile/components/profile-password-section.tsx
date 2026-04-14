@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import * as authApi from "@/api/auth";
+import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
+import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -61,7 +63,10 @@ function buildPasswordSchema(
   return z
     .object({
       oldPassword: z.string(),
-      newPassword: z.string().min(1, t("auth:VALIDATION_PASSWORD_REQUIRED")),
+      newPassword: z
+        .string()
+        .min(1, t("auth:VALIDATION_PASSWORD_REQUIRED"))
+        .regex(PASSWORD_PATTERN, t("auth:PASSWORD_INVALID")),
       confirmPassword: z.string().min(1, t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")),
       code: z.string(),
       backupCode: z.string(),
@@ -151,6 +156,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   const confirmPasswordFieldId = useId();
   const codeFieldId = useId();
   const backupCodeFieldId = useId();
+  const newPasswordValue = form.watch("newPassword");
 
   const cardTitle = hasPassword
     ? t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")
@@ -295,11 +301,20 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
             htmlFor={newPasswordFieldId}
             error={form.formState.errors.newPassword?.message}
           >
-            <PasswordInput
-              id={newPasswordFieldId}
-              {...form.register("newPassword")}
-              autoComplete="new-password"
-            />
+            <>
+              <PasswordInput
+                id={newPasswordFieldId}
+                {...form.register("newPassword")}
+                autoComplete="new-password"
+              />
+              <PasswordRequirementChecklist
+                password={newPasswordValue}
+                active={
+                  Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0
+                }
+                t={t}
+              />
+            </>
           </DialogField>
 
           <DialogField

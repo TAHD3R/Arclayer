@@ -136,10 +136,10 @@ describe("Profile password entry migration", () => {
     await user.click(
       await screen.findByRole("button", { name: i18n.t("account:ME_PROFILE_SET_PASSWORD_ACTION") }),
     );
-    await user.type(screen.getByLabelText(i18n.t("account:ME_SECURITY_NEW_PASSWORD")), "newpass1");
+    await user.type(screen.getByLabelText(i18n.t("account:ME_SECURITY_NEW_PASSWORD")), "Newpass1");
     await user.type(
       screen.getByLabelText(i18n.t("account:ME_SECURITY_CONFIRM_PASSWORD")),
-      "newpass1",
+      "Newpass1",
     );
     await user.type(
       screen.getByLabelText(i18n.t("account:ME_PROFILE_PASSWORD_2FA_CODE")),
@@ -148,7 +148,7 @@ describe("Profile password entry migration", () => {
     await user.click(screen.getByRole("button", { name: i18n.t("settings:SETTINGS_SAVE") }));
 
     await waitFor(() => {
-      expect(setMyPasswordMock).toHaveBeenCalledWith({ new_password: "newpass1", code: "123456" });
+      expect(setMyPasswordMock).toHaveBeenCalledWith({ new_password: "Newpass1", code: "123456" });
     });
     expect(changePasswordMock).not.toHaveBeenCalled();
   });

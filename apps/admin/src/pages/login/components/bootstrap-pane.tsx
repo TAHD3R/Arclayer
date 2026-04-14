@@ -1,16 +1,16 @@
 import { CheckCircle2, CircleAlert, LoaderCircle, Lock, Mail, User } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import {
   ACCOUNT_NAME_PATTERN,
-  getPasswordStrengthFeedback,
   PASSWORD_PATTERN,
   useUsernameAvailability,
 } from "@/lib/auth/form-feedback";
+import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthInputControl, AuthLinkButton, AuthPasswordControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
@@ -81,11 +81,9 @@ export function BootstrapPane(props: BootstrapPaneProps) {
   const usernameValue = form.watch("username");
   const passwordValue = form.watch("password");
   const usernameAvailability = useUsernameAvailability(usernameValue, step === "details");
-  const passwordFeedback = useMemo(
-    () => getPasswordStrengthFeedback(passwordValue, t),
-    [passwordValue, t],
-  );
-  const normalizedUsername = String(usernameValue || "").trim().toLowerCase();
+  const normalizedUsername = String(usernameValue || "")
+    .trim()
+    .toLowerCase();
   const usernameHasValue = normalizedUsername.length > 0;
   const usernameFeedback = !usernameHasValue
     ? null
@@ -124,12 +122,6 @@ export function BootstrapPane(props: BootstrapPaneProps) {
     usernameFeedback?.tone === "success"
       ? "text-success"
       : usernameFeedback?.tone === "danger"
-        ? "text-destructive"
-        : "text-label-secondary";
-  const passwordFeedbackClassName =
-    passwordFeedback.tone === "success"
-      ? "text-success"
-      : passwordFeedback.tone === "danger"
         ? "text-destructive"
         : "text-label-secondary";
   const usernameChecking = step === "details" && usernameAvailability.isChecking;
@@ -261,7 +253,9 @@ export function BootstrapPane(props: BootstrapPaneProps) {
                 {...form.register("username")}
               />
               {usernameFeedback ? (
-                <div className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}>
+                <div
+                  className={`flex items-center gap-2 text-footnote ${usernameFeedbackClassName}`}
+                >
                   {usernameFeedback.icon}
                   <span>{usernameFeedback.message}</span>
                 </div>
@@ -283,11 +277,11 @@ export function BootstrapPane(props: BootstrapPaneProps) {
                 disabled={props.loading}
                 {...form.register("password")}
               />
-              {passwordFeedback.message ? (
-                <div className={`text-footnote ${passwordFeedbackClassName}`}>
-                  {passwordFeedback.message}
-                </div>
-              ) : null}
+              <PasswordRequirementChecklist
+                password={passwordValue}
+                active={Boolean(form.formState.dirtyFields.password) || passwordValue.length > 0}
+                t={t}
+              />
             </BootstrapField>
           </>
         ) : null}
