@@ -79,4 +79,42 @@ describe("AuthOauthButtons", () => {
     const buttons = screen.getAllByRole("button");
     expect(buttons[0]).toHaveAccessibleName("auth:LOGIN_EMAIL_CODE_ACTION");
   });
+
+  it("renders the email-code action on its own full-width row", async () => {
+    listSSOProvidersMock.mockResolvedValueOnce({
+      providers: [{ provider: "google", label: "Google", start_url: "/oauth/google" }],
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthOauthButtons
+          leadingActions={[
+            {
+              key: "email-code",
+              label: "auth:LOGIN_EMAIL_CODE_ACTION",
+              onClick: vi.fn(),
+            },
+          ]}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" })).toBeInTheDocument();
+    });
+
+    const emailCodeButton = screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" });
+    const googleButton = screen.getByRole("button", { name: "auth:OAUTH_GOOGLE" });
+
+    expect(emailCodeButton).toHaveClass("w-full");
+    expect(emailCodeButton).toHaveClass("px-4");
+    expect(emailCodeButton.parentElement).not.toBe(googleButton.parentElement);
+  });
 });

@@ -26,6 +26,8 @@ export interface AuthOauthButtonsProps {
   }>;
 }
 
+const FULL_WIDTH_LEADING_ACTION_KEYS = new Set(["email-code"]);
+
 function normalizeProvider(value: unknown): string {
   return String(value || "")
     .trim()
@@ -121,8 +123,13 @@ export function AuthOauthButtons({
   ];
   if (actions.length === 0) return null;
 
+  const fullWidthActions = actions.filter((action) =>
+    FULL_WIDTH_LEADING_ACTION_KEYS.has(action.key),
+  );
+  const inlineActions = actions.filter((action) => !FULL_WIDTH_LEADING_ACTION_KEYS.has(action.key));
+
   const isBusy = disabled || providersQuery.isLoading;
-  const isSingleProvider = actions.length === 1;
+  const isSingleInlineAction = inlineActions.length === 1;
 
   return (
     <div className="grid gap-2.5">
@@ -131,35 +138,61 @@ export function AuthOauthButtons({
         <span className="shrink-0">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
         <Separator className="flex-1" />
       </div>
-      <div
-        className={cn(
-          isSingleProvider
-            ? "grid grid-cols-1 gap-2.5"
-            : "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-        )}
-      >
-        {actions.map((action) => (
-          <Button
-            key={action.key}
-            className={cn(
-              "rounded-md border-border/80 bg-card/80  transition-colors hover:bg-accent/35",
-              isSingleProvider
-                ? "h-10 w-full justify-center px-4"
-                : "h-10 min-w-30 flex-1 justify-center px-3 text-footnote sm:min-w-0",
-            )}
-            variant="outline"
-            size={isSingleProvider ? "lg" : "default"}
-            disabled={isBusy}
-            aria-label={action.fullLabel}
-            onClick={action.onClick}
-          >
-            {action.icon ? <span className="shrink-0">{action.icon}</span> : null}
-            <span className="min-w-0 truncate">
-              {isSingleProvider ? action.fullLabel : action.shortLabel}
+      {fullWidthActions.map((action) => (
+        <Button
+          key={action.key}
+          className="h-10 w-full justify-center rounded-md border-border/80 bg-card/80 px-4 transition-colors hover:bg-accent/35"
+          variant="outline"
+          size="lg"
+          disabled={isBusy}
+          aria-label={action.fullLabel}
+          onClick={action.onClick}
+        >
+          {action.icon ? (
+            <span className="inline-flex shrink-0 items-center justify-center self-center">
+              {action.icon}
             </span>
-          </Button>
-        ))}
-      </div>
+          ) : null}
+          <span className="inline-flex min-w-0 items-center justify-center truncate text-center">
+            {action.fullLabel}
+          </span>
+        </Button>
+      ))}
+      {inlineActions.length > 0 ? (
+        <div
+          className={cn(
+            isSingleInlineAction
+              ? "grid grid-cols-1 gap-2.5"
+              : "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          )}
+        >
+          {inlineActions.map((action) => (
+            <Button
+              key={action.key}
+              className={cn(
+                "rounded-md border-border/80 bg-card/80  transition-colors hover:bg-accent/35",
+                isSingleInlineAction
+                  ? "h-10 w-full justify-center px-4"
+                  : "h-10 min-w-30 flex-1 justify-center px-3 text-footnote sm:min-w-0",
+              )}
+              variant="outline"
+              size={isSingleInlineAction ? "lg" : "default"}
+              disabled={isBusy}
+              aria-label={action.fullLabel}
+              onClick={action.onClick}
+            >
+              {action.icon ? (
+                <span className="inline-flex shrink-0 items-center justify-center self-center">
+                  {action.icon}
+                </span>
+              ) : null}
+              <span className="inline-flex min-w-0 items-center justify-center truncate text-center">
+                {isSingleInlineAction ? action.fullLabel : action.shortLabel}
+              </span>
+            </Button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
