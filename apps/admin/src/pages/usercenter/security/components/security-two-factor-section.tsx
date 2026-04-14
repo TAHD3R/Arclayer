@@ -14,6 +14,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { QRCode } from "@arclayer/ui/qr-code";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@arclayer/ui/setting-card";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 const OTP_LENGTH = 6;
@@ -159,25 +160,23 @@ function SetupDialog(props: SetupDialogProps) {
           onAcknowledge={() => props.onOpenChange(false)}
         />
       ) : setupData ? (
-        <div className="grid gap-4">
+        <SettingDialogFields>
           <div className="flex justify-center rounded-xl border border-border/70 bg-muted/20 p-4">
             <QRCode value={setupData.otpauthUri || setupData.secret} />
           </div>
-          <div className="grid gap-1.5">
-            <span className="text-callout text-label-primary">
-              {t("account:ME_SECURITY_2FA_SETUP_SECRET_LABEL")}
-            </span>
+          <SettingDialogField
+            title={t("account:ME_SECURITY_2FA_SETUP_SECRET_LABEL")}
+            description={t("account:ME_SECURITY_2FA_SETUP_SECRET_HELP")}
+          >
             <code className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 font-mono text-body text-label-primary">
               {setupData.secret}
             </code>
-            <p className="text-footnote text-label-secondary">
-              {t("account:ME_SECURITY_2FA_SETUP_SECRET_HELP")}
-            </p>
-          </div>
-          <div className="grid gap-1.5">
-            <span className="text-callout text-label-primary">
-              {t("auth:TWO_FACTOR_CODE_LABEL")}
-            </span>
+          </SettingDialogField>
+          <SettingDialogField
+            title={t("auth:TWO_FACTOR_CODE_LABEL")}
+            description={t("account:ME_SECURITY_2FA_SETUP_DIALOG_DESC")}
+            error={codeError ?? undefined}
+          >
             <InputOTP
               value={code}
               onChange={setCode}
@@ -196,22 +195,21 @@ function SetupDialog(props: SetupDialogProps) {
                 <InputOTPSlot index={5} />
               </InputOTPGroup>
             </InputOTP>
-            {codeError ? <p className="text-footnote text-danger">{codeError}</p> : null}
-          </div>
-        </div>
+          </SettingDialogField>
+        </SettingDialogFields>
       ) : props.requiresPassword ? (
-        <div className="grid gap-1.5">
-          <span className="text-callout text-label-primary">
-            {t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}
-          </span>
+        <SettingDialogField
+          title={t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}
+          description={t("account:ME_SECURITY_2FA_SETUP_DIALOG_DESC")}
+          error={passwordError ?? undefined}
+        >
           <PasswordInput
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             aria-label={t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}
             autoComplete="current-password"
           />
-          {passwordError ? <p className="text-footnote text-danger">{passwordError}</p> : null}
-        </div>
+        </SettingDialogField>
       ) : null}
     </SettingDialog>
   );
@@ -296,12 +294,12 @@ function ReauthDialog(props: ReauthDialogProps) {
           onAcknowledge={() => props.onOpenChange(false)}
         />
       ) : (
-        <div className="grid gap-4">
+        <SettingDialogFields>
           {props.allowCode ? (
-            <div className="grid gap-1.5">
-              <span className="text-callout text-label-primary">
-                {t("auth:TWO_FACTOR_CODE_LABEL")}
-              </span>
+            <SettingDialogField
+              title={t("auth:TWO_FACTOR_CODE_LABEL")}
+              description={t("account:ME_SECURITY_2FA_DISABLE_DIALOG_DESC")}
+            >
               <InputOTP
                 value={code}
                 onChange={setCode}
@@ -320,13 +318,13 @@ function ReauthDialog(props: ReauthDialogProps) {
                   <InputOTPSlot index={5} />
                 </InputOTPGroup>
               </InputOTP>
-            </div>
+            </SettingDialogField>
           ) : null}
           {props.allowBackupCode ? (
-            <div className="grid gap-1.5">
-              <span className="text-callout text-label-primary">
-                {t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
-              </span>
+            <SettingDialogField
+              title={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
+              description={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
+            >
               <Input
                 value={backupCode}
                 onChange={(event) => setBackupCode(event.target.value)}
@@ -334,10 +332,10 @@ function ReauthDialog(props: ReauthDialogProps) {
                 placeholder={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
                 disabled={props.pending}
               />
-            </div>
+            </SettingDialogField>
           ) : null}
           {error ? <p className="text-footnote text-danger">{error}</p> : null}
-        </div>
+        </SettingDialogFields>
       )}
     </SettingDialog>
   );

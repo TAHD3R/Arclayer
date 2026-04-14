@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Checkbox } from "@arclayer/ui/checkbox";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { Switch } from "@arclayer/ui/switch";
 
 export function normalizeOptionalString(value: string | null | undefined): string | null {
@@ -60,14 +61,13 @@ export function OverlayField(props: {
   message?: string | null;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="text-footnote font-medium text-label-primary">{props.label}</div>
+    <SettingDialogField
+      title={props.label}
+      description={props.description}
+      error={props.message ? <FieldMessage message={props.message} /> : null}
+    >
       {props.children}
-      {props.description ? (
-        <div className="text-footnote text-label-secondary">{props.description}</div>
-      ) : null}
-      <FieldMessage message={props.message} />
-    </div>
+    </SettingDialogField>
   );
 }
 
@@ -84,7 +84,7 @@ export function OverlayBooleanField(props: {
 
   return (
     <OverlayField label={props.label} description={props.description} message={props.message}>
-      <div className="flex items-center gap-3">
+      <div className="flex w-full items-center gap-3">
         {variant === "switch" ? (
           <Switch checked={props.checked} onCheckedChange={props.onCheckedChange} />
         ) : (
@@ -93,9 +93,7 @@ export function OverlayBooleanField(props: {
             onCheckedChange={(checked) => props.onCheckedChange(Boolean(checked))}
           />
         )}
-        {props.stateLabel ? (
-          <div className="text-footnote text-label-secondary">{props.stateLabel}</div>
-        ) : null}
+        {props.stateLabel ? <div className="text-label-secondary">{props.stateLabel}</div> : null}
       </div>
     </OverlayField>
   );

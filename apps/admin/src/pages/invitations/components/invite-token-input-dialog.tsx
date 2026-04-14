@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 export type InviteTokenInputDialogProps = {
@@ -52,11 +53,10 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
         </>
       }
     >
-      <div className="grid gap-1.5">
-        <label className="font-semibold text-label-primary">
-          {t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
-        </label>
-        <div className="text-label-secondary">{t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}</div>
+      <SettingDialogField
+        title={t("invite:INVITE_TOKEN_INPUT_FIELD_LABEL")}
+        description={t("invite:INVITE_TOKEN_INPUT_FIELD_HELP")}
+      >
         <Input
           autoFocus
           value={value}
@@ -71,7 +71,7 @@ export function InviteTokenInputDialog(props: InviteTokenInputDialogProps) {
             })();
           }}
         />
-      </div>
+      </SettingDialogField>
     </SettingDialog>
   );
 }

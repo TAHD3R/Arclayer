@@ -6,6 +6,7 @@ import { useEditorRef } from "platejs/react";
 import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import {
@@ -78,7 +79,6 @@ export function ContentLibraryArticleEditorExportDialog(props: {
       onOpenChange={props.onOpenChange}
       title={t("CONTENT_LIBRARY_EDITOR_EXPORT_DIALOG_TITLE")}
       description={t("CONTENT_LIBRARY_EDITOR_EXPORT_DIALOG_DESC")}
-      contentClassName="sm:max-w-2xl"
       footer={
         <>
           <Button variant="ghost" onClick={() => props.onOpenChange(false)} disabled={pending}>
@@ -99,14 +99,11 @@ export function ContentLibraryArticleEditorExportDialog(props: {
         </>
       }
     >
-      <div className="grid gap-5 py-2">
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-label-primary">
-            {t("CONTENT_LIBRARY_EDITOR_EXPORT_FORMAT_LABEL")}
-          </label>
-          <div className="text-label-secondary">
-            {t("CONTENT_LIBRARY_EDITOR_EXPORT_FORMAT_HELP")}
-          </div>
+      <SettingDialogFields className="py-2">
+        <SettingDialogField
+          title={t("CONTENT_LIBRARY_EDITOR_EXPORT_FORMAT_LABEL")}
+          description={t("CONTENT_LIBRARY_EDITOR_EXPORT_FORMAT_HELP")}
+        >
           <div className="flex flex-wrap gap-2">
             {EXPORT_FORMATS.map((option) => {
               const active = option === format;
@@ -123,29 +120,23 @@ export function ContentLibraryArticleEditorExportDialog(props: {
               );
             })}
           </div>
-        </div>
+        </SettingDialogField>
 
         {format === "docx" ? (
           <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-4 text-footnote text-label-secondary">
             {t("CONTENT_LIBRARY_EDITOR_EXPORT_DOCX_HINT")}
           </div>
         ) : (
-          <div className="grid gap-1.5">
-            <label
-              className="font-semibold text-label-primary"
-              htmlFor="article-editor-export-preview"
-            >
-              {t("CONTENT_LIBRARY_EDITOR_EXPORT_PREVIEW_LABEL")}
-            </label>
+          <SettingDialogField title={t("CONTENT_LIBRARY_EDITOR_EXPORT_PREVIEW_LABEL")}>
             <textarea
               id="article-editor-export-preview"
               readOnly
               value={preview}
               className="min-h-64 w-full rounded-lg border border-border/70 bg-card px-3 py-3 text-body outline-none"
             />
-          </div>
+          </SettingDialogField>
         )}
-      </div>
+      </SettingDialogFields>
     </SettingDialog>
   );
 }

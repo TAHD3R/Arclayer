@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
+
 type DialogFieldProps = {
   label: string;
+  description?: string;
   htmlFor?: string;
   error?: string;
   className?: string;
@@ -10,12 +13,13 @@ type DialogFieldProps = {
 
 export function DialogField(props: DialogFieldProps) {
   return (
-    <div className={props.className ?? "grid gap-1.5"}>
-      <label htmlFor={props.htmlFor} className="text-callout text-label-primary">
-        {props.label}
-      </label>
+    <SettingDialogField
+      title={props.htmlFor ? <label htmlFor={props.htmlFor}>{props.label}</label> : props.label}
+      description={props.description}
+      error={props.error}
+      className={props.className}
+    >
       {props.children}
-      {props.error ? <p className="text-footnote text-destructive">{props.error}</p> : null}
-    </div>
+    </SettingDialogField>
   );
 }

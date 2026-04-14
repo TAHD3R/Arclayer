@@ -1,4 +1,4 @@
-import { History, House, Settings2, Users } from "lucide-react";
+import { History, House, Settings2, Users, Wrench } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 
@@ -24,18 +24,35 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     icon: Users,
   },
   {
-    key: "global.system",
-    label: "System Settings",
-    labelKey: "nav:NAV_SYSTEM_SETTINGS",
-    to: "/system",
-    activeMatchPaths: ["/system"],
-    icon: Settings2,
+    key: "global.maintenance",
+    label: "Maintenance",
+    labelKey: "nav:NAV_SECTION_MAINTENANCE",
+    icon: Wrench,
+    children: [
+      {
+        key: "global.system",
+        label: "System Settings",
+        labelKey: "nav:NAV_SYSTEM_SETTINGS",
+        to: "/system",
+        activeMatchPaths: ["/system"],
+        icon: Settings2,
+      },
+    ],
   },
 ] as const;
 
 export function resolveGlobalNavItems(params: { isSuperAdmin: boolean }): AdminNavItem[] {
-  return GLOBAL_NAV_ITEMS.filter((item) => {
-    if (item.key === "global.system") return params.isSuperAdmin;
-    return true;
-  });
+  const filterItems = (items: readonly AdminNavItem[]): AdminNavItem[] =>
+    items.flatMap((item) => {
+      if (item.key === "global.system" && !params.isSuperAdmin) return [];
+
+      if (!item.children?.length) return [item];
+
+      const children = filterItems(item.children);
+      if (children.length === 0) return [];
+
+      return [{ ...item, children }];
+    });
+
+  return filterItems(GLOBAL_NAV_ITEMS);
 }

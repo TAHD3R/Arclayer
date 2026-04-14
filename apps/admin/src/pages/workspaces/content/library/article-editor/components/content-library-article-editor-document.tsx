@@ -34,6 +34,7 @@ import {
   MediaUploadProvider,
 } from "@arclayer/ui/editor";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 import {
@@ -489,7 +490,6 @@ export function ContentLibraryArticleEditorDocumentProvider(
                   }
                   title={getMediaInsertConfig(mediaUrlDialog.kind, t).title}
                   description={getMediaInsertConfig(mediaUrlDialog.kind, t).description}
-                  contentClassName="sm:max-w-xl"
                   footer={
                     <>
                       <Button
@@ -519,13 +519,14 @@ export function ContentLibraryArticleEditorDocumentProvider(
                       handleConfirmMediaUrl();
                     }}
                   >
-                    <div className="grid gap-1.5">
-                      <label className="font-semibold text-label-primary" htmlFor={mediaUrlInputId}>
-                        {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}
-                      </label>
-                      <div className="text-label-secondary">
-                        {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_HINT")}
-                      </div>
+                    <SettingDialogField
+                      title={
+                        <label htmlFor={mediaUrlInputId}>
+                          {t("CONTENT_LIBRARY_EDITOR_INSERT_URL_LABEL")}
+                        </label>
+                      }
+                      description={t("CONTENT_LIBRARY_EDITOR_INSERT_URL_HINT")}
+                    >
                       <Input
                         id={mediaUrlInputId}
                         autoFocus
@@ -543,7 +544,7 @@ export function ContentLibraryArticleEditorDocumentProvider(
                           }
                         }}
                       />
-                    </div>
+                    </SettingDialogField>
                   </form>
                 </SettingDialog>
                 <AssetPickerDialog

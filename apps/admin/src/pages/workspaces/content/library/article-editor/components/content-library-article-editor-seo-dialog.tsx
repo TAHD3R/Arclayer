@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
 
@@ -49,7 +50,6 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
       onOpenChange={props.onOpenChange}
       title={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_TITLE")}
       description={t("CONTENT_LIBRARY_EDITOR_SEO_DIALOG_DESC")}
-      contentClassName="sm:max-w-xl"
       bodyClassName="min-h-0 overflow-y-auto"
       footer={
         <>
@@ -69,36 +69,30 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
           handleConfirm();
         }}
       >
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-label-primary" htmlFor={metaTitleId}>
-              {t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}
-            </label>
-            <div className="text-label-secondary">
-              {t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}
-            </div>
+        <SettingDialogFields className="py-2">
+          <SettingDialogField
+            title={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}
+            description={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}
+          >
             <Input
               id={metaTitleId}
               value={draft.metaTitle}
               onChange={(event) => handleFieldChange("metaTitle", event.target.value)}
             />
-          </div>
+          </SettingDialogField>
 
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-label-primary" htmlFor={metaDescriptionId}>
-              {t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
-            </label>
-            <div className="text-label-secondary">
-              {t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION_HELP")}
-            </div>
+          <SettingDialogField
+            title={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
+            description={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION_HELP")}
+          >
             <Textarea
               id={metaDescriptionId}
               rows={4}
               value={draft.metaDescription}
               onChange={(event) => handleFieldChange("metaDescription", event.target.value)}
             />
-          </div>
-        </div>
+          </SettingDialogField>
+        </SettingDialogFields>
       </form>
     </SettingDialog>
   );

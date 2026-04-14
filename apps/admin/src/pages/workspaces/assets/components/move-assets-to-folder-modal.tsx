@@ -17,6 +17,7 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 
 export type MoveAssetsToFolderModalProps = {
   open: boolean;
@@ -88,14 +89,11 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
           <AlertDialogDescription>{t("assets:ASSET_BULK_MOVE_DESC")}</AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-1.5">
-            <label className="text-callout font-semibold text-label-primary">
-              {t("assets:ASSET_BULK_MOVE_FIELD_TARGET")}
-            </label>
-            <div className="text-footnote text-label-secondary">
-              {t("assets:ASSET_BULK_MOVE_FIELD_TARGET_HELP")}
-            </div>
+        <div className="py-2">
+          <SettingDialogField
+            title={t("assets:ASSET_BULK_MOVE_FIELD_TARGET")}
+            description={t("assets:ASSET_BULK_MOVE_FIELD_TARGET_HELP")}
+          >
             <Select value={target} onValueChange={setTarget} disabled={props.foldersLoading}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t("assets:ASSET_BULK_MOVE_PLACEHOLDER")} />
@@ -108,7 +106,7 @@ export function MoveAssetsToFolderModal(props: MoveAssetsToFolderModalProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </SettingDialogField>
         </div>
 
         <AlertDialogFooter>

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 export type UpdateAssetsAccessDialogValue = {
@@ -151,14 +152,11 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
         </>
       }
     >
-      <div className="grid gap-4">
-        <div className="grid gap-1.5">
-          <label className="text-callout font-semibold text-label-primary">
-            {t("assets:ASSET_META_VISIBILITY")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
-          </div>
+      <SettingDialogFields>
+        <SettingDialogField
+          title={t("assets:ASSET_META_VISIBILITY")}
+          description={t("assets:ASSET_EDIT_ACCESS_VISIBILITY_HELP")}
+        >
           <Select value={visibility} onValueChange={setVisibility} disabled={disabled}>
             <SelectTrigger className="w-full">
               <SelectValue />
@@ -171,15 +169,12 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </SettingDialogField>
 
-        <div className="grid gap-1.5">
-          <label className="text-callout font-semibold text-label-primary">
-            {t("assets:ASSET_META_PURPOSE")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}
-          </div>
+        <SettingDialogField
+          title={t("assets:ASSET_META_PURPOSE")}
+          description={t("assets:ASSET_EDIT_ACCESS_PURPOSE_HELP")}
+        >
           <Select value={purpose} onValueChange={setPurpose} disabled={disabled}>
             <SelectTrigger className="w-full">
               <SelectValue />
@@ -192,15 +187,12 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </SettingDialogField>
 
-        <div className="grid gap-1.5">
-          <label className="text-callout font-semibold text-label-primary">
-            {t("assets:ASSET_META_INDEXABLE")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_EDIT_ACCESS_INDEXABLE_HELP")}
-          </div>
+        <SettingDialogField
+          title={t("assets:ASSET_META_INDEXABLE")}
+          description={t("assets:ASSET_EDIT_ACCESS_INDEXABLE_HELP")}
+        >
           <Select value={indexable} onValueChange={setIndexable} disabled={disabled}>
             <SelectTrigger className="w-full">
               <SelectValue />
@@ -213,8 +205,8 @@ export function UpdateAssetsAccessDialog(props: UpdateAssetsAccessDialogProps) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </SettingDialogField>
+      </SettingDialogFields>
     </SettingDialog>
   );
 }

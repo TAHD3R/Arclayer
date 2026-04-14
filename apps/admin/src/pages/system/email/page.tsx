@@ -5,6 +5,7 @@ import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { Switch } from "@arclayer/ui/switch";
@@ -199,10 +200,7 @@ export function SystemSettingsEmailPage() {
           />
         ),
         content: () => (
-          <div className="space-y-5">
-            <div className="text-label-secondary">
-              {t("settings:SETTINGS_MESSAGING_MAIL_CONFIG_HELP")}
-            </div>
+          <SettingDialogFields>
             <Controller
               control={form.control}
               name="mailServer"
@@ -313,7 +311,7 @@ export function SystemSettingsEmailPage() {
                 )}
               />
             </div>
-          </div>
+          </SettingDialogFields>
         ),
       },
     ] as const;

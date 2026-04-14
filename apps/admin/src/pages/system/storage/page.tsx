@@ -5,6 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@arclayer/ui/radio-group";
 import { Input } from "@arclayer/ui/input";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
@@ -205,10 +206,7 @@ export function SystemSettingsStoragePage() {
           />
         ),
         content: () => (
-          <div className="space-y-4">
-            <div className="text-label-secondary">
-              {t("settings:SETTINGS_STORAGE_PROVIDER_DIALOG_HELP")}
-            </div>
+          <SettingDialogFields>
             <Controller
               control={form.control}
               name="storageProvider"
@@ -218,25 +216,29 @@ export function SystemSettingsStoragePage() {
                   label={t("settings:SETTINGS_STORAGE_PROVIDER_LABEL")}
                   message={providerError}
                 >
-                  <RadioGroup value={field.value} onValueChange={field.onChange}>
-                    <label className="flex items-start gap-3 rounded-xl border border-border p-4">
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="grid gap-3"
+                  >
+                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
                       <RadioGroupItem value="local" className="mt-1" />
-                      <div className="space-y-1">
-                        <div className="font-medium">
+                      <div className="grid min-w-0 gap-1">
+                        <div className="text-headline text-label-primary">
                           {t("settings:SETTINGS_STORAGE_PROVIDER_LOCAL")}
                         </div>
-                        <div className="text-footnote text-label-secondary">
+                        <div className="text-label-secondary">
                           {t("settings:SETTINGS_SYSTEM_STORAGE_PROVIDER_LOCAL_HELP")}
                         </div>
                       </div>
                     </label>
-                    <label className="flex items-start gap-3 rounded-xl border border-border p-4">
+                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
                       <RadioGroupItem value="s3" className="mt-1" />
-                      <div className="space-y-1">
-                        <div className="font-medium">
+                      <div className="grid min-w-0 gap-1">
+                        <div className="text-headline text-label-primary">
                           {t("settings:SETTINGS_STORAGE_PROVIDER_S3")}
                         </div>
-                        <div className="text-footnote text-label-secondary">
+                        <div className="text-label-secondary">
                           {t("settings:SETTINGS_SYSTEM_STORAGE_PROVIDER_S3_HELP")}
                         </div>
                       </div>
@@ -245,7 +247,7 @@ export function SystemSettingsStoragePage() {
                 </OverlayField>
               )}
             />
-          </div>
+          </SettingDialogFields>
         ),
       },
       {
@@ -264,10 +266,7 @@ export function SystemSettingsStoragePage() {
           />
         ),
         content: () => (
-          <div className="space-y-5">
-            <div className="text-label-secondary">
-              {t("settings:SETTINGS_STORAGE_S3_CONFIG_SHEET_HELP")}
-            </div>
+          <SettingDialogFields>
             <Controller
               control={form.control}
               name="s3EndpointUrl"
@@ -360,7 +359,7 @@ export function SystemSettingsStoragePage() {
                 />
               )}
             />
-          </div>
+          </SettingDialogFields>
         ),
       },
     ] as const;

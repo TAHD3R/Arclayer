@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
 
@@ -69,14 +70,11 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
         </>
       }
     >
-      <div className="mt-4 grid gap-4">
-        <div className="grid gap-1.5">
-          <label className="text-callout font-semibold text-label-primary">
-            {t("assets:ASSET_FOLDER_NAME")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}
-          </div>
+      <SettingDialogFields>
+        <SettingDialogField
+          title={t("assets:ASSET_FOLDER_NAME")}
+          description={t("assets:ASSET_FOLDER_FIELD_NAME_HELP")}
+        >
           <Input
             autoFocus
             value={name}
@@ -91,23 +89,20 @@ export function CreateAssetFolderDialog(props: CreateAssetFolderDialogProps) {
               })();
             }}
           />
-        </div>
+        </SettingDialogField>
 
-        <div className="grid gap-1.5">
-          <label className="text-callout font-semibold text-label-primary">
-            {t("assets:ASSET_FOLDER_DESCRIPTION")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
-          </div>
+        <SettingDialogField
+          title={t("assets:ASSET_FOLDER_DESCRIPTION")}
+          description={t("assets:ASSET_FOLDER_FIELD_DESCRIPTION_HELP")}
+        >
           <Textarea
             className="min-h-24"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("assets:ASSET_FOLDER_DESCRIPTION_PLACEHOLDER")}
           />
-        </div>
-      </div>
+        </SettingDialogField>
+      </SettingDialogFields>
     </SettingDialog>
   );
 }

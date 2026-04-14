@@ -63,26 +63,30 @@ export function ComplexDialog({
       >
         <div className="flex min-w-0 flex-col">
           <DialogHeader
-            className={cn("min-w-0 border-b bg-card/92 px-6 py-4 text-left", headerClassName)}
+            className={cn("min-w-0 border-b bg-card/92 px-6 py-5 text-left", headerClassName)}
           >
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <DialogTitle>{title}</DialogTitle>
+                <DialogTitle className="text-title3 font-semibold text-label-primary">
+                  {title}
+                </DialogTitle>
                 {description ? (
-                  <DialogDescription className="mb-0">{description}</DialogDescription>
+                  <DialogDescription className="mb-0 text-body text-label-secondary">
+                    {description}
+                  </DialogDescription>
                 ) : null}
               </div>
               {headerRight ? <div className="shrink-0">{headerRight}</div> : null}
             </div>
           </DialogHeader>
 
-          <div className={cn("min-w-0 flex-1 min-h-0 overflow-auto px-6 py-4", bodyClassName)}>
+          <div className={cn("min-w-0 flex-1 min-h-0 overflow-auto px-6 py-5", bodyClassName)}>
             {children}
           </div>
 
           {footer ? (
             <DialogFooter
-              className={cn("mt-0 min-w-0 border-t bg-card px-6 py-4", footerClassName)}
+              className={cn("mt-0 min-w-0 border-t bg-card px-6 py-5", footerClassName)}
             >
               {footer}
             </DialogFooter>

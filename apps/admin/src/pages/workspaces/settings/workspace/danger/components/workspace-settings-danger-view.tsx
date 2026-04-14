@@ -20,6 +20,7 @@ import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
 import { Input } from "@arclayer/ui/input";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
@@ -51,19 +52,13 @@ function getActionDescription(
 function DialogField(props: {
   title: string;
   description: string;
-  placeholder: string;
   error: string | undefined;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="grid gap-1.5">
-        <span className="font-semibold text-label-primary">{props.title}</span>
-        <span className="text-label-secondary">{props.description}</span>
-      </div>
+    <SettingDialogField title={props.title} description={props.description} error={props.error}>
       {props.children}
-      {props.error ? <div className="text-footnote text-destructive">{props.error}</div> : null}
-    </div>
+    </SettingDialogField>
   );
 }
 
@@ -263,7 +258,6 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
               <DialogField
                 title={t("settings:SETTINGS_DIALOG_CONFIRM_TEXT_LABEL")}
                 description={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED")}
-                placeholder={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_PLACEHOLDER")}
                 error={fieldState.error?.message}
               >
                 <Input
@@ -316,7 +310,6 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
               <DialogField
                 title={t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL")}
                 description={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED")}
-                placeholder={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_PLACEHOLDER")}
                 error={fieldState.error?.message}
               >
                 <Input

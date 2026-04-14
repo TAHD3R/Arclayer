@@ -12,6 +12,7 @@ import type { AdminAssetFolder, PatchAdminAssetPayload } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
@@ -135,14 +136,11 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
         </>
       }
     >
-      <div className="grid gap-4">
-        <div className="grid gap-1.5">
-          <label className="text-callout font-semibold text-label-primary">
-            {t("assets:ASSET_EDIT_FILENAME")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_EDIT_FILENAME_HELP")}
-          </div>
+      <SettingDialogFields>
+        <SettingDialogField
+          title={t("assets:ASSET_EDIT_FILENAME")}
+          description={t("assets:ASSET_EDIT_FILENAME_HELP")}
+        >
           <Input
             autoFocus
             value={filename}
@@ -150,15 +148,12 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
             placeholder={t("assets:ASSET_EDIT_FILENAME_PLACEHOLDER")}
             disabled={disabled}
           />
-        </div>
+        </SettingDialogField>
 
-        <div className="grid gap-1.5">
-          <label className="text-callout font-semibold text-label-primary">
-            {t("assets:ASSET_EDIT_FOLDER")}
-          </label>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_EDIT_FOLDER_HELP")}
-          </div>
+        <SettingDialogField
+          title={t("assets:ASSET_EDIT_FOLDER")}
+          description={t("assets:ASSET_EDIT_FOLDER_HELP")}
+        >
           <Select value={folderValue} onValueChange={setFolderValue} disabled={disabled}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder={t("assets:ASSET_EDIT_FOLDER_PLACEHOLDER")} />
@@ -174,13 +169,17 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </SettingDialogField>
 
-        <div className="grid gap-1.5">
+        <SettingDialogField
+          title={
+            <div className="flex items-center gap-1.5">
+              <span>{t("assets:ASSET_EDIT_ALT_NAME")}</span>
+            </div>
+          }
+          description={t("assets:ASSET_EDIT_ALT_NAME_HELP")}
+        >
           <div className="flex items-center gap-1.5">
-            <label className="text-callout font-semibold text-label-primary">
-              {t("assets:ASSET_EDIT_ALT_NAME")}
-            </label>
             <Tooltip>
               <TooltipTrigger asChild focusTrigger={false}>
                 <button
@@ -195,17 +194,14 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
               <TooltipContent>{t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}</TooltipContent>
             </Tooltip>
           </div>
-          <div className="text-footnote text-label-secondary">
-            {t("assets:ASSET_EDIT_ALT_NAME_HELP")}
-          </div>
           <Input
             value={altName}
             onChange={(event) => setAltName(event.target.value)}
             placeholder={t("assets:ASSET_EDIT_ALT_NAME_PLACEHOLDER")}
             disabled={disabled}
           />
-        </div>
-      </div>
+        </SettingDialogField>
+      </SettingDialogFields>
     </SettingDialog>
   );
 }

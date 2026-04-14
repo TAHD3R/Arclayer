@@ -14,8 +14,15 @@ describe("global nav regression", () => {
   });
 
   test("registers system settings as a real global destination", () => {
+    const maintenanceItem = GLOBAL_NAV_ITEMS.find(
+      (item) => item.key === "global.maintenance",
+    );
     const settingsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.system");
 
+    expect(maintenanceItem).toMatchObject({
+      key: "global.maintenance",
+      label: "Maintenance",
+    });
     expect(settingsItem).toMatchObject({
       key: "global.system",
       label: "System Settings",
@@ -24,11 +31,11 @@ describe("global nav regression", () => {
   });
 
   test("only exposes system settings to super admins", () => {
-    expect(resolveGlobalNavItems({ isSuperAdmin: false }).map((item) => item.key)).not.toContain(
-      "global.system",
-    );
-    expect(resolveGlobalNavItems({ isSuperAdmin: true }).map((item) => item.key)).toContain(
-      "global.system",
-    );
+    const regularKeys = resolveGlobalNavItems({ isSuperAdmin: false }).map((item) => item.key);
+    const superAdminItems = resolveGlobalNavItems({ isSuperAdmin: true });
+    const maintenanceItem = superAdminItems.find((item) => item.key === "global.maintenance");
+
+    expect(regularKeys).not.toContain("global.maintenance");
+    expect(maintenanceItem?.children?.map((item) => item.key)).toContain("global.system");
   });
 });

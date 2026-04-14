@@ -13,6 +13,7 @@ import { EmailTagsField } from "@/components/ui/email-tags-field";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
@@ -262,7 +263,6 @@ export function InviteMembersDialog(props: {
           ? t("team:TEAM_INVITE_LINK_CREATE_DESC")
           : t("team:TEAM_INVITE_DIALOG_DESC")
       }
-      contentClassName="sm:max-w-xl"
       footer={
         <>
           <Button
@@ -279,114 +279,116 @@ export function InviteMembersDialog(props: {
         </>
       }
     >
-      <form onSubmit={onSubmit} className="grid gap-4 py-2">
-        {props.mode === "email" ? (
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-label-primary" htmlFor="invite-emails">
-              {t("team:TEAM_INVITE_FIELD_TO")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_TO_HELP")}</div>
-            <EmailTagsField
-              id="invite-emails"
-              value={emailTags}
-              placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
-              invalidMessageByValue={invalidEmailMessageByValue}
-              disabled={inviteMutation.isPending}
-              onChange={(next) =>
-                form.setValue("emails", normalizeEmailList(next), {
+      <form onSubmit={onSubmit} className="py-2">
+        <SettingDialogFields>
+          {props.mode === "email" ? (
+            <SettingDialogField
+              title={t("team:TEAM_INVITE_FIELD_TO")}
+              description={t("team:TEAM_INVITE_FIELD_TO_HELP")}
+              error={
+                form.formState.errors.emails?.message ? (
+                  <div className="text-footnote text-destructive">
+                    {String(form.formState.errors.emails.message)}
+                  </div>
+                ) : undefined
+              }
+            >
+              <EmailTagsField
+                id="invite-emails"
+                value={emailTags}
+                placeholder={t("team:TEAM_INVITE_FIELD_TO_PLACEHOLDER")}
+                invalidMessageByValue={invalidEmailMessageByValue}
+                disabled={inviteMutation.isPending}
+                onChange={(next) =>
+                  form.setValue("emails", normalizeEmailList(next), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
+            </SettingDialogField>
+          ) : null}
+
+          <SettingDialogField
+            title={t("team:TEAM_INVITE_FIELD_ROLE")}
+            description={t("team:TEAM_INVITE_ROLE_HELP")}
+            error={
+              form.formState.errors.roleCode?.message ? (
+                <div className="text-footnote text-destructive">
+                  {String(form.formState.errors.roleCode.message)}
+                </div>
+              ) : undefined
+            }
+          >
+            <Select
+              value={selectedRoleCode || undefined}
+              onValueChange={(value) =>
+                form.setValue("roleCode", value, { shouldDirty: true, shouldValidate: true })
+              }
+              disabled={props.rolesLoading || inviteMutation.isPending}
+            >
+              <SelectTrigger id="invite-role" className="w-full">
+                <SelectValue placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")} />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
+
+          {props.mode === "link" ? (
+            <SettingDialogField
+              title={t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL")}
+              description={t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_HELP")}
+              error={
+                form.formState.errors.allowedEmailDomain?.message ? (
+                  <div className="text-footnote text-destructive">
+                    {String(form.formState.errors.allowedEmailDomain.message)}
+                  </div>
+                ) : undefined
+              }
+            >
+              <Input
+                id="allowedEmailDomain"
+                placeholder={t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_PLACEHOLDER")}
+                aria-invalid={form.formState.errors.allowedEmailDomain ? true : undefined}
+                disabled={inviteMutation.isPending}
+                {...form.register("allowedEmailDomain")}
+              />
+            </SettingDialogField>
+          ) : null}
+
+          <SettingDialogField
+            title={t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            description={t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}
+          >
+            <Select
+              value={String(selectedExpires)}
+              onValueChange={(value) =>
+                form.setValue("expiresInSeconds", value === "null" ? null : Number(value), {
                   shouldDirty: true,
                   shouldValidate: true,
                 })
               }
-            />
-            {form.formState.errors.emails?.message ? (
-              <div className="text-footnote text-destructive">
-                {String(form.formState.errors.emails.message)}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-label-primary" htmlFor="invite-role">
-            {t("team:TEAM_INVITE_FIELD_ROLE")}
-          </label>
-          <div className="text-label-secondary">{t("team:TEAM_INVITE_ROLE_HELP")}</div>
-          <Select
-            value={selectedRoleCode || undefined}
-            onValueChange={(value) =>
-              form.setValue("roleCode", value, { shouldDirty: true, shouldValidate: true })
-            }
-            disabled={props.rolesLoading || inviteMutation.isPending}
-          >
-            <SelectTrigger id="invite-role" className="w-full">
-              <SelectValue placeholder={t("team:TEAM_INVITE_FIELD_ROLE_PLACEHOLDER")} />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start">
-              {roleOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {form.formState.errors.roleCode?.message ? (
-            <div className="text-footnote text-destructive">
-              {String(form.formState.errors.roleCode.message)}
-            </div>
-          ) : null}
-        </div>
-
-        {props.mode === "link" ? (
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-label-primary" htmlFor="allowedEmailDomain">
-              {t("common:ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL")}
-            </label>
-            <div className="text-label-secondary">
-              {t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_HELP")}
-            </div>
-            <Input
-              id="allowedEmailDomain"
-              placeholder={t("team:TEAM_INVITE_LINK_ALLOWED_DOMAIN_PLACEHOLDER")}
-              aria-invalid={form.formState.errors.allowedEmailDomain ? true : undefined}
               disabled={inviteMutation.isPending}
-              {...form.register("allowedEmailDomain")}
-            />
-            {form.formState.errors.allowedEmailDomain?.message ? (
-              <div className="text-footnote text-destructive">
-                {String(form.formState.errors.allowedEmailDomain.message)}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-label-primary" htmlFor="invite-expires">
-            {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-          </label>
-          <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-          <Select
-            value={String(selectedExpires)}
-            onValueChange={(value) =>
-              form.setValue("expiresInSeconds", value === "null" ? null : Number(value), {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-            disabled={inviteMutation.isPending}
-          >
-            <SelectTrigger id="invite-expires" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start">
-              {expiresOptions.map((option) => (
-                <SelectItem key={String(option.value)} value={String(option.value)}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            >
+              <SelectTrigger id="invite-expires" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {expiresOptions.map((option) => (
+                  <SelectItem key={String(option.value)} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
+        </SettingDialogFields>
       </form>
     </SettingDialog>
   );

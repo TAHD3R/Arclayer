@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { Textarea } from "@arclayer/ui/textarea";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
@@ -145,7 +146,7 @@ export function SystemSettingsAccessPage() {
           />
         ),
         content: () => (
-          <div className="space-y-5">
+          <SettingDialogFields>
             <Controller
               control={form.control}
               name="oauthAutoProvisionEnabled"
@@ -176,7 +177,7 @@ export function SystemSettingsAccessPage() {
                 />
               )}
             />
-          </div>
+          </SettingDialogFields>
         ),
       },
       {
@@ -195,7 +196,7 @@ export function SystemSettingsAccessPage() {
           />
         ),
         content: () => (
-          <div className="space-y-5">
+          <SettingDialogFields>
             <Controller
               control={form.control}
               name="publicRegisterEnabled"
@@ -246,7 +247,7 @@ export function SystemSettingsAccessPage() {
                 </OverlayField>
               )}
             />
-          </div>
+          </SettingDialogFields>
         ),
       },
     ] as const;

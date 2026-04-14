@@ -21,6 +21,7 @@ import {
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Textarea } from "@arclayer/ui/textarea";
 
@@ -58,11 +59,11 @@ function RoleDetailsFields<
 
   return (
     <>
-      <div className="grid gap-1.5">
-        <label className="font-semibold text-label-primary">
-          {t("team:TEAM_ROLES_FIELD_NAME")}
-        </label>
-        <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_NAME_HELP")}</div>
+      <SettingDialogField
+        title={t("team:TEAM_ROLES_FIELD_NAME")}
+        description={t("team:TEAM_ROLES_FIELD_NAME_HELP")}
+        error={errors.name?.message ? String(errors.name.message) : undefined}
+      >
         <Controller
           name={"name" as never}
           control={form.control}
@@ -70,16 +71,12 @@ function RoleDetailsFields<
             <Input value={field.value} onChange={(event) => field.onChange(event.target.value)} />
           )}
         />
-        {errors.name?.message ? (
-          <p className="text-caption text-destructive">{String(errors.name.message)}</p>
-        ) : null}
-      </div>
+      </SettingDialogField>
 
-      <div className="grid gap-1.5">
-        <label className="font-semibold text-label-primary">
-          {t("team:TEAM_ROLES_FIELD_DESC")}
-        </label>
-        <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_DESC_HELP")}</div>
+      <SettingDialogField
+        title={t("team:TEAM_ROLES_FIELD_DESC")}
+        description={t("team:TEAM_ROLES_FIELD_DESC_HELP")}
+      >
         <Controller
           name={"description" as never}
           control={form.control}
@@ -91,7 +88,7 @@ function RoleDetailsFields<
             />
           )}
         />
-      </div>
+      </SettingDialogField>
     </>
   );
 }
@@ -174,7 +171,6 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         onOpenChange={setCreateOpen}
         title={t("team:TEAM_ROLES_ADD_ROLE_DIALOG_TITLE")}
         description={t("team:TEAM_ROLES_ADD_ROLE_DIALOG_DESC")}
-        contentClassName="max-w-160"
         footer={
           <>
             <Button
@@ -193,42 +189,43 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
           </>
         }
       >
-        <form className="grid gap-4" onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}>
-          <div className="grid gap-1.5">
-            <label className="font-semibold text-label-primary">
-              {t("team:TEAM_ROLES_FIELD_TEMPLATE")}
-            </label>
-            <div className="text-label-secondary">{t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}</div>
-            <Controller
-              name="templateRoleCode"
-              control={createForm.control}
-              render={({ field }) => (
-                <Select
-                  value={field.value || "__none__"}
-                  onValueChange={(value) => field.onChange(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")} />
-                  </SelectTrigger>
-                  <SelectContent position="popper" align="start">
-                    <SelectItem value="__none__">{t("team:TEAM_ROLES_TEMPLATE_NONE")}</SelectItem>
-                    {roles.map((role) => (
-                      <SelectItem key={role.code} value={role.code}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {createErrors.templateRoleCode?.message ? (
-              <p className="text-caption text-destructive">
-                {String(createErrors.templateRoleCode.message)}
-              </p>
-            ) : null}
-          </div>
+        <form onSubmit={createForm.handleSubmit(onCreateRoleSubmit)}>
+          <SettingDialogFields>
+            <SettingDialogField
+              title={t("team:TEAM_ROLES_FIELD_TEMPLATE")}
+              description={t("team:TEAM_ROLES_FIELD_TEMPLATE_HELP")}
+              error={
+                createErrors.templateRoleCode?.message
+                  ? String(createErrors.templateRoleCode.message)
+                  : undefined
+              }
+            >
+              <Controller
+                name="templateRoleCode"
+                control={createForm.control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value || "__none__"}
+                    onValueChange={(value) => field.onChange(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={t("team:TEAM_ROLES_FIELD_TEMPLATE_PLACEHOLDER")} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      <SelectItem value="__none__">{t("team:TEAM_ROLES_TEMPLATE_NONE")}</SelectItem>
+                      {roles.map((role) => (
+                        <SelectItem key={role.code} value={role.code}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </SettingDialogField>
 
-          <RoleDetailsFields t={t} form={createForm} errors={createErrors} />
+            <RoleDetailsFields t={t} form={createForm} errors={createErrors} />
+          </SettingDialogFields>
         </form>
       </SettingDialog>
 
@@ -237,7 +234,6 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
         onOpenChange={setEditOpen}
         title={t("team:TEAM_ROLES_EDIT_ROLE_DIALOG_TITLE")}
         description={t("team:TEAM_ROLES_EDIT_ROLE_DIALOG_DESC")}
-        contentClassName="max-w-160"
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditOpen(false)} disabled={editRolePending}>
@@ -252,8 +248,10 @@ export function TeamRolesDialogs(props: TeamRolesDialogsProps) {
           </>
         }
       >
-        <form className="grid gap-4" onSubmit={editForm.handleSubmit(onEditRoleSubmit)}>
-          <RoleDetailsFields t={t} form={editForm} errors={editErrors} />
+        <form onSubmit={editForm.handleSubmit(onEditRoleSubmit)}>
+          <SettingDialogFields>
+            <RoleDetailsFields t={t} form={editForm} errors={editErrors} />
+          </SettingDialogFields>
         </form>
       </SettingDialog>
     </>

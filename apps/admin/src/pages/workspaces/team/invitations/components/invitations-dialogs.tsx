@@ -15,6 +15,7 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import type { RenewExpiresInSeconds } from "../types";
@@ -120,7 +121,6 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
             ? t("team:TEAM_INVITATIONS_RENEW_DESC", { email: renewInvitation.email })
             : undefined
         }
-        contentClassName="sm:max-w-xl"
         footer={
           <>
             <Button
@@ -147,31 +147,28 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         }
       >
         {renewInvitation ? (
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary">
-                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select
-                value={String(renewExpiresInSeconds)}
-                onValueChange={(value) =>
-                  setRenewExpiresInSeconds(value === "null" ? null : Number(value))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" align="start">
-                  {renewOptions.map((option) => (
-                    <SelectItem key={String(option.value)} value={String(option.value)}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <SettingDialogField
+            title={t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            description={t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}
+          >
+            <Select
+              value={String(renewExpiresInSeconds)}
+              onValueChange={(value) =>
+                setRenewExpiresInSeconds(value === "null" ? null : Number(value))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {renewOptions.map((option) => (
+                  <SelectItem key={String(option.value)} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
         ) : null}
       </SettingDialog>
 
@@ -184,7 +181,6 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
             ? t("team:TEAM_INVITE_LINKS_RENEW_DESC", { code: renewLink.displayCode })
             : undefined
         }
-        contentClassName="sm:max-w-xl"
         footer={
           <>
             <Button variant="ghost" onClick={() => setRenewLink(null)} disabled={renewLinkPending}>
@@ -207,31 +203,28 @@ export function TeamInvitationsDialogs(props: TeamInvitationsDialogsProps) {
         }
       >
         {renewLink ? (
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary">
-                {t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}</div>
-              <Select
-                value={String(renewExpiresInSeconds)}
-                onValueChange={(value) =>
-                  setRenewExpiresInSeconds(value === "null" ? null : Number(value))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" align="start">
-                  {renewOptions.map((option) => (
-                    <SelectItem key={String(option.value)} value={String(option.value)}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <SettingDialogField
+            title={t("team:TEAM_INVITE_LINK_FIELD_EXPIRES")}
+            description={t("team:TEAM_INVITE_FIELD_EXPIRES_HELP")}
+          >
+            <Select
+              value={String(renewExpiresInSeconds)}
+              onValueChange={(value) =>
+                setRenewExpiresInSeconds(value === "null" ? null : Number(value))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {renewOptions.map((option) => (
+                  <SelectItem key={String(option.value)} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingDialogField>
         ) : null}
       </SettingDialog>
     </>

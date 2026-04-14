@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
@@ -128,7 +129,7 @@ export function SystemSettingsNotificationsPage() {
           />
         ),
         content: () => (
-          <div className="space-y-5">
+          <SettingDialogFields>
             <OverlayBooleanField
               variant="checkbox"
               label={t("settings:SETTINGS_MESSAGING_MAIL_TEMPLATE_REG_PROMPT_TITLE")}
@@ -169,7 +170,7 @@ export function SystemSettingsNotificationsPage() {
                   : "settings:SETTINGS_DISABLED",
               )}
             />
-          </div>
+          </SettingDialogFields>
         ),
       },
       {

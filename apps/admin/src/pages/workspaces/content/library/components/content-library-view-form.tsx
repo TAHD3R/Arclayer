@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Input } from "@arclayer/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { Switch } from "@arclayer/ui/switch";
 
 export type ContentLibraryPrototypeViewVisibility = "private" | "workspace";
@@ -57,10 +58,11 @@ export function ContentLibraryViewFormFields(props: {
 
   return (
     <>
-      <div className="grid gap-1.5">
-        <label htmlFor={nameFieldId} className="font-semibold text-label-primary">
-          {t("CONTENT_LIBRARY_VIEW_CREATE_NAME")}
-        </label>
+      <SettingDialogField
+        title={<label htmlFor={nameFieldId}>{t("CONTENT_LIBRARY_VIEW_CREATE_NAME")}</label>}
+        description={t("CONTENT_LIBRARY_VIEW_CREATE_PLACEHOLDER")}
+        error={props.nameHint ? <div id={nameHintId}>{props.nameHint}</div> : undefined}
+      >
         <Input
           id={nameFieldId}
           aria-label={t("CONTENT_LIBRARY_VIEW_CREATE_NAME")}
@@ -72,18 +74,12 @@ export function ContentLibraryViewFormFields(props: {
           placeholder={t("CONTENT_LIBRARY_VIEW_CREATE_PLACEHOLDER")}
           className="aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
         />
-        {props.nameHint ? (
-          <div id={nameHintId} className="text-callout text-destructive">
-            {props.nameHint}
-          </div>
-        ) : null}
-      </div>
+      </SettingDialogField>
 
-      <div className="grid gap-1.5">
-        <label id={visibilityLabelId} className="font-semibold text-label-primary">
-          {t("CONTENT_LIBRARY_VIEW_VISIBILITY_LABEL")}
-        </label>
-        <div className="text-label-secondary">{t("CONTENT_LIBRARY_VIEW_VISIBILITY_HELP")}</div>
+      <SettingDialogField
+        title={<label id={visibilityLabelId}>{t("CONTENT_LIBRARY_VIEW_VISIBILITY_LABEL")}</label>}
+        description={t("CONTENT_LIBRARY_VIEW_VISIBILITY_HELP")}
+      >
         <Select
           value={props.value.visibility}
           disabled={props.disabled}
@@ -104,22 +100,17 @@ export function ContentLibraryViewFormFields(props: {
             </SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </SettingDialogField>
 
-      <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <div id={defaultLabelId} className="font-semibold text-label-primary">
-              {t("CONTENT_LIBRARY_VIEW_DEFAULT_LABEL")}
-            </div>
-            <div className="text-label-secondary">
-              {t(
-                props.value.isDefault
-                  ? "CONTENT_LIBRARY_VIEW_DEFAULT_STATE_ENABLED"
-                  : "CONTENT_LIBRARY_VIEW_DEFAULT_STATE_DISABLED",
-              )}
-            </div>
-          </div>
+      <SettingDialogField
+        title={<div id={defaultLabelId}>{t("CONTENT_LIBRARY_VIEW_DEFAULT_LABEL")}</div>}
+        description={t(
+          props.value.isDefault
+            ? "CONTENT_LIBRARY_VIEW_DEFAULT_STATE_ENABLED"
+            : "CONTENT_LIBRARY_VIEW_DEFAULT_STATE_DISABLED",
+        )}
+      >
+        <div className="flex justify-end rounded-xl border border-border/70 bg-muted/20 p-3">
           <Switch
             aria-labelledby={defaultLabelId}
             checked={props.value.isDefault}
@@ -127,7 +118,7 @@ export function ContentLibraryViewFormFields(props: {
             onCheckedChange={(isDefault) => props.onChange({ ...props.value, isDefault })}
           />
         </div>
-      </div>
+      </SettingDialogField>
     </>
   );
 }

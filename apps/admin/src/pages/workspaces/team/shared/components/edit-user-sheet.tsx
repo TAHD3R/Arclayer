@@ -18,14 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { Input } from "@arclayer/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@arclayer/ui/sheet";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { SettingSheet } from "@arclayer/ui/setting-sheet";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -154,171 +148,164 @@ export function EditUserSheet(props: {
     : t("team:TEAM_EDIT_USER_TITLE_FALLBACK");
 
   return (
-    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
-      <SheetContent side="right" className="w-115 sm:w-130">
-        <div className="flex min-h-0 flex-1 flex-col">
-          <SheetHeader>
-            <SheetTitle className="font-bold!">{title}</SheetTitle>
-            <SheetDescription>{t("team:TEAM_EDIT_USER_DESC")}</SheetDescription>
-          </SheetHeader>
+    <SettingSheet
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={title}
+      description={t("team:TEAM_EDIT_USER_DESC")}
+      contentClassName="w-115 sm:w-130"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => props.onOpenChange(false)}
+            disabled={mutation.isPending}
+          >
+            {t("common:CANCEL")}
+          </Button>
+          <Button loading={mutation.isPending} onClick={() => void onSubmit()}>
+            {t("common:CONFIRM")}
+          </Button>
+        </div>
+      }
+    >
+      <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col py-2">
+        <input type="hidden" {...form.register("avatarUrl")} />
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("team:TEAM_FIELD_AVATAR")}
+            description={t("team:TEAM_FIELD_AVATAR_DESC")}
+          >
+            <div className="relative h-16 w-16">
+              <button
+                type="button"
+                className="h-16 w-16 overflow-hidden rounded-full border border-border/60 bg-muted/20 outline-none"
+                onClick={() => {
+                  if (!assetScope) return;
+                  setAvatarPickerOpen(true);
+                }}
+                aria-label={t("team:TEAM_FIELD_AVATAR_DESC")}
+              >
+                {avatarPreviewUrl ? (
+                  <img
+                    src={avatarPreviewUrl}
+                    alt={t("team:TEAM_FIELD_AVATAR")}
+                    className="h-16 w-16 rounded-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.src = AVATAR_IMAGE_FALLBACK_DATA_URI;
+                    }}
+                  />
+                ) : (
+                  <div className="grid h-16 w-16 place-items-center text-caption text-label-secondary">
+                    {t("team:TEAM_FIELD_AVATAR_EMPTY")}
+                  </div>
+                )}
+              </button>
 
-          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-4 p-4">
-            <input type="hidden" {...form.register("avatarUrl")} />
-
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary">
-                {t("team:TEAM_FIELD_AVATAR")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_FIELD_AVATAR_DESC")}</div>
-              <div className="relative h-16 w-16">
-                <button
-                  type="button"
-                  className="h-16 w-16 overflow-hidden rounded-full border border-border/60 bg-muted/20 outline-none"
-                  onClick={() => {
-                    if (!assetScope) return;
-                    setAvatarPickerOpen(true);
-                  }}
-                  aria-label={t("team:TEAM_FIELD_AVATAR_DESC")}
-                >
-                  {avatarPreviewUrl ? (
-                    <img
-                      src={avatarPreviewUrl}
-                      alt={t("team:TEAM_FIELD_AVATAR")}
-                      className="h-16 w-16 rounded-full object-cover"
-                      onError={(event) => {
-                        event.currentTarget.src = AVATAR_IMAGE_FALLBACK_DATA_URI;
+              <div className="absolute -right-1 -bottom-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon-xs"
+                      className="rounded-full "
+                      aria-label={t("team:TEAM_FIELD_AVATAR")}
+                    >
+                      <PencilLine size={14} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuIconItem
+                      icon={<UploadCloud size={16} />}
+                      onSelect={() => {
+                        if (!assetScope) return;
+                        setAvatarPickerOpen(true);
                       }}
-                    />
-                  ) : (
-                    <div className="grid h-16 w-16 place-items-center text-caption text-label-secondary">
-                      {t("team:TEAM_FIELD_AVATAR_EMPTY")}
-                    </div>
-                  )}
-                </button>
-
-                <div className="absolute -right-1 -bottom-1">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="icon-xs"
-                        className="rounded-full "
-                        aria-label={t("team:TEAM_FIELD_AVATAR")}
-                      >
-                        <PencilLine size={14} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuIconItem
-                        icon={<UploadCloud size={16} />}
-                        onSelect={() => {
-                          if (!assetScope) return;
-                          setAvatarPickerOpen(true);
-                        }}
-                      >
-                        {t("team:TEAM_AVATAR_ACTION_UPLOAD")}
-                      </DropdownMenuIconItem>
-                      <DropdownMenuIconItem
-                        icon={<Trash2 size={16} />}
-                        variant="destructive"
-                        disabled={!avatarUrl}
-                        onSelect={() => {
-                          form.setValue("avatarUrl", "", {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          });
-                        }}
-                      >
-                        {t("team:TEAM_AVATAR_ACTION_REMOVE")}
-                      </DropdownMenuIconItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                    >
+                      {t("team:TEAM_AVATAR_ACTION_UPLOAD")}
+                    </DropdownMenuIconItem>
+                    <DropdownMenuIconItem
+                      icon={<Trash2 size={16} />}
+                      variant="destructive"
+                      disabled={!avatarUrl}
+                      onSelect={() => {
+                        form.setValue("avatarUrl", "", {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    >
+                      {t("team:TEAM_AVATAR_ACTION_REMOVE")}
+                    </DropdownMenuIconItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
+          </SettingDialogField>
 
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary" htmlFor="username">
-                {t("team:TEAM_FIELD_USERNAME")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_FIELD_USERNAME_HELP")}</div>
-              <Controller
-                control={form.control}
-                name="username"
-                render={({ field }) => <Input id="username" disabled value={field.value} />}
-              />
-            </div>
+          <SettingDialogField
+            title={t("team:TEAM_FIELD_USERNAME")}
+            description={t("team:TEAM_FIELD_USERNAME_HELP")}
+          >
+            <Controller
+              control={form.control}
+              name="username"
+              render={({ field }) => <Input id="username" disabled value={field.value} />}
+            />
+          </SettingDialogField>
 
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary" htmlFor="displayName">
-                {t("team:TEAM_FIELD_DISPLAY_NAME")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_FIELD_DISPLAY_NAME_HELP")}</div>
-              <Controller
-                control={form.control}
-                name="displayName"
-                render={({ field }) => (
-                  <Input
-                    id="displayName"
-                    placeholder={t("team:TEAM_FIELD_DISPLAY_NAME_PLACEHOLDER")}
-                    aria-invalid={form.formState.errors.displayName ? true : undefined}
-                    value={field.value}
-                    onChange={(event) => field.onChange(event.target.value)}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                  />
-                )}
-              />
-              {form.formState.errors.displayName?.message ? (
-                <div className="text-footnote text-destructive">
-                  {String(form.formState.errors.displayName.message)}
-                </div>
-              ) : null}
-            </div>
+          <SettingDialogField
+            title={t("team:TEAM_FIELD_DISPLAY_NAME")}
+            description={t("team:TEAM_FIELD_DISPLAY_NAME_HELP")}
+            error={
+              form.formState.errors.displayName?.message
+                ? String(form.formState.errors.displayName.message)
+                : undefined
+            }
+          >
+            <Controller
+              control={form.control}
+              name="displayName"
+              render={({ field }) => (
+                <Input
+                  id="displayName"
+                  placeholder={t("team:TEAM_FIELD_DISPLAY_NAME_PLACEHOLDER")}
+                  aria-invalid={form.formState.errors.displayName ? true : undefined}
+                  value={field.value}
+                  onChange={(event) => field.onChange(event.target.value)}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                />
+              )}
+            />
+          </SettingDialogField>
 
-            <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary" htmlFor="email">
-                {t("team:TEAM_FIELD_EMAIL")}
-              </label>
-              <div className="text-label-secondary">{t("team:TEAM_FIELD_EMAIL_HELP")}</div>
-              <Controller
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <Input
-                    id="email"
-                    placeholder={t("team:TEAM_FIELD_EMAIL_PLACEHOLDER")}
-                    aria-invalid={form.formState.errors.email ? true : undefined}
-                    value={field.value}
-                    onChange={(event) => field.onChange(event.target.value)}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                  />
-                )}
-              />
-              {form.formState.errors.email?.message ? (
-                <div className="text-footnote text-destructive">
-                  {String(form.formState.errors.email.message)}
-                </div>
-              ) : null}
-            </div>
-          </form>
-
-          <SheetFooter>
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => props.onOpenChange(false)}
-                disabled={mutation.isPending}
-              >
-                {t("common:CANCEL")}
-              </Button>
-              <Button loading={mutation.isPending} onClick={() => void onSubmit()}>
-                {t("common:CONFIRM")}
-              </Button>
-            </div>
-          </SheetFooter>
-        </div>
-      </SheetContent>
+          <SettingDialogField
+            title={t("team:TEAM_FIELD_EMAIL")}
+            description={t("team:TEAM_FIELD_EMAIL_HELP")}
+            error={
+              form.formState.errors.email?.message
+                ? String(form.formState.errors.email.message)
+                : undefined
+            }
+          >
+            <Controller
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <Input
+                  id="email"
+                  placeholder={t("team:TEAM_FIELD_EMAIL_PLACEHOLDER")}
+                  aria-invalid={form.formState.errors.email ? true : undefined}
+                  value={field.value}
+                  onChange={(event) => field.onChange(event.target.value)}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                />
+              )}
+            />
+          </SettingDialogField>
+        </SettingDialogFields>
+      </form>
 
       {assetScope ? (
         <AssetPickerDialog
@@ -341,6 +328,6 @@ export function EditUserSheet(props: {
           }}
         />
       ) : null}
-    </Sheet>
+    </SettingSheet>
   );
 }

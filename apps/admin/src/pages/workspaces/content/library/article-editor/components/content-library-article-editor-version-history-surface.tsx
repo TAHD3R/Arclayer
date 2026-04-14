@@ -116,7 +116,6 @@ export function ContentLibraryArticleEditorVersionHistorySurface(props: {
         onOpenChange={props.onOpenChange}
         title={t("CONTENT_LIBRARY_EDITOR_MENU_VERSION_HISTORY")}
         description={t("CONTENT_LIBRARY_EDITOR_VERSION_HISTORY_DESC")}
-        contentClassName="sm:max-w-2xl"
         footer={
           <Button variant="ghost" onClick={() => props.onOpenChange(false)}>
             {t("common:CLOSE")}
@@ -131,15 +130,15 @@ export function ContentLibraryArticleEditorVersionHistorySurface(props: {
   return (
     <Drawer open={props.open} onOpenChange={props.onOpenChange} direction="right">
       <DrawerContent className="w-full max-w-[32rem]">
-        <DrawerHeader className="max-w-none px-6 py-4">
+        <DrawerHeader className="max-w-none px-6 py-5">
           <div className="flex items-center gap-2 text-label-primary">
             <HistoryIcon className="size-4" />
             <DrawerTitle>{t("CONTENT_LIBRARY_EDITOR_MENU_VERSION_HISTORY")}</DrawerTitle>
           </div>
           <DrawerDescription>{t("CONTENT_LIBRARY_EDITOR_VERSION_HISTORY_DESC")}</DrawerDescription>
         </DrawerHeader>
-        <DrawerBody className="max-w-none overflow-y-auto px-6 py-4">{body}</DrawerBody>
-        <DrawerFooter className="max-w-none px-6 py-4">
+        <DrawerBody className="max-w-none overflow-y-auto px-6 py-5">{body}</DrawerBody>
+        <DrawerFooter className="max-w-none px-6 py-5">
           <Button variant="ghost" onClick={() => props.onOpenChange(false)}>
             {t("common:CLOSE")}
           </Button>

@@ -18,6 +18,7 @@ type SettingSheetProps = {
   children: ReactNode;
   footer?: ReactNode;
   contentClassName?: string;
+  bodyClassName?: string;
 };
 
 /**
@@ -33,6 +34,7 @@ export function SettingSheet({
   children,
   footer,
   contentClassName,
+  bodyClassName,
 }: SettingSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -40,16 +42,18 @@ export function SettingSheet({
         side="right"
         className={cn("w-[32.5rem] max-w-[92vw] gap-0 p-0", contentClassName)}
       >
-        <SheetHeader>
-          <SheetTitle className="font-bold">{title}</SheetTitle>
+        <SheetHeader className="px-6 py-5">
+          <SheetTitle className="text-title3 font-semibold text-label-primary">{title}</SheetTitle>
           {description ? (
-            <SheetDescription className="text-callout text-label-secondary">
+            <SheetDescription className="text-body text-label-secondary">
               {description}
             </SheetDescription>
           ) : null}
         </SheetHeader>
 
-        <div className="flex-1 overflow-auto p-4">{children}</div>
+        <div className={cn("min-w-0 flex-1 overflow-auto px-6 py-5", bodyClassName)}>
+          {children}
+        </div>
 
         {footer ? <SheetFooter>{footer}</SheetFooter> : null}
       </SheetContent>

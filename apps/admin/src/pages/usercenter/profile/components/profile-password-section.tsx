@@ -16,6 +16,7 @@ import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { DialogField } from "./dialog-field";
 
 export type UserPasswordSectionProps = {
@@ -281,10 +282,11 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
           </>
         }
       >
-        <div className="max-w-xl space-y-4">
+        <SettingDialogFields>
           {hasPassword ? (
             <DialogField
               label={t("account:ME_SECURITY_OLD_PASSWORD")}
+              description={t("account:ME_SECURITY_CHANGE_PASSWORD_DIALOG_DESC")}
               htmlFor={oldPasswordFieldId}
               error={form.formState.errors.oldPassword?.message}
             >
@@ -298,6 +300,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
 
           <DialogField
             label={t("account:ME_SECURITY_NEW_PASSWORD")}
+            description={t("auth:PASSWORD_INVALID")}
             htmlFor={newPasswordFieldId}
             error={form.formState.errors.newPassword?.message}
           >
@@ -319,6 +322,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
 
           <DialogField
             label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
+            description={t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")}
             htmlFor={confirmPasswordFieldId}
             error={form.formState.errors.confirmPassword?.message}
           >
@@ -333,6 +337,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
             <>
               <DialogField
                 label={t("account:ME_PROFILE_PASSWORD_2FA_CODE")}
+                description={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
                 htmlFor={codeFieldId}
                 error={form.formState.errors.code?.message}
               >
@@ -345,6 +350,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
 
               <DialogField
                 label={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE")}
+                description={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
                 htmlFor={backupCodeFieldId}
                 error={form.formState.errors.backupCode?.message}
               >
@@ -362,7 +368,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
               {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_REQUIRED")}
             </div>
           ) : null}
-        </div>
+        </SettingDialogFields>
       </SettingDialog>
     </>
   );

@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import type { DeleteMyAccountPayload } from "@/types/api";
 import { DialogField } from "./dialog-field";
 
@@ -253,7 +254,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
           </>
         }
       >
-        <div className="max-w-xl space-y-4">
+        <SettingDialogFields>
           <Alert variant="destructive" className="border-destructive/25 bg-destructive/6">
             <AlertTitle>{t("account:ME_DELETE_ACCOUNT_ALERT_TITLE")}</AlertTitle>
             <AlertDescription>
@@ -265,6 +266,9 @@ export function UserDangerSection(props: UserDangerSectionProps) {
 
           <DialogField
             label={t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL")}
+            description={
+              normalizedEmail || t("account:ME_DELETE_ACCOUNT_CONFIRM_EMAIL_PLACEHOLDER")
+            }
             htmlFor={emailFieldId}
             error={form.formState.errors.email?.message}
           >
@@ -280,6 +284,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
           {requiresPassword ? (
             <DialogField
               label={t("account:ME_DELETE_ACCOUNT_CONFIRM_PASSWORD")}
+              description={t("account:ME_DELETE_ACCOUNT_PASSWORD_PLACEHOLDER")}
               htmlFor={passwordFieldId}
               error={form.formState.errors.password?.message}
             >
@@ -296,6 +301,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
             <>
               <DialogField
                 label={t("account:ME_DELETE_ACCOUNT_2FA_CODE")}
+                description={t("account:ME_DELETE_ACCOUNT_2FA_CODE_PLACEHOLDER")}
                 htmlFor={codeFieldId}
                 error={form.formState.errors.code?.message}
               >
@@ -308,6 +314,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
 
               <DialogField
                 label={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE")}
+                description={t("account:ME_DELETE_ACCOUNT_2FA_BACKUP_CODE_PLACEHOLDER")}
                 htmlFor={backupCodeFieldId}
                 error={form.formState.errors.backupCode?.message}
               >
@@ -325,7 +332,7 @@ export function UserDangerSection(props: UserDangerSectionProps) {
               {t("account:ME_DELETE_ACCOUNT_RELOGIN_REQUIRED")}
             </div>
           ) : null}
-        </div>
+        </SettingDialogFields>
       </SettingDialog>
     </>
   );

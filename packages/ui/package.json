@@ -101,6 +101,7 @@
     "./setting-action-group": "./src/setting-action-group.tsx",
     "./setting-card": "./src/setting-card.tsx",
     "./setting-dialog": "./src/setting-dialog.tsx",
+    "./setting-dialog-field": "./src/setting-dialog-field.tsx",
     "./setting-overlay-footer": "./src/setting-overlay-footer.tsx",
     "./setting-panel": "./src/setting-panel.tsx",
     "./setting-sheet": "./src/setting-sheet.tsx",

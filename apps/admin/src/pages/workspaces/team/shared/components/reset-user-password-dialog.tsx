@@ -10,6 +10,7 @@ import type { TeamMember } from "@/types/api";
 import { resetTeamMemberPassword } from "@/api/team";
 import { Button } from "@arclayer/ui/button";
 import { PasswordInput } from "@arclayer/ui/password-input";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
 import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
@@ -95,7 +96,6 @@ export function ResetUserPasswordDialog(props: {
       onOpenChange={props.onOpenChange}
       title={title}
       description={t("team:TEAM_RESET_PASSWORD_DESC")}
-      contentClassName="sm:max-w-xl"
       footer={
         <>
           <Button
@@ -115,51 +115,43 @@ export function ResetUserPasswordDialog(props: {
         </>
       }
     >
-      <form onSubmit={onSubmit} className="grid gap-4 py-2">
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-label-primary" htmlFor="newPassword">
-            {t("team:TEAM_FIELD_NEW_PASSWORD")}
-          </label>
-          <div className="text-label-secondary">
-            {t("team:TEAM_RESET_PASSWORD_FIELD_NEW_PASSWORD_HELP")}
-          </div>
-          <PasswordInput
-            id="newPassword"
-            autoComplete="new-password"
-            disabled={mutation.isPending}
-            {...form.register("newPassword")}
-          />
-          <PasswordRequirementChecklist
-            password={newPasswordValue}
-            active={Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0}
-            t={t}
-          />
-          {form.formState.errors.newPassword?.message ? (
-            <div className="text-footnote text-destructive">
-              {String(form.formState.errors.newPassword.message)}
+      <form onSubmit={onSubmit}>
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("team:TEAM_FIELD_NEW_PASSWORD")}
+            description={t("team:TEAM_RESET_PASSWORD_FIELD_NEW_PASSWORD_HELP")}
+            error={form.formState.errors.newPassword?.message?.toString()}
+          >
+            <div className="grid gap-3">
+              <PasswordInput
+                id="newPassword"
+                autoComplete="new-password"
+                disabled={mutation.isPending}
+                {...form.register("newPassword")}
+              />
+              <PasswordRequirementChecklist
+                password={newPasswordValue}
+                active={
+                  Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0
+                }
+                t={t}
+              />
             </div>
-          ) : null}
-        </div>
+          </SettingDialogField>
 
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-label-primary" htmlFor="confirmPassword">
-            {t("team:TEAM_FIELD_CONFIRM_PASSWORD")}
-          </label>
-          <div className="text-label-secondary">
-            {t("team:TEAM_RESET_PASSWORD_FIELD_CONFIRM_PASSWORD_HELP")}
-          </div>
-          <PasswordInput
-            id="confirmPassword"
-            autoComplete="new-password"
-            disabled={mutation.isPending}
-            {...form.register("confirmPassword")}
-          />
-          {form.formState.errors.confirmPassword?.message ? (
-            <div className="text-footnote text-destructive">
-              {String(form.formState.errors.confirmPassword.message)}
-            </div>
-          ) : null}
-        </div>
+          <SettingDialogField
+            title={t("team:TEAM_FIELD_CONFIRM_PASSWORD")}
+            description={t("team:TEAM_RESET_PASSWORD_FIELD_CONFIRM_PASSWORD_HELP")}
+            error={form.formState.errors.confirmPassword?.message?.toString()}
+          >
+            <PasswordInput
+              id="confirmPassword"
+              autoComplete="new-password"
+              disabled={mutation.isPending}
+              {...form.register("confirmPassword")}
+            />
+          </SettingDialogField>
+        </SettingDialogFields>
       </form>
     </SettingDialog>
   );

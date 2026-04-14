@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Input } from "@arclayer/ui/input";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingOverlayFooter } from "@arclayer/ui/setting-overlay-footer";
 import { SettingPanel } from "@arclayer/ui/setting-panel";
 import { useSavingKey } from "@arclayer/hooks/use-saving-key";
@@ -166,7 +167,7 @@ export function SystemSettingsOAuthPage() {
           />
         ),
         content: () => (
-          <div className="space-y-5">
+          <SettingDialogFields>
             <Controller
               control={form.control}
               name="googleEnabled"
@@ -216,7 +217,7 @@ export function SystemSettingsOAuthPage() {
                 </OverlayField>
               )}
             />
-          </div>
+          </SettingDialogFields>
         ),
       },
       {
@@ -235,7 +236,7 @@ export function SystemSettingsOAuthPage() {
           />
         ),
         content: () => (
-          <div className="space-y-5">
+          <SettingDialogFields>
             <Controller
               control={form.control}
               name="githubEnabled"
@@ -285,7 +286,7 @@ export function SystemSettingsOAuthPage() {
                 </OverlayField>
               )}
             />
-          </div>
+          </SettingDialogFields>
         ),
       },
     ] as const;

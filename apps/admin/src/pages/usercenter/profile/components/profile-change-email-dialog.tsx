@@ -13,6 +13,7 @@ import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { DialogField } from "./dialog-field";
 
 export type UserChangeEmailDialogProps = {
@@ -233,9 +234,10 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
         </>
       }
     >
-      <div className="grid gap-4">
+      <SettingDialogFields>
         <DialogField
           label={t("account:ME_PROFILE_EMAIL_NEW_EMAIL")}
+          description={t("account:ME_PROFILE_EMAIL_NEW_EMAIL_PLACEHOLDER")}
           htmlFor={newEmailFieldId}
           error={form.formState.errors.newEmail?.message}
         >
@@ -248,6 +250,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
 
         <DialogField
           label={t("account:ME_PROFILE_EMAIL_CODE")}
+          description={t("account:ME_PROFILE_EMAIL_CODE_PLACEHOLDER")}
           htmlFor={codeFieldId}
           error={form.formState.errors.code?.message}
         >
@@ -283,6 +286,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
           <>
             <DialogField
               label={t("account:ME_PROFILE_EMAIL_PASSWORD")}
+              description={t("account:ME_PROFILE_EMAIL_PASSWORD_PLACEHOLDER")}
               htmlFor={passwordFieldId}
               error={form.formState.errors.password?.message}
             >
@@ -314,6 +318,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
           <>
             <DialogField
               label={t("account:ME_PROFILE_EMAIL_2FA_CODE")}
+              description={t("account:ME_PROFILE_EMAIL_2FA_CODE_PLACEHOLDER")}
               htmlFor={twoFactorCodeFieldId}
               error={form.formState.errors.twoFactorCode?.message}
             >
@@ -326,6 +331,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
 
             <DialogField
               label={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE")}
+              description={t("account:ME_PROFILE_EMAIL_2FA_BACKUP_CODE_PLACEHOLDER")}
               htmlFor={backupCodeFieldId}
               error={form.formState.errors.backupCode?.message}
             >
@@ -349,7 +355,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
             {t("account:ME_PROFILE_PASSWORD_CAPABILITY_LOAD_FAILED")}
           </div>
         ) : null}
-      </div>
+      </SettingDialogFields>
     </SettingDialog>
   );
 }

@@ -16,6 +16,7 @@ import {
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import type { UserCenterWorkspacesTranslateFn } from "../types";
@@ -75,7 +76,6 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
         }}
         title={t("common:ORG_WORKSPACES_CREATE_TEAM")}
         description={t("common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC")}
-        contentClassName="sm:max-w-155"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <Button
@@ -101,14 +101,18 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
           </div>
         }
       >
-        <div className="grid gap-4">
-          <div className="grid gap-1.5">
-            <span className="font-semibold text-label-primary">
-              {t("common:ORG_WORKSPACES_FIELD_NAME")}
-            </span>
-            <span className="text-label-secondary">
-              {t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
-            </span>
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("common:ORG_WORKSPACES_FIELD_NAME")}
+            description={t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
+            error={
+              showCreateNameError ? (
+                <span className="text-caption text-destructive">
+                  {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
+                </span>
+              ) : undefined
+            }
+          >
             <Input
               value={createDialog.values.name}
               onChange={(event) => {
@@ -119,20 +123,12 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
               placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
               aria-invalid={showCreateNameError}
             />
-            {showCreateNameError ? (
-              <span className="text-caption text-destructive">
-                {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
-              </span>
-            ) : null}
-          </div>
+          </SettingDialogField>
 
-          <div className="grid gap-1.5">
-            <span className="font-semibold text-label-primary">
-              {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
-            </span>
-            <span className="text-label-secondary">
-              {t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
-            </span>
+          <SettingDialogField
+            title={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
+            description={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
+          >
             <textarea
               rows={3}
               value={createDialog.values.description ?? ""}
@@ -149,8 +145,8 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
                 "disabled:cursor-not-allowed disabled:opacity-50",
               )}
             />
-          </div>
-        </div>
+          </SettingDialogField>
+        </SettingDialogFields>
       </SettingDialog>
 
       <AlertDialog
@@ -208,7 +204,6 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
         description={t("common:ORG_WORKSPACES_DELETE_CONFIRM_DESC", {
           name: deleteDialog.workspace?.name || "",
         })}
-        contentClassName="sm:max-w-140"
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <Button
@@ -238,18 +233,12 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
           </div>
         }
       >
-        <div className="grid gap-1.5">
-          <label
-            className="font-semibold text-label-primary"
-            htmlFor="workspace-delete-confirm-name"
-          >
-            {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
-              name: deleteDialog.workspace?.name || "",
-            })}
-          </label>
-          <div className="text-label-secondary">
-            {t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
-          </div>
+        <SettingDialogField
+          title={t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_LABEL", {
+            name: deleteDialog.workspace?.name || "",
+          })}
+          description={t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_HELP")}
+        >
           <Input
             id="workspace-delete-confirm-name"
             value={deleteDialog.confirmName}
@@ -257,7 +246,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
             placeholder={t("common:ORG_WORKSPACES_DELETE_CONFIRM_INPUT_PLACEHOLDER")}
             disabled={deleteDialog.pending}
           />
-        </div>
+        </SettingDialogField>
       </SettingDialog>
     </>
   );

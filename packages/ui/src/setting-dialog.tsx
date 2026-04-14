@@ -56,19 +56,23 @@ export function SettingDialog({
           contentClassName,
         )}
       >
-        <DialogHeader className="min-w-0 border-b px-6 py-4 text-left">
-          <DialogTitle>{displayTitle}</DialogTitle>
+        <DialogHeader className="min-w-0 border-b px-6 py-5 text-left">
+          <DialogTitle className="text-title3 font-semibold text-label-primary">
+            {displayTitle}
+          </DialogTitle>
           {displayDescription ? (
-            <DialogDescription className="mb-0">{displayDescription}</DialogDescription>
+            <DialogDescription className="mb-0 text-body text-label-secondary">
+              {displayDescription}
+            </DialogDescription>
           ) : null}
         </DialogHeader>
 
-        <div className={cn("min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-4", bodyClassName)}>
+        <div className={cn("min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-5", bodyClassName)}>
           {children}
         </div>
 
         {footer ? (
-          <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-4">{footer}</DialogFooter>
+          <DialogFooter className="mt-0 min-w-0 border-t bg-card px-6 py-5">{footer}</DialogFooter>
         ) : null}
       </DialogContent>
     </Dialog>

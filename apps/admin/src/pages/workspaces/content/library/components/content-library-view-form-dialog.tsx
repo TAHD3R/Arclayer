@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
+import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import { ContentLibraryViewFormFields } from "./content-library-view-form";
@@ -38,7 +39,6 @@ export function ContentLibraryViewFormDialog(props: {
       onOpenChange={props.onOpenChange}
       title={title}
       description={description}
-      contentClassName="sm:max-w-xl"
       bodyClassName="py-5"
       footer={
         <>
@@ -62,7 +62,7 @@ export function ContentLibraryViewFormDialog(props: {
         </>
       }
     >
-      <div className="grid gap-4">
+      <SettingDialogFields>
         <ContentLibraryViewFormFields
           value={props.draft}
           onChange={props.onDraftChange}
@@ -73,7 +73,7 @@ export function ContentLibraryViewFormDialog(props: {
             saveAsNameUnchanged ? t("CONTENT_LIBRARY_SAVE_AS_UNCHANGED_NAME_HINT") : undefined
           }
         />
-      </div>
+      </SettingDialogFields>
     </SettingDialog>
   );
 }

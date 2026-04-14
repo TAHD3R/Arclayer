@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@arclayer/ui/button";
+import { SettingDialogField } from "@arclayer/ui/setting-dialog-field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import type { Role, TeamMember } from "@/types/api";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
@@ -39,7 +40,6 @@ export function EditMemberRolesDialog(props: {
       onOpenChange={props.onOpenChange}
       title={title}
       description={t("team:TEAM_EDIT_ROLES_DESC")}
-      contentClassName="sm:max-w-xl"
       footer={
         <>
           <Button
@@ -59,11 +59,10 @@ export function EditMemberRolesDialog(props: {
         </>
       }
     >
-      <div className="grid gap-1.5">
-        <label className="font-semibold text-label-primary">
-          {t("team:TEAM_INVITE_FIELD_ROLE")}
-        </label>
-        <div className="text-label-secondary">{t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}</div>
+      <SettingDialogField
+        title={t("team:TEAM_INVITE_FIELD_ROLE")}
+        description={t("team:TEAM_EDIT_ROLES_FIELD_ROLE_HELP")}
+      >
         <Select
           value={props.value ?? "__none__"}
           onValueChange={(next) => props.onChange(next === "__none__" ? null : String(next))}
@@ -80,7 +79,7 @@ export function EditMemberRolesDialog(props: {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </SettingDialogField>
     </SettingDialog>
   );
 }

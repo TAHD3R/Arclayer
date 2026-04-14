@@ -4,19 +4,11 @@ import { useCallback } from "react";
 import { Button } from "@arclayer/ui/button";
 import { Form } from "@arclayer/ui/form";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import { getFieldErrorMessage, validateFormFields } from "@/lib/forms/rhf-form-helpers";
 import type { WorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
-
-function dialogFieldLabel(title: string, description: string) {
-  return (
-    <div className="grid gap-1.5">
-      <span className="font-semibold text-label-primary">{title}</span>
-      <span className="text-label-secondary">{description}</span>
-    </div>
-  );
-}
 
 export function WorkspaceSettingsAssignRoleDialog(props: {
   controller: WorkspaceSettingsBasicsController;
@@ -73,7 +65,7 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
       }
     >
       <Form {...c.assignRoleDialogForm}>
-        <div className="grid gap-4 py-2">
+        <SettingDialogFields className="py-2">
           {c.assignRoleDescription ? (
             <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
               <div className="text-footnote font-semibold text-label-primary">
@@ -85,13 +77,13 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
             </div>
           ) : null}
 
-          <label className="grid gap-2">
-            {dialogFieldLabel(
-              t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL"),
-              t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DIALOG_CONFIRM_DESC", {
-                role: c.assignRoleLabel,
-              }),
-            )}
+          <SettingDialogField
+            title={t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL")}
+            description={t("settings:SETTINGS_WORKSPACE_ASSIGN_ROLE_ALL_DIALOG_CONFIRM_DESC", {
+              role: c.assignRoleLabel,
+            })}
+            error={getFieldErrorMessage(c.assignRoleDialogForm, "confirmName") ?? undefined}
+          >
             <Input
               {...confirmNameField}
               placeholder={t(
@@ -101,11 +93,8 @@ export function WorkspaceSettingsAssignRoleDialog(props: {
                 getFieldErrorMessage(c.assignRoleDialogForm, "confirmName") ? true : undefined
               }
             />
-            <div className="text-footnote text-destructive">
-              {getFieldErrorMessage(c.assignRoleDialogForm, "confirmName")}
-            </div>
-          </label>
-        </div>
+          </SettingDialogField>
+        </SettingDialogFields>
       </Form>
     </SettingDialog>
   );

@@ -6,6 +6,7 @@ import { useEditorRef } from "platejs/react";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import {
@@ -62,7 +63,6 @@ export function ContentLibraryArticleEditorImportDialog(props: {
       onOpenChange={props.onOpenChange}
       title={t("CONTENT_LIBRARY_EDITOR_IMPORT_DIALOG_TITLE")}
       description={t("CONTENT_LIBRARY_EDITOR_IMPORT_DIALOG_DESC")}
-      contentClassName="sm:max-w-2xl"
       footer={
         <>
           <Button variant="ghost" onClick={() => props.onOpenChange(false)} disabled={pending}>
@@ -80,14 +80,11 @@ export function ContentLibraryArticleEditorImportDialog(props: {
         </>
       }
     >
-      <div className="grid gap-5 py-2">
-        <div className="grid gap-1.5">
-          <label className="font-semibold text-label-primary">
-            {t("CONTENT_LIBRARY_EDITOR_IMPORT_FORMAT_LABEL")}
-          </label>
-          <div className="text-label-secondary">
-            {t("CONTENT_LIBRARY_EDITOR_IMPORT_FORMAT_HELP")}
-          </div>
+      <SettingDialogFields className="py-2">
+        <SettingDialogField
+          title={t("CONTENT_LIBRARY_EDITOR_IMPORT_FORMAT_LABEL")}
+          description={t("CONTENT_LIBRARY_EDITOR_IMPORT_FORMAT_HELP")}
+        >
           <div className="flex flex-wrap gap-2">
             {IMPORT_FORMATS.map((option) => {
               const active = option === format;
@@ -108,37 +105,25 @@ export function ContentLibraryArticleEditorImportDialog(props: {
               );
             })}
           </div>
-        </div>
+        </SettingDialogField>
 
         {requiresFile ? (
-          <div className="grid gap-1.5">
-            <label
-              className="font-semibold text-label-primary"
-              htmlFor="article-editor-import-file"
-            >
-              {t("CONTENT_LIBRARY_EDITOR_IMPORT_FILE_LABEL")}
-            </label>
-            <div className="text-label-secondary">
-              {t("CONTENT_LIBRARY_EDITOR_IMPORT_FILE_HELP")}
-            </div>
+          <SettingDialogField
+            title={t("CONTENT_LIBRARY_EDITOR_IMPORT_FILE_LABEL")}
+            description={t("CONTENT_LIBRARY_EDITOR_IMPORT_FILE_HELP")}
+          >
             <Input
               id="article-editor-import-file"
               type="file"
               accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
-          </div>
+          </SettingDialogField>
         ) : (
-          <div className="grid gap-1.5">
-            <label
-              className="font-semibold text-label-primary"
-              htmlFor="article-editor-import-text"
-            >
-              {t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_LABEL")}
-            </label>
-            <div className="text-label-secondary">
-              {t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_HELP")}
-            </div>
+          <SettingDialogField
+            title={t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_LABEL")}
+            description={t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_HELP")}
+          >
             <textarea
               id="article-editor-import-text"
               value={textValue}
@@ -146,9 +131,9 @@ export function ContentLibraryArticleEditorImportDialog(props: {
               className="min-h-64 w-full rounded-lg border border-border/70 bg-card px-3 py-3 text-body outline-none focus-visible:border-ring"
               placeholder={t("CONTENT_LIBRARY_EDITOR_IMPORT_TEXT_PLACEHOLDER")}
             />
-          </div>
+          </SettingDialogField>
         )}
-      </div>
+      </SettingDialogFields>
     </SettingDialog>
   );
 }
