@@ -1,5 +1,6 @@
-import { ArrowLeft, Bell, Menu } from "lucide-react";
+import { ArrowLeft, Bell, ChevronLeft, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useRouterState } from "@tanstack/react-router";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
@@ -56,6 +57,7 @@ function TopbarLeading(props: {
   leadingMode: AdminTopbarLeadingMode;
   sidebarToggleMode: SidebarToggleMode;
   sidebarToggleLabel: string;
+  homeLabel?: string;
   onToggleSidebar: () => void;
   backLabel?: string;
   onBack?: () => void;
@@ -74,7 +76,13 @@ function TopbarLeading(props: {
       />
 
       <div className="min-w-0 flex h-8 items-center">
-        <AdminFullLogo ariaLabel="Arclayer" width={100} className="flex h-8 items-center" />
+        <AdminFullLogo
+          ariaLabel="Arclayer"
+          width={100}
+          className="flex h-8 items-center"
+          hoverLabel={props.homeLabel}
+          hoverIcon={<ChevronLeft className="size-4 shrink-0" aria-hidden="true" />}
+        />
       </div>
 
       {props.leadingMode === "workspace-switcher" ? (
@@ -158,6 +166,7 @@ export function AdminTopbar(props: {
 }) {
   const { toggleSidebar } = useSidebar();
   const { t } = useTranslation(["common", "notifications"]);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const commandPalette = useAdminCommandPalette({
     navItems: props.navItems,
     scope: props.commandScope,
@@ -187,6 +196,7 @@ export function AdminTopbar(props: {
             leadingMode={leadingMode}
             sidebarToggleMode={sidebarToggleMode}
             sidebarToggleLabel={t("common:SIDEBAR_TOGGLE")}
+            homeLabel={pathname === "/" ? undefined : t("common:GO_HOME")}
             onToggleSidebar={toggleSidebar}
             backLabel={props.backLabel}
             onBack={props.onBack}
@@ -221,6 +231,7 @@ export function AdminTopbar(props: {
             leadingMode={leadingMode}
             sidebarToggleMode={sidebarToggleMode}
             sidebarToggleLabel={t("common:SIDEBAR_TOGGLE")}
+            homeLabel={pathname === "/" ? undefined : t("common:GO_HOME")}
             onToggleSidebar={toggleSidebar}
             backLabel={props.backLabel}
             onBack={props.onBack}

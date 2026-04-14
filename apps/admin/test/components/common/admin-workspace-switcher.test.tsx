@@ -341,6 +341,63 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
     expect(within(workspaceAlphaButton).getByLabelText("Linus Torvalds")).toBeInTheDocument();
   });
 
+  it("workspace scope: short workspace lists do not reserve a scroll gutter", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "Select workspace",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const workspaceAlphaButton = within(panel).getByRole("button", {
+      name: /Workspace Alpha/,
+    });
+    const workspaceList = workspaceAlphaButton.parentElement;
+
+    expect(workspaceList).toBeTruthy();
+    expect(workspaceList).not.toHaveClass("overflow-y-auto");
+    expect(workspaceList).not.toHaveClass("overscroll-contain");
+  });
+
+  it("workspace scope: long workspace lists keep the scroll container", async () => {
+    const user = userEvent.setup();
+    const extendedWorkspaces = Array.from({ length: 6 }, (_, index) => ({
+      ...workspaceFixtures[index % workspaceFixtures.length],
+      workspaceId: `ws-${index + 1}`,
+      slug: `workspace-${index + 1}`,
+      name: `Workspace ${index + 1}`,
+    }));
+
+    vi.mocked(listMyWorkspaces).mockResolvedValue(
+      createWorkspaceListResult({
+        items: extendedWorkspaces,
+        switcher: {
+          teams: extendedWorkspaces,
+        },
+      }),
+    );
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "Select workspace",
+    });
+    await user.click(trigger);
+
+    const panel = getLatestDialog();
+    const workspaceButton = within(panel).getByRole("button", {
+      name: /Workspace 1/,
+    });
+    const workspaceList = workspaceButton.parentElement;
+
+    expect(workspaceList).toBeTruthy();
+    expect(workspaceList).toHaveClass("overflow-y-auto");
+    expect(workspaceList).toHaveClass("overscroll-contain");
+  });
+
   it("workspace scope: action groups expose settings, invites, workspaces index, and add workspace", async () => {
     const user = userEvent.setup();
 

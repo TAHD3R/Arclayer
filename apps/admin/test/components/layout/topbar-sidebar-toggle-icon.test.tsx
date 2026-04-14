@@ -1,11 +1,17 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UserCenterTopbar } from "@/components/layout/usercenter-topbar";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 import { TooltipProvider } from "@arclayer/ui/tooltip";
 import userEvent from "@testing-library/user-event";
+
+const { fullLogoMock } = vi.hoisted(() => ({
+  fullLogoMock: vi.fn((props: { hoverLabel?: string }) => (
+    <div data-testid="full-logo" data-hover-label={props.hoverLabel ?? ""} />
+  )),
+}));
 
 vi.mock("lucide-react", async () => {
   const actual = await vi.importActual<typeof import("lucide-react")>("lucide-react");
@@ -41,7 +47,7 @@ vi.mock("@/components/layout/admin-account-menu", () => ({
 }));
 
 vi.mock("@/components/layout/admin-logo", () => ({
-  AdminFullLogo: () => <div data-testid="full-logo" />,
+  AdminFullLogo: (props: { hoverLabel?: string }) => fullLogoMock(props),
 }));
 
 vi.mock("@/components/layout/admin-workspace-switcher", () => ({
@@ -51,11 +57,28 @@ vi.mock("@/components/layout/admin-workspace-switcher", () => ({
 
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<object>("@tanstack/react-router");
+  let pathname = "/";
   return {
     ...actual,
     useNavigate: () => vi.fn(),
+    useRouterState: ({
+      select,
+    }: {
+      select: (state: { location: { pathname: string } }) => string;
+    }) => select({ location: { pathname } }),
+    __setPathnameForTest: (nextPathname: string) => {
+      pathname = nextPathname;
+    },
   };
 });
+
+async function setPathname(pathname: string) {
+  const routerModule = await import("@tanstack/react-router");
+  const setPathnameForTest = (
+    routerModule as typeof routerModule & { __setPathnameForTest?: (nextPathname: string) => void }
+  ).__setPathnameForTest;
+  setPathnameForTest?.(pathname);
+}
 
 function renderWithSidebar(node: React.ReactElement) {
   return render(
@@ -89,6 +112,11 @@ beforeAll(() => {
 });
 
 describe("topbar sidebar toggle icon", () => {
+  beforeEach(async () => {
+    fullLogoMock.mockClear();
+    await setPathname("/");
+  });
+
   it("AdminTopbar 使用 lucide-react 的静态 Menu icon", () => {
     renderWithSidebar(
       <AdminTopbar
@@ -109,7 +137,51 @@ describe("topbar sidebar toggle icon", () => {
     expectStaticHamburgerIcon();
   });
 
-  it("AdminTopbar 在 workspace 桌面场景可将 sidebar toggle 收敛为仅移动端显示", () => {
+  it("AdminTopbar 在首页不向 logo 注入返回首页 hover 文案", () => {
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "none",
+          pathname: "/",
+          workspaceId: null,
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
+  });
+
+  it("AdminTopbar 在非首页继续向 logo 注入返回首页 hover 文案", async () => {
+    await setPathname("/w/ws-1");
+
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "workspace",
+          pathname: "/w/ws-1",
+          workspaceId: "ws-1",
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "common:GO_HOME");
+  });
+
+  it("AdminTopbar 在 workspace 桌面场景可将 sidebar toggle 收敛为仅移动端显示", async () => {
+    await setPathname("/w/ws-1");
+
     renderWithSidebar(
       <AdminTopbar
         navItems={[]}

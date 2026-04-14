@@ -1561,6 +1561,17 @@ describe("ContentLibraryPage", () => {
     expect(screen.queryByTestId("content-library-card-list")).not.toBeInTheDocument();
   });
 
+  test("keeps the workbench canvas on the page background instead of a card surface", async () => {
+    const { container } = renderWithQuery(<ContentLibraryPage />);
+
+    await screen.findByRole("button", { name: "row:Homepage" });
+
+    const splitPane = container.querySelector(
+      "div.flex.min-h-0.flex-1.overflow-hidden.bg-background",
+    );
+    expect(splitPane).toBeTruthy();
+  });
+
   test("renders the preview as a split pane beside the left workbench region", async () => {
     mocked.routeSearch.current = { focusItemId: "content-1" };
 

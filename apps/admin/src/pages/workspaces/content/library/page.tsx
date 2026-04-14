@@ -1339,7 +1339,7 @@ export function ContentLibraryPage() {
     />
   );
   const workbenchNode = (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto px-10 pt-8 pb-20">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-background px-10 pt-8 pb-20">
       <PageMainRegion
         title={t("nav:NAV_CONTENT_LIBRARY")}
         description={t("content:CONTENT_LIBRARY_DESC")}
@@ -1431,7 +1431,7 @@ export function ContentLibraryPage() {
       innerClassName="h-full min-h-0 flex flex-col overflow-hidden px-0 pt-0 pb-0"
       overlay={selectionToolbarNode}
     >
-      <div ref={splitLayoutRef} className="flex min-h-0 flex-1 overflow-hidden bg-card">
+      <div ref={splitLayoutRef} className="flex min-h-0 flex-1 overflow-hidden bg-background">
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">{workbenchNode}</div>
         <AnimatePresence initial={false}>
           {previewRow ? (

@@ -34,4 +34,22 @@ describe("AdminFullLogo", () => {
 
     expect(link.querySelector("img")).toHaveAttribute("src", "/logo-full-dark.svg");
   });
+
+  it("can expose a hover affordance that keeps the homepage link target", () => {
+    render(
+      <AdminFullLogo
+        ariaLabel="Arclayer"
+        width={100}
+        hoverLabel="common:GO_HOME"
+        hoverIcon={<span aria-hidden="true">icon</span>}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Arclayer" });
+
+    expect(link).toHaveAttribute("href", "/");
+    expect(link.className).toContain("cursor-pointer");
+    expect(screen.getByText("common:GO_HOME")).toBeInTheDocument();
+    expect(link.querySelector("img")?.className).toContain("group-hover:opacity-0");
+  });
 });

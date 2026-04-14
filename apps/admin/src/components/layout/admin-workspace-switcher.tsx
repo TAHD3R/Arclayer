@@ -48,8 +48,6 @@ const INTERACTION_TRANSITION_CLASSNAME = cn(
   INTERACTION_EASING,
   "motion-reduce:transition-none",
 );
-const PANEL_SECTION_CLASSNAME = "rounded-2xl p-1";
-
 function TruncatedText(props: { text: string; className?: string }) {
   return <span className={cn("block w-full min-w-0 truncate", props.className)}>{props.text}</span>;
 }
@@ -349,6 +347,7 @@ function WorkspacePickerSection(props: {
   onSelect: (workspaceId: string) => void;
 }) {
   const { t } = useTranslation(["common"]);
+  const shouldScroll = props.workspaces.length > WORKSPACE_PICKER_VISIBLE_ROWS;
 
   return (
     <div className="min-w-0">
@@ -356,8 +355,8 @@ function WorkspacePickerSection(props: {
         <div className="px-2 py-1.5 text-headline text-label-primary">{props.title}</div>
       ) : null}
       <div
-        style={WORKSPACE_PICKER_MAX_HEIGHT_STYLE}
-        className={cn(PANEL_SECTION_CLASSNAME, "overflow-y-auto overscroll-contain")}
+        style={shouldScroll ? WORKSPACE_PICKER_MAX_HEIGHT_STYLE : undefined}
+        className={cn(shouldScroll && "overflow-y-auto overscroll-contain")}
       >
         {props.workspaces.length === 0 ? (
           <div className="px-2 py-1.5 text-callout text-label-secondary">
@@ -371,8 +370,8 @@ function WorkspacePickerSection(props: {
               key={workspace.workspaceId}
               onClick={() => props.onSelect(workspace.workspaceId)}
               className={cn(
-                "min-h-[4.5rem] items-start px-3 py-2.5",
-                selected && "bg-card/95 text-label-primary",
+                "min-h-[4.5rem] items-start rounded-none px-3 py-2.5",
+                selected && "bg-accent/80 text-label-primary",
               )}
             >
               <WorkspacePickerItemContent workspace={workspace} selected={selected} />
