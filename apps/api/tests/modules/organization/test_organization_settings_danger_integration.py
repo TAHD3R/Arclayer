@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID, uuid4
 
 import pytest
@@ -186,6 +187,61 @@ async def test_organization_settings_assign_leave_and_delete(
 
             # Owner membership is deleted via organization cascade.
             assert await OrgMembership.get_or_none(id=owner_orgm.id) is None
+
+
+@pytest.mark.asyncio
+async def test_organization_settings_core_is_safe_under_parallel_reads(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+
+    settings = get_settings()
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+
+        org_repo = OrganizationRepository()
+        user_repo = UserRepository()
+
+        org = await org_repo.create_organization(slug=f"org_{uuid4().hex}", name="Parallel Org")
+
+        owner = await user_repo.create_user(
+            username=f"parallel_owner_{uuid4().hex[:8]}",
+            email=f"parallel_owner_{uuid4().hex[:8]}@example.com",
+            display_name="Parallel Owner",
+            password_hash=hash_password("owner_pass_123", settings.auth),
+        )
+        await OrgMembership.create(
+            organization_id=org.id,
+            user_id=owner.id,
+            role=OrgRole.OWNER,
+            role_code=OrgRole.OWNER.value,
+            status="active",
+        )
+
+        current_user: User | None = owner
+
+        async def _get_user() -> User:
+            assert current_user is not None
+            return current_user
+
+        async def _get_user_id() -> UUID:
+            assert current_user is not None
+            return current_user.id
+
+        app.dependency_overrides[get_current_user] = _get_user
+        app.dependency_overrides[get_current_user_id] = _get_user_id
+
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            responses = await asyncio.gather(*[client.get("/api/v1/organizations/me/settings/core") for _ in range(6)])
+
+        assert all(response.status_code == 200 for response in responses), [
+            (response.status_code, response.text) for response in responses
+        ]
 
 
 @pytest.mark.asyncio

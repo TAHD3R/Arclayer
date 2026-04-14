@@ -4,6 +4,8 @@ from collections.abc import Sequence
 from typing import Protocol, cast
 from uuid import UUID
 
+from tortoise.exceptions import IntegrityError
+
 from src.common.repositories import BaseRepository
 from src.models.organization.org_rbac import (
     OrganizationPermission,
@@ -64,15 +66,23 @@ class OrganizationRBACRepository(BaseRepository):
     ) -> OrganizationPermission:
         row = await OrganizationPermission.get_or_none(code=code)
         if row is None:
-            return await OrganizationPermission.create(
-                code=code,
-                module=module,
-                name=name,
-                description=description,
-                is_system=True,
-            )
+            try:
+                return await OrganizationPermission.create(
+                    code=code,
+                    module=module,
+                    name=name,
+                    description=description,
+                    is_system=True,
+                )
+            except IntegrityError:
+                row = await OrganizationPermission.get_or_none(code=code)
+                if row is None:
+                    raise
 
         updates: list[str] = []
+        if not row.is_system:
+            row.is_system = True
+            updates.append("is_system")
         if row.module != module:
             row.module = module
             updates.append("module")

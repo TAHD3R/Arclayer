@@ -36,6 +36,8 @@ async def test_personal_onboarding_flow_creates_personal_workspace_then_complete
             username = f"onboarding-personal-{suffix}"
             email = f"{username}@example.com"
             password = "onboarding_pass_123"
+            workspace_name = "Founder Workspace"
+            workspace_slug = f"founder-space-{suffix}"
 
             register_response = await client.post(
                 "/api/v1/auth/register",
@@ -67,7 +69,11 @@ async def test_personal_onboarding_flow_creates_personal_workspace_then_complete
 
             create_workspace_resp = await client.post(
                 "/api/v1/me/workspaces/onboarding",
-                json={"kind": "personal"},
+                json={
+                    "kind": "personal",
+                    "name": workspace_name,
+                    "slug": workspace_slug,
+                },
                 headers=headers,
             )
             assert create_workspace_resp.status_code == 200, create_workspace_resp.text
@@ -82,11 +88,14 @@ async def test_personal_onboarding_flow_creates_personal_workspace_then_complete
             personal_workspace = post_create_payload["items"][0]
             assert personal_workspace["workspaceId"] == workspace_id
             assert personal_workspace["kind"] == "personal"
-            assert personal_workspace["slug"] == username
+            assert personal_workspace["name"] == workspace_name
+            assert personal_workspace["slug"] == workspace_slug
             assert post_create_payload["onboarding"]["status"] == "pending_workspace_defaults"
             assert post_create_payload["onboarding"]["workspaceId"] == workspace_id
             assert post_create_payload["switcher"]["personalSpace"]["status"] == "ready"
             assert post_create_payload["switcher"]["personalSpace"]["workspace"]["workspaceId"] == workspace_id
+            assert post_create_payload["switcher"]["personalSpace"]["workspace"]["name"] == workspace_name
+            assert post_create_payload["switcher"]["personalSpace"]["workspace"]["slug"] == workspace_slug
             assert post_create_payload["switcher"]["teams"] == []
 
             patch_defaults_resp = await client.patch(

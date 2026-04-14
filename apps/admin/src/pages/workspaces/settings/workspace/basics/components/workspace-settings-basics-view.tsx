@@ -34,7 +34,7 @@ export function WorkspaceSettingsBasicsView(props: { workspaceId: string }) {
         }}
       >
         <WorkspaceSettingsBasicsForm controller={c} />
-        <WorkspaceSettingsAssignRoleDialog controller={c} />
+        {c.isTeamWorkspace ? <WorkspaceSettingsAssignRoleDialog controller={c} /> : null}
       </ContentGuard>
     </DefaultPage>
   );

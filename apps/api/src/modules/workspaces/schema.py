@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 
 from pydantic import Field
@@ -35,12 +36,14 @@ class MyWorkspaceOut(BaseOut):
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind: team or personal.")
+    description: str | None = Field(default=None, description="Workspace description.")
     icon_url: str | None = Field(default=None, description="Workspace icon URL.")
     member_count: int = Field(default=0, ge=0, description="Active member count.")
     members_preview: list[MyWorkspaceMemberPreviewOut] = Field(
         default_factory=list,
         description="Preview members for avatar group rendering.",
     )
+    created_at: datetime | None = Field(default=None, description="Workspace creation time.")
 
     visible_only: bool = Field(
         default=False,
@@ -85,8 +88,12 @@ class WorkspaceFirstOnboardingOut(BaseSchema):
 
 class OnboardingWorkspaceCreateRequest(BaseSchema):
     kind: WorkspaceKind = Field(..., description="Workspace kind chosen during onboarding.")
-    name: str | None = Field(default=None, min_length=1, max_length=128, description="Workspace name for team setup.")
-    slug: str | None = Field(default=None, min_length=1, max_length=64, description="Workspace slug for team setup.")
+    name: str | None = Field(
+        default=None, min_length=1, max_length=128, description="Workspace name chosen during onboarding."
+    )
+    slug: str | None = Field(
+        default=None, min_length=1, max_length=64, description="Workspace slug chosen during onboarding."
+    )
 
 
 class OnboardingWorkspaceCreateOut(BaseSchema):

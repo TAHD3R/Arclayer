@@ -43,7 +43,9 @@ export function mapOrganizationWorkspaceToListItem(
   };
 }
 
-export function mapPersonalWorkspaceToListItem(workspace: MyWorkspace): UserCenterWorkspaceListItem {
+export function mapPersonalWorkspaceToListItem(
+  workspace: MyWorkspace,
+): UserCenterWorkspaceListItem {
   return {
     id: workspace.workspaceId,
     workspaceId: workspace.workspaceId,
@@ -51,7 +53,7 @@ export function mapPersonalWorkspaceToListItem(workspace: MyWorkspace): UserCent
     slug: workspace.slug,
     name: workspace.name,
     kind: "personal",
-    description: null,
+    description: workspace.description ?? null,
     iconUrl: workspace.iconUrl ?? null,
     isArchived: false,
     archivedAt: null,
@@ -64,13 +66,15 @@ export function mapPersonalWorkspaceToListItem(workspace: MyWorkspace): UserCent
       avatarUrl: member.avatarUrl,
       email: null,
     })),
-    createdAt: null,
+    createdAt: workspace.createdAt ?? null,
     enterable: true,
   };
 }
 
 export function matchesWorkspaceSearch(item: UserCenterWorkspaceListItem, searchInput: string) {
-  const normalizedQuery = String(searchInput || "").trim().toLowerCase();
+  const normalizedQuery = String(searchInput || "")
+    .trim()
+    .toLowerCase();
   if (!normalizedQuery) return true;
 
   return [item.name, item.slug, item.description]

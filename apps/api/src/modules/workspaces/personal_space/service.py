@@ -141,8 +141,17 @@ class PersonalSpaceService(BaseService):
     async def retry_prepare(self, *, user_id: UUID) -> PersonalSpaceProvisionState:
         return await self.trigger_background_ensure(user_id=user_id)
 
-    async def ensure_personal_space(self, *, user_id: UUID) -> EnsurePersonalSpaceResult:
+    async def ensure_personal_space(
+        self,
+        *,
+        user_id: UUID,
+        workspace_name: str | None = None,
+        workspace_slug: str | None = None,
+    ) -> EnsurePersonalSpaceResult:
         user = await User.get(id=user_id)
+        requested_workspace_name = str(workspace_name or "").strip() or None
+        requested_workspace_slug = str(workspace_slug or "").strip() or None
+        resolved_workspace_name = requested_workspace_name or self._personal_space_name(user=user)
 
         organization = await Organization.get_or_none(
             kind=OrganizationKind.PERSONAL,
@@ -154,7 +163,7 @@ class PersonalSpaceService(BaseService):
         if organization is None:
             organization = await self.org_repo.create_organization(
                 slug=self._personal_org_slug(user_id=user_id),
-                name=self._personal_space_name(user=user),
+                name=resolved_workspace_name,
                 kind=OrganizationKind.PERSONAL,
                 owner_user_id=user_id,
             )
@@ -164,6 +173,10 @@ class PersonalSpaceService(BaseService):
             organization.is_active = True
             await organization.save(update_fields=["deleted_at", "is_active", "updated_at"])
             restored = True
+
+        if requested_workspace_name and organization.name != requested_workspace_name:
+            organization.name = requested_workspace_name
+            await organization.save(update_fields=["name", "updated_at"])
 
         await self.org_repo.ensure_org_membership(
             user_id=user_id,
@@ -179,8 +192,8 @@ class PersonalSpaceService(BaseService):
             await self.workspace_policy.assert_can_create(organization_id=UUID(str(organization.id)))
             workspace = await self.workspace_repo.create_workspace(
                 organization_id=UUID(str(organization.id)),
-                slug=await self._next_personal_workspace_slug(user=user),
-                name=self._personal_space_name(user=user),
+                slug=requested_workspace_slug or await self._next_personal_workspace_slug(user=user),
+                name=resolved_workspace_name,
                 description=None,
                 created_by_user_id=user_id,
                 kind=WorkspaceKind.PERSONAL,
@@ -205,6 +218,12 @@ class PersonalSpaceService(BaseService):
             if workspace.archived_by_user_id is not None:
                 workspace.archived_by_user_id = None
                 update_fields.append("archived_by_user_id")
+            if requested_workspace_name and workspace.name != requested_workspace_name:
+                workspace.name = requested_workspace_name
+                update_fields.append("name")
+            if requested_workspace_slug and workspace.slug != requested_workspace_slug:
+                workspace.slug = requested_workspace_slug
+                update_fields.append("slug")
             if update_fields:
                 await workspace.save(update_fields=[*update_fields, "updated_at"])
                 restored = True

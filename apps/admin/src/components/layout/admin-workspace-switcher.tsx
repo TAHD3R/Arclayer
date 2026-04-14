@@ -10,7 +10,6 @@ import {
   PanelsTopLeft,
   Plus,
   Settings2,
-  UserRound,
   Users,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { getWorkspaceDetail, listMyWorkspaces, retryMyPersonalSpace } from "@/api/workspaces";
 import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
+import { PersonalWorkspaceTag } from "@/components/ui/tags";
 import { notifyError, notifyErrorText } from "@/lib/notifications";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -32,7 +32,6 @@ import {
   FloatingPanelTrigger,
   useFloatingPanel,
 } from "@arclayer/ui/floating-panel";
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { useSidebar } from "@arclayer/ui/sidebar";
 
@@ -320,10 +319,7 @@ function PersonalWorkspaceBadge() {
   const { t } = useTranslation(["account"]);
 
   return (
-    <Badge variant="outline" className="gap-1.5 text-label-secondary">
-      <UserRound className="size-3" />
-      {t("account:ACCOUNT_SECTION_PERSONAL")}
-    </Badge>
+    <PersonalWorkspaceTag label={t("account:ACCOUNT_SECTION_PERSONAL")} textStyle="footnote" />
   );
 }
 
@@ -404,7 +400,11 @@ function WorkspacePickerSection(props: {
   );
 }
 
-function PersonalSpaceStatusPanel(props: { personalSpace: PersonalSpaceSwitcher; onRetry: () => void; retryPending: boolean }) {
+function PersonalSpaceStatusPanel(props: {
+  personalSpace: PersonalSpaceSwitcher;
+  onRetry: () => void;
+  retryPending: boolean;
+}) {
   const { t } = useTranslation(["account", "common"]);
 
   return (

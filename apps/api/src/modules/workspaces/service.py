@@ -23,9 +23,9 @@ from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_p
 from src.modules.assets.scope import AssetScope
 from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.organization.repository import OrganizationRepository
+from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import OrganizationWorkspaceCreateRequest
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
-from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.system.setup.service import InstanceSetupService
 from src.modules.workspaces.personal_space.service import PersonalSpaceProvisionStatus, PersonalSpaceService
@@ -33,10 +33,10 @@ from src.modules.workspaces.schema import (
     InstanceSetupStateOut,
     LeaveWorkspaceResult,
     MyWorkspaceListResult,
-    OnboardingWorkspaceCreateOut,
-    OnboardingWorkspaceCreateRequest,
     MyWorkspaceMemberPreviewOut,
     MyWorkspaceOut,
+    OnboardingWorkspaceCreateOut,
+    OnboardingWorkspaceCreateRequest,
     PersonalSpaceStatus,
     PersonalSpaceSwitcherOut,
     WorkspaceDetailOut,
@@ -72,9 +72,11 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace], user_id: UUID) -
                 slug=ws.slug,
                 name=ws.name,
                 kind=ws.kind,
+                description=ws.description,
                 icon_url=ws.icon_url,
                 member_count=0,
                 members_preview=[],
+                created_at=ws.created_at,
                 visible_only=False,
                 is_creator_admin=False,
             )
@@ -145,9 +147,11 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                     slug=ws.slug,
                     name=ws.name,
                     kind=ws.kind,
+                    description=ws.description,
                     icon_url=ws.icon_url,
                     member_count=0,
                     members_preview=[],
+                    created_at=ws.created_at,
                     visible_only=visible_only,
                     is_creator_admin=is_creator_admin,
                 )
@@ -325,18 +329,7 @@ class WorkspaceService(BaseService):
                 kind=existing_workspace.kind,
             )
 
-        if payload.kind == WorkspaceKind.PERSONAL:
-            personal_space = await self.personal_space_service.ensure_personal_space(user_id=user_id)
-            await self.onboarding_service.mark_workspace_created(
-                user_id=user_id,
-                workspace_id=personal_space.workspace_id,
-            )
-            return OnboardingWorkspaceCreateOut(
-                workspace_id=personal_space.workspace_id,
-                kind=WorkspaceKind.PERSONAL,
-            )
-
-        if payload.kind != WorkspaceKind.TEAM:
+        if payload.kind not in (WorkspaceKind.PERSONAL, WorkspaceKind.TEAM):
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_KIND_INVALID")
 
         workspace_name = str(payload.name or "").strip()
@@ -345,6 +338,35 @@ class WorkspaceService(BaseService):
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
         if not workspace_slug:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_REQUIRED")
+
+        normalized_slug, slug_error = parse_explicit_workspace_slug(workspace_slug)
+        if slug_error == "invalid" or normalized_slug is None:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_INVALID")
+        if slug_error == "reserved":
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_RESERVED")
+        existing_personal_workspace = (
+            await Workspace.get_or_none(kind=WorkspaceKind.PERSONAL, owner_user_id=user_id)
+            if payload.kind == WorkspaceKind.PERSONAL
+            else None
+        )
+        if await self.repo.slug_exists(slug=normalized_slug):
+            if existing_personal_workspace is None or existing_personal_workspace.slug != normalized_slug:
+                raise Conflict(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_SLUG_EXISTS")
+
+        if payload.kind == WorkspaceKind.PERSONAL:
+            personal_space = await self.personal_space_service.ensure_personal_space(
+                user_id=user_id,
+                workspace_name=workspace_name,
+                workspace_slug=normalized_slug,
+            )
+            await self.onboarding_service.mark_workspace_created(
+                user_id=user_id,
+                workspace_id=personal_space.workspace_id,
+            )
+            return OnboardingWorkspaceCreateOut(
+                workspace_id=personal_space.workspace_id,
+                kind=WorkspaceKind.PERSONAL,
+            )
 
         organization = await self._ensure_onboarding_team_organization(
             user_id=user_id,
@@ -356,7 +378,7 @@ class WorkspaceService(BaseService):
             org_role=OrgRole.OWNER,
             payload=OrganizationWorkspaceCreateRequest(
                 name=workspace_name,
-                slug=workspace_slug,
+                slug=normalized_slug,
                 template="blank",
             ),
         )

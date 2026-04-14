@@ -1,8 +1,8 @@
-import { MoreVertical, UserRound } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 
-import { Badge } from "@arclayer/ui/badge";
 import { Button } from "@arclayer/ui/button";
 import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
+import { PersonalWorkspaceTag } from "@/components/ui/tags";
 import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -75,51 +75,44 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
       {/* Title + description */}
       <div className="flex flex-col wrap-break-word" style={{ overflowWrap: "anywhere" }}>
         <div className="text-headline font-semibold">{workspace.name}</div>
-        {workspace.kind === "personal" ? (
-          <div className="mt-2 grid gap-2">
-            <div>
-              <Badge variant="outline" className="gap-1.5 text-label-secondary">
-                <UserRound className="size-3" />
-                {t("account:ACCOUNT_SECTION_PERSONAL")}
-              </Badge>
-            </div>
-            <div className="text-footnote text-label-secondary">
-              {t("common:WORKSPACES_PERSONAL_DESCRIPTION")}
-            </div>
-          </div>
-        ) : (
-          <div className="text-footnote text-label-secondary line-clamp-2">
-            {workspace.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK")}
-          </div>
-        )}
+        <div className="text-footnote text-label-secondary line-clamp-2">
+          {workspace.description || t("common:ORG_WORKSPACES_DESCRIPTION_FALLBACK")}
+        </div>
       </div>
 
       {/* Footer: member avatars + clickable count */}
-      {workspace.kind === "team" ? (
-        <div className="mt-auto flex items-center gap-2 pt-4">
-          {workspace.membersPreview.length > 0 && (
-            <div className="flex -space-x-2">
-              {workspace.membersPreview.slice(0, 3).map((member) => (
-                <UserAvatar
-                  key={member.userId}
-                  name={member.displayName || member.username || "U"}
-                  assetRef={member.avatarUrl}
-                  size={24}
-                  className="ring-2 ring-background"
-                />
-              ))}
-              {workspace.membersPreview.length > 3 ? (
-                <div className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-caption font-semibold text-primary-foreground ring-2 ring-background">
-                  +{workspace.membersPreview.length - 3}
-                </div>
-              ) : null}
+      <div className="mt-auto flex items-center gap-2 pt-4">
+        {workspace.kind === "personal" ? (
+          <PersonalWorkspaceTag
+            label={t("account:ACCOUNT_SECTION_PERSONAL")}
+            textStyle="footnote"
+          />
+        ) : (
+          <>
+            {workspace.membersPreview.length > 0 && (
+              <div className="flex -space-x-2">
+                {workspace.membersPreview.slice(0, 3).map((member) => (
+                  <UserAvatar
+                    key={member.userId}
+                    name={member.displayName || member.username || "U"}
+                    assetRef={member.avatarUrl}
+                    size={24}
+                    className="ring-2 ring-background"
+                  />
+                ))}
+                {workspace.membersPreview.length > 3 ? (
+                  <div className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-caption font-semibold text-primary-foreground ring-2 ring-background">
+                    +{workspace.membersPreview.length - 3}
+                  </div>
+                ) : null}
+              </div>
+            )}
+            <div onClick={(e) => e.stopPropagation()}>
+              <WorkspaceMembersPopover workspace={workspace as OrganizationWorkspace} />
             </div>
-          )}
-          <div onClick={(e) => e.stopPropagation()}>
-            <WorkspaceMembersPopover workspace={workspace as OrganizationWorkspace} />
-          </div>
-        </div>
-      ) : null}
+          </>
+        )}
+      </div>
     </div>
   );
 }

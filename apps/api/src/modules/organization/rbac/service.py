@@ -4,6 +4,8 @@ import re
 from typing import Protocol, cast
 from uuid import UUID
 
+from tortoise.exceptions import IntegrityError
+
 from src.common.services import BaseService
 from src.common.utils.ids import uuid7
 from src.config import Settings
@@ -246,16 +248,21 @@ class OrganizationRBACService(BaseService):
             name_i18n = str(builtin["name_i18n"] or "") or None
             description_i18n = str(builtin["description_i18n"] or "") or None
             if role is None:
-                role = await self.repo.create_role(
-                    organization_id=organization_id,
-                    code=code,
-                    name=name,
-                    description=description,
-                    name_i18n=name_i18n,
-                    description_i18n=description_i18n,
-                    is_system=True,
-                    is_builtin=True,
-                )
+                try:
+                    role = await self.repo.create_role(
+                        organization_id=organization_id,
+                        code=code,
+                        name=name,
+                        description=description,
+                        name_i18n=name_i18n,
+                        description_i18n=description_i18n,
+                        is_system=True,
+                        is_builtin=True,
+                    )
+                except IntegrityError:
+                    role = await self.repo.get_role_by_code(organization_id=organization_id, code=code)
+                    if role is None:
+                        raise
             else:
                 update_fields: list[str] = []
                 if not role.is_system:

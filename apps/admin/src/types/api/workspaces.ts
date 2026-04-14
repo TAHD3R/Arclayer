@@ -11,9 +11,11 @@ export type MyWorkspace = {
   slug: string;
   name: string;
   kind: "team" | "personal";
+  description?: string | null;
   iconUrl?: string | null;
   memberCount?: number;
   membersPreview?: MyWorkspaceMemberPreview[];
+  createdAt?: string | null;
   visibleOnly: boolean;
   isCreatorAdmin: boolean;
   isLegacy: boolean;

@@ -33,11 +33,14 @@ const {
 }));
 const translations: Record<string, string> = {
   "common:NEXT": "Next",
-  "common:ORG_WORKSPACES_FIELD_NAME": "Workspace name",
+  "common:ORG_WORKSPACES_FIELD_NAME_REQUIRED": "Workspace name is required",
   "onboarding:WORKSPACE_FIRST_WELCOME_TITLE": "Welcome to Arclayer",
   "onboarding:WORKSPACE_SETUP_STEP_TITLE": "Choose how you work",
   "onboarding:WORKSPACE_SETUP_MODE_PERSONAL_TITLE": "Personal work",
   "onboarding:WORKSPACE_SETUP_MODE_TEAM_TITLE": "Team work",
+  "onboarding:WORKSPACE_NAME_LABEL": "Workspace name",
+  "onboarding:WORKSPACE_NAME_HELP": "Choose the name people see when they enter this workspace.",
+  "onboarding:WORKSPACE_NAME_PLACEHOLDER": "e.g. Product studio",
   "onboarding:WORKSPACE_SLUG_LABEL": "Workspace slug",
   "onboarding:PREFERENCES_STEP_TITLE": "Set workspace preferences",
   "settings:SETTINGS_LOCALIZATION_RELATIVE_DATETIME_SWITCH_TITLE":
@@ -465,10 +468,20 @@ describe("WorkspaceFirstOnboardingPage", () => {
     await screen.findByText("Welcome to Arclayer");
     await advanceIntroToWorkspaceStep(user);
     await user.click(screen.getByRole("button", { name: /Personal work/i }));
+    const nameInput = screen.getByLabelText("Workspace name");
+    const slugInput = screen.getByLabelText("Workspace slug");
+
+    await waitFor(() => expect(nameInput).toHaveValue("Founder's Workspace"));
+    await waitFor(() => expect(slugInput).toHaveValue("founder-team"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Next" })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: "Next" }));
 
     await waitFor(() => {
-      expect(createMyOnboardingWorkspaceMock).toHaveBeenCalledWith({ kind: "personal" });
+      expect(createMyOnboardingWorkspaceMock).toHaveBeenCalledWith({
+        kind: "personal",
+        name: "Founder's Workspace",
+        slug: "founder-team",
+      });
     });
   });
 
