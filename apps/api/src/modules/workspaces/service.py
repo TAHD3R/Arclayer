@@ -20,6 +20,7 @@ from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceM
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
 from src.modules.assets.scope import AssetScope
+from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.system.rbac.constants.service import ROLE_OWNER
 from src.modules.system.setup.service import InstanceSetupService
@@ -33,6 +34,8 @@ from src.modules.workspaces.schema import (
     PersonalSpaceStatus,
     PersonalSpaceSwitcherOut,
     WorkspaceDetailOut,
+    WorkspaceFirstOnboardingOut,
+    WorkspaceFirstOnboardingStatus,
     WorkspaceSwitcherOut,
     WorkspaceUpdateRequest,
 )
@@ -192,6 +195,7 @@ class WorkspaceService(BaseService):
         self.repo = OrganizationWorkspaceRepository()
         self.personal_space_service = PersonalSpaceService(settings)
         self.instance_setup_service = InstanceSetupService(settings)
+        self.onboarding_service = WorkspaceFirstOnboardingService(settings)
 
     async def list_my_workspaces(self, *, user_id: UUID) -> MyWorkspaceListResult:
         """
@@ -334,6 +338,7 @@ class WorkspaceService(BaseService):
         team_items = [item for item in items if item.kind != WorkspaceKind.PERSONAL.value]
         personal_state = await self.personal_space_service.get_state(user_id=user_id)
         setup_state = await self.instance_setup_service.get_state()
+        onboarding_state = await self.onboarding_service.get_state(user_id=user_id)
 
         return MyWorkspaceListResult(
             items=items,
@@ -349,6 +354,10 @@ class WorkspaceService(BaseService):
             instance_setup=InstanceSetupStateOut(
                 status=setup_state.status,
                 repair_reason=setup_state.repair_reason,
+            ),
+            onboarding=WorkspaceFirstOnboardingOut(
+                status=WorkspaceFirstOnboardingStatus(onboarding_state.status.value),
+                workspace_id=onboarding_state.workspace_id,
             ),
         )
 

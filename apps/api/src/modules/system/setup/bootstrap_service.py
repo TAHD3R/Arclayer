@@ -8,18 +8,15 @@ from src.core.exceptions import Conflict
 from src.core.i18n import t
 from src.modules.auth.service import AuthService
 from src.modules.system.setup.service import InstanceSetupService, InstanceSetupStatus
-from src.modules.workspaces.personal_space.service import PersonalSpaceService
 
 
 @dataclass(frozen=True, slots=True)
 class InstanceBootstrapResult:
     user_id: UUID
-    organization_id: UUID
-    workspace_id: UUID
 
 
 class InstanceBootstrapService(BaseService):
-    """Bootstrap an uninitialized instance by creating the sole super admin and personal space."""
+    """Bootstrap an uninitialized instance by creating the sole super admin."""
 
     def __init__(self, settings) -> None:
         super().__init__(settings)
@@ -46,15 +43,12 @@ class InstanceBootstrapService(BaseService):
                 is_super_admin=True,
             )
             user_id = UUID(str(user.id))
-            personal_space = await PersonalSpaceService(self.settings).ensure_for_login(user_id=user_id)
 
         metadata = self.setup_state_service.build_install_lock_metadata(initialized_by_user_id=user_id)
         self.setup_state_service.write_install_lock(metadata)
 
         return InstanceBootstrapResult(
             user_id=user_id,
-            organization_id=personal_space.organization_id,
-            workspace_id=personal_space.workspace_id,
         )
 
     async def _assert_can_bootstrap(self) -> None:

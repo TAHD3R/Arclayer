@@ -45,23 +45,14 @@ class _FakeRefreshStore:
 
 
 @pytest.mark.asyncio
-async def test_issue_token_pair_for_user_ensures_personal_space(monkeypatch) -> None:
+async def test_issue_token_pair_for_user_does_not_ensure_personal_space_by_default(monkeypatch) -> None:
     settings = get_settings()
     user = _FakeUser(id=uuid4())
     user_repo = _FakeUserRepo(user)
     refresh_store = _FakeRefreshStore()
     service = AuthService(settings, user_repo=user_repo)
 
-    async def _ensure_for_login(_self, *, user_id: UUID):
-        assert user_id == user.id
-        return SimpleNamespace(workspace_id=uuid4(), organization_id=uuid4(), created=True, restored=False)
-
     monkeypatch.setattr(service, "_require_refresh_store", lambda: refresh_store, raising=True)
-    monkeypatch.setattr(
-        "src.modules.auth.service.PersonalSpaceService.ensure_for_login",
-        _ensure_for_login,
-        raising=True,
-    )
 
     tokens = await service.issue_token_pair_for_user(user.id)
 
@@ -72,7 +63,9 @@ async def test_issue_token_pair_for_user_ensures_personal_space(monkeypatch) -> 
 
 
 @pytest.mark.asyncio
-async def test_accept_existing_invitation_triggers_background_personal_space_prepare(monkeypatch) -> None:
+async def test_accept_existing_invitation_does_not_trigger_background_personal_space_prepare(
+    monkeypatch,
+) -> None:
     settings = get_settings()
     user = _FakeUser(id=uuid4())
     service = AuthService(settings)
@@ -84,20 +77,8 @@ async def test_accept_existing_invitation_triggers_background_personal_space_pre
             role_code="member",
         )
 
-    triggered: list[UUID] = []
-
-    async def _trigger_background_ensure(_self, *, user_id: UUID):
-        triggered.append(user_id)
-        return SimpleNamespace(status="pending", workspace_id=None, retry_available=False, last_error=None)
-
     service.invitation_service = SimpleNamespace(accept_existing_invitation=_accept_existing_invitation)
-    monkeypatch.setattr(
-        "src.modules.auth.service.PersonalSpaceService.trigger_background_ensure",
-        _trigger_background_ensure,
-        raising=True,
-    )
 
     result = await service.accept_existing_invitation(payload=SimpleNamespace(token="token"), user=user)  # type: ignore[arg-type]
 
     assert result.role_code == "member"
-    assert triggered == [user.id]

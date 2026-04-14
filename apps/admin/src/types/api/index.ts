@@ -25,6 +25,14 @@ export type {
   AuthSessionRevokeOthersResult,
 } from "./auth";
 export type {
+  OrganizationWorkspace,
+  OrganizationWorkspaceArchiveResult,
+  OrganizationWorkspaceCreateInput,
+  OrganizationWorkspaceMember,
+  OrganizationWorkspaceMemberPreview,
+  OrganizationWorkspaceTemplate,
+} from "./organization-workspaces";
+export type {
   AuthzSnapshot,
   InstanceSetupState,
   LeaveWorkspaceResult,
@@ -36,7 +44,10 @@ export type {
   WorkspaceDangerCapabilities,
   WorkspaceDeleteResult,
   WorkspaceDetail,
+  WorkspaceFirstOnboarding,
+  WorkspaceFirstOnboardingStatus,
   WorkspaceRolePolicy,
+  WorkspaceSlugAvailability,
   WorkspaceSwitcher,
 } from "./workspaces";
 export type { SystemBootstrapPayload, SystemInstanceSetupStatus, SystemRuntime } from "./system";

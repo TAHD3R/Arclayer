@@ -36,10 +36,29 @@ export type WorkspaceSwitcher = {
   personalSpace: PersonalSpaceSwitcher;
 };
 
+export type WorkspaceFirstOnboardingStatus =
+  | "pending_workspace"
+  | "pending_workspace_defaults"
+  | "completed";
+
+export type WorkspaceFirstOnboarding = {
+  status: WorkspaceFirstOnboardingStatus;
+  workspaceId: string | null;
+  workspace_id?: string | null;
+};
+
+export type WorkspaceSlugAvailability = {
+  normalizedSlug: string | null;
+  available: boolean;
+  reason: "invalid" | "reserved" | "exists" | null;
+  normalized_slug?: string | null;
+};
+
 export type MyWorkspaceListResult = {
   items: MyWorkspace[];
   switcher: WorkspaceSwitcher;
   instanceSetup: InstanceSetupState;
+  onboarding?: WorkspaceFirstOnboarding;
 };
 
 export type AuthzSnapshot = {

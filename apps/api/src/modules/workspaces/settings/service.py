@@ -17,6 +17,10 @@ from src.models.workspaces.workspace import (
     WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
+from src.modules.auth.onboarding.service import (
+    WorkspaceFirstOnboardingService,
+    WorkspaceFirstOnboardingStatus,
+)
 from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.workspaces.settings.integrations.webhooks.service import WebhooksService
 from src.modules.workspaces.settings.schema import (
@@ -99,6 +103,16 @@ class WorkspaceSettingsService(BaseService):
                 workspace_id=str(workspace_id),
                 error=str(exc),
             )
+
+        if updated_by is not None and isinstance(patch.get("workspace_localization"), dict):
+            onboarding_service = WorkspaceFirstOnboardingService(self.settings)
+            onboarding_state = await onboarding_service.get_state(user_id=updated_by)
+            if (
+                onboarding_state.status == WorkspaceFirstOnboardingStatus.PENDING_WORKSPACE_DEFAULTS
+                and onboarding_state.workspace_id == workspace_id
+            ):
+                await onboarding_service.mark_completed(user_id=updated_by, workspace_id=workspace_id)
+
         return WorkspaceSettingsDetail(
             namespace=CORE_SETTINGS_NAMESPACE,
             value=masked,

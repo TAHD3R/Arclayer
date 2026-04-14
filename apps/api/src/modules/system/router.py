@@ -86,7 +86,6 @@ async def bootstrap_instance(
         result.user_id,
         request_context=build_auth_request_context(request),
         auth_method="bootstrap",
-        ensure_personal_space=False,
     )
     return ApiResponse.success(message="Instance initialized", data=tokens)
 

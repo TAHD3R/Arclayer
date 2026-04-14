@@ -1,13 +1,17 @@
 import { createRootRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { SceneLoadingOverlay } from "@/components/layout/scene-loading-overlay";
+import { WorkspaceFirstOnboardingOverlayHost } from "@/components/layout/workspace-first-onboarding-overlay-host";
 import { useSceneRevealTransition } from "@arclayer/hooks/use-scene-reveal-transition";
 import { isAuthScenePath, isLoginPath, isPublicPath } from "@/lib/routing/route-identity";
+import { resolvePostAuthRoute } from "@/lib/routing/post-auth-routing";
 import { getSceneLayout, resolveSceneKey } from "@/lib/routing/scene-registry";
 import { RouterDefaultError, RouterDefaultNotFound } from "@/components/builtin/router-fallbacks";
 import { RouteDocumentTitleManager } from "@/components/builtin/route-document-title-manager";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 function normalizeEditorRedirectPath(redirectTo: string): string {
   // Vite `base` 通常配置为 `/editor/`，当落点是 `/editor`（无尾斜杠）时，
@@ -18,7 +22,7 @@ function normalizeEditorRedirectPath(redirectTo: string): string {
   return redirectTo;
 }
 
-function RootLayout() {
+export function RootLayout() {
   const { pathname, isPagePending } = useRouterState({
     select: (s) => ({
       pathname: s.location.pathname,
@@ -33,13 +37,24 @@ function RootLayout() {
     userReducedMotion,
   });
   const Layout = getSceneLayout(displayedScene);
+  const [onboardingBlocking, setOnboardingBlocking] = useState(false);
 
   return (
     <>
       <RouteDocumentTitleManager />
-      <Layout>
-        <Outlet />
-      </Layout>
+      <div
+        data-testid="root-scene-shell"
+        aria-hidden={onboardingBlocking ? "true" : undefined}
+        inert={onboardingBlocking}
+      >
+        <Layout>
+          <Outlet />
+        </Layout>
+      </div>
+      <WorkspaceFirstOnboardingOverlayHost
+        pathname={pathname}
+        onBlockingChange={setOnboardingBlocking}
+      />
       <SceneLoadingOverlay visible={overlayVisible} />
     </>
   );
@@ -50,6 +65,7 @@ export const Route = createRootRoute({
     const token = useAuthStore.getState().accessToken;
     const isPublic = isPublicPath(location.pathname);
     const isLogin = isLoginPath(location.pathname);
+    const workspaceState = useWorkspaceStore.getState();
 
     if (!token && !isPublic) {
       throw redirect({
@@ -59,16 +75,31 @@ export const Route = createRootRoute({
       });
     }
 
+    if (token && !isPublic && location.pathname !== "/") {
+      const decision = await resolvePostAuthRoute({
+        lastWorkspaceId: workspaceState.lastWorkspaceId,
+      });
+      if (decision.onboardingRequired) {
+        throw redirect({ to: "/" });
+      }
+    }
+
     if (token && isLogin) {
       const params = new URLSearchParams(location.searchStr);
       const redirectTo = params.get("redirect");
+      const decision = await resolvePostAuthRoute({
+        lastWorkspaceId: workspaceState.lastWorkspaceId,
+      });
+      if (decision.workspaceId) {
+        workspaceState.setCurrentWorkspaceId(decision.workspaceId);
+      }
       if (
         typeof redirectTo === "string" &&
         redirectTo.startsWith("/") &&
         !redirectTo.startsWith("//")
       ) {
         const pathname = redirectTo.split("?")[0] || "";
-        if (!isAuthScenePath(pathname)) {
+        if (!isAuthScenePath(pathname) && !decision.onboardingRequired) {
           if (redirectTo.startsWith("/editor")) {
             if (typeof window !== "undefined") {
               window.location.replace(normalizeEditorRedirectPath(redirectTo));
@@ -78,7 +109,7 @@ export const Route = createRootRoute({
           throw redirect({ to: redirectTo });
         }
       }
-      throw redirect({ to: "/" });
+      throw redirect({ to: decision.path });
     }
   },
   component: RootLayout,

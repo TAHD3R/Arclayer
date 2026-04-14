@@ -11,6 +11,7 @@ from src.modules.analytics.workspaces.router import router as workspace_activity
 from src.modules.assets.admin.router import router as workspace_assets_router
 from src.modules.auth.http.service import get_current_user_id
 from src.modules.organization.http.service import get_current_org_membership
+from src.modules.organization.workspaces.schema import OrganizationWorkspaceSlugAvailabilityOut
 from src.modules.organization.workspaces.service import OrganizationWorkspaceService
 from src.modules.system.admin.router import router as workspace_admin_router
 from src.modules.workspaces.authz.http.service import require_workspace_permission
@@ -91,6 +92,21 @@ async def list_my_workspaces(
     """List workspaces visible to current user."""
     service = WorkspaceService(settings)
     result = await service.list_my_workspaces(user_id=user_id)
+    return ApiResponse.success(data=result)
+
+
+@router.get(
+    "/me/workspaces/onboarding/slug-availability",
+    response_model=ResponseModel[OrganizationWorkspaceSlugAvailabilityOut],
+    summary="Check first-workspace onboarding slug availability",
+)
+async def check_my_onboarding_workspace_slug_availability(
+    slug: str = Query(..., min_length=1, max_length=128, description="Desired workspace slug."),
+    settings: Settings = Depends(get_settings),
+) -> ResponseModel[OrganizationWorkspaceSlugAvailabilityOut]:
+    """Check workspace slug availability for first-workspace onboarding."""
+    service = OrganizationWorkspaceService(settings)
+    result = await service.check_slug_availability(slug=slug)
     return ApiResponse.success(data=result)
 
 

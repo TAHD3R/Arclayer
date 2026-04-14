@@ -4,6 +4,7 @@ import type {
   AuthzSnapshot,
   LeaveWorkspaceResult,
   MyWorkspaceListResult,
+  WorkspaceSlugAvailability,
   WorkspaceAssignRoleResult,
   WorkspaceDangerCapabilities,
   WorkspaceDeleteResult,
@@ -19,6 +20,14 @@ export async function retryMyPersonalSpace() {
   return api.post<MyWorkspaceListResult["switcher"]["personalSpace"]>(
     "/me/workspaces/personal-space/retry",
     {},
+  );
+}
+
+export async function checkMyOnboardingWorkspaceSlugAvailability(
+  slug: string,
+): Promise<WorkspaceSlugAvailability> {
+  return api.get<WorkspaceSlugAvailability>(
+    `/me/workspaces/onboarding/slug-availability${toQueryString({ slug })}`,
   );
 }
 

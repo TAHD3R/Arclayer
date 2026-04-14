@@ -205,15 +205,6 @@ def _build_service(monkeypatch) -> tuple[AuthService, FakeValkeyClient, FakeUser
     repo = FakeUserRepository(user)
     service = AuthService(settings, valkey=valkey, user_repo=repo)
 
-    async def _ensure_for_login(_self, *, user_id: UUID):
-        assert user_id == user.id
-        return None
-
-    monkeypatch.setattr(
-        "src.modules.auth.service.PersonalSpaceService.ensure_for_login",
-        _ensure_for_login,
-        raising=True,
-    )
     return service, valkey, user
 
 

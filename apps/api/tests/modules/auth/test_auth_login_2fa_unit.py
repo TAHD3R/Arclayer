@@ -215,16 +215,6 @@ def _build_login_service(
     repo = FakeUserRepository(user)
     auth = AuthService(settings, valkey=valkey, user_repo=repo)
 
-    async def _ensure_for_login(_self, *, user_id: UUID):
-        assert user_id == user.id
-        return None
-
-    monkeypatch.setattr(
-        "src.modules.auth.service.PersonalSpaceService.ensure_for_login",
-        _ensure_for_login,
-        raising=True,
-    )
-
     two_factor = FakeTwoFactor(enabled=two_factor_enabled)
     login = AuthLoginService(settings, valkey=valkey, auth_service=auth, two_factor=two_factor)
     return login, valkey, user

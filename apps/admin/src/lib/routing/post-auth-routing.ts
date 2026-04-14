@@ -4,6 +4,7 @@ import { pickDefaultWorkspaceId } from "@/lib/routing/workspace-routing";
 export interface PostAuthRouteDecision {
   path: string;
   workspaceId: string | null;
+  onboardingRequired: boolean;
 }
 
 export async function resolvePostAuthRoute(params: {
@@ -23,7 +24,33 @@ export async function resolvePostAuthRoute(params: {
       },
     },
     instanceSetup: { status: "ready" as const, repairReason: null },
+    onboarding: {
+      status: "completed" as const,
+      workspaceId: null,
+    },
   }));
+
+  const onboarding = workspaces.onboarding ?? {
+    status: "completed" as const,
+    workspaceId: null,
+  };
+
+  if (onboarding.status === "pending_workspace") {
+    return {
+      path: "/",
+      workspaceId: null,
+      onboardingRequired: true,
+    };
+  }
+
+  if (onboarding.status === "pending_workspace_defaults") {
+    return {
+      path: "/",
+      workspaceId: null,
+      onboardingRequired: true,
+    };
+  }
+
   const workspaceId = pickDefaultWorkspaceId({
     workspaces: workspaces.items ?? [],
     lastWorkspaceId,
@@ -33,6 +60,7 @@ export async function resolvePostAuthRoute(params: {
     return {
       path: "/",
       workspaceId,
+      onboardingRequired: false,
     };
   }
 
@@ -46,11 +74,13 @@ export async function resolvePostAuthRoute(params: {
     return {
       path: "/",
       workspaceId: personalSpaceWorkspaceId,
+      onboardingRequired: false,
     };
   }
 
   return {
     path: "/",
     workspaceId: null,
+    onboardingRequired: false,
   };
 }

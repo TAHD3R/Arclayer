@@ -99,15 +99,88 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert listed["items"][0]["workspaceId"] == encode_uuid(default_workspace.id)
             assert listed["items"][0]["isArchived"] is False
 
+            members_resp = await client.get(
+                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}/members"
+            )
+            assert members_resp.status_code == 200, members_resp.text
+            members_payload = members_resp.json()["data"]
+            assert members_payload["total"] == 2
+            assert len(members_payload["items"]) == 2
+
+            search_resp = await client.get(
+                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}/members",
+                params={"q": admin.username},
+            )
+            assert search_resp.status_code == 200, search_resp.text
+            assert search_resp.json()["data"]["total"] == 1
+
+            availability_resp = await client.get(
+                "/api/v1/organizations/me/workspaces/slug-availability",
+                params={"slug": "blog-team"},
+            )
+            assert availability_resp.status_code == 200, availability_resp.text
+            availability_payload = availability_resp.json()["data"]
+            assert availability_payload["normalizedSlug"] == "blog-team"
+            assert availability_payload["available"] is True
+            assert availability_payload["reason"] is None
+
+            reserved_slug_resp = await client.get(
+                "/api/v1/organizations/me/workspaces/slug-availability",
+                params={"slug": "api"},
+            )
+            assert reserved_slug_resp.status_code == 200, reserved_slug_resp.text
+            reserved_slug_payload = reserved_slug_resp.json()["data"]
+            assert reserved_slug_payload["normalizedSlug"] == "api"
+            assert reserved_slug_payload["available"] is False
+            assert reserved_slug_payload["reason"] == "reserved"
+
+            await default_workspace.delete()
+
             create_resp = await client.post(
                 "/api/v1/organizations/me/workspaces",
-                json={"name": "Blog Team", "description": "Marketing and content", "template": "blog"},
+                json={
+                    "name": "Blog Team",
+                    "slug": "blog-team",
+                    "description": "Marketing and content",
+                    "template": "blog",
+                },
             )
             assert create_resp.status_code == 200, create_resp.text
             created = create_resp.json()["data"]
             created_workspace_id = created["workspaceId"]
             assert created["name"] == "Blog Team"
+            assert created["slug"] == "blog-team"
             assert created["description"] == "Marketing and content"
+
+            taken_slug_resp = await client.get(
+                "/api/v1/organizations/me/workspaces/slug-availability",
+                params={"slug": "blog-team"},
+            )
+            assert taken_slug_resp.status_code == 200, taken_slug_resp.text
+            taken_slug_payload = taken_slug_resp.json()["data"]
+            assert taken_slug_payload["normalizedSlug"] == "blog-team"
+            assert taken_slug_payload["available"] is False
+            assert taken_slug_payload["reason"] == "exists"
+
+            support_workspace = await Workspace.create(
+                organization_id=org.id,
+                slug="support-team",
+                name="Support Team",
+                is_active=True,
+                created_by_user_id=owner.id,
+            )
+            await WorkspaceMembership.create(
+                workspace_id=support_workspace.id,
+                user_id=owner.id,
+                status=WorkspaceMembershipStatus.ACTIVE,
+                invited_by_user_id=None,
+            )
+            await WorkspaceMembership.create(
+                workspace_id=support_workspace.id,
+                user_id=admin.id,
+                status=WorkspaceMembershipStatus.ACTIVE,
+                invited_by_user_id=owner.id,
+            )
 
             archive_resp = await client.post(f"/api/v1/organizations/me/workspaces/{created_workspace_id}/archive")
             assert archive_resp.status_code == 200, archive_resp.text
@@ -127,23 +200,8 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             )
             assert ordered_workspaces_desc.status_code == 200, ordered_workspaces_desc.text
             ordered_workspace_items = ordered_workspaces_desc.json()["data"]["items"]
-            assert ordered_workspace_items[0]["workspaceId"] == created_workspace_id
-            assert ordered_workspace_items[-1]["workspaceId"] == encode_uuid(default_workspace.id)
-
-            members_resp = await client.get(
-                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}/members"
-            )
-            assert members_resp.status_code == 200, members_resp.text
-            members_payload = members_resp.json()["data"]
-            assert members_payload["total"] == 2
-            assert len(members_payload["items"]) == 2
-
-            search_resp = await client.get(
-                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}/members",
-                params={"q": admin.username},
-            )
-            assert search_resp.status_code == 200, search_resp.text
-            assert search_resp.json()["data"]["total"] == 1
+            assert ordered_workspace_items[0]["workspaceId"] == encode_uuid(support_workspace.id)
+            assert ordered_workspace_items[-1]["workspaceId"] == created_workspace_id
 
             unarchive_resp = await client.post(f"/api/v1/organizations/me/workspaces/{created_workspace_id}/unarchive")
             assert unarchive_resp.status_code == 200, unarchive_resp.text
@@ -177,8 +235,8 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert delete_resp.json()["data"]["deleted"] is True
 
             delete_last_resp = await client.delete(
-                f"/api/v1/organizations/me/workspaces/{encode_uuid(default_workspace.id)}",
-                params={"confirmName": "Default"},
+                f"/api/v1/organizations/me/workspaces/{encode_uuid(support_workspace.id)}",
+                params={"confirmName": "Support Team"},
             )
             assert delete_last_resp.status_code == 400, delete_last_resp.text
             assert delete_last_resp.json().get("error") == "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE"
@@ -335,6 +393,8 @@ async def test_org_members_endpoints_invite_and_role_update(prepared_db, integra
                 json={"roleCodes": ["ops_manager"]},
             )
             assert grant_workspace_manage.status_code == 200, grant_workspace_manage.text
+
+            await ws.delete()
 
             current_user = member
             create_workspace_with_custom_role = await client.post(

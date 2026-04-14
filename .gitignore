@@ -70,3 +70,4 @@ htmlcov/
 # Added by code-review-graph
 .code-review-graph/
 .codex-tasks/
+.superpowers/

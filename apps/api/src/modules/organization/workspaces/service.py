@@ -9,13 +9,14 @@ from uuid import UUID
 from src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
 from src.common.services import BaseService
 from src.config import Settings
-from src.core.exceptions import BadRequest, NotFound
+from src.core.exceptions import BadRequest, Conflict, NotFound
 from src.core.http.pagination import PageData, PageParams, paginate_items
 from src.core.i18n import t
 from src.models.organization.org_membership import OrgRole
 from src.models.organization.user import User
 from src.models.system.rbac import Role
 from src.models.workspaces.workspace import Workspace, WorkspaceKind, WorkspaceMembershipRole
+from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
 from src.modules.organization.workspaces.repository import OrganizationWorkspaceRepository
 from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceArchiveResult,
@@ -24,13 +25,14 @@ from src.modules.organization.workspaces.schema import (
     OrganizationWorkspaceMemberOut,
     OrganizationWorkspaceMemberPreviewOut,
     OrganizationWorkspaceOut,
+    OrganizationWorkspaceSlugAvailabilityOut,
 )
 from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.system.rbac.service import RBACService
 from src.modules.workspaces.policy.service import OrgWorkspaceCreationPolicy
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
 from src.modules.workspaces.site.service import WorkspaceSiteService
-from src.modules.workspaces.slug.service import next_available_workspace_slug
+from src.modules.workspaces.slug.service import next_available_workspace_slug, parse_explicit_workspace_slug
 
 _ORG_WORKSPACE_ALLOWED_ORDER_FIELDS: frozenset[str] = frozenset({"name", "slug", "created_at", "archived_at"})
 MAX_WORKSPACE_NAME_LENGTH = 128
@@ -56,6 +58,7 @@ class OrganizationWorkspaceService(BaseService):
         self.repo = OrganizationWorkspaceRepository()
         self.site_service = WorkspaceSiteService(settings)
         self.creation_policy = OrgWorkspaceCreationPolicy(settings)
+        self.onboarding_service = WorkspaceFirstOnboardingService(settings)
 
     async def list_workspaces(
         self,
@@ -239,7 +242,24 @@ class OrganizationWorkspaceService(BaseService):
 
         await self.creation_policy.assert_can_create(organization_id=organization_id)
 
-        slug = await self._next_available_workspace_slug(base_slug=name)
+        requested_slug = str(payload.slug or "").strip()
+        if requested_slug:
+            normalized_slug, err = parse_explicit_workspace_slug(requested_slug)
+            if err == "invalid" or normalized_slug is None:
+                raise BadRequest(message=t("errors", "BAD_REQUEST", default="参数错误"), error="WORKSPACE_SLUG_INVALID")
+            if err == "reserved":
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST", default="参数错误"),
+                    error="WORKSPACE_SLUG_RESERVED",
+                )
+            if await self.repo.slug_exists(slug=normalized_slug):
+                raise Conflict(
+                    message=t("errors", "CONFLICT", default="资源冲突"),
+                    error="WORKSPACE_SLUG_EXISTS",
+                )
+            slug = normalized_slug
+        else:
+            slug = await self._next_available_workspace_slug(base_slug=name)
 
         ws = await self.repo.create_workspace(
             organization_id=organization_id,
@@ -258,6 +278,10 @@ class OrganizationWorkspaceService(BaseService):
         await self.site_service.get_or_create_site_for_workspace(
             workspace_id=UUID(str(ws.id)),
             actor_user_id=user_id,
+        )
+        await self.onboarding_service.mark_workspace_created(
+            user_id=user_id,
+            workspace_id=UUID(str(ws.id)),
         )
 
         # Initialize workspace-level content strategy defaults so editors can rely on a stable policy contract.
@@ -304,6 +328,38 @@ class OrganizationWorkspaceService(BaseService):
             member_count=1 if preview else 0,
             members_preview=preview,
             enterable=True,
+        )
+
+    async def check_slug_availability(self, *, slug: str) -> OrganizationWorkspaceSlugAvailabilityOut:
+        normalized_slug, err = parse_explicit_workspace_slug(slug)
+        if err == "invalid":
+            return OrganizationWorkspaceSlugAvailabilityOut(
+                normalized_slug=None,
+                available=False,
+                reason="invalid",
+            )
+        if normalized_slug is None:
+            return OrganizationWorkspaceSlugAvailabilityOut(
+                normalized_slug=None,
+                available=False,
+                reason="invalid",
+            )
+        if err == "reserved":
+            return OrganizationWorkspaceSlugAvailabilityOut(
+                normalized_slug=normalized_slug,
+                available=False,
+                reason="reserved",
+            )
+        if await self.repo.slug_exists(slug=normalized_slug):
+            return OrganizationWorkspaceSlugAvailabilityOut(
+                normalized_slug=normalized_slug,
+                available=False,
+                reason="exists",
+            )
+        return OrganizationWorkspaceSlugAvailabilityOut(
+            normalized_slug=normalized_slug,
+            available=True,
+            reason=None,
         )
 
     async def archive_workspace(

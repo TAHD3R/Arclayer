@@ -44,6 +44,7 @@ export type OrganizationWorkspaceArchiveResult = {
 
 export type OrganizationWorkspaceCreateInput = {
   name: string;
+  slug?: string;
   description?: string;
   template: OrganizationWorkspaceTemplate;
   locale?: string;

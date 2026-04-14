@@ -14,6 +14,12 @@ class PersonalSpaceStatus(StrEnum):
     FAILED = "failed"
 
 
+class WorkspaceFirstOnboardingStatus(StrEnum):
+    PENDING_WORKSPACE = "pending_workspace"
+    PENDING_WORKSPACE_DEFAULTS = "pending_workspace_defaults"
+    COMPLETED = "completed"
+
+
 class MyWorkspaceMemberPreviewOut(BaseSchema):
     user_id: PublicUUID = Field(..., description="Member user id.")
     username: str = Field(..., description="Username.")
@@ -65,10 +71,23 @@ class WorkspaceSwitcherOut(BaseSchema):
     personal_space: PersonalSpaceSwitcherOut = Field(..., description="Personal space switcher state.")
 
 
+class WorkspaceFirstOnboardingOut(BaseSchema):
+    status: WorkspaceFirstOnboardingStatus = Field(
+        ..., description="Workspace-first onboarding state for current user."
+    )
+    workspace_id: PublicUUID | None = Field(
+        default=None,
+        description="Workspace id already created by onboarding when step 1 has completed.",
+    )
+
+
 class MyWorkspaceListResult(BaseSchema):
     items: list[MyWorkspaceOut] = Field(default_factory=list, description="Workspaces visible to current user.")
     switcher: WorkspaceSwitcherOut = Field(..., description="Pre-grouped switcher state from the backend.")
     instance_setup: InstanceSetupStateOut = Field(..., description="Canonical instance setup status for this runtime.")
+    onboarding: WorkspaceFirstOnboardingOut = Field(
+        ..., description="Current user's workspace-first onboarding progress."
+    )
 
 
 class WorkspaceDetailOut(BaseOut):

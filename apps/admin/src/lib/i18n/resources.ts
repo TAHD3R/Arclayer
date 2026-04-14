@@ -10,6 +10,7 @@ import zhErrors from "@locales/zh-CN/errors.json";
 import zhAuth from "@locales/zh-CN/auth.json";
 import zhPlugin from "@locales/zh-CN/plugin.json";
 import zhInvite from "@locales/zh-CN/invite.json";
+import zhOnboarding from "@locales/zh-CN/onboarding.json";
 import zhTeam from "@locales/zh-CN/team.json";
 import zhDebug from "@locales/zh-CN/debug.json";
 import zhActivity from "@locales/zh-CN/activity.json";
@@ -30,6 +31,7 @@ import enErrors from "@locales/en-US/errors.json";
 import enAuth from "@locales/en-US/auth.json";
 import enPlugin from "@locales/en-US/plugin.json";
 import enInvite from "@locales/en-US/invite.json";
+import enOnboarding from "@locales/en-US/onboarding.json";
 import enTeam from "@locales/en-US/team.json";
 import enDebug from "@locales/en-US/debug.json";
 import enActivity from "@locales/en-US/activity.json";
@@ -46,6 +48,7 @@ export const I18N_NAMESPACES = [
   "rbac",
   "sys",
   "setup",
+  "onboarding",
   "invite",
   "team",
   "debug",
@@ -69,6 +72,7 @@ export const i18nResources = {
     rbac: zhRbac,
     sys: zhSys,
     setup: zhSetup,
+    onboarding: zhOnboarding,
     invite: zhInvite,
     team: zhTeam,
     debug: zhDebug,
@@ -90,6 +94,7 @@ export const i18nResources = {
     rbac: enRbac,
     sys: enSys,
     setup: enSetup,
+    onboarding: enOnboarding,
     invite: enInvite,
     team: enTeam,
     debug: enDebug,

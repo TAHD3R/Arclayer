@@ -15,7 +15,7 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.mark.asyncio
-async def test_system_bootstrap_creates_super_admin_lock_and_personal_space(
+async def test_system_bootstrap_creates_super_admin_lock_without_creating_personal_space(
     prepared_db,
     integration_valkey_settings,
     tmp_path: Path,
@@ -65,7 +65,10 @@ async def test_system_bootstrap_creates_super_admin_lock_and_personal_space(
             )
             assert workspace_response.status_code == 200
             workspace_payload = workspace_response.json()["data"]
-            assert workspace_payload["switcher"]["personalSpace"]["status"] == "ready"
-            assert workspace_payload["switcher"]["personalSpace"]["workspace"]["kind"] == "personal"
+            assert workspace_payload["items"] == []
+            assert workspace_payload["onboarding"]["status"] == "pending_workspace"
+            assert workspace_payload["onboarding"]["workspaceId"] is None
+            assert workspace_payload["switcher"]["personalSpace"]["status"] == "pending"
+            assert workspace_payload["switcher"]["personalSpace"]["workspace"] is None
 
     app.dependency_overrides.clear()
