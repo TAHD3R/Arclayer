@@ -502,10 +502,10 @@ export function WorkspaceFirstOnboardingPage() {
     <Onboarding
       totalSteps={5}
       value={step}
-      className="relative flex h-155 w-full flex-col overflow-hidden rounded-2xl border bg-background p-6 shadow-sm"
+      className="relative flex h-155 w-full flex-col overflow-hidden rounded-2xl border bg-background p-6"
     >
       <div className="flex flex-col gap-2 text-center">
-        <div className="text-title tracking-tight text-label-primary">{currentStepTitle}</div>
+        <div className="text-title text-label-primary">{currentStepTitle}</div>
         <p className="mx-auto max-w-2xl text-body text-label-secondary">{currentStepDescription}</p>
         <div className="pt-3">
           <StepIndicator currentStep={step} totalSteps={5} className="justify-center" />
@@ -535,7 +535,7 @@ export function WorkspaceFirstOnboardingPage() {
                     <div
                       className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-300 ease-out ${
                         isActive
-                          ? "translate-x-1 border-foreground/20 bg-muted shadow-sm"
+                          ? "translate-x-1 border-border bg-muted"
                           : "border-transparent hover:bg-muted/60"
                       }`}
                     >
@@ -545,13 +545,15 @@ export function WorkspaceFirstOnboardingPage() {
                         }`}
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-label-primary">{feature.title}</p>
+                        <p className="text-callout font-semibold text-label-primary">
+                          {feature.title}
+                        </p>
                         <div
                           className={`grid transition-all duration-300 ease-out ${
                             isActive ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                           }`}
                         >
-                          <p className="mt-1 overflow-hidden text-sm leading-relaxed text-label-secondary">
+                          <p className="mt-1 overflow-hidden text-footnote text-label-secondary">
                             {feature.description}
                           </p>
                         </div>
@@ -577,7 +579,10 @@ export function WorkspaceFirstOnboardingPage() {
         <Onboarding.Step step={2} className="h-full">
           <div className="mx-auto flex h-full w-full max-w-2xl flex-col justify-start gap-4">
             <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary" htmlFor="workspace-name">
+              <label
+                className="text-callout font-semibold text-label-primary"
+                htmlFor="workspace-name"
+              >
                 {t("common:ORG_WORKSPACES_FIELD_NAME")}
               </label>
               <FieldHint>{t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}</FieldHint>
@@ -601,7 +606,10 @@ export function WorkspaceFirstOnboardingPage() {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary" htmlFor="workspace-slug">
+              <label
+                className="text-callout font-semibold text-label-primary"
+                htmlFor="workspace-slug"
+              >
                 {t("onboarding:WORKSPACE_SLUG_LABEL")}
               </label>
               <FieldHint>{t("onboarding:WORKSPACE_SLUG_HELP")}</FieldHint>
@@ -649,7 +657,10 @@ export function WorkspaceFirstOnboardingPage() {
         <Onboarding.Step step={3} className="h-full">
           <div className="mx-auto flex h-full w-full max-w-2xl flex-col justify-start gap-5">
             <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary" htmlFor="workspace-locale">
+              <label
+                className="text-callout font-semibold text-label-primary"
+                htmlFor="workspace-locale"
+              >
                 {t("setup:SETUP_FIELD_LANGUAGE_TITLE")}
               </label>
               <FieldHint>{t("settings:SETTINGS_WORKSPACE_LANGUAGE_DESC")}</FieldHint>
@@ -671,7 +682,10 @@ export function WorkspaceFirstOnboardingPage() {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary" htmlFor="workspace-timezone">
+              <label
+                className="text-callout font-semibold text-label-primary"
+                htmlFor="workspace-timezone"
+              >
                 {t("setup:SETUP_FIELD_TIMEZONE_TITLE")}
               </label>
               <FieldHint>{t("settings:SETTINGS_WORKSPACE_TIMEZONE_DESC")}</FieldHint>
@@ -690,7 +704,7 @@ export function WorkspaceFirstOnboardingPage() {
             </div>
 
             <div className="grid gap-1.5">
-              <label className="font-semibold text-label-primary">
+              <label className="text-callout font-semibold text-label-primary">
                 {t("setup:SETUP_FIELD_DATE_FORMAT_TITLE")}
               </label>
               <FieldHint>{t("settings:SETTINGS_WORKSPACE_DATE_FORMAT_DESC")}</FieldHint>
@@ -726,7 +740,7 @@ export function WorkspaceFirstOnboardingPage() {
             <div className="flex h-full flex-col gap-6">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold text-label-primary">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-muted text-caption font-semibold text-label-primary">
                     1
                   </div>
                   <div className="text-title3 text-label-primary">
@@ -735,7 +749,7 @@ export function WorkspaceFirstOnboardingPage() {
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 text-sm font-medium text-label-secondary transition hover:text-label-primary"
+                  className="shrink-0 text-footnote font-semibold text-label-secondary transition-colors hover:text-label-primary"
                   onClick={() => {
                     setStepError(null);
                     setPersonalizeSubstep(1);
@@ -763,7 +777,7 @@ export function WorkspaceFirstOnboardingPage() {
                       <Icon
                         className={`size-5 shrink-0 ${isActive ? "text-label-primary" : "text-label-secondary"}`}
                       />
-                      <span className="text-body font-medium text-label-primary">
+                      <span className="text-callout font-semibold text-label-primary">
                         {option.label}
                       </span>
                     </button>
@@ -779,7 +793,7 @@ export function WorkspaceFirstOnboardingPage() {
             <div className="flex h-full flex-col gap-6">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold text-label-primary">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-muted text-caption font-semibold text-label-primary">
                     2
                   </div>
                   <div className="text-title3 text-label-primary">
@@ -788,7 +802,7 @@ export function WorkspaceFirstOnboardingPage() {
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 text-sm font-medium text-label-secondary transition hover:text-label-primary"
+                  className="shrink-0 text-footnote font-semibold text-label-secondary transition-colors hover:text-label-primary"
                   onClick={() => {
                     setStepError(null);
                     setStep(5);
@@ -812,7 +826,7 @@ export function WorkspaceFirstOnboardingPage() {
                       }`}
                       onClick={() => setSelectedGoal(option.value)}
                     >
-                      <span className="text-body font-medium text-label-primary">
+                      <span className="text-callout font-semibold text-label-primary">
                         {option.label}
                       </span>
                     </button>
@@ -844,10 +858,10 @@ export function WorkspaceFirstOnboardingPage() {
               <div className="space-y-6">
                 {readyTips.map((tip, index) => (
                   <div key={tip} className="flex items-start gap-4">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-label-primary">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-caption font-semibold text-label-primary">
                       {index + 1}
                     </div>
-                    <div className="text-body leading-relaxed text-label-secondary">{tip}</div>
+                    <div className="text-body text-label-secondary">{tip}</div>
                   </div>
                 ))}
               </div>
