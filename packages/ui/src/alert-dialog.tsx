@@ -25,6 +25,8 @@ import { cn } from "@arclayer/lib/utils";
 import { SUBTLE_OVERLAY_BACKDROP_CLASSNAME } from "./adaptive-overlay-backdrop";
 import { buttonVariants } from "./button-variants";
 
+const ALERT_DIALOG_LAYER_Z_INDEX_CLASSNAME = "z-[2300]";
+
 type AlertDialogProps = AlertDialogPrimitiveProps;
 
 function AlertDialog(props: AlertDialogProps) {
@@ -42,7 +44,12 @@ type AlertDialogOverlayProps = AlertDialogOverlayPrimitiveProps;
 function AlertDialogOverlay({ className, ...props }: AlertDialogOverlayProps) {
   return (
     <AlertDialogOverlayPrimitive
-      className={cn("fixed inset-0 z-50", SUBTLE_OVERLAY_BACKDROP_CLASSNAME, className)}
+      className={cn(
+        "fixed inset-0",
+        ALERT_DIALOG_LAYER_Z_INDEX_CLASSNAME,
+        SUBTLE_OVERLAY_BACKDROP_CLASSNAME,
+        className,
+      )}
       {...props}
     />
   );
@@ -56,7 +63,8 @@ function AlertDialogContent({ className, ...props }: AlertDialogContentProps) {
       <AlertDialogOverlay />
       <AlertDialogContentPrimitive
         className={cn(
-          "bg-card fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6  sm:max-w-lg",
+          "bg-card fixed top-[50%] left-[50%] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6  sm:max-w-lg",
+          ALERT_DIALOG_LAYER_Z_INDEX_CLASSNAME,
           className,
         )}
         {...props}

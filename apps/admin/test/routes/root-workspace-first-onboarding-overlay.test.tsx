@@ -22,6 +22,10 @@ vi.mock("@/components/layout/scene-loading-overlay", () => ({
   SceneLoadingOverlay: () => null,
 }));
 
+vi.mock("@/components/layout/usercenter-overlay-host", () => ({
+  UsercenterOverlayHost: () => null,
+}));
+
 vi.mock("@/components/layout/workspace-first-onboarding-overlay-host", () => ({
   WorkspaceFirstOnboardingOverlayHost: ({
     onBlockingChange,

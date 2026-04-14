@@ -35,7 +35,7 @@ import { getUserDisplayName, normalizeUserProfile } from "@/lib/auth/user-profil
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { notifyError } from "@/lib/notifications";
 import { queryClient } from "@/lib/query/query-client-instance";
-import { buildNotificationsSourceSearch } from "@/lib/routing/notifications-source";
+import { buildUsercenterOverlayNavigate } from "@/lib/routing/usercenter-overlay";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
@@ -488,7 +488,13 @@ function AdminAccountPanelContent(props: AdminAccountPanelContentProps) {
 
 function useAdminAccountMenuModel(): AdminAccountMenuModel {
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const location = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      hash: state.location.hash,
+    }),
+    structuralSharing: true,
+  });
   const accessToken = useAuthStore((s) => s.accessToken);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -534,11 +540,14 @@ function useAdminAccountMenuModel(): AdminAccountMenuModel {
     themePreference,
     locale,
     onLogout,
-    onAccountSettings: () =>
-      void navigate({
-        to: "/usercenter/profile",
-        search: buildNotificationsSourceSearch(pathname),
-      }),
+    onAccountSettings: () => {
+      return void navigate(
+        buildUsercenterOverlayNavigate({
+          currentLocation: location,
+          tab: "profile",
+        }),
+      );
+    },
     onThemePreferenceChange: async (next) => {
       await setThemePreferenceWithTransition(next, { direction: "ltr" });
     },

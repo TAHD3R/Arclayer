@@ -136,7 +136,6 @@ dependencies = [
     { name = "dnspython" },
     { name = "fastapi" },
     { name = "fastapi-guard" },
-    { name = "fastapi-limiter" },
     { name = "fastapi-mail" },
     { name = "granian" },
     { name = "httptools" },
@@ -182,7 +181,6 @@ requires-dist = [
     { name = "dnspython", specifier = ">=2.8.0" },
     { name = "fastapi", specifier = ">=0.135.1" },
     { name = "fastapi-guard", specifier = ">=5.0.0" },
-    { name = "fastapi-limiter", specifier = ">=0.2.0" },
     { name = "fastapi-mail", specifier = ">=1.6.1" },
     { name = "granian", specifier = ">=2.6.1" },
     { name = "httptools", specifier = ">=0.7.1" },
@@ -656,19 +654,6 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/7a/b3/16a604895d7b2dc980ca27fc8059099f00556508d96a084a3a3e5e8a28a0/fastapi_guard-5.0.0.tar.gz", hash = "sha256:57e98ca8a18bde5e2e22ff37ad7585a4bb4fa5c115211143841eff6a9ff1b159", size = 18148, upload-time = "2026-03-26T01:59:42.298Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/c5/56/27a4117042f9ff141c2d0a332d6cb6d4deacac579dea45b666635ccca3a8/fastapi_guard-5.0.0-py3-none-any.whl", hash = "sha256:cacea96b2ac21318152a1f3c4ae57d7e216f3849f396a8c0b5ed8321c2c1b20c", size = 15237, upload-time = "2026-03-26T01:59:41.286Z" },
-]
-
-[[package]]
-name = "fastapi-limiter"
-version = "0.2.0"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
-dependencies = [
-    { name = "fastapi" },
-    { name = "pyrate-limiter" },
-]
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/b7/32/81f64b69a79345caca0a90d1601ae7c84c39438145793514ee82daac4fc6/fastapi_limiter-0.2.0.tar.gz", hash = "sha256:b042259f6280056b5b2b3f506edd76c8e0648d7a5ce86c3485216a4a0fd0ec14", size = 7401, upload-time = "2026-02-06T07:00:09.831Z" }
-wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/c4/9b/35278a18254f187d55bb450ded6bc9a59c7b3010d164e1796f3dfb7aa73d/fastapi_limiter-0.2.0-py3-none-any.whl", hash = "sha256:e576ebb29cc9614c2f38471c60ed0e849024e9a1b7a2aeb4c2a31a6d708b4aea", size = 5219, upload-time = "2026-02-06T07:00:07.824Z" },
 ]
 
 [[package]]
@@ -1440,15 +1425,6 @@ source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/cc/28/86ec1bccb2609d20349def444ef9dfe84aeccc984caa62f4634d50fee164/pypika_tortoise-0.6.3.tar.gz", hash = "sha256:6e17f00e77e78468836cb5c63eb6dc01445f83b1167e4f29f1c678949179c079", size = 80689, upload-time = "2025-11-26T22:07:08.293Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/a4/6a/da5ba6830dd16cea2804163a2cecc1b2a85b8e06c61f0abb0477069d013d/pypika_tortoise-0.6.3-py3-none-any.whl", hash = "sha256:762e508093f4d73d3654cdde5bce8f92f8f41d999993c44d972d4f1703a663df", size = 46918, upload-time = "2025-11-26T22:07:07.052Z" },
-]
-
-[[package]]
-name = "pyrate-limiter"
-version = "4.0.2"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/03/98/2b3dc1ba6bdf2efaeaa3e102124cbd2636a4ccec241ffeb8a1de207f5cd4/pyrate_limiter-4.0.2.tar.gz", hash = "sha256:b678841e2215f114ef6f98c7093755ca3b466de83cb5a881231fd6e321fa14b5", size = 301304, upload-time = "2026-01-23T09:37:33.612Z" }
-wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/13/b9/80ffe3f2c34d3247186d74b1d08c1fed1e3ad4127ff6a8a5501b7bf16a97/pyrate_limiter-4.0.2-py3-none-any.whl", hash = "sha256:35ec42b9bb9cfabcafab14d0c5c6523f48378c3da2949e534ce3cbdfea71eadd", size = 36439, upload-time = "2026-01-23T09:37:32.097Z" },
 ]
 
 [[package]]

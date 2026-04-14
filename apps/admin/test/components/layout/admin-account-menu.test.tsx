@@ -12,14 +12,18 @@ import { ChromeTabsProvider } from "@arclayer/ui/chrome-tabs";
 import { SidebarProvider } from "@arclayer/ui/sidebar";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
+const routerState = {
+  pathname: "/w/ws-1/",
+  hash: "",
+};
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
   useRouterState: ({
     select,
   }: {
-    select: (state: { location: { pathname: string } }) => unknown;
-  }) => select({ location: { pathname: "/w/ws-1/" } }),
+    select: (state: { location: { pathname: string; hash: string } }) => unknown;
+  }) => select({ location: { pathname: routerState.pathname, hash: routerState.hash } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -111,6 +115,8 @@ describe("AdminAccountMenu", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    routerState.pathname = "/w/ws-1/";
+    routerState.hash = "";
 
     useAuthStore.setState({
       accessToken: "token",
@@ -236,19 +242,31 @@ describe("AdminAccountMenu", () => {
     expect(navigateMock).toHaveBeenCalledWith({ to: "/login", replace: true });
   });
 
-  it("从 workspace shell 打开账号设置时会携带来源上下文", async () => {
+  it("从 workspace shell 打开账号设置时会切到 masked usercenter overlay", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminAccountMenu />);
 
     await openAccountMenu(user);
     await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
 
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/usercenter/profile",
-      search: {
-        sourceKind: "workspace",
-        sourcePath: "/w/ws-1",
-      },
-    });
+    const navigation = navigateMock.mock.calls.at(-1)?.[0];
+    expect(navigation.to).toBe("/w/ws-1/");
+    expect(navigation.hash).toBe("");
+    expect(navigation.mask).toEqual({ to: "/usercenter/profile" });
+    expect(navigation.search({ q: "demo" })).toEqual({ q: "demo", usercenter: "profile" });
+  });
+
+  it("在 /workspaces 打开个人设置时也会复用同一套 masked overlay contract", async () => {
+    routerState.pathname = "/workspaces/";
+    const user = userEvent.setup();
+    renderWithProviders(<AdminAccountMenu />);
+
+    await openAccountMenu(user);
+    await user.click(screen.getByRole("button", { name: "ACCOUNT_MENU_ACCOUNT" }));
+
+    const navigation = navigateMock.mock.calls.at(-1)?.[0];
+    expect(navigation.to).toBe("/workspaces/");
+    expect(navigation.mask).toEqual({ to: "/usercenter/profile" });
+    expect(navigation.search({ create: "1" })).toEqual({ create: "1", usercenter: "profile" });
   });
 });

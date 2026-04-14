@@ -15,10 +15,6 @@ export function isAcceptInvitePath(pathname: string): boolean {
   return pathname === "/invitations" || pathname === "/invitations/";
 }
 
-export function isUserCenterPath(pathname: string): boolean {
-  return pathname === "/usercenter" || pathname.startsWith("/usercenter/");
-}
-
 export function isGlobalPath(pathname: string): boolean {
   return pathname === "/" || pathname === "/workspaces" || pathname === "/workspaces/";
 }

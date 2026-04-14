@@ -11,6 +11,7 @@ import { UserProfileBasicsSection } from "@/pages/usercenter/profile/components/
 import { UserDangerSection } from "@/pages/usercenter/profile/components/profile-danger-section";
 import { UserLinkedAccountsSection } from "@/pages/usercenter/profile/components/profile-linked-accounts-section";
 import { useAuthStore } from "@/stores/use-auth-store";
+import { SpinnerOverlay } from "@arclayer/ui/spinner";
 
 type UserProfileViewProps = {
   mode?: "page" | "dialog";
@@ -35,35 +36,45 @@ function UserProfileViewContent(props: Required<UserProfileViewProps>) {
   const profile = useMemo(() => normalizeUserProfile(meQuery.data), [meQuery.data]);
 
   const redirect = useMemo(() => `${pathname}${searchStr}`, [pathname, searchStr]);
+  const loading = meQuery.isLoading && !meQuery.data;
 
   return (
-    <UserCenterSettingsSectionStack mode={props.mode}>
-      <UserCenterSettingPanel
-        title={t("ME_PROFILE_PANEL_TITLE")}
-        showDivider
-        variant={panelVariant}
-      >
-        <UserProfileBasicsSection profile={profile} redirect={redirect} />
-      </UserCenterSettingPanel>
-
-      <UserCenterSettingPanel
-        title={t("ME_LINKED_ACCOUNTS_PANEL_TITLE")}
-        showDivider
-        variant={panelVariant}
-      >
-        <UserLinkedAccountsSection redirect={redirect} />
-      </UserCenterSettingPanel>
-
-      {props.includeDanger ? (
+    <div className="relative min-h-full">
+      <UserCenterSettingsSectionStack mode={props.mode}>
         <UserCenterSettingPanel
-          title={t("ME_DANGER_PANEL_TITLE")}
+          title={t("ME_PROFILE_PANEL_TITLE")}
           showDivider
           variant={panelVariant}
         >
-          <UserDangerSection email={profile.email} redirect={redirect} />
+          <UserProfileBasicsSection profile={profile} redirect={redirect} />
         </UserCenterSettingPanel>
+
+        <UserCenterSettingPanel
+          title={t("ME_LINKED_ACCOUNTS_PANEL_TITLE")}
+          showDivider
+          variant={panelVariant}
+        >
+          <UserLinkedAccountsSection redirect={redirect} />
+        </UserCenterSettingPanel>
+
+        {props.includeDanger ? (
+          <UserCenterSettingPanel
+            title={t("ME_DANGER_PANEL_TITLE")}
+            showDivider
+            variant={panelVariant}
+          >
+            <UserDangerSection email={profile.email} redirect={redirect} />
+          </UserCenterSettingPanel>
+        ) : null}
+      </UserCenterSettingsSectionStack>
+      {loading ? (
+        <SpinnerOverlay
+          className="rounded-none bg-background/70 backdrop-blur-sm"
+          spinnerContainerClassName="rounded-md border-border/70 bg-card"
+          label={t("ME_TAB_PROFILE")}
+        />
       ) : null}
-    </UserCenterSettingsSectionStack>
+    </div>
   );
 }
 

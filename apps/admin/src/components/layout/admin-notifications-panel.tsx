@@ -24,6 +24,10 @@ import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
 import { buildNotificationsSourceSearch } from "@/lib/routing/notifications-source";
+import {
+  buildUsercenterOverlayNavigate,
+  resolveUsercenterOverlayTabFromPath,
+} from "@/lib/routing/usercenter-overlay";
 import { cn } from "@arclayer/lib/utils";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 
@@ -72,7 +76,14 @@ export function AdminNotificationsPanel({
 }: AdminNotificationsPanelProps) {
   const { t, i18n } = useTranslation("notifications");
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const location = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      hash: state.location.hash,
+    }),
+    structuralSharing: true,
+  });
+  const pathname = location.pathname;
   const queryClient = useQueryClient();
   const nowMs = useNowTick(60_000);
   const [tab, setTab] = useState<NotificationPanelTab>("unread");
@@ -240,6 +251,16 @@ export function AdminNotificationsPanel({
       return;
     }
     await markRead(item);
+    const usercenterTab = resolveUsercenterOverlayTabFromPath(target);
+    if (usercenterTab) {
+      void navigate(
+        buildUsercenterOverlayNavigate({
+          currentLocation: location,
+          tab: usercenterTab,
+        }),
+      );
+      return;
+    }
     void navigate({ to: target as never });
   };
 

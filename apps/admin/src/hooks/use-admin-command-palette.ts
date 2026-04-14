@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, SlidersHorizontal, Shield, UserRound, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { listAssets } from "@/api/assets";
@@ -16,6 +16,10 @@ import {
 } from "@/lib/command/entry-utils";
 import { buildAdminNavCommandEntries } from "@/lib/command/nav-command-items";
 import { resolveCommandSections, type CommandSource } from "@/lib/command/source-registry";
+import {
+  buildUsercenterOverlayNavigate,
+  resolveUsercenterOverlayTabFromPath,
+} from "@/lib/routing/usercenter-overlay";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import { useCommandRecentStore } from "@/stores/use-command-recent-store";
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -111,6 +115,13 @@ export function useAdminCommandPalette(props: {
   scope: CommandScope;
 }) {
   const navigate = useNavigate();
+  const location = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      hash: state.location.hash,
+    }),
+    structuralSharing: true,
+  });
   const { t, i18n } = useTranslation(["command", "account", "notifications", "nav"]);
   const [query, setQuery] = useState("");
   const searchQuery = query.trim();
@@ -353,6 +364,16 @@ export function useAdminCommandPalette(props: {
     if (entry.recent?.enabled) recordRecent(entry.recent.snapshot);
     if (entry.action.type === "callback") {
       entry.action.run();
+      return;
+    }
+    const usercenterTab = resolveUsercenterOverlayTabFromPath(entry.action.to);
+    if (usercenterTab) {
+      void navigate(
+        buildUsercenterOverlayNavigate({
+          currentLocation: location,
+          tab: usercenterTab,
+        }),
+      );
       return;
     }
     void navigate({ to: entry.action.to as never, search: (entry.action.search ?? {}) as never });

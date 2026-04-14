@@ -8,7 +8,7 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { UserCenterStateCard } from "@/pages/usercenter/shared/account-settings-state-card";
 
-export function UserCenterUsagePage() {
+export function UserCenterUsageContent() {
   const { t } = useTranslation("account");
   const workspacesQuery = useQuery({
     queryKey: ["account", "usage", "workspaces"],
@@ -26,40 +26,48 @@ export function UserCenterUsagePage() {
   }, [workspacesQuery.data?.items]);
 
   return (
+    <ContentGuard
+      loading={workspacesQuery.isLoading && !workspacesQuery.data}
+      error={workspacesQuery.error}
+      onRetry={() => void workspacesQuery.refetch()}
+    >
+      <div className="grid gap-4 xl:grid-cols-3">
+        <UserCenterStateCard
+          eyebrow={t("ACCOUNT_PAGE_USAGE_TITLE")}
+          title={t("ACCOUNT_USAGE_TOTAL_WORKSPACES_TITLE")}
+          description={t("ACCOUNT_USAGE_TOTAL_WORKSPACES_DESC")}
+          value={String(metrics.totalWorkspaces)}
+          icon={<LayoutGrid />}
+        />
+        <UserCenterStateCard
+          eyebrow={t("ACCOUNT_SECTION_ACCOUNT")}
+          title={t("ACCOUNT_USAGE_ADMIN_WORKSPACES_TITLE")}
+          description={t("ACCOUNT_USAGE_ADMIN_WORKSPACES_DESC")}
+          value={String(metrics.adminWorkspaces)}
+          icon={<ShieldCheck />}
+        />
+        <UserCenterStateCard
+          eyebrow={t("ACCOUNT_SETTINGS_TITLE")}
+          title={t("ACCOUNT_USAGE_STATUS_TITLE")}
+          description={t("ACCOUNT_USAGE_STATUS_DESC")}
+          icon={<BarChart3 />}
+          tone="warning"
+        />
+      </div>
+    </ContentGuard>
+  );
+}
+
+export function UserCenterUsagePage() {
+  const { t } = useTranslation("account");
+
+  return (
     <DefaultPage
       title={t("ACCOUNT_PAGE_USAGE_TITLE")}
       description={t("ACCOUNT_PAGE_USAGE_DESC")}
       showFavoriteToggle={false}
     >
-      <ContentGuard
-        loading={workspacesQuery.isLoading && !workspacesQuery.data}
-        error={workspacesQuery.error}
-        onRetry={() => void workspacesQuery.refetch()}
-      >
-        <div className="grid gap-4 xl:grid-cols-3">
-          <UserCenterStateCard
-            eyebrow={t("ACCOUNT_PAGE_USAGE_TITLE")}
-            title={t("ACCOUNT_USAGE_TOTAL_WORKSPACES_TITLE")}
-            description={t("ACCOUNT_USAGE_TOTAL_WORKSPACES_DESC")}
-            value={String(metrics.totalWorkspaces)}
-            icon={<LayoutGrid />}
-          />
-          <UserCenterStateCard
-            eyebrow={t("ACCOUNT_SECTION_ACCOUNT")}
-            title={t("ACCOUNT_USAGE_ADMIN_WORKSPACES_TITLE")}
-            description={t("ACCOUNT_USAGE_ADMIN_WORKSPACES_DESC")}
-            value={String(metrics.adminWorkspaces)}
-            icon={<ShieldCheck />}
-          />
-          <UserCenterStateCard
-            eyebrow={t("ACCOUNT_SETTINGS_TITLE")}
-            title={t("ACCOUNT_USAGE_STATUS_TITLE")}
-            description={t("ACCOUNT_USAGE_STATUS_DESC")}
-            icon={<BarChart3 />}
-            tone="warning"
-          />
-        </div>
-      </ContentGuard>
+      <UserCenterUsageContent />
     </DefaultPage>
   );
 }

@@ -32,8 +32,11 @@ describe("dialog exit pointer-events", () => {
     const dropzone = screen.getByRole("button", { name: "Dropzone" });
     const dialogContent = dropzone.closest("[data-slot='dialog-content']");
     const dialogOverlay = document.querySelector("[data-slot='dialog-overlay']");
+    const dialogRoot = document.querySelector("[data-overlay-root='dialog']");
 
     expect(dialogContent).toHaveStyle({ pointerEvents: "none" });
     expect(dialogOverlay).toHaveStyle({ pointerEvents: "none" });
+    expect(dialogOverlay).toHaveClass("z-[2300]");
+    expect(dialogRoot).toHaveClass("z-[2300]");
   });
 });

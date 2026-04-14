@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -16,6 +16,10 @@ import { listMyWorkspaces } from "@/api/workspaces";
 import { useNowTick } from "@arclayer/hooks/use-now-tick";
 import { notifyErrorText } from "@/lib/notifications";
 import { resolveNotificationTarget } from "@/lib/routing/notification-target";
+import {
+  buildUsercenterOverlayNavigate,
+  resolveUsercenterOverlayTabFromPath,
+} from "@/lib/routing/usercenter-overlay";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 
 import type { ListStatus } from "../types";
@@ -25,6 +29,13 @@ const PAGE_SIZE = 20;
 export function useNotifications() {
   const { t, i18n } = useTranslation("notifications");
   const navigate = useNavigate();
+  const location = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      hash: state.location.hash,
+    }),
+    structuralSharing: true,
+  });
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
 
@@ -202,6 +213,16 @@ export function useNotifications() {
       return;
     }
     await markRead(n);
+    const usercenterTab = resolveUsercenterOverlayTabFromPath(target);
+    if (usercenterTab) {
+      void navigate(
+        buildUsercenterOverlayNavigate({
+          currentLocation: location,
+          tab: usercenterTab,
+        }),
+      );
+      return;
+    }
     void navigate({ to: target as never });
   };
 
@@ -211,6 +232,16 @@ export function useNotifications() {
     const isAccessible = accessibleWorkspaceIds.has(String(n.workspaceId));
     if (workspacesQuery.data && !isAccessible) {
       notifyErrorText(t("NOTIFICATIONS_TARGET_FORBIDDEN"));
+      return;
+    }
+    const usercenterTab = resolveUsercenterOverlayTabFromPath(target);
+    if (usercenterTab) {
+      void navigate(
+        buildUsercenterOverlayNavigate({
+          currentLocation: location,
+          tab: usercenterTab,
+        }),
+      );
       return;
     }
     void navigate({ to: target as never });

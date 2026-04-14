@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
+import { Button } from "./button";
+
 interface ExpandableScreenContextValue {
   isExpanded: boolean;
   expand: () => void;
@@ -167,21 +169,24 @@ export function ExpandableScreenContent({
   return createPortal(
     <AnimatePresence initial={false}>
       {isExpanded && (
-        <div className={`fixed inset-0 ${overlayZIndexClassName} p-2 sm:p-3`}>
+        <motion.div
+          className={`fixed inset-0 ${overlayZIndexClassName} px-6 pt-6 pb-0 sm:px-8 sm:pt-8 sm:pb-0`}
+          exit={{ opacity: 0, transition: { duration: animationDuration } }}
+        >
           <motion.button
             type="button"
             aria-label="Close overlay"
-            className="absolute inset-0 h-full w-full bg-card/92"
+            className="absolute inset-0 h-full w-full bg-card/50 backdrop-blur-xs"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: { duration: animationDuration } }}
             onClick={collapse}
           />
 
           <motion.div
             layoutId={layoutId}
             transition={{ duration: animationDuration }}
-            style={{ borderRadius: contentRadius }}
+            style={{ borderRadius: `${contentRadius} ${contentRadius} 0 0` }}
             layout
             className={`relative z-10 flex h-full w-full overflow-hidden transform-gpu will-change-transform ${className}`}
           >
@@ -196,21 +201,26 @@ export function ExpandableScreenContent({
           </motion.div>
 
           {showCloseButton ? (
-            <motion.button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                collapse();
-              }}
-              className={`absolute right-5 top-5 z-20 flex h-11 w-11 items-center justify-center rounded-full pointer-events-auto transition-colors ${
-                closeButtonClassName || "bg-transparent text-white hover:bg-white/10"
-              }`}
-              aria-label="Close"
-            >
-              <X className="h-5 w-5" />
-            </motion.button>
+            <div className="pointer-events-none absolute right-10 top-10 z-20 sm:right-12 sm:top-12">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  collapse();
+                }}
+                className={`pointer-events-auto bg-transparent text-label-primary shadow-none backdrop-blur-sm ${
+                  closeButtonClassName || "hover:bg-accent hover:text-label-primary"
+                }`}
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
           ) : null}
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body,

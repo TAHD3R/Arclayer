@@ -34,6 +34,7 @@ const ALLOWED_EXTERNAL_DIALOG_INTERACTION_SELECTOR = [
   ".ant-popover",
   ".ant-tooltip",
 ].join(", ");
+const DIALOG_LAYER_Z_INDEX_CLASSNAME = "z-[2300]";
 
 function isAllowedExternalDialogInteractionTarget(target: EventTarget | null): boolean {
   const element =
@@ -73,7 +74,12 @@ type DialogOverlayProps = DialogOverlayPrimitiveProps;
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
   return (
     <DialogOverlayPrimitive
-      className={cn("fixed inset-0 z-50", SUBTLE_OVERLAY_BACKDROP_CLASSNAME, className)}
+      className={cn(
+        "fixed inset-0",
+        DIALOG_LAYER_Z_INDEX_CLASSNAME,
+        SUBTLE_OVERLAY_BACKDROP_CLASSNAME,
+        className,
+      )}
       {...props}
     />
   );
@@ -106,7 +112,10 @@ function DialogContent({
       <DialogOverlay />
       <div
         data-overlay-root="dialog"
-        className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4"
+        className={cn(
+          "pointer-events-none fixed inset-0 flex items-center justify-center p-4",
+          DIALOG_LAYER_Z_INDEX_CLASSNAME,
+        )}
       >
         <DialogContentPrimitive
           className={cn(

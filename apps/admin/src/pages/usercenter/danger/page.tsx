@@ -11,7 +11,7 @@ import { UserDangerSection } from "@/pages/usercenter/profile/components/profile
 import { useAuthStore } from "@/stores/use-auth-store";
 import { CircleAlert, ShieldX } from "lucide-react";
 
-export function UserCenterDangerPage() {
+export function UserCenterDangerContent() {
   const { t } = useTranslation("account");
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
@@ -28,11 +28,7 @@ export function UserCenterDangerPage() {
   const redirect = useMemo(() => `${pathname}${searchStr}`, [pathname, searchStr]);
 
   return (
-    <DefaultPage
-      title={t("ACCOUNT_PAGE_DANGER_TITLE")}
-      description={t("ACCOUNT_PAGE_DANGER_DESC")}
-      showFavoriteToggle={false}
-    >
+    <>
       <div className="mb-4 grid gap-4 xl:grid-cols-2">
         <UserCenterStateCard
           eyebrow={t("ACCOUNT_PAGE_DANGER_TITLE")}
@@ -49,6 +45,20 @@ export function UserCenterDangerPage() {
         />
       </div>
       <UserDangerSection email={profile.email} redirect={redirect} />
+    </>
+  );
+}
+
+export function UserCenterDangerPage() {
+  const { t } = useTranslation("account");
+
+  return (
+    <DefaultPage
+      title={t("ACCOUNT_PAGE_DANGER_TITLE")}
+      description={t("ACCOUNT_PAGE_DANGER_DESC")}
+      showFavoriteToggle={false}
+    >
+      <UserCenterDangerContent />
     </DefaultPage>
   );
 }

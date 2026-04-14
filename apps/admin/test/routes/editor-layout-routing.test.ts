@@ -17,9 +17,7 @@ describe("scene layout routing", () => {
     expect(registrySource).not.toContain('import { EditorLayout } from "@/layouts/editor-layout"');
     expect(registrySource).not.toContain("isEditorPath");
     expect(registrySource).not.toContain("layout: EditorLayout");
-    expect(registrySource).toContain(
-      'type SceneKey = "auth" | "invite" | "account" | "global" | "admin"',
-    );
+    expect(registrySource).toContain('type SceneKey = "auth" | "invite" | "global" | "admin"');
   });
 
   test("root route uses scene registry for layout resolution", () => {
