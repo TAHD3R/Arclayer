@@ -28,10 +28,7 @@ export const AUTH_OTP_SLOT_CLASS = cn(
   "h-10 w-11 rounded-none border border-input text-callout  transition-colors",
   "first:rounded-l-xl last:rounded-r-xl first:border-l",
 );
-export const AUTH_INLINE_NOTICE_CLASS = cn(
-  "rounded-md border px-4 py-3 text-callout text-pretty",
-  "border-border/80 bg-card/70 text-label-secondary",
-);
+export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
 
 export function AuthPaneHeader(props: {
   titleKey: string;
@@ -114,10 +111,7 @@ export function AuthInlineNotice(props: {
   variants?: Variants | {};
   tone?: "default" | "danger";
 }) {
-  const toneClassName =
-    props.tone === "danger"
-      ? "border-danger/20 bg-danger/5 text-danger"
-      : "border-border/80 bg-card/70 text-label-secondary";
+  const toneClassName = props.tone === "danger" ? "text-danger" : "text-label-secondary";
 
   const content = (
     <div className={cn(AUTH_INLINE_NOTICE_CLASS, toneClassName)}>{props.children}</div>
