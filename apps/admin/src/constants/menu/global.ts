@@ -1,6 +1,7 @@
-import { History, House, Settings2, Users, Wrench } from "lucide-react";
+import { House, Settings2, Users, Wrench } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
+import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
 
 export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
   {
@@ -9,12 +10,6 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_HOME",
     to: "/",
     icon: House,
-  },
-  {
-    key: "global.recents",
-    label: "Recents",
-    labelKey: "nav:NAV_RECENTS",
-    icon: History,
   },
   {
     key: "global.workspaces",
@@ -64,4 +59,8 @@ export function resolveGlobalNavItems(params: {
     });
 
   return filterItems(GLOBAL_NAV_ITEMS);
+}
+
+export function matchesGlobalNavScene(pathname: string): boolean {
+  return findActiveTrailNodes([...GLOBAL_NAV_ITEMS], pathname).length > 0;
 }

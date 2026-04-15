@@ -2,6 +2,7 @@ import { ArrowLeft, Bell, ChevronLeft, Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useRouterState } from "@tanstack/react-router";
 
+import { matchesGlobalNavScene } from "@/constants/menu/global";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminAccountMenu } from "@/components/layout/admin-account-menu";
 import { AdminCommandTrigger } from "@/components/layout/admin-command-trigger";
@@ -174,6 +175,7 @@ export function AdminTopbar(props: {
   const showCommandTrigger = props.showCommandTrigger ?? true;
   const leadingMode = props.leadingMode ?? "workspace-switcher";
   const sidebarToggleMode = props.sidebarToggleMode ?? "always";
+  const showHomeHoverLabel = !matchesGlobalNavScene(pathname);
 
   return (
     <header
@@ -196,7 +198,7 @@ export function AdminTopbar(props: {
             leadingMode={leadingMode}
             sidebarToggleMode={sidebarToggleMode}
             sidebarToggleLabel={t("common:SIDEBAR_TOGGLE")}
-            homeLabel={pathname === "/" ? undefined : t("common:GO_HOME")}
+            homeLabel={showHomeHoverLabel ? t("common:GO_HOME") : undefined}
             onToggleSidebar={toggleSidebar}
             backLabel={props.backLabel}
             onBack={props.onBack}
@@ -231,7 +233,7 @@ export function AdminTopbar(props: {
             leadingMode={leadingMode}
             sidebarToggleMode={sidebarToggleMode}
             sidebarToggleLabel={t("common:SIDEBAR_TOGGLE")}
-            homeLabel={pathname === "/" ? undefined : t("common:GO_HOME")}
+            homeLabel={showHomeHoverLabel ? t("common:GO_HOME") : undefined}
             onToggleSidebar={toggleSidebar}
             backLabel={props.backLabel}
             onBack={props.onBack}

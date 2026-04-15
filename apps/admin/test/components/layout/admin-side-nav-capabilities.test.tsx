@@ -1,12 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FileText, History, Home, Users } from "lucide-react";
+import { FileText, Home, Users } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
-import { useCommandRecentStore } from "@/stores/use-command-recent-store";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { Sidebar, SidebarProvider } from "@arclayer/ui/sidebar";
@@ -30,10 +29,6 @@ const translations: Record<string, string> = {
   NAV_FAVORITES_ACTION_REMOVE: "Remove from favorites",
   NAV_FAVORITES_ACTION_EXPAND: "Expand favorites",
   NAV_FAVORITES_ACTION_COLLAPSE: "Collapse favorites",
-  "nav:NAV_RECENTS": "Recents",
-  "nav:NAV_RECENTS_QUICK_SEARCH_PROMPT": "Didn't find what you were looking for?",
-  "nav:NAV_RECENTS_QUICK_SEARCH_ACTION": "Try quick search",
-  "command:COMMAND_EMPTY_BROWSE": "No recent items, favorites, or actions yet.",
 };
 
 let mockPathname = "/";
@@ -99,12 +94,6 @@ const globalItems: AdminNavItem[] = [
     label: "Home",
     icon: Home,
     to: "/",
-  },
-  {
-    key: "global.recents",
-    label: "Recents",
-    labelKey: "nav:NAV_RECENTS",
-    icon: History,
   },
   {
     key: "global.workspaces",
@@ -177,7 +166,6 @@ describe("AdminSiderNav capability nodes", () => {
     vi.restoreAllMocks();
     mockPathname = "/";
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
-    useCommandRecentStore.setState({ records: [] });
     vi.mocked(getWorkspaceDetail).mockResolvedValue({
       id: "ws-1",
       organizationId: "org-1",
@@ -319,46 +307,6 @@ describe("AdminSiderNav capability nodes", () => {
     await user.click(screen.getByRole("button", { name: "Favorites" }));
 
     expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
-  });
-
-  it("opens the global recents popover and bridges quick search into the command trigger", async () => {
-    const user = userEvent.setup();
-    const onCommandOpen = vi.fn();
-    useCommandRecentStore.setState({
-      records: [
-        {
-          key: "page:/workspaces",
-          kind: "page",
-          title: "Workspaces",
-          subtitle: "/workspaces",
-          keywords: ["Workspaces", "/workspaces"],
-          to: "/workspaces",
-          visitedAt: "2026-04-15T00:00:00.000Z",
-        },
-      ],
-    });
-    window.addEventListener("arclayer:admin-command-open", onCommandOpen);
-
-    renderSidebar(
-      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
-        <Sidebar collapsible="icon" animateOnHover={false}>
-          <AdminSiderNav items={globalItems} showFavorites />
-        </Sidebar>
-      </SidebarProvider>,
-    );
-
-    await user.click(screen.getByRole("button", { name: "Recents" }));
-
-    expect(await screen.findByRole("button", { name: "Workspaces" })).toBeVisible();
-    expect(screen.getByText("Didn't find what you were looking for?")).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: "Try quick search" }));
-
-    await waitFor(() => {
-      expect(onCommandOpen).toHaveBeenCalledTimes(1);
-    });
-
-    window.removeEventListener("arclayer:admin-command-open", onCommandOpen);
   });
 
   it("keeps favorites accessible in collapsed mode through the capability popover", async () => {

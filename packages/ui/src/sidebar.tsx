@@ -391,7 +391,7 @@ function SidebarRail({
       {tooltipOpen ? (
         <div
           data-slot="sidebar-rail-tooltip"
-          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-md bg-primary px-3 py-1.5 text-callout text-balance text-primary-foreground"
+          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-md border border-border/70 bg-popover px-3 py-1.5 text-callout text-balance text-popover-foreground shadow-lg shadow-black/5"
           style={{
             left: `${tooltipPosition.x + 14}px`,
             top: `${tooltipPosition.y}px`,

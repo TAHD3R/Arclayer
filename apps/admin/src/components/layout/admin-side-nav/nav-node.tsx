@@ -12,7 +12,6 @@ import type { ResolvedChildItem } from "./node-collapsed-group";
 import { NodeLeaf } from "./node-leaf";
 import { NodeAction } from "./node-action";
 import { NodeExpandedGroupRoot, NodeExpandedGroupSub } from "./node-expanded-group";
-import { RecentsNode } from "./recents-node";
 
 type NodeProps = {
   item: AdminNavItem;
@@ -248,17 +247,6 @@ function NavNodeImpl(
         suppressedKeys={props.suppressedKeys}
         allowSamePathNavigate={allowSamePathNavigate}
         onSelectPath={selectBranchSource}
-      />
-    );
-  }
-
-  if (item.key === "global.recents" && props.depth === 0) {
-    return (
-      <RecentsNode
-        item={item}
-        label={label}
-        navItems={props.commandNavItems}
-        isCollapsed={props.isCollapsed}
       />
     );
   }

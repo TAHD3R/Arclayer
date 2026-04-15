@@ -157,7 +157,51 @@ describe("topbar sidebar toggle icon", () => {
     expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
   });
 
-  it("AdminTopbar 在非首页继续向 logo 注入返回首页 hover 文案", async () => {
+  it("AdminTopbar 在 global workspaces 场景不向 logo 注入返回首页 hover 文案", async () => {
+    await setPathname("/workspaces");
+
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "none",
+          pathname: "/workspaces",
+          workspaceId: null,
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
+  });
+
+  it("AdminTopbar 在 global system 场景不向 logo 注入返回首页 hover 文案", async () => {
+    await setPathname("/system/access");
+
+    renderWithSidebar(
+      <AdminTopbar
+        navItems={[]}
+        commandScope={{
+          kind: "none",
+          pathname: "/system/access",
+          workspaceId: null,
+          organizationId: null,
+        }}
+        notificationOpen={false}
+        showNotificationsBadge={false}
+        unreadCount={0}
+        onNotificationToggle={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("full-logo")).toHaveAttribute("data-hover-label", "");
+  });
+
+  it("AdminTopbar 在非 global nav 场景向 logo 注入返回首页 hover 文案", async () => {
     await setPathname("/w/ws-1");
 
     renderWithSidebar(

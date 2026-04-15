@@ -3,16 +3,6 @@ import { describe, expect, test } from "vitest";
 import { GLOBAL_NAV_ITEMS, resolveGlobalNavItems } from "@/constants/menu/global";
 
 describe("global nav regression", () => {
-  test("registers recents as a non-routable global sidebar capability", () => {
-    const recentsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.recents");
-
-    expect(recentsItem).toMatchObject({
-      key: "global.recents",
-      label: "Recents",
-    });
-    expect(recentsItem?.to).toBeUndefined();
-  });
-
   test("registers system settings as a real global destination", () => {
     const maintenanceItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.maintenance");
     const settingsItem = maintenanceItem?.children?.find((item) => item.key === "global.system");
@@ -48,6 +38,10 @@ describe("global nav regression", () => {
   });
 
   test("injects runtime workspace children under the global workspaces node", () => {
+    const workspacesItemTemplate = GLOBAL_NAV_ITEMS.find(
+      (item) => item.key === "global.workspaces",
+    );
+
     const injectedItems = resolveGlobalNavItems({
       isSuperAdmin: false,
       workspaceChildren: [
@@ -55,7 +49,7 @@ describe("global nav regression", () => {
           key: "global.workspaces.ws-alpha",
           label: "Alpha",
           to: "/w/ws-alpha",
-          icon: GLOBAL_NAV_ITEMS[2]!.icon,
+          icon: workspacesItemTemplate!.icon,
         },
       ],
     });
