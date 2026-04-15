@@ -1,10 +1,11 @@
-import { ArrowRight, CircleHelp } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import { AdminFullLogo } from "@/components/layout/admin-logo";
-import { LegalFooter } from "@/components/layout/legal-footer";
+import { LegalFooter, LegalFooterCopyright } from "@/components/layout/legal-footer";
 import { cn } from "@arclayer/lib/utils";
 import { FieldTitle } from "@arclayer/ui/field";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
@@ -89,19 +90,23 @@ export function AuthPaneTitleRow(props: { title: string; helpText?: string; acti
 }
 
 export function AuthButtonLabel(props: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span>{props.children}</span>
-      <ArrowRight className="size-4" aria-hidden="true" />
-    </span>
-  );
+  return <span>{props.children}</span>;
 }
 
 export function AuthPaneLegal(props: { i18nKey: string; variants: Variants | {} }) {
-  return (
-    <motion.div variants={props.variants} className="pt-1.5 text-center text-balance">
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <motion.div
+      variants={props.variants}
+      className="fixed inset-x-0 bottom-0 z-20 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center space-y-1"
+    >
       <LegalFooter i18nKey={props.i18nKey} />
-    </motion.div>
+      <LegalFooterCopyright />
+    </motion.div>,
+    document.body,
   );
 }
 

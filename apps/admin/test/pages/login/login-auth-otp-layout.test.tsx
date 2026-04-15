@@ -49,6 +49,7 @@ vi.mock("@/components/layout/admin-logo", () => ({
 
 vi.mock("@/components/layout/legal-footer", () => ({
   LegalFooter: ({ i18nKey }: { i18nKey: string }) => <span>{i18nKey}</span>,
+  LegalFooterCopyright: () => <span>auth:FOOTER_COPYRIGHT</span>,
 }));
 
 describe("Login auth otp layouts", () => {

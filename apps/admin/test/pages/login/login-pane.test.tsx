@@ -116,4 +116,27 @@ describe("LoginPane oauth section", () => {
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", false, false);
     expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
   });
+
+  it("renders the primary action without a trailing icon", () => {
+    render(
+      <LoginPane
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
+        onSubmit={async () => undefined}
+        emailCheckLoading={false}
+        loading={false}
+        initialKeepSession={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={() => undefined}
+        onSwitchToRegister={() => undefined}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }).querySelector("svg"),
+    ).toBeNull();
+  });
 });

@@ -91,7 +91,7 @@ describe("LoginView register entry visibility", () => {
 
 describe("LoginView auth pane hierarchy", () => {
   test("renders login pane email-first with pane-local branding and legal copy under submit", () => {
-    renderLoginView();
+    const { container } = renderLoginView();
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
     expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
@@ -100,14 +100,25 @@ describe("LoginView auth pane hierarchy", () => {
     const submitButton = screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" });
     const oauthSection = screen.getByTestId("oauth-section");
     const registerEntry = screen.getByText("auth:NO_ACCOUNT").parentElement;
+    const registerAction = screen.getByText("auth:CREATE_ACCOUNT");
     const legalCopy = screen.getByText("auth:LEGAL_LOGIN");
-    const footer = legalCopy.closest("div.grid");
+    const copyright = screen.getByText("auth:FOOTER_COPYRIGHT");
+    const legalFooterRegion = legalCopy.closest("div.fixed");
+    const legalText = legalCopy.closest("p");
     expect(legalCopy).toBeInTheDocument();
-    expect(footer).toHaveClass("text-footnote");
+    expect(copyright).toBeInTheDocument();
+    expect(container).not.toContainElement(legalCopy);
+    expect(legalFooterRegion).toHaveClass("fixed");
+    expect(legalFooterRegion).toHaveClass("inset-x-0");
+    expect(legalFooterRegion).toHaveClass("p-4");
+    expect(legalFooterRegion).toHaveClass("space-y-1");
+    expect(legalText).toHaveClass("text-footnote");
     expect(
       submitButton.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(registerEntry).not.toBeNull();
+    expect(registerAction).toBeInTheDocument();
+    expect(submitButton.querySelector("svg")).toBeNull();
     expect(
       oauthSection.compareDocumentPosition(registerEntry as HTMLDivElement) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -115,10 +126,13 @@ describe("LoginView auth pane hierarchy", () => {
     expect(
       registerEntry!.compareDocumentPosition(legalCopy) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(
+      legalCopy.compareDocumentPosition(copyright) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   test("renders register pane email-first with legal copy under submit", () => {
-    renderLoginView({ mode: "register" });
+    const { container } = renderLoginView({ mode: "register" });
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
     expect(screen.getByText("auth:FIELD_EMAIL_LABEL")).toBeInTheDocument();
@@ -129,10 +143,14 @@ describe("LoginView auth pane hierarchy", () => {
     const submitButton = screen.getByRole("button", { name: "auth:REGISTER_NEXT_BUTTON" });
     const oauthSection = screen.getByTestId("oauth-section");
     const signInEntry = screen.getByText("auth:HAVE_ACCOUNT").parentElement;
+    const signInAction = screen.getByText("auth:SIGN_IN");
     const legalCopy = screen.getByText("auth:LEGAL_REGISTER");
-    const footer = legalCopy.closest("div.grid");
+    const legalText = legalCopy.closest("p");
     expect(legalCopy).toBeInTheDocument();
-    expect(footer).toHaveClass("text-footnote");
+    expect(container).not.toContainElement(legalCopy);
+    expect(signInAction).toBeInTheDocument();
+    expect(submitButton.querySelector("svg")).toBeNull();
+    expect(legalText).toHaveClass("text-footnote");
     expect(
       submitButton.compareDocumentPosition(oauthSection) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();

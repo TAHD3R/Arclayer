@@ -17,6 +17,19 @@ interface LegalFooterProps {
   i18nKey: string;
 }
 
+export function LegalFooterCopyright() {
+  return (
+    <div className="text-caption text-label-secondary">
+      <Trans
+        i18nKey="auth:FOOTER_COPYRIGHT"
+        components={{
+          brand: <span className="text-label-primary">Arclayer</span>,
+        }}
+      />
+    </div>
+  );
+}
+
 export function LegalFooter({ i18nKey }: LegalFooterProps) {
   const { t } = useTranslation();
   const [openModal, setOpenModal] = useState<LegalModal>(null);

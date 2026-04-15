@@ -1,10 +1,9 @@
 import type { PropsWithChildren } from "react";
-import { Trans } from "react-i18next";
 
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { AdminLocaleToggle } from "@/components/layout/admin-toggle-locales";
 import { AdminThemeModeToggle } from "@/components/layout/admin-toggle-theme";
-import { LegalFooter } from "@/components/layout/legal-footer";
+import { LegalFooter, LegalFooterCopyright } from "@/components/layout/legal-footer";
 import { useLockViewport } from "@arclayer/hooks/use-lock-viewport";
 
 export function InviteLayout({ children }: PropsWithChildren) {
@@ -29,14 +28,7 @@ export function InviteLayout({ children }: PropsWithChildren) {
 
         <div className="p-4 text-center space-y-1">
           <LegalFooter i18nKey="auth:LEGAL_CONTINUE" />
-          <div className="text-caption text-label-secondary">
-            <Trans
-              i18nKey="auth:FOOTER_COPYRIGHT"
-              components={{
-                brand: <span className="text-label-primary">Arclayer</span>,
-              }}
-            />
-          </div>
+          <LegalFooterCopyright />
         </div>
       </div>
     </div>
