@@ -21,17 +21,14 @@ export function AdminRouteContainer({
   return (
     <div
       className={cn(
-        "flex min-h-0 min-h-full min-w-0 w-full flex-1 flex-col",
+        "flex min-h-0 min-h-full min-w-0 w-full flex-col",
         overlay ? "relative" : null,
         className,
       )}
       style={style}
     >
       <div
-        className={cn(
-          "flex min-h-0 min-w-0 w-full flex-1 flex-col px-10 pt-8 pb-20",
-          innerClassName,
-        )}
+        className={cn("flex min-h-0 min-w-0 w-full flex-col px-10 pt-8 pb-20", innerClassName)}
         style={innerStyle}
       >
         {children}

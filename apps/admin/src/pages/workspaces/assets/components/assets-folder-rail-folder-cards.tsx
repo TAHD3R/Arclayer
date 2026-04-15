@@ -51,7 +51,7 @@ function FolderGlyph(props: { large?: boolean; withPlus?: boolean; className?: s
 
 function FolderMetaLine(props: { label: string }) {
   return (
-    <div className="relative mt-auto flex items-center gap-1.5 pt-3 text-caption  text-label-tertiary xl:gap-2 xl:pt-4 xl:">
+    <div className="relative mt-auto flex min-w-0 items-center gap-1.5 pt-3 text-caption text-label-tertiary xl:gap-2 xl:pt-4">
       <svg viewBox="0 0 20 20" className="size-3.5 shrink-0 stroke-current fill-none xl:size-4">
         <path
           d="M3.5 6.5h4l1.4-2h7.6a1.5 1.5 0 0 1 1.5 1.5v7.5A1.5 1.5 0 0 1 16.5 15h-13A1.5 1.5 0 0 1 2 13.5V8a1.5 1.5 0 0 1 1.5-1.5Z"
@@ -111,7 +111,7 @@ function FolderCardSkeletonInner(props: { layoutMode: FolderLayoutMode }) {
     <div
       className={cn(
         "relative overflow-hidden rounded-lg border border-border/60 bg-card p-3 dark:border-white/8 dark:bg-[#101010] xl:p-4",
-        props.layoutMode === "single" ? "min-h-[6.5rem]" : "aspect-square",
+        props.layoutMode === "single" ? "min-h-[6.5rem]" : "min-h-[10.75rem]",
       )}
       data-layout-mode={props.layoutMode}
     >
@@ -155,7 +155,7 @@ export function FolderAddCard(props: {
           className={cn(
             folderCardBaseClassName,
             "border-dashed p-3 text-left xl:p-4",
-            props.layoutMode === "single" ? "min-h-[6.5rem]" : "aspect-square",
+            props.layoutMode === "single" ? "min-h-[6.5rem]" : "min-h-[10.75rem]",
             isOver && props.isDraggingAssets
               ? "border-border bg-accent/40 ring-2 ring-black/5 ring-offset-2 ring-offset-background dark:border-white/18 dark:bg-[#171717] dark:ring-white/12"
               : "border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,250,0.98)_100%)] hover:border-border hover:bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(239,244,249,0.98)_100%)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(11,11,12,0.78)_0%,rgba(8,8,9,0.9)_100%)] dark:hover:border-white/18 dark:hover:bg-[linear-gradient(180deg,rgba(16,16,18,0.86)_0%,rgba(10,10,11,0.96)_100%)]",
@@ -169,11 +169,23 @@ export function FolderAddCard(props: {
           </div>
 
           <div className="relative flex h-full flex-col">
-            <div className="flex min-h-0 flex-1 flex-col ">
-              <div className="pr-10 text-headline font-semibold  text-label-primary xl:pr-11">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div
+                className={cn(
+                  "font-semibold text-label-primary",
+                  props.layoutMode === "single"
+                    ? "pr-10 text-headline xl:pr-11"
+                    : "max-w-full pr-7 text-body leading-5 line-clamp-3",
+                )}
+              >
                 {props.t("assets:ASSET_FOLDER_ADD_CARD_TITLE")}
               </div>
-              <div className="mt-1.5 max-w-[18ch] text-caption  text-label-secondary xl:mt-2 xl:">
+              <div
+                className={cn(
+                  "mt-1.5 text-label-secondary! overflow-hidden",
+                  "max-w-full text-callout line-clamp-3",
+                )}
+              >
                 {props.currentFolder
                   ? props.t("assets:ASSET_FOLDER_ADD_CARD_DESC_IN", {
                       name: props.currentFolder.name,
@@ -220,7 +232,7 @@ export function FolderCard(props: {
             className={cn(
               folderCardBaseClassName,
               "p-3 xl:p-4",
-              props.layoutMode === "single" ? "min-h-[6.5rem]" : "aspect-square",
+              props.layoutMode === "single" ? "min-h-[6.5rem]" : "min-h-[10.75rem]",
               props.isActive
                 ? "border-border bg-[linear-gradient(180deg,rgba(246,249,255,0.98)_0%,rgba(236,242,248,0.98)_100%)] dark:border-white/18 dark:bg-[linear-gradient(180deg,rgba(20,20,22,0.98)_0%,rgba(10,10,11,0.98)_100%)]"
                 : "border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,250,0.98)_100%)] hover:border-border hover:-translate-y-[1px] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(18,18,20,0.96)_0%,rgba(11,11,12,0.98)_100%)] dark:hover:border-white/15",
@@ -246,15 +258,26 @@ export function FolderCard(props: {
                 onDeleteFolder={props.onDeleteFolder}
               />
 
-              <div className="flex min-h-0 flex-1 flex-col" style={{ overflowWrap: "anywhere" }}>
-                <div className="pr-10 text-headline font-semibold  text-label-primary xl:pr-11">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <div
+                  className={cn(
+                    "font-semibold text-label-primary",
+                    props.layoutMode === "single"
+                      ? "pr-10 text-headline xl:pr-11"
+                      : "max-w-full pr-7 text-body leading-5 line-clamp-3",
+                  )}
+                  title={props.folder.name}
+                >
                   {props.folder.name}
                 </div>
                 <FolderDescriptionTooltip
                   text={props.folder.description}
                   emptyText={props.t("assets:ASSET_FOLDER_DESCRIPTION_EMPTY")}
                   disabled={props.tooltipDisabled}
-                  className="mt-1.5 min-h-0 text-caption!  text-label-secondary xl:mt-2 xl:"
+                  className={cn(
+                    "mt-1.5 min-h-0 overflow-hidden text-callout! text-label-secondary xl:mt-2",
+                    props.layoutMode === "multi" && "text-footnote! line-clamp-3",
+                  )}
                 />
                 <FolderMetaLine label={metaLabel} />
               </div>

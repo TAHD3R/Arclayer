@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleHelp, Save } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 
 import { getAssetDetail, moveAsset, patchAsset } from "@/api/assets";
 import { assetScopeKey } from "@/lib/assets/asset-scope";
@@ -130,7 +130,6 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
             disabled={!canSubmit}
             onClick={() => saveMutation.mutate()}
           >
-            <Save className="size-4" aria-hidden="true" />
             {t("common:CONFIRM")}
           </Button>
         </>
@@ -175,25 +174,23 @@ export function UpdateAssetDialog(props: UpdateAssetDialogProps) {
           title={
             <div className="flex items-center gap-1.5">
               <span>{t("assets:ASSET_EDIT_ALT_NAME")}</span>
+              <Tooltip>
+                <TooltipTrigger asChild focusTrigger={false}>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary hover:text-label-primary disabled:pointer-events-none disabled:opacity-50"
+                    aria-label={t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}
+                  >
+                    <CircleHelp className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}</TooltipContent>
+              </Tooltip>
             </div>
           }
           description={t("assets:ASSET_EDIT_ALT_NAME_HELP")}
         >
-          <div className="flex items-center gap-1.5">
-            <Tooltip>
-              <TooltipTrigger asChild focusTrigger={false}>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  className="inline-flex size-5 items-center justify-center rounded-full text-label-secondary hover:text-label-primary disabled:pointer-events-none disabled:opacity-50"
-                  aria-label={t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}
-                >
-                  <CircleHelp className="size-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>{t("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")}</TooltipContent>
-            </Tooltip>
-          </div>
           <Input
             value={altName}
             onChange={(event) => setAltName(event.target.value)}

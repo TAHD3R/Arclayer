@@ -53,7 +53,9 @@ export function FolderDescriptionTooltip(props: FolderDescriptionTooltipProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>{descriptionNode}</TooltipTrigger>
-      <TooltipContent className="max-w-72 text-left">{text}</TooltipContent>
+      <TooltipContent align="start" side="top" className="max-w-72 text-left">
+        {text}
+      </TooltipContent>
     </Tooltip>
   );
 }

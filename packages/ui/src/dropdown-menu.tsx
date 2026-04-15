@@ -47,13 +47,15 @@ function DropdownMenuTrigger(props: DropdownMenuTriggerProps) {
 }
 
 type DropdownMenuContentProps = DropdownMenuContentPrimitiveProps;
+const DROPDOWN_MENU_LAYER_Z_INDEX_CLASSNAME = "z-[2400]";
 
 function DropdownMenuContent({ sideOffset = 4, className, ...props }: DropdownMenuContentProps) {
   return (
     <DropdownMenuContentPrimitive
       sideOffset={sideOffset}
       className={cn(
-        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col overflow-hidden rounded-md border p-1  outline-none",
+        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col overflow-hidden rounded-md border p-1  outline-none",
+        DROPDOWN_MENU_LAYER_Z_INDEX_CLASSNAME,
         className,
       )}
       {...props}
@@ -277,7 +279,8 @@ function DropdownMenuSubContent({ className, ...props }: DropdownMenuSubContentP
   return (
     <DropdownMenuSubContentPrimitive
       className={cn(
-        "bg-popover text-popover-foreground z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col items-stretch overflow-hidden rounded-md border p-1  outline-none",
+        "bg-popover text-popover-foreground flex max-h-(--radix-dropdown-menu-content-available-height) min-w-32 flex-col items-stretch overflow-hidden rounded-md border p-1  outline-none",
+        DROPDOWN_MENU_LAYER_Z_INDEX_CLASSNAME,
         className,
       )}
       {...props}

@@ -107,24 +107,28 @@ export function PageMainRegion(props: {
   contentContainerClassName?: string;
   paneToggles?: PagePaneToggle[];
   onOpenPane?: (side: "left" | "right") => void;
+  fillAvailableHeight?: boolean;
   children?: ReactNode;
 }) {
   const paneToggles = props.paneToggles ?? [];
   const onOpenPane = props.onOpenPane ?? (() => undefined);
+  const fillAvailableHeight = props.fillAvailableHeight ?? true;
   const titleAdornment =
     props.title && props.showFavoriteToggle !== false ? <FavoriteToggle /> : null;
 
   return (
     <div
       className={clsx(
-        "flex min-h-0 min-w-0 w-full flex-1 flex-col self-start",
+        "flex min-h-0 min-w-0 w-full flex-col",
+        fillAvailableHeight && "flex-1",
         props.contentClassName,
       )}
       data-slot="page-main-region"
     >
       <div
         className={clsx(
-          "flex min-h-0 min-w-0 w-full flex-1 flex-col",
+          "flex min-h-0 min-w-0 w-full flex-col",
+          fillAvailableHeight && "flex-1",
           props.contentContainerClassName,
         )}
         data-slot="page-main-container"

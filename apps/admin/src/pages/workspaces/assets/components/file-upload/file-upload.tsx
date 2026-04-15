@@ -361,7 +361,7 @@ export function FileUploadRoot(props: FileUploadRootProps) {
 export interface FileUploadListProps extends ComponentPropsWithRef<"ul"> {}
 
 export function FileUploadList(props: FileUploadListProps) {
-  return <ul {...props} className={cn("flex flex-col gap-3", props.className)} />;
+  return <ul {...props} className={cn("grid gap-3", props.className)} />;
 }
 
 export function FileUploadPanel(props: FileUploadPanelProps) {
@@ -378,7 +378,7 @@ export function FileUploadPanel(props: FileUploadPanelProps) {
 
       {props.items.length ? (
         <div className="px-5 pt-4 pb-5">
-          <FileUploadList className="mt-3 max-h-80 overflow-x-hidden overflow-y-auto pr-1">
+          <FileUploadList className="mt-3 pr-1">
             {props.items.map((it) => (
               <FileUploadListItemProgressFill
                 key={it.id}

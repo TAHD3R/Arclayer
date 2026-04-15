@@ -208,9 +208,8 @@ export function LazyAssetImage(props: {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 text-label-secondary">
-              <div className="rounded-full bg-card/70 p-3 ">
-                <ImageOff className="size-5" />
-              </div>
+              <ImageOff className="size-5" />
+
               <div className="text-caption">
                 {props.errorText || t("assets:ASSET_PREVIEW_LOAD_FAILED")}
               </div>

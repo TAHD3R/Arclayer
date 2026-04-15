@@ -445,6 +445,20 @@ def build_core_settings_schema() -> ConfigSchema:
                         description_i18n="settings:STORAGE_PROVIDER_DESC",
                     ),
                     ConfigField(
+                        key="public_base_url",
+                        type="str",
+                        default=None,
+                        label="Public base URL",
+                        label_i18n="settings:STORAGE_PUBLIC_BASE_URL_LABEL",
+                    ),
+                    ConfigField(
+                        key="public_delivery_mode",
+                        type="str",
+                        default="auto",
+                        label="Public delivery mode",
+                        label_i18n="settings:STORAGE_PUBLIC_DELIVERY_MODE_LABEL",
+                    ),
+                    ConfigField(
                         key="s3_endpoint_url",
                         type="str",
                         default=None,
@@ -464,6 +478,13 @@ def build_core_settings_schema() -> ConfigSchema:
                         default=None,
                         label="S3 bucket",
                         label_i18n="settings:STORAGE_S3_BUCKET_LABEL",
+                    ),
+                    ConfigField(
+                        key="s3_public_bucket",
+                        type="str",
+                        default=None,
+                        label="S3 public bucket",
+                        label_i18n="settings:STORAGE_S3_PUBLIC_BUCKET_LABEL",
                     ),
                     ConfigField(
                         key="s3_access_key_id",
@@ -487,6 +508,13 @@ def build_core_settings_schema() -> ConfigSchema:
                         default=False,
                         label="S3 force path style",
                         label_i18n="settings:STORAGE_S3_FORCE_PATH_STYLE_LABEL",
+                    ),
+                    ConfigField(
+                        key="s3_presign_expires_seconds",
+                        type="int",
+                        default=900,
+                        label="S3 presign expires seconds",
+                        label_i18n="settings:STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL",
                     ),
                 ],
             ),

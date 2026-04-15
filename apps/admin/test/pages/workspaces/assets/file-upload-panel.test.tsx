@@ -45,7 +45,8 @@ describe("FileUpload.Panel", () => {
     const list = screen.getByRole("list");
     const listContainer = list.parentElement;
 
-    expect(list).toHaveClass("flex", "flex-col", "gap-3");
+    expect(list).toHaveClass("grid", "gap-3");
+    expect(list).not.toHaveClass("flex", "flex-col");
     expect(listContainer).not.toHaveClass("rounded-xl", "border", "bg-card", "p-3");
   });
 });

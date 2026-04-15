@@ -72,4 +72,27 @@ describe("AssetsFolderRailRecentSection", () => {
     expect(view.container.querySelector('[data-slot="empty-icon"]')).toBeInTheDocument();
     expect(view.container.querySelector('[data-slot="content-guard"]')).toBeNull();
   });
+
+  it("renders file size and last-opened time as stacked meta lines", () => {
+    render(
+      <AssetsFolderRailRecentSection
+        t={(key) => key}
+        scope={null}
+        foldersLoading={false}
+        activeAssetId={null}
+        recentAssets={[RECENT_ASSET]}
+        onOpenAsset={() => undefined}
+        onRemoveRecentAsset={() => undefined}
+        onClearRecentAssets={() => undefined}
+      />,
+    );
+
+    const sizeLine = screen.getByText("2 MB");
+    const timeLine = screen.getByText("assets:ASSET_RECENT_LAST_OPENED");
+    const metaBlock = sizeLine.parentElement;
+
+    expect(metaBlock).toHaveClass("mt-1", "flex", "flex-col", "items-start");
+    expect(sizeLine).toHaveClass("font-semibold", "text-label-primary");
+    expect(timeLine).toHaveClass("text-label-primary/62");
+  });
 });

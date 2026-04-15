@@ -21,10 +21,9 @@ function isAbsoluteUrl(value: string): boolean {
  *
  * 关键点：
  * - 后端会返回相对路径（例如 `/assets/<id>/thumb`）。
- * - 本地开发时，前端通常通过 Vite proxy 代理 `/api/*` 来绕过 CORS；
- *   但 `<img>` 访问 `/assets/*` 不走 `fetch`，且我们不希望再去代理 `/assets`。
- * - 因此：当 `apiBaseUrl` 为空（proxy 模式）时，优先用 `VITE_API_PROXY_TARGET` 作为公共资源域名。
- *   这样 `<img src>` 会直接请求后端（跨域展示图片不需要 CORS）。
+ * - 本地开发时，当 `apiBaseUrl` 为空时，Admin 依赖 Vite proxy 代理 `/api/*` 和 `/assets/*`。
+ * - 这时需要保留同源相对路径，避免浏览器把图片请求直接发到后端 origin；
+ *   后端公共资源响应带有 `Cross-Origin-Resource-Policy: same-origin`，跨 origin 会被浏览器拦截。
  */
 export function resolvePublicAssetUrlPath(
   pathOrUrl: string | null | undefined,
@@ -36,18 +35,8 @@ export function resolvePublicAssetUrlPath(
 
   const { apiBaseUrl } = getAppConfig();
   const normalizedApiBaseUrl = normalizeBaseUrl(apiBaseUrl);
-  if (normalizedApiBaseUrl) {
-    return new URL(raw, normalizedApiBaseUrl).toString();
-  }
-
-  const proxyTarget = normalizeBaseUrl(
-    (import.meta.env.VITE_API_PROXY_TARGET as string | undefined) || "http://127.0.0.1:8000",
-  );
-
-  // 仅在开发环境启用 proxyTarget 兜底；生产环境通常是同源部署，保留相对路径即可。
-  if (import.meta.env.DEV && proxyTarget) {
-    return new URL(raw, proxyTarget).toString();
-  }
+  if (!normalizedApiBaseUrl && import.meta.env.DEV) return raw;
+  if (normalizedApiBaseUrl) return new URL(raw, normalizedApiBaseUrl).toString();
 
   return raw;
 }

@@ -1,8 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+
 import { RadioGroup, RadioGroupItem } from "@arclayer/ui/radio-group";
 import { Input } from "@arclayer/ui/input";
+import { NumberInput } from "@arclayer/ui/number-input";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
 import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
@@ -18,29 +20,42 @@ import {
   getSystemSettingsSection,
   getSystemSettingsSecrets,
   readBooleanValue,
+  readNumberValue,
   readStringValue,
   usePatchSystemCoreSettings,
   useSystemCoreSettings,
 } from "@/pages/system/hooks/use-system-core-settings";
 import {
-  OverlayField,
   OverlayBooleanField,
+  OverlayField,
   isValidHttpUrl,
   joinSummaryParts,
   normalizeOptionalString,
 } from "@/pages/system/system-settings-form-utils";
 
+type StorageProvider = "local" | "s3";
+type PublicDeliveryMode = "auto" | "direct" | "presign";
+
 type StorageFormValues = {
-  storageProvider: "local" | "s3";
+  storageProvider: StorageProvider;
+  publicBaseUrl: string;
+  publicDeliveryMode: PublicDeliveryMode;
   s3EndpointUrl: string;
   s3Region: string;
   s3Bucket: string;
+  s3PublicBucket: string;
   s3AccessKeyId: string;
   s3SecretAccessKey: string;
   s3ForcePathStyle: boolean;
+  s3PresignExpiresSeconds: number;
 };
 
-type StorageOverlayKey = "provider" | "s3";
+type StorageOverlayKey = "provider" | "delivery" | "s3";
+
+function readPublicDeliveryMode(raw: string | null): PublicDeliveryMode {
+  if (raw === "direct" || raw === "presign") return raw;
+  return "auto";
+}
 
 function buildInitialValues(
   input: ReturnType<typeof useSystemCoreSettings>["coreSettings"],
@@ -48,19 +63,36 @@ function buildInitialValues(
   const storage = getSystemSettingsSection(input, "storage");
   return {
     storageProvider: readStringValue(storage, "provider") === "s3" ? "s3" : "local",
+    publicBaseUrl: readStringValue(storage, "public_base_url") ?? "",
+    publicDeliveryMode: readPublicDeliveryMode(readStringValue(storage, "public_delivery_mode")),
     s3EndpointUrl: readStringValue(storage, "s3_endpoint_url") ?? "",
     s3Region: readStringValue(storage, "s3_region") ?? "",
     s3Bucket: readStringValue(storage, "s3_bucket") ?? "",
+    s3PublicBucket: readStringValue(storage, "s3_public_bucket") ?? "",
     s3AccessKeyId: readStringValue(storage, "s3_access_key_id") ?? "",
     s3SecretAccessKey: "",
     s3ForcePathStyle: Boolean(readBooleanValue(storage, "s3_force_path_style")),
+    s3PresignExpiresSeconds: readNumberValue(storage, "s3_presign_expires_seconds") ?? 900,
   };
 }
 
-function formatProviderSummary(value: "local" | "s3", t: (key: string) => string) {
+function formatProviderSummary(value: StorageProvider, t: (key: string) => string) {
   return value === "s3"
     ? t("settings:SETTINGS_STORAGE_PROVIDER_S3")
     : t("settings:SETTINGS_STORAGE_PROVIDER_LOCAL");
+}
+
+function formatDeliveryModeSummary(value: PublicDeliveryMode, t: (key: string) => string) {
+  if (value === "direct") return t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_DIRECT");
+  if (value === "presign") return t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_PRESIGN");
+  return t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_AUTO");
+}
+
+function validatePresignTtl(value: number, t: (key: string) => string) {
+  if (!Number.isFinite(value) || value < 60 || value > 86400) {
+    return t("settings:SETTINGS_VALIDATION_REQUIRED");
+  }
+  return true;
 }
 
 export function SystemSettingsStoragePage() {
@@ -101,12 +133,41 @@ export function SystemSettingsStoragePage() {
   const saveProvider = () =>
     withSavingKey("storage.provider", async () => {
       const values = await validateFormFields(form, ["storageProvider"]);
-      const provider = values.storageProvider === "s3" ? "s3" : "local";
+      const storageProvider = values.storageProvider === "s3" ? "s3" : "local";
       await persistPatch(
-        { storage: { provider } },
+        { storage: { provider: storageProvider } },
         {
           ...form.getValues(),
-          storageProvider: provider,
+          storageProvider,
+          s3SecretAccessKey: "",
+        },
+      );
+    });
+
+  const saveDelivery = () =>
+    withSavingKey("storage.delivery", async () => {
+      const values = await validateFormFields(form, ["publicBaseUrl", "publicDeliveryMode"]);
+      const publicBaseUrl = String(values.publicBaseUrl || "").trim();
+      if (publicBaseUrl && !isValidHttpUrl(publicBaseUrl)) {
+        form.setError("publicBaseUrl", {
+          type: "validate",
+          message: t("settings:SETTINGS_STORAGE_VALIDATION_URL_INVALID"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+
+      const publicDeliveryMode = readPublicDeliveryMode(values.publicDeliveryMode);
+      await persistPatch(
+        {
+          storage: {
+            public_base_url: normalizeOptionalString(publicBaseUrl),
+            public_delivery_mode: publicDeliveryMode,
+          },
+        },
+        {
+          ...form.getValues(),
+          publicBaseUrl,
+          publicDeliveryMode,
           s3SecretAccessKey: "",
         },
       );
@@ -118,37 +179,48 @@ export function SystemSettingsStoragePage() {
         "s3EndpointUrl",
         "s3Region",
         "s3Bucket",
+        "s3PublicBucket",
         "s3AccessKeyId",
         "s3SecretAccessKey",
         "s3ForcePathStyle",
+        "s3PresignExpiresSeconds",
       ]);
-      const endpoint = String(values.s3EndpointUrl || "").trim();
-      const bucket = String(values.s3Bucket || "").trim();
-      const accessKeyId = String(values.s3AccessKeyId || "").trim();
-      const secret = String(values.s3SecretAccessKey || "").trim();
+      const s3EndpointUrl = String(values.s3EndpointUrl || "").trim();
+      const s3Bucket = String(values.s3Bucket || "").trim();
+      const s3PublicBucket = String(values.s3PublicBucket || "").trim();
+      const s3AccessKeyId = String(values.s3AccessKeyId || "").trim();
+      const s3SecretAccessKey = String(values.s3SecretAccessKey || "").trim();
+      const s3PresignExpiresSeconds = Number(values.s3PresignExpiresSeconds);
 
-      if (!endpoint) {
+      if (!s3EndpointUrl) {
         form.setError("s3EndpointUrl", {
           type: "validate",
           message: t("settings:SETTINGS_VALIDATION_REQUIRED"),
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      if (!bucket) {
+      if (!s3Bucket) {
         form.setError("s3Bucket", {
           type: "validate",
           message: t("settings:SETTINGS_VALIDATION_REQUIRED"),
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      if (!accessKeyId) {
+      if (!s3AccessKeyId) {
         form.setError("s3AccessKeyId", {
           type: "validate",
           message: t("settings:SETTINGS_VALIDATION_REQUIRED"),
         });
         throw new Error("FORM_VALIDATION_FAILED");
       }
-      if (!secret && !hasS3Secret) {
+      if (validatePresignTtl(s3PresignExpiresSeconds, t) !== true) {
+        form.setError("s3PresignExpiresSeconds", {
+          type: "validate",
+          message: t("settings:SETTINGS_VALIDATION_REQUIRED"),
+        });
+        throw new Error("FORM_VALIDATION_FAILED");
+      }
+      if (!s3SecretAccessKey && !hasS3Secret) {
         form.setError("s3SecretAccessKey", {
           type: "validate",
           message: t("settings:SETTINGS_VALIDATION_REQUIRED"),
@@ -157,37 +229,45 @@ export function SystemSettingsStoragePage() {
       }
 
       const patchValue: Record<string, unknown> = {
-        s3_endpoint_url: endpoint,
+        s3_endpoint_url: s3EndpointUrl,
         s3_region: normalizeOptionalString(values.s3Region),
-        s3_bucket: bucket,
-        s3_access_key_id: accessKeyId,
+        s3_bucket: s3Bucket,
+        s3_public_bucket: normalizeOptionalString(s3PublicBucket),
+        s3_access_key_id: s3AccessKeyId,
         s3_force_path_style: Boolean(values.s3ForcePathStyle),
+        s3_presign_expires_seconds: s3PresignExpiresSeconds,
       };
-      if (secret) {
-        patchValue.s3_secret_access_key = secret;
+      if (s3SecretAccessKey) {
+        patchValue.s3_secret_access_key = s3SecretAccessKey;
       }
 
       await persistPatch(
         { storage: patchValue },
         {
           ...form.getValues(),
-          s3EndpointUrl: endpoint,
+          s3EndpointUrl,
           s3Region: String(values.s3Region || "").trim(),
-          s3Bucket: bucket,
-          s3AccessKeyId: accessKeyId,
+          s3Bucket,
+          s3PublicBucket,
+          s3AccessKeyId,
           s3SecretAccessKey: "",
           s3ForcePathStyle: Boolean(values.s3ForcePathStyle),
+          s3PresignExpiresSeconds,
         },
       );
     });
 
   const overlayConfigs = useMemo<readonly SettingOverlayConfig<StorageOverlayKey>[]>(() => {
     const providerError = getFieldErrorMessage(form, "storageProvider");
+    const publicBaseUrlError = getFieldErrorMessage(form, "publicBaseUrl");
+    const publicDeliveryModeError = getFieldErrorMessage(form, "publicDeliveryMode");
     const endpointError = getFieldErrorMessage(form, "s3EndpointUrl");
     const regionError = getFieldErrorMessage(form, "s3Region");
     const bucketError = getFieldErrorMessage(form, "s3Bucket");
+    const publicBucketError = getFieldErrorMessage(form, "s3PublicBucket");
     const accessKeyError = getFieldErrorMessage(form, "s3AccessKeyId");
     const secretError = getFieldErrorMessage(form, "s3SecretAccessKey");
+    const presignExpiresSecondsError = getFieldErrorMessage(form, "s3PresignExpiresSeconds");
 
     return [
       {
@@ -251,6 +331,94 @@ export function SystemSettingsStoragePage() {
         ),
       },
       {
+        key: "delivery",
+        type: "dialog",
+        title: t("settings:SETTINGS_SYSTEM_STORAGE_DELIVERY_MODE_TITLE"),
+        description: t("settings:SETTINGS_SYSTEM_STORAGE_DELIVERY_MODE_DESC"),
+        footer: (ctx) => (
+          <SettingOverlayFooter
+            close={ctx.close}
+            backText={t("common:CANCEL")}
+            saveText={t("settings:SETTINGS_SAVE")}
+            saveLoading={savingKey === "storage.delivery"}
+            disabled={patchMutation.isPending}
+            onSave={saveDelivery}
+          />
+        ),
+        content: () => (
+          <SettingDialogFields>
+            <Controller
+              control={form.control}
+              name="publicDeliveryMode"
+              rules={{ required: t("settings:SETTINGS_VALIDATION_REQUIRED") }}
+              render={({ field }) => (
+                <OverlayField
+                  label={t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_LABEL")}
+                  message={publicDeliveryModeError}
+                >
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="grid gap-3"
+                  >
+                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                      <RadioGroupItem value="auto" className="mt-1" />
+                      <div className="grid min-w-0 gap-1">
+                        <div className="text-headline text-label-primary">
+                          {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_AUTO")}
+                        </div>
+                        <div className="text-label-secondary">
+                          {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_AUTO_HELP")}
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                      <RadioGroupItem value="direct" className="mt-1" />
+                      <div className="grid min-w-0 gap-1">
+                        <div className="text-headline text-label-primary">
+                          {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_DIRECT")}
+                        </div>
+                        <div className="text-label-secondary">
+                          {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_DIRECT_HELP")}
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex w-full items-start gap-3 rounded-xl border border-border p-4">
+                      <RadioGroupItem value="presign" className="mt-1" />
+                      <div className="grid min-w-0 gap-1">
+                        <div className="text-headline text-label-primary">
+                          {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_PRESIGN")}
+                        </div>
+                        <div className="text-label-secondary">
+                          {t("settings:SETTINGS_STORAGE_PUBLIC_DELIVERY_MODE_PRESIGN_HELP")}
+                        </div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+                </OverlayField>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="publicBaseUrl"
+              render={({ field }) => (
+                <OverlayField
+                  label={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_LABEL")}
+                  description={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_DIALOG_HELP")}
+                  message={publicBaseUrlError}
+                >
+                  <Input
+                    {...field}
+                    placeholder={t("settings:SETTINGS_STORAGE_PUBLIC_BASE_URL_PLACEHOLDER")}
+                  />
+                </OverlayField>
+              )}
+            />
+          </SettingDialogFields>
+        ),
+      },
+      {
         key: "s3",
         type: "sheet",
         title: t("settings:SETTINGS_STORAGE_DRAWER_S3_CONFIG_TITLE"),
@@ -306,7 +474,20 @@ export function SystemSettingsStoragePage() {
                   label={t("settings:SETTINGS_STORAGE_S3_BUCKET_LABEL")}
                   message={bucketError}
                 >
-                  <Input {...field} placeholder="assets-prod" />
+                  <Input {...field} placeholder="assets-private" />
+                </OverlayField>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="s3PublicBucket"
+              render={({ field }) => (
+                <OverlayField
+                  label={t("settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_LABEL")}
+                  description={t("settings:SETTINGS_STORAGE_S3_PUBLIC_BUCKET_HELP")}
+                  message={publicBucketError}
+                >
+                  <Input {...field} placeholder="assets-public" />
                 </OverlayField>
               )}
             />
@@ -359,6 +540,25 @@ export function SystemSettingsStoragePage() {
                 />
               )}
             />
+            <Controller
+              control={form.control}
+              name="s3PresignExpiresSeconds"
+              rules={{ validate: (value) => validatePresignTtl(value, t) }}
+              render={({ field }) => (
+                <OverlayField
+                  label={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_LABEL")}
+                  description={t("settings:SETTINGS_STORAGE_S3_PRESIGN_EXPIRES_SECONDS_HELP")}
+                  message={presignExpiresSecondsError}
+                >
+                  <NumberInput
+                    value={field.value}
+                    min={60}
+                    max={86400}
+                    onValueChange={field.onChange}
+                  />
+                </OverlayField>
+              )}
+            />
           </SettingDialogFields>
         ),
       },
@@ -366,8 +566,8 @@ export function SystemSettingsStoragePage() {
   }, [
     form,
     hasS3Secret,
-    initialValues.storageProvider,
     patchMutation.isPending,
+    saveDelivery,
     saveProvider,
     saveS3Connection,
     savingKey,
@@ -380,8 +580,13 @@ export function SystemSettingsStoragePage() {
     overlays.open(key);
   };
   const storageProvider = initialValues.storageProvider;
+  const deliverySummary = joinSummaryParts([
+    formatDeliveryModeSummary(initialValues.publicDeliveryMode, t),
+    initialValues.publicBaseUrl,
+  ]);
   const connectionSummary = joinSummaryParts([
     initialValues.s3Bucket,
+    initialValues.s3PublicBucket ? `public:${initialValues.s3PublicBucket}` : null,
     initialValues.s3Region,
     initialValues.s3EndpointUrl,
   ]);
@@ -404,6 +609,14 @@ export function SystemSettingsStoragePage() {
             description={t("settings:SETTINGS_STORAGE_PROVIDER_DESC")}
             onTrigger={() => openOverlay("provider")}
           />
+          {storageProvider === "s3" ? (
+            <SettingActionItem
+              title={t("settings:SETTINGS_SYSTEM_STORAGE_DELIVERY_MODE_TITLE")}
+              summary={deliverySummary}
+              description={t("settings:SETTINGS_SYSTEM_STORAGE_DELIVERY_MODE_DESC")}
+              onTrigger={() => openOverlay("delivery")}
+            />
+          ) : null}
           {storageProvider === "s3" ? (
             <SettingActionItem
               title={t("settings:SETTINGS_STORAGE_S3_CONFIG_LABEL")}

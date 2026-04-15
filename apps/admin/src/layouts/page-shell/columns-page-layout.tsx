@@ -76,6 +76,40 @@ export function ColumnsPageDesktopPane(props: {
   side: "left" | "right";
   slot: ColumnsPageSideSlot;
 }) {
+  const wrapperClassName = clsx(
+    "flex min-h-0 shrink-0",
+    props.slot.sticky ? "self-stretch" : "self-start",
+    "[width:var(--columns-page-side-slot-default-width)]",
+    "min-w-[var(--columns-page-side-slot-min-width)]",
+    "max-w-[var(--columns-page-side-slot-max-width)]",
+  );
+  const asideNode = (
+    <aside
+      className={clsx(
+        "flex min-h-0 w-full min-w-0 flex-col self-start",
+        props.slot.sticky &&
+          "sticky top-[var(--columns-page-side-slot-sticky-top)] h-full max-h-full overflow-y-auto overscroll-contain scrollbar-none",
+        props.slot.className,
+      )}
+    >
+      {props.slot.content}
+    </aside>
+  );
+
+  if (props.slot.sticky) {
+    return (
+      <div
+        className={wrapperClassName}
+        data-slot="columns-page-side-slot"
+        data-side={props.side}
+        data-sticky="true"
+        style={createPageSideSlotStyle(props.slot)}
+      >
+        {asideNode}
+      </div>
+    );
+  }
+
   return (
     <motion.div
       layout
@@ -83,27 +117,13 @@ export function ColumnsPageDesktopPane(props: {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: props.side === "left" ? -12 : 12 }}
       transition={COLUMNS_PAGE_SIDE_SLOT_TRANSITION}
-      className={clsx(
-        "flex min-h-0 shrink-0 self-start",
-        "[width:var(--columns-page-side-slot-default-width)]",
-        "min-w-[var(--columns-page-side-slot-min-width)]",
-        "max-w-[var(--columns-page-side-slot-max-width)]",
-      )}
+      className={wrapperClassName}
       data-slot="columns-page-side-slot"
       data-side={props.side}
-      data-sticky={props.slot.sticky ? "true" : "false"}
+      data-sticky="false"
       style={createPageSideSlotStyle(props.slot)}
     >
-      <aside
-        className={clsx(
-          "flex min-h-0 w-full min-w-0 flex-col self-start",
-          props.slot.sticky &&
-            "sticky top-[var(--columns-page-side-slot-sticky-top)] max-h-[calc(100vh-var(--columns-page-side-slot-sticky-top))]",
-          props.slot.className,
-        )}
-      >
-        {props.slot.content}
-      </aside>
+      {asideNode}
     </motion.div>
   );
 }

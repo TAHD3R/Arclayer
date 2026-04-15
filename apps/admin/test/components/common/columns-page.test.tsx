@@ -75,16 +75,11 @@ describe("ColumnsPage", () => {
     const leftSlot = leftSlotWrapper?.firstElementChild;
     const rightSlot = rightSlotWrapper?.firstElementChild;
 
-    expect(shell).toHaveClass("hidden", "min-h-0", "min-w-0", "w-full", "flex-1", "lg:flex");
-    expect(body).toHaveClass(
-      "flex",
-      "min-h-0",
-      "min-w-0",
-      "w-full",
-      "flex-1",
-      "flex-col",
-      "self-start",
-    );
+    expect(shell).toHaveClass("hidden", "min-h-0", "min-w-0", "w-full", "lg:flex");
+    expect(shell).not.toHaveClass("flex-1");
+    expect(body).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-col");
+    expect(body).not.toHaveClass("flex-1");
+    expect(body).not.toHaveClass("self-start");
     expect(content).toHaveClass("min-h-0", "min-w-0", "w-full", "flex-1");
     expect(leftSlotWrapper).toHaveAttribute("data-side", "left");
     expect(leftSlotWrapper).toHaveAttribute("data-sticky", "false");
@@ -139,17 +134,55 @@ describe("ColumnsPage", () => {
     const rightSlot = rightSlotWrapper?.firstElementChild as HTMLElement | null;
 
     expect(shell).toHaveClass("lg:flex");
-    expect(body).toHaveClass("self-start");
+    expect(body).not.toHaveClass("self-start");
     expect(rightSlotWrapper).toHaveAttribute("data-sticky", "true");
     expect(rightSlotWrapper).toHaveStyle({
       "--columns-page-side-slot-sticky-top": "1.5rem",
     });
+    expect(rightSlotWrapper).toHaveClass("self-stretch");
     expect(rightSlot).toHaveClass(
       "sticky",
       "top-[var(--columns-page-side-slot-sticky-top)]",
-      "max-h-[calc(100vh-var(--columns-page-side-slot-sticky-top))]",
+      "h-full",
+      "max-h-full",
+      "overflow-y-auto",
+      "overscroll-contain",
       "self-start",
     );
+  });
+
+  it("fills the available height when a footer toolbar is present", () => {
+    const { container } = render(
+      <ColumnsPage
+        title="Assets"
+        footer={<div>Selection toolbar</div>}
+        sideSlots={{
+          right: {
+            content: <div>Inspector</div>,
+            sticky: true,
+          },
+        }}
+      >
+        <div>Main content</div>
+      </ColumnsPage>,
+    );
+
+    const routeRoot = container.firstElementChild;
+    const routeInner = container.firstElementChild?.firstElementChild;
+    const stack = document.querySelector('[data-slot="columns-page-stack"]');
+    const shell = document.querySelector('[data-slot="columns-page-shell"]');
+    const body = shell?.querySelector('[data-slot="page-main-region"]');
+    const footerWrap = screen.getByText("Selection toolbar").parentElement;
+
+    expect(routeRoot).toHaveClass("h-full", "overflow-hidden", "flex-1");
+    expect(routeInner).toHaveClass("pb-0");
+    expect(routeInner).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(stack).toHaveClass("flex-1");
+    expect(shell).toHaveClass("flex-1");
+    expect(body).toHaveClass("flex-1");
+    expect(body).not.toHaveClass("self-start");
+    expect(footerWrap).toHaveClass("-mx-10");
+    expect(screen.getByText("Selection toolbar")).toBeInTheDocument();
   });
 
   it("hides side slots when ContentGuard renders an error state", () => {

@@ -303,11 +303,11 @@ export const AssetMasonryTile = memo(
               )}
               data-tile-actions-visible={overlayVisible ? "true" : "false"}
             >
-              <ButtonGroup className="rounded-lg border border-white/15 bg-black/55  backdrop-blur-sm">
+              <ButtonGroup className="rounded-md border border-white/18 bg-black/60 backdrop-blur-sm shadow-sm shadow-black/20">
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-xs"
+                  size="icon-sm"
                   className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
                   aria-label={t("assets:ASSET_ACTION_EDIT")}
                   onPointerDown={stopTileActionEvent}
@@ -316,12 +316,12 @@ export const AssetMasonryTile = memo(
                     props.onEdit?.(props.asset);
                   }}
                 >
-                  <Pencil className="size-3.5" />
+                  <Pencil className="size-4" />
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-xs"
+                  size="icon-sm"
                   className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
                   aria-label={t("assets:ASSET_ACTION_DELETE")}
                   onPointerDown={stopTileActionEvent}
@@ -330,7 +330,7 @@ export const AssetMasonryTile = memo(
                     props.onDelete?.(props.asset);
                   }}
                 >
-                  <Trash2 className="size-3.5" />
+                  <Trash2 className="size-4" />
                 </Button>
                 {props.moreMenuItems?.length ? (
                   <DropdownMenu onOpenChange={setMoreMenuOpen}>
@@ -338,7 +338,7 @@ export const AssetMasonryTile = memo(
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         className="text-white hover:bg-white/12 hover:text-white focus-visible:text-white"
                         aria-label={t("common:MORE")}
                         onPointerDown={stopTileActionEvent}
@@ -347,7 +347,7 @@ export const AssetMasonryTile = memo(
                           stopTileActionEvent(event);
                         }}
                       >
-                        <EllipsisVertical className="size-3.5" />
+                        <EllipsisVertical className="size-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -370,7 +370,7 @@ export const AssetMasonryTile = memo(
                   </DropdownMenu>
                 ) : null}
                 <ButtonGroupSeparator className="bg-white/12" />
-                <div className="flex size-6 items-center justify-center rounded-r-md text-white transition-colors hover:bg-white/12">
+                <div className="flex size-8 items-center justify-center rounded-r-md text-white transition-colors hover:bg-white/12">
                   <Checkbox
                     aria-labelledby={titleId}
                     checked={selected}

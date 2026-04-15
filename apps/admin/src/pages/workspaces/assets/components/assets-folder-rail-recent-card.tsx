@@ -22,7 +22,6 @@ const recentCardBaseClassName =
 const recentCardInactiveClassName =
   "border-border/60 bg-card hover:border-border hover:-translate-y-[1px] dark:border-white/10 dark:bg-[#111111] dark:hover:border-white/16";
 const recentCardActiveClassName = "border-border bg-card dark:border-white/18 dark:bg-[#161616]";
-const recentMetaValueClassName = "text-caption text-label-primary/72 dark:text-white/74";
 const recentMetaDescriptionClassName = "text-caption text-label-primary/62 dark:text-white/66";
 
 function getRecentCardAccent(asset: AssetMasonryItem) {
@@ -91,10 +90,11 @@ function RecentAssetBackdrop(props: { asset: AssetMasonryItem; compact?: boolean
 
 function RecentMetaLine(props: { sizeText?: string | null; lastOpenedText: string }) {
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-      {props.sizeText ? <span className={recentMetaValueClassName}>{props.sizeText}</span> : null}
-      {props.sizeText ? <span className="size-1 rounded-full bg-border/90" /> : null}
-      <span className={recentMetaDescriptionClassName}>{props.lastOpenedText}</span>
+    <div className="mt-1 flex flex-col items-start gap-0.5">
+      {props.sizeText ? (
+        <div className="text-caption font-semibold text-label-primary">{props.sizeText}</div>
+      ) : null}
+      <div className={recentMetaDescriptionClassName}>{props.lastOpenedText}</div>
     </div>
   );
 }

@@ -32,7 +32,6 @@ import {
   type AssetMoreMenuItem,
 } from "./asset-more-actions";
 import { useAssetPreviewDialogController } from "./asset-preview-dialog-controller";
-import { AssetPreviewHeaderMeta } from "./asset-preview-header-meta";
 import { AssetPreviewSidebar } from "./asset-preview-sidebar";
 import { AssetPreviewStage } from "./asset-preview-stage";
 import { UpdateAssetsAccessDialog } from "./update-assets-access-dialog";
@@ -181,9 +180,6 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
         }}
         size="xl"
         title={active?.name ?? ""}
-        description={
-          active ? <AssetPreviewHeaderMeta active={active} controller={controller} /> : undefined
-        }
         headerRight={
           active ? (
             <PreviewToolbar

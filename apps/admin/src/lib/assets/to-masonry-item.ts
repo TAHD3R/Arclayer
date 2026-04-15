@@ -36,22 +36,17 @@ export function toMasonryItem(
     asset.title?.trim() ||
     (asset.slug && asset.ext ? `${asset.slug}.${asset.ext}` : asset.id);
 
-  // Prefer thumbnails for waterfall view to save bandwidth.
-  // Note: public `/assets/*` should not go through Vite proxy in dev; always resolve to backend absolute URL.
-  // Important: avoid using backend-generated "real filename" links; always use canonical routes:
-  // - /assets/<id> (backend will 301 to /assets/<id>/<slug>.<ext>)
-  // - /assets/<id>/thumb?w=xxx
-  const canonicalPublicPath = `/assets/${asset.id}`;
-  const canonicalThumbBasePath = `/assets/${asset.id}/thumb`;
-  const canonicalDownloadPath = `/assets/${asset.id}/download`;
-
   const isImage = Boolean(asset.mime?.startsWith("image/"));
-  const thumbBaseUrl = isImage ? resolvePublicAssetUrlPath(canonicalThumbBasePath) : undefined;
-  const publicUrl =
-    asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalPublicPath) : undefined;
-  const previewUrl = isImage ? (thumbBaseUrl ? `${thumbBaseUrl}?w=400` : publicUrl) : undefined;
-  const downloadUrl =
-    asset.visibility === "public" ? resolvePublicAssetUrlPath(canonicalDownloadPath) : undefined;
+  const thumbBaseUrl =
+    isImage && asset.publicThumbUrlPath
+      ? resolvePublicAssetUrlPath(asset.publicThumbUrlPath)
+      : undefined;
+  const publicUrl = asset.publicUrlPath
+    ? resolvePublicAssetUrlPath(asset.publicUrlPath)
+    : undefined;
+  const downloadUrl = asset.publicDownloadUrlPath
+    ? resolvePublicAssetUrlPath(asset.publicDownloadUrlPath)
+    : undefined;
 
   // Admin content endpoint uses apiBaseUrl (may depend on Vite proxy), so join with apiBaseUrl explicitly.
   const { apiBaseUrl } = getAppConfig();
@@ -63,6 +58,7 @@ export function toMasonryItem(
     return `${base}${p}`;
   };
   const contentUrl = asset.contentUrlPath ? joinApiBaseUrl(asset.contentUrlPath) : undefined;
+  const previewUrl = isImage ? (thumbBaseUrl ? `${thumbBaseUrl}?w=400` : contentUrl) : undefined;
 
   return {
     id: asset.id,

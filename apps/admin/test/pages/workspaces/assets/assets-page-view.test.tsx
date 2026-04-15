@@ -3,19 +3,38 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 
+import { STORAGE_KEYS } from "@/constants/storage";
 import { AssetsPageView } from "@/pages/workspaces/assets/components/assets-page-view";
 
 const controllerState = { current: createControllerStub() };
 const tableControllerState = { current: createTableControllerStub() };
 
 vi.mock("@/layouts/page-shell/columns-page", () => ({
-  ColumnsPage: ({ action, extra, overlay, sideSlots, children }: Record<string, unknown>) => (
+  ColumnsPage: ({
+    action,
+    extra,
+    overlay,
+    footer,
+    sideSlots,
+    children,
+  }: Record<string, unknown>) => (
     <div>
       <div data-testid="columns-page-action">{action as React.ReactNode}</div>
       <div data-testid="columns-page-extra">{extra as React.ReactNode}</div>
       <div data-testid="columns-page-overlay">{overlay as React.ReactNode}</div>
+      <div data-testid="columns-page-footer">{footer as React.ReactNode}</div>
       <div data-testid="columns-page-right-slot">
         {sideSlots && typeof sideSlots === "object" && "right" in sideSlots ? "visible" : "hidden"}
+      </div>
+      <div data-testid="columns-page-right-slot-sticky">
+        {sideSlots &&
+        typeof sideSlots === "object" &&
+        "right" in sideSlots &&
+        sideSlots.right &&
+        typeof sideSlots.right === "object" &&
+        "sticky" in sideSlots.right
+          ? String(sideSlots.right.sticky)
+          : "false"}
       </div>
       <div data-testid="columns-page-right-slot-content">
         {sideSlots &&
@@ -221,9 +240,10 @@ describe("AssetsPageView", () => {
   beforeEach(() => {
     controllerState.current = createControllerStub();
     tableControllerState.current = createTableControllerStub();
+    window.localStorage.removeItem(STORAGE_KEYS.assetsFolderRailOpen);
   });
 
-  it("renders a card-mode sidebar toggle next to upload and lets the user hide the rail", async () => {
+  it("shows the folder rail by default and persists the user's collapse choice", async () => {
     const user = userEvent.setup();
 
     render(<AssetsPageView />);
@@ -231,8 +251,19 @@ describe("AssetsPageView", () => {
     expect(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "assets:ASSET_ACTION_UPLOAD" })).toBeInTheDocument();
     expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("visible");
+    expect(screen.getByTestId("columns-page-right-slot-sticky")).toHaveTextContent("true");
+    expect(window.localStorage.getItem(STORAGE_KEYS.assetsFolderRailOpen)).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "common:SIDEBAR_TOGGLE" }));
+
+    expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
+    expect(window.localStorage.getItem(STORAGE_KEYS.assetsFolderRailOpen)).toBe("false");
+  });
+
+  it("honors a persisted collapsed rail preference on revisit", () => {
+    window.localStorage.setItem(STORAGE_KEYS.assetsFolderRailOpen, "false");
+
+    render(<AssetsPageView />);
 
     expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
   });
@@ -272,8 +303,18 @@ describe("AssetsPageView", () => {
 
     expect(screen.getByTestId("assets-view-mode")).toHaveTextContent("table");
     expect(screen.getByTestId("columns-page-right-slot")).toHaveTextContent("hidden");
+    expect(screen.getByTestId("columns-page-overlay")).toBeEmptyDOMElement();
+    expect(screen.getByTestId("columns-page-footer")).not.toBeEmptyDOMElement();
     expect(
       screen.getByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }),
     ).toBeInTheDocument();
+  });
+
+  it("adds bottom breathing room to the assets content region", () => {
+    const { container } = render(<AssetsPageView />);
+
+    expect(
+      container.querySelector(".overflow-x-hidden.overflow-y-auto.pb-8.scrollbar-none"),
+    ).not.toBeNull();
   });
 });

@@ -16,6 +16,7 @@ import { PageMainRegion, shouldHidePageHeader, type BasePageProps } from "./page
 export type ColumnsPageProps = BasePageProps & {
   sideSlots: ColumnsPageSideSlots;
   overlay?: ReactNode;
+  footer?: ReactNode;
 };
 
 const COLUMNS_PAGE_DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
@@ -36,6 +37,7 @@ export function ColumnsPage({
   extra,
   sideSlots,
   overlay,
+  footer,
   children,
   className,
   contentClassName,
@@ -44,6 +46,8 @@ export function ColumnsPage({
   const leftSideSlot = hideHeader ? undefined : sideSlots?.left;
   const rightSideSlot = hideHeader ? undefined : sideSlots?.right;
   const hasSideSlots = Boolean(leftSideSlot || rightSideSlot);
+  const hasFooter = Boolean(footer);
+  const fillAvailableHeight = Boolean(footer) || !hasSideSlots;
   const [isDesktop, setIsDesktop] = useState(getColumnsPageDesktopMatch);
   const [mobileOpenSide, setMobileOpenSide] = useState<"left" | "right" | null>(null);
   const paneToggles = useMemo<ColumnsPagePaneToggle[]>(() => {
@@ -75,6 +79,7 @@ export function ColumnsPage({
       action={hideHeader ? undefined : action}
       extra={hideHeader ? undefined : extra}
       contentClassName={contentClassName}
+      fillAvailableHeight={fillAvailableHeight}
       paneToggles={paneToggles.map((toggle) => ({
         side: toggle.side,
         label: getColumnsPagePaneLabel(toggle.slot, toggle.side),
@@ -86,45 +91,65 @@ export function ColumnsPage({
   );
 
   return (
-    <AdminRouteContainer className={clsx("min-h-full min-w-0", className)} overlay={overlay}>
-      {isDesktop && (hasSideSlots || !hideHeader) ? (
-        <>
-          <div
-            className="hidden min-h-0 min-w-0 w-full flex-1 lg:flex"
-            data-slot="columns-page-shell"
-          >
-            <AnimatePresence initial={false}>
-              {leftSideSlot ? <ColumnsPageDesktopPane side="left" slot={leftSideSlot} /> : null}
-            </AnimatePresence>
-            {mainRegion}
-            <AnimatePresence initial={false}>
-              {rightSideSlot ? <ColumnsPageDesktopPane side="right" slot={rightSideSlot} /> : null}
-            </AnimatePresence>
-          </div>
-          {paneToggles.map((toggle) => (
-            <ColumnsPageMobilePaneSheet
-              key={toggle.side}
-              toggle={toggle}
-              open={mobileOpenSide === toggle.side}
-              onOpenChange={(open) => setMobileOpenSide(open ? toggle.side : null)}
-            />
-          ))}
-        </>
-      ) : hasSideSlots ? (
-        <>
-          <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>
-          {paneToggles.map((toggle) => (
-            <ColumnsPageMobilePaneSheet
-              key={toggle.side}
-              toggle={toggle}
-              open={mobileOpenSide === toggle.side}
-              onOpenChange={(open) => setMobileOpenSide(open ? toggle.side : null)}
-            />
-          ))}
-        </>
-      ) : (
-        mainRegion
+    <AdminRouteContainer
+      className={clsx(
+        "min-h-full min-w-0",
+        fillAvailableHeight && "flex-1",
+        hasFooter && "h-full overflow-hidden",
+        className,
       )}
+      innerClassName={clsx(hasFooter && "h-full min-h-0 overflow-hidden pb-0")}
+      overlay={overlay}
+    >
+      <div
+        className={clsx("flex min-h-0 min-w-0 w-full flex-col", fillAvailableHeight && "flex-1")}
+        data-slot="columns-page-stack"
+      >
+        {isDesktop && (hasSideSlots || !hideHeader) ? (
+          <>
+            <div
+              className={clsx(
+                "hidden min-h-0 min-w-0 w-full lg:flex",
+                fillAvailableHeight && "flex-1",
+              )}
+              data-slot="columns-page-shell"
+            >
+              <AnimatePresence initial={false}>
+                {leftSideSlot ? <ColumnsPageDesktopPane side="left" slot={leftSideSlot} /> : null}
+              </AnimatePresence>
+              {mainRegion}
+              <AnimatePresence initial={false}>
+                {rightSideSlot ? (
+                  <ColumnsPageDesktopPane side="right" slot={rightSideSlot} />
+                ) : null}
+              </AnimatePresence>
+            </div>
+            {paneToggles.map((toggle) => (
+              <ColumnsPageMobilePaneSheet
+                key={toggle.side}
+                toggle={toggle}
+                open={mobileOpenSide === toggle.side}
+                onOpenChange={(open) => setMobileOpenSide(open ? toggle.side : null)}
+              />
+            ))}
+          </>
+        ) : hasSideSlots ? (
+          <>
+            <div className="flex min-h-0 min-w-0 w-full flex-1 lg:hidden">{mainRegion}</div>
+            {paneToggles.map((toggle) => (
+              <ColumnsPageMobilePaneSheet
+                key={toggle.side}
+                toggle={toggle}
+                open={mobileOpenSide === toggle.side}
+                onOpenChange={(open) => setMobileOpenSide(open ? toggle.side : null)}
+              />
+            ))}
+          </>
+        ) : (
+          mainRegion
+        )}
+        {footer ? <div className={clsx(hasFooter && "-mx-10")}>{footer}</div> : null}
+      </div>
     </AdminRouteContainer>
   );
 }

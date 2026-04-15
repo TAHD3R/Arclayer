@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
+import { STORAGE_KEYS } from "@/constants/storage";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { Button } from "@arclayer/ui/button";
+import { readStorageItem, writeStorageItem } from "@/lib/storage";
 import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
 
 import { clearSelection } from "@/lib/assets/asset-selection";
@@ -18,7 +20,10 @@ import { AssetsViewTableSection, useAssetsViewTableController } from "./assets-v
 
 export function AssetsPageView(props: { initialSearchQuery?: string; initialAssetId?: string }) {
   const [viewMode, setViewMode] = useState<AssetsViewMode>("card");
-  const [cardSidebarOpen, setCardSidebarOpen] = useState(true);
+  const [cardSidebarOpen, setCardSidebarOpen] = useState(() => {
+    const stored = readStorageItem(STORAGE_KEYS.assetsFolderRailOpen);
+    return stored ? stored === "true" : true;
+  });
   const controller = useAssetsViewController(viewMode);
   const {
     t,
@@ -142,9 +147,11 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
         right: {
           title: t("assets:ASSET_FOLDER_PANEL_TITLE"),
           mobileLabel: t("assets:ASSET_FOLDER_PANEL_TITLE"),
-          minWidth: "20rem",
-          maxWidth: "34rem",
-          defaultWidth: "clamp(21rem, 24vw, 30rem)",
+          minWidth: "16rem",
+          maxWidth: "24rem",
+          defaultWidth: "clamp(16rem, 20vw, 24rem)",
+          sticky: true,
+          stickyTop: 0,
           content: (
             <AssetsFolderRail
               t={t}
@@ -197,9 +204,15 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
       <Button
         variant="outline"
         aria-label={t("common:SIDEBAR_TOGGLE")}
-        onClick={() => setCardSidebarOpen((prev) => !prev)}
+        onClick={() =>
+          setCardSidebarOpen((prev) => {
+            const next = !prev;
+            writeStorageItem(STORAGE_KEYS.assetsFolderRailOpen, String(next));
+            return next;
+          })
+        }
       >
-        {cardSidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+        {cardSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
         <span className="sr-only">{t("common:SIDEBAR_TOGGLE")}</span>
       </Button>
       <Button onClick={() => setUploadOpen(true)}>
@@ -218,7 +231,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     <AssetsViewDndSurface controller={controller}>
       <ColumnsPage
         title={t("nav:NAV_ASSETS")}
-        overlay={
+        footer={
           <AssetsSelectionToolbar
             t={t}
             selectedCount={selectedIds.size}
@@ -264,7 +277,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
         }
         sideSlots={sideSlots}
       >
-        <div className="relative flex min-h-0 min-w-0 w-full flex-1 flex-col">
+        <div className="relative flex h-full min-h-0 min-w-0 w-full flex-col">
           <AssetsViewOverlays
             t={t}
             active={active}
@@ -410,7 +423,7 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             }}
           />
 
-          <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-hidden">
+          <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-hidden overflow-y-auto pb-8 scrollbar-none">
             {viewMode === "card" ? (
               <AssetsViewMasonrySection controller={controller} />
             ) : (

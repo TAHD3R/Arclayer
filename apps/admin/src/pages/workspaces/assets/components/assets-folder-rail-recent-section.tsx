@@ -172,9 +172,7 @@ export function AssetsFolderRailRecentSection(props: AssetsFolderRailRecentSecti
   return (
     <section className="mt-8 space-y-3.5 border-t border-border/50 pt-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-title3 font-semibold text-label-primary">
-          {props.t("assets:ASSET_RECENT_TITLE")}
-        </div>
+        <div className="text-title3 text-label-primary">{props.t("assets:ASSET_RECENT_TITLE")}</div>
         <RecentSectionMenu
           t={props.t}
           hasRecentAssets={props.recentAssets.length > 0}

@@ -44,7 +44,7 @@ type AssetsFolderRailFolderSectionProps = {
 };
 
 export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSectionProps) {
-  const [layoutMode, setLayoutMode] = useState<"single" | "multi">("multi");
+  const [layoutMode, setLayoutMode] = useState<"single" | "multi">("single");
   const folderById = useMemo(() => buildFolderById(props.folders), [props.folders]);
   const orderedFolders = useMemo(() => flattenFoldersDepthFirst(props.folders), [props.folders]);
   const currentFolder = props.currentFolderId
@@ -55,7 +55,7 @@ export function AssetsFolderRailFolderSection(props: AssetsFolderRailFolderSecti
   return (
     <section className="space-y-3.5">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-title3 font-semibold text-label-primary">
+        <div className="text-title3 text-label-primary">
           {props.t("assets:ASSET_FOLDER_PANEL_TITLE")}
         </div>
         <DropdownMenu>

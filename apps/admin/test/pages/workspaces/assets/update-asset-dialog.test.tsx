@@ -84,5 +84,25 @@ describe("UpdateAssetDialog", () => {
     fireEvent.mouseEnter(trigger);
 
     expect(await screen.findByText("assets:ASSET_EDIT_ALT_NAME_TOOLTIP")).toBeInTheDocument();
+    expect(trigger.closest(".text-headline")).not.toBeNull();
+  });
+
+  it("renders a plain confirm button without a leading icon", async () => {
+    const queryClient = createQueryClient();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <UpdateAssetDialog open onOpenChange={vi.fn()} asset={asset} folders={[]} />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "common:CONFIRM" })).toBeEnabled();
+    });
+
+    expect(screen.getByText("assets:ASSET_EDIT_ALT_NAME_HELP")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "common:CONFIRM" }).querySelector("svg")).toBeNull();
   });
 });

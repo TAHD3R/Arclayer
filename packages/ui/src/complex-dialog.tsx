@@ -30,6 +30,7 @@ export type ComplexDialogProps = {
   size?: ComplexDialogSize;
   contentClassName?: string;
   headerClassName?: string;
+  headerAlign?: "start" | "center";
   bodyClassName?: string;
   footerClassName?: string;
 };
@@ -45,9 +46,12 @@ export function ComplexDialog({
   size = "lg",
   contentClassName,
   headerClassName,
+  headerAlign = "start",
   bodyClassName,
   footerClassName,
 }: ComplexDialogProps) {
+  const centeredHeader = headerAlign === "center";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -65,18 +69,49 @@ export function ComplexDialog({
           <DialogHeader
             className={cn("min-w-0 border-b bg-card/92 px-6 py-5 text-left", headerClassName)}
           >
-            <div className="flex min-w-0 items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="text-title3 font-semibold text-label-primary">
+            <div
+              className={cn(
+                "min-w-0",
+                centeredHeader
+                  ? "relative flex min-h-9 items-center justify-center"
+                  : "flex items-start justify-between gap-3",
+              )}
+            >
+              <div
+                className={cn(
+                  "min-w-0",
+                  centeredHeader ? "mx-auto w-full max-w-[calc(100%-11rem)] text-center" : "flex-1",
+                )}
+              >
+                <DialogTitle
+                  className={cn(
+                    "text-title3 font-semibold text-label-primary",
+                    centeredHeader && "text-center",
+                  )}
+                >
                   {title}
                 </DialogTitle>
                 {description ? (
-                  <DialogDescription className="mb-0 text-body text-label-secondary">
+                  <DialogDescription
+                    className={cn(
+                      "mb-0 text-body text-label-secondary",
+                      centeredHeader && "text-center",
+                    )}
+                  >
                     {description}
                   </DialogDescription>
                 ) : null}
               </div>
-              {headerRight ? <div className="shrink-0">{headerRight}</div> : null}
+              {headerRight ? (
+                <div
+                  className={cn(
+                    "shrink-0",
+                    centeredHeader && "absolute top-1/2 right-0 -translate-y-1/2",
+                  )}
+                >
+                  {headerRight}
+                </div>
+              ) : null}
             </div>
           </DialogHeader>
 

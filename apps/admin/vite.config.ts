@@ -106,6 +106,11 @@ export default defineConfig(({ mode, command }) => {
       },
       proxy: enableProxy
         ? {
+            "/assets": {
+              target: apiProxyTarget,
+              changeOrigin: true,
+              secure: false,
+            },
             "/api": {
               target: apiProxyTarget,
               changeOrigin: true,

@@ -197,4 +197,37 @@ describe("AssetMasonryTile", () => {
     expect(container.querySelector('[data-tile-actions-visible="true"]')).not.toBeNull();
     expect(onMoreAction).not.toHaveBeenCalled();
   });
+
+  it("uses a larger and tighter hover toolbar treatment", () => {
+    const menuItems = buildAssetMoreMenuItems({
+      t: (key: string) => key,
+      asset,
+      publicUrl: "https://cdn.example.com/hero.png",
+    });
+
+    render(
+      <AssetMasonryTile
+        asset={asset}
+        onSelect={vi.fn()}
+        onOpen={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        moreMenuItems={menuItems}
+      />,
+    );
+
+    const toolbar = screen.getByRole("group");
+
+    expect(toolbar).toHaveClass("rounded-md");
+    expect(toolbar).not.toHaveClass("rounded-lg");
+    expect(screen.getByLabelText("assets:ASSET_ACTION_EDIT")).toHaveAttribute(
+      "data-size",
+      "icon-sm",
+    );
+    expect(screen.getByLabelText("assets:ASSET_ACTION_DELETE")).toHaveAttribute(
+      "data-size",
+      "icon-sm",
+    );
+    expect(screen.getByLabelText("common:MORE")).toHaveAttribute("data-size", "icon-sm");
+  });
 });

@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   favorites: "arclayer:admin:favorites",
   commandRecent: "arclayer:admin:commandRecent",
   assetsRecent: "arclayer:admin:assetsRecent",
+  assetsFolderRailOpen: "arclayer:admin:assetsFolderRailOpen",
   notificationPanelPinned: "arclayer:admin:notificationPanelPinned",
   sidebarOpen: "arclayer:admin:sidebarOpen",
   showNotificationsBadge: "arclayer:admin:showNotificationsBadge",
