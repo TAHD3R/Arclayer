@@ -298,6 +298,50 @@ async def test_request_login_email_code_stores_code_and_returns_metadata(monkeyp
     ]
 
 
+async def test_request_login_email_code_reissues_after_resend_cooldown(monkeypatch) -> None:
+    service, valkey, _ = _build_login_service(monkeypatch, two_factor_enabled=False)
+    sent: list[dict[str, object]] = []
+
+    async def _fake_is_enabled() -> bool:
+        return True
+
+    async def _fake_send_login_code(*, recipient: str, code: str, expires_in: int, **kwargs) -> None:
+        sent.append({"recipient": recipient, "code": code, "expires_in": expires_in})
+
+    monkeypatch.setattr(service.auth_service.email_service, "is_enabled", _fake_is_enabled)
+    monkeypatch.setattr(service.auth_service.email_service, "send_login_code", _fake_send_login_code)
+
+    first = await service.request_login_email_code(email="demo@example.com")
+    first_record = valkey._store.get("auth:login_code:email:demo@example.com")
+    assert isinstance(first_record, dict)
+    first_code = str(first_record.get("code") or "")
+    assert first.retry_after == 20
+    assert first_code
+
+    first_record["resend_available_at"] = 0
+
+    second = await service.request_login_email_code(email="demo@example.com")
+    second_record = valkey._store.get("auth:login_code:email:demo@example.com")
+    assert isinstance(second_record, dict)
+    second_code = str(second_record.get("code") or "")
+
+    assert second.retry_after == 20
+    assert second_code
+    assert second_code != first_code
+    assert sent == [
+        {
+            "recipient": "demo@example.com",
+            "code": first_code,
+            "expires_in": first.expires_in,
+        },
+        {
+            "recipient": "demo@example.com",
+            "code": second_code,
+            "expires_in": second.expires_in,
+        },
+    ]
+
+
 async def test_verify_login_email_code_issues_tokens(monkeypatch) -> None:
     service, valkey, user = _build_login_service(monkeypatch, two_factor_enabled=False)
 

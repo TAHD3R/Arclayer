@@ -220,10 +220,12 @@ class AuthLoginService(BaseService):
         if existing is not None:
             expires_in = store.remaining_expires_in(existing)
             if expires_in > 0:
-                return LoginEmailCodeRequestOut(
-                    expires_in=expires_in,
-                    retry_after=store.remaining_retry_after(existing),
-                )
+                retry_after = store.remaining_retry_after(existing)
+                if retry_after > 0:
+                    return LoginEmailCodeRequestOut(
+                        expires_in=expires_in,
+                        retry_after=retry_after,
+                    )
 
         user_email = str(getattr(user, "email", "") or "").strip().lower()
         if not user_email:

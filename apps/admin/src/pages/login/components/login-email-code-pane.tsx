@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { AuthOauthButtons } from "@/components/ui/oauth-buttons";
 import { ApiError } from "@/lib/http";
+import { notifySuccessText } from "@/lib/notifications";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthLinkButton, AuthInputControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
@@ -107,11 +108,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
     attemptedSeedRef.current = props.seed.email;
     void (async () => {
       try {
-        const result = normalizeRequestResult(await props.onRequestCode(props.seed!.email));
-        setRequestError(null);
-        setVerifyError(null);
-        setStep("verify");
-        setRetryAfter(result.retryAfter);
+        handleCodeRequestSuccess(await props.onRequestCode(props.seed!.email));
       } catch (error) {
         setStep("request");
         setRequestError(
@@ -129,17 +126,22 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
     return () => window.clearInterval(timer);
   }, [retryAfter]);
 
+  const handleCodeRequestSuccess = (result: LoginEmailCodeRequestResult) => {
+    const normalized = normalizeRequestResult(result);
+    setRequestError(null);
+    setVerifyError(null);
+    setStep("verify");
+    setRetryAfter(normalized.retryAfter);
+    form.clearErrors("code");
+    form.setValue("code", "");
+    notifySuccessText(t("auth:LOGIN_CODE_SENT"));
+  };
+
   const requestEmailCode = async () => {
     const isValid = await form.trigger("email");
     if (!isValid) return;
     try {
-      const result = normalizeRequestResult(await props.onRequestCode(form.getValues("email")));
-      setRequestError(null);
-      setVerifyError(null);
-      setStep("verify");
-      setRetryAfter(result.retryAfter);
-      form.clearErrors("code");
-      form.setValue("code", "");
+      handleCodeRequestSuccess(await props.onRequestCode(form.getValues("email")));
     } catch (error) {
       setStep("request");
       setRequestError(
