@@ -71,3 +71,4 @@ htmlcov/
 .code-review-graph/
 .codex-tasks/
 .superpowers/
+.playwright-mcp/

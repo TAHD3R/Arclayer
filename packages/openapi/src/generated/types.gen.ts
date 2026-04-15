@@ -5643,6 +5643,10 @@ export type MyWorkspaceListResult = {
      */
     items?: Array<MyWorkspaceOut>;
     /**
+     * Current user's workspace-first onboarding progress.
+     */
+    onboarding: WorkspaceFirstOnboardingOut;
+    /**
      * Pre-grouped switcher state from the backend.
      */
     switcher: WorkspaceSwitcherOut;
@@ -5683,6 +5687,18 @@ export type MyWorkspaceMemberPreviewOut = {
  */
 export type MyWorkspaceOut = {
     /**
+     * Createdat
+     *
+     * Workspace creation time.
+     */
+    createdAt?: string | null;
+    /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
      * Iconurl
      *
      * Workspace icon URL.
@@ -5707,11 +5723,9 @@ export type MyWorkspaceOut = {
      */
     isLegacy?: boolean;
     /**
-     * Kind
-     *
-     * Workspace kind: team or personal.
+     * Workspace kind.
      */
-    kind?: string;
+    kind?: WorkspaceKind;
     /**
      * Membercount
      *
@@ -6105,6 +6119,36 @@ export type OAuthLinkedIdentityOut = {
      * Provider identifier (e.g. google, github).
      */
     provider: string;
+};
+
+/**
+ * OnboardingWorkspaceCreateOut
+ */
+export type OnboardingWorkspaceCreateOut = {
+    /**
+     * Workspaceid
+     *
+     * Created workspace id.
+     */
+    workspaceId: string;
+};
+
+/**
+ * OnboardingWorkspaceCreateRequest
+ */
+export type OnboardingWorkspaceCreateRequest = {
+    /**
+     * Name
+     *
+     * Workspace name chosen during onboarding.
+     */
+    name?: string | null;
+    /**
+     * Slug
+     *
+     * Workspace slug chosen during onboarding.
+     */
+    slug?: string | null;
 };
 
 /**
@@ -7325,6 +7369,12 @@ export type OrganizationWorkspaceCreateRequest = {
      */
     name: string;
     /**
+     * Slug
+     *
+     * Workspace slug (optional).
+     */
+    slug?: string | null;
+    /**
      * Workspace bootstrap template.
      */
     template?: OrganizationWorkspaceTemplate;
@@ -7526,6 +7576,30 @@ export type OrganizationWorkspaceOut = {
      * Workspace id.
      */
     workspaceId: string;
+};
+
+/**
+ * OrganizationWorkspaceSlugAvailabilityOut
+ */
+export type OrganizationWorkspaceSlugAvailabilityOut = {
+    /**
+     * Available
+     *
+     * Whether the slug is currently available.
+     */
+    available?: boolean;
+    /**
+     * Normalizedslug
+     *
+     * Normalized workspace slug if parseable.
+     */
+    normalizedSlug?: string | null;
+    /**
+     * Reason
+     *
+     * Explicit reason code when unavailable: invalid, reserved, or exists.
+     */
+    reason?: string | null;
 };
 
 /**
@@ -8732,102 +8806,6 @@ export type PageDataSitePatternOut = {
 };
 
 /**
- * PageData[SysConfigNamespaceSummary]
- */
-export type PageDataSysConfigNamespaceSummary = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<SysConfigNamespaceSummary>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
- * PageData[SysConfigRevisionOut]
- */
-export type PageDataSysConfigRevisionOut = {
-    /**
-     * Items
-     *
-     * Current page items.
-     */
-    items?: Array<SysConfigRevisionOut>;
-    /**
-     * Next
-     *
-     * Next page number.
-     */
-    next?: number | null;
-    /**
-     * Page
-     *
-     * Current page number (1-based).
-     */
-    page: number;
-    /**
-     * Pages
-     *
-     * Total pages.
-     */
-    pages: number;
-    /**
-     * Prev
-     *
-     * Previous page number.
-     */
-    prev?: number | null;
-    /**
-     * Size
-     *
-     * Page size.
-     */
-    size: number;
-    /**
-     * Total
-     *
-     * Total item count.
-     */
-    total: number;
-};
-
-/**
  * PageData[WorkspaceEmailInviteOut]
  */
 export type PageDataWorkspaceEmailInviteOut = {
@@ -9215,67 +9193,6 @@ export type PermissionRoleSetRequest = {
      * Custom role codes to grant this permission.
      */
     roleCodes?: Array<string>;
-};
-
-/**
- * PermissionSyncResult
- */
-export type PermissionSyncResult = {
-    /**
-     * Created
-     *
-     * Created permissions.
-     */
-    created: number;
-    /**
-     * Total
-     *
-     * Total permissions processed.
-     */
-    total: number;
-    /**
-     * Updated
-     *
-     * Updated permissions.
-     */
-    updated: number;
-    /**
-     * Workspaces
-     *
-     * Workspaces reconciled (system roles + grants).
-     */
-    workspaces: number;
-};
-
-/**
- * PersonalSpaceStatus
- */
-export type PersonalSpaceStatus = 'pending' | 'ready' | 'failed';
-
-/**
- * PersonalSpaceSwitcherOut
- */
-export type PersonalSpaceSwitcherOut = {
-    /**
-     * Lasterror
-     *
-     * Latest non-sensitive failure code.
-     */
-    lastError?: string | null;
-    /**
-     * Retryavailable
-     *
-     * Whether inline retry is currently available.
-     */
-    retryAvailable?: boolean;
-    /**
-     * Personal space preparation state.
-     */
-    status: PersonalSpaceStatus;
-    /**
-     * Resolved personal workspace when ready.
-     */
-    workspace?: MyWorkspaceOut | null;
 };
 
 /**
@@ -10892,6 +10809,31 @@ export type ResponseModelOAuthLinkedIdentityListOut = {
 };
 
 /**
+ * ResponseModel[OnboardingWorkspaceCreateOut]
+ */
+export type ResponseModelOnboardingWorkspaceCreateOut = {
+    data?: OnboardingWorkspaceCreateOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[OrganizationAssignDefaultRoleResult]
  */
 export type ResponseModelOrganizationAssignDefaultRoleResult = {
@@ -11246,6 +11188,31 @@ export type ResponseModelOrganizationWorkspaceDeleteResult = {
  */
 export type ResponseModelOrganizationWorkspaceOut = {
     data?: OrganizationWorkspaceOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[OrganizationWorkspaceSlugAvailabilityOut]
+ */
+export type ResponseModelOrganizationWorkspaceSlugAvailabilityOut = {
+    data?: OrganizationWorkspaceSlugAvailabilityOut | null;
     /**
      * Error
      */
@@ -11817,56 +11784,6 @@ export type ResponseModelPageDataSitePatternOut = {
 };
 
 /**
- * ResponseModel[PageData[SysConfigNamespaceSummary]]
- */
-export type ResponseModelPageDataSysConfigNamespaceSummary = {
-    data?: PageDataSysConfigNamespaceSummary | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PageData[SysConfigRevisionOut]]
- */
-export type ResponseModelPageDataSysConfigRevisionOut = {
-    data?: PageDataSysConfigRevisionOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[PageData[WorkspaceEmailInviteOut]]
  */
 export type ResponseModelPageDataWorkspaceEmailInviteOut = {
@@ -12021,56 +11938,6 @@ export type ResponseModelPageDataWorkspaceTeamMemberOut = {
  */
 export type ResponseModelPageDataWorkspaceTeamUserOptionOut = {
     data?: PageDataWorkspaceTeamUserOptionOut | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PermissionSyncResult]
- */
-export type ResponseModelPermissionSyncResult = {
-    data?: PermissionSyncResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[PersonalSpaceSwitcherOut]
- */
-export type ResponseModelPersonalSpaceSwitcherOut = {
-    data?: PersonalSpaceSwitcherOut | null;
     /**
      * Error
      */
@@ -12592,106 +12459,6 @@ export type ResponseModelSiteSettingGetOut = {
 };
 
 /**
- * ResponseModel[SysConfigDetail]
- */
-export type ResponseModelSysConfigDetail = {
-    data?: SysConfigDetail | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SysConfigRevisionDetail]
- */
-export type ResponseModelSysConfigRevisionDetail = {
-    data?: SysConfigRevisionDetail | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SysConfigTestResult]
- */
-export type ResponseModelSysConfigTestResult = {
-    data?: SysConfigTestResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
- * ResponseModel[SysStepUpResult]
- */
-export type ResponseModelSysStepUpResult = {
-    data?: SysStepUpResult | null;
-    /**
-     * Error
-     */
-    error?: string | null;
-    /**
-     * Message
-     */
-    message?: string;
-    /**
-     * Meta
-     */
-    meta?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Timestamp
-     */
-    timestamp?: number;
-};
-
-/**
  * ResponseModel[SystemRuntimeOut]
  */
 export type ResponseModelSystemRuntimeOut = {
@@ -13021,6 +12788,31 @@ export type ResponseModelUploadStatusOut = {
  */
 export type ResponseModelUserProfile = {
     data?: UserProfile | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
+ * ResponseModel[UsernameCheckOut]
+ */
+export type ResponseModelUsernameCheckOut = {
+    data?: UsernameCheckOut | null;
     /**
      * Error
      */
@@ -14792,289 +14584,6 @@ export type SiteThemeOut = {
 };
 
 /**
- * SysConfigActivateRequest
- */
-export type SysConfigActivateRequest = {
-    /**
-     * Revisionid
-     */
-    revisionId: string;
-};
-
-/**
- * SysConfigDetail
- */
-export type SysConfigDetail = {
-    /**
-     * Activerevisionid
-     */
-    activeRevisionId?: string | null;
-    /**
-     * Namespace
-     */
-    namespace: string;
-    /**
-     * Revisionid
-     */
-    revisionId?: string | null;
-    /**
-     * Secrets
-     */
-    secrets?: {
-        [key: string]: boolean;
-    };
-    settingSchema: SettingsSchemaItem;
-    /**
-     * Updatedat
-     */
-    updatedAt?: string | null;
-    /**
-     * Value
-     */
-    value: {
-        [key: string]: unknown;
-    };
-};
-
-/**
- * SysConfigNamespaceSummary
- *
- * Sys config namespace summary.
- */
-export type SysConfigNamespaceSummary = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Kind
-     */
-    kind?: string;
-    /**
-     * Namespace
-     */
-    namespace: string;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * SysConfigPatch
- */
-export type SysConfigPatch = {
-    /**
-     * Activate
-     */
-    activate?: boolean;
-    /**
-     * Patch
-     */
-    patch?: {
-        [key: string]: unknown;
-    };
-};
-
-/**
- * SysConfigRevisionDetail
- *
- * Sys config revision detail (super admin).
- *
- * Notes:
- * - `value` is schema-filtered and secrets are masked to `None`.
- * - `signature_verified` is best-effort:
- * - None: no signature, public key missing, or key rotated / verify error
- * - True/False: verified against the current public key
- */
-export type SysConfigRevisionDetail = {
-    /**
-     * Baserevisionid
-     */
-    baseRevisionId?: string | null;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Createdby
-     */
-    createdBy?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Namespace
-     */
-    namespace: string;
-    /**
-     * Secrets
-     */
-    secrets?: {
-        [key: string]: boolean;
-    };
-    /**
-     * Signature
-     */
-    signature?: string | null;
-    /**
-     * Signatureverified
-     */
-    signatureVerified?: boolean | null;
-    /**
-     * Signatureverifyreason
-     */
-    signatureVerifyReason?: string | null;
-    /**
-     * Signingkeyfingerprint
-     */
-    signingKeyFingerprint?: string | null;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-    /**
-     * Value
-     */
-    value: {
-        [key: string]: unknown;
-    };
-};
-
-/**
- * SysConfigRevisionOut
- */
-export type SysConfigRevisionOut = {
-    /**
-     * Baserevisionid
-     */
-    baseRevisionId?: string | null;
-    /**
-     * Createdat
-     *
-     * Created at.
-     */
-    createdAt: string;
-    /**
-     * Createdby
-     */
-    createdBy?: string | null;
-    /**
-     * Id
-     *
-     * ID
-     */
-    id: string;
-    /**
-     * Namespace
-     */
-    namespace: string;
-    /**
-     * Signature
-     */
-    signature?: string | null;
-    /**
-     * Signingkeyfingerprint
-     */
-    signingKeyFingerprint?: string | null;
-    /**
-     * Updatedat
-     *
-     * Updated at.
-     */
-    updatedAt: string;
-};
-
-/**
- * SysConfigTestCheck
- */
-export type SysConfigTestCheck = {
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Details
-     */
-    details?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Kind
-     */
-    kind?: 'config' | 'connectivity' | 'internal';
-    /**
-     * Message
-     */
-    message?: string | null;
-    /**
-     * Ok
-     */
-    ok: boolean;
-};
-
-/**
- * SysConfigTestRequest
- */
-export type SysConfigTestRequest = {
-    /**
-     * Revisionid
-     */
-    revisionId: string;
-};
-
-/**
- * SysConfigTestResult
- */
-export type SysConfigTestResult = {
-    /**
-     * Checks
-     */
-    checks?: Array<SysConfigTestCheck>;
-    /**
-     * Ok
-     */
-    ok: boolean;
-};
-
-/**
- * SysStepUpRequest
- */
-export type SysStepUpRequest = {
-    /**
-     * Password
-     *
-     * Current user password for step-up.
-     */
-    password: string;
-};
-
-/**
- * SysStepUpResult
- */
-export type SysStepUpResult = {
-    /**
-     * Expiresin
-     *
-     * Token TTL (seconds).
-     */
-    expiresIn: number;
-    /**
-     * Token
-     *
-     * Short-lived sys governance access token.
-     */
-    token: string;
-};
-
-/**
  * SystemBootstrapRequest
  *
  * Bootstrap the instance by creating the first super-admin account.
@@ -15751,6 +15260,34 @@ export type UserProfile = {
 export type UserStatus = 'active' | 'disabled' | 'locked';
 
 /**
+ * UsernameCheckOut
+ *
+ * Username availability precheck result.
+ */
+export type UsernameCheckOut = {
+    /**
+     * Available
+     *
+     * Whether the account name is currently available.
+     */
+    available: boolean;
+};
+
+/**
+ * UsernameCheckRequest
+ *
+ * Username availability precheck request.
+ */
+export type UsernameCheckRequest = {
+    /**
+     * Username
+     *
+     * Account name (3-32 chars). Allowed: lowercase letters, numbers, and hyphens.
+     */
+    username: string;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -16043,6 +15580,10 @@ export type WorkspaceDetailOut = {
      */
     id: string;
     /**
+     * Workspace kind.
+     */
+    kind: WorkspaceKind;
+    /**
      * Name
      *
      * Workspace name.
@@ -16201,6 +15742,27 @@ export type WorkspaceEmailInviteRenewRequest = {
      */
     expiresInSeconds?: number | null;
 };
+
+/**
+ * WorkspaceFirstOnboardingOut
+ */
+export type WorkspaceFirstOnboardingOut = {
+    /**
+     * Workspace-first onboarding state for current user.
+     */
+    status: WorkspaceFirstOnboardingStatus;
+    /**
+     * Workspaceid
+     *
+     * Workspace id already created by onboarding when step 1 has completed.
+     */
+    workspaceId?: string | null;
+};
+
+/**
+ * WorkspaceFirstOnboardingStatus
+ */
+export type WorkspaceFirstOnboardingStatus = 'pending_workspace' | 'pending_workspace_defaults' | 'completed';
 
 /**
  * WorkspaceInviteJoinMode
@@ -16388,6 +15950,13 @@ export type WorkspaceInviteLinkRenewRequest = {
      */
     expiresInSeconds?: number | null;
 };
+
+/**
+ * WorkspaceKind
+ *
+ * Workspace identity kind.
+ */
+export type WorkspaceKind = 'team';
 
 /**
  * WorkspaceMembershipStatus
@@ -16682,10 +16251,6 @@ export type WorkspaceSiteOut = {
  * WorkspaceSwitcherOut
  */
 export type WorkspaceSwitcherOut = {
-    /**
-     * Personal space switcher state.
-     */
-    personalSpace: PersonalSpaceSwitcherOut;
     /**
      * Teams
      *
@@ -18617,6 +18182,31 @@ export type GlobalAuthAuthSsoOauthStartResponses = {
     200: unknown;
 };
 
+export type GlobalAuthUsernameCheckData = {
+    body: UsernameCheckRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/username-check';
+};
+
+export type GlobalAuthUsernameCheckErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthUsernameCheckError = GlobalAuthUsernameCheckErrors[keyof GlobalAuthUsernameCheckErrors];
+
+export type GlobalAuthUsernameCheckResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelUsernameCheckOut;
+};
+
+export type GlobalAuthUsernameCheckResponse = GlobalAuthUsernameCheckResponses[keyof GlobalAuthUsernameCheckResponses];
+
 export type DomainWorkspacesListMyNotificationsData = {
     body?: never;
     path?: never;
@@ -18912,21 +18502,62 @@ export type DomainWorkspacesListMyWorkspacesResponses = {
 
 export type DomainWorkspacesListMyWorkspacesResponse = DomainWorkspacesListMyWorkspacesResponses[keyof DomainWorkspacesListMyWorkspacesResponses];
 
-export type DomainWorkspacesRetryMyPersonalSpaceData = {
-    body?: never;
+export type DomainWorkspacesCreateMyOnboardingWorkspaceData = {
+    body: OnboardingWorkspaceCreateRequest;
     path?: never;
     query?: never;
-    url: '/api/v1/me/workspaces/personal-space/retry';
+    url: '/api/v1/me/workspaces/onboarding';
 };
 
-export type DomainWorkspacesRetryMyPersonalSpaceResponses = {
+export type DomainWorkspacesCreateMyOnboardingWorkspaceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCreateMyOnboardingWorkspaceError = DomainWorkspacesCreateMyOnboardingWorkspaceErrors[keyof DomainWorkspacesCreateMyOnboardingWorkspaceErrors];
+
+export type DomainWorkspacesCreateMyOnboardingWorkspaceResponses = {
     /**
      * Successful Response
      */
-    200: ResponseModelPersonalSpaceSwitcherOut;
+    200: ResponseModelOnboardingWorkspaceCreateOut;
 };
 
-export type DomainWorkspacesRetryMyPersonalSpaceResponse = DomainWorkspacesRetryMyPersonalSpaceResponses[keyof DomainWorkspacesRetryMyPersonalSpaceResponses];
+export type DomainWorkspacesCreateMyOnboardingWorkspaceResponse = DomainWorkspacesCreateMyOnboardingWorkspaceResponses[keyof DomainWorkspacesCreateMyOnboardingWorkspaceResponses];
+
+export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Slug
+         *
+         * Desired workspace slug.
+         */
+        slug: string;
+    };
+    url: '/api/v1/me/workspaces/onboarding/slug-availability';
+};
+
+export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityError = DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityErrors[keyof DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityErrors];
+
+export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOrganizationWorkspaceSlugAvailabilityOut;
+};
+
+export type DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponse = DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponses[keyof DomainWorkspacesCheckMyOnboardingWorkspaceSlugAvailabilityResponses];
 
 export type DomainOrganizationListOrgCapabilitiesData = {
     body?: never;
@@ -19956,6 +19587,38 @@ export type DomainOrganizationCreateOrganizationWorkspaceMeResponses = {
 
 export type DomainOrganizationCreateOrganizationWorkspaceMeResponse = DomainOrganizationCreateOrganizationWorkspaceMeResponses[keyof DomainOrganizationCreateOrganizationWorkspaceMeResponses];
 
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Slug
+         *
+         * Desired workspace slug.
+         */
+        slug: string;
+    };
+    url: '/api/v1/organizations/me/workspaces/slug-availability';
+};
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeError = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeErrors[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeErrors];
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOrganizationWorkspaceSlugAvailabilityOut;
+};
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponse = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponses[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityMeResponses];
+
 export type DomainOrganizationDeleteOrganizationWorkspaceMeData = {
     body?: never;
     path: {
@@ -20971,6 +20634,45 @@ export type DomainOrganizationCreateOrganizationWorkspaceByOrgResponses = {
 
 export type DomainOrganizationCreateOrganizationWorkspaceByOrgResponse = DomainOrganizationCreateOrganizationWorkspaceByOrgResponses[keyof DomainOrganizationCreateOrganizationWorkspaceByOrgResponses];
 
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgData = {
+    body?: never;
+    path: {
+        /**
+         * Organization Id
+         *
+         * Organization ID.
+         */
+        organization_id: string;
+    };
+    query: {
+        /**
+         * Slug
+         *
+         * Desired workspace slug.
+         */
+        slug: string;
+    };
+    url: '/api/v1/organizations/{organization_id}/workspaces/slug-availability';
+};
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgError = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgErrors[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgErrors];
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelOrganizationWorkspaceSlugAvailabilityOut;
+};
+
+export type DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponse = DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponses[keyof DomainOrganizationCheckOrganizationWorkspaceSlugAvailabilityByOrgResponses];
+
 export type DomainOrganizationDeleteOrganizationWorkspaceByOrgData = {
     body?: never;
     path: {
@@ -21753,291 +21455,6 @@ export type DomainSitesGetSitemapXmlResponses = {
     200: unknown;
 };
 
-export type InternalSysStepUpData = {
-    body: SysStepUpRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/sys/auth/step-up';
-};
-
-export type InternalSysStepUpErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysStepUpError = InternalSysStepUpErrors[keyof InternalSysStepUpErrors];
-
-export type InternalSysStepUpResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSysStepUpResult;
-};
-
-export type InternalSysStepUpResponse = InternalSysStepUpResponses[keyof InternalSysStepUpResponses];
-
-export type InternalSysSendTestEmailData = {
-    body: MailTestRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/sys/mail/test';
-};
-
-export type InternalSysSendTestEmailErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysSendTestEmailError = InternalSysSendTestEmailErrors[keyof InternalSysSendTestEmailErrors];
-
-export type InternalSysSendTestEmailResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelMailTestResult;
-};
-
-export type InternalSysSendTestEmailResponse = InternalSysSendTestEmailResponses[keyof InternalSysSendTestEmailResponses];
-
-export type InternalSysListNamespacesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/sys/settings';
-};
-
-export type InternalSysListNamespacesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysListNamespacesError = InternalSysListNamespacesErrors[keyof InternalSysListNamespacesErrors];
-
-export type InternalSysListNamespacesResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSysConfigNamespaceSummary;
-};
-
-export type InternalSysListNamespacesResponse = InternalSysListNamespacesResponses[keyof InternalSysListNamespacesResponses];
-
-export type InternalSysGetNamespaceData = {
-    body?: never;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-    };
-    query?: never;
-    url: '/api/v1/sys/settings/{namespace}';
-};
-
-export type InternalSysGetNamespaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysGetNamespaceError = InternalSysGetNamespaceErrors[keyof InternalSysGetNamespaceErrors];
-
-export type InternalSysGetNamespaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSysConfigDetail;
-};
-
-export type InternalSysGetNamespaceResponse = InternalSysGetNamespaceResponses[keyof InternalSysGetNamespaceResponses];
-
-export type InternalSysPatchNamespaceData = {
-    body: SysConfigPatch;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-    };
-    query?: never;
-    url: '/api/v1/sys/settings/{namespace}';
-};
-
-export type InternalSysPatchNamespaceErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysPatchNamespaceError = InternalSysPatchNamespaceErrors[keyof InternalSysPatchNamespaceErrors];
-
-export type InternalSysPatchNamespaceResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSysConfigDetail;
-};
-
-export type InternalSysPatchNamespaceResponse = InternalSysPatchNamespaceResponses[keyof InternalSysPatchNamespaceResponses];
-
-export type InternalSysActivateRevisionData = {
-    body: SysConfigActivateRequest;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-    };
-    query?: never;
-    url: '/api/v1/sys/settings/{namespace}/activate';
-};
-
-export type InternalSysActivateRevisionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysActivateRevisionError = InternalSysActivateRevisionErrors[keyof InternalSysActivateRevisionErrors];
-
-export type InternalSysActivateRevisionResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSysConfigDetail;
-};
-
-export type InternalSysActivateRevisionResponse = InternalSysActivateRevisionResponses[keyof InternalSysActivateRevisionResponses];
-
-export type InternalSysListRevisionsData = {
-    body?: never;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-    };
-    url: '/api/v1/sys/settings/{namespace}/revisions';
-};
-
-export type InternalSysListRevisionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysListRevisionsError = InternalSysListRevisionsErrors[keyof InternalSysListRevisionsErrors];
-
-export type InternalSysListRevisionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataSysConfigRevisionOut;
-};
-
-export type InternalSysListRevisionsResponse = InternalSysListRevisionsResponses[keyof InternalSysListRevisionsResponses];
-
-export type InternalSysGetRevisionData = {
-    body?: never;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-        /**
-         * Revision Id
-         */
-        revision_id: string;
-    };
-    query?: never;
-    url: '/api/v1/sys/settings/{namespace}/revisions/{revision_id}';
-};
-
-export type InternalSysGetRevisionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysGetRevisionError = InternalSysGetRevisionErrors[keyof InternalSysGetRevisionErrors];
-
-export type InternalSysGetRevisionResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSysConfigRevisionDetail;
-};
-
-export type InternalSysGetRevisionResponse = InternalSysGetRevisionResponses[keyof InternalSysGetRevisionResponses];
-
-export type InternalSysTestRevisionData = {
-    body: SysConfigTestRequest;
-    path: {
-        /**
-         * Namespace
-         */
-        namespace: string;
-    };
-    query?: never;
-    url: '/api/v1/sys/settings/{namespace}/test';
-};
-
-export type InternalSysTestRevisionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type InternalSysTestRevisionError = InternalSysTestRevisionErrors[keyof InternalSysTestRevisionErrors];
-
-export type InternalSysTestRevisionResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelSysConfigTestResult;
-};
-
-export type InternalSysTestRevisionResponse = InternalSysTestRevisionResponses[keyof InternalSysTestRevisionResponses];
-
 export type InternalSystemListActivityData = {
     body?: never;
     path?: never;
@@ -22200,22 +21617,6 @@ export type InternalSystemListPermissionsResponses = {
 };
 
 export type InternalSystemListPermissionsResponse = InternalSystemListPermissionsResponses[keyof InternalSystemListPermissionsResponses];
-
-export type InternalSystemSyncPermissionsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/system/rbac/permissions/sync';
-};
-
-export type InternalSystemSyncPermissionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPermissionSyncResult;
-};
-
-export type InternalSystemSyncPermissionsResponse = InternalSystemSyncPermissionsResponses[keyof InternalSystemSyncPermissionsResponses];
 
 export type InternalSystemGetSystemRuntimeData = {
     body?: never;
@@ -24723,56 +24124,6 @@ export type DomainWorkspacesMeWorkspaceAuthzResponses = {
 
 export type DomainWorkspacesMeWorkspaceAuthzResponse = DomainWorkspacesMeWorkspaceAuthzResponses[keyof DomainWorkspacesMeWorkspaceAuthzResponses];
 
-export type DomainWorkspacesListNotificationsData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Page
-         *
-         * Page number (1-based).
-         */
-        page?: number;
-        /**
-         * Size
-         *
-         * Page size.
-         */
-        size?: number;
-        status?: NotificationListStatus;
-        /**
-         * Category
-         */
-        category?: NotificationCategory | null;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/notifications';
-};
-
-export type DomainWorkspacesListNotificationsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesListNotificationsError = DomainWorkspacesListNotificationsErrors[keyof DomainWorkspacesListNotificationsErrors];
-
-export type DomainWorkspacesListNotificationsResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelPageDataNotificationOut;
-};
-
-export type DomainWorkspacesListNotificationsResponse = DomainWorkspacesListNotificationsResponses[keyof DomainWorkspacesListNotificationsResponses];
-
 export type DomainWorkspacesSeedDemoNotificationsData = {
     body: NotificationDevSeedRequest;
     path: {
@@ -24804,149 +24155,6 @@ export type DomainWorkspacesSeedDemoNotificationsResponses = {
 };
 
 export type DomainWorkspacesSeedDemoNotificationsResponse = DomainWorkspacesSeedDemoNotificationsResponses[keyof DomainWorkspacesSeedDemoNotificationsResponses];
-
-export type DomainWorkspacesMarkAllReadData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/notifications/read-all';
-};
-
-export type DomainWorkspacesMarkAllReadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesMarkAllReadError = DomainWorkspacesMarkAllReadErrors[keyof DomainWorkspacesMarkAllReadErrors];
-
-export type DomainWorkspacesMarkAllReadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationReadAllResult;
-};
-
-export type DomainWorkspacesMarkAllReadResponse = DomainWorkspacesMarkAllReadResponses[keyof DomainWorkspacesMarkAllReadResponses];
-
-export type DomainWorkspacesGetUnreadPreviewData = {
-    body?: never;
-    path: {
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: {
-        /**
-         * Limit
-         *
-         * Max unread items to return (default 3).
-         */
-        limit?: number;
-    };
-    url: '/api/v1/workspaces/{workspace_id}/notifications/unread/preview';
-};
-
-export type DomainWorkspacesGetUnreadPreviewErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesGetUnreadPreviewError = DomainWorkspacesGetUnreadPreviewErrors[keyof DomainWorkspacesGetUnreadPreviewErrors];
-
-export type DomainWorkspacesGetUnreadPreviewResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationPreviewOut;
-};
-
-export type DomainWorkspacesGetUnreadPreviewResponse = DomainWorkspacesGetUnreadPreviewResponses[keyof DomainWorkspacesGetUnreadPreviewResponses];
-
-export type DomainWorkspacesDeleteNotificationData = {
-    body?: never;
-    path: {
-        /**
-         * Notification Id
-         */
-        notification_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/notifications/{notification_id}';
-};
-
-export type DomainWorkspacesDeleteNotificationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesDeleteNotificationError = DomainWorkspacesDeleteNotificationErrors[keyof DomainWorkspacesDeleteNotificationErrors];
-
-export type DomainWorkspacesDeleteNotificationResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationDeleteResult;
-};
-
-export type DomainWorkspacesDeleteNotificationResponse = DomainWorkspacesDeleteNotificationResponses[keyof DomainWorkspacesDeleteNotificationResponses];
-
-export type DomainWorkspacesMarkReadData = {
-    body?: never;
-    path: {
-        /**
-         * Notification Id
-         */
-        notification_id: string;
-        /**
-         * Workspace Id
-         *
-         * Workspace ID.
-         */
-        workspace_id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{workspace_id}/notifications/{notification_id}/read';
-};
-
-export type DomainWorkspacesMarkReadErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DomainWorkspacesMarkReadError = DomainWorkspacesMarkReadErrors[keyof DomainWorkspacesMarkReadErrors];
-
-export type DomainWorkspacesMarkReadResponses = {
-    /**
-     * Successful Response
-     */
-    200: ResponseModelNotificationReadResult;
-};
-
-export type DomainWorkspacesMarkReadResponse = DomainWorkspacesMarkReadResponses[keyof DomainWorkspacesMarkReadResponses];
 
 export type DomainWorkspacesPostWorkspacePublishArtifactsData = {
     body?: never;
