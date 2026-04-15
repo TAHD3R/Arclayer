@@ -347,7 +347,6 @@ function ReauthDialog(props: ReauthDialogProps) {
                   }
                 />
               }
-              description={t("account:ME_SECURITY_2FA_DISABLE_DIALOG_DESC")}
               error={error ?? undefined}
             >
               <AuthOtpInput
@@ -381,7 +380,6 @@ function ReauthDialog(props: ReauthDialogProps) {
                   }
                 />
               }
-              description={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
               error={error ?? undefined}
             >
               <Input

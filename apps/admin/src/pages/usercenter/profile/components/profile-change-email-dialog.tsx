@@ -220,7 +220,6 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
                 }
               />
             }
-            description={t("account:ME_PROFILE_EMAIL_CODE_DESC")}
             error={form.formState.errors.code?.message ?? verifyError ?? undefined}
           >
             <div className="grid gap-3">

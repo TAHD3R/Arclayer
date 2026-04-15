@@ -177,6 +177,55 @@ describe("shared Select", () => {
     ).not.toThrow();
   });
 
+  it("keeps the first field unfocused when a settings dialog opens", async () => {
+    render(
+      <SettingDialog open onOpenChange={() => undefined} title="Create workspace">
+        <input aria-label="Workspace name" />
+      </SettingDialog>,
+    );
+
+    const input = screen.getByLabelText("Workspace name");
+
+    await waitFor(() => {
+      expect(document.activeElement).not.toBe(input);
+    });
+  });
+
+  it("supports searchable popovers without forcing focus onto the first field", async () => {
+    const user = userEvent.setup();
+
+    function PopoverHarness() {
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button type="button">Members</button>
+          </PopoverTrigger>
+          <PopoverContent
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            onCloseAutoFocus={(event) => event.preventDefault()}
+          >
+            <input aria-label="Search members" />
+          </PopoverContent>
+        </Popover>
+      );
+    }
+
+    render(<PopoverHarness />);
+
+    const trigger = screen.getByRole("button", { name: "Members" });
+    await user.click(trigger);
+
+    const input = await screen.findByLabelText("Search members");
+    await waitFor(() => {
+      expect(document.activeElement).not.toBe(input);
+    });
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Search members")).not.toBeInTheDocument();
+    });
+  });
+
   it("renders the assets filter toolbar under StrictMode without hitting a nested update loop", () => {
     expect(() =>
       render(

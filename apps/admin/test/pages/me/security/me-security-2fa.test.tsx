@@ -264,9 +264,18 @@ describe("UserTwoFactorSection", () => {
     );
     let dialog = await screen.findByRole("dialog");
     let dialogScope = within(dialog);
+    expect(
+      dialogScope.getAllByText(i18n.t("account:ME_SECURITY_2FA_REGENERATE_DIALOG_DESC")),
+    ).toHaveLength(1);
+    expect(
+      dialogScope.queryByText(i18n.t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")),
+    ).not.toBeInTheDocument();
     await user.click(
       dialogScope.getByRole("button", { name: i18n.t("auth:TWO_FACTOR_USE_BACKUP_CODE") }),
     );
+    expect(
+      dialogScope.queryByText(i18n.t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")),
+    ).not.toBeInTheDocument();
     await user.type(
       dialogScope.getByLabelText(i18n.t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")),
       "ABCD-EFGH",
@@ -295,6 +304,9 @@ describe("UserTwoFactorSection", () => {
     fireEvent.click(disableButton);
     dialog = await screen.findByRole("dialog");
     dialogScope = within(dialog);
+    expect(
+      dialogScope.getAllByText(i18n.t("account:ME_SECURITY_2FA_DISABLE_DIALOG_DESC")),
+    ).toHaveLength(1);
     await user.type(dialogScope.getByLabelText(i18n.t("auth:TWO_FACTOR_CODE_LABEL")), "654321");
     await user.click(
       dialogScope.getByRole("button", { name: i18n.t("account:ME_SECURITY_2FA_DISABLE") }),

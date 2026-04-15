@@ -17,6 +17,8 @@ import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
+import { cn } from "@arclayer/lib/utils";
 import type { DeleteMyAccountPayload } from "@/types/api";
 import { DialogField } from "./dialog-field";
 
@@ -181,19 +183,24 @@ export function UserDangerSection(props: UserDangerSectionProps) {
     return t("account:ME_DELETE_ACCOUNT_DIALOG_DESC");
   }, [requiresRelogin, requiresTwoFactor, t]);
 
-  const actionDescription = useMemo(() => {
-    if (!blockedReasonText) return t("account:ME_DELETE_ACCOUNT_DESC");
-    return (
-      <div className="grid gap-1">
-        <div>{t("account:ME_DELETE_ACCOUNT_DESC")}</div>
-        <div className="text-destructive">{blockedReasonText}</div>
-      </div>
-    );
-  }, [blockedReasonText, t]);
+  const actionDescription = useMemo(() => t("account:ME_DELETE_ACCOUNT_DESC"), [t]);
 
   const canOpenDialog = !capabilityQuery.isLoading && !capabilityQuery.isError && canDelete;
   const deleteButtonDisabled =
     deleteMutation.isPending || capabilityQuery.isLoading || requiresRelogin || !canDelete;
+  const deleteAction = (
+    <Button
+      variant="destructive"
+      aria-disabled={!canOpenDialog}
+      className={cn(!canOpenDialog && "cursor-not-allowed opacity-50")}
+      onClick={() => {
+        if (!canOpenDialog) return;
+        setOpen(true);
+      }}
+    >
+      {t("account:ME_DELETE_ACCOUNT_ACTION")}
+    </Button>
+  );
 
   return (
     <>
@@ -203,9 +210,20 @@ export function UserDangerSection(props: UserDangerSectionProps) {
             title={t("account:ME_DELETE_ACCOUNT_TITLE")}
             description={actionDescription}
             action={
-              <Button variant="destructive" disabled={!canOpenDialog} onClick={() => setOpen(true)}>
-                {t("account:ME_DELETE_ACCOUNT_ACTION")}
-              </Button>
+              blockedReasonText ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild focusTrigger={false}>
+                      <span data-testid="delete-account-tooltip-trigger">{deleteAction}</span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72 text-left">
+                      {blockedReasonText}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                deleteAction
+              )
             }
           />
         </SettingCard>

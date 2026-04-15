@@ -119,6 +119,9 @@ describe("UserChangeEmailDialog", () => {
     expect(
       screen.queryByLabelText(i18n.t("account:ME_PROFILE_EMAIL_NEW_EMAIL")),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t("account:ME_PROFILE_EMAIL_CODE_DESC")),
+    ).not.toBeInTheDocument();
 
     expect(screen.getByText(i18n.t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX"))).toBeInTheDocument();
     expect(

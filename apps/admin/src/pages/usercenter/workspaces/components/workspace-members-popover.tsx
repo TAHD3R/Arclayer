@@ -89,7 +89,13 @@ export function WorkspaceMembersPopover({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="start" sideOffset={8} className="w-80 max-w-[90vw] p-3">
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        className="w-80 max-w-[90vw] p-3"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
         <div className="space-y-3">
           <div className="font-semibold">{t("common:ORG_WORKSPACES_MEMBERS_POPOVER_TITLE")}</div>
 

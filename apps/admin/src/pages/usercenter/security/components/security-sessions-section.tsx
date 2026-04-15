@@ -1,36 +1,17 @@
-import { useMemo, useRef, useState, type MutableRefObject } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { DataTableSearchInput } from "@/components/common/data-table-search-input";
-import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
-import { DataTableToolbarAntdIconButton } from "@/components/common/data-table-toolbar-antd-icon-button";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import type { AuthSessionRow } from "@/types/api";
-import {
-  DataTableToolbarTools,
-  useDataTable,
-  useDataTableRowHeightPreference,
-  useDataTableWrapHeadersPreference,
-  type PageData,
-} from "@arclayer/ui/data-table";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { Button } from "@arclayer/ui/button";
+import { ConfirmDialog } from "@arclayer/ui/confirm-dialog";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@arclayer/ui/setting-card";
+import { Spinner } from "@arclayer/ui/spinner";
 
-import {
-  buildSessionColumns,
-  SecuritySessionsTableContent,
-  type SessionRow,
-} from "./security-sessions-table-view";
-
-type SessionFetchParams = {
-  page: number;
-  size: number;
-  q?: string;
-  ordering?: string;
-};
+import { SecuritySessionsTableContent, type SessionRow } from "./security-sessions-table-view";
 
 type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 const SESSION_PLACEHOLDER_VALUES = new Set(["-", "unknown", "n/a", "null", "undefined"]);
@@ -42,90 +23,40 @@ function normalizeSessionLabel(value: string | null | undefined): string | null 
   return trimmed;
 }
 
-function buildLocationLabel(session: AuthSessionRow): string {
+function buildLocationLabel(
+  session: Awaited<ReturnType<typeof authApi.listMySessions>>["items"][number],
+) {
   const location = normalizeSessionLabel(session.locationLabel);
   if (location) return location;
   const ipAddress = normalizeSessionLabel(session.ipAddress);
   return ipAddress ?? "-";
 }
 
-function mapSessionRow(session: AuthSessionRow): SessionRow {
+function mapSessionRow(
+  session: Awaited<ReturnType<typeof authApi.listMySessions>>["items"][number],
+  formatDateTime: ReturnType<typeof useAdminDateTimeFormatter>["formatDateTime"],
+): SessionRow {
   return {
     sessionId: session.sessionId,
     current: Boolean(session.current),
     revocable: Boolean(session.revocable),
     device:
       normalizeSessionLabel(session.deviceLabel) ?? normalizeSessionLabel(session.userAgent) ?? "-",
-    ip: normalizeSessionLabel(session.ipAddress) ?? "-",
     location: buildLocationLabel(session),
-    authMethod: session.authMethod || "unknown",
-    signedInAt: session.issuedAt,
-    lastActiveAt: session.lastUsedAt || "",
+    lastActiveLabel: formatDateTime(session.lastUsedAt || null, { emptyValue: "-" }),
   };
 }
 
-function filterRows(items: SessionRow[], query: string | undefined): SessionRow[] {
-  const normalized = String(query || "")
-    .trim()
-    .toLowerCase();
-  if (!normalized) return items;
-  return items.filter((item) =>
-    [item.device, item.location, item.ip, item.authMethod].some((value) =>
-      value.toLowerCase().includes(normalized),
-    ),
-  );
-}
-
-function sortRows(items: SessionRow[], ordering: string | undefined): SessionRow[] {
-  const normalizedOrdering = String(ordering || "").trim();
-  if (!normalizedOrdering) return items;
-  const desc = normalizedOrdering.startsWith("-");
-  const key = (desc ? normalizedOrdering.slice(1) : normalizedOrdering) as keyof SessionRow;
-  return [...items].sort((left, right) => {
-    const result = String(left[key] || "").localeCompare(String(right[key] || ""));
-    return desc ? -result : result;
-  });
-}
-
-function paginateRows(items: SessionRow[], params: SessionFetchParams): PageData<SessionRow> {
-  const total = items.length;
-  const pages = total === 0 ? 0 : Math.ceil(total / params.size);
-  const page = Math.min(Math.max(params.page, 1), Math.max(pages, 1));
-  const start = (page - 1) * params.size;
-  return {
-    items: items.slice(start, start + params.size),
-    total,
-    page,
-    size: params.size,
-    pages,
-    next: page < pages ? page + 1 : null,
-    prev: page > 1 ? page - 1 : null,
-  };
-}
-
-function buildSessionsPage(
-  items: AuthSessionRow[],
-  params: SessionFetchParams,
-): PageData<SessionRow> {
-  return paginateRows(
-    sortRows(filterRows(items.map(mapSessionRow), params.q), params.ordering),
-    params,
-  );
-}
-
-function useSessionRevocationMutations(
-  t: TranslateFn,
-  refreshRef: MutableRefObject<() => Promise<unknown> | void>,
-) {
+function useSessionRevocationMutations(t: TranslateFn, onRefresh: () => Promise<unknown>) {
   const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
   const revokeSessionMutation = useMutation({
-    mutationFn: async (sessionId: string) => {
-      setRevokingSessionId(sessionId);
-      return authApi.revokeMySession(sessionId);
+    mutationFn: async (session: SessionRow) => {
+      setRevokingSessionId(session.sessionId);
+      return authApi.revokeMySession(session.sessionId);
     },
     onSuccess: async () => {
       notifySuccessText(t("account:ME_SECURITY_SESSIONS_KICK_SUCCESS"));
-      await refreshRef.current();
+      await onRefresh();
     },
     onError: (error) => notifyError(error),
     onSettled: () => setRevokingSessionId(null),
@@ -137,112 +68,133 @@ function useSessionRevocationMutations(
       notifySuccessText(
         t("account:ME_SECURITY_SESSIONS_KICK_ALL_SUCCESS", { count: revokedCount }),
       );
-      await refreshRef.current();
+      await onRefresh();
     },
     onError: (error) => notifyError(error),
   });
-  return { revokingSessionId, revokeSessionMutation, revokeOthersMutation };
-}
 
-function SessionsAction(props: { loading: boolean; onClick: () => void; label: string }) {
-  return (
-    <Button variant="destructive" loading={props.loading} onClick={props.onClick}>
-      {props.label}
-    </Button>
-  );
-}
-
-function useSessionsTableController(t: TranslateFn) {
-  const refreshRef = useRef<() => Promise<unknown> | void>(() => undefined);
-  const dateTime = useAdminDateTimeFormatter();
-  const { revokingSessionId, revokeSessionMutation, revokeOthersMutation } =
-    useSessionRevocationMutations(t, refreshRef);
-  const columns = useMemo(
-    () =>
-      buildSessionColumns({
-        t,
-        formatDateTime: dateTime.formatDateTime,
-        isRevoking: revokeSessionMutation.isPending,
-        revokingSessionId,
-        onRevoke: revokeSessionMutation.mutate,
-      }),
-    [dateTime.formatDateTime, revokeSessionMutation.isPending, revokingSessionId, t],
-  );
-  const table = useDataTable<SessionRow>({
-    tableId: "me:sessions",
-    columns,
-    fetcher: async (params) => buildSessionsPage((await authApi.listMySessions()).items, params),
-    initialState: { pageSize: 10, sorting: [{ id: "lastActiveAt", desc: true }] },
-    features: { sorting: { enabled: true, mode: "client" } },
-    queryOptions: { retry: false, staleTime: 10 * 1000 },
-  });
-  refreshRef.current = () => table.refetch();
-  const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId: "me:sessions" });
-  const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({
-    tableId: "me:sessions",
-  });
   return {
-    table,
-    rowHeight,
-    setRowHeight,
-    wrapHeaders,
-    setWrapHeaders,
-    toolsLabels: buildDataTableToolsLabels(t),
+    revokingSessionId,
+    revokeSessionMutation,
     revokeOthersMutation,
   };
 }
 
 export function UserSessionsSection() {
-  const { t } = useTranslation(["account", "common", "settings"]);
-  const controller = useSessionsTableController(t);
+  const { t } = useTranslation(["account", "common"]);
+  const queryClient = useQueryClient();
+  const dateTime = useAdminDateTimeFormatter();
+  const [pendingRevokeSession, setPendingRevokeSession] = useState<SessionRow | null>(null);
+  const [revokeOthersOpen, setRevokeOthersOpen] = useState(false);
+
+  const sessionsQuery = useQuery({
+    queryKey: ["auth", "sessions"],
+    queryFn: async () => authApi.listMySessions(),
+    retry: false,
+    staleTime: 10 * 1000,
+  });
+
+  const refreshSessions = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["auth", "sessions"] });
+  };
+
+  const { revokingSessionId, revokeSessionMutation, revokeOthersMutation } =
+    useSessionRevocationMutations(t, refreshSessions);
+
+  const rows = useMemo(
+    () =>
+      (sessionsQuery.data?.items ?? []).map((session) =>
+        mapSessionRow(session, dateTime.formatDateTime),
+      ),
+    [dateTime.formatDateTime, sessionsQuery.data?.items],
+  );
 
   return (
-    <SettingCard>
-      <SettingCardHeader
-        title={t("account:ME_SECURITY_SESSIONS_PANEL_TITLE")}
-        description={t("account:ME_SECURITY_SESSIONS_TABLE_DESC")}
-        action={
-          <SessionsAction
-            loading={controller.revokeOthersMutation.isPending}
-            onClick={() => controller.revokeOthersMutation.mutate()}
-            label={t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
-          />
-        }
-      />
-      <SettingCardContent className="min-w-0 max-w-full overflow-x-hidden">
-        <SecuritySessionsTableContent
-          table={controller.table.table}
-          isFetching={controller.table.isFetching}
-          isLoading={controller.table.isLoading}
-          rowHeight={controller.rowHeight}
-          wrapHeaders={controller.wrapHeaders}
-          emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
-          toolbar={
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <DataTableSearchInput
-                value={controller.table.searchInput}
-                onChange={controller.table.setSearchInput}
-                placeholder={t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")}
-                clearLabel={t("common:CLEAR")}
-                className="max-w-80"
-              />
-
-              <DataTableToolbarTools
-                table={controller.table.table}
-                rowHeight={controller.rowHeight}
-                onRowHeightChange={controller.setRowHeight}
-                wrapHeaders={controller.wrapHeaders}
-                onWrapHeadersChange={controller.setWrapHeaders}
-                onRefresh={() => void controller.table.refetch()}
-                refreshing={controller.table.isFetching}
-                onResetColumnVisibility={controller.table.resetColumnVisibility}
-                labels={controller.toolsLabels}
-                components={{ IconButton: DataTableToolbarAntdIconButton }}
-              />
-            </div>
+    <>
+      <SettingCard>
+        <SettingCardHeader
+          title={t("account:ME_SECURITY_SESSIONS_PANEL_TITLE")}
+          description={t("account:ME_SECURITY_SESSIONS_TABLE_DESC")}
+          action={
+            <Button
+              variant="outline"
+              disabled={revokeOthersMutation.isPending || !rows.some((row) => row.revocable)}
+              onClick={() => setRevokeOthersOpen(true)}
+            >
+              {t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
+            </Button>
           }
         />
-      </SettingCardContent>
-    </SettingCard>
+        <SettingCardContent className="min-w-0 max-w-full overflow-x-hidden py-2">
+          <ContentGuard
+            loading={Boolean(sessionsQuery.isLoading && !sessionsQuery.data)}
+            error={sessionsQuery.error}
+            onRetry={() => {
+              void sessionsQuery.refetch();
+            }}
+            container="raw"
+            loadingVariant="table"
+          >
+            {sessionsQuery.isFetching && !sessionsQuery.isLoading ? (
+              <div className="mb-3 flex items-center gap-2 text-footnote text-label-secondary">
+                <Spinner className="size-4" />
+                <span>{t("common:LOADING")}</span>
+              </div>
+            ) : null}
+            <SecuritySessionsTableContent
+              rows={rows}
+              emptyText={t("account:ME_SECURITY_SESSIONS_EMPTY")}
+              isRevoking={revokeSessionMutation.isPending}
+              revokingSessionId={revokingSessionId}
+              onRevoke={setPendingRevokeSession}
+              t={t}
+            />
+          </ContentGuard>
+        </SettingCardContent>
+      </SettingCard>
+
+      <ConfirmDialog
+        open={Boolean(pendingRevokeSession)}
+        onOpenChange={(open) => {
+          if (!open && !revokeSessionMutation.isPending) {
+            setPendingRevokeSession(null);
+          }
+        }}
+        title={t("account:ME_SECURITY_SESSIONS_KICK_CONFIRM_TITLE")}
+        description={
+          pendingRevokeSession
+            ? t("account:ME_SECURITY_SESSIONS_KICK_CONFIRM_DESC", {
+                device: pendingRevokeSession.device,
+              })
+            : undefined
+        }
+        cancelText={t("common:CANCEL")}
+        confirmText={t("account:ME_SECURITY_SESSIONS_KICK")}
+        loading={revokeSessionMutation.isPending}
+        onConfirm={async () => {
+          if (!pendingRevokeSession) return;
+          await revokeSessionMutation.mutateAsync(pendingRevokeSession);
+          setPendingRevokeSession(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={revokeOthersOpen}
+        onOpenChange={(open) => {
+          if (!open && !revokeOthersMutation.isPending) {
+            setRevokeOthersOpen(false);
+          }
+        }}
+        title={t("account:ME_SECURITY_SESSIONS_KICK_ALL_CONFIRM_TITLE")}
+        description={t("account:ME_SECURITY_SESSIONS_KICK_ALL_CONFIRM_DESC")}
+        cancelText={t("common:CANCEL")}
+        confirmText={t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
+        loading={revokeOthersMutation.isPending}
+        onConfirm={async () => {
+          await revokeOthersMutation.mutateAsync();
+          setRevokeOthersOpen(false);
+        }}
+      />
+    </>
   );
 }

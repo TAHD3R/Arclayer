@@ -88,20 +88,24 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  window.localStorage.clear();
 });
 
 describe("UserSessionsSection", () => {
-  it("renders default columns, formatted time, current tag, and refresh toolbar", async () => {
-    const user = userEvent.setup();
+  it("renders a lightweight sessions table without search or toolbar controls", async () => {
     mockSessions();
 
     renderWithQuery(<UserSessionsSection />);
 
     expect(await screen.findByText("Safari on macOS")).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("account:ME_SECURITY_SESSIONS_TABLE_DESC"))).toBeInTheDocument();
     expect(
       screen.getByRole("columnheader", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_COL_DEVICE"),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", {
+        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_LAST_ACTIVE"),
       }),
     ).toBeInTheDocument();
     expect(
@@ -111,47 +115,33 @@ describe("UserSessionsSection", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_LAST_ACTIVE"),
+        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS"),
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_SIGNED_IN"),
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_AUTH_METHOD"),
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
-      }),
-    ).not.toBeInTheDocument();
 
+    expect(screen.getByText(i18n.t("account:ME_SECURITY_SESSIONS_CURRENT"))).toBeInTheDocument();
     expect(screen.getByText("formatted:2026-03-07T00:10:00Z")).toBeInTheDocument();
     expect(screen.queryByText("2026-03-07T00:10:00Z")).not.toBeInTheDocument();
-
-    const currentTag = screen.getByText(i18n.t("account:ME_SECURITY_SESSIONS_CURRENT"));
-    expect(currentTag).toBeVisible();
+    const currentRow = screen.getByText("Safari on macOS").closest("tr");
+    expect(currentRow).not.toBeNull();
+    expect(
+      within(currentRow as HTMLElement).getByRole("button", {
+        name: i18n.t("account:ME_SECURITY_SESSIONS_KICK"),
+      }),
+    ).toBeDisabled();
 
     expect(
-      screen.getByPlaceholderText(i18n.t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")),
-    ).toBeInTheDocument();
-    const refreshButton = screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_REFRESH") });
+      screen.queryByPlaceholderText(i18n.t("account:ME_SECURITY_SESSIONS_SEARCH_PLACEHOLDER")),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }),
-    ).toBeInTheDocument();
-
-    await user.click(refreshButton);
-
-    await waitFor(() => {
-      expect(listMySessionsMock).toHaveBeenCalledTimes(2);
-    });
+      screen.queryByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: i18n.t("common:DATA_TABLE_REFRESH") }),
+    ).not.toBeInTheDocument();
   });
 
-  it("toggles columns from the dedicated columns panel and revokes sessions", async () => {
+  it("opens confirm dialogs before revoking one session or all other sessions", async () => {
     const user = userEvent.setup();
     mockSessions();
     revokeMySessionMock.mockResolvedValue(null);
@@ -159,50 +149,52 @@ describe("UserSessionsSection", () => {
 
     renderWithQuery(<UserSessionsSection />);
 
-    await screen.findByText("Chrome on Windows");
-    await user.click(screen.getByRole("button", { name: i18n.t("common:DATA_TABLE_COLUMNS") }));
-    const columnsDialog = await screen.findByRole("dialog");
-    expect(columnsDialog).not.toBeNull();
-    const ipVisibilityButton = within(columnsDialog as HTMLElement)
-      .getAllByRole("button", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
-      })
-      .find((element) => element.hasAttribute("aria-pressed"));
-    expect(ipVisibilityButton).toBeTruthy();
+    const otherRow = (await screen.findByText("Chrome on Windows")).closest("tr");
+    expect(otherRow).not.toBeNull();
 
-    await user.click(ipVisibilityButton as HTMLElement);
-
-    expect(
-      await screen.findByRole("columnheader", {
-        name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("10.0.0.8")).toBeInTheDocument();
-
-    await user.click(ipVisibilityButton as HTMLElement);
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("columnheader", {
-          name: i18n.t("account:ME_SECURITY_SESSIONS_COL_IP"),
-        }),
-      ).not.toBeInTheDocument();
-    });
-
-    const row = screen.getByText("Chrome on Windows").closest("tr");
-    expect(row).not.toBeNull();
     await user.click(
-      within(row as HTMLElement).getByRole("button", {
+      within(otherRow as HTMLElement).getByRole("button", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_KICK"),
       }),
+    );
+
+    let dialog = await screen.findByRole("alertdialog");
+    let dialogScope = within(dialog);
+    expect(
+      dialogScope.getByText(
+        i18n.t("account:ME_SECURITY_SESSIONS_KICK_CONFIRM_DESC", {
+          device: "Chrome on Windows",
+        }),
+      ),
+    ).toBeInTheDocument();
+    expect(revokeMySessionMock).not.toHaveBeenCalled();
+
+    await user.click(
+      dialogScope.getByRole("button", { name: i18n.t("account:ME_SECURITY_SESSIONS_KICK") }),
     );
 
     await waitFor(() => {
       expect(revokeMySessionMock).toHaveBeenCalledWith("sid-other");
     });
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
 
     await user.click(
       screen.getByRole("button", {
+        name: i18n.t("account:ME_SECURITY_SESSIONS_KICK_ALL"),
+      }),
+    );
+
+    dialog = await screen.findByRole("alertdialog");
+    dialogScope = within(dialog);
+    expect(
+      dialogScope.getByText(i18n.t("account:ME_SECURITY_SESSIONS_KICK_ALL_CONFIRM_DESC")),
+    ).toBeInTheDocument();
+    expect(revokeOtherSessionsMock).toHaveBeenCalledTimes(0);
+
+    await user.click(
+      dialogScope.getByRole("button", {
         name: i18n.t("account:ME_SECURITY_SESSIONS_KICK_ALL"),
       }),
     );
@@ -233,21 +225,6 @@ describe("UserSessionsSection", () => {
 
     renderWithQuery(<UserSessionsSection />);
 
-    const ipFallbackCells = await screen.findAllByText("127.0.0.1");
-    expect(ipFallbackCells.length).toBeGreaterThan(0);
-  });
-
-  it("removes the session revocation behavior alert", async () => {
-    mockSessions();
-
-    renderWithQuery(<UserSessionsSection />);
-
-    await screen.findByText("Safari on macOS");
-    expect(
-      screen.queryByText(i18n.t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE_TITLE")),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(i18n.t("account:ME_SECURITY_SESSIONS_REVOKE_NOTE")),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText("127.0.0.1")).toBeInTheDocument();
   });
 });

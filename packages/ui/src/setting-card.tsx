@@ -9,7 +9,7 @@ export function SettingCard({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <section className={cn("overflow-hidden", className)}>{children}</section>;
+  return <section className={className}>{children}</section>;
 }
 
 export function SettingCardHeader({

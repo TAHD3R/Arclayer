@@ -1,3 +1,4 @@
+import { Lock, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, type Variants } from "motion/react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +7,7 @@ import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
 import { AuthLinkButton } from "@arclayer/ui/auth-controls";
+import { Separator } from "@arclayer/ui/separator";
 
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
 
@@ -82,6 +84,12 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
     props.challenge.source === "email-code"
       ? t("auth:TWO_FACTOR_BACK_TO_EMAIL_CODE")
       : t("auth:TWO_FACTOR_BACK_TO_PASSWORD");
+  const backToLoginIcon =
+    props.challenge.source === "email-code" ? (
+      <Mail className="size-4" />
+    ) : (
+      <Lock className="size-4" />
+    );
 
   return (
     <div className={AUTH_PANE_STACK_CLASS}>
@@ -147,10 +155,28 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
           <Button type="submit" size="lg" loading={props.loading}>
             {t("auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON")}
           </Button>
+          <div className="grid gap-2.5 pt-1.5">
+            <div className="flex items-center gap-3 py-1 text-footnote text-label-secondary">
+              <Separator className="flex-1" />
+              <span className="shrink-0">{t("auth:OAUTH_ACCOUNT_DIVIDER")}</span>
+              <Separator className="flex-1" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={props.loading}
+              className="h-10 w-full justify-center rounded-md border-border/80 bg-card/80 px-4 transition-colors hover:bg-accent/35"
+              onClick={props.onBackToLogin}
+            >
+              <span className="inline-flex shrink-0 items-center justify-center self-center">
+                {backToLoginIcon}
+              </span>
+              <span className="inline-flex min-w-0 items-center justify-center truncate text-center">
+                {backToLoginLabel}
+              </span>
+            </Button>
+          </div>
           <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />
-          <AuthLinkButton className="justify-start" onClick={props.onBackToLogin} type="button">
-            {backToLoginLabel}
-          </AuthLinkButton>
         </motion.div>
       </form>
     </div>

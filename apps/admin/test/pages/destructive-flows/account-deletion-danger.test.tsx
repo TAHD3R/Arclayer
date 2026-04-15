@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
@@ -8,6 +8,7 @@ import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { UserDangerSection } from "@/pages/usercenter/profile/components/profile-danger-section";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { TooltipProvider } from "@arclayer/ui/tooltip";
 
 const navigateMock = vi.fn().mockResolvedValue(undefined);
 const getDeleteMyAccountCapabilitiesMock = vi.fn();
@@ -33,7 +34,11 @@ function renderWithQuery(node: ReactElement) {
       queries: { retry: false },
     },
   });
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{node}</TooltipProvider>
+    </QueryClientProvider>,
+  );
 }
 
 beforeAll(async () => {
@@ -68,7 +73,7 @@ beforeEach(() => {
 });
 
 describe("account deletion danger flow", () => {
-  it("shows explicit blocked reason and disables action before click", async () => {
+  it("shows the blocked reason as a tooltip on the delete action", async () => {
     getDeleteMyAccountCapabilitiesMock.mockResolvedValue({
       email: "demo@example.com",
       canDelete: false,
@@ -84,10 +89,22 @@ describe("account deletion danger flow", () => {
     const action = await screen.findByRole("button", {
       name: i18n.t("account:ME_DELETE_ACCOUNT_ACTION"),
     });
-    expect(action).toBeDisabled();
+    await waitFor(() => {
+      expect(getDeleteMyAccountCapabilitiesMock).toHaveBeenCalled();
+      expect(screen.getByTestId("delete-account-tooltip-trigger")).toBeInTheDocument();
+    });
+    expect(action).toHaveAttribute("aria-disabled", "true");
     expect(
-      await screen.findByText(i18n.t("errors:ACCOUNT_DELETE_LAST_ORG_OWNER")),
-    ).toBeInTheDocument();
+      screen.queryByText(i18n.t("errors:ACCOUNT_DELETE_LAST_ORG_OWNER")),
+    ).not.toBeInTheDocument();
+
+    const trigger = screen.getByTestId("delete-account-tooltip-trigger");
+    fireEvent.mouseEnter(trigger);
+    fireEvent.mouseOver(trigger);
+
+    await waitFor(() => {
+      expect(screen.getByText(i18n.t("errors:ACCOUNT_DELETE_LAST_ORG_OWNER"))).toBeInTheDocument();
+    });
   });
 
   it("renders 2FA fields and submits backup code without password", async () => {
