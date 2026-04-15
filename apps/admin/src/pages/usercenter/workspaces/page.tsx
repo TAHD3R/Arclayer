@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { Archive, LogIn, Plus, Trash2, Undo2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { OrganizationWorkspace } from "@/types/api";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
@@ -21,13 +21,11 @@ import {
 import { UserCenterWorkspacesToolbar } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-toolbar";
 import { WorkspacesContentSection } from "@/pages/usercenter/workspaces/components/workspaces-table-section";
 import { useUserCenterWorkspacesColumns } from "@/pages/usercenter/workspaces/components/workspaces-columns";
-import { useUserCenterWorkspacesMutations } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations";
+import { useWorkspaceMenuActions } from "@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions";
 import { useUserCenterWorkspacesTables } from "@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-tables";
 import type {
   UserCenterWorkspacesTab,
-  UserCenterWorkspaceListItem,
   UserCenterWorkspacesViewMode,
-  WorkspaceMenuItem,
 } from "@/pages/usercenter/workspaces/types";
 
 export function WorkspacesPage() {
@@ -45,9 +43,6 @@ export function WorkspacesPage() {
     name: "",
     description: "",
   });
-  const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
-  const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
   useEffect(() => {
     if (!autoOpenCreate) return;
@@ -57,90 +52,20 @@ export function WorkspacesPage() {
   const handleEnterWorkspace = useCallback(
     (workspaceId: string) => {
       setCurrentWorkspaceId(workspaceId);
-      void navigate({ to: `/w/${workspaceId}` });
+      void navigate({ to: workspaceHomePath(workspaceId) as never });
     },
     [navigate, setCurrentWorkspaceId],
   );
-  const handleRequestDeleteWorkspace = useCallback((workspace: OrganizationWorkspace) => {
-    setDeleteConfirmName("");
-    setConfirmDelete(workspace);
-  }, []);
 
-  const mutations = useUserCenterWorkspacesMutations({
+  const workspaceMenuActions = useWorkspaceMenuActions({
     organizationId: undefined,
     t,
-    onCreateSuccess: () => {
-      setCreateOpen(false);
-      setCreateValues({ name: "", description: "" });
-    },
-    onArchiveSuccess: () => {
-      setConfirmArchive(null);
-    },
-    onDeleteSuccess: () => {
-      setConfirmDelete(null);
-      setDeleteConfirmName("");
-    },
+    onEnterWorkspace: handleEnterWorkspace,
   });
-
-  const handleUnarchiveWorkspace = useCallback(
-    (workspaceId: string) => {
-      void mutations.unarchiveMutation.mutateAsync(workspaceId);
-    },
-    [mutations.unarchiveMutation],
-  );
-
-  const buildCardMenuItems = useCallback(
-    (workspace: UserCenterWorkspaceListItem): WorkspaceMenuItem[] => {
-      if (workspace.isArchived) {
-        return [
-          {
-            key: "unarchive",
-            icon: <Undo2 className="size-4" />,
-            label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
-            onClick: () => handleUnarchiveWorkspace(workspace.workspaceId),
-          },
-          { key: "divider", type: "divider" as const, label: "" },
-          {
-            key: "delete",
-            danger: true,
-            icon: <Trash2 className="size-4" />,
-            label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-            onClick: () => handleRequestDeleteWorkspace(workspace as OrganizationWorkspace),
-          },
-        ];
-      }
-      return [
-        {
-          key: "enter",
-          icon: <LogIn className="size-4" />,
-          label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
-          onClick: () => handleEnterWorkspace(workspace.workspaceId),
-        },
-        { key: "divider", type: "divider" as const, label: "" },
-        {
-          key: "archive",
-          icon: <Archive className="size-4" />,
-          label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
-          onClick: () => setConfirmArchive(workspace as OrganizationWorkspace),
-        },
-        {
-          key: "delete",
-          danger: true,
-          icon: <Trash2 className="size-4" />,
-          label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-          onClick: () => handleRequestDeleteWorkspace(workspace as OrganizationWorkspace),
-        },
-      ];
-    },
-    [t, handleEnterWorkspace, handleUnarchiveWorkspace, handleRequestDeleteWorkspace],
-  );
 
   const columns = useUserCenterWorkspacesColumns({
     t,
-    onArchiveWorkspace: setConfirmArchive,
-    onRequestDeleteWorkspace: handleRequestDeleteWorkspace,
-    onUnarchiveWorkspace: handleUnarchiveWorkspace,
-    onEnterWorkspace: handleEnterWorkspace,
+    buildMenuItems: workspaceMenuActions.buildMenuItems,
   });
 
   const { activeTableId, archivedTableId, activeTableHook, archivedTableHook } =
@@ -177,7 +102,6 @@ export function WorkspacesPage() {
           wrapHeaders: archivedWrapHeaders,
           setWrapHeaders: setArchivedWrapHeaders,
         };
-  const deleteConfirmMatches = deleteConfirmName.trim() === (confirmDelete?.name || "");
   const pageToolbar = (
     <UserCenterWorkspacesToolbar
       t={t}
@@ -235,7 +159,7 @@ export function WorkspacesPage() {
               organizationId={undefined}
               archived={false}
               searchInput={activeTableHook.searchInput}
-              buildMenuItems={buildCardMenuItems}
+              buildMenuItems={workspaceMenuActions.buildMenuItems}
               onCardClick={(workspace) => handleEnterWorkspace(workspace.workspaceId)}
             />
           </ChromeTabsContent>
@@ -253,7 +177,7 @@ export function WorkspacesPage() {
               organizationId={undefined}
               archived
               searchInput={archivedTableHook.searchInput}
-              buildMenuItems={buildCardMenuItems}
+              buildMenuItems={workspaceMenuActions.buildMenuItems}
             />
           </ChromeTabsContent>
         </div>
@@ -266,30 +190,15 @@ export function WorkspacesPage() {
           setOpen: setCreateOpen,
           values: createValues,
           setValues: setCreateValues,
-          pending: mutations.createMutation.isPending,
+          pending: workspaceMenuActions.mutations.createMutation.isPending,
           onSubmit: async (values) => {
-            await mutations.createMutation.mutateAsync(values);
+            await workspaceMenuActions.mutations.createMutation.mutateAsync(values);
+            setCreateOpen(false);
+            setCreateValues({ name: "", description: "" });
           },
         }}
-        archiveDialog={{
-          workspace: confirmArchive,
-          setWorkspace: setConfirmArchive,
-          pending: mutations.archiveMutation.isPending,
-          onConfirm: async (workspaceId) => {
-            await mutations.archiveMutation.mutateAsync(workspaceId);
-          },
-        }}
-        deleteDialog={{
-          workspace: confirmDelete,
-          setWorkspace: setConfirmDelete,
-          confirmName: deleteConfirmName,
-          setConfirmName: setDeleteConfirmName,
-          confirmMatches: deleteConfirmMatches,
-          pending: mutations.deleteMutation.isPending,
-          onConfirm: async (payload) => {
-            await mutations.deleteMutation.mutateAsync(payload);
-          },
-        }}
+        archiveDialog={workspaceMenuActions.archiveDialog}
+        deleteDialog={workspaceMenuActions.deleteDialog}
       />
     </ChromeTabs>
   );

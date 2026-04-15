@@ -8,6 +8,7 @@ export type AdminNavItem = {
   label: string;
   labelKey?: string;
   to?: string;
+  groupBehavior?: "preferred-child" | "navigate-self-and-expand";
   activeMatchPaths?: string[];
   search?: NavSearch;
   icon: LucideIcon;

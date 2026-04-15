@@ -1,6 +1,10 @@
-import { Outlet, useRouterState } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { PanelsTopLeft } from "lucide-react";
+import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
+import { listAllOrganizationWorkspaces } from "@/api/organization-workspaces";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { RouteTransition } from "@/components/layout/route-transition";
@@ -8,8 +12,15 @@ import { COMMON_FOOTER_NAV_ITEMS } from "@/constants/menu/common";
 import { resolveGlobalNavItems } from "@/constants/menu/global";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
+import { workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { buildCommonFooterItems } from "@/layouts/admin-scene-utils";
+import { WorkspaceActionDialogs } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
+import { WorkspaceActionsDropdown } from "@/pages/usercenter/workspaces/components/workspace-actions-dropdown";
+import { useWorkspaceMenuActions } from "@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions";
+import { mapOrganizationWorkspaceToListItem } from "@/pages/usercenter/workspaces/workspace-list-items";
+import { useAuthStore } from "@/stores/use-auth-store";
+import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 
 const GLOBAL_COMMAND_SCOPE = {
@@ -20,14 +31,70 @@ const GLOBAL_COMMAND_SCOPE = {
 } as const;
 
 export function GlobalLayout() {
+  const { t } = useTranslation(["account", "common"]);
+  const navigate = useNavigate();
   const searchStr = useRouterState({
     select: (s) => s.location.searchStr,
     structuralSharing: true,
   });
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
+  const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const { isSuperAdmin } = useCurrentUserProfile();
   const footerItems = useMemo(() => buildCommonFooterItems(COMMON_FOOTER_NAV_ITEMS), []);
-  const navItems = useMemo(() => resolveGlobalNavItems({ isSuperAdmin }), [isSuperAdmin]);
   const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
+
+  const handleEnterWorkspace = useCallback(
+    (workspaceId: string) => {
+      setCurrentWorkspaceId(workspaceId);
+      void navigate({ to: workspaceHomePath(workspaceId) as never });
+    },
+    [navigate, setCurrentWorkspaceId],
+  );
+
+  const workspaceMenuActions = useWorkspaceMenuActions({
+    organizationId: undefined,
+    t,
+    onEnterWorkspace: handleEnterWorkspace,
+  });
+
+  const workspacesQuery = useQuery({
+    queryKey: ["global-nav", "workspaces", sessionVersion],
+    enabled: Boolean(accessToken),
+    queryFn: async () => {
+      const items = await listAllOrganizationWorkspaces({ archived: false });
+
+      return items
+        .map(mapOrganizationWorkspaceToListItem)
+        .sort((left, right) => left.name.localeCompare(right.name));
+    },
+    staleTime: 30 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
+  const workspaceChildren = useMemo(
+    () =>
+      (workspacesQuery.data ?? []).map((workspace) => ({
+        key: `global.workspaces.${workspace.workspaceId}`,
+        label: workspace.name,
+        to: workspaceHomePath(workspace.workspaceId),
+        icon: PanelsTopLeft,
+        disabled: !workspace.enterable,
+        actionRenderer: () => (
+          <WorkspaceActionsDropdown
+            menuItems={workspaceMenuActions.buildMenuItems(workspace)}
+            buttonClassName="size-6 rounded-sm text-label-secondary opacity-0 transition-opacity duration-150 hover:bg-accent/70 hover:text-label-primary group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100"
+          />
+        ),
+      })),
+    [workspaceMenuActions.buildMenuItems, workspacesQuery.data],
+  );
+
+  const navItems = useMemo(
+    () => resolveGlobalNavItems({ isSuperAdmin, workspaceChildren }),
+    [isSuperAdmin, workspaceChildren],
+  );
 
   if (contentOnlyMode) {
     return (
@@ -74,6 +141,11 @@ export function GlobalLayout() {
       sidebarCollapsible="icon"
     >
       <Outlet />
+      <WorkspaceActionDialogs
+        t={t}
+        archiveDialog={workspaceMenuActions.archiveDialog}
+        deleteDialog={workspaceMenuActions.deleteDialog}
+      />
     </AdminSceneLayout>
   );
 }

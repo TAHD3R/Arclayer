@@ -76,6 +76,7 @@ import {
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
   NAV_ITEM_RADIUS_CLASSNAME,
+  NAV_TRAILING_ICON_SLOT_CLASSNAME,
   NAV_SUBTREE_CLASSNAME,
   NAV_SUBTREE_GUIDE_CLASSNAME,
   normalizePath,
@@ -667,13 +668,13 @@ function FavoriteLeafRow(props: {
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       data-dragging={isDragging ? "true" : "false"}
-      className="group/favorite-row flex items-center select-none"
+      className="group/favorite-row flex min-w-0 items-center select-none"
     >
       <div
         data-active={props.row.isSelected ? "true" : "false"}
         data-dragging={isDragging ? "true" : "false"}
         className={cn(
-          "relative z-10 flex flex-1 items-center gap-2",
+          "relative z-10 flex min-w-0 flex-1 items-center gap-2",
           NAV_ITEM_HEIGHT_CLASSNAME,
           NAV_ITEM_RADIUS_CLASSNAME,
           NAV_ITEM_BUTTON_PADDING_CLASSNAME,
@@ -729,14 +730,14 @@ function FavoriteFolderRow(props: {
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       data-dragging={isDragging ? "true" : "false"}
-      className="group/favorite-row flex items-center select-none"
+      className="group/favorite-row flex min-w-0 items-center select-none"
     >
       <div
         data-active={props.row.isSelected ? "true" : "false"}
         data-dragging={isDragging ? "true" : "false"}
         data-folder-drop-target={props.isFolderDropTarget ? "true" : "false"}
         className={cn(
-          "relative z-10 flex flex-1 items-center gap-2",
+          "relative z-10 flex min-w-0 flex-1 items-center gap-2",
           NAV_ITEM_HEIGHT_CLASSNAME,
           NAV_ITEM_RADIUS_CLASSNAME,
           NAV_ITEM_BUTTON_PADDING_CLASSNAME,
@@ -1104,7 +1105,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
       ),
     [folderStateMap, props.activeKeys, props.item.children, props.suppressedKeys],
   );
-  const effectiveExpanded = props.isTrailActive || sectionExpanded;
+  const effectiveExpanded = sectionExpanded;
   const overlayWorkspaceDetailQuery = useQuery({
     queryKey: ["workspace", "detail", overlayWorkspaceId, sessionVersion, "favorite-overlay"],
     enabled: Boolean(overlayWorkspaceId && overlayEntry),
@@ -1183,7 +1184,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
           setCollapsedOpen((open) => !open);
           return;
         }
-        setSectionExpanded(props.isTrailActive ? true : !sectionExpanded);
+        setSectionExpanded(!sectionExpanded);
       }}
     >
       {iconSlot(0, props.item.icon, { isActive: props.isTrailActive, collapseMotion: "shift" })}
@@ -1296,7 +1297,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
                 tapScale={1}
                 data-active={props.isTrailActive ? "true" : "false"}
                 className="flex min-w-0 flex-1 items-center gap-2 text-left outline-none"
-                onClick={() => setSectionExpanded(props.isTrailActive ? true : !sectionExpanded)}
+                onClick={() => setSectionExpanded(!sectionExpanded)}
               >
                 {iconSlot(0, props.item.icon, {
                   isActive: props.isTrailActive,
@@ -1308,7 +1309,11 @@ export function FavoritesNode(props: FavoritesNodeProps) {
                 {effectiveExpanded ? (
                   <FavoritesHeaderMenu onCreateFolder={handleCreateFolder} />
                 ) : null}
-                <span className={NAV_ITEM_COLLAPSE_HIDE_CLASSNAME}>{chevronIndicator}</span>
+                <span
+                  className={cn(NAV_TRAILING_ICON_SLOT_CLASSNAME, NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}
+                >
+                  {chevronIndicator}
+                </span>
               </div>
             </div>
             <Collapsible open={effectiveExpanded}>

@@ -21,7 +21,16 @@ function normalizeQuery(input: string): string {
   return String(input || "").trim();
 }
 
-export function WorkspaceMembersPopover({ workspace }: { workspace: OrganizationWorkspace }) {
+type WorkspaceMembersPopoverWorkspace = Pick<
+  OrganizationWorkspace,
+  "organizationId" | "workspaceId" | "memberCount"
+>;
+
+export function WorkspaceMembersPopover({
+  workspace,
+}: {
+  workspace: WorkspaceMembersPopoverWorkspace;
+}) {
   const { t } = useTranslation(["common"]);
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);

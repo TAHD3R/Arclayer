@@ -53,102 +53,16 @@ interface UserCenterWorkspacesDialogsProps {
   };
 }
 
-export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsProps) {
-  const { t, createDialog, archiveDialog, deleteDialog } = props;
-  const [createNameTouched, setCreateNameTouched] = useState(false);
-  const createNameMissing = !createDialog.values.name.trim();
-  const showCreateNameError = createNameTouched && createNameMissing;
+export type WorkspaceActionDialogsProps = Pick<
+  UserCenterWorkspacesDialogsProps,
+  "t" | "archiveDialog" | "deleteDialog"
+>;
 
-  useEffect(() => {
-    if (createDialog.open) {
-      setCreateNameTouched(false);
-    }
-  }, [createDialog.open]);
+export function WorkspaceActionDialogs(props: WorkspaceActionDialogsProps) {
+  const { t, archiveDialog, deleteDialog } = props;
 
   return (
     <>
-      <SettingDialog
-        open={createDialog.open}
-        onOpenChange={(open) => {
-          if (!createDialog.pending) {
-            createDialog.setOpen(open);
-          }
-        }}
-        title={t("common:ORG_WORKSPACES_CREATE_TEAM")}
-        description={t("common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC")}
-        footer={
-          <div className="flex w-full items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => createDialog.setOpen(false)}
-              disabled={createDialog.pending}
-            >
-              {t("common:CANCEL")}
-            </Button>
-            <Button
-              variant="default"
-              loading={createDialog.pending}
-              disabled={!createDialog.values.name.trim()}
-              onClick={async () => {
-                await createDialog.onSubmit({
-                  name: createDialog.values.name.trim(),
-                  description: createDialog.values.description?.trim() || undefined,
-                });
-              }}
-            >
-              {t("common:CONFIRM")}
-            </Button>
-          </div>
-        }
-      >
-        <SettingDialogFields>
-          <SettingDialogField
-            title={t("common:ORG_WORKSPACES_FIELD_NAME")}
-            description={t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
-            error={
-              showCreateNameError ? (
-                <span className="text-caption text-destructive">
-                  {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
-                </span>
-              ) : undefined
-            }
-          >
-            <Input
-              value={createDialog.values.name}
-              onChange={(event) => {
-                setCreateNameTouched(true);
-                createDialog.setValues((prev) => ({ ...prev, name: event.target.value }));
-              }}
-              onBlur={() => setCreateNameTouched(true)}
-              placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
-              aria-invalid={showCreateNameError}
-            />
-          </SettingDialogField>
-
-          <SettingDialogField
-            title={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
-            description={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
-          >
-            <textarea
-              rows={3}
-              value={createDialog.values.description ?? ""}
-              onChange={(event) =>
-                createDialog.setValues((prev) => ({
-                  ...prev,
-                  description: event.target.value,
-                }))
-              }
-              placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
-              className={cn(
-                "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
-                "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-              )}
-            />
-          </SettingDialogField>
-        </SettingDialogFields>
-      </SettingDialog>
-
       <AlertDialog
         open={Boolean(archiveDialog.workspace)}
         onOpenChange={(open) => {
@@ -248,6 +162,107 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
           />
         </SettingDialogField>
       </SettingDialog>
+    </>
+  );
+}
+
+export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsProps) {
+  const { t, createDialog, archiveDialog, deleteDialog } = props;
+  const [createNameTouched, setCreateNameTouched] = useState(false);
+  const createNameMissing = !createDialog.values.name.trim();
+  const showCreateNameError = createNameTouched && createNameMissing;
+
+  useEffect(() => {
+    if (createDialog.open) {
+      setCreateNameTouched(false);
+    }
+  }, [createDialog.open]);
+
+  return (
+    <>
+      <SettingDialog
+        open={createDialog.open}
+        onOpenChange={(open) => {
+          if (!createDialog.pending) {
+            createDialog.setOpen(open);
+          }
+        }}
+        title={t("common:ORG_WORKSPACES_CREATE_TEAM")}
+        description={t("common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC")}
+        footer={
+          <div className="flex w-full items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => createDialog.setOpen(false)}
+              disabled={createDialog.pending}
+            >
+              {t("common:CANCEL")}
+            </Button>
+            <Button
+              variant="default"
+              loading={createDialog.pending}
+              disabled={!createDialog.values.name.trim()}
+              onClick={async () => {
+                await createDialog.onSubmit({
+                  name: createDialog.values.name.trim(),
+                  description: createDialog.values.description?.trim() || undefined,
+                });
+              }}
+            >
+              {t("common:CONFIRM")}
+            </Button>
+          </div>
+        }
+      >
+        <SettingDialogFields>
+          <SettingDialogField
+            title={t("common:ORG_WORKSPACES_FIELD_NAME")}
+            description={t("common:ORG_WORKSPACES_FIELD_NAME_HELP")}
+            error={
+              showCreateNameError ? (
+                <span className="text-caption text-destructive">
+                  {t("common:ORG_WORKSPACES_FIELD_NAME_REQUIRED")}
+                </span>
+              ) : undefined
+            }
+          >
+            <Input
+              value={createDialog.values.name}
+              onChange={(event) => {
+                setCreateNameTouched(true);
+                createDialog.setValues((prev) => ({ ...prev, name: event.target.value }));
+              }}
+              onBlur={() => setCreateNameTouched(true)}
+              placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
+              aria-invalid={showCreateNameError}
+            />
+          </SettingDialogField>
+
+          <SettingDialogField
+            title={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION")}
+            description={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_HELP")}
+          >
+            <textarea
+              rows={3}
+              value={createDialog.values.description ?? ""}
+              onChange={(event) =>
+                createDialog.setValues((prev) => ({
+                  ...prev,
+                  description: event.target.value,
+                }))
+              }
+              placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
+              className={cn(
+                "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
+                "placeholder:text-label-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            />
+          </SettingDialogField>
+        </SettingDialogFields>
+      </SettingDialog>
+
+      <WorkspaceActionDialogs t={t} archiveDialog={archiveDialog} deleteDialog={deleteDialog} />
     </>
   );
 }

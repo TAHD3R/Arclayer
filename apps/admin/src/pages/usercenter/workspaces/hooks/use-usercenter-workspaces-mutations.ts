@@ -44,6 +44,7 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
       queryClient.invalidateQueries({ queryKey: archivedTableKey }),
       queryClient.invalidateQueries({ queryKey: cardsKey }),
       queryClient.invalidateQueries({ queryKey: ["organization", "workspaces", "switcher"] }),
+      queryClient.invalidateQueries({ queryKey: ["global-nav", "workspaces"] }),
     ]);
   };
 

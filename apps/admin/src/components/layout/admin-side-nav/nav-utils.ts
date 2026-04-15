@@ -11,6 +11,8 @@ export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1.5 group-data-[collapsible=icon
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-0 gap-1 pl-7 border-l-0";
 export const NAV_SUBTREE_GUIDE_CLASSNAME = cn("relative");
 export const NAV_DIVIDER_CLASSNAME = "mx-4 my-1";
+export const NAV_TRAILING_RAIL_CLASSNAME = "ml-auto flex shrink-0 items-center self-center";
+export const NAV_TRAILING_ICON_SLOT_CLASSNAME = "inline-flex size-6 items-center justify-center";
 
 function normalizePath(input: string): string {
   if (input.length > 1 && input.endsWith("/")) return input.slice(0, -1);
@@ -118,10 +120,24 @@ function buildNavIndex(items: readonly AdminNavItem[]): Map<string, NavIndexEntr
   return index;
 }
 
-export type OpenByParent = Record<string, string | undefined>;
+function collectGroupKeys(items: readonly AdminNavItem[]): Set<string> {
+  const groupKeys = new Set<string>();
+  const walk = (nodes: readonly AdminNavItem[]) => {
+    for (const node of nodes) {
+      if (!node.children?.length) continue;
+      groupKeys.add(node.key);
+      walk(node.children);
+    }
+  };
+  walk(items);
+  return groupKeys;
+}
+
+export type OpenGroupKeys = ReadonlySet<string>;
 
 export {
   buildNavIndex,
+  collectGroupKeys,
   findActiveTrail,
   findPreferredGroupTarget,
   getFirstDescendantTo,

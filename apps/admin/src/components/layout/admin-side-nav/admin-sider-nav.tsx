@@ -16,11 +16,12 @@ import {
 } from "@arclayer/ui/sidebar";
 import {
   buildNavIndex,
+  collectGroupKeys,
   findActiveTrail,
   isExactMatch,
   isPrefixMatch,
   normalizePath,
-  type OpenByParent,
+  type OpenGroupKeys,
 } from "./nav-utils";
 import { resolveFavoriteNavItems } from "./favorite-nav-items";
 import { NavNode } from "./nav-node";
@@ -50,26 +51,13 @@ type AdminSiderNavState = {
   baseActiveKeys: ReadonlySet<string>;
   starredActiveKeys: ReadonlySet<string>;
   suppressedKeys: ReadonlySet<string>;
-  openByParent: OpenByParent;
+  openGroupKeys: OpenGroupKeys;
   openChainForKey: (key: string) => void;
   selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   collapsedMode: boolean;
 };
 
 type ActiveSource = "base" | "starred";
-
-function deriveOpenByParent(activeTrail: readonly string[], items: readonly AdminNavItem[]) {
-  const navIndex = buildNavIndex(items);
-  const next: OpenByParent = {};
-
-  for (const key of activeTrail) {
-    const entry = navIndex.get(key);
-    if (!entry?.isGroup) continue;
-    next[entry.parentKey] = key;
-  }
-
-  return next;
-}
 
 function buildStarredItem(items: FavoriteNavNode[], pathname: string): AdminNavItem {
   return {
@@ -94,44 +82,51 @@ function injectStarredItem(
   return [starredItem, ...items];
 }
 
-function useOpenChain(activeTrail: readonly string[], items: readonly AdminNavItem[]) {
-  const defaultOpenByParent = useMemo(
-    () => deriveOpenByParent(activeTrail, items),
-    [activeTrail, items],
-  );
+function useOpenChain(items: readonly AdminNavItem[]) {
+  const allGroupKeys = useMemo(() => collectGroupKeys(items), [items]);
   const navIndex = useMemo(() => buildNavIndex(items), [items]);
-  const [openByParent, setOpenByParent] = useState<OpenByParent>(defaultOpenByParent);
+  const [openGroupKeys, setOpenGroupKeys] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    setOpenByParent(defaultOpenByParent);
-  }, [defaultOpenByParent]);
+    setOpenGroupKeys((prev) => {
+      const next = new Set<string>();
+      for (const key of prev) {
+        if (allGroupKeys.has(key)) next.add(key);
+      }
+      return next;
+    });
+  }, [allGroupKeys]);
 
   const openChainForKey = useCallback(
     (key: string) => {
-      setOpenByParent((prev) => {
+      setOpenGroupKeys((prev) => {
         const entry = navIndex.get(key);
         if (!entry) return prev;
-        if (entry.isGroup && prev[entry.parentKey] === key) {
-          const next = { ...prev };
-          delete next[entry.parentKey];
+
+        if (entry.isGroup) {
+          const next = new Set(prev);
+          if (next.has(entry.key)) next.delete(entry.key);
+          else next.add(entry.key);
           return next;
         }
-        const next: OpenByParent = {};
-        let current = key;
-        for (;;) {
-          const found = navIndex.get(current);
-          if (!found) break;
-          if (found.isGroup) next[found.parentKey] = current;
-          if (found.parentKey === "__root__") break;
-          current = found.parentKey;
+
+        const next = new Set(prev);
+        let currentParent = entry.parentKey;
+
+        while (currentParent !== "__root__") {
+          next.add(currentParent);
+          const parentEntry = navIndex.get(currentParent);
+          if (!parentEntry) break;
+          currentParent = parentEntry.parentKey;
         }
+
         return next;
       });
     },
     [navIndex],
   );
 
-  return { openByParent, openChainForKey };
+  return { openGroupKeys, openChainForKey };
 }
 
 function useDisplayItems(
@@ -227,7 +222,7 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
       ),
     [activeSource, baseActiveTrail, starredActive, starredActiveTrail],
   );
-  const { openByParent, openChainForKey } = useOpenChain(activeTrail, displayItems);
+  const { openGroupKeys, openChainForKey } = useOpenChain(displayItems);
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
   const selectActiveSource = useCallback(
     (source: ActiveSource, targetPath?: string) =>
@@ -244,7 +239,7 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
     baseActiveKeys,
     starredActiveKeys,
     suppressedKeys,
-    openByParent,
+    openGroupKeys,
     openChainForKey,
     selectActiveSource,
     collapsedMode: isCollapsed,
@@ -260,7 +255,7 @@ function NavItemsTree(props: {
   baseActiveKeys: ReadonlySet<string>;
   starredActiveKeys: ReadonlySet<string>;
   suppressedKeys: ReadonlySet<string>;
-  openByParent: OpenByParent;
+  openGroupKeys: OpenGroupKeys;
   openChainForKey: (key: string) => void;
   selectActiveSource: (source: ActiveSource, targetPath?: string) => void;
   resolvePermissionName?: (code: string) => string | null;
@@ -291,7 +286,7 @@ function NavItemsTree(props: {
                 baseActiveKeys={props.baseActiveKeys}
                 starredActiveKeys={props.starredActiveKeys}
                 suppressedKeys={props.suppressedKeys}
-                openByParent={props.openByParent}
+                openGroupKeys={props.openGroupKeys}
                 openChainForKey={props.openChainForKey}
                 selectActiveSource={props.selectActiveSource}
                 resolvePermissionName={props.resolvePermissionName}
@@ -321,7 +316,7 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
         baseActiveKeys={state.baseActiveKeys}
         starredActiveKeys={state.starredActiveKeys}
         suppressedKeys={state.suppressedKeys}
-        openByParent={state.openByParent}
+        openGroupKeys={state.openGroupKeys}
         openChainForKey={state.openChainForKey}
         selectActiveSource={state.selectActiveSource}
         resolvePermissionName={props.resolvePermissionName}

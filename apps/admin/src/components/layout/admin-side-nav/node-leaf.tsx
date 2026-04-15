@@ -17,6 +17,7 @@ import {
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
   NAV_ITEM_RADIUS_CLASSNAME,
+  NAV_TRAILING_RAIL_CLASSNAME,
 } from "./nav-utils";
 import {
   DISABLED_ITEM_CLASSNAME,
@@ -54,6 +55,8 @@ function NodeLeafSub({
 }: Omit<NodeLeafProps, "depth" | "hoverDropdown"> & {
   onNavigate: (to: string, search?: Record<string, unknown>) => void;
 }) {
+  const showAction = Boolean(item.actionRenderer);
+
   return (
     <SidebarMenuSubItem className="group/nav-item">
       <WithBlockedTooltip tooltip={blockedTooltip}>
@@ -85,9 +88,17 @@ function NodeLeafSub({
               if (!allowSamePathNavigate && isExactMatch(item.to, pathname)) return;
               onNavigate(item.to, item.search);
             }}
-            className="flex w-full items-center justify-start text-left"
+            className="flex w-full items-center justify-start gap-2 text-left"
           >
             <span className="min-w-0 flex-1 truncate">{label}</span>
+            {showAction && item.actionRenderer ? (
+              <span
+                className={NAV_TRAILING_RAIL_CLASSNAME}
+                onClick={(event) => event.stopPropagation()}
+              >
+                {item.actionRenderer(item)}
+              </span>
+            ) : null}
           </ButtonPrimitive>
         </SidebarMenuSubButton>
       </WithBlockedTooltip>

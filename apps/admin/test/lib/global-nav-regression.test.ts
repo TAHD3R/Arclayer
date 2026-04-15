@@ -14,10 +14,8 @@ describe("global nav regression", () => {
   });
 
   test("registers system settings as a real global destination", () => {
-    const maintenanceItem = GLOBAL_NAV_ITEMS.find(
-      (item) => item.key === "global.maintenance",
-    );
-    const settingsItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.system");
+    const maintenanceItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.maintenance");
+    const settingsItem = maintenanceItem?.children?.find((item) => item.key === "global.system");
 
     expect(maintenanceItem).toMatchObject({
       key: "global.maintenance",
@@ -37,5 +35,37 @@ describe("global nav regression", () => {
 
     expect(regularKeys).not.toContain("global.maintenance");
     expect(maintenanceItem?.children?.map((item) => item.key)).toContain("global.system");
+  });
+
+  test("marks workspaces as a navigate-self-and-expand group", () => {
+    const workspacesItem = GLOBAL_NAV_ITEMS.find((item) => item.key === "global.workspaces");
+
+    expect(workspacesItem).toMatchObject({
+      key: "global.workspaces",
+      to: "/workspaces",
+      groupBehavior: "navigate-self-and-expand",
+    });
+  });
+
+  test("injects runtime workspace children under the global workspaces node", () => {
+    const injectedItems = resolveGlobalNavItems({
+      isSuperAdmin: false,
+      workspaceChildren: [
+        {
+          key: "global.workspaces.ws-alpha",
+          label: "Alpha",
+          to: "/w/ws-alpha",
+          icon: GLOBAL_NAV_ITEMS[2]!.icon,
+        },
+      ],
+    });
+    const workspacesItem = injectedItems.find((item) => item.key === "global.workspaces");
+
+    expect(workspacesItem?.children).toHaveLength(1);
+    expect(workspacesItem?.children?.[0]).toMatchObject({
+      key: "global.workspaces.ws-alpha",
+      label: "Alpha",
+      to: "/w/ws-alpha",
+    });
   });
 });

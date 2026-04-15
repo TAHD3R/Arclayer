@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
 import userEvent from "@testing-library/user-event";
 import { Activity, Home, LayoutGrid, Settings, UserPlus, Users } from "lucide-react";
@@ -250,6 +250,30 @@ const redirectedPreferenceItems: AdminNavItem[] = [
   },
 ];
 
+const navigateSelfAndExpandItems: AdminNavItem[] = [
+  {
+    key: "dashboard",
+    label: "Overview",
+    icon: Home,
+    to: "/",
+  },
+  {
+    key: "global.workspaces",
+    label: "Workspaces",
+    icon: Users,
+    to: "/workspaces",
+    groupBehavior: "navigate-self-and-expand",
+    children: [
+      {
+        key: "global.workspaces.ws-alpha",
+        label: "Alpha Workspace",
+        icon: Home,
+        to: "/w/ws-alpha",
+      },
+    ],
+  },
+];
+
 describe("AdminSiderNav collapsed groups", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
@@ -446,20 +470,18 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(document.querySelector('[data-sidebar="group-label"]')).toBeNull();
   });
 
-  it("opens only the active top-level group by default", async () => {
+  it("keeps all top-level groups collapsed by default", () => {
     renderTreeNav({
       items: treeItems,
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
-    });
-    expect(screen.getByRole("button", { name: "Members" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Invitations" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Invitations" })).not.toBeInTheDocument();
   });
 
-  it("toggles top-level groups as an accordion", async () => {
+  it("toggles top-level groups independently without accordion behavior", async () => {
     const user = userEvent.setup();
     renderTreeNav({
       items: treeItems,
@@ -590,7 +612,13 @@ describe("AdminSiderNav collapsed groups", () => {
       favoriteWorkspaceBase: "/w/ws-1",
     });
 
-    const assetsButton = screen.getByRole("button", { name: "Assets" });
+    const folderWrapper = screen
+      .getByRole("button", { name: "Pinned" })
+      .closest(".flex.flex-col.gap-1");
+    expect(folderWrapper).not.toBeNull();
+    const assetsButton = within(folderWrapper as HTMLElement).getByRole("button", {
+      name: "Assets",
+    });
     const nestedSubtree = assetsButton
       .closest(".pt-1\\.5.overflow-hidden")
       ?.querySelector(".flex.flex-col");
@@ -598,7 +626,8 @@ describe("AdminSiderNav collapsed groups", () => {
     expect(nestedSubtree?.className).not.toContain("pl-7");
   });
 
-  it("suppresses duplicate base-nav highlighting when the active page comes from Favorites", () => {
+  it("keeps favorites collapsed by default even when the active page comes from Favorites", async () => {
+    const user = userEvent.setup();
     mockPathname = "/w/ws-1/content/seo-analyze";
     useFavoritesStore.setState({
       paths: ["/w/ws-1/content/seo-analyze"],
@@ -615,11 +644,14 @@ describe("AdminSiderNav collapsed groups", () => {
       "true",
     );
     expect(screen.getByRole("button", { name: "Content" })).toHaveAttribute("data-active", "false");
+    expect(screen.queryByRole("button", { name: "SEO Analyze" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_FAVORITES" }));
+
     expect(screen.getByRole("button", { name: "SEO Analyze" })).toHaveAttribute(
       "data-active",
       "true",
     );
-    expect(screen.queryAllByRole("button", { name: "SEO Analyze" })).toHaveLength(1);
   });
 
   it("lets users switch the active trail back to the base nav for the same favorited page", async () => {
@@ -665,10 +697,6 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Content" }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "SEO Analyze" })).toBeVisible();
-    });
-
     await user.click(screen.getByRole("button", { name: "SEO Analyze" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/content/seo-analyze" });
@@ -703,10 +731,6 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Content" }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Site Settings" })).toBeVisible();
-    });
-
     await user.click(screen.getByRole("button", { name: "Site Settings" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/settings/site" });
@@ -745,10 +769,6 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Workspace" }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Workspace Settings" })).toBeVisible();
-    });
-
     await user.click(screen.getByRole("button", { name: "Workspace Settings" }));
 
     expect(navigateMock).toHaveBeenCalledWith({ to: "/w/ws-1/settings/workspace" });
@@ -776,7 +796,37 @@ describe("AdminSiderNav collapsed groups", () => {
     );
   });
 
-  it("can keep a source menu branch active while current route renders /notifications", () => {
+  it("navigates to the parent route and expands children for navigate-self-and-expand groups", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/";
+
+    renderTreeNav({
+      items: navigateSelfAndExpandItems,
+      favoriteWorkspaceBase: "/w/ws-alpha",
+    });
+
+    expect(screen.queryByRole("button", { name: "Alpha Workspace" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Workspaces" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces" });
+    expect(screen.getByRole("button", { name: "Alpha Workspace" })).toBeVisible();
+  });
+
+  it("uses the parent route as the collapsed click target for navigate-self-and-expand groups", async () => {
+    const user = userEvent.setup();
+    mockPathname = "/";
+
+    renderCollapsedNav(navigateSelfAndExpandItems);
+
+    await waitForCollapsedRender();
+    await user.click(screen.getByRole("button", { name: "Workspaces" }));
+
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/workspaces" });
+  });
+
+  it("can keep a source menu branch active while current route renders /notifications", async () => {
+    const user = userEvent.setup();
     mockPathname = "/notifications";
 
     renderTreeNav({
@@ -786,10 +836,15 @@ describe("AdminSiderNav collapsed groups", () => {
     });
 
     expect(screen.getByRole("button", { name: "Team" })).toHaveAttribute("data-active", "true");
+    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Team" }));
+
     expect(screen.getByRole("button", { name: "Members" })).toHaveAttribute("data-active", "true");
   });
 
   it("marks Content -> Contents active for the content create route alias", async () => {
+    const user = userEvent.setup();
     const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/w/ws-1");
 
     renderTreeNav({
@@ -806,9 +861,9 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "false",
     );
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "en-US:nav:NAV_CONTENT_LIBRARY" })).toBeVisible();
-    });
+
+    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_CONTENT" }));
+
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_CONTENT_LIBRARY" })).toHaveAttribute(
       "data-active",
       "true",
@@ -816,6 +871,7 @@ describe("AdminSiderNav collapsed groups", () => {
   });
 
   it("updates the active branch when pathnameOverride changes between workspace source pages", async () => {
+    const user = userEvent.setup();
     mockPathname = "/usercenter/profile";
     const workspaceItems = mapWorkspaceNavItems(WORKSPACE_NAV_ITEMS, "/w/ws-1");
 
@@ -829,6 +885,9 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "true",
     );
+
+    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_TEAM" }));
+
     expect(
       screen.getByRole("button", { name: "en-US:nav:NAV_SETTINGS_TEAM_MEMBER_LIST" }),
     ).toHaveAttribute("data-active", "true");
@@ -853,16 +912,16 @@ describe("AdminSiderNav collapsed groups", () => {
       "data-active",
       "false",
     );
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "en-US:nav:NAV_ASSETS" })).toBeVisible();
-    });
+
+    await user.click(screen.getByRole("button", { name: "en-US:nav:NAV_SECTION_CONTENT" }));
+
     expect(screen.getByRole("button", { name: "en-US:nav:NAV_ASSETS" })).toHaveAttribute(
       "data-active",
       "true",
     );
   });
 
-  it("keeps collapsed groups accessible in icon mode and restores accordion state on expand", async () => {
+  it("keeps collapsed groups accessible in icon mode and restores expanded group state on expand", async () => {
     const user = userEvent.setup();
     const view = renderTreeNav({
       items: treeItems,
@@ -897,5 +956,6 @@ describe("AdminSiderNav collapsed groups", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
     });
+    expect(screen.queryByRole("button", { name: "Members" })).not.toBeInTheDocument();
   });
 });

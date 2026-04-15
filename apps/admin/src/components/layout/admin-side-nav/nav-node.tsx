@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
-import type { OpenByParent } from "./nav-utils";
+import type { OpenGroupKeys } from "./nav-utils";
 import { findPreferredGroupTarget, isExactMatch } from "./nav-utils";
 import { useBlockedTooltipText } from "./blocked-tooltip";
 import type { CollapsedDropdownController } from "./collapsed-dropdown";
@@ -25,7 +25,7 @@ type NodeProps = {
   baseActiveKeys: ReadonlySet<string>;
   starredActiveKeys: ReadonlySet<string>;
   suppressedKeys: ReadonlySet<string>;
-  openByParent: OpenByParent;
+  openGroupKeys: OpenGroupKeys;
   openChainForKey: (key: string) => void;
   selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   resolvePermissionName?: (code: string) => string | null;
@@ -73,7 +73,7 @@ function renderChildNodes(props: NodeProps): ReactNode {
       baseActiveKeys={props.baseActiveKeys}
       starredActiveKeys={props.starredActiveKeys}
       suppressedKeys={props.suppressedKeys}
-      openByParent={props.openByParent}
+      openGroupKeys={props.openGroupKeys}
       openChainForKey={props.openChainForKey}
       selectActiveSource={props.selectActiveSource}
       resolvePermissionName={props.resolvePermissionName}
@@ -181,6 +181,14 @@ function renderLeafNode(args: {
   );
 }
 
+function resolveGroupNavigateTarget(item: AdminNavItem, activeKeys: ReadonlySet<string>) {
+  if (item.groupBehavior === "navigate-self-and-expand" && item.to) {
+    return item.to;
+  }
+
+  return findPreferredGroupTarget(item, activeKeys);
+}
+
 function createExpandedGroupToggle(args: {
   item: AdminNavItem;
   isOpen: boolean;
@@ -191,7 +199,7 @@ function createExpandedGroupToggle(args: {
   pathname: string;
   allowSamePathNavigate: boolean;
 }) {
-  const navTarget = findPreferredGroupTarget(args.item, args.activeKeys);
+  const navTarget = resolveGroupNavigateTarget(args.item, args.activeKeys);
 
   return () => {
     if (args.item.disabled) return;
@@ -221,7 +229,7 @@ function NavNodeImpl(
   const branchActiveKeys =
     branchSource === "starred" ? props.starredActiveKeys : props.baseActiveKeys;
   const hasChildren = Boolean(item.children?.length);
-  const isOpen = hasChildren && !item.disabled && props.openByParent[props.parentKey] === item.key;
+  const isOpen = hasChildren && !item.disabled && props.openGroupKeys.has(item.key);
   const blockedTooltip = useBlockedTooltipText(item, props.resolvePermissionName);
   const isSuppressed = props.suppressedKeys.has(item.key);
   const isTrailActive = !isSuppressed && (props.activeKeys.has(item.key) || Boolean(item.isActive));
@@ -291,7 +299,7 @@ function NavNodeImpl(
     blockedTooltip,
     hoverDropdown: props.hoverDropdown,
     collapsedChildren: resolveCollapsedChildren(t, item, props.activeKeys, props.suppressedKeys),
-    collapsedNavigateTarget: findPreferredGroupTarget(item, branchActiveKeys),
+    collapsedNavigateTarget: resolveGroupNavigateTarget(item, branchActiveKeys),
     onNavigate: (to) => {
       selectBranchSource(to);
       if (!allowSamePathNavigate && isExactMatch(to, props.pathname)) return;

@@ -1,22 +1,12 @@
-import { MoreVertical } from "lucide-react";
-
-import { Button } from "@arclayer/ui/button";
 import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
-import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuIconItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@arclayer/ui/dropdown-menu";
 
 import type {
   UserCenterWorkspaceListItem,
   UserCenterWorkspacesTranslateFn,
   WorkspaceMenuItem,
 } from "../types";
+import { WorkspaceActionsDropdown } from "./workspace-actions-dropdown";
 import { WorkspaceMembersPopover } from "./workspace-members-popover";
 
 interface WorkspaceCardProps {
@@ -43,32 +33,7 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
         <div className="mr-4">
           <WorkspaceAvatar name={workspace.name} assetRef={workspace.iconUrl} size={40} />
         </div>
-        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm">
-                <MoreVertical className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {menuItems.map((item) =>
-                item.type === "divider" ? (
-                  <DropdownMenuSeparator key={item.key} />
-                ) : (
-                  <DropdownMenuIconItem
-                    key={item.key}
-                    onSelect={item.onClick}
-                    disabled={item.disabled}
-                    variant={item.danger ? "destructive" : undefined}
-                    icon={item.icon}
-                  >
-                    {item.label}
-                  </DropdownMenuIconItem>
-                ),
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <WorkspaceActionsDropdown menuItems={menuItems} />
       </div>
 
       {/* Title + description */}
@@ -99,7 +64,7 @@ export function WorkspaceCard({ workspace, menuItems, t, onClick, className }: W
           </div>
         )}
         <div onClick={(e) => e.stopPropagation()}>
-          <WorkspaceMembersPopover workspace={workspace as OrganizationWorkspace} />
+          <WorkspaceMembersPopover workspace={workspace} />
         </div>
       </div>
     </div>

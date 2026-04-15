@@ -290,7 +290,8 @@ describe("AdminSiderNav capability nodes", () => {
     expect(windowOpenSpy).toHaveBeenCalledWith("/w/ws-1/assets", "_blank", "noopener,noreferrer");
   });
 
-  it("keeps the active favorite section expanded even when the persisted preference is collapsed", () => {
+  it("keeps the active favorite section collapsed until the user expands it", async () => {
+    const user = userEvent.setup();
     mockPathname = "/w/ws-1/assets";
     useFavoritesStore.setState({
       paths: ["/w/ws-1/assets"],
@@ -309,6 +310,10 @@ describe("AdminSiderNav capability nodes", () => {
       "data-active",
       "true",
     );
+    expect(screen.queryByRole("button", { name: "Assets" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Favorites" }));
+
     expect(screen.getByRole("button", { name: "Assets" })).toBeVisible();
   });
 

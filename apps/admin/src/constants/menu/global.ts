@@ -21,6 +21,7 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     label: "Workspaces",
     labelKey: "account:ACCOUNT_NAV_WORKSPACES",
     to: "/workspaces",
+    groupBehavior: "navigate-self-and-expand",
     icon: Users,
   },
   {
@@ -41,17 +42,25 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
   },
 ] as const;
 
-export function resolveGlobalNavItems(params: { isSuperAdmin: boolean }): AdminNavItem[] {
+export function resolveGlobalNavItems(params: {
+  isSuperAdmin: boolean;
+  workspaceChildren?: AdminNavItem[];
+}): AdminNavItem[] {
   const filterItems = (items: readonly AdminNavItem[]): AdminNavItem[] =>
     items.flatMap((item) => {
-      if (item.key === "global.system" && !params.isSuperAdmin) return [];
+      const nextItem =
+        item.key === "global.workspaces" && params.workspaceChildren?.length
+          ? { ...item, children: params.workspaceChildren }
+          : item;
 
-      if (!item.children?.length) return [item];
+      if (nextItem.key === "global.system" && !params.isSuperAdmin) return [];
 
-      const children = filterItems(item.children);
+      if (!nextItem.children?.length) return [nextItem];
+
+      const children = filterItems(nextItem.children);
       if (children.length === 0) return [];
 
-      return [{ ...item, children }];
+      return [{ ...nextItem, children }];
     });
 
   return filterItems(GLOBAL_NAV_ITEMS);

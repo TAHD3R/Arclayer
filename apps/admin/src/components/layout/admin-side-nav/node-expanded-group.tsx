@@ -34,6 +34,8 @@ import {
   NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME,
   NAV_ITEM_HEIGHT_CLASSNAME,
   NAV_ITEM_RADIUS_CLASSNAME,
+  NAV_TRAILING_ICON_SLOT_CLASSNAME,
+  NAV_TRAILING_RAIL_CLASSNAME,
   NAV_SUBTREE_CLASSNAME,
   NAV_SUBTREE_GUIDE_CLASSNAME,
 } from "./nav-utils";
@@ -155,7 +157,13 @@ const GroupRootButton = React.forwardRef<HTMLButtonElement, GroupRootButtonProps
         <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
           {label}
         </span>
-        <span className={cn("ml-auto shrink-0", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+        <span
+          className={cn(
+            NAV_TRAILING_RAIL_CLASSNAME,
+            NAV_TRAILING_ICON_SLOT_CLASSNAME,
+            NAV_ITEM_COLLAPSE_HIDE_CLASSNAME,
+          )}
+        >
           <ChevronRight
             size={16}
             className={cn(
