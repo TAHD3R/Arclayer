@@ -18,6 +18,8 @@
   "NAV_FAVORITES_ACTION_DELETE_FOLDER": "Delete folder",
   "NAV_FAVORITES_ACTION_OPEN_OVERLAY": "Open in overlay",
   "NAV_FAVORITES_ACTION_OPEN_TAB": "Open in new tab",
+  "NAV_FAVORITES_ACTION_OPEN_THIS_TAB": "Open in this tab",
+  "NAV_FAVORITES_ACTION_CLOSE_OVERLAY": "Close overlay",
   "NAV_FAVORITES_ACTION_REMOVE": "Remove from favorites",
   "NAV_FAVORITES_ACTION_EXPAND": "Expand favorites",
   "NAV_FAVORITES_ACTION_COLLAPSE": "Collapse favorites",

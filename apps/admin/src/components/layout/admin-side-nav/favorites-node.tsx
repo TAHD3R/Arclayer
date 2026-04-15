@@ -1,4 +1,5 @@
 import { Fragment, type ComponentProps, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   DndContext,
@@ -20,6 +21,13 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@arclayer/lib/utils";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@arclayer/ui/breadcrumb";
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
 import { Collapsible, CollapsibleContent } from "@arclayer/ui/collapsible";
 import {
@@ -32,6 +40,7 @@ import {
 import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 import { Popover, PopoverAnchor, PopoverContent } from "@arclayer/ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "@arclayer/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@arclayer/ui/tooltip";
 import {
   ArrowUpRight,
   ChevronRight,
@@ -40,9 +49,18 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { getWorkspaceDetail } from "@/api/workspaces";
+import { WorkspaceAvatar } from "@/components/common/entity-avatar";
+import { GLOBAL_NAV_ITEMS } from "@/constants/menu/global";
+import { getWorkspaceNavItems } from "@/constants/menu/workspaces";
+import { buildFavoriteOverlayEmbedHref } from "@/lib/routing/favorite-overlay";
+import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
+import { extractWorkspaceBaseFromPath, mapWorkspaceNavItems } from "@/layouts/admin-scene-utils";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
 import type { FavoriteFolderNode, FavoriteNode } from "@/types/stores/favorites";
 import type { AdminNavItem } from "@/types/admin-nav";
@@ -101,6 +119,15 @@ type FavoriteDisplayNode = FavoriteDisplayItem | FavoriteDisplayFolder;
 type FavoriteOverlayEntry = {
   label: string;
   href: string;
+  embedHref: string;
+};
+
+type FavoriteOverlayBreadcrumbSegment = {
+  key: string;
+  label: string;
+  icon?: AdminNavItem["icon"] | null;
+  kind: "nav" | "workspace" | "plain";
+  assetRef?: string | null;
 };
 
 type FavoriteDragOverlayNode = {
@@ -141,6 +168,8 @@ const FAVORITES_ROW_ACTIONS_CLASSNAME = cn(
   "opacity-0 transition-opacity duration-150",
   "group-hover/favorite-row:opacity-100 group-focus-within/favorite-row:opacity-100",
 );
+const FAVORITE_OVERLAY_ICON_BUTTON_CLASSNAME =
+  "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-label-secondary transition-colors hover:bg-accent/70 hover:text-label-primary";
 
 type PointerActivatorEvent = { clientX: number; clientY: number };
 type TouchActivatorEvent = { touches: Array<PointerActivatorEvent> };
@@ -202,6 +231,69 @@ const snapOverlayCenterToPointer: DragOverlayModifier = ({
 
 function buildHref(path: string): string {
   return path;
+}
+
+function resolveNavLabel(item: AdminNavItem, t: (key: string) => string): string {
+  return item.labelKey ? t(item.labelKey) : item.label;
+}
+
+function buildFavoriteOverlayBreadcrumbSegments(
+  path: string,
+  fallbackLabel: string,
+  t: (key: string) => string,
+  workspace?: { name?: string | null; iconUrl?: string | null },
+): FavoriteOverlayBreadcrumbSegment[] {
+  const normalizedPath = normalizePath(path);
+  const workspaceBase = extractWorkspaceBaseFromPath(path);
+  if (workspaceBase) {
+    const navItems = mapWorkspaceNavItems(getWorkspaceNavItems(), workspaceBase);
+    const trail = findActiveTrailNodes(navItems, normalizedPath);
+    const workspaceSegment: FavoriteOverlayBreadcrumbSegment = {
+      key: `workspace:${workspaceBase}`,
+      label: workspace?.name?.trim() || workspaceBase.replace("/w/", ""),
+      kind: "workspace",
+      assetRef: workspace?.iconUrl ?? null,
+    };
+
+    if (!trail.length) {
+      return [
+        workspaceSegment,
+        {
+          key: `current:${normalizedPath}`,
+          label: fallbackLabel,
+          kind: "plain",
+        },
+      ];
+    }
+
+    return [
+      workspaceSegment,
+      ...trail.map((item) => ({
+        key: item.key,
+        label: resolveNavLabel(item, t),
+        icon: item.icon,
+        kind: "nav" as const,
+      })),
+    ];
+  }
+
+  const trail = findActiveTrailNodes(GLOBAL_NAV_ITEMS, normalizedPath);
+  if (!trail.length) {
+    return [
+      {
+        key: `current:${normalizedPath}`,
+        label: fallbackLabel,
+        kind: "plain",
+      },
+    ];
+  }
+
+  return trail.map((item) => ({
+    key: item.key,
+    label: resolveNavLabel(item, t),
+    icon: item.icon,
+    kind: "nav" as const,
+  }));
 }
 
 function favoriteContainerId(parentId: string | null): string {
@@ -976,6 +1068,7 @@ function FavoritesPanelContent(props: {
 export function FavoritesNode(props: FavoritesNodeProps) {
   const { t } = useTranslation("nav");
   const navigate = useNavigate();
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const favoriteTree = useFavoritesStore((state) => state.items);
   const sectionExpanded = useFavoritesStore((state) => state.sectionExpanded);
   const setSectionExpanded = useFavoritesStore((state) => state.setSectionExpanded);
@@ -991,6 +1084,14 @@ export function FavoritesNode(props: FavoritesNodeProps) {
   const [overlayEntry, setOverlayEntry] = useState<FavoriteOverlayEntry | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const overlayWorkspaceBase = useMemo(
+    () => (overlayEntry ? extractWorkspaceBaseFromPath(overlayEntry.href) : null),
+    [overlayEntry],
+  );
+  const overlayWorkspaceId = useMemo(
+    () => overlayWorkspaceBase?.replace("/w/", "") ?? null,
+    [overlayWorkspaceBase],
+  );
 
   const folderStateMap = useMemo(() => buildFolderStateMap(favoriteTree), [favoriteTree]);
   const nodes = useMemo(
@@ -1004,6 +1105,26 @@ export function FavoritesNode(props: FavoritesNodeProps) {
     [folderStateMap, props.activeKeys, props.item.children, props.suppressedKeys],
   );
   const effectiveExpanded = props.isTrailActive || sectionExpanded;
+  const overlayWorkspaceDetailQuery = useQuery({
+    queryKey: ["workspace", "detail", overlayWorkspaceId, sessionVersion, "favorite-overlay"],
+    enabled: Boolean(overlayWorkspaceId && overlayEntry),
+    queryFn: async () => getWorkspaceDetail(String(overlayWorkspaceId)),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+  const overlayBreadcrumbSegments = useMemo(
+    () =>
+      overlayEntry
+        ? buildFavoriteOverlayBreadcrumbSegments(
+            overlayEntry.href,
+            overlayEntry.label,
+            t,
+            overlayWorkspaceDetailQuery.data,
+          )
+        : [],
+    [overlayEntry, overlayWorkspaceDetailQuery.data, t],
+  );
 
   const defaultFolderName = t("NAV_FAVORITES_NEW_FOLDER_NAME");
 
@@ -1106,7 +1227,13 @@ export function FavoritesNode(props: FavoritesNodeProps) {
       onReorder={reorderFavorites}
       onMove={moveFavorite}
       onSelectItem={handleSelectItem}
-      onOpenOverlay={(item) => setOverlayEntry({ label: item.label, href: buildHref(item.path) })}
+      onOpenOverlay={(item) =>
+        setOverlayEntry({
+          label: item.label,
+          href: buildHref(item.path),
+          embedHref: buildFavoriteOverlayEmbedHref(item.path),
+        })
+      }
       onRemoveItem={removeFavorite}
       onToggleFolder={setFolderExpanded}
       onRenameFolder={(folder) => startEditingFolder(folder.folderId, folder.label)}
@@ -1200,25 +1327,127 @@ export function FavoritesNode(props: FavoritesNodeProps) {
         }}
         layoutId="sidebar-favorite-overlay"
       >
-        <ExpandableScreenContent className="border border-border/80 bg-background shadow-2xl">
+        <ExpandableScreenContent
+          showCloseButton={false}
+          className="border border-border/80 bg-background shadow-2xl"
+        >
           {overlayEntry ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="border-b border-border/70 px-6 py-5 sm:px-8 sm:py-6">
-                <div className="text-title3 font-semibold text-label-primary">
-                  {overlayEntry.label}
+              <div className="flex items-center gap-4 border-b border-border/70 px-6 py-4 sm:px-8 sm:py-5">
+                <div className="min-w-0 flex-1">
+                  <Breadcrumb>
+                    <BreadcrumbList className="m-0 mb-0! flex-nowrap overflow-hidden whitespace-nowrap p-0 text-callout">
+                      {overlayBreadcrumbSegments.map((segment, index) => {
+                        const isLast = index === overlayBreadcrumbSegments.length - 1;
+                        const Icon = segment.icon;
+                        return (
+                          <Fragment key={segment.key}>
+                            {index > 0 ? <BreadcrumbSeparator /> : null}
+                            <BreadcrumbItem className="min-w-0">
+                              {isLast ? (
+                                <BreadcrumbPage className="flex min-w-0 items-center gap-2 truncate font-semibold">
+                                  {segment.kind === "workspace" ? (
+                                    <WorkspaceAvatar
+                                      name={segment.label}
+                                      assetRef={segment.assetRef}
+                                      size={18}
+                                      className="rounded-[4px]"
+                                    />
+                                  ) : Icon ? (
+                                    <Icon
+                                      className="size-4 shrink-0 overflow-visible"
+                                      strokeWidth={1.9}
+                                      aria-hidden="true"
+                                    />
+                                  ) : null}
+                                  <span className="truncate">{segment.label}</span>
+                                </BreadcrumbPage>
+                              ) : (
+                                <span className="flex min-w-0 items-center gap-2 truncate text-label-secondary">
+                                  {segment.kind === "workspace" ? (
+                                    <WorkspaceAvatar
+                                      name={segment.label}
+                                      assetRef={segment.assetRef}
+                                      size={18}
+                                      className="rounded-[4px]"
+                                    />
+                                  ) : Icon ? (
+                                    <Icon
+                                      className="size-4 shrink-0 overflow-visible"
+                                      strokeWidth={1.9}
+                                      aria-hidden="true"
+                                    />
+                                  ) : null}
+                                  <span className="truncate">{segment.label}</span>
+                                </span>
+                              )}
+                            </BreadcrumbItem>
+                          </Fragment>
+                        );
+                      })}
+                    </BreadcrumbList>
+                  </Breadcrumb>
                 </div>
-                <p className="mt-1 text-body text-label-secondary">
-                  {t("NAV_FAVORITES_ACTION_OPEN_OVERLAY")}
-                </p>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild focusTrigger={false}>
+                      <ButtonPrimitive
+                        type="button"
+                        tapScale={1}
+                        aria-label={t("NAV_FAVORITES_ACTION_OPEN_TAB")}
+                        className={FAVORITE_OVERLAY_ICON_BUTTON_CLASSNAME}
+                        onClick={() =>
+                          window.open(overlayEntry.href, "_blank", "noopener,noreferrer")
+                        }
+                      >
+                        <ExternalLink className="size-4" aria-hidden="true" />
+                      </ButtonPrimitive>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("NAV_FAVORITES_ACTION_OPEN_TAB")}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild focusTrigger={false}>
+                      <ButtonPrimitive
+                        type="button"
+                        tapScale={1}
+                        aria-label={t("NAV_FAVORITES_ACTION_OPEN_THIS_TAB")}
+                        className={FAVORITE_OVERLAY_ICON_BUTTON_CLASSNAME}
+                        onClick={() => {
+                          setOverlayEntry(null);
+                          if (normalizePath(overlayEntry.href) === normalizePath(props.pathname)) {
+                            return;
+                          }
+                          void navigate({ to: overlayEntry.href as never });
+                        }}
+                      >
+                        <ArrowUpRight className="size-4" aria-hidden="true" />
+                      </ButtonPrimitive>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("NAV_FAVORITES_ACTION_OPEN_THIS_TAB")}</TooltipContent>
+                  </Tooltip>
+                  <div className="mx-1 h-4 w-px bg-border/70" aria-hidden="true" />
+                  <Tooltip>
+                    <TooltipTrigger asChild focusTrigger={false}>
+                      <ButtonPrimitive
+                        type="button"
+                        tapScale={1}
+                        aria-label={t("NAV_FAVORITES_ACTION_CLOSE_OVERLAY")}
+                        className={FAVORITE_OVERLAY_ICON_BUTTON_CLASSNAME}
+                        onClick={() => setOverlayEntry(null)}
+                      >
+                        <X className="size-4" aria-hidden="true" />
+                      </ButtonPrimitive>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("NAV_FAVORITES_ACTION_CLOSE_OVERLAY")}</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
-              <div className="min-h-0 flex-1 bg-card/30 p-4 sm:p-6">
-                <div className="h-full overflow-hidden rounded-xl border border-border/70 bg-background">
-                  <iframe
-                    title={overlayEntry.label}
-                    src={overlayEntry.href}
-                    className="h-full w-full"
-                  />
-                </div>
+              <div className="min-h-0 flex-1 bg-background">
+                <iframe
+                  title={overlayEntry.label}
+                  src={overlayEntry.embedHref}
+                  className="h-full w-full bg-background"
+                />
               </div>
             </div>
           ) : null}

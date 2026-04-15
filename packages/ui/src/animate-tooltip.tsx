@@ -68,7 +68,7 @@ const [LocalTooltipProvider, useTooltip] =
 
 type TooltipPosition = { x: number; y: number };
 
-const TOOLTIP_OVERLAY_Z_INDEX = 100;
+const TOOLTIP_OVERLAY_Z_INDEX = 2300;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null) return false;

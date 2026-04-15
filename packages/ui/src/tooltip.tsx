@@ -49,7 +49,7 @@ function TooltipContent({
 }: TooltipContentProps) {
   return (
     <TooltipContentPrimitive
-      className={cn("z-50 w-fit bg-primary text-primary-foreground rounded-md", className)}
+      className={cn("z-[2300] w-fit rounded-md bg-primary text-primary-foreground", className)}
       {...props}
     >
       <motion.div className="overflow-hidden px-3 py-1.5 text-callout text-balance">

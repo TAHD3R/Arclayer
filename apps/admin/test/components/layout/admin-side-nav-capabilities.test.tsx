@@ -1,8 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, History, Home, Users } from "lucide-react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getWorkspaceDetail } from "@/api/workspaces";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import { useCommandRecentStore } from "@/stores/use-command-recent-store";
 import { useFavoritesStore } from "@/stores/use-favorites-store";
@@ -23,6 +25,8 @@ const translations: Record<string, string> = {
   NAV_FAVORITES_ROW_ACTIONS: "Favorite actions",
   NAV_FAVORITES_ACTION_OPEN_OVERLAY: "Open in overlay",
   NAV_FAVORITES_ACTION_OPEN_TAB: "Open in new tab",
+  NAV_FAVORITES_ACTION_OPEN_THIS_TAB: "Open in this tab",
+  NAV_FAVORITES_ACTION_CLOSE_OVERLAY: "Close overlay",
   NAV_FAVORITES_ACTION_REMOVE: "Remove from favorites",
   NAV_FAVORITES_ACTION_EXPAND: "Expand favorites",
   NAV_FAVORITES_ACTION_COLLAPSE: "Collapse favorites",
@@ -48,6 +52,10 @@ vi.mock("react-i18next", () => ({
     t: (key: string) => translations[key] ?? key,
     i18n: { language: "en-US", resolvedLanguage: "en-US" },
   }),
+}));
+
+vi.mock("@/api/workspaces", () => ({
+  getWorkspaceDetail: vi.fn(),
 }));
 
 const workspaceItems: AdminNavItem[] = [
@@ -112,6 +120,25 @@ async function waitForCollapsedRender() {
   });
 }
 
+function renderSidebar(component: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+}
+
+function getVisibleButtonByName(name: string) {
+  const matches = screen.getAllByRole("button", { name });
+  const match = matches.at(-1);
+  expect(match).toBeDefined();
+  return match as HTMLButtonElement;
+}
+
 describe("AdminSiderNav capability nodes", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
@@ -147,15 +174,24 @@ describe("AdminSiderNav capability nodes", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
+    vi.restoreAllMocks();
     mockPathname = "/";
     useFavoritesStore.setState({ paths: [], items: [], sectionExpanded: false });
     useCommandRecentStore.setState({ records: [] });
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-1",
+      organizationId: "org-1",
+      slug: "workspace-one",
+      name: "Workspace One",
+      kind: "team",
+      iconUrl: null,
+    });
   });
 
   it("shows favorites in the global sidebar and renders the empty state when expanded", async () => {
     const user = userEvent.setup();
 
-    render(
+    renderSidebar(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={globalItems} showFavorites />
@@ -195,7 +231,7 @@ describe("AdminSiderNav capability nodes", () => {
       sectionExpanded: true,
     });
 
-    render(
+    renderSidebar(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
@@ -213,6 +249,47 @@ describe("AdminSiderNav capability nodes", () => {
     });
   });
 
+  it("opens favorite overlay with content-only route embedding and action chrome", async () => {
+    const user = userEvent.setup();
+    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/assets"],
+      items: [{ id: "item:/w/ws-1/assets", type: "item", path: "/w/ws-1/assets" }],
+      sectionExpanded: true,
+    });
+
+    renderSidebar(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Favorite actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Open in overlay" }));
+
+    const iframe = await screen.findByTitle("Assets");
+    expect(iframe).toHaveAttribute("src", "/w/ws-1/assets?arclayer_favorite_overlay=content-only");
+    await waitFor(() => {
+      expect(screen.getByLabelText("breadcrumb")).toHaveTextContent("Workspace One");
+    });
+    expect(screen.getByText("Content")).toBeVisible();
+    expect(screen.getByText("Assets")).toBeVisible();
+    const openInNewTabButton = getVisibleButtonByName("Open in new tab");
+    const openInThisTabButton = getVisibleButtonByName("Open in this tab");
+    const closeOverlayButton = getVisibleButtonByName("Close overlay");
+
+    expect(openInNewTabButton).toBeInTheDocument();
+    expect(openInThisTabButton).toBeInTheDocument();
+    expect(closeOverlayButton).toBeInTheDocument();
+
+    await user.click(openInNewTabButton);
+
+    expect(windowOpenSpy).toHaveBeenCalledWith("/w/ws-1/assets", "_blank", "noopener,noreferrer");
+  });
+
   it("keeps the active favorite section expanded even when the persisted preference is collapsed", () => {
     mockPathname = "/w/ws-1/assets";
     useFavoritesStore.setState({
@@ -220,7 +297,7 @@ describe("AdminSiderNav capability nodes", () => {
       sectionExpanded: false,
     });
 
-    render(
+    renderSidebar(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />
@@ -253,7 +330,7 @@ describe("AdminSiderNav capability nodes", () => {
     });
     window.addEventListener("arclayer:admin-command-open", onCommandOpen);
 
-    render(
+    renderSidebar(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={globalItems} showFavorites />
@@ -283,7 +360,7 @@ describe("AdminSiderNav capability nodes", () => {
       sectionExpanded: false,
     });
 
-    render(
+    renderSidebar(
       <SidebarProvider defaultOpen={false} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
           <AdminSiderNav items={workspaceItems} favoriteWorkspaceBase="/w/ws-1" showFavorites />

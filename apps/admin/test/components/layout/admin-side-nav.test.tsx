@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { createRef } from "react";
 import userEvent from "@testing-library/user-event";
@@ -32,8 +33,26 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+function renderWithQueryClient(component: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  const view = render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+
+  return {
+    ...view,
+    rerender: (next: React.ReactElement) =>
+      view.rerender(<QueryClientProvider client={queryClient}>{next}</QueryClientProvider>),
+  };
+}
+
 function renderCollapsedNav(items: readonly AdminNavItem[]) {
-  return render(
+  return renderWithQueryClient(
     <SidebarProvider defaultOpen={false} className="h-screen">
       <Sidebar collapsible="icon" animateOnHover={false}>
         <AdminSiderNav items={items} showFavorites />
@@ -54,7 +73,7 @@ function renderTreeNav(args: {
   open?: boolean;
   pathnameOverride?: string;
 }) {
-  return render(
+  return renderWithQueryClient(
     <SidebarProvider open={args.open ?? true} onOpenChange={() => undefined} className="h-screen">
       <Sidebar collapsible="icon" animateOnHover={false}>
         <AdminSiderNav

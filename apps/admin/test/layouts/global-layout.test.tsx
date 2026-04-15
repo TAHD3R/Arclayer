@@ -4,8 +4,31 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GlobalLayout } from "@/layouts/global-layout";
 import { useCurrentUserProfile } from "@/hooks/use-current-user-profile";
 
+let mockSearchStr = "";
+
+function collectNavKeys(
+  items: Array<{ key: string; children?: Array<{ key: string }> }>,
+): string[] {
+  return items.flatMap((item) => [
+    item.key,
+    ...(item.children ? collectNavKeys(item.children) : []),
+  ]);
+}
+
 vi.mock("@tanstack/react-router", () => ({
   Outlet: () => <div data-testid="outlet" />,
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { searchStr: string } }) => unknown;
+  }) => select({ location: { searchStr: mockSearchStr } }),
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { language: "en-US", resolvedLanguage: "en-US" },
+  }),
 }));
 
 const topbarSpy = vi.fn();
@@ -50,14 +73,36 @@ vi.mock("@/components/layout/admin-topbar", () => ({
   },
 }));
 
+vi.mock("@/components/layout/route-transition", () => ({
+  RouteTransition: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@/layouts/page-shell/content-guard", () => ({
+  ContentGuard: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+}));
+
 vi.mock("@/hooks/use-current-user-profile", () => ({
   useCurrentUserProfile: vi.fn(),
 }));
 
 describe("GlobalLayout", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
     topbarSpy.mockClear();
     sceneLayoutSpy.mockClear();
+    mockSearchStr = "";
     vi.mocked(useCurrentUserProfile).mockReturnValue({
       isSuperAdmin: false,
       isLoading: false,
@@ -99,9 +144,16 @@ describe("GlobalLayout", () => {
 
     render(<GlobalLayout />);
 
-    const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
-      (item: { key: string }) => item.key,
-    );
+    const navKeys = collectNavKeys(topbarSpy.mock.calls[0]?.[0]?.navItems ?? []);
     expect(navKeys).toContain("global.system");
+  });
+
+  it("renders only route content when favorite overlay content-only mode is active", () => {
+    mockSearchStr = "?arclayer_favorite_overlay=content-only";
+
+    render(<GlobalLayout />);
+
+    expect(screen.queryByTestId("admin-scene-layout")).not.toBeInTheDocument();
+    expect(screen.getByTestId("outlet")).toBeInTheDocument();
   });
 });

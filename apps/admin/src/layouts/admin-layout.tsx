@@ -11,8 +11,12 @@ import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { getWorkspaceDetail } from "@/api/workspaces";
 import { useWorkspaceLocalization } from "@/hooks/use-workspace-localization";
 import { resolvePermissionNameI18nKey } from "@/lib/auth/rbac-permissions";
+import { isFavoriteOverlayContentOnly } from "@/lib/routing/favorite-overlay";
+import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { RouteTransition } from "@/components/layout/route-transition";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
 import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
+import { SidebarInset, SidebarProvider } from "@arclayer/ui/sidebar";
 import {
   buildCommonFooterItems,
   extractWorkspaceBaseFromPath,
@@ -21,7 +25,13 @@ import {
 
 export function AdminLayout({ children }: PropsWithChildren) {
   const { t, i18n } = useTranslation();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { pathname, searchStr } = useRouterState({
+    select: (s) => ({
+      pathname: s.location.pathname,
+      searchStr: s.location.searchStr,
+    }),
+    structuralSharing: true,
+  });
   const accessToken = useAuthStore((s) => s.accessToken);
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const localePreferenceMode = usePreferencesStore((s) => s.localePreferenceMode);
@@ -69,6 +79,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   );
 
   const workspaceLocalization = useWorkspaceLocalization();
+  const contentOnlyMode = isFavoriteOverlayContentOnly(searchStr);
 
   useEffect(() => {
     if (!accessToken || !effectiveWorkspaceId) return;
@@ -108,6 +119,45 @@ export function AdminLayout({ children }: PropsWithChildren) {
     pathname,
     workspaceDetailQuery.data?.organizationId,
   ]);
+
+  const routeContent = (
+    <SidebarProvider
+      open
+      defaultOpen
+      onOpenChange={() => undefined}
+      className="h-screen overflow-hidden"
+    >
+      <div className="flex h-screen min-h-0 w-full flex-1 flex-col bg-background">
+        <div className="relative flex min-h-0 flex-1">
+          <SidebarInset className="w-auto min-w-0 flex-1 overflow-hidden bg-background">
+            <div className="flex-1 min-h-0 overflow-auto">
+              <ContentGuard
+                loading={Boolean(isWorkspaceScopeRoute && workspaceDetailQuery.isLoading)}
+                error={isWorkspaceScopeRoute ? workspaceDetailQuery.error : null}
+                container="admin-route"
+                onRetry={
+                  isWorkspaceScopeRoute
+                    ? () => {
+                        void workspaceDetailQuery.refetch();
+                      }
+                    : undefined
+                }
+                loadingVariant="form"
+              >
+                <RouteTransition className="h-full min-h-0 w-full">
+                  {children ?? <Outlet />}
+                </RouteTransition>
+              </ContentGuard>
+            </div>
+          </SidebarInset>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+
+  if (contentOnlyMode) {
+    return routeContent;
+  }
 
   return (
     <AdminSceneLayout

@@ -7,6 +7,7 @@ import { AdminLayout } from "@/layouts/admin-layout";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
+import { useSidebar } from "@arclayer/ui/sidebar";
 
 let mockPathname = "/w/ws-1/content/create";
 let mockSearchObject: Record<string, unknown> = {};
@@ -72,6 +73,14 @@ vi.mock("@/layouts/admin-scene-layout", () => ({
   },
 }));
 
+vi.mock("@/components/layout/route-transition", () => ({
+  RouteTransition: ({ children }: { children?: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@/layouts/page-shell/content-guard", () => ({
+  ContentGuard: ({ children }: { children?: ReactNode }) => <>{children}</>,
+}));
+
 function renderWithQueryClient(component: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -94,8 +103,26 @@ function latestSceneProps() {
   };
 }
 
+function SidebarConsumerProbe() {
+  const sidebar = useSidebar();
+  return <div data-testid="sidebar-probe">{sidebar.state}</div>;
+}
+
 describe("sidebar route state wiring", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
     capturedSceneProps.length = 0;
     navigateMock.mockClear();
     mockPathname = "/w/ws-1/content/create";
@@ -122,5 +149,22 @@ describe("sidebar route state wiring", () => {
     expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
     expect(props.favoriteWorkspaceBase).toBe("/w/ws-1");
     expect(props.mainItems.map((item) => item.key)).toContain("content");
+  });
+
+  it("renders route content without the admin scene shell in favorite overlay content-only mode", () => {
+    mockSearchStr = "?arclayer_favorite_overlay=content-only";
+
+    renderWithQueryClient(
+      <AdminLayout>
+        <div data-testid="embedded-route-content">
+          embedded content
+          <SidebarConsumerProbe />
+        </div>
+      </AdminLayout>,
+    );
+
+    expect(screen.queryByTestId("scene-layout")).not.toBeInTheDocument();
+    expect(screen.getByTestId("embedded-route-content")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar-probe")).toHaveTextContent("expanded");
   });
 });
