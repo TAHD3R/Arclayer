@@ -53,7 +53,7 @@ export function DataPaginationControls({
   });
 
   return (
-    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4">
       <div className="min-w-0 text-footnote text-label-secondary">
         <span className="truncate">{resultLabel}</span>
       </div>

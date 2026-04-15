@@ -145,9 +145,10 @@ describe("DataTablePresenter", () => {
     expect(surface).not.toBeNull();
     expect(surface).toContainElement(toolbar);
     expect(surface).toContainElement(footer);
-    expect(surface?.className).not.toContain("rounded-2xl");
-    expect(surface?.className).toContain("rounded-none");
-    expect(surface?.className).toContain("border-0");
+    expect(surface?.className).toContain("rounded-lg");
+    expect(surface?.className).toContain("border");
+    expect(surface?.className).toContain("border-border");
+    expect(surface?.className).toContain("bg-background");
 
     const separators = container.querySelectorAll(
       "div.border-b.border-border\\/60, div.border-t.border-border\\/60",
@@ -160,6 +161,17 @@ describe("DataTablePresenter", () => {
 
     const headerButton = screen.getByRole("button", { name: "Name" });
     expect(headerButton.className).toContain("text-callout");
+  });
+
+  it("uses shared background classes for header cells and rows", () => {
+    const { container } = render(<SortableTableHarness />);
+
+    const headerCell = screen.getByRole("columnheader", { name: "Name" });
+    const bodyRow = container.querySelector("tbody tr");
+
+    expect(headerCell.className).toContain("bg-background");
+    expect(bodyRow?.className).toContain("bg-muted/35");
+    expect(bodyRow?.className).toContain("hover:bg-card");
   });
 });
 
@@ -284,7 +296,7 @@ describe("DataPaginationControls", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
-    render(
+    const { container } = render(
       <DataPaginationControls
         page={3}
         size={10}
@@ -323,5 +335,8 @@ describe("DataPaginationControls", () => {
     expect(onChange).toHaveBeenCalledWith(4, 10);
 
     expect(screen.getByText("Items per page")).toBeInTheDocument();
+
+    const root = container.firstElementChild;
+    expect(root).toHaveClass("px-4");
   });
 });

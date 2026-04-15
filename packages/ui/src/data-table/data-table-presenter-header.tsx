@@ -103,7 +103,7 @@ function resolveHeaderCellState<TData>(
       ? null
       : flexRender(header.column.columnDef.header, header.getContext()),
     className: cn(
-      "group/header-cell relative border-b border-border/60 bg-transparent text-callout text-label-secondary/90 select-none align-middle font-medium",
+      "group/header-cell relative border-b border-border/60 bg-background text-callout text-label-secondary/90 select-none align-middle font-medium",
       alignClass,
       pinStyle.className,
       resolveHeaderHeightClass(rowHeight, wrapHeaders),

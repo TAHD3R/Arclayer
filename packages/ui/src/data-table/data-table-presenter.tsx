@@ -217,7 +217,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   const surfaceClassName =
     surface === "embedded"
       ? "rounded-none border-0 bg-transparent "
-      : "rounded-none border-0 bg-transparent ";
+      : "rounded-lg border border-border bg-background ";
   const sectionPaddingClass = "px-0";
 
   return (
@@ -241,7 +241,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
         <div
           ref={scrollRef}
           className={cn(
-            "relative isolate min-h-0 flex-1 overflow-auto transition-opacity duration-200",
+            "relative isolate min-h-0 flex-1 overflow-auto bg-background transition-opacity duration-200",
             refreshing ? "pointer-events-none opacity-90" : "",
           )}
         >

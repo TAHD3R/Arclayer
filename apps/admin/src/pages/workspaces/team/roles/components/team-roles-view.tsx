@@ -310,11 +310,11 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         </div>
       }
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 pb-8">
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <div className="relative isolate overflow-x-auto bg-card/90">
+          <div className="relative isolate overflow-x-auto rounded-lg border border-border bg-background">
             <table className="w-full table-fixed border-collapse caption-bottom text-callout">
               <colgroup>
                 <col style={{ width: matrixColumnWidths.permission }} />
@@ -322,9 +322,9 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                   <col key={role.code} style={{ width: matrixColumnWidths.role }} />
                 ))}
               </colgroup>
-              <TableHeader className="border-y border-border/50">
-                <TableRow className="border-border/40 hover:bg-transparent">
-                  <TableHead className="sticky top-0 left-0 z-[3] bg-card/95 align-top text-center backdrop-blur supports-[backdrop-filter]:bg-card/85">
+              <TableHeader className="border-b border-border/60">
+                <TableRow className="border-border/40 bg-background hover:bg-transparent">
+                  <TableHead className="sticky top-0 left-0 z-[3] border-r border-border/40 bg-background align-top text-center">
                     <div className="flex min-h-24 items-center justify-center px-2 py-2.5 text-center">
                       <span className="block text-callout font-semibold text-label-secondary">
                         {t("team:TEAM_ROLES_COL_PERMISSION")}
@@ -336,7 +336,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                     return (
                       <TableHead
                         key={role.code}
-                        className="sticky top-0 z-[2] min-w-[5.5rem] bg-card/95 align-top backdrop-blur supports-[backdrop-filter]:bg-card/85"
+                        className="sticky top-0 z-[2] min-w-[5.5rem] bg-background align-top"
                       >
                         <div className="relative min-h-24 px-2 py-2.5">
                           <div
@@ -403,9 +403,9 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                 {filteredPermissions.map((perm) => (
                   <TableRow
                     key={perm.code}
-                    className="group/row border-border/40 hover:bg-muted/40"
+                    className="group/row border-border/50 bg-muted/35 hover:bg-card"
                   >
-                    <TableCell className="sticky left-0 z-[1] bg-card group-hover/row:bg-muted/40 transition-colors">
+                    <TableCell className="sticky left-0 z-[1] border-r border-border/40 bg-inherit transition-colors">
                       <div className="min-w-0">
                         <div className="break-words font-semibold text-label-primary">
                           {perm.name}

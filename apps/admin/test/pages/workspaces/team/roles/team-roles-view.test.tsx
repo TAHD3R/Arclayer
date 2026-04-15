@@ -206,19 +206,33 @@ describe("TeamRolesView", () => {
   });
 
   it("shows permission count beside search and uses a wide permission column with bordered header", async () => {
-    renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
+    const { container } = renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
     await screen.findByTitle("Content editor");
 
     expect(screen.getByText("1 permissions")).toHaveClass("text-headline");
 
     const matrix = screen.getByRole("table");
+    const matrixShell = matrix.parentElement;
+    expect(matrixShell).toHaveClass("rounded-lg", "border", "border-border", "bg-background");
     const columns = matrix.querySelectorAll("col");
     expect(columns).toHaveLength(3);
     expect(columns[0]).toHaveAttribute("style", expect.stringContaining("42%"));
     expect(columns[1]).toHaveAttribute("style", expect.stringContaining("29%"));
 
     const tableHead = matrix.querySelector("thead");
-    expect(tableHead).toHaveClass("border-y");
+    expect(tableHead).toHaveClass("border-b");
+
+    const headerCells = matrix.querySelectorAll("th");
+    expect(headerCells[0]).toHaveClass("bg-background", "border-r");
+
+    const firstBodyRow = matrix.querySelector("tbody tr");
+    expect(firstBodyRow).toHaveClass("bg-muted/35", "hover:bg-card");
+
+    const stickyPermissionCell = firstBodyRow?.querySelector("td");
+    expect(stickyPermissionCell).toHaveClass("bg-inherit", "border-r");
+
+    const pageBody = container.querySelector(".flex.flex-col.gap-4.pb-8");
+    expect(pageBody).not.toBeNull();
   });
 });

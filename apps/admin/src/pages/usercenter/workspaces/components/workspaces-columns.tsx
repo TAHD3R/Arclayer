@@ -131,7 +131,6 @@ export function useUserCenterWorkspacesColumns(
         meta: {
           title: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),
           sortKey: "created_at",
-          defaultHidden: true,
           kind: "time",
         },
         header: t("common:ORG_WORKSPACES_TABLE_CREATED_AT"),

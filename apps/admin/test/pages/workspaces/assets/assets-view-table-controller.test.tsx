@@ -68,7 +68,7 @@ describe("useAssetsViewTableController", () => {
     ).not.toThrow();
   });
 
-  it("shows filename, mime, size, and uploaded time by default", () => {
+  it("shows filename, uploaded by, purpose, and uploaded time by default", () => {
     const controller = createControllerStub();
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -88,8 +88,8 @@ describe("useAssetsViewTableController", () => {
     expect(result.current.table.getVisibleLeafColumns().map((column) => column.id)).toEqual([
       "select",
       "name",
-      "mime",
-      "size",
+      "uploadedBy",
+      "purpose",
       "createdAt",
       "actions",
     ]);

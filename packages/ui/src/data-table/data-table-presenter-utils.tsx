@@ -128,9 +128,11 @@ export function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): Pi
 
   return {
     className: cn(
-      "z-30 bg-card",
-      pinned === "left" && header.column.getIsLastColumn("left") ? "" : "",
-      pinned === "right" && header.column.getIsFirstColumn("right") ? "" : "",
+      "z-30 bg-background",
+      pinned === "left" && header.column.getIsLastColumn("left") ? "border-r border-border/40" : "",
+      pinned === "right" && header.column.getIsFirstColumn("right")
+        ? "border-l border-border/40"
+        : "",
     ),
     style,
   };
@@ -152,9 +154,11 @@ export function resolveCellPinStyle<TData>(cell: Cell<TData, unknown>): PinStyle
 
   return {
     className: cn(
-      "z-20 bg-card group-hover/row:bg-muted/60 transition-colors",
-      pinned === "left" && cell.column.getIsLastColumn("left") ? "" : "",
-      pinned === "right" && cell.column.getIsFirstColumn("right") ? "" : "",
+      "z-20 bg-inherit transition-colors",
+      pinned === "left" && cell.column.getIsLastColumn("left") ? "border-r border-border/40" : "",
+      pinned === "right" && cell.column.getIsFirstColumn("right")
+        ? "border-l border-border/40"
+        : "",
     ),
     style,
   };
