@@ -122,7 +122,7 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
                   aria-invalid={error ? true : undefined}
                   inputMode="numeric"
                   disabled={props.loading}
-                  containerClassName="justify-start"
+                  containerClassName="w-full"
                 >
                   <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
                     <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />

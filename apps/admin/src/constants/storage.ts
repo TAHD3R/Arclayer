@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   fontWeightPreference: "arclayer:admin:fontWeightPreference",
   auth: "arclayer:admin:auth",
   authChallenge: "arclayer:auth:challenge",
+  authLastSsoProvider: "arclayer:admin:auth:last-sso-provider",
   workspace: "arclayer:admin:workspace",
   workspaceLocaleCache: "arclayer:admin:workspaceLocaleCache",
   dataTableVisibility: "arclayer:admin:dataTable:visibility",

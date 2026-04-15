@@ -233,7 +233,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
                   aria-invalid={verifyError ? true : undefined}
                   inputMode="numeric"
                   disabled={props.verifyLoading}
-                  containerClassName="justify-start"
+                  containerClassName="w-full"
                 >
                   <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
                     <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />

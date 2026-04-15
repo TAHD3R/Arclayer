@@ -23,10 +23,9 @@ export const AUTH_PLAIN_INPUT_CLASS = cn(
   "h-10 min-w-0 rounded-md border-border/80 bg-card px-4 text-callout ",
   "placeholder:text-label-tertiary focus-visible:ring-primary/15 md:text-callout",
 );
-export const AUTH_OTP_GROUP_CLASS = "gap-2";
+export const AUTH_OTP_GROUP_CLASS = "grid w-full grid-cols-6 gap-2";
 export const AUTH_OTP_SLOT_CLASS = cn(
-  "h-10 w-11 rounded-none border border-input text-callout  transition-colors",
-  "first:rounded-l-xl last:rounded-r-xl first:border-l",
+  "h-10 w-full flex-1 rounded-md border border-input text-callout transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
 
