@@ -387,6 +387,81 @@ describe("AdminSiderNav collapsed groups", () => {
     });
   });
 
+  it("shows the full label tooltip for expanded favorites items when the name truncates", async () => {
+    const user = userEvent.setup();
+    const longLabel = "Workspace with an exceptionally long title for favorites tooltip";
+    const overflowItems: AdminNavItem[] = [
+      {
+        key: "dashboard",
+        label: "Overview",
+        icon: Home,
+        to: "/w/ws-1/",
+      },
+      {
+        key: "content",
+        label: "Content",
+        icon: LayoutGrid,
+        children: [
+          {
+            key: "content.long-workspace-entry",
+            label: longLabel,
+            icon: Activity,
+            to: "/w/ws-1/content/long-workspace-entry",
+          },
+        ],
+      },
+    ];
+
+    const scrollWidthDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollWidth",
+    );
+    const clientWidthDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientWidth",
+    );
+
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+      configurable: true,
+      get() {
+        return this.textContent?.includes(longLabel) ? 240 : 100;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get() {
+        return this.textContent?.includes(longLabel) ? 80 : 100;
+      },
+    });
+
+    useFavoritesStore.setState({
+      paths: ["/w/ws-1/content/long-workspace-entry"],
+      sectionExpanded: true,
+    });
+
+    try {
+      renderTreeNav({
+        items: overflowItems,
+        favoriteWorkspaceBase: "/w/ws-1",
+      });
+
+      const favoriteButton = screen.getByRole("button", { name: longLabel });
+      await user.hover(favoriteButton);
+
+      await waitFor(() => {
+        const tooltip = document.body.querySelector('[data-slot="tooltip-content"]');
+        expect(tooltip).toHaveTextContent(longLabel);
+      });
+    } finally {
+      if (scrollWidthDescriptor) {
+        Object.defineProperty(HTMLElement.prototype, "scrollWidth", scrollWidthDescriptor);
+      }
+      if (clientWidthDescriptor) {
+        Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidthDescriptor);
+      }
+    }
+  });
+
   it("forwards dropdown trigger props onto collapsed group button", async () => {
     renderCollapsedNav(items);
 

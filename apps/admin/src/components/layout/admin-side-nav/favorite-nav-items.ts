@@ -36,14 +36,24 @@ type FavoriteTemplateIndex = {
   workspaceBySuffix: Map<string, FavoriteTemplate>;
 };
 
+type FavoriteTemplateMatch = {
+  path: string;
+  template: FavoriteTemplate;
+};
+
 function findNearestAncestorTemplate(
   key: string | null,
   index: Map<string, FavoriteTemplate>,
-): FavoriteTemplate | undefined {
+): FavoriteTemplateMatch | undefined {
   let current = key;
   while (current) {
     const found = index.get(current);
-    if (found) return found;
+    if (found) {
+      return {
+        path: current,
+        template: found,
+      };
+    }
     const nextSlash = current.lastIndexOf("/");
     if (nextSlash <= 0) return undefined;
     current = current.slice(0, nextSlash);
@@ -57,6 +67,12 @@ function parseWorkspaceSuffix(path: string): string | null {
   if (!match) return null;
   const suffix = match[1] ? `/${match[1]}` : "/";
   return normalizePath(suffix);
+}
+
+function parseWorkspaceBase(path: string): string | null {
+  const normalizedPath = normalizePath(path);
+  const match = /^\/w\/[^/]+/.exec(normalizedPath);
+  return match?.[0] ?? null;
 }
 
 function buildTemplateIndex(items: readonly AdminNavItem[], t: TFunction): FavoriteTemplateIndex {
@@ -105,15 +121,24 @@ function resolveFavoriteItem(
   workspaceBase: string | null,
 ): FavoriteNavLeaf | null {
   const normalizedPath = normalizePath(path);
-  const exactTemplate =
-    templates.exactByPath.get(normalizedPath) ??
-    findNearestAncestorTemplate(normalizedPath, templates.exactByPath);
+  const globalExactTemplate = templates.exactByPath.get(normalizedPath);
+  const globalAncestorTemplate = findNearestAncestorTemplate(normalizedPath, templates.exactByPath);
   const workspaceSuffix = parseWorkspaceSuffix(normalizedPath);
   const workspaceTemplate = workspaceSuffix
     ? (templates.workspaceBySuffix.get(workspaceSuffix) ??
-      findNearestAncestorTemplate(workspaceSuffix, templates.workspaceBySuffix))
+      findNearestAncestorTemplate(workspaceSuffix, templates.workspaceBySuffix)?.template)
     : undefined;
-  const template = exactTemplate ?? workspaceTemplate;
+  const workspaceBasePath = parseWorkspaceBase(normalizedPath);
+  const preferWorkspaceTemplate =
+    Boolean(workspaceTemplate) &&
+    Boolean(workspaceBasePath) &&
+    globalAncestorTemplate?.path === workspaceBasePath &&
+    normalizedPath !== workspaceBasePath;
+  const template =
+    globalExactTemplate ??
+    (preferWorkspaceTemplate ? workspaceTemplate : undefined) ??
+    globalAncestorTemplate?.template ??
+    workspaceTemplate;
 
   if (!template) return null;
 

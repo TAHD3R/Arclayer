@@ -657,6 +657,33 @@ function EditableFolderLabel(props: {
   );
 }
 
+function useLabelOverflow(text: string) {
+  const labelRef = useRef<HTMLSpanElement | null>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    const element = labelRef.current;
+    if (!element) return;
+
+    const update = () => {
+      setIsOverflowing(element.scrollWidth > element.clientWidth + 1);
+    };
+
+    update();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(update);
+      observer.observe(element);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [text]);
+
+  return { labelRef, isOverflowing };
+}
+
 function FavoriteLeafRow(props: {
   row: FavoriteDisplayItem;
   onSelect: () => void;
@@ -666,6 +693,24 @@ function FavoriteLeafRow(props: {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.row.sortId,
   });
+  const { labelRef, isOverflowing } = useLabelOverflow(props.row.label);
+
+  const button = (
+    <ButtonPrimitive
+      type="button"
+      tapScale={1}
+      aria-label={props.row.label}
+      data-active={props.row.isSelected ? "true" : "false"}
+      className="flex min-w-0 flex-1 items-center justify-start text-left outline-none"
+      onClick={props.onSelect}
+      {...attributes}
+      {...listeners}
+    >
+      <span ref={labelRef} className="min-w-0 flex-1 truncate">
+        {props.row.label}
+      </span>
+    </ButtonPrimitive>
+  );
 
   return (
     <div
@@ -689,18 +734,14 @@ function FavoriteLeafRow(props: {
           "text-callout data-[dragging=true]:opacity-15",
         )}
       >
-        <ButtonPrimitive
-          type="button"
-          tapScale={1}
-          aria-label={props.row.label}
-          data-active={props.row.isSelected ? "true" : "false"}
-          className="flex min-w-0 flex-1 items-center justify-start text-left outline-none"
-          onClick={props.onSelect}
-          {...attributes}
-          {...listeners}
-        >
-          <span className="min-w-0 flex-1 truncate">{props.row.label}</span>
-        </ButtonPrimitive>
+        <Tooltip>
+          <TooltipTrigger asChild focusTrigger={false}>
+            {button}
+          </TooltipTrigger>
+          <TooltipContent hidden={!isOverflowing} className="max-w-[28rem]">
+            {props.row.label}
+          </TooltipContent>
+        </Tooltip>
         <div className={FAVORITES_ROW_ACTIONS_CLASSNAME}>
           <FavoriteItemMenu
             row={props.row}

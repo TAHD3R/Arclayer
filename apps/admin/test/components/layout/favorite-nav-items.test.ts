@@ -76,6 +76,29 @@ const items: AdminNavItem[] = [
   },
 ];
 
+const globalItemsWithWorkspaceChildren: AdminNavItem[] = [
+  {
+    key: "global.home",
+    label: "Home",
+    icon: Home,
+    to: "/",
+  },
+  {
+    key: "global.workspaces",
+    label: "Workspaces",
+    icon: Users,
+    to: "/workspaces",
+    children: [
+      {
+        key: "global.workspaces.ws-9",
+        label: "Philip Cole's Workspace",
+        icon: Home,
+        to: "/w/ws-9",
+      },
+    ],
+  },
+];
+
 describe("resolveFavoriteNavItems", () => {
   it("preserves the persisted favorites order across workspaces", () => {
     const favorites = resolveFavoriteNavItems({
@@ -122,6 +145,34 @@ describe("resolveFavoriteNavItems", () => {
       expect.objectContaining({
         path: "/w/ws-9/settings/workspace",
         label: "nav:NAV_SETTINGS_WORKSPACE",
+        isCurrentWorkspace: false,
+      }),
+    ]);
+  });
+
+  it("prefers workspace page labels over workspace ancestor labels in the global view", () => {
+    const favorites = resolveFavoriteNavItems({
+      favorites: [
+        { id: "item:/w/ws-9", type: "item", path: "/w/ws-9" },
+        {
+          id: "item:/w/ws-9/content/library/article-1",
+          type: "item",
+          path: "/w/ws-9/content/library/article-1",
+        },
+      ],
+      items: globalItemsWithWorkspaceChildren,
+      t: ((key: string) => key) as TFunction,
+    });
+
+    expect(flattenFavoriteNavItems(favorites)).toEqual([
+      expect.objectContaining({
+        path: "/w/ws-9",
+        label: "Philip Cole's Workspace",
+        isCurrentWorkspace: false,
+      }),
+      expect.objectContaining({
+        path: "/w/ws-9/content/library/article-1",
+        label: "nav:NAV_CONTENT_LIBRARY",
         isCurrentWorkspace: false,
       }),
     ]);
