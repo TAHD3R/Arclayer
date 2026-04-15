@@ -234,7 +234,7 @@ export function AuthOauthButtons({
               {action.isLastUsed ? (
                 <Badge
                   variant="outline"
-                  className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-primary/10 px-1.5 text-[10px] font-medium text-primary"
+                  className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
                 >
                   {lastUsedLabel}
                 </Badge>
@@ -265,7 +265,7 @@ export function AuthOauthButtons({
               {action.isLastUsed ? (
                 <Badge
                   variant="outline"
-                  className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-primary/10 px-1.5 text-[10px] font-medium text-primary"
+                  className="pointer-events-none absolute -top-2 right-2 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
                 >
                   {lastUsedLabel}
                 </Badge>
@@ -298,7 +298,7 @@ export function AuthOauthButtons({
                     {action.isLastUsed ? (
                       <Badge
                         variant="outline"
-                        className="pointer-events-none absolute -top-2 right-1.5 border-primary/20 bg-primary/10 px-1.5 text-[10px] font-medium text-primary"
+                        className="pointer-events-none absolute -top-2 right-1.5 border-primary/20 bg-popover px-1.5 text-[10px] font-semibold text-primary"
                       >
                         {lastUsedLabel}
                       </Badge>

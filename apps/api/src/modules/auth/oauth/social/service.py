@@ -48,6 +48,30 @@ def _raise_if_fatal(exc: BaseException) -> None:
         raise exc
 
 
+def _summarize_oauth_exception(exc: BaseException) -> dict[str, object]:
+    details: dict[str, object] = {
+        "error_type": exc.__class__.__name__,
+        "error_repr": repr(exc),
+    }
+
+    if isinstance(exc, httpx.HTTPStatusError):
+        details["http_status"] = exc.response.status_code
+        body = (exc.response.text or "").strip()
+        if body:
+            details["http_body"] = body[:500]
+        return details
+
+    if isinstance(exc, ValidationError):
+        details["validation_errors"] = exc.errors()
+        return details
+
+    message = str(exc).strip()
+    if message:
+        details["error"] = message
+
+    return details
+
+
 def _to_b64url(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
@@ -243,10 +267,12 @@ class OAuthSocialService(BaseService):
         email_verified: bool = False
         display_name: str | None = None
         avatar_url: str | None = None
+        stage = "load_provider_config"
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 if provider_key == "google":
+                    stage = "load_google_config"
                     section = config.get("oauth_google") if isinstance(config, dict) else None
                     client_id = section.get("client_id") if isinstance(section, dict) else None
                     client_secret_raw = section.get("client_secret") if isinstance(section, dict) else None
@@ -255,6 +281,7 @@ class OAuthSocialService(BaseService):
                     if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
+                    stage = "exchange_google_code"
                     callback_url = str(request.url_for("auth_sso_oauth_callback", provider="google"))
                     token_res = await client.post(
                         "https://oauth2.googleapis.com/token",
@@ -274,11 +301,13 @@ class OAuthSocialService(BaseService):
                     if not isinstance(access_token, str) or not access_token:
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
+                    stage = "fetch_google_userinfo"
                     userinfo_res = await client.get(
                         "https://openidconnect.googleapis.com/v1/userinfo",
                         headers={"authorization": f"Bearer {access_token}"},
                     )
                     userinfo_res.raise_for_status()
+                    stage = "parse_google_userinfo"
                     info = GoogleUserInfo.model_validate(userinfo_res.json())
                     subject = info.sub
                     email = (info.email or "").strip().lower() or None
@@ -287,6 +316,7 @@ class OAuthSocialService(BaseService):
                     avatar_url = info.picture
 
                 elif provider_key == "github":
+                    stage = "load_github_config"
                     section = config.get("oauth_github") if isinstance(config, dict) else None
                     client_id = section.get("client_id") if isinstance(section, dict) else None
                     client_secret_raw = section.get("client_secret") if isinstance(section, dict) else None
@@ -295,6 +325,7 @@ class OAuthSocialService(BaseService):
                     if not isinstance(client_secret_raw, str) or not client_secret_raw.strip():
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
+                    stage = "exchange_github_code"
                     callback_url = str(request.url_for("auth_sso_oauth_callback", provider="github"))
                     token_res = await client.post(
                         "https://github.com/login/oauth/access_token",
@@ -313,6 +344,7 @@ class OAuthSocialService(BaseService):
                     if not isinstance(access_token, str) or not access_token:
                         return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
+                    stage = "fetch_github_user"
                     user_res = await client.get(
                         "https://api.github.com/user",
                         headers={
@@ -321,11 +353,13 @@ class OAuthSocialService(BaseService):
                         },
                     )
                     user_res.raise_for_status()
+                    stage = "parse_github_user"
                     user = GitHubUser.model_validate(user_res.json())
                     subject = str(user.id)
                     display_name = user.name or user.login
                     avatar_url = user.avatar_url
 
+                    stage = "fetch_github_emails"
                     emails_res = await client.get(
                         "https://api.github.com/user/emails",
                         headers={
@@ -337,6 +371,7 @@ class OAuthSocialService(BaseService):
                     emails_payload = emails_res.json()
                     emails: list[GitHubEmailItem] = []
                     if isinstance(emails_payload, list):
+                        stage = "parse_github_emails"
                         for row in emails_payload:
                             try:
                                 emails.append(GitHubEmailItem.model_validate(row))
@@ -356,10 +391,12 @@ class OAuthSocialService(BaseService):
                         email = (chosen.email or "").strip().lower() or None
                         email_verified = bool(chosen.verified)
 
+            stage = "validate_subject"
             if not subject:
                 return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=redirect)
 
             if link_user_id:
+                stage = "link_identity"
                 return await self._handle_account_linking(
                     frontend_base=frontend_base,
                     provider=provider_key,
@@ -370,23 +407,28 @@ class OAuthSocialService(BaseService):
                 )
 
             user_id: UUID | None = None
+            stage = "load_identity"
             identity = await self.repo.get_identity(provider=provider_key, subject=subject)
             if identity is not None:
                 user_id = UUID(str(identity.user_id))
 
             if user_id is None:
+                stage = "validate_email"
                 if not email or not email_verified:
                     return self._redirect_to_login_error(frontend_base, error="email_not_verified", redirect=redirect)
 
+                stage = "load_existing_user"
                 existing_user = await self.repo.get_user_by_email(email=email)
                 if existing_user is not None:
                     user_id = UUID(str(existing_user.id))
                 else:
+                    stage = "check_public_register_policy"
                     if not await self._is_public_register_allowed(email=email):
                         return self._redirect_to_login_error(
                             frontend_base, error="provisioning_disabled", redirect=redirect
                         )
 
+                    stage = "check_auto_provision"
                     provisioning = config.get("oauth_provisioning") if isinstance(config, dict) else None
                     auto_provision = (
                         bool(provisioning.get("auto_provision_enabled")) if isinstance(provisioning, dict) else False
@@ -396,11 +438,14 @@ class OAuthSocialService(BaseService):
                             frontend_base, error="provisioning_disabled", redirect=redirect
                         )
 
+                    stage = "create_user"
                     created = await self.repo.create_user(email=email, display_name=display_name, avatar_url=avatar_url)
                     user_id = UUID(str(created.id))
 
+                stage = "create_identity"
                 await self.repo.create_identity(provider=provider_key, subject=subject, user_id=user_id, email=email)
 
+            stage = "auto_accept_invites"
             provisioning = config.get("oauth_provisioning") if isinstance(config, dict) else None
             auto_accept_invites = (
                 bool(provisioning.get("auto_accept_email_invites")) if isinstance(provisioning, dict) else False
@@ -408,10 +453,12 @@ class OAuthSocialService(BaseService):
             if auto_accept_invites and email and email_verified:
                 await self._auto_accept_email_invites(user_id=user_id, email=email)
 
+            stage = "issue_exchange_code"
             exchange_code = await issue_exchange_code(
                 self.valkey,
                 payload=AuthSSOExchangePayload(user_id=user_id, redirect=redirect),
             )
+            stage = "redirect_to_frontend"
             return self._redirect_to_frontend_login(frontend_base, oauth_code=exchange_code, redirect=redirect)
         except BaseException as exc:
             _raise_if_fatal(exc)
@@ -419,7 +466,8 @@ class OAuthSocialService(BaseService):
                 "OAuth callback flow failed",
                 action="oauth_callback",
                 provider=provider_key,
-                error=str(exc),
+                stage=stage,
+                **_summarize_oauth_exception(exc),
             )
             return self._redirect_to_login_error(frontend_base, error="oauth_failed", redirect=None)
 

@@ -54,6 +54,27 @@ type TwoFactorChallengeMeta = {
   expiresIn: number;
 };
 
+const OAUTH_SEARCH_CONSUME_DEDUPE_WINDOW_MS = 2_000;
+const oauthSearchFlagHandledAt = new Map<string, number>();
+
+function shouldHandleOAuthSearchFlag(flag: "oauth_code" | "oauth_error", value: string): boolean {
+  const key = `${flag}:${value}`;
+  const now = Date.now();
+  const lastHandledAt = oauthSearchFlagHandledAt.get(key);
+  oauthSearchFlagHandledAt.set(key, now);
+  if (lastHandledAt === undefined) return true;
+  return now - lastHandledAt > OAUTH_SEARCH_CONSUME_DEDUPE_WINDOW_MS;
+}
+
+function consumeLoginSearchFlag(flag: "oauth_code" | "oauth_error", value: string): void {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get(flag) !== value) return;
+  params.delete(flag);
+  const nextSearch = params.toString();
+  const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
+  window.history.replaceState(window.history.state, "", nextUrl);
+}
+
 function normalizeEditorRedirectPath(redirectTo: string): string {
   if (redirectTo === "/editor") return "/editor/";
   if (redirectTo.startsWith("/editor?")) return `/editor/${redirectTo.slice("/editor".length)}`;
@@ -268,6 +289,8 @@ export function useLoginPage(): LoginPageState {
 
   useEffect(() => {
     if (!oauthCode) return;
+    if (!shouldHandleOAuthSearchFlag("oauth_code", oauthCode)) return;
+    consumeLoginSearchFlag("oauth_code", oauthCode);
     const run = async () => {
       try {
         const tokens = await ssoExchangeMutation.mutateAsync(oauthCode);
@@ -304,6 +327,8 @@ export function useLoginPage(): LoginPageState {
 
   useEffect(() => {
     if (!oauthError) return;
+    if (!shouldHandleOAuthSearchFlag("oauth_error", oauthError)) return;
+    consumeLoginSearchFlag("oauth_error", oauthError);
     notifyErrorText(resolveOAuthErrorMessage(oauthError, t));
     void navigate({
       to: "/login",

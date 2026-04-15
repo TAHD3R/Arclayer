@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AnchorHTMLAttributes } from "react";
+import { StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/http";
@@ -26,6 +27,7 @@ const {
   applyLoginMock,
   queryClientClearMock,
   queryClientCancelQueriesMock,
+  notifyErrorTextMock,
   runtimeState,
   authState,
   workspaceState,
@@ -40,6 +42,7 @@ const {
   applyLoginMock: vi.fn(),
   queryClientClearMock: vi.fn(),
   queryClientCancelQueriesMock: vi.fn(),
+  notifyErrorTextMock: vi.fn(),
   runtimeState: {
     runtime: {} as RuntimeState["runtime"],
     publicRegisterEnabled: true as RuntimeState["publicRegisterEnabled"],
@@ -117,7 +120,7 @@ vi.mock("@/lib/routing/post-auth-routing", () => ({
 
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
-  notifyErrorText: vi.fn(),
+  notifyErrorText: (...args: unknown[]) => notifyErrorTextMock(...args),
   notifyInfoText: vi.fn(),
   notifySuccessText: vi.fn(),
 }));
@@ -151,15 +154,16 @@ vi.mock("react-i18next", () => ({
   Trans: ({ i18nKey }: { i18nKey: string }) => <span>{i18nKey}</span>,
 }));
 
-function renderPage() {
+function renderPage(options?: { strictMode?: boolean }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(
+  const content = (
     <QueryClientProvider client={queryClient}>
       <LoginPage />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  return render(options?.strictMode ? <StrictMode>{content}</StrictMode> : content);
 }
 
 beforeEach(() => {
@@ -194,6 +198,7 @@ describe("LoginPage two-factor challenge flow", () => {
     applyLoginMock.mockReset();
     queryClientClearMock.mockReset();
     queryClientCancelQueriesMock.mockReset();
+    notifyErrorTextMock.mockReset();
     navigateMock.mockReset();
     workspaceState.setCurrentWorkspaceId.mockReset();
     useAuthChallengeStore.getState().clear();
@@ -287,6 +292,16 @@ describe("LoginPage two-factor challenge flow", () => {
       expect(screen.getByText("auth:REGISTER_PAGE_TITLE")).toBeInTheDocument();
     });
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("emits one oauth error toast under StrictMode", async () => {
+    currentSearch = { mode: "login", oauth_error: "oauth_failed" };
+
+    renderPage({ strictMode: true });
+
+    await waitFor(() => {
+      expect(notifyErrorTextMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("starts a two-factor challenge after verifying an email login code", async () => {
