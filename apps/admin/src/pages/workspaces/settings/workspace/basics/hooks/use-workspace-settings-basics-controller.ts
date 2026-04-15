@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -54,6 +54,10 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const workspaceId = String(props.workspaceId || "").trim();
   const { t } = useTranslation(["settings", "common", "setup"]);
   const navigate = useNavigate();
+  const searchStr = useRouterState({
+    select: (s) => s.location.searchStr,
+    structuralSharing: true,
+  });
   const queryClient = useQueryClient();
 
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
@@ -76,10 +80,10 @@ export function useWorkspaceSettingsBasicsController(props: { workspaceId: strin
   const onTabChange = useCallback(
     (next: WorkspaceSettingsTabKey) => {
       void navigate({
-        ...resolveWorkspaceSettingsTabNavigation(workspaceId, next),
+        ...resolveWorkspaceSettingsTabNavigation(workspaceId, next, searchStr),
       });
     },
-    [navigate, workspaceId],
+    [navigate, searchStr, workspaceId],
   );
 
   const closeAssignRoleDialog = useCallback(() => {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -66,6 +66,10 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   const workspaceId = String(props.workspaceId || "").trim();
   const { t } = useTranslation(["settings", "common", "errors"]);
   const navigate = useNavigate();
+  const searchStr = useRouterState({
+    select: (s) => s.location.searchStr,
+    structuralSharing: true,
+  });
   const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
@@ -105,9 +109,9 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
 
   const onTabChange = React.useCallback(
     (next: WorkspaceSettingsTabKey) => {
-      void navigate({ ...resolveWorkspaceSettingsTabNavigation(workspaceId, next) });
+      void navigate({ ...resolveWorkspaceSettingsTabNavigation(workspaceId, next, searchStr) });
     },
-    [navigate, workspaceId],
+    [navigate, searchStr, workspaceId],
   );
 
   const leaveWorkspaceMutation = useMutation({

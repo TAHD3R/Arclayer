@@ -37,4 +37,5 @@ export type WorkspaceSettingsTabNavigation = {
     | "/w/$workspaceId/settings/workspace/content"
     | "/w/$workspaceId/settings/workspace/danger";
   params: { workspaceId: string };
+  search?: (prev: Record<string, unknown>) => Record<string, unknown>;
 };

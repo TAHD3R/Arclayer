@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -52,6 +52,10 @@ export function WorkspaceSettingsContentView(props: { workspaceId: string }) {
   const workspaceId = String(props.workspaceId || "").trim();
   const { t } = useTranslation(["settings", "common"]);
   const navigate = useNavigate();
+  const searchStr = useRouterState({
+    select: (s) => s.location.searchStr,
+    structuralSharing: true,
+  });
   const queryClient = useQueryClient();
   const setCurrentWorkspaceId = useWorkspaceStore((state) => state.setCurrentWorkspaceId);
   const { savingKey, withSavingKey } = useSavingKey();
@@ -72,10 +76,10 @@ export function WorkspaceSettingsContentView(props: { workspaceId: string }) {
   const onTabChange = React.useCallback(
     (next: WorkspaceSettingsTabKey) => {
       void navigate({
-        ...resolveWorkspaceSettingsTabNavigation(workspaceId, next),
+        ...resolveWorkspaceSettingsTabNavigation(workspaceId, next, searchStr),
       });
     },
-    [navigate, workspaceId],
+    [navigate, searchStr, workspaceId],
   );
 
   const coreQuery = useQuery({

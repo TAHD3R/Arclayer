@@ -18,3 +18,14 @@ export function buildFavoriteOverlayEmbedHref(path: string): string {
   url.searchParams.set(FAVORITE_OVERLAY_MODE_PARAM, FAVORITE_OVERLAY_CONTENT_ONLY_MODE);
   return `${url.pathname}${url.search}${url.hash}`;
 }
+
+export function buildFavoriteOverlaySearchUpdater(searchStr: string) {
+  if (!isFavoriteOverlayContentOnly(searchStr)) {
+    return undefined;
+  }
+
+  return (prev: Record<string, unknown>) => ({
+    ...prev,
+    [FAVORITE_OVERLAY_MODE_PARAM]: FAVORITE_OVERLAY_CONTENT_ONLY_MODE,
+  });
+}
