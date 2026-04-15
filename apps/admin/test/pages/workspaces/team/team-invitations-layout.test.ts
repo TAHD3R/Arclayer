@@ -9,11 +9,14 @@ const TEAM_INVITATIONS_VIEW_PATH = resolve(
 );
 
 describe("team invitations layout", () => {
-  it("keeps tabs content flush with the page header", () => {
+  it("mounts the active tab toolbar through DefaultPage extra instead of the table section", () => {
     const source = readFileSync(TEAM_INVITATIONS_VIEW_PATH, "utf8");
 
-    expect(source).toContain('value="pending" className="min-h-0 flex flex-col pt-0"');
-    expect(source).toContain('value="accepted" className="min-h-0 flex flex-col pt-0"');
-    expect(source).toContain('value="links" className="min-h-0 flex flex-col pt-0"');
+    expect(source).toContain("const currentToolbar =");
+    expect(source).toContain("extra={currentToolbar}");
+    expect(source).not.toContain("toolbar={");
+    expect(source).toContain('value="pending" className="min-h-0 flex flex-col"');
+    expect(source).toContain('value="accepted" className="min-h-0 flex flex-col"');
+    expect(source).toContain('value="links" className="min-h-0 flex flex-col"');
   });
 });

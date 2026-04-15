@@ -442,12 +442,38 @@ export function TeamMembersView(props: {
     setInspectingMember(matched);
   }, [props.initialInspectMemberId, tableHook.items]);
 
+  const pageToolbar = (
+    <TeamMembersPageToolbar
+      table={table}
+      searchInput={tableHook.searchInput}
+      onSearchInputChange={tableHook.setSearchInput}
+      filters={filters}
+      onFiltersChange={setFilters}
+      sort={sort}
+      onSortChange={(next) => {
+        setSort(next);
+        tableHook.setSorting(sortValueToTableSorting(next));
+      }}
+      roles={rolesQuery.data?.items ?? []}
+      rolesLoading={rolesQuery.isLoading}
+      rowHeight={rowHeight}
+      onRowHeightChange={setRowHeight}
+      wrapHeaders={wrapHeaders}
+      onWrapHeadersChange={setWrapHeaders}
+      refreshing={tableHook.isFetching}
+      onRefresh={() => void tableHook.refetch()}
+      onResetColumnVisibility={tableHook.resetColumnVisibility}
+      toolsLabels={toolsLabels}
+    />
+  );
+
   return (
     <DefaultPage
       title={t("team:TEAM_MEMBERS_TITLE")}
       description={t("team:TEAM_MEMBERS_DESC_LONG")}
       className="h-full"
       contentClassName="min-h-0 flex flex-col"
+      extra={pageToolbar}
       action={
         <Button onClick={() => setInviteOpen(true)}>
           <Plus size={16} />
@@ -474,30 +500,6 @@ export function TeamMembersView(props: {
         rowHeight={rowHeight}
         wrapHeaders={wrapHeaders}
         refreshing={tableHook.isFetching && !tableHook.isLoading}
-        toolbar={
-          <TeamMembersPageToolbar
-            table={table}
-            searchInput={tableHook.searchInput}
-            onSearchInputChange={tableHook.setSearchInput}
-            filters={filters}
-            onFiltersChange={setFilters}
-            sort={sort}
-            onSortChange={(next) => {
-              setSort(next);
-              tableHook.setSorting(sortValueToTableSorting(next));
-            }}
-            roles={rolesQuery.data?.items ?? []}
-            rolesLoading={rolesQuery.isLoading}
-            rowHeight={rowHeight}
-            onRowHeightChange={setRowHeight}
-            wrapHeaders={wrapHeaders}
-            onWrapHeadersChange={setWrapHeaders}
-            refreshing={tableHook.isFetching}
-            onRefresh={() => void tableHook.refetch()}
-            onResetColumnVisibility={tableHook.resetColumnVisibility}
-            toolsLabels={toolsLabels}
-          />
-        }
       />
 
       <EditMemberRolesDialog

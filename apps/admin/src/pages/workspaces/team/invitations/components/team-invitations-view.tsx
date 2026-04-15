@@ -711,6 +711,67 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
   const [linksWrapHeaders, setLinksWrapHeaders] = useDataTableWrapHeadersPreference({
     tableId: inviteLinksTableId,
   });
+
+  const tabs = [
+    { value: "pending" as const, label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
+    { value: "accepted" as const, label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
+    { value: "links" as const, label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
+  ];
+
+  const currentToolbar =
+    tab === "pending" ? (
+      <TeamInvitationsPageExtra
+        tabs={tabs}
+        table={pendingTable.table}
+        searchInput={pendingTable.searchInput}
+        onSearchInputChange={pendingTable.setSearchInput}
+        searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
+        clearLabel={t("common:CLEAR")}
+        rowHeight={pendingRowHeight}
+        onRowHeightChange={setPendingRowHeight}
+        wrapHeaders={pendingWrapHeaders}
+        onWrapHeadersChange={setPendingWrapHeaders}
+        onRefresh={() => void pendingTable.refetch()}
+        refreshing={pendingTable.isFetching}
+        onResetColumnVisibility={pendingTable.resetColumnVisibility}
+        labels={toolsLabels}
+      />
+    ) : tab === "accepted" ? (
+      <TeamInvitationsPageExtra
+        tabs={tabs}
+        table={acceptedTable.table}
+        searchInput={acceptedTable.searchInput}
+        onSearchInputChange={acceptedTable.setSearchInput}
+        searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
+        clearLabel={t("common:CLEAR")}
+        rowHeight={acceptedRowHeight}
+        onRowHeightChange={setAcceptedRowHeight}
+        wrapHeaders={acceptedWrapHeaders}
+        onWrapHeadersChange={setAcceptedWrapHeaders}
+        onRefresh={() => void acceptedTable.refetch()}
+        refreshing={acceptedTable.isFetching}
+        onResetColumnVisibility={acceptedTable.resetColumnVisibility}
+        labels={toolsLabels}
+      />
+    ) : (
+      <TeamInvitationsPageExtra
+        tabs={tabs}
+        table={linksTable.table}
+        searchInput={linksTable.searchInput}
+        onSearchInputChange={linksTable.setSearchInput}
+        searchPlaceholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
+        clearLabel={t("common:CLEAR")}
+        rowHeight={linksRowHeight}
+        onRowHeightChange={setLinksRowHeight}
+        wrapHeaders={linksWrapHeaders}
+        onWrapHeadersChange={setLinksWrapHeaders}
+        onRefresh={() => void linksTable.refetch()}
+        refreshing={linksTable.isFetching}
+        onResetColumnVisibility={linksTable.resetColumnVisibility}
+        labels={toolsLabels}
+      />
+    );
+
   return (
     <ChromeTabs value={tab} onValueChange={(next) => setTab(next as TabKey)}>
       <DefaultPage
@@ -718,9 +779,10 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
         description={t("team:TEAM_INVITATIONS_DESC")}
         className="h-full"
         contentClassName="min-h-0 flex flex-col"
+        extra={currentToolbar}
         action={inviteAction}
       >
-        <ChromeTabsContent value="pending" className="min-h-0 flex flex-col pt-0">
+        <ChromeTabsContent value="pending" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={pendingTable}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
@@ -728,33 +790,9 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             t={t}
             rowHeight={pendingRowHeight}
             wrapHeaders={pendingWrapHeaders}
-            toolbar={
-              tab === "pending" ? (
-                <TeamInvitationsPageExtra
-                  tabs={[
-                    { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
-                    { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
-                    { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
-                  ]}
-                  table={pendingTable.table}
-                  searchInput={pendingTable.searchInput}
-                  onSearchInputChange={pendingTable.setSearchInput}
-                  searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_PENDING_PLACEHOLDER")}
-                  clearLabel={t("common:CLEAR")}
-                  rowHeight={pendingRowHeight}
-                  onRowHeightChange={setPendingRowHeight}
-                  wrapHeaders={pendingWrapHeaders}
-                  onWrapHeadersChange={setPendingWrapHeaders}
-                  onRefresh={() => void pendingTable.refetch()}
-                  refreshing={pendingTable.isFetching}
-                  onResetColumnVisibility={pendingTable.resetColumnVisibility}
-                  labels={toolsLabels}
-                />
-              ) : undefined
-            }
           />
         </ChromeTabsContent>
-        <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col pt-0">
+        <ChromeTabsContent value="accepted" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={acceptedTable}
             emptyTitle={t("team:TEAM_INVITATIONS_EMPTY_TITLE")}
@@ -762,33 +800,9 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             t={t}
             rowHeight={acceptedRowHeight}
             wrapHeaders={acceptedWrapHeaders}
-            toolbar={
-              tab === "accepted" ? (
-                <TeamInvitationsPageExtra
-                  tabs={[
-                    { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
-                    { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
-                    { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
-                  ]}
-                  table={acceptedTable.table}
-                  searchInput={acceptedTable.searchInput}
-                  onSearchInputChange={acceptedTable.setSearchInput}
-                  searchPlaceholder={t("team:TEAM_INVITATIONS_SEARCH_ACCEPTED_PLACEHOLDER")}
-                  clearLabel={t("common:CLEAR")}
-                  rowHeight={acceptedRowHeight}
-                  onRowHeightChange={setAcceptedRowHeight}
-                  wrapHeaders={acceptedWrapHeaders}
-                  onWrapHeadersChange={setAcceptedWrapHeaders}
-                  onRefresh={() => void acceptedTable.refetch()}
-                  refreshing={acceptedTable.isFetching}
-                  onResetColumnVisibility={acceptedTable.resetColumnVisibility}
-                  labels={toolsLabels}
-                />
-              ) : undefined
-            }
           />
         </ChromeTabsContent>
-        <ChromeTabsContent value="links" className="min-h-0 flex flex-col pt-0">
+        <ChromeTabsContent value="links" className="min-h-0 flex flex-col">
           <TeamInvitationsTableSection
             tableHook={linksTable}
             emptyTitle={t("team:TEAM_INVITE_LINKS_EMPTY_TITLE")}
@@ -796,30 +810,6 @@ export function TeamInvitationsView(props: { workspaceIdOverride?: string | null
             t={t}
             rowHeight={linksRowHeight}
             wrapHeaders={linksWrapHeaders}
-            toolbar={
-              tab === "links" ? (
-                <TeamInvitationsPageExtra
-                  tabs={[
-                    { value: "pending", label: t("team:TEAM_INVITATIONS_TAB_PENDING") },
-                    { value: "accepted", label: t("team:TEAM_INVITATIONS_TAB_ACCEPTED") },
-                    { value: "links", label: t("team:TEAM_INVITATIONS_TAB_LINKS") },
-                  ]}
-                  table={linksTable.table}
-                  searchInput={linksTable.searchInput}
-                  onSearchInputChange={linksTable.setSearchInput}
-                  searchPlaceholder={t("team:TEAM_INVITE_LINKS_SEARCH_PLACEHOLDER")}
-                  clearLabel={t("common:CLEAR")}
-                  rowHeight={linksRowHeight}
-                  onRowHeightChange={setLinksRowHeight}
-                  wrapHeaders={linksWrapHeaders}
-                  onWrapHeadersChange={setLinksWrapHeaders}
-                  onRefresh={() => void linksTable.refetch()}
-                  refreshing={linksTable.isFetching}
-                  onResetColumnVisibility={linksTable.resetColumnVisibility}
-                  labels={toolsLabels}
-                />
-              ) : undefined
-            }
           />
         </ChromeTabsContent>
       </DefaultPage>

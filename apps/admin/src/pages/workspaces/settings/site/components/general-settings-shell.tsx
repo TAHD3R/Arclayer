@@ -144,6 +144,7 @@ export function GeneralSettingsShell({ activeTab, workspaceIdOverride }: General
       <DefaultPage
         title={t("settings:SETTINGS_SITE_SETTINGS_TITLE")}
         description={t("settings:SETTINGS_SITE_SETTINGS_DESC")}
+        headerVisibility="always"
         extra={
           <ChromeTabsList>
             <ChromeTabsTrigger value="basics">

@@ -18,7 +18,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 import { Accordion } from "@arclayer/ui/accordion";
-import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
+import { ChromeTabs } from "@arclayer/ui/chrome-tabs";
 import { Input } from "@arclayer/ui/input";
 import { SettingAccordionItem } from "@arclayer/ui/setting-accordion-item";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
@@ -144,25 +144,25 @@ export function WorkspaceSettingsContentView(props: { workspaceId: string }) {
   });
 
   return (
-    <DefaultPage
-      title={t("settings:SETTINGS_WORKSPACE_TITLE")}
-      description={t("settings:SETTINGS_WORKSPACE_DESC")}
+    <ChromeTabs
+      value="content"
+      onValueChange={(next) => onTabChange(next as WorkspaceSettingsTabKey)}
     >
-      <ContentGuard
-        loading={Boolean(coreQuery.isLoading && !coreQuery.data)}
-        loadingVariant="form"
-        error={coreQuery.error}
-        onRetry={() => {
-          void coreQuery.refetch();
-        }}
+      <DefaultPage
+        title={t("settings:SETTINGS_WORKSPACE_TITLE")}
+        description={t("settings:SETTINGS_WORKSPACE_DESC")}
+        headerVisibility="always"
+        extra={<WorkspaceSettingsTabs />}
       >
-        <ChromeTabs
-          value="content"
-          onValueChange={(next) => onTabChange(next as WorkspaceSettingsTabKey)}
-        >
-          <WorkspaceSettingsTabs />
-
-          <ChromeTabsContent value="content">
+        <section className="min-w-0">
+          <ContentGuard
+            loading={Boolean(coreQuery.isLoading && !coreQuery.data)}
+            loadingVariant="form"
+            error={coreQuery.error}
+            onRetry={() => {
+              void coreQuery.refetch();
+            }}
+          >
             <SettingPanel
               title={t("settings:SETTINGS_WORKSPACE_CONTENT_STRATEGY_TITLE")}
               description={t("settings:SETTINGS_WORKSPACE_CONTENT_STRATEGY_DESC")}
@@ -382,9 +382,9 @@ export function WorkspaceSettingsContentView(props: { workspaceId: string }) {
                 </Accordion>
               </SettingActionGroup>
             </SettingPanel>
-          </ChromeTabsContent>
-        </ChromeTabs>
-      </ContentGuard>
-    </DefaultPage>
+          </ContentGuard>
+        </section>
+      </DefaultPage>
+    </ChromeTabs>
   );
 }

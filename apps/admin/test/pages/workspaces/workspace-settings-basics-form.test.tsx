@@ -8,15 +8,6 @@ vi.mock("@arclayer/ui/form", () => ({
   Form: (props: { children?: ReactNode }) => <div>{props.children}</div>,
 }));
 
-vi.mock("@arclayer/ui/chrome-tabs", () => ({
-  ChromeTabs: (props: { children?: ReactNode }) => <div>{props.children}</div>,
-  ChromeTabsContent: (props: { children?: ReactNode }) => <div>{props.children}</div>,
-}));
-
-vi.mock("@/pages/workspaces/settings/workspace/components/workspace-settings-tabs", () => ({
-  WorkspaceSettingsTabs: () => <div data-testid="workspace-settings-tabs" />,
-}));
-
 vi.mock(
   "@/pages/workspaces/settings/workspace/basics/components/workspace-settings-basics-core-panels",
   () => ({

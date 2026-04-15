@@ -101,6 +101,23 @@ describe("DefaultPage", () => {
     expect(screen.queryByText("Library overview")).not.toBeInTheDocument();
   });
 
+  it("keeps the page header and extra surface when headerVisibility is always", () => {
+    render(
+      <DefaultPage
+        title="Assets"
+        description="Library overview"
+        headerVisibility="always"
+        extra={<div>Tabs surface</div>}
+      >
+        <ContentGuard loading={false} error={new Error("boom")} />
+      </DefaultPage>,
+    );
+
+    expect(screen.getByText("Assets")).toBeInTheDocument();
+    expect(screen.getByText("Library overview")).toBeInTheDocument();
+    expect(screen.getByText("Tabs surface")).toBeInTheDocument();
+  });
+
   it("supports an opt-in centered content container without changing the default shell", () => {
     render(
       <DefaultPage title="Assets" contentContainerClassName="mx-auto max-w-4xl">

@@ -14,6 +14,7 @@ export type BasePageProps = {
   title?: ReactNode;
   description?: ReactNode;
   showFavoriteToggle?: boolean;
+  headerVisibility?: "auto" | "always";
   action?: ReactNode;
   extra?: ReactNode;
   children?: ReactNode;

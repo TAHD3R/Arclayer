@@ -168,6 +168,26 @@ describe("ColumnsPage", () => {
     expect(document.querySelector('[data-slot="columns-page-shell"]')).toBeNull();
   });
 
+  it("keeps header and side slots when headerVisibility is always", () => {
+    render(
+      <ColumnsPage
+        title="Assets"
+        headerVisibility="always"
+        extra={<div>Tabs surface</div>}
+        sideSlots={{
+          right: { content: <div>Auxiliary summary</div> },
+        }}
+      >
+        <ContentGuard loading={false} error={new Error("boom")} />
+      </ColumnsPage>,
+    );
+
+    expect(screen.getByText("Assets")).toBeInTheDocument();
+    expect(screen.getByText("Tabs surface")).toBeInTheDocument();
+    expect(screen.getByText("Auxiliary summary")).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="columns-page-shell"]')).not.toBeNull();
+  });
+
   it("renders the main region once on mobile when the desktop shell is inactive", () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,

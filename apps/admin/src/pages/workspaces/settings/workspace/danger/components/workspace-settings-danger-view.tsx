@@ -16,7 +16,7 @@ import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
 import { Button } from "@arclayer/ui/button";
-import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
+import { ChromeTabs } from "@arclayer/ui/chrome-tabs";
 import { Input } from "@arclayer/ui/input";
 import { SettingActionGroup } from "@arclayer/ui/setting-action-group";
 import { SettingActionItem } from "@arclayer/ui/setting-action-item";
@@ -165,24 +165,25 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
   });
 
   return (
-    <DefaultPage
-      title={t("settings:SETTINGS_WORKSPACE_TITLE")}
-      description={t("settings:SETTINGS_WORKSPACE_DESC")}
+    <ChromeTabs
+      value="danger"
+      onValueChange={(next) => onTabChange(next as WorkspaceSettingsTabKey)}
     >
-      <ContentGuard
-        loading={Boolean(dangerQuery.isLoading && !danger)}
-        loadingVariant="form"
-        error={dangerQuery.error}
-        onRetry={() => {
-          void dangerQuery.refetch();
-        }}
+      <DefaultPage
+        title={t("settings:SETTINGS_WORKSPACE_TITLE")}
+        description={t("settings:SETTINGS_WORKSPACE_DESC")}
+        headerVisibility="always"
+        extra={<WorkspaceSettingsTabs />}
       >
-        <ChromeTabs
-          value="danger"
-          onValueChange={(next) => onTabChange(next as WorkspaceSettingsTabKey)}
-        >
-          <WorkspaceSettingsTabs />
-          <ChromeTabsContent value="danger">
+        <section className="min-w-0">
+          <ContentGuard
+            loading={Boolean(dangerQuery.isLoading && !danger)}
+            loadingVariant="form"
+            error={dangerQuery.error}
+            onRetry={() => {
+              void dangerQuery.refetch();
+            }}
+          >
             <SettingPanel
               title={t("settings:SETTINGS_WORKSPACE_DANGER_PANEL_TITLE")}
               description={t("settings:SETTINGS_WORKSPACE_DANGER_PANEL_DESC")}
@@ -219,112 +220,112 @@ export function WorkspaceSettingsDangerView(props: { workspaceId: string }) {
                 />
               </SettingActionGroup>
             </SettingPanel>
-          </ChromeTabsContent>
-        </ChromeTabs>
 
-        <SettingDialog
-          open={leaveDialogOpen}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) closeLeaveDialog();
-          }}
-          title={t("settings:SETTINGS_WORKSPACE_LEAVE_TITLE")}
-          description={t("settings:SETTINGS_WORKSPACE_LEAVE_DESC")}
-          footer={
-            <div className="flex w-full justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={closeLeaveDialog}>
-                {t("common:CANCEL")}
-              </Button>
-              <Button
-                type="button"
-                loading={savingKey === "workspace:leave"}
-                disabled={disabled || !canOpenLeave}
-                onClick={() => {
-                  void withSavingKey("workspace:leave", async () => {
-                    await submitLeaveDialog();
-                  });
+            <SettingDialog
+              open={leaveDialogOpen}
+              onOpenChange={(nextOpen) => {
+                if (!nextOpen) closeLeaveDialog();
+              }}
+              title={t("settings:SETTINGS_WORKSPACE_LEAVE_TITLE")}
+              description={t("settings:SETTINGS_WORKSPACE_LEAVE_DESC")}
+              footer={
+                <div className="flex w-full justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={closeLeaveDialog}>
+                    {t("common:CANCEL")}
+                  </Button>
+                  <Button
+                    type="button"
+                    loading={savingKey === "workspace:leave"}
+                    disabled={disabled || !canOpenLeave}
+                    onClick={() => {
+                      void withSavingKey("workspace:leave", async () => {
+                        await submitLeaveDialog();
+                      });
+                    }}
+                  >
+                    {t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_BUTTON")}
+                  </Button>
+                </div>
+              }
+            >
+              <Controller
+                control={leaveDialogForm.control}
+                name="confirmText"
+                rules={{
+                  required: t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED"),
+                  validate: (value) =>
+                    String(value || "").trim() === confirmLeaveText ||
+                    t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_MISMATCH"),
                 }}
-              >
-                {t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_BUTTON")}
-              </Button>
-            </div>
-          }
-        >
-          <Controller
-            control={leaveDialogForm.control}
-            name="confirmText"
-            rules={{
-              required: t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED"),
-              validate: (value) =>
-                String(value || "").trim() === confirmLeaveText ||
-                t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_MISMATCH"),
-            }}
-            render={({ field, fieldState }) => (
-              <DialogField
-                title={t("settings:SETTINGS_DIALOG_CONFIRM_TEXT_LABEL")}
-                description={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED")}
-                error={fieldState.error?.message}
-              >
-                <Input
-                  {...field}
-                  placeholder={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_PLACEHOLDER")}
-                />
-              </DialogField>
-            )}
-          />
-        </SettingDialog>
+                render={({ field, fieldState }) => (
+                  <DialogField
+                    title={t("settings:SETTINGS_DIALOG_CONFIRM_TEXT_LABEL")}
+                    description={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_REQUIRED")}
+                    error={fieldState.error?.message}
+                  >
+                    <Input
+                      {...field}
+                      placeholder={t("settings:SETTINGS_WORKSPACE_LEAVE_CONFIRM_PLACEHOLDER")}
+                    />
+                  </DialogField>
+                )}
+              />
+            </SettingDialog>
 
-        <SettingDialog
-          open={deleteDialogOpen}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) closeDeleteDialog();
-          }}
-          title={t("settings:SETTINGS_WORKSPACE_DELETE_TITLE")}
-          description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
-          footer={
-            <div className="flex w-full justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={closeDeleteDialog}>
-                {t("common:CANCEL")}
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                loading={savingKey === "workspace:delete"}
-                disabled={disabled || !canOpenDelete}
-                onClick={() => {
-                  void withSavingKey("workspace:delete", async () => {
-                    await submitDeleteDialog();
-                  });
+            <SettingDialog
+              open={deleteDialogOpen}
+              onOpenChange={(nextOpen) => {
+                if (!nextOpen) closeDeleteDialog();
+              }}
+              title={t("settings:SETTINGS_WORKSPACE_DELETE_TITLE")}
+              description={t("settings:SETTINGS_WORKSPACE_DELETE_DESC")}
+              footer={
+                <div className="flex w-full justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={closeDeleteDialog}>
+                    {t("common:CANCEL")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    loading={savingKey === "workspace:delete"}
+                    disabled={disabled || !canOpenDelete}
+                    onClick={() => {
+                      void withSavingKey("workspace:delete", async () => {
+                        await submitDeleteDialog();
+                      });
+                    }}
+                  >
+                    {t("common:DELETE")}
+                  </Button>
+                </div>
+              }
+            >
+              <Controller
+                control={deleteDialogForm.control}
+                name="confirmName"
+                rules={{
+                  required: t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED"),
+                  validate: (value) =>
+                    String(value || "").trim() === confirmDeleteName ||
+                    t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"),
                 }}
-              >
-                {t("common:DELETE")}
-              </Button>
-            </div>
-          }
-        >
-          <Controller
-            control={deleteDialogForm.control}
-            name="confirmName"
-            rules={{
-              required: t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED"),
-              validate: (value) =>
-                String(value || "").trim() === confirmDeleteName ||
-                t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_MISMATCH"),
-            }}
-            render={({ field, fieldState }) => (
-              <DialogField
-                title={t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL")}
-                description={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED")}
-                error={fieldState.error?.message}
-              >
-                <Input
-                  {...field}
-                  placeholder={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_PLACEHOLDER")}
-                />
-              </DialogField>
-            )}
-          />
-        </SettingDialog>
-      </ContentGuard>
-    </DefaultPage>
+                render={({ field, fieldState }) => (
+                  <DialogField
+                    title={t("settings:SETTINGS_DIALOG_CONFIRM_NAME_LABEL")}
+                    description={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_REQUIRED")}
+                    error={fieldState.error?.message}
+                  >
+                    <Input
+                      {...field}
+                      placeholder={t("settings:SETTINGS_WORKSPACE_DELETE_CONFIRM_NAME_PLACEHOLDER")}
+                    />
+                  </DialogField>
+                )}
+              />
+            </SettingDialog>
+          </ContentGuard>
+        </section>
+      </DefaultPage>
+    </ChromeTabs>
   );
 }

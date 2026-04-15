@@ -1,6 +1,9 @@
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import { ChromeTabs } from "@arclayer/ui/chrome-tabs";
+import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 
+import { WorkspaceSettingsTabs } from "../../components/workspace-settings-tabs";
 import { useWorkspaceSettingsBasicsController } from "../hooks/use-workspace-settings-basics-controller";
 import { WorkspaceSettingsAssignRoleDialog } from "./workspace-settings-assign-role-dialog";
 import { WorkspaceSettingsBasicsForm } from "./workspace-settings-basics-form";
@@ -17,25 +20,34 @@ export function WorkspaceSettingsBasicsView(props: { workspaceId: string }) {
         : null;
 
   return (
-    <DefaultPage
-      title={c.t("settings:SETTINGS_WORKSPACE_TITLE")}
-      description={c.t("settings:SETTINGS_WORKSPACE_DESC")}
+    <ChromeTabs
+      value="basics"
+      onValueChange={(next) => c.onTabChange(next as WorkspaceSettingsTabKey)}
     >
-      <ContentGuard
-        loading={Boolean(
-          (c.detailQuery.isLoading || c.rolesQuery.isLoading) && !c.detailQuery.data,
-        )}
-        loadingVariant="form"
-        error={error}
-        onRetry={() => {
-          void c.detailQuery.refetch();
-          void c.coreQuery.refetch();
-          void c.rolesQuery.refetch();
-        }}
+      <DefaultPage
+        title={c.t("settings:SETTINGS_WORKSPACE_TITLE")}
+        description={c.t("settings:SETTINGS_WORKSPACE_DESC")}
+        headerVisibility="always"
+        extra={<WorkspaceSettingsTabs />}
       >
-        <WorkspaceSettingsBasicsForm controller={c} />
-        <WorkspaceSettingsAssignRoleDialog controller={c} />
-      </ContentGuard>
-    </DefaultPage>
+        <section className="min-w-0">
+          <ContentGuard
+            loading={Boolean(
+              (c.detailQuery.isLoading || c.rolesQuery.isLoading) && !c.detailQuery.data,
+            )}
+            loadingVariant="form"
+            error={error}
+            onRetry={() => {
+              void c.detailQuery.refetch();
+              void c.coreQuery.refetch();
+              void c.rolesQuery.refetch();
+            }}
+          >
+            <WorkspaceSettingsBasicsForm controller={c} />
+            <WorkspaceSettingsAssignRoleDialog controller={c} />
+          </ContentGuard>
+        </section>
+      </DefaultPage>
+    </ChromeTabs>
   );
 }

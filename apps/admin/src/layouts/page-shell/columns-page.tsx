@@ -31,6 +31,7 @@ export function ColumnsPage({
   title,
   description,
   showFavoriteToggle = true,
+  headerVisibility = "auto",
   action,
   extra,
   sideSlots,
@@ -39,7 +40,7 @@ export function ColumnsPage({
   className,
   contentClassName,
 }: ColumnsPageProps) {
-  const hideHeader = shouldHidePageHeader(children);
+  const hideHeader = headerVisibility === "always" ? false : shouldHidePageHeader(children);
   const leftSideSlot = hideHeader ? undefined : sideSlots?.left;
   const rightSideSlot = hideHeader ? undefined : sideSlots?.right;
   const hasSideSlots = Boolean(leftSideSlot || rightSideSlot);

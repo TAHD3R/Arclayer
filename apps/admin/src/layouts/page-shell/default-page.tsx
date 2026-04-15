@@ -10,6 +10,7 @@ export function DefaultPage({
   title,
   description,
   showFavoriteToggle = true,
+  headerVisibility = "auto",
   action,
   extra,
   children,
@@ -17,7 +18,7 @@ export function DefaultPage({
   contentClassName,
   contentContainerClassName,
 }: DefaultPageProps) {
-  const hideHeader = shouldHidePageHeader(children);
+  const hideHeader = headerVisibility === "always" ? false : shouldHidePageHeader(children);
 
   return (
     <AdminRouteContainer className={clsx("min-h-full min-w-0", className)}>

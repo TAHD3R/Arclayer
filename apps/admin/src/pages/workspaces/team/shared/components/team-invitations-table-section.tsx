@@ -26,11 +26,10 @@ interface TeamInvitationsTableSectionProps<TRow> {
   t: TranslateFn;
   rowHeight: DataTableRowHeight;
   wrapHeaders: boolean;
-  toolbar?: React.ReactNode;
 }
 
 export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSectionProps<TRow>) {
-  const { tableHook, emptyTitle, emptyDescription, t, rowHeight, wrapHeaders, toolbar } = props;
+  const { tableHook, emptyTitle, emptyDescription, t, rowHeight, wrapHeaders } = props;
 
   return (
     <AdminDataTableSection
@@ -52,7 +51,6 @@ export function TeamInvitationsTableSection<TRow>(props: TeamInvitationsTableSec
       rowHeight={rowHeight}
       wrapHeaders={wrapHeaders}
       refreshing={tableHook.isFetching && !tableHook.isLoading}
-      toolbar={toolbar}
     />
   );
 }
