@@ -28,6 +28,7 @@ function normalizeWorkspaceDescriptionPreview(value?: string | null) {
 interface UserCenterWorkspacesColumnsOptions {
   t: UserCenterWorkspacesTranslateFn;
   buildMenuItems: (workspace: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
+  onPrepareWorkspaceMenu: (workspaceId: string) => void;
   editingWorkspaceId: string | null;
   editingWorkspaceField: WorkspaceEditingField | null;
   editingWorkspaceName: string;
@@ -102,7 +103,10 @@ export function useUserCenterWorkspacesColumns(
                   onCancel={options.onCancelWorkspaceEdit}
                 />
               </div>
-              <WorkspaceActionsDropdown menuItems={buildMenuItems(item)} />
+              <WorkspaceActionsDropdown
+                menuItems={buildMenuItems(item)}
+                onPrepareMenu={() => options.onPrepareWorkspaceMenu(item.workspaceId)}
+              />
             </div>
           );
         },
@@ -144,6 +148,7 @@ export function useUserCenterWorkspacesColumns(
     [
       buildMenuItems,
       dateTime.formatDateTime,
+      options.onPrepareWorkspaceMenu,
       options.editingWorkspaceDescription,
       options.editingWorkspaceField,
       options.editingWorkspaceId,

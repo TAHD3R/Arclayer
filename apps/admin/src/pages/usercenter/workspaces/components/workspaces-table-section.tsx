@@ -29,6 +29,7 @@ interface WorkspacesContentSectionProps {
   archived: boolean;
   searchInput: string;
   buildMenuItems: (ws: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
+  onPrepareWorkspaceMenu: (workspaceId: string) => void;
   editingWorkspaceId: string | null;
   editingWorkspaceField: WorkspaceEditingField | null;
   editingWorkspaceName: string;
@@ -53,6 +54,7 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
         archived={props.archived}
         searchInput={props.searchInput}
         buildMenuItems={props.buildMenuItems}
+        onPrepareWorkspaceMenu={props.onPrepareWorkspaceMenu}
         editingWorkspaceId={props.editingWorkspaceId}
         editingWorkspaceField={props.editingWorkspaceField}
         editingWorkspaceName={props.editingWorkspaceName}

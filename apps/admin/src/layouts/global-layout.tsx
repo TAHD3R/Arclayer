@@ -133,6 +133,9 @@ export function GlobalLayout() {
               .filter((item) =>
                 item.type === "divider" ? true : (item.children?.length ?? 1) > 0,
               )}
+            onPrepareMenu={() => {
+              void workspaceMenuActions.prefetchWorkspaceDangerCapabilities(workspace.workspaceId);
+            }}
             buttonClassName="size-6 rounded-sm text-label-secondary opacity-0 transition-opacity duration-150 hover:bg-accent/70 hover:text-label-primary group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100"
           />
         ),

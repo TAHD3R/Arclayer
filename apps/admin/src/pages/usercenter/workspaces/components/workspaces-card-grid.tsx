@@ -20,6 +20,7 @@ interface WorkspacesCardGridProps {
   archived: boolean;
   searchInput: string;
   buildMenuItems: (ws: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
+  onPrepareWorkspaceMenu?: (workspaceId: string) => void;
   editingWorkspaceId: string | null;
   editingWorkspaceField: WorkspaceEditingField | null;
   editingWorkspaceName: string;
@@ -46,6 +47,7 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
     archived,
     searchInput,
     buildMenuItems,
+    onPrepareWorkspaceMenu,
     editingWorkspaceId,
     editingWorkspaceField,
     editingWorkspaceName,
@@ -132,6 +134,7 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
             key={workspace.workspaceId}
             workspace={workspace}
             menuItems={buildMenuItems(workspace)}
+            onPrepareMenu={() => onPrepareWorkspaceMenu?.(workspace.workspaceId)}
             t={t}
             editing={editingWorkspaceId === workspace.workspaceId}
             editingField={editingWorkspaceField}

@@ -3,14 +3,26 @@ import { act, renderHook } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getWorkspaceDangerCapabilities } from "@/api/workspaces";
 import { useWorkspaceMenuActions } from "@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions";
 import type { UserCenterWorkspaceListItem } from "@/pages/usercenter/workspaces/types";
 
 const useUserCenterWorkspacesMutationsMock = vi.fn();
+const notifyErrorTextMock = vi.fn();
 
 vi.mock("@/pages/usercenter/workspaces/hooks/use-usercenter-workspaces-mutations", () => ({
   useUserCenterWorkspacesMutations: (...args: unknown[]) =>
     useUserCenterWorkspacesMutationsMock(...args),
+}));
+
+vi.mock("@/api/workspaces", () => ({
+  getWorkspaceDangerCapabilities: vi.fn(),
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  notifyError: vi.fn(),
+  notifyErrorText: (...args: unknown[]) => notifyErrorTextMock(...args),
+  notifySuccessText: vi.fn(),
 }));
 
 function createWrapper(queryClient: QueryClient) {
@@ -21,15 +33,25 @@ function createWrapper(queryClient: QueryClient) {
 
 describe("useWorkspaceMenuActions", () => {
   const updateMutateAsync = vi.fn().mockResolvedValue(undefined);
+  const archiveMutateAsync = vi.fn().mockResolvedValue(undefined);
+  const deleteMutateAsync = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     vi.clearAllMocks();
     useUserCenterWorkspacesMutationsMock.mockReturnValue({
       createMutation: { isPending: false, mutateAsync: vi.fn() },
-      archiveMutation: { isPending: false, mutateAsync: vi.fn() },
+      archiveMutation: { isPending: false, mutateAsync: archiveMutateAsync },
       unarchiveMutation: { isPending: false, mutateAsync: vi.fn() },
-      deleteMutation: { isPending: false, mutateAsync: vi.fn() },
+      deleteMutation: { isPending: false, mutateAsync: deleteMutateAsync },
       updateMutation: { isPending: false, mutateAsync: updateMutateAsync },
+    });
+    vi.mocked(getWorkspaceDangerCapabilities).mockResolvedValue({
+      workspaceId: "ws-1",
+      organizationId: "org-1",
+      confirmLeaveText: "LEAVE",
+      confirmDeleteName: "Workspace Alpha",
+      leaveAction: { enabled: true, blockedReason: null },
+      deleteAction: { enabled: true, blockedReason: null },
     });
   });
 
@@ -121,5 +143,160 @@ describe("useWorkspaceMenuActions", () => {
         iconUrl: null,
       },
     });
+  });
+
+  it("blocks archive from the menu when workspace leave guard is disabled", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const wrapper = createWrapper(queryClient);
+    const workspace: UserCenterWorkspaceListItem = {
+      id: "ws-1",
+      workspaceId: "ws-1",
+      organizationId: "org-1",
+      slug: "alpha",
+      name: "Workspace Alpha",
+      description: null,
+      kind: "team",
+      iconMode: "initials",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
+      iconUrl: null,
+      isArchived: false,
+      archivedAt: null,
+      archivedByUserId: null,
+      memberCount: 1,
+      membersPreview: [],
+      createdAt: "2026-04-15T00:00:00Z",
+      enterable: true,
+    };
+    vi.mocked(getWorkspaceDangerCapabilities).mockResolvedValue({
+      workspaceId: "ws-1",
+      organizationId: "org-1",
+      confirmLeaveText: "LEAVE",
+      confirmDeleteName: "Workspace Alpha",
+      leaveAction: { enabled: false, blockedReason: "WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED" },
+      deleteAction: { enabled: true, blockedReason: null },
+    });
+
+    const { result } = renderHook(
+      () =>
+        useWorkspaceMenuActions({
+          t: ((key: string) =>
+            (
+              ({
+                "errors:WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED": "工作空间至少需要保留一名所有者",
+              }) as Record<string, string>
+            )[key] ?? key) as never,
+          onEnterWorkspace: vi.fn(),
+          onManageWorkspace: vi.fn(),
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.prefetchWorkspaceDangerCapabilities("ws-1");
+    });
+
+    const menuItems = result.current.buildMenuItems(workspace);
+    const archiveGroup = menuItems.find(
+      (item): item is Exclude<(typeof menuItems)[number], { type: "divider" }> =>
+        item.type !== "divider" && item.key === "archive-trash",
+    );
+    const archiveItem = archiveGroup?.children?.find(
+      (
+        item,
+      ): item is Exclude<NonNullable<typeof archiveGroup.children>[number], { type: "divider" }> =>
+        item.type !== "divider" && item.key === "archive",
+    );
+
+    expect(archiveItem).toBeDefined();
+    expect(archiveItem?.disabled).toBe(true);
+
+    expect(result.current.archiveDialog.workspace).toBeNull();
+    expect(archiveMutateAsync).not.toHaveBeenCalled();
+    expect(notifyErrorTextMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks delete from the menu when workspace delete guard is disabled", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const wrapper = createWrapper(queryClient);
+    const workspace: UserCenterWorkspaceListItem = {
+      id: "ws-1",
+      workspaceId: "ws-1",
+      organizationId: "org-1",
+      slug: "alpha",
+      name: "Workspace Alpha",
+      description: null,
+      kind: "team",
+      iconMode: "initials",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
+      iconUrl: null,
+      isArchived: false,
+      archivedAt: null,
+      archivedByUserId: null,
+      memberCount: 1,
+      membersPreview: [],
+      createdAt: "2026-04-15T00:00:00Z",
+      enterable: true,
+    };
+    vi.mocked(getWorkspaceDangerCapabilities).mockResolvedValue({
+      workspaceId: "ws-1",
+      organizationId: "org-1",
+      confirmLeaveText: "LEAVE",
+      confirmDeleteName: "Workspace Alpha",
+      leaveAction: { enabled: true, blockedReason: null },
+      deleteAction: { enabled: false, blockedReason: "LAST_ACTIVE_WORKSPACE_NOT_DELETABLE" },
+    });
+
+    const { result } = renderHook(
+      () =>
+        useWorkspaceMenuActions({
+          t: ((key: string) =>
+            (
+              ({
+                "errors:LAST_ACTIVE_WORKSPACE_NOT_DELETABLE":
+                  "当前组织至少需要保留一个激活工作空间，不能删除最后一个工作空间",
+              }) as Record<string, string>
+            )[key] ?? key) as never,
+          onEnterWorkspace: vi.fn(),
+          onManageWorkspace: vi.fn(),
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.prefetchWorkspaceDangerCapabilities("ws-1");
+    });
+
+    const menuItems = result.current.buildMenuItems(workspace);
+    const archiveGroup = menuItems.find(
+      (item): item is Exclude<(typeof menuItems)[number], { type: "divider" }> =>
+        item.type !== "divider" && item.key === "archive-trash",
+    );
+    const deleteItem = archiveGroup?.children?.find(
+      (
+        item,
+      ): item is Exclude<NonNullable<typeof archiveGroup.children>[number], { type: "divider" }> =>
+        item.type !== "divider" && item.key === "delete",
+    );
+
+    expect(deleteItem).toBeDefined();
+    expect(deleteItem?.disabled).toBe(true);
+
+    expect(result.current.deleteDialog.workspace).toBeNull();
+    expect(deleteMutateAsync).not.toHaveBeenCalled();
+    expect(notifyErrorTextMock).not.toHaveBeenCalled();
   });
 });

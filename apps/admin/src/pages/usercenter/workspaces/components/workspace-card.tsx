@@ -25,6 +25,7 @@ function normalizeWorkspaceDescriptionPreview(value?: string | null) {
 interface WorkspaceCardProps {
   workspace: UserCenterWorkspaceListItem;
   menuItems: WorkspaceMenuItem[];
+  onPrepareMenu?: () => void;
   t: UserCenterWorkspacesTranslateFn;
   editing: boolean;
   editingField: WorkspaceEditingField | null;
@@ -42,6 +43,7 @@ interface WorkspaceCardProps {
 export function WorkspaceCard({
   workspace,
   menuItems,
+  onPrepareMenu,
   t,
   editing,
   editingField,
@@ -77,7 +79,7 @@ export function WorkspaceCard({
             {...workspaceAvatarPropsFromIdentity(workspace)}
           />
         </div>
-        <WorkspaceActionsDropdown menuItems={menuItems} />
+        <WorkspaceActionsDropdown menuItems={menuItems} onPrepareMenu={onPrepareMenu} />
       </div>
 
       {/* Title + description */}

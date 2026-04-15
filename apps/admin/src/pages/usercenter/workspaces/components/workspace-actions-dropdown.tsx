@@ -25,6 +25,7 @@ type WorkspaceActionsDropdownProps = {
   buttonClassName?: string;
   contentAlign?: "start" | "center" | "end";
   stopPropagation?: boolean;
+  onPrepareMenu?: () => void;
 };
 
 export function WorkspaceActionsDropdown({
@@ -32,6 +33,7 @@ export function WorkspaceActionsDropdown({
   buttonClassName,
   contentAlign = "end",
   stopPropagation = true,
+  onPrepareMenu,
 }: WorkspaceActionsDropdownProps) {
   if (menuItems.length === 0) return null;
 
@@ -78,12 +80,15 @@ export function WorkspaceActionsDropdown({
             type="button"
             tapScale={1}
             className={cn(WORKSPACE_ACTION_BUTTON_CLASSNAME, buttonClassName)}
+            onPointerEnter={onPrepareMenu}
+            onFocus={onPrepareMenu}
           >
             <MoreVertical className="size-4" />
           </ButtonPrimitive>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align={contentAlign}
+          onPointerEnter={onPrepareMenu}
           onCloseAutoFocus={(event) => event.preventDefault()}
         >
           {renderItems(menuItems)}

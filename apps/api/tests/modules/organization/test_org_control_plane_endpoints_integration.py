@@ -11,15 +11,18 @@ from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.user import User
+from src.models.system.rbac import Role
 from src.models.workspaces.workspace import (
     Workspace,
     WorkspaceMembership,
+    WorkspaceMembershipRole,
     WorkspaceMembershipStatus,
 )
 from src.modules.auth.http.service import get_current_user, get_current_user_id
 from src.modules.auth.repository import UserRepository
 from src.modules.auth.tokens.service import hash_password
 from src.modules.organization.repository import OrganizationRepository
+from src.modules.system.rbac.service import RBACService
 
 pytestmark = pytest.mark.integration
 
@@ -151,6 +154,7 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
             assert created["name"] == "Blog Team"
             assert created["slug"] == "blog-team"
             assert created["description"] == "Marketing and content"
+            created_workspace = await Workspace.get(organization_id=org.id, slug="blog-team")
 
             taken_slug_resp = await client.get(
                 "/api/v1/organizations/me/workspaces/slug-availability",
@@ -169,7 +173,7 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
                 is_active=True,
                 created_by_user_id=owner.id,
             )
-            await WorkspaceMembership.create(
+            support_owner_membership = await WorkspaceMembership.create(
                 workspace_id=support_workspace.id,
                 user_id=owner.id,
                 status=WorkspaceMembershipStatus.ACTIVE,
@@ -180,6 +184,31 @@ async def test_org_workspace_endpoints_list_create_archive_delete_and_guards(
                 user_id=admin.id,
                 status=WorkspaceMembershipStatus.ACTIVE,
                 invited_by_user_id=owner.id,
+            )
+            support_rbac = RBACService(settings)
+            await support_rbac.ensure_workspace_system_roles(workspace_id=support_workspace.id)
+            support_owner_role = await Role.get(workspace_id=support_workspace.id, code="owner")
+            await WorkspaceMembershipRole.get_or_create(
+                membership_id=support_owner_membership.id,
+                role_id=support_owner_role.id,
+            )
+
+            archive_guard_resp = await client.post(
+                f"/api/v1/organizations/me/workspaces/{created_workspace_id}/archive"
+            )
+            assert archive_guard_resp.status_code == 400, archive_guard_resp.text
+            assert archive_guard_resp.json().get("error") == "WORKSPACE_OWNER_AT_LEAST_ONE_REQUIRED"
+
+            created_admin_membership = await WorkspaceMembership.create(
+                workspace_id=created_workspace.id,
+                user_id=admin.id,
+                status=WorkspaceMembershipStatus.ACTIVE,
+                invited_by_user_id=owner.id,
+            )
+            created_owner_role = await Role.get(workspace_id=created_workspace.id, code="owner")
+            await WorkspaceMembershipRole.get_or_create(
+                membership_id=created_admin_membership.id,
+                role_id=created_owner_role.id,
             )
 
             archive_resp = await client.post(f"/api/v1/organizations/me/workspaces/{created_workspace_id}/archive")

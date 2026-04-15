@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import UTC, datetime
 from math import ceil
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from src.common.protocols.tortoise import HasUserId, HasWorkspaceId, WorkspaceArchiveMutableFields
@@ -28,6 +28,7 @@ from src.modules.organization.workspaces.schema import (
 )
 from src.modules.system.rbac.constants.service import ROLE_ADMIN, ROLE_OWNER
 from src.modules.system.rbac.service import RBACService
+from src.modules.workspaces.danger_service import WorkspaceDangerService
 from src.modules.workspaces.policy.service import OrgWorkspaceCreationPolicy
 from src.modules.workspaces.settings.service import WorkspaceSettingsService
 from src.modules.workspaces.site.service import WorkspaceSiteService
@@ -368,6 +369,13 @@ class OrganizationWorkspaceService(BaseService):
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
+        await self._ensure_workspace_danger_action_enabled(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            action="archive",
+        )
+
         if workspace.archived_at is None:
             workspace.archived_at = datetime.now(UTC)
             workspace.archived_by_user_id = user_id
@@ -434,6 +442,13 @@ class OrganizationWorkspaceService(BaseService):
         if workspace is None:
             raise NotFound(message=t("errors", "NOT_FOUND"), error="NOT_FOUND")
 
+        await self._ensure_workspace_danger_action_enabled(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            action="delete",
+        )
+
         normalized_confirm_name = str(confirm_name or "").strip()
         if normalized_confirm_name != str(workspace.name):
             raise BadRequest(
@@ -460,6 +475,27 @@ class OrganizationWorkspaceService(BaseService):
         )
 
         return OrganizationWorkspaceDeleteResult(workspace_id=workspace_id, deleted=True)
+
+    async def _ensure_workspace_danger_action_enabled(
+        self,
+        *,
+        organization_id: UUID,
+        workspace_id: UUID,
+        user_id: UUID,
+        action: Literal["archive", "delete"],
+    ) -> None:
+        danger = await WorkspaceDangerService(self.settings).get_capabilities(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+        guard = danger.leave_action if action == "archive" else danger.delete_action
+        if guard.enabled:
+            return
+        raise BadRequest(
+            message=t("errors", "BAD_REQUEST"),
+            error=str(guard.blocked_reason or "BAD_REQUEST"),
+        )
 
     async def _next_available_workspace_slug(self, *, base_slug: str) -> str:
         return await next_available_workspace_slug(

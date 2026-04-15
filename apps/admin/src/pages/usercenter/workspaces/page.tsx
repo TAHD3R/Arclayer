@@ -75,6 +75,9 @@ export function WorkspacesPage() {
   const columns = useUserCenterWorkspacesColumns({
     t,
     buildMenuItems: workspaceMenuActions.buildMenuItems,
+    onPrepareWorkspaceMenu: (workspaceId) => {
+      void workspaceMenuActions.prefetchWorkspaceDangerCapabilities(workspaceId);
+    },
     editingWorkspaceId: workspaceMenuActions.editingWorkspaceId,
     editingWorkspaceField: workspaceMenuActions.editingWorkspaceField,
     editingWorkspaceName: workspaceMenuActions.editingWorkspaceName,
@@ -177,6 +180,9 @@ export function WorkspacesPage() {
               archived={false}
               searchInput={activeTableHook.searchInput}
               buildMenuItems={workspaceMenuActions.buildMenuItems}
+              onPrepareWorkspaceMenu={(workspaceId) => {
+                void workspaceMenuActions.prefetchWorkspaceDangerCapabilities(workspaceId);
+              }}
               editingWorkspaceId={workspaceMenuActions.editingWorkspaceId}
               editingWorkspaceField={workspaceMenuActions.editingWorkspaceField}
               editingWorkspaceName={workspaceMenuActions.editingWorkspaceName}
@@ -206,6 +212,9 @@ export function WorkspacesPage() {
               archived
               searchInput={archivedTableHook.searchInput}
               buildMenuItems={workspaceMenuActions.buildMenuItems}
+              onPrepareWorkspaceMenu={(workspaceId) => {
+                void workspaceMenuActions.prefetchWorkspaceDangerCapabilities(workspaceId);
+              }}
               editingWorkspaceId={workspaceMenuActions.editingWorkspaceId}
               editingWorkspaceField={workspaceMenuActions.editingWorkspaceField}
               editingWorkspaceName={workspaceMenuActions.editingWorkspaceName}

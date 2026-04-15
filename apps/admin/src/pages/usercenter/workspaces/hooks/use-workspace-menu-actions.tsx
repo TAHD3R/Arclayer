@@ -1,7 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Archive, LogIn, Palette, Pencil, Settings2, Trash2, Undo2 } from "lucide-react";
 
-import type { OrganizationWorkspace } from "@/types/api";
+import { getWorkspaceDangerCapabilities } from "@/api/workspaces";
+import { notifyError, notifyErrorText } from "@/lib/notifications";
+import type { OrganizationWorkspace, WorkspaceDangerCapabilities } from "@/types/api";
 
 import type {
   UserCenterWorkspaceListItem,
@@ -20,6 +23,10 @@ export type WorkspaceIconDialogValues = {
 
 export type WorkspaceEditingField = "name" | "description";
 
+type WorkspaceDangerCapabilityState =
+  | { status: "loading"; data: null }
+  | { status: "ready"; data: WorkspaceDangerCapabilities };
+
 type UseWorkspaceMenuActionsOptions = {
   organizationId?: string;
   t: UserCenterWorkspacesTranslateFn;
@@ -33,6 +40,13 @@ const EDIT_NAVIGATION_SUPPRESSION_MS = 240;
 
 function normalizeWorkspaceDescription(value?: string | null) {
   return (value ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+}
+
+function getBlockedReasonText(code: string | null | undefined, t: UserCenterWorkspacesTranslateFn) {
+  if (!code) return null;
+  const key = `errors:${code}`;
+  const translated = t(key);
+  return translated === key ? code : translated;
 }
 
 function buildIconDialogValues(workspace: UserCenterWorkspaceListItem): WorkspaceIconDialogValues {
@@ -63,6 +77,7 @@ export function useWorkspaceMenuActions({
   onArchiveSuccess,
   onDeleteSuccess,
 }: UseWorkspaceMenuActionsOptions) {
+  const queryClient = useQueryClient();
   const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
@@ -76,6 +91,9 @@ export function useWorkspaceMenuActions({
     useState<UserCenterWorkspaceListItem | null>(null);
   const [isWorkspaceEditNavigationSuppressed, setIsWorkspaceEditNavigationSuppressed] =
     useState(false);
+  const [workspaceDangerCapabilities, setWorkspaceDangerCapabilities] = useState<
+    Record<string, WorkspaceDangerCapabilityState | undefined>
+  >({});
   const [iconDialogValues, setIconDialogValues] = useState<WorkspaceIconDialogValues>({
     iconMode: "initials",
     iconColor: "#337ea9",
@@ -100,10 +118,95 @@ export function useWorkspaceMenuActions({
     },
   });
 
-  const requestDeleteWorkspace = useCallback((workspace: OrganizationWorkspace) => {
-    setDeleteConfirmName("");
-    setConfirmDelete(workspace);
-  }, []);
+  const fetchWorkspaceDangerCapabilities = useCallback(
+    async (workspaceId: string) =>
+      queryClient.fetchQuery({
+        queryKey: ["workspace", "danger-capabilities", workspaceId],
+        queryFn: async () => getWorkspaceDangerCapabilities(workspaceId),
+      }),
+    [queryClient],
+  );
+
+  const prefetchWorkspaceDangerCapabilities = useCallback(
+    async (workspaceId: string) => {
+      const cached = queryClient.getQueryData<WorkspaceDangerCapabilities>([
+        "workspace",
+        "danger-capabilities",
+        workspaceId,
+      ]);
+      if (cached) {
+        setWorkspaceDangerCapabilities((prev) => ({
+          ...prev,
+          [workspaceId]: { status: "ready", data: cached },
+        }));
+        return cached;
+      }
+
+      if (workspaceDangerCapabilities[workspaceId]?.status === "loading") {
+        return null;
+      }
+
+      setWorkspaceDangerCapabilities((prev) => ({
+        ...prev,
+        [workspaceId]: { status: "loading", data: null },
+      }));
+
+      try {
+        const danger = await fetchWorkspaceDangerCapabilities(workspaceId);
+        setWorkspaceDangerCapabilities((prev) => ({
+          ...prev,
+          [workspaceId]: { status: "ready", data: danger },
+        }));
+        return danger;
+      } catch {
+        setWorkspaceDangerCapabilities((prev) => {
+          const next = { ...prev };
+          delete next[workspaceId];
+          return next;
+        });
+        return null;
+      }
+    },
+    [fetchWorkspaceDangerCapabilities, queryClient, workspaceDangerCapabilities],
+  );
+
+  const guardWorkspaceDangerAction = useCallback(
+    async (workspaceId: string, action: "archive" | "delete") => {
+      try {
+        const danger = await fetchWorkspaceDangerCapabilities(workspaceId);
+        const guard = action === "archive" ? danger.leaveAction : danger.deleteAction;
+        if (guard.enabled) {
+          return true;
+        }
+
+        notifyErrorText(getBlockedReasonText(guard.blockedReason, t) ?? t("errors:REQUEST_FAILED"));
+        return false;
+      } catch (error) {
+        notifyError(error);
+        return false;
+      }
+    },
+    [fetchWorkspaceDangerCapabilities, t],
+  );
+
+  const requestArchiveWorkspace = useCallback(
+    async (workspace: OrganizationWorkspace) => {
+      const allowed = await guardWorkspaceDangerAction(workspace.workspaceId, "archive");
+      if (!allowed) return;
+      setConfirmArchive(workspace);
+    },
+    [guardWorkspaceDangerAction],
+  );
+
+  const requestDeleteWorkspace = useCallback(
+    async (workspace: OrganizationWorkspace) => {
+      const allowed = await guardWorkspaceDangerAction(workspace.workspaceId, "delete");
+      if (!allowed) return;
+      setDeleteConfirmName("");
+      setConfirmDelete(workspace);
+    },
+    [guardWorkspaceDangerAction],
+  );
 
   const suppressWorkspaceEditNavigation = useCallback(() => {
     if (editNavigationTimerRef.current) {
@@ -231,6 +334,12 @@ export function useWorkspaceMenuActions({
 
   const buildMenuItems = useCallback(
     (workspace: UserCenterWorkspaceListItem): WorkspaceMenuItem[] => {
+      const dangerState = workspaceDangerCapabilities[workspace.workspaceId];
+      const danger = dangerState?.data ?? null;
+      const dangerLoading = dangerState?.status === "loading";
+      const archiveDisabled = dangerLoading || Boolean(danger && !danger.leaveAction.enabled);
+      const deleteDisabled = dangerLoading || Boolean(danger && !danger.deleteAction.enabled);
+
       if (workspace.isArchived) {
         return [
           {
@@ -244,7 +353,10 @@ export function useWorkspaceMenuActions({
             danger: true,
             icon: <Trash2 className="size-4" />,
             label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-            onClick: () => requestDeleteWorkspace(workspace as OrganizationWorkspace),
+            disabled: deleteDisabled,
+            onClick: () => {
+              void requestDeleteWorkspace(workspace as OrganizationWorkspace);
+            },
           },
         ];
       }
@@ -301,14 +413,20 @@ export function useWorkspaceMenuActions({
               key: "archive",
               icon: <Archive className="size-4" />,
               label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
-              onClick: () => setConfirmArchive(workspace as OrganizationWorkspace),
+              disabled: archiveDisabled,
+              onClick: () => {
+                void requestArchiveWorkspace(workspace as OrganizationWorkspace);
+              },
             },
             {
               key: "delete",
               danger: true,
               icon: <Trash2 className="size-4" />,
               label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-              onClick: () => requestDeleteWorkspace(workspace as OrganizationWorkspace),
+              disabled: deleteDisabled,
+              onClick: () => {
+                void requestDeleteWorkspace(workspace as OrganizationWorkspace);
+              },
             },
           ],
         },
@@ -318,6 +436,8 @@ export function useWorkspaceMenuActions({
       onEnterWorkspace,
       onManageWorkspace,
       openIconDialog,
+      workspaceDangerCapabilities,
+      requestArchiveWorkspace,
       requestDeleteWorkspace,
       startEditWorkspaceDescription,
       startRenameWorkspace,
@@ -340,6 +460,7 @@ export function useWorkspaceMenuActions({
     startEditWorkspaceDescription,
     cancelWorkspaceEdit,
     commitWorkspaceEdit,
+    prefetchWorkspaceDangerCapabilities,
     iconDialog: {
       workspace: iconDialogWorkspace,
       setWorkspace: setIconDialogWorkspace,
