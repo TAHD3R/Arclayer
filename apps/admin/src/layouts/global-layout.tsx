@@ -17,6 +17,7 @@ import { AdminSceneLayout } from "@/layouts/admin-scene-layout";
 import { buildCommonFooterItems } from "@/layouts/admin-scene-utils";
 import { WorkspaceActionDialogs } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
 import { WorkspaceActionsDropdown } from "@/pages/usercenter/workspaces/components/workspace-actions-dropdown";
+import { WorkspaceInlineNameEditor } from "@/pages/usercenter/workspaces/components/workspace-inline-name-editor";
 import { useWorkspaceMenuActions } from "@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions";
 import { mapOrganizationWorkspaceToListItem } from "@/pages/usercenter/workspaces/workspace-list-items";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -29,6 +30,8 @@ const GLOBAL_COMMAND_SCOPE = {
   workspaceId: null,
   organizationId: null,
 } as const;
+
+const WORKSPACE_NAME_MAX_LENGTH = 128;
 
 export function GlobalLayout() {
   const { t } = useTranslation(["account", "common"]);
@@ -52,10 +55,19 @@ export function GlobalLayout() {
     [navigate, setCurrentWorkspaceId],
   );
 
+  const handleManageWorkspace = useCallback(
+    (workspaceId: string) => {
+      setCurrentWorkspaceId(workspaceId);
+      void navigate({ to: `/w/${workspaceId}/settings/workspace/` as never });
+    },
+    [navigate, setCurrentWorkspaceId],
+  );
+
   const workspaceMenuActions = useWorkspaceMenuActions({
     organizationId: undefined,
     t,
     onEnterWorkspace: handleEnterWorkspace,
+    onManageWorkspace: handleManageWorkspace,
   });
 
   const workspacesQuery = useQuery({
@@ -81,14 +93,61 @@ export function GlobalLayout() {
         to: workspaceHomePath(workspace.workspaceId),
         icon: PanelsTopLeft,
         disabled: !workspace.enterable,
+        renderLabel: () => (
+          <WorkspaceInlineNameEditor
+            editing={
+              workspaceMenuActions.editingWorkspaceId === workspace.workspaceId &&
+              workspaceMenuActions.editingWorkspaceField === "name"
+            }
+            value={workspace.name}
+            draftValue={workspaceMenuActions.editingWorkspaceName}
+            ariaLabel={t("common:ORG_WORKSPACES_RENAME_INPUT_LABEL")}
+            maxLength={WORKSPACE_NAME_MAX_LENGTH}
+            counterPlacement="suffix"
+            className="block min-w-0 flex-1 truncate"
+            containerClassName="min-w-0 flex-1"
+            inputClassName="h-8 text-callout"
+            counterClassName="right-2"
+            onDraftChange={workspaceMenuActions.setEditingWorkspaceName}
+            onCommit={() => void workspaceMenuActions.commitWorkspaceEdit(workspace, "name")}
+            onCancel={workspaceMenuActions.cancelWorkspaceEdit}
+          />
+        ),
         actionRenderer: () => (
           <WorkspaceActionsDropdown
-            menuItems={workspaceMenuActions.buildMenuItems(workspace)}
+            menuItems={workspaceMenuActions
+              .buildMenuItems(workspace)
+              .map((item) => {
+                if (item.type === "divider" || item.key !== "edit-workspace") {
+                  return item;
+                }
+
+                const nextItem = Object.assign({}, item);
+                nextItem.children =
+                  item.children?.filter(
+                    (child): child is Exclude<typeof child, { type: "divider" }> =>
+                      child.key !== "edit-description",
+                  ) ?? [];
+                return nextItem;
+              })
+              .filter((item) =>
+                item.type === "divider" ? true : (item.children?.length ?? 1) > 0,
+              )}
             buttonClassName="size-6 rounded-sm text-label-secondary opacity-0 transition-opacity duration-150 hover:bg-accent/70 hover:text-label-primary group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100"
           />
         ),
       })),
-    [workspaceMenuActions.buildMenuItems, workspacesQuery.data],
+    [
+      t,
+      workspaceMenuActions.buildMenuItems,
+      workspaceMenuActions.cancelWorkspaceEdit,
+      workspaceMenuActions.commitWorkspaceEdit,
+      workspaceMenuActions.editingWorkspaceField,
+      workspaceMenuActions.editingWorkspaceId,
+      workspaceMenuActions.editingWorkspaceName,
+      workspaceMenuActions.setEditingWorkspaceName,
+      workspacesQuery.data,
+    ],
   );
 
   const navItems = useMemo(
@@ -145,6 +204,7 @@ export function GlobalLayout() {
         t={t}
         archiveDialog={workspaceMenuActions.archiveDialog}
         deleteDialog={workspaceMenuActions.deleteDialog}
+        iconDialog={workspaceMenuActions.iconDialog}
       />
     </AdminSceneLayout>
   );

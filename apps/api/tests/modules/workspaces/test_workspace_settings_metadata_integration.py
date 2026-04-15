@@ -49,6 +49,9 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             name="Default",
             is_active=True,
             created_by_user_id=owner.id,
+            icon_mode="glyph",
+            icon_color="#2563eb",
+            icon_glyph="rocket",
         )
 
         current_user: User | None = owner
@@ -79,16 +82,33 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             assert data["kind"] == "team"
             assert data["name"] == "Default"
             assert data["slug"] == "default"
+            assert data["description"] is None
+            assert data["iconMode"] == "glyph"
+            assert data["iconColor"] == "#2563eb"
+            assert data["iconGlyph"] == "rocket"
+            assert data["iconEmoji"] is None
+            assert data["iconUrl"] is None
 
             resp = await client.patch(
                 f"/api/v1/workspaces/{ws_pid}",
-                json={"name": "My Blog"},
+                json={
+                    "name": "My Blog",
+                    "description": "Launch content and workspace docs.",
+                    "iconMode": "emoji",
+                    "iconColor": "#ff3366",
+                    "iconEmoji": "🚀",
+                },
             )
             assert resp.status_code == 200
             data = resp.json()["data"]
             assert data["kind"] == "team"
             assert data["name"] == "My Blog"
             assert data["slug"] == "default"
+            assert data["description"] == "Launch content and workspace docs."
+            assert data["iconMode"] == "emoji"
+            assert data["iconColor"] == "#ff3366"
+            assert data["iconEmoji"] == "🚀"
+            assert data["iconGlyph"] == "rocket"
 
             # Workspace slug is updatable in the current metadata API.
             resp = await client.patch(
@@ -99,3 +119,5 @@ async def test_workspace_metadata_get_and_patch(prepared_db, integration_valkey_
             data = resp.json()["data"]
             assert data["kind"] == "team"
             assert data["slug"] == "my-blog"
+            assert data["iconMode"] == "emoji"
+            assert data["iconColor"] == "#ff3366"

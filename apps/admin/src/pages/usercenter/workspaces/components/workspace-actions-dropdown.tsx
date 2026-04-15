@@ -1,3 +1,4 @@
+import type { SyntheticEvent } from "react";
 import { MoreVertical } from "lucide-react";
 
 import { Button as ButtonPrimitive } from "@arclayer/ui/button-primitive";
@@ -5,7 +6,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIconItem,
+  DropdownMenuItemContent,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 import { cn } from "@arclayer/lib/utils";
@@ -30,10 +35,40 @@ export function WorkspaceActionsDropdown({
 }: WorkspaceActionsDropdownProps) {
   if (menuItems.length === 0) return null;
 
-  const stopEvent = (event: React.SyntheticEvent) => {
+  const stopEvent = (event: SyntheticEvent) => {
     if (!stopPropagation) return;
     event.stopPropagation();
   };
+
+  const renderItems = (items: WorkspaceMenuItem[]) =>
+    items.map((item) => {
+      if (item.type === "divider") {
+        return <DropdownMenuSeparator key={item.key} />;
+      }
+
+      if (item.children?.length) {
+        return (
+          <DropdownMenuSub key={item.key}>
+            <DropdownMenuSubTrigger disabled={item.disabled}>
+              <DropdownMenuItemContent icon={item.icon}>{item.label}</DropdownMenuItemContent>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>{renderItems(item.children)}</DropdownMenuSubContent>
+          </DropdownMenuSub>
+        );
+      }
+
+      return (
+        <DropdownMenuIconItem
+          key={item.key}
+          onSelect={item.onClick}
+          disabled={item.disabled}
+          variant={item.danger ? "destructive" : undefined}
+          icon={item.icon}
+        >
+          {item.label}
+        </DropdownMenuIconItem>
+      );
+    });
 
   return (
     <div onClick={stopEvent} onPointerDown={stopEvent}>
@@ -47,22 +82,11 @@ export function WorkspaceActionsDropdown({
             <MoreVertical className="size-4" />
           </ButtonPrimitive>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align={contentAlign}>
-          {menuItems.map((item) =>
-            item.type === "divider" ? (
-              <DropdownMenuSeparator key={item.key} />
-            ) : (
-              <DropdownMenuIconItem
-                key={item.key}
-                onSelect={item.onClick}
-                disabled={item.disabled}
-                variant={item.danger ? "destructive" : undefined}
-                icon={item.icon}
-              >
-                {item.label}
-              </DropdownMenuIconItem>
-            ),
-          )}
+        <DropdownMenuContent
+          align={contentAlign}
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
+          {renderItems(menuItems)}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

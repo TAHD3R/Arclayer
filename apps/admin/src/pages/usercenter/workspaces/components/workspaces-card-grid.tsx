@@ -11,6 +11,7 @@ import type {
   UserCenterWorkspacesTranslateFn,
   WorkspaceMenuItem,
 } from "../types";
+import type { WorkspaceEditingField } from "../hooks/use-workspace-menu-actions";
 import { mapOrganizationWorkspaceToListItem } from "../workspace-list-items";
 import { WorkspaceCard } from "./workspace-card";
 
@@ -19,6 +20,18 @@ interface WorkspacesCardGridProps {
   archived: boolean;
   searchInput: string;
   buildMenuItems: (ws: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
+  editingWorkspaceId: string | null;
+  editingWorkspaceField: WorkspaceEditingField | null;
+  editingWorkspaceName: string;
+  editingWorkspaceDescription: string;
+  onEditingWorkspaceNameChange: (value: string) => void;
+  onEditingWorkspaceDescriptionChange: (value: string) => void;
+  onCommitWorkspaceEdit: (
+    workspace: UserCenterWorkspaceListItem,
+    field: WorkspaceEditingField,
+  ) => void;
+  onCancelWorkspaceEdit: () => void;
+  disableWorkspaceNavigation?: boolean;
   onCardClick?: (ws: UserCenterWorkspaceListItem) => void;
   emptyTitle: string;
   emptyDescription: string;
@@ -33,6 +46,15 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
     archived,
     searchInput,
     buildMenuItems,
+    editingWorkspaceId,
+    editingWorkspaceField,
+    editingWorkspaceName,
+    editingWorkspaceDescription,
+    onEditingWorkspaceNameChange,
+    onEditingWorkspaceDescriptionChange,
+    onCommitWorkspaceEdit,
+    onCancelWorkspaceEdit,
+    disableWorkspaceNavigation,
     onCardClick,
     emptyTitle,
     emptyDescription,
@@ -111,7 +133,18 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
             workspace={workspace}
             menuItems={buildMenuItems(workspace)}
             t={t}
-            onClick={onCardClick ? () => onCardClick(workspace) : undefined}
+            editing={editingWorkspaceId === workspace.workspaceId}
+            editingField={editingWorkspaceField}
+            editingName={editingWorkspaceName}
+            editingDescription={editingWorkspaceDescription}
+            onEditingNameChange={onEditingWorkspaceNameChange}
+            onEditingDescriptionChange={onEditingWorkspaceDescriptionChange}
+            onCommitName={() => void onCommitWorkspaceEdit(workspace, "name")}
+            onCommitDescription={() => void onCommitWorkspaceEdit(workspace, "description")}
+            onCancelEdit={onCancelWorkspaceEdit}
+            onClick={
+              !disableWorkspaceNavigation && onCardClick ? () => onCardClick(workspace) : undefined
+            }
           />
         ))}
       </div>

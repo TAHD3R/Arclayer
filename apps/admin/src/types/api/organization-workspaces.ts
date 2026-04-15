@@ -25,6 +25,10 @@ export type OrganizationWorkspace = {
   slug: string;
   name: string;
   description: string | null;
+  iconMode: "initials" | "glyph" | "emoji" | "image";
+  iconColor: string;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
   iconUrl: string | null;
   isArchived: boolean;
   archivedAt: string | null;

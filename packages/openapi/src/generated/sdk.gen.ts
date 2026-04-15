@@ -1651,9 +1651,9 @@ export const domainSitesUpsertSiteSetting = <ThrowOnError extends boolean = fals
 export const domainSitesGetSitemapXml = <ThrowOnError extends boolean = false>(options: Options<DomainSitesGetSitemapXmlData, ThrowOnError>) => (options.client ?? client).get<DomainSitesGetSitemapXmlResponses, DomainSitesGetSitemapXmlErrors, ThrowOnError>({ url: '/api/v1/sites/{site_id}/sitemap.xml', ...options });
 
 /**
- * List activity events (org-scoped)
+ * List activity events (system-scoped)
  *
- * List activity events (org-scoped).
+ * List activity events (system-scoped).
  */
 export const internalSystemListActivity = <ThrowOnError extends boolean = false>(options?: Options<InternalSystemListActivityData, ThrowOnError>) => (options?.client ?? client).get<InternalSystemListActivityResponses, InternalSystemListActivityErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -1662,9 +1662,9 @@ export const internalSystemListActivity = <ThrowOnError extends boolean = false>
 });
 
 /**
- * Get activity event detail (org-scoped)
+ * Get activity event detail (system-scoped)
  *
- * Get activity event detail (org-scoped).
+ * Get activity event detail (system-scoped).
  */
 export const internalSystemGetActivityDetail = <ThrowOnError extends boolean = false>(options: Options<InternalSystemGetActivityDetailData, ThrowOnError>) => (options.client ?? client).get<InternalSystemGetActivityDetailResponses, InternalSystemGetActivityDetailErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],

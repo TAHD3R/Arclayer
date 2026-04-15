@@ -7,6 +7,7 @@ export type AdminNavItem = {
   key: string;
   label: string;
   labelKey?: string;
+  renderLabel?: (item: AdminNavItem) => ReactNode;
   to?: string;
   groupBehavior?: "preferred-child" | "navigate-self-and-expand";
   activeMatchPaths?: string[];

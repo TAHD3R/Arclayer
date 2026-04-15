@@ -59,16 +59,61 @@ export type SettingsDetail = Generated.SettingsDetail;
 export type SettingsOptionItem = Generated.SettingsOptionItem;
 export type SettingsSchemaItem = Generated.SettingsSchemaItem;
 export type SystemSettingsDetail = Generated.SettingsDetail;
-export type SysStepUpResult = Generated.SysStepUpResult;
-export type SysConfigNamespaceSummary = Generated.SysConfigNamespaceSummary;
-export type SysConfigDetail = Generated.SysConfigDetail;
-export type SysConfigPatchPayload = Generated.SysConfigPatch;
-export type SysConfigActivatePayload = Generated.SysConfigActivateRequest;
-export type SysConfigRevisionDetail = Generated.SysConfigRevisionDetail;
-export type SysConfigTestCheck = Generated.SysConfigTestCheck;
-export type SysConfigTestResult = Generated.SysConfigTestResult;
+export type SysStepUpResult = {
+  token: string;
+  expiresIn: number;
+};
+export type SysConfigNamespaceSummary = {
+  namespace: string;
+  kind: "core" | string;
+  title: string;
+  description?: string | null;
+};
+export type SysConfigDetail = {
+  namespace: string;
+  settingSchema: SettingsSchemaItem;
+  value: Record<string, unknown>;
+  secrets: Record<string, boolean>;
+  activeRevisionId?: string | null;
+  revisionId?: string | null;
+  updatedAt?: string | null;
+};
+export type SysConfigPatchPayload = {
+  patch: Record<string, unknown>;
+  activate?: boolean;
+};
+export type SysConfigActivatePayload = {
+  revisionId: string;
+};
+export type SysConfigRevisionOut = {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  namespace: string;
+  baseRevisionId?: string | null;
+  createdBy?: string | null;
+  signature?: string | null;
+  signingKeyFingerprint?: string | null;
+};
+export type SysConfigRevisionDetail = SysConfigRevisionOut & {
+  signatureVerified?: boolean | null;
+  signatureVerifyReason?: string | null;
+  value: Record<string, unknown>;
+  secrets: Record<string, boolean>;
+};
+export type SysConfigTestCheck = {
+  code: string;
+  ok: boolean;
+  kind: "config" | "connectivity" | "internal" | string;
+  message?: string | null;
+  details?: Record<string, unknown> | null;
+};
+export type SysConfigTestResult = {
+  ok: boolean;
+  checks: SysConfigTestCheck[];
+};
 export type ListSysConfigNamespacesOut = PageData<SysConfigNamespaceSummary>;
-export type ListSysConfigRevisionsOut = PageData<Generated.SysConfigRevisionOut>;
+export type ListSysConfigRevisionsOut = PageData<SysConfigRevisionOut>;
 
 export type MyOrganization = Generated.MyOrganizationOut;
 export type MyOrganizationListResult = Generated.MyOrganizationListOut;

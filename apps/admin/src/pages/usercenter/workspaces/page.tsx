@@ -57,15 +57,32 @@ export function WorkspacesPage() {
     [navigate, setCurrentWorkspaceId],
   );
 
+  const handleManageWorkspace = useCallback(
+    (workspaceId: string) => {
+      setCurrentWorkspaceId(workspaceId);
+      void navigate({ to: `/w/${workspaceId}/settings/workspace/` as never });
+    },
+    [navigate, setCurrentWorkspaceId],
+  );
+
   const workspaceMenuActions = useWorkspaceMenuActions({
     organizationId: undefined,
     t,
     onEnterWorkspace: handleEnterWorkspace,
+    onManageWorkspace: handleManageWorkspace,
   });
 
   const columns = useUserCenterWorkspacesColumns({
     t,
     buildMenuItems: workspaceMenuActions.buildMenuItems,
+    editingWorkspaceId: workspaceMenuActions.editingWorkspaceId,
+    editingWorkspaceField: workspaceMenuActions.editingWorkspaceField,
+    editingWorkspaceName: workspaceMenuActions.editingWorkspaceName,
+    editingWorkspaceDescription: workspaceMenuActions.editingWorkspaceDescription,
+    onEditingWorkspaceNameChange: workspaceMenuActions.setEditingWorkspaceName,
+    onEditingWorkspaceDescriptionChange: workspaceMenuActions.setEditingWorkspaceDescription,
+    onCommitWorkspaceEdit: workspaceMenuActions.commitWorkspaceEdit,
+    onCancelWorkspaceEdit: workspaceMenuActions.cancelWorkspaceEdit,
   });
 
   const { activeTableId, archivedTableId, activeTableHook, archivedTableHook } =
@@ -160,6 +177,17 @@ export function WorkspacesPage() {
               archived={false}
               searchInput={activeTableHook.searchInput}
               buildMenuItems={workspaceMenuActions.buildMenuItems}
+              editingWorkspaceId={workspaceMenuActions.editingWorkspaceId}
+              editingWorkspaceField={workspaceMenuActions.editingWorkspaceField}
+              editingWorkspaceName={workspaceMenuActions.editingWorkspaceName}
+              editingWorkspaceDescription={workspaceMenuActions.editingWorkspaceDescription}
+              onEditingWorkspaceNameChange={workspaceMenuActions.setEditingWorkspaceName}
+              onEditingWorkspaceDescriptionChange={
+                workspaceMenuActions.setEditingWorkspaceDescription
+              }
+              onCommitWorkspaceEdit={workspaceMenuActions.commitWorkspaceEdit}
+              onCancelWorkspaceEdit={workspaceMenuActions.cancelWorkspaceEdit}
+              disableWorkspaceNavigation={workspaceMenuActions.isWorkspaceEditNavigationSuppressed}
               onCardClick={(workspace) => handleEnterWorkspace(workspace.workspaceId)}
             />
           </ChromeTabsContent>
@@ -178,6 +206,17 @@ export function WorkspacesPage() {
               archived
               searchInput={archivedTableHook.searchInput}
               buildMenuItems={workspaceMenuActions.buildMenuItems}
+              editingWorkspaceId={workspaceMenuActions.editingWorkspaceId}
+              editingWorkspaceField={workspaceMenuActions.editingWorkspaceField}
+              editingWorkspaceName={workspaceMenuActions.editingWorkspaceName}
+              editingWorkspaceDescription={workspaceMenuActions.editingWorkspaceDescription}
+              onEditingWorkspaceNameChange={workspaceMenuActions.setEditingWorkspaceName}
+              onEditingWorkspaceDescriptionChange={
+                workspaceMenuActions.setEditingWorkspaceDescription
+              }
+              onCommitWorkspaceEdit={workspaceMenuActions.commitWorkspaceEdit}
+              onCancelWorkspaceEdit={workspaceMenuActions.cancelWorkspaceEdit}
+              disableWorkspaceNavigation={workspaceMenuActions.isWorkspaceEditNavigationSuppressed}
             />
           </ChromeTabsContent>
         </div>
@@ -199,6 +238,7 @@ export function WorkspacesPage() {
         }}
         archiveDialog={workspaceMenuActions.archiveDialog}
         deleteDialog={workspaceMenuActions.deleteDialog}
+        iconDialog={workspaceMenuActions.iconDialog}
       />
     </ChromeTabs>
   );

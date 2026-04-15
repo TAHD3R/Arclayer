@@ -6,6 +6,7 @@ import {
   deleteOrganizationWorkspace,
   unarchiveOrganizationWorkspace,
 } from "@/api/organization-workspaces";
+import { patchWorkspaceDetail } from "@/api/workspaces";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 
 import type { UserCenterWorkspacesTranslateFn } from "../types";
@@ -18,6 +19,19 @@ export type CreateWorkspacePayload = {
 type DeleteWorkspacePayload = {
   workspaceId: string;
   confirmName: string;
+};
+
+export type UpdateWorkspacePayload = {
+  workspaceId: string;
+  patch: {
+    name?: string;
+    description?: string | null;
+    iconMode?: "initials" | "glyph" | "emoji" | "image";
+    iconColor?: string | null;
+    iconGlyph?: string | null;
+    iconEmoji?: string | null;
+    iconUrl?: string | null;
+  };
 };
 
 interface UseUserCenterWorkspacesMutationsOptions {
@@ -43,6 +57,7 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
       queryClient.invalidateQueries({ queryKey: activeTableKey }),
       queryClient.invalidateQueries({ queryKey: archivedTableKey }),
       queryClient.invalidateQueries({ queryKey: cardsKey }),
+      queryClient.invalidateQueries({ queryKey: ["me", "workspaces"] }),
       queryClient.invalidateQueries({ queryKey: ["organization", "workspaces", "switcher"] }),
       queryClient.invalidateQueries({ queryKey: ["global-nav", "workspaces"] }),
     ]);
@@ -95,10 +110,24 @@ export function useUserCenterWorkspacesMutations(options: UseUserCenterWorkspace
     onError: (error) => notifyError(error),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (payload: UpdateWorkspacePayload) =>
+      patchWorkspaceDetail(payload.workspaceId, payload.patch),
+    onSuccess: async (_result, payload) => {
+      notifySuccessText(t("common:ACTION_SUCCESS"));
+      await Promise.all([
+        invalidateWorkspaceTables(),
+        queryClient.invalidateQueries({ queryKey: ["workspace", "detail", payload.workspaceId] }),
+      ]);
+    },
+    onError: (error) => notifyError(error),
+  });
+
   return {
     createMutation,
     archiveMutation,
     unarchiveMutation,
     deleteMutation,
+    updateMutation,
   } as const;
 }

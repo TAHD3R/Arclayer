@@ -11,14 +11,21 @@ export type UserCenterWorkspacesTranslateFn = (
   options?: Record<string, unknown>,
 ) => string;
 
-export type WorkspaceMenuItem = {
-  key: string;
-  label: string;
-  icon?: ReactNode;
-  disabled?: boolean;
-  danger?: boolean;
-  onClick?: () => void;
-  type?: "divider";
-};
+export type WorkspaceMenuItem =
+  | {
+      key: string;
+      label: string;
+      type: "divider";
+    }
+  | {
+      key: string;
+      label: string;
+      icon?: ReactNode;
+      disabled?: boolean;
+      danger?: boolean;
+      onClick?: () => void;
+      children?: WorkspaceMenuItem[];
+      type?: undefined;
+    };
 
 export type { UserCenterWorkspaceListItem };

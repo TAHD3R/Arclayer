@@ -22,6 +22,15 @@ class WorkspaceKind(StrEnum):
     TEAM = "team"
 
 
+class WorkspaceIconMode(StrEnum):
+    """Workspace icon presentation mode."""
+
+    INITIALS = "initials"
+    GLYPH = "glyph"
+    EMOJI = "emoji"
+    IMAGE = "image"
+
+
 # Workspace (admin governance boundary).
 class Workspace(BaseModel):
     """Domain model for workspaces."""
@@ -37,6 +46,10 @@ class Workspace(BaseModel):
     kind = fields.CharEnumField(WorkspaceKind, default=WorkspaceKind.TEAM, db_index=True)
     owner_user_id = fields.UUIDField(null=True, db_index=True)
     description = fields.CharField(max_length=256, null=True)
+    icon_mode = fields.CharEnumField(WorkspaceIconMode, default=WorkspaceIconMode.INITIALS)
+    icon_color = fields.CharField(max_length=16, default="#337ea9")
+    icon_glyph = fields.CharField(max_length=64, null=True)
+    icon_emoji = fields.CharField(max_length=32, null=True)
     icon_url = fields.CharField(max_length=1024, null=True)
     is_active = fields.BooleanField(default=True, db_index=True)
     archived_at = fields.DatetimeField(null=True, db_index=True)

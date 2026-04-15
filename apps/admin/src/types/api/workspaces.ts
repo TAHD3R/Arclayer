@@ -5,6 +5,16 @@ export type MyWorkspaceMemberPreview = {
   avatarUrl: string | null;
 };
 
+export type WorkspaceIconMode = "initials" | "glyph" | "emoji" | "image";
+
+export type WorkspaceIconMetadata = {
+  iconMode: WorkspaceIconMode;
+  iconColor: string;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
+};
+
 export type MyWorkspace = {
   workspaceId: string;
   organizationId: string;
@@ -12,6 +22,10 @@ export type MyWorkspace = {
   name: string;
   kind: "team";
   description?: string | null;
+  iconMode: WorkspaceIconMode;
+  iconColor: string;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
   iconUrl?: string | null;
   memberCount?: number;
   membersPreview?: MyWorkspaceMemberPreview[];
@@ -77,7 +91,12 @@ export type WorkspaceDetail = {
   organizationId: string;
   slug: string;
   name: string;
+  description?: string | null;
   kind?: "team";
+  iconMode: WorkspaceIconMode;
+  iconColor: string;
+  iconGlyph?: string | null;
+  iconEmoji?: string | null;
   iconUrl: string | null;
   iconAssetAligned?: boolean;
 };

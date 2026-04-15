@@ -18,8 +18,15 @@ export function useWorkspaceSettingsBasicsMutations(options: {
   const { workspaceId, t, queryClient } = options;
 
   const patchWorkspaceMutation = useMutation({
-    mutationFn: async (patch: { name?: string; slug?: string; iconUrl?: string | null }) =>
-      patchWorkspaceDetail(workspaceId, patch),
+    mutationFn: async (patch: {
+      name?: string;
+      slug?: string;
+      iconMode?: "initials" | "glyph" | "emoji" | "image";
+      iconColor?: string | null;
+      iconGlyph?: string | null;
+      iconEmoji?: string | null;
+      iconUrl?: string | null;
+    }) => patchWorkspaceDetail(workspaceId, patch),
     onSuccess: async (data) => {
       const aligned = Boolean(data?.iconAssetAligned);
       notifySuccessText(

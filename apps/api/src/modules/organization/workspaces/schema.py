@@ -7,6 +7,7 @@ from pydantic import Field
 
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
+from src.models.workspaces.workspace import WorkspaceIconMode
 
 
 class OrganizationWorkspaceTemplate(StrEnum):
@@ -39,6 +40,13 @@ class OrganizationWorkspaceOut(BaseOut):
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
     description: str | None = Field(default=None, description="Workspace description.")
+    icon_mode: WorkspaceIconMode = Field(
+        default=WorkspaceIconMode.INITIALS,
+        description="Workspace icon presentation mode.",
+    )
+    icon_color: str = Field(default="#337ea9", description="Workspace icon background color.")
+    icon_glyph: str | None = Field(default=None, description="Workspace icon glyph id.")
+    icon_emoji: str | None = Field(default=None, description="Workspace icon emoji.")
     icon_url: str | None = Field(default=None, description="Workspace icon URL.")
     is_archived: bool = Field(default=False, description="Whether workspace is archived.")
     archived_at: datetime | None = Field(default=None, description="Archived timestamp.")

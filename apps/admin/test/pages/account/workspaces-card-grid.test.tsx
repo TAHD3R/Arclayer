@@ -25,8 +25,8 @@ vi.mock("@/layouts/page-shell/content-guard", () => ({
 }));
 
 vi.mock("@/pages/usercenter/workspaces/components/workspace-card", () => ({
-  WorkspaceCard: (props: { workspace: { name: string; kind: string } }) => (
-    <div data-testid="workspace-card">
+  WorkspaceCard: (props: { workspace: { name: string; kind: string }; onClick?: () => void }) => (
+    <div data-testid="workspace-card" data-clickable={props.onClick ? "yes" : "no"}>
       {props.workspace.name}:{props.workspace.kind}
     </div>
   ),
@@ -56,6 +56,14 @@ describe("WorkspacesCardGrid", () => {
         archived={false}
         searchInput=""
         buildMenuItems={() => []}
+        editingWorkspaceId={null}
+        editingWorkspaceField={null}
+        editingWorkspaceName=""
+        editingWorkspaceDescription=""
+        onEditingWorkspaceNameChange={() => undefined}
+        onEditingWorkspaceDescriptionChange={() => undefined}
+        onCommitWorkspaceEdit={() => undefined}
+        onCancelWorkspaceEdit={() => undefined}
         emptyTitle="Empty"
         emptyDescription="No workspaces"
         t={(key) => key}
@@ -81,6 +89,10 @@ describe("WorkspacesCardGrid", () => {
                 slug: "alpha",
                 name: "Workspace Alpha",
                 description: null,
+                iconMode: "initials",
+                iconColor: "#337ea9",
+                iconGlyph: null,
+                iconEmoji: null,
                 iconUrl: null,
                 isArchived: false,
                 archivedAt: null,
@@ -111,6 +123,14 @@ describe("WorkspacesCardGrid", () => {
         archived={false}
         searchInput=""
         buildMenuItems={() => []}
+        editingWorkspaceId={null}
+        editingWorkspaceField={null}
+        editingWorkspaceName=""
+        editingWorkspaceDescription=""
+        onEditingWorkspaceNameChange={() => undefined}
+        onEditingWorkspaceDescriptionChange={() => undefined}
+        onCommitWorkspaceEdit={() => undefined}
+        onCancelWorkspaceEdit={() => undefined}
         emptyTitle="Empty"
         emptyDescription="No workspaces"
         t={(key) => key}
@@ -120,5 +140,74 @@ describe("WorkspacesCardGrid", () => {
     expect(screen.getAllByTestId("workspace-card").map((node) => node.textContent)).toEqual([
       "Workspace Alpha:team",
     ]);
+  });
+
+  it("suppresses card navigation while inline edit completion is settling", () => {
+    useInfiniteQueryMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      data: {
+        pages: [
+          {
+            items: [
+              {
+                id: "team-1",
+                workspaceId: "team-1",
+                organizationId: "org-1",
+                slug: "alpha",
+                name: "Workspace Alpha",
+                description: "Primary workspace",
+                iconMode: "initials",
+                iconColor: "#337ea9",
+                iconGlyph: null,
+                iconEmoji: null,
+                iconUrl: null,
+                isArchived: false,
+                archivedAt: null,
+                archivedByUserId: null,
+                memberCount: 2,
+                membersPreview: [],
+                createdAt: "2026-04-14T00:00:00Z",
+                enterable: true,
+              },
+            ],
+          },
+        ],
+      },
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      isError: false,
+    });
+    useQueryMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      data: undefined,
+    });
+
+    render(
+      <WorkspacesCardGrid
+        archived={false}
+        searchInput=""
+        buildMenuItems={() => []}
+        editingWorkspaceId={null}
+        editingWorkspaceField={null}
+        editingWorkspaceName=""
+        editingWorkspaceDescription=""
+        onEditingWorkspaceNameChange={() => undefined}
+        onEditingWorkspaceDescriptionChange={() => undefined}
+        onCommitWorkspaceEdit={() => undefined}
+        onCancelWorkspaceEdit={() => undefined}
+        disableWorkspaceNavigation
+        onCardClick={() => undefined}
+        emptyTitle="Empty"
+        emptyDescription="No workspaces"
+        t={(key) => key}
+      />,
+    );
+
+    expect(screen.getByTestId("workspace-card")).toHaveAttribute("data-clickable", "no");
   });
 });

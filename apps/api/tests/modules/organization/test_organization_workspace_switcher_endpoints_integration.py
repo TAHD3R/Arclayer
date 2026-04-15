@@ -77,6 +77,9 @@ async def test_workspace_switcher_endpoints_support_explicit_organization_scope(
             name="Owned",
             is_active=True,
             created_by_user_id=owner.id,
+            icon_mode="glyph",
+            icon_color="#2563eb",
+            icon_glyph="rocket",
         )
         workspace_other = await Workspace.create(
             organization_id=org_alpha.id,
@@ -84,6 +87,9 @@ async def test_workspace_switcher_endpoints_support_explicit_organization_scope(
             name="Other",
             is_active=True,
             created_by_user_id=collaborator.id,
+            icon_mode="emoji",
+            icon_color="#22c55e",
+            icon_emoji="🌿",
         )
 
         await WorkspaceMembership.create(
@@ -129,6 +135,12 @@ async def test_workspace_switcher_endpoints_support_explicit_organization_scope(
             listed_by_workspace = {item["workspaceId"]: item for item in listed_items}
             assert listed_by_workspace[encode_uuid(workspace_owned.id)]["enterable"] is True
             assert listed_by_workspace[encode_uuid(workspace_other.id)]["enterable"] is False
+            assert listed_by_workspace[encode_uuid(workspace_owned.id)]["iconMode"] == "glyph"
+            assert listed_by_workspace[encode_uuid(workspace_owned.id)]["iconColor"] == "#2563eb"
+            assert listed_by_workspace[encode_uuid(workspace_owned.id)]["iconGlyph"] == "rocket"
+            assert listed_by_workspace[encode_uuid(workspace_other.id)]["iconMode"] == "emoji"
+            assert listed_by_workspace[encode_uuid(workspace_other.id)]["iconColor"] == "#22c55e"
+            assert listed_by_workspace[encode_uuid(workspace_other.id)]["iconEmoji"] == "🌿"
 
             enterable_only_resp = await client.get(
                 f"/api/v1/organizations/{org_alpha_id}/workspaces",

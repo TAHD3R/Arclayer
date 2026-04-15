@@ -65,6 +65,9 @@ async def test_me_workspaces_returns_team_switcher_items_only(
             name="Team Workspace",
             is_active=True,
             created_by_user_id=user.id,
+            icon_mode="glyph",
+            icon_color="#2563eb",
+            icon_glyph="rocket",
         )
         await WorkspaceMembership.create(
             workspace_id=team_workspace.id,
@@ -97,6 +100,10 @@ async def test_me_workspaces_returns_team_switcher_items_only(
     assert len(data["items"]) == 1
     assert len(data["switcher"]["teams"]) == 1
     assert data["switcher"]["teams"][0]["kind"] == "team"
+    assert data["items"][0]["iconMode"] == "glyph"
+    assert data["items"][0]["iconColor"] == "#2563eb"
+    assert data["items"][0]["iconGlyph"] == "rocket"
+    assert data["switcher"]["teams"][0]["iconMode"] == "glyph"
     assert "personalSpace" not in data["switcher"]
 
 
@@ -145,6 +152,9 @@ async def test_me_workspaces_reports_existing_team_only_user_without_special_per
             name="Legacy Team Workspace",
             is_active=True,
             created_by_user_id=user.id,
+            icon_mode="emoji",
+            icon_color="#22c55e",
+            icon_emoji="🌿",
         )
         await WorkspaceMembership.create(
             workspace_id=team_workspace.id,
@@ -175,5 +185,8 @@ async def test_me_workspaces_reports_existing_team_only_user_without_special_per
 
     assert len(data["items"]) == 1
     assert data["items"][0]["kind"] == "team"
+    assert data["items"][0]["iconMode"] == "emoji"
+    assert data["items"][0]["iconColor"] == "#22c55e"
+    assert data["items"][0]["iconEmoji"] == "🌿"
     assert data["switcher"]["teams"][0]["workspaceId"] == data["items"][0]["workspaceId"]
     assert "personalSpace" not in data["switcher"]

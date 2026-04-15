@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GlobalLayout } from "@/layouts/global-layout";
@@ -15,8 +16,19 @@ function collectNavKeys(
   ]);
 }
 
+function renderWithQueryClient(component: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
+}
+
 vi.mock("@tanstack/react-router", () => ({
   Outlet: () => <div data-testid="outlet" />,
+  useNavigate: () => vi.fn(),
   useRouterState: ({
     select,
   }: {
@@ -85,6 +97,49 @@ vi.mock("@/hooks/use-current-user-profile", () => ({
   useCurrentUserProfile: vi.fn(),
 }));
 
+vi.mock("@/pages/usercenter/workspaces/hooks/use-workspace-menu-actions", () => ({
+  useWorkspaceMenuActions: () => ({
+    buildMenuItems: () => [],
+    editingWorkspaceId: null,
+    editingWorkspaceField: null,
+    editingWorkspaceName: "",
+    isWorkspaceEditNavigationSuppressed: false,
+    setEditingWorkspaceName: vi.fn(),
+    commitWorkspaceEdit: vi.fn(),
+    cancelWorkspaceEdit: vi.fn(),
+    archiveDialog: {
+      workspace: null,
+      setWorkspace: vi.fn(),
+      pending: false,
+      onConfirm: vi.fn(),
+    },
+    deleteDialog: {
+      workspace: null,
+      setWorkspace: vi.fn(),
+      confirmName: "",
+      setConfirmName: vi.fn(),
+      confirmMatches: false,
+      pending: false,
+      onConfirm: vi.fn(),
+    },
+    iconDialog: {
+      workspace: null,
+      setWorkspace: vi.fn(),
+      values: {
+        iconMode: "initials",
+        iconColor: "#337ea9",
+        iconGlyph: null,
+        iconEmoji: null,
+        iconUrl: null,
+      },
+      setValues: vi.fn(),
+      pending: false,
+      onConfirm: vi.fn(),
+      onClose: vi.fn(),
+    },
+  }),
+}));
+
 describe("GlobalLayout", () => {
   beforeEach(() => {
     Object.defineProperty(window, "matchMedia", {
@@ -113,7 +168,7 @@ describe("GlobalLayout", () => {
   });
 
   it("keeps the global shell sidebar collapsible so desktop rail can drive collapse", () => {
-    render(<GlobalLayout />);
+    renderWithQueryClient(<GlobalLayout />);
 
     expect(screen.getByTestId("admin-scene-layout")).toHaveAttribute(
       "data-sidebar-collapsible",
@@ -122,7 +177,7 @@ describe("GlobalLayout", () => {
   });
 
   it("hides system settings from non-super-admin global navigation", () => {
-    render(<GlobalLayout />);
+    renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
       (item: { key: string }) => item.key,
@@ -142,7 +197,7 @@ describe("GlobalLayout", () => {
       profile: { isSuperAdmin: true },
     } as unknown as ReturnType<typeof useCurrentUserProfile>);
 
-    render(<GlobalLayout />);
+    renderWithQueryClient(<GlobalLayout />);
 
     const navKeys = collectNavKeys(topbarSpy.mock.calls[0]?.[0]?.navItems ?? []);
     expect(navKeys).toContain("global.system");
@@ -151,7 +206,7 @@ describe("GlobalLayout", () => {
   it("renders only route content when favorite overlay content-only mode is active", () => {
     mockSearchStr = "?arclayer_favorite_overlay=content-only";
 
-    render(<GlobalLayout />);
+    renderWithQueryClient(<GlobalLayout />);
 
     expect(screen.queryByTestId("admin-scene-layout")).not.toBeInTheDocument();
     expect(screen.getByTestId("outlet")).toBeInTheDocument();

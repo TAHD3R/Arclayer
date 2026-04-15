@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { Archive, LogIn, Trash2, Undo2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Archive, LogIn, Palette, Pencil, Settings2, Trash2, Undo2 } from "lucide-react";
 
 import type { OrganizationWorkspace } from "@/types/api";
 
@@ -10,24 +10,80 @@ import type {
 } from "../types";
 import { useUserCenterWorkspacesMutations } from "./use-usercenter-workspaces-mutations";
 
+export type WorkspaceIconDialogValues = {
+  iconMode: "initials" | "glyph" | "emoji" | "image";
+  iconColor: string;
+  iconGlyph: string | null;
+  iconEmoji: string | null;
+  iconUrl: string | null;
+};
+
+export type WorkspaceEditingField = "name" | "description";
+
 type UseWorkspaceMenuActionsOptions = {
   organizationId?: string;
   t: UserCenterWorkspacesTranslateFn;
   onEnterWorkspace: (workspaceId: string) => void;
+  onManageWorkspace: (workspaceId: string) => void;
   onArchiveSuccess?: () => void;
   onDeleteSuccess?: () => void;
 };
+
+const EDIT_NAVIGATION_SUPPRESSION_MS = 240;
+
+function normalizeWorkspaceDescription(value?: string | null) {
+  return (value ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+}
+
+function buildIconDialogValues(workspace: UserCenterWorkspaceListItem): WorkspaceIconDialogValues {
+  return {
+    iconMode: workspace.iconMode,
+    iconColor: workspace.iconColor,
+    iconGlyph: workspace.iconGlyph ?? null,
+    iconEmoji: workspace.iconEmoji ?? null,
+    iconUrl: workspace.iconUrl ?? null,
+  };
+}
+
+function buildWorkspaceIconPatch(values: WorkspaceIconDialogValues) {
+  return {
+    iconMode: values.iconMode,
+    iconColor: values.iconColor,
+    iconGlyph: values.iconMode === "glyph" ? values.iconGlyph : null,
+    iconEmoji: values.iconMode === "emoji" ? values.iconEmoji : null,
+    iconUrl: values.iconMode === "image" ? values.iconUrl : null,
+  } as const;
+}
 
 export function useWorkspaceMenuActions({
   organizationId,
   t,
   onEnterWorkspace,
+  onManageWorkspace,
   onArchiveSuccess,
   onDeleteSuccess,
 }: UseWorkspaceMenuActionsOptions) {
   const [confirmArchive, setConfirmArchive] = useState<OrganizationWorkspace | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<OrganizationWorkspace | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
+  const [editingWorkspaceField, setEditingWorkspaceField] = useState<WorkspaceEditingField | null>(
+    null,
+  );
+  const [editingWorkspaceName, setEditingWorkspaceName] = useState("");
+  const [editingWorkspaceDescription, setEditingWorkspaceDescription] = useState("");
+  const [iconDialogWorkspace, setIconDialogWorkspace] =
+    useState<UserCenterWorkspaceListItem | null>(null);
+  const [isWorkspaceEditNavigationSuppressed, setIsWorkspaceEditNavigationSuppressed] =
+    useState(false);
+  const [iconDialogValues, setIconDialogValues] = useState<WorkspaceIconDialogValues>({
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
+    iconUrl: null,
+  });
+  const editNavigationTimerRef = useRef<number | null>(null);
 
   const mutations = useUserCenterWorkspacesMutations({
     organizationId,
@@ -49,12 +105,129 @@ export function useWorkspaceMenuActions({
     setConfirmDelete(workspace);
   }, []);
 
+  const suppressWorkspaceEditNavigation = useCallback(() => {
+    if (editNavigationTimerRef.current) {
+      window.clearTimeout(editNavigationTimerRef.current);
+    }
+
+    setIsWorkspaceEditNavigationSuppressed(true);
+    editNavigationTimerRef.current = window.setTimeout(() => {
+      setIsWorkspaceEditNavigationSuppressed(false);
+      editNavigationTimerRef.current = null;
+    }, EDIT_NAVIGATION_SUPPRESSION_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (editNavigationTimerRef.current) {
+        window.clearTimeout(editNavigationTimerRef.current);
+      }
+    },
+    [],
+  );
+
   const unarchiveWorkspace = useCallback(
     (workspaceId: string) => {
       void mutations.unarchiveMutation.mutateAsync(workspaceId);
     },
     [mutations.unarchiveMutation],
   );
+
+  const startEditingWorkspaceField = useCallback(
+    (workspace: UserCenterWorkspaceListItem, field: WorkspaceEditingField) => {
+      setEditingWorkspaceId(workspace.workspaceId);
+      setEditingWorkspaceField(field);
+      setEditingWorkspaceName(workspace.name);
+      setEditingWorkspaceDescription(normalizeWorkspaceDescription(workspace.description));
+      setIsWorkspaceEditNavigationSuppressed(false);
+    },
+    [],
+  );
+
+  const startRenameWorkspace = useCallback(
+    (workspace: UserCenterWorkspaceListItem) => {
+      startEditingWorkspaceField(workspace, "name");
+    },
+    [startEditingWorkspaceField],
+  );
+
+  const startEditWorkspaceDescription = useCallback(
+    (workspace: UserCenterWorkspaceListItem) => {
+      startEditingWorkspaceField(workspace, "description");
+    },
+    [startEditingWorkspaceField],
+  );
+
+  const cancelWorkspaceEdit = useCallback(() => {
+    setEditingWorkspaceField(null);
+    setEditingWorkspaceId(null);
+    setEditingWorkspaceName("");
+    setEditingWorkspaceDescription("");
+  }, []);
+
+  const commitWorkspaceEdit = useCallback(
+    async (workspace: UserCenterWorkspaceListItem, field: WorkspaceEditingField) => {
+      if (editingWorkspaceId !== workspace.workspaceId) return;
+      if (editingWorkspaceField !== field) return;
+
+      suppressWorkspaceEditNavigation();
+
+      if (field === "name") {
+        const nextName = editingWorkspaceName.trim();
+        if (!nextName || nextName === workspace.name) {
+          cancelWorkspaceEdit();
+          return;
+        }
+
+        await mutations.updateMutation.mutateAsync({
+          workspaceId: workspace.workspaceId,
+          patch: { name: nextName },
+        });
+        cancelWorkspaceEdit();
+        return;
+      }
+
+      const nextDescription = normalizeWorkspaceDescription(editingWorkspaceDescription) || null;
+      if ((normalizeWorkspaceDescription(workspace.description) || null) === nextDescription) {
+        cancelWorkspaceEdit();
+        return;
+      }
+
+      await mutations.updateMutation.mutateAsync({
+        workspaceId: workspace.workspaceId,
+        patch: { description: nextDescription },
+      });
+      cancelWorkspaceEdit();
+    },
+    [
+      cancelWorkspaceEdit,
+      editingWorkspaceDescription,
+      editingWorkspaceField,
+      editingWorkspaceId,
+      editingWorkspaceName,
+      mutations.updateMutation,
+      suppressWorkspaceEditNavigation,
+    ],
+  );
+
+  const openIconDialog = useCallback((workspace: UserCenterWorkspaceListItem) => {
+    setIconDialogWorkspace(workspace);
+    setIconDialogValues(buildIconDialogValues(workspace));
+  }, []);
+
+  const closeIconDialog = useCallback(() => {
+    setIconDialogWorkspace(null);
+  }, []);
+
+  const saveIconDialog = useCallback(async () => {
+    if (!iconDialogWorkspace) return;
+
+    await mutations.updateMutation.mutateAsync({
+      workspaceId: iconDialogWorkspace.workspaceId,
+      patch: buildWorkspaceIconPatch(iconDialogValues),
+    });
+    closeIconDialog();
+  }, [closeIconDialog, iconDialogValues, iconDialogWorkspace, mutations.updateMutation]);
 
   const buildMenuItems = useCallback(
     (workspace: UserCenterWorkspaceListItem): WorkspaceMenuItem[] => {
@@ -66,7 +239,6 @@ export function useWorkspaceMenuActions({
             label: t("common:ORG_WORKSPACES_ACTION_UNARCHIVE"),
             onClick: () => unarchiveWorkspace(workspace.workspaceId),
           },
-          { key: "divider", type: "divider", label: "" },
           {
             key: "delete",
             danger: true,
@@ -84,28 +256,100 @@ export function useWorkspaceMenuActions({
           label: t("common:ORG_WORKSPACES_ACTION_ENTER"),
           onClick: () => onEnterWorkspace(workspace.workspaceId),
         },
-        { key: "divider", type: "divider", label: "" },
         {
-          key: "archive",
-          icon: <Archive className="size-4" />,
-          label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
-          onClick: () => setConfirmArchive(workspace as OrganizationWorkspace),
+          key: "manage",
+          icon: <Settings2 className="size-4" />,
+          label: t("common:ORG_WORKSPACES_ACTION_MANAGE"),
+          onClick: () => onManageWorkspace(workspace.workspaceId),
         },
         {
-          key: "delete",
-          danger: true,
-          icon: <Trash2 className="size-4" />,
-          label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
-          onClick: () => requestDeleteWorkspace(workspace as OrganizationWorkspace),
+          key: "edit-workspace",
+          icon: <Pencil className="size-4" />,
+          label: t("common:ORG_WORKSPACES_ACTION_EDIT_WORKSPACE"),
+          children: [
+            {
+              key: "rename",
+              icon: <Pencil className="size-4" />,
+              label: t("common:ORG_WORKSPACES_ACTION_RENAME"),
+              onClick: () => startRenameWorkspace(workspace),
+            },
+            {
+              key: "edit-description",
+              icon: <Pencil className="size-4" />,
+              label: t("common:ORG_WORKSPACES_ACTION_EDIT_DESCRIPTION"),
+              onClick: () => startEditWorkspaceDescription(workspace),
+            },
+            {
+              key: "change-icon",
+              icon: <Palette className="size-4" />,
+              label: t("common:ORG_WORKSPACES_ACTION_CHANGE_ICON"),
+              onClick: () => openIconDialog(workspace),
+            },
+          ],
+        },
+        {
+          key: "archive-trash-divider",
+          label: "",
+          type: "divider",
+        },
+        {
+          key: "archive-trash",
+          icon: <Archive className="size-4" />,
+          label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE_TRASH"),
+          children: [
+            {
+              key: "archive",
+              icon: <Archive className="size-4" />,
+              label: t("common:ORG_WORKSPACES_ACTION_ARCHIVE"),
+              onClick: () => setConfirmArchive(workspace as OrganizationWorkspace),
+            },
+            {
+              key: "delete",
+              danger: true,
+              icon: <Trash2 className="size-4" />,
+              label: t("common:ORG_WORKSPACES_ACTION_DELETE"),
+              onClick: () => requestDeleteWorkspace(workspace as OrganizationWorkspace),
+            },
+          ],
         },
       ];
     },
-    [onEnterWorkspace, requestDeleteWorkspace, t, unarchiveWorkspace],
+    [
+      onEnterWorkspace,
+      onManageWorkspace,
+      openIconDialog,
+      requestDeleteWorkspace,
+      startEditWorkspaceDescription,
+      startRenameWorkspace,
+      t,
+      unarchiveWorkspace,
+    ],
   );
 
   return {
     buildMenuItems,
     mutations,
+    editingWorkspaceId,
+    editingWorkspaceField,
+    editingWorkspaceName,
+    editingWorkspaceDescription,
+    setEditingWorkspaceName,
+    setEditingWorkspaceDescription,
+    startEditingWorkspaceField,
+    startRenameWorkspace,
+    startEditWorkspaceDescription,
+    cancelWorkspaceEdit,
+    commitWorkspaceEdit,
+    iconDialog: {
+      workspace: iconDialogWorkspace,
+      setWorkspace: setIconDialogWorkspace,
+      values: iconDialogValues,
+      setValues: setIconDialogValues,
+      pending: mutations.updateMutation.isPending,
+      onConfirm: saveIconDialog,
+      onClose: closeIconDialog,
+    },
+    isWorkspaceEditNavigationSuppressed,
     archiveDialog: {
       workspace: confirmArchive,
       setWorkspace: setConfirmArchive,

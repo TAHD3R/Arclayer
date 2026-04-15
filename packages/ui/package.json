@@ -27,6 +27,7 @@
     "./card": "./src/card.tsx",
     "./carousel": "./src/carousel.tsx",
     "./checkbox": "./src/checkbox.tsx",
+    "./color-picker": "./src/color-picker.tsx",
     "./chart": "./src/chart/index.ts",
     "./chrome-tabs": "./src/chrome-tabs/index.ts",
     "./collapsible": "./src/collapsible.tsx",

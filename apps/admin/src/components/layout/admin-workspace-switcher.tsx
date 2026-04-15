@@ -15,7 +15,12 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { getWorkspaceDetail, listMyWorkspaces } from "@/api/workspaces";
-import { UserAvatar, WorkspaceAvatar } from "@/components/common/entity-avatar";
+import {
+  UserAvatar,
+  WorkspaceAvatar,
+  workspaceAvatarPropsFromIdentity,
+  type WorkspaceAvatarIdentity,
+} from "@/components/common/entity-avatar";
 import { NAV_ITEM_COLLAPSE_HIDE_CLASSNAME } from "@/components/layout/admin-side-nav/nav-node-styles";
 import { switchWorkspacePath, workspaceHomePath } from "@/lib/routing/workspace-routing";
 import { useAuthStore } from "@/stores/use-auth-store";
@@ -319,9 +324,9 @@ function WorkspacePickerItemContent(props: { workspace: MyWorkspace; selected: b
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <WorkspaceAvatar
           name={title}
-          assetRef={props.workspace.iconUrl ?? null}
           size={28}
           className="mt-0.5 shrink-0"
+          {...workspaceAvatarPropsFromIdentity(props.workspace)}
         />
         <div className="min-w-0 flex-1 text-left">
           <ClampedText
@@ -529,7 +534,7 @@ function PanelContentInner() {
 
 function HeaderWorkspaceTrigger(props: {
   workspaceTriggerText: string;
-  workspaceIconUrl: string | null;
+  workspaceIdentity: WorkspaceAvatarIdentity | null;
   label: string;
   disabled: boolean;
 }) {
@@ -545,9 +550,9 @@ function HeaderWorkspaceTrigger(props: {
     >
       <WorkspaceAvatar
         name={props.workspaceTriggerText}
-        assetRef={props.workspaceIconUrl}
         size={28}
         className="shrink-0"
+        {...workspaceAvatarPropsFromIdentity(props.workspaceIdentity)}
       />
 
       <div className="min-w-0 overflow-hidden text-left">
@@ -570,7 +575,7 @@ function HeaderWorkspaceTrigger(props: {
 
 function SidebarWorkspaceTrigger(props: {
   workspaceTriggerText: string;
-  workspaceIconUrl: string | null;
+  workspaceIdentity: WorkspaceAvatarIdentity | null;
   label: string;
   disabled: boolean;
 }) {
@@ -590,9 +595,9 @@ function SidebarWorkspaceTrigger(props: {
     >
       <WorkspaceAvatar
         name={props.workspaceTriggerText}
-        assetRef={props.workspaceIconUrl}
         size={32}
         className="shrink-0"
+        {...workspaceAvatarPropsFromIdentity(props.workspaceIdentity)}
       />
 
       <div
@@ -651,7 +656,7 @@ export function AdminWorkspaceSwitcher({
   });
 
   const workspaceName = workspaceDetailQuery.data?.name ?? "";
-  const workspaceIconUrl = workspaceDetailQuery.data?.iconUrl ?? null;
+  const workspaceIdentity = workspaceDetailQuery.data ?? null;
   const isWorkspaceScopeRoute = pathname.startsWith("/w/");
   const isHeaderVariant = variant === "header";
 
@@ -771,7 +776,7 @@ export function AdminWorkspaceSwitcher({
       <FloatingPanelRoot className={cn("inline-flex min-w-0 max-w-full", className)}>
         <HeaderWorkspaceTrigger
           workspaceTriggerText={workspaceTriggerText}
-          workspaceIconUrl={workspaceIconUrl}
+          workspaceIdentity={workspaceIdentity}
           label={label}
           disabled={!canOpenPanel}
         />
@@ -794,7 +799,7 @@ export function AdminWorkspaceSwitcher({
         >
           <SidebarWorkspaceTrigger
             workspaceTriggerText={workspaceTriggerText}
-            workspaceIconUrl={workspaceIconUrl}
+            workspaceIdentity={workspaceIdentity}
             label={label}
             disabled={!canOpenPanel}
           />

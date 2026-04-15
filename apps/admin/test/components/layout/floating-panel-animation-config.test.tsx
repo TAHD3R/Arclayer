@@ -252,6 +252,10 @@ beforeEach(() => {
         slug: "alpha",
         name: "Workspace Alpha",
         description: null,
+        iconMode: "initials",
+        iconColor: "#337ea9",
+        iconGlyph: null,
+        iconEmoji: null,
         iconUrl: null,
         isArchived: false,
         archivedAt: null,
@@ -275,6 +279,10 @@ beforeEach(() => {
     slug: "alpha",
     name: "Workspace Alpha",
     kind: "team",
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
     iconUrl: null,
   });
 });

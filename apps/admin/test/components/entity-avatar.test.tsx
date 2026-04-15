@@ -28,6 +28,37 @@ describe("entity-avatar", () => {
     expect(avatar).toHaveTextContent("CL");
   });
 
+  test("renders workspace glyph icon with custom background", () => {
+    render(
+      <WorkspaceAvatar
+        name="Launchpad"
+        iconMode="glyph"
+        iconGlyph="rocket"
+        iconColor="#112233"
+        size={40}
+      />,
+    );
+
+    const avatar = screen.getByLabelText("Launchpad");
+
+    expect(avatar.querySelector("svg.lucide-rocket")).toBeTruthy();
+    expect(avatar).toHaveStyle({ backgroundColor: "rgb(17, 34, 51)" });
+  });
+
+  test("renders workspace emoji without requiring an image asset", () => {
+    render(
+      <WorkspaceAvatar
+        name="Delight Team"
+        iconMode="emoji"
+        iconEmoji="🌞"
+        iconColor="#ffe082"
+        size={40}
+      />,
+    );
+
+    expect(screen.getByLabelText("Delight Team")).toHaveTextContent("🌞");
+  });
+
   test("falls back to default organization label when name is missing", () => {
     render(<OrganizationAvatar name="" assetRef={null} size={40} />);
 

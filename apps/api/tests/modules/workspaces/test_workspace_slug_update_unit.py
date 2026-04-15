@@ -18,6 +18,10 @@ class _FakeWorkspace:
         self.slug = slug
         self.kind = "team"
         self.name = "demo"
+        self.icon_mode = "initials"
+        self.icon_color = "#337ea9"
+        self.icon_glyph = None
+        self.icon_emoji = None
         self.icon_url = None
         self.is_active = True
         self.saved_update_fields: list[str] | None = None
@@ -141,3 +145,79 @@ async def test_update_workspace_rejects_icon_url_too_long(monkeypatch) -> None:
             actor_user_id=uuid4(),
         )
     assert exc.value.error == "WORKSPACE_ICON_URL_TOO_LONG"
+
+
+async def test_update_workspace_updates_icon_metadata(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = WorkspaceService(settings)
+
+    org_id = uuid4()
+    ws = _FakeWorkspace(organization_id=org_id, slug="demo")
+    ws.icon_url = "/assets/existing-image"
+    _install_workspace_fakes(monkeypatch, ws=ws, duplicate_slug_exists=False)
+
+    payload = WorkspaceUpdateRequest(
+        icon_mode="glyph",
+        icon_color="#abc",
+        icon_glyph="rocket",
+    )
+    out = await service.update_workspace(
+        organization_id=org_id,
+        workspace_id=ws.id,
+        payload=payload,
+        actor_user_id=uuid4(),
+    )
+
+    assert out.icon_mode == "glyph"
+    assert out.icon_color == "#aabbcc"
+    assert out.icon_glyph == "rocket"
+    assert out.icon_emoji is None
+    assert out.icon_url == "/assets/existing-image"
+    assert ws.icon_mode == "glyph"
+    assert ws.icon_color == "#aabbcc"
+    assert ws.icon_glyph == "rocket"
+    assert ws.icon_emoji is None
+    assert ws.icon_url == "/assets/existing-image"
+
+
+async def test_update_workspace_requires_glyph_for_glyph_mode(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = WorkspaceService(settings)
+
+    org_id = uuid4()
+    ws = _FakeWorkspace(organization_id=org_id, slug="demo")
+    _install_workspace_fakes(monkeypatch, ws=ws, duplicate_slug_exists=False)
+
+    payload = WorkspaceUpdateRequest(icon_mode="glyph")
+    with pytest.raises(BadRequest) as exc:
+        await service.update_workspace(
+            organization_id=org_id,
+            workspace_id=ws.id,
+            payload=payload,
+            actor_user_id=uuid4(),
+        )
+
+    assert exc.value.error == "WORKSPACE_ICON_GLYPH_REQUIRED"
+
+
+async def test_update_workspace_requires_image_url_for_image_mode(monkeypatch) -> None:
+    monkeypatch.setenv("AUTH__JWT_SECRET", "test-secret")
+    settings = get_settings()
+    service = WorkspaceService(settings)
+
+    org_id = uuid4()
+    ws = _FakeWorkspace(organization_id=org_id, slug="demo")
+    _install_workspace_fakes(monkeypatch, ws=ws, duplicate_slug_exists=False)
+
+    payload = WorkspaceUpdateRequest(icon_mode="image")
+    with pytest.raises(BadRequest) as exc:
+        await service.update_workspace(
+            organization_id=org_id,
+            workspace_id=ws.id,
+            payload=payload,
+            actor_user_id=uuid4(),
+        )
+
+    assert exc.value.error == "WORKSPACE_ICON_URL_REQUIRED"

@@ -56,6 +56,11 @@ function NodeLeafSub({
   onNavigate: (to: string, search?: Record<string, unknown>) => void;
 }) {
   const showAction = Boolean(item.actionRenderer);
+  const labelContent = item.renderLabel ? (
+    item.renderLabel(item)
+  ) : (
+    <span className="min-w-0 flex-1 truncate">{label}</span>
+  );
 
   return (
     <SidebarMenuSubItem className="group/nav-item">
@@ -90,7 +95,7 @@ function NodeLeafSub({
             }}
             className="flex w-full items-center justify-start gap-2 text-left"
           >
-            <span className="min-w-0 flex-1 truncate">{label}</span>
+            {labelContent}
             {showAction && item.actionRenderer ? (
               <span
                 className={NAV_TRAILING_RAIL_CLASSNAME}
@@ -120,6 +125,7 @@ function NodeLeafRoot({
   onNavigate,
 }: NodeLeafProps & { onNavigate: (to: string, search?: Record<string, unknown>) => void }) {
   const Icon = item.icon;
+  const labelContent = item.renderLabel ? item.renderLabel(item) : label;
 
   return (
     <SidebarMenuItem
@@ -159,9 +165,15 @@ function NodeLeafRoot({
           }}
         >
           {iconSlot(depth, Icon, { isActive: isSelected, collapseMotion: "shift" })}
-          <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
-            {label}
-          </span>
+          {item.renderLabel ? (
+            <div className={cn("min-w-0 flex-1", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+              {labelContent}
+            </div>
+          ) : (
+            <span className={cn("min-w-0 flex-1 truncate", NAV_ITEM_COLLAPSE_HIDE_CLASSNAME)}>
+              {labelContent}
+            </span>
+          )}
         </SidebarMenuButton>
       </WithBlockedTooltip>
     </SidebarMenuItem>

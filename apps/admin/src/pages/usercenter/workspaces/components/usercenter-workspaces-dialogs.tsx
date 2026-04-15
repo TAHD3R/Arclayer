@@ -20,6 +20,9 @@ import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-di
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 
 import type { UserCenterWorkspacesTranslateFn } from "../types";
+import type { UserCenterWorkspaceListItem } from "../types";
+import type { WorkspaceIconDialogValues } from "../hooks/use-workspace-menu-actions";
+import { WorkspaceIconDialog } from "./workspace-icon-dialog";
 
 export type CreateWorkspaceFormValues = {
   name: string;
@@ -51,15 +54,26 @@ interface UserCenterWorkspacesDialogsProps {
     pending: boolean;
     onConfirm: (payload: { workspaceId: string; confirmName: string }) => Promise<void>;
   };
+  iconDialog: {
+    workspace: UserCenterWorkspaceListItem | null;
+    setWorkspace: Dispatch<SetStateAction<UserCenterWorkspaceListItem | null>>;
+    values: WorkspaceIconDialogValues;
+    setValues: Dispatch<SetStateAction<WorkspaceIconDialogValues>>;
+    pending: boolean;
+    onConfirm: () => Promise<void>;
+    onClose: () => void;
+  };
 }
 
 export type WorkspaceActionDialogsProps = Pick<
   UserCenterWorkspacesDialogsProps,
   "t" | "archiveDialog" | "deleteDialog"
->;
+> & {
+  iconDialog?: UserCenterWorkspacesDialogsProps["iconDialog"];
+};
 
 export function WorkspaceActionDialogs(props: WorkspaceActionDialogsProps) {
-  const { t, archiveDialog, deleteDialog } = props;
+  const { t, archiveDialog, deleteDialog, iconDialog } = props;
 
   return (
     <>
@@ -162,12 +176,14 @@ export function WorkspaceActionDialogs(props: WorkspaceActionDialogsProps) {
           />
         </SettingDialogField>
       </SettingDialog>
+
+      {iconDialog ? <WorkspaceIconDialog t={t} dialog={iconDialog} /> : null}
     </>
   );
 }
 
 export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsProps) {
-  const { t, createDialog, archiveDialog, deleteDialog } = props;
+  const { t, createDialog, archiveDialog, deleteDialog, iconDialog } = props;
   const [createNameTouched, setCreateNameTouched] = useState(false);
   const createNameMissing = !createDialog.values.name.trim();
   const showCreateNameError = createNameTouched && createNameMissing;
@@ -262,6 +278,7 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
         </SettingDialogFields>
       </SettingDialog>
 
+      <WorkspaceIconDialog t={t} dialog={iconDialog} />
       <WorkspaceActionDialogs t={t} archiveDialog={archiveDialog} deleteDialog={deleteDialog} />
     </>
   );

@@ -17,7 +17,12 @@ from src.models.organization.org_membership import OrgMembership, OrgRole
 from src.models.organization.organization import Organization, OrganizationKind
 from src.models.organization.user import User
 from src.models.system.rbac import Role
-from src.models.workspaces.workspace import Workspace, WorkspaceMembership, WorkspaceMembershipStatus
+from src.models.workspaces.workspace import (
+    Workspace,
+    WorkspaceIconMode,
+    WorkspaceMembership,
+    WorkspaceMembershipStatus,
+)
 from src.modules.assets.admin.assets.binding_align import align_asset_for_binding
 from src.modules.assets.public_url import try_extract_asset_uuid_from_relative_public_url
 from src.modules.assets.scope import AssetScope
@@ -49,6 +54,35 @@ def _resolve_organization_id(value: object) -> UUID:
     return UUID(str(cast(HasOrganizationId, value).organization_id))
 
 
+def _normalize_workspace_icon_color(value: str) -> str:
+    normalized = str(value or "").strip().lower()
+    if not normalized:
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_COLOR_INVALID")
+    if len(normalized) == 4 and normalized.startswith("#"):
+        normalized = "#" + "".join(char * 2 for char in normalized[1:])
+    if len(normalized) != 7 or not normalized.startswith("#"):
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_COLOR_INVALID")
+    if any(char not in "0123456789abcdef" for char in normalized[1:]):
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_COLOR_INVALID")
+    return normalized
+
+
+def _normalize_optional_workspace_icon_value(
+    value: str | None,
+    *,
+    max_length: int,
+    error_code: str,
+) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    if len(normalized) > max_length:
+        raise BadRequest(message=t("errors", "BAD_REQUEST"), error=error_code)
+    return normalized
+
+
 def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorkspaceOut]:
     """
     Build workspace list for users without any org memberships.
@@ -68,6 +102,10 @@ def _build_guest_workspace_list(*, workspaces: list[Workspace]) -> list[MyWorksp
                 name=ws.name,
                 kind=ws.kind,
                 description=ws.description,
+                icon_mode=ws.icon_mode,
+                icon_color=ws.icon_color,
+                icon_glyph=ws.icon_glyph,
+                icon_emoji=ws.icon_emoji,
                 icon_url=ws.icon_url,
                 member_count=0,
                 members_preview=[],
@@ -141,6 +179,10 @@ def _build_member_workspace_list(args: _MemberWorkspaceListArgs) -> list[MyWorks
                     name=ws.name,
                     kind=ws.kind,
                     description=ws.description,
+                    icon_mode=ws.icon_mode,
+                    icon_color=ws.icon_color,
+                    icon_glyph=ws.icon_glyph,
+                    icon_emoji=ws.icon_emoji,
                     icon_url=ws.icon_url,
                     member_count=0,
                     members_preview=[],
@@ -368,6 +410,11 @@ class WorkspaceService(BaseService):
             kind=ws.kind,
             slug=ws.slug,
             name=ws.name,
+            description=ws.description,
+            icon_mode=ws.icon_mode,
+            icon_color=ws.icon_color,
+            icon_glyph=ws.icon_glyph,
+            icon_emoji=ws.icon_emoji,
             icon_url=ws.icon_url,
             icon_asset_aligned=False,
         )
@@ -485,6 +532,15 @@ class WorkspaceService(BaseService):
                 raise BadRequest(message=t("errors", "BAD_REQUEST"), error="INVALID_WORKSPACE_NAME")
             updates["name"] = name
 
+        if payload.description is not None:
+            description = str(payload.description).strip() or None
+            if description is not None and len(description) > 256:
+                raise BadRequest(
+                    message=t("errors", "BAD_REQUEST"),
+                    error="INVALID_WORKSPACE_DESCRIPTION",
+                )
+            updates["description"] = description
+
         if payload.slug is not None:
             desired = str(payload.slug).strip()
             normalized, err = parse_explicit_workspace_slug(desired)
@@ -518,6 +574,38 @@ class WorkspaceService(BaseService):
                         purpose=AssetPurpose.WORKSPACE_ICON,
                     )
 
+        if payload.icon_mode is not None:
+            updates["icon_mode"] = payload.icon_mode
+
+        if payload.icon_color is not None:
+            updates["icon_color"] = _normalize_workspace_icon_color(payload.icon_color)
+
+        if payload.icon_glyph is not None:
+            updates["icon_glyph"] = _normalize_optional_workspace_icon_value(
+                payload.icon_glyph,
+                max_length=64,
+                error_code="WORKSPACE_ICON_GLYPH_INVALID",
+            )
+
+        if payload.icon_emoji is not None:
+            updates["icon_emoji"] = _normalize_optional_workspace_icon_value(
+                payload.icon_emoji,
+                max_length=32,
+                error_code="WORKSPACE_ICON_EMOJI_INVALID",
+            )
+
+        next_icon_mode = cast(WorkspaceIconMode, updates.get("icon_mode", ws.icon_mode))
+        next_icon_glyph = cast(str | None, updates.get("icon_glyph", ws.icon_glyph))
+        next_icon_emoji = cast(str | None, updates.get("icon_emoji", ws.icon_emoji))
+        if next_icon_mode == WorkspaceIconMode.GLYPH and not next_icon_glyph:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_GLYPH_REQUIRED")
+        if next_icon_mode == WorkspaceIconMode.EMOJI and not next_icon_emoji:
+            raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_EMOJI_REQUIRED")
+        if next_icon_mode == WorkspaceIconMode.IMAGE:
+            next_icon_url = cast(str | None, updates.get("icon_url", ws.icon_url))
+            if not next_icon_url:
+                raise BadRequest(message=t("errors", "BAD_REQUEST"), error="WORKSPACE_ICON_URL_REQUIRED")
+
         if updates:
             for k, v in updates.items():
                 setattr(ws, k, v)
@@ -535,6 +623,11 @@ class WorkspaceService(BaseService):
             kind=ws.kind,
             slug=ws.slug,
             name=ws.name,
+            description=ws.description,
+            icon_mode=ws.icon_mode,
+            icon_color=ws.icon_color,
+            icon_glyph=ws.icon_glyph,
+            icon_emoji=ws.icon_emoji,
             icon_url=ws.icon_url,
             icon_asset_aligned=icon_asset_aligned,
         )

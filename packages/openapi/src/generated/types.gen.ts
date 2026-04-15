@@ -5699,6 +5699,25 @@ export type MyWorkspaceOut = {
      */
     description?: string | null;
     /**
+     * Iconcolor
+     *
+     * Workspace icon background color.
+     */
+    iconColor?: string;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph id.
+     */
+    iconGlyph?: string | null;
+    iconMode?: WorkspaceIconMode;
+    /**
      * Iconurl
      *
      * Workspace icon URL.
@@ -7522,6 +7541,25 @@ export type OrganizationWorkspaceOut = {
      * Whether current user can enter this workspace admin scope.
      */
     enterable?: boolean;
+    /**
+     * Iconcolor
+     *
+     * Workspace icon background color.
+     */
+    iconColor?: string;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph id.
+     */
+    iconGlyph?: string | null;
+    iconMode?: WorkspaceIconMode;
     /**
      * Iconurl
      *
@@ -15562,11 +15600,36 @@ export type WorkspaceDeleteResult = {
  */
 export type WorkspaceDetailOut = {
     /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
      * Iconassetaligned
      *
      * Whether the icon asset was auto-aligned (purpose/visibility/indexable) in this response.
      */
     iconAssetAligned?: boolean;
+    /**
+     * Iconcolor
+     *
+     * Workspace icon background color.
+     */
+    iconColor?: string;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph id.
+     */
+    iconGlyph?: string | null;
+    iconMode?: WorkspaceIconMode;
     /**
      * Iconurl
      *
@@ -15763,6 +15826,13 @@ export type WorkspaceFirstOnboardingOut = {
  * WorkspaceFirstOnboardingStatus
  */
 export type WorkspaceFirstOnboardingStatus = 'pending_workspace' | 'pending_workspace_defaults' | 'completed';
+
+/**
+ * WorkspaceIconMode
+ *
+ * Workspace icon presentation mode.
+ */
+export type WorkspaceIconMode = 'initials' | 'glyph' | 'emoji' | 'image';
 
 /**
  * WorkspaceInviteJoinMode
@@ -16544,6 +16614,34 @@ export type WorkspaceThemeOut = {
  * WorkspaceUpdateRequest
  */
 export type WorkspaceUpdateRequest = {
+    /**
+     * Description
+     *
+     * Workspace description.
+     */
+    description?: string | null;
+    /**
+     * Iconcolor
+     *
+     * Workspace icon background color.
+     */
+    iconColor?: string | null;
+    /**
+     * Iconemoji
+     *
+     * Workspace icon emoji.
+     */
+    iconEmoji?: string | null;
+    /**
+     * Iconglyph
+     *
+     * Workspace icon glyph id.
+     */
+    iconGlyph?: string | null;
+    /**
+     * Workspace icon presentation mode.
+     */
+    iconMode?: WorkspaceIconMode | null;
     /**
      * Iconurl
      *

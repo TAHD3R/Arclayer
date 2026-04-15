@@ -54,7 +54,11 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { getWorkspaceDetail } from "@/api/workspaces";
-import { WorkspaceAvatar } from "@/components/common/entity-avatar";
+import {
+  WorkspaceAvatar,
+  workspaceAvatarPropsFromIdentity,
+  type WorkspaceAvatarIdentity,
+} from "@/components/common/entity-avatar";
 import { GLOBAL_NAV_ITEMS } from "@/constants/menu/global";
 import { getWorkspaceNavItems } from "@/constants/menu/workspaces";
 import { buildFavoriteOverlayEmbedHref } from "@/lib/routing/favorite-overlay";
@@ -128,7 +132,7 @@ type FavoriteOverlayBreadcrumbSegment = {
   label: string;
   icon?: AdminNavItem["icon"] | null;
   kind: "nav" | "workspace" | "plain";
-  assetRef?: string | null;
+  workspaceIdentity?: WorkspaceAvatarIdentity;
 };
 
 type FavoriteDragOverlayNode = {
@@ -242,7 +246,7 @@ function buildFavoriteOverlayBreadcrumbSegments(
   path: string,
   fallbackLabel: string,
   t: (key: string) => string,
-  workspace?: { name?: string | null; iconUrl?: string | null },
+  workspace?: ({ name?: string | null } & WorkspaceAvatarIdentity) | null,
 ): FavoriteOverlayBreadcrumbSegment[] {
   const normalizedPath = normalizePath(path);
   const workspaceBase = extractWorkspaceBaseFromPath(path);
@@ -253,7 +257,7 @@ function buildFavoriteOverlayBreadcrumbSegments(
       key: `workspace:${workspaceBase}`,
       label: workspace?.name?.trim() || workspaceBase.replace("/w/", ""),
       kind: "workspace",
-      assetRef: workspace?.iconUrl ?? null,
+      workspaceIdentity: workspace ?? undefined,
     };
 
     if (!trail.length) {
@@ -1354,9 +1358,11 @@ export function FavoritesNode(props: FavoritesNodeProps) {
                                   {segment.kind === "workspace" ? (
                                     <WorkspaceAvatar
                                       name={segment.label}
-                                      assetRef={segment.assetRef}
                                       size={18}
                                       className="rounded-[4px]"
+                                      {...workspaceAvatarPropsFromIdentity(
+                                        segment.workspaceIdentity,
+                                      )}
                                     />
                                   ) : Icon ? (
                                     <Icon
@@ -1372,9 +1378,11 @@ export function FavoritesNode(props: FavoritesNodeProps) {
                                   {segment.kind === "workspace" ? (
                                     <WorkspaceAvatar
                                       name={segment.label}
-                                      assetRef={segment.assetRef}
                                       size={18}
                                       className="rounded-[4px]"
+                                      {...workspaceAvatarPropsFromIdentity(
+                                        segment.workspaceIdentity,
+                                      )}
                                     />
                                   ) : Icon ? (
                                     <Icon

@@ -7,7 +7,7 @@ from pydantic import Field
 
 from src.common.schemas import BaseOut, BaseSchema
 from src.common.types.public_uuid import PublicUUID
-from src.models.workspaces.workspace import WorkspaceKind
+from src.models.workspaces.workspace import WorkspaceIconMode, WorkspaceKind
 
 
 class WorkspaceFirstOnboardingStatus(StrEnum):
@@ -30,6 +30,13 @@ class MyWorkspaceOut(BaseOut):
     name: str = Field(..., description="Workspace name.")
     kind: WorkspaceKind = Field(default=WorkspaceKind.TEAM, description="Workspace kind.")
     description: str | None = Field(default=None, description="Workspace description.")
+    icon_mode: WorkspaceIconMode = Field(
+        default=WorkspaceIconMode.INITIALS,
+        description="Workspace icon presentation mode.",
+    )
+    icon_color: str = Field(default="#337ea9", description="Workspace icon background color.")
+    icon_glyph: str | None = Field(default=None, description="Workspace icon glyph id.")
+    icon_emoji: str | None = Field(default=None, description="Workspace icon emoji.")
     icon_url: str | None = Field(default=None, description="Workspace icon URL.")
     member_count: int = Field(default=0, ge=0, description="Active member count.")
     members_preview: list[MyWorkspaceMemberPreviewOut] = Field(
@@ -100,6 +107,14 @@ class WorkspaceDetailOut(BaseOut):
     kind: WorkspaceKind = Field(..., description="Workspace kind.")
     slug: str = Field(..., description="Workspace slug.")
     name: str = Field(..., description="Workspace name.")
+    description: str | None = Field(default=None, description="Workspace description.")
+    icon_mode: WorkspaceIconMode = Field(
+        default=WorkspaceIconMode.INITIALS,
+        description="Workspace icon presentation mode.",
+    )
+    icon_color: str = Field(default="#337ea9", description="Workspace icon background color.")
+    icon_glyph: str | None = Field(default=None, description="Workspace icon glyph id.")
+    icon_emoji: str | None = Field(default=None, description="Workspace icon emoji.")
     icon_url: str | None = Field(default=None, description="Workspace icon/logo URL (optional).")
     icon_asset_aligned: bool = Field(
         default=False,
@@ -109,7 +124,31 @@ class WorkspaceDetailOut(BaseOut):
 
 class WorkspaceUpdateRequest(BaseSchema):
     name: str | None = Field(default=None, min_length=1, max_length=128, description="Workspace name.")
+    description: str | None = Field(
+        default=None,
+        max_length=256,
+        description="Workspace description.",
+    )
     slug: str | None = Field(default=None, min_length=1, max_length=64, description="Workspace slug.")
+    icon_mode: WorkspaceIconMode | None = Field(
+        default=None,
+        description="Workspace icon presentation mode.",
+    )
+    icon_color: str | None = Field(
+        default=None,
+        max_length=16,
+        description="Workspace icon background color.",
+    )
+    icon_glyph: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Workspace icon glyph id.",
+    )
+    icon_emoji: str | None = Field(
+        default=None,
+        max_length=32,
+        description="Workspace icon emoji.",
+    )
     icon_url: str | None = Field(default=None, max_length=1024, description="Workspace icon/logo URL.")
 
 

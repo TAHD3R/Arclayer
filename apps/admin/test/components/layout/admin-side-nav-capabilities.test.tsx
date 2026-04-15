@@ -184,6 +184,10 @@ describe("AdminSiderNav capability nodes", () => {
       slug: "workspace-one",
       name: "Workspace One",
       kind: "team",
+      iconMode: "initials",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
       iconUrl: null,
     });
   });

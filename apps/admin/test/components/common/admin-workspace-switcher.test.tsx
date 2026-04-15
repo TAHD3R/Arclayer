@@ -54,6 +54,10 @@ const workspaceFixtures: MyWorkspace[] = [
     slug: "alpha",
     name: "Workspace Alpha",
     kind: "team",
+    iconMode: "image",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
     iconUrl: "https://example.com/workspace-alpha-icon.png",
     memberCount: 3,
     membersPreview: [
@@ -86,6 +90,10 @@ const workspaceFixtures: MyWorkspace[] = [
     slug: "beta",
     name: "Workspace Beta",
     kind: "team",
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
     iconUrl: null,
     memberCount: 1,
     membersPreview: [
@@ -193,6 +201,10 @@ beforeEach(() => {
     slug: "alpha",
     name: "Workspace Alpha",
     kind: "team",
+    iconMode: "initials",
+    iconColor: "#337ea9",
+    iconGlyph: null,
+    iconEmoji: null,
     iconUrl: null,
   });
 });
@@ -234,6 +246,10 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       slug: "alpha",
       name: "Workspace Alpha",
       kind: "team",
+      iconMode: "image",
+      iconColor: "#337ea9",
+      iconGlyph: null,
+      iconEmoji: null,
       iconUrl: "https://example.com/workspace-alpha-icon.png",
     });
 
@@ -248,6 +264,33 @@ describe("AdminWorkspaceSwitcher (workspace-only)", () => {
       expect(avatarImage).toBeTruthy();
       expect(avatarImage).toHaveAttribute("src", "https://example.com/workspace-alpha-icon.png");
       expect(avatarImage?.parentElement).toHaveClass("rounded-md");
+    });
+  });
+
+  it("workspace scope: trigger renders glyph metadata when image mode is not selected", async () => {
+    vi.mocked(getWorkspaceDetail).mockResolvedValue({
+      id: "ws-alpha",
+      organizationId: "org-1",
+      slug: "alpha",
+      name: "Workspace Alpha",
+      kind: "team",
+      iconMode: "glyph",
+      iconColor: "#112233",
+      iconGlyph: "rocket",
+      iconEmoji: null,
+      iconUrl: "https://example.com/workspace-alpha-icon.png",
+    });
+
+    renderWithQueryClient(<AdminWorkspaceSwitcher />);
+
+    const trigger = await screen.findByRole("button", {
+      name: "Select workspace",
+    });
+
+    await waitFor(() => {
+      const avatar = trigger.querySelector('div[aria-label="Workspace Alpha"]');
+      expect(avatar).toBeTruthy();
+      expect(avatar?.querySelector("svg.lucide-rocket")).toBeTruthy();
     });
   });
 

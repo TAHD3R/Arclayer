@@ -4,7 +4,6 @@ import type { WorkspaceSettingsTabKey } from "@/types/settings-workspace";
 export type WorkspaceSettingsFormValues = {
   name: string;
   slug: string;
-  iconUrl: string;
   locale: AppLocale;
   timezone: string;
   useBrowserTimeZone: boolean;

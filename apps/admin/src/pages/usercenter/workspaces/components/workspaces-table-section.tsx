@@ -1,5 +1,6 @@
-import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
+import type { ReactNode } from "react";
+import type { Row } from "@tanstack/react-table";
 
 import { AdminDataTableSection } from "@/layouts/page-shell/admin-data-table-section";
 import type { DataTableRowHeight } from "@arclayer/ui/data-table";
@@ -10,6 +11,7 @@ import type {
   UserCenterWorkspacesViewMode,
   WorkspaceMenuItem,
 } from "../types";
+import type { WorkspaceEditingField } from "../hooks/use-workspace-menu-actions";
 import type { UserCenterWorkspaceTableHook } from "../hooks/use-usercenter-workspaces-tables";
 import { WorkspacesCardGrid } from "./workspaces-card-grid";
 
@@ -27,8 +29,20 @@ interface WorkspacesContentSectionProps {
   archived: boolean;
   searchInput: string;
   buildMenuItems: (ws: UserCenterWorkspaceListItem) => WorkspaceMenuItem[];
+  editingWorkspaceId: string | null;
+  editingWorkspaceField: WorkspaceEditingField | null;
+  editingWorkspaceName: string;
+  editingWorkspaceDescription: string;
+  onEditingWorkspaceNameChange: (value: string) => void;
+  onEditingWorkspaceDescriptionChange: (value: string) => void;
+  onCommitWorkspaceEdit: (
+    workspace: UserCenterWorkspaceListItem,
+    field: WorkspaceEditingField,
+  ) => void;
+  onCancelWorkspaceEdit: () => void;
+  disableWorkspaceNavigation?: boolean;
   onCardClick?: (ws: UserCenterWorkspaceListItem) => void;
-  toolbar?: React.ReactNode;
+  toolbar?: ReactNode;
 }
 
 export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
@@ -39,6 +53,15 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
         archived={props.archived}
         searchInput={props.searchInput}
         buildMenuItems={props.buildMenuItems}
+        editingWorkspaceId={props.editingWorkspaceId}
+        editingWorkspaceField={props.editingWorkspaceField}
+        editingWorkspaceName={props.editingWorkspaceName}
+        editingWorkspaceDescription={props.editingWorkspaceDescription}
+        onEditingWorkspaceNameChange={props.onEditingWorkspaceNameChange}
+        onEditingWorkspaceDescriptionChange={props.onEditingWorkspaceDescriptionChange}
+        onCommitWorkspaceEdit={props.onCommitWorkspaceEdit}
+        onCancelWorkspaceEdit={props.onCancelWorkspaceEdit}
+        disableWorkspaceNavigation={props.disableWorkspaceNavigation}
         onCardClick={props.onCardClick}
         emptyTitle={props.emptyTitle}
         emptyDescription={props.emptyDescription}
@@ -73,7 +96,9 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
       rowHeight={props.rowHeight}
       wrapHeaders={props.wrapHeaders}
       refreshing={props.tableHook.isFetching && !props.tableHook.isLoading}
-      onRowClick={props.onRowClick}
+      onRowClick={
+        props.editingWorkspaceId || props.disableWorkspaceNavigation ? undefined : props.onRowClick
+      }
       toolbar={props.toolbar}
     />
   );

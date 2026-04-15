@@ -42,7 +42,16 @@ export async function getWorkspaceDetail(workspaceId: string): Promise<Workspace
 
 export async function patchWorkspaceDetail(
   workspaceId: string,
-  payload: { name?: string; slug?: string; iconUrl?: string | null },
+  payload: {
+    name?: string;
+    description?: string | null;
+    slug?: string;
+    iconMode?: "initials" | "glyph" | "emoji" | "image";
+    iconColor?: string | null;
+    iconGlyph?: string | null;
+    iconEmoji?: string | null;
+    iconUrl?: string | null;
+  },
 ): Promise<WorkspaceDetail> {
   return api.patch<WorkspaceDetail>(workspacePath(workspaceId, ""), payload);
 }
