@@ -309,11 +309,14 @@ function SidebarTrigger({ className, onClick, ...props }: SidebarTriggerProps) {
   );
 }
 
-type SidebarRailProps = React.ComponentProps<typeof ButtonPrimitive>;
+type SidebarRailProps = React.ComponentProps<typeof ButtonPrimitive> & {
+  tooltip?: React.ReactNode;
+};
 
 function SidebarRail({
   className,
   "aria-label": ariaLabel,
+  tooltip,
   onClick,
   onMouseEnter,
   onMouseMove,
@@ -322,6 +325,7 @@ function SidebarRail({
 }: SidebarRailProps) {
   const { toggleSidebar } = useSidebar();
   const label = ariaLabel ?? "Toggle Sidebar";
+  const tooltipContent = tooltip ?? label;
   const frameRef = React.useRef<number | null>(null);
   const pointerRef = React.useRef<{ x: number; y: number } | null>(null);
   const [tooltipOpen, setTooltipOpen] = React.useState(false);
@@ -393,7 +397,7 @@ function SidebarRail({
             top: `${tooltipPosition.y}px`,
           }}
         >
-          {label}
+          {tooltipContent}
         </div>
       ) : null}
     </>

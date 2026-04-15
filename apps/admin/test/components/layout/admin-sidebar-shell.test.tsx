@@ -17,6 +17,27 @@ vi.mock("@/components/ui/gradual-blur", () => ({
   default: () => null,
 }));
 
+const { platformState } = vi.hoisted(() => ({
+  platformState: { current: "windows" as "windows" | "mac" | "other" },
+}));
+
+vi.mock("@arclayer/hooks/use-client-platform", () => ({
+  useClientPlatform: () => platformState.current,
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: { shortcut?: string }) => {
+      if (key === "common:SIDEBAR_TOGGLE") return "Toggle sidebar";
+      if (key === "common:SIDEBAR_RAIL_TOOLTIP") return "Collapse or expand the sidebar";
+      if (key === "common:SIDEBAR_RAIL_TOOLTIP_SHORTCUT") {
+        return `Click or ${options?.shortcut ?? ""}`;
+      }
+      return key;
+    },
+  }),
+}));
+
 function renderWithSidebar(node: React.ReactElement) {
   return render(
     <SidebarProvider defaultOpen className="h-screen">
@@ -56,6 +77,35 @@ describe("AdminSidebarShell", () => {
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
   });
 
+  it("shows a tooltip when hovering the shared sidebar rail on windows", async () => {
+    platformState.current = "windows";
+
+    renderWithSidebar(
+      <AdminSidebarShell
+        showNavSkeleton={false}
+        showOrgNavErrorOverlay={false}
+        mainItems={[]}
+        footerItems={[]}
+        collapsible="icon"
+      />,
+    );
+
+    const rail = screen.getByRole("button", { name: "Toggle sidebar" });
+    fireEvent.mouseEnter(rail, { clientX: 80, clientY: 120 });
+    fireEvent.mouseMove(rail, { clientX: 96, clientY: 144 });
+
+    await waitFor(() => {
+      const tooltip = document.body.querySelector<HTMLElement>(
+        '[data-slot="sidebar-rail-tooltip"]',
+      );
+      expect(tooltip).toHaveTextContent("Collapse or expand the sidebar");
+      expect(tooltip).toHaveTextContent("Click or Ctrl+B");
+      expect(tooltip?.querySelector(".text-label-secondary")).toHaveTextContent("Click or Ctrl+B");
+      expect(tooltip?.style.left).toBe("110px");
+      expect(tooltip?.style.top).toBe("144px");
+    });
+  });
+
   it("renders the shared sidebar rail when the desktop sidebar is collapsible", () => {
     renderWithSidebar(
       <AdminSidebarShell
@@ -84,10 +134,12 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Toggle Sidebar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Toggle sidebar" })).toBeNull();
   });
 
-  it("shows a tooltip when hovering the shared sidebar rail", async () => {
+  it("shows a tooltip when hovering the shared sidebar rail on mac", async () => {
+    platformState.current = "mac";
+
     renderWithSidebar(
       <AdminSidebarShell
         showNavSkeleton={false}
@@ -98,7 +150,7 @@ describe("AdminSidebarShell", () => {
       />,
     );
 
-    const rail = screen.getByRole("button", { name: "Toggle Sidebar" });
+    const rail = screen.getByRole("button", { name: "Toggle sidebar" });
     fireEvent.mouseEnter(rail, { clientX: 80, clientY: 120 });
     fireEvent.mouseMove(rail, { clientX: 96, clientY: 144 });
 
@@ -106,7 +158,8 @@ describe("AdminSidebarShell", () => {
       const tooltip = document.body.querySelector<HTMLElement>(
         '[data-slot="sidebar-rail-tooltip"]',
       );
-      expect(tooltip).toHaveTextContent("Toggle Sidebar");
+      expect(tooltip).toHaveTextContent("Collapse or expand the sidebar");
+      expect(tooltip).toHaveTextContent("Click or ⌘B");
       expect(tooltip?.style.left).toBe("110px");
       expect(tooltip?.style.top).toBe("144px");
     });

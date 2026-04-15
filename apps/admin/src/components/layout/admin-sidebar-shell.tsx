@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
+import { useTranslation } from "react-i18next";
 import type { AdminNavItem } from "@/types/admin-nav";
 import { AdminSiderNav } from "@/components/layout/admin-side-nav";
 import {
@@ -8,6 +9,7 @@ import {
   AdminSidebarMainMenuSkeleton,
 } from "@/components/layout/admin-sidebar-skeleton";
 import GradualBlur from "@/components/ui/gradual-blur";
+import { useClientPlatform } from "@arclayer/hooks/use-client-platform";
 import { Sidebar, SidebarContent, SidebarRail } from "@arclayer/ui/sidebar";
 import { cn } from "@arclayer/lib/utils";
 
@@ -187,8 +189,19 @@ export function AdminSidebarShell({
   collapsible = "icon",
   className,
 }: AdminSidebarShellProps) {
+  const { t } = useTranslation("common");
+  const platform = useClientPlatform();
   const showFailureSkeleton = showOrgNavErrorOverlay;
   const showMenuSkeleton = showNavSkeleton || showFailureSkeleton;
+  const sidebarShortcut = platform === "mac" ? "⌘B" : "Ctrl+B";
+  const sidebarRailTooltip = (
+    <div className="flex items-center gap-2 whitespace-nowrap">
+      <span>{t("common:SIDEBAR_RAIL_TOOLTIP")}</span>
+      <span className="text-label-secondary">
+        {t("common:SIDEBAR_RAIL_TOOLTIP_SHORTCUT", { shortcut: sidebarShortcut })}
+      </span>
+    </div>
+  );
 
   return (
     <Sidebar
@@ -205,7 +218,9 @@ export function AdminSidebarShell({
         resolvePermissionName={resolvePermissionName}
         pathnameOverride={pathnameOverride}
       />
-      {collapsible !== "none" ? <SidebarRail /> : null}
+      {collapsible !== "none" ? (
+        <SidebarRail aria-label={t("common:SIDEBAR_TOGGLE")} tooltip={sidebarRailTooltip} />
+      ) : null}
     </Sidebar>
   );
 }

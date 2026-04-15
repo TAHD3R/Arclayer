@@ -81,6 +81,8 @@
   "NEXT": "下一页",
   "PREVIOUS": "上一页",
   "SIDEBAR_TOGGLE": "切换侧边栏",
+  "SIDEBAR_RAIL_TOOLTIP": "展开或收起侧边栏",
+  "SIDEBAR_RAIL_TOOLTIP_SHORTCUT": "点击或 {{shortcut}}",
   "ORG_INVITATIONS_DESC": "跟踪组织邀请并管理邀请生命周期。",
   "ORG_INVITATIONS_DIALOG_DESC": "邀请用户加入组织并分配初始组织角色。",
   "ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL": "允许邮箱域名（可选）",

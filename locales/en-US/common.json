@@ -81,6 +81,8 @@
   "NEXT": "Next",
   "PREVIOUS": "Previous",
   "SIDEBAR_TOGGLE": "Toggle sidebar",
+  "SIDEBAR_RAIL_TOOLTIP": "Collapse or expand the sidebar",
+  "SIDEBAR_RAIL_TOOLTIP_SHORTCUT": "Click or {{shortcut}}",
   "ORG_INVITATIONS_DESC": "Track organization invitations and manage invite lifecycle.",
   "ORG_INVITATIONS_DIALOG_DESC": "Invite users to your organization and assign an initial organization role.",
   "ORG_INVITE_LINK_ALLOWED_DOMAIN_LABEL": "Allowed email domain (optional)",
