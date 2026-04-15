@@ -31,6 +31,11 @@ export interface LoginEmailCodeRequestResult {
   retry_after?: number;
 }
 
+export interface LoginEmailLookupResult {
+  exists: boolean;
+  passwordLoginAvailable: boolean;
+}
+
 export interface RegisterFormValues {
   email: string;
   displayName: string;
@@ -52,6 +57,7 @@ export interface LoginEmailCodePaneSeed {
   email: string;
   autoRequest?: boolean;
   keepSession?: boolean;
+  passwordLoginAvailable?: boolean;
 }
 
 export type AuthModeStep = "email" | "password" | "details" | "verify";
@@ -60,12 +66,13 @@ export interface LoginModeChangeOptions {
   email?: string;
   step?: AuthModeStep;
   keepSession?: boolean;
+  passwordLoginAvailable?: boolean;
 }
 
 export interface LoginViewProps {
   mode: LoginMode;
   onModeChange: (mode: LoginMode, options?: LoginModeChangeOptions) => void;
-  onLoginEmailSubmit: (email: string) => Promise<boolean>;
+  onLoginEmailSubmit: (email: string) => Promise<LoginEmailLookupResult>;
   onLoginSubmit: (values: LoginFormValues) => Promise<void>;
   loginSeed?: LoginPaneSeed | null;
   loginEmailLoading?: boolean;

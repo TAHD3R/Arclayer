@@ -116,8 +116,13 @@ export function LoginView({
                   loginSeed={loginSeed}
                   redirect={redirect}
                   onForgotPassword={(email) => onModeChange("forgot-password", { email })}
-                  onSwitchToEmailCode={(email, keepSession) =>
-                    onModeChange("email-code", { email, step: "verify", keepSession })
+                  onSwitchToEmailCode={(email, keepSession, passwordLoginAvailable) =>
+                    onModeChange("email-code", {
+                      email,
+                      step: "verify",
+                      keepSession,
+                      passwordLoginAvailable,
+                    })
                   }
                   onSwitchToRegister={(email, step) => onModeChange("register", { email, step })}
                   publicRegisterEnabled={publicRegisterEnabled}
@@ -136,6 +141,7 @@ export function LoginView({
                       email,
                       step: "password",
                       keepSession: loginEmailCodeSeed?.keepSession,
+                      passwordLoginAvailable: loginEmailCodeSeed?.passwordLoginAvailable,
                     })
                   }
                   reducedMotion={reducedMotion}

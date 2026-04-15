@@ -30,7 +30,13 @@ from src.models.organization.user import User
 from src.modules.auth.contracts.schema import CredentialLike, UserLike, UserRepositoryLike
 from src.modules.auth.invitations.service import AuthInvitationService
 from src.modules.auth.onboarding.service import WorkspaceFirstOnboardingService
-from src.modules.auth.repository import EmailChangeStore, PasswordResetStore, RefreshTokenStore, UserRepository
+from src.modules.auth.repository import (
+    EmailChangeStore,
+    PasswordRemovalCodeStore,
+    PasswordResetStore,
+    RefreshTokenStore,
+    UserRepository,
+)
 from src.modules.auth.schema import (
     AcceptExistingInvitationRequest,
     AcceptExistingInvitationResult,
@@ -93,6 +99,7 @@ class AuthService(BaseService):
         self.refresh_store = RefreshTokenStore(valkey, settings.auth) if valkey else None
         self.reset_store = PasswordResetStore(valkey, settings.auth) if valkey else None
         self.email_change_store = EmailChangeStore(valkey) if valkey else None
+        self.password_removal_store = PasswordRemovalCodeStore(valkey) if valkey else None
         self.email_service = EmailService(settings)
         self.invitation_service = AuthInvitationService(settings)
         self.location_lookup = AuthSessionLocationLookup(settings)
@@ -160,6 +167,14 @@ class AuthService(BaseService):
                 error="EMAIL_CHANGE_STORE_UNAVAILABLE",
             )
         return self.email_change_store
+
+    def _require_password_removal_store(self) -> PasswordRemovalCodeStore:
+        if self.password_removal_store is None:
+            raise ServiceUnavailable(
+                message=self._ta("REMOVE_PASSWORD_STORE_UNAVAILABLE", "密码移除验证服务不可用"),
+                error="REMOVE_PASSWORD_STORE_UNAVAILABLE",
+            )
+        return self.password_removal_store
 
     def _require_reset_store(self) -> PasswordResetStore:
         if self.reset_store is None:
@@ -283,15 +298,17 @@ class AuthService(BaseService):
             locale=locale,
         )
 
+    async def _has_linked_oauth_identities(self, *, user_id: UUID) -> bool:
+        from src.models.auth.oauth_identity import OAuthIdentity
+
+        return await OAuthIdentity.filter(user_id=user_id).exists()
+
     async def confirm_email_change(
         self,
         *,
         user: User,
         new_email: str,
         code: str,
-        password: str | None,
-        two_factor_code: str | None,
-        backup_code: str | None,
     ) -> UserProfile:
         new_email = new_email.strip().lower()
         code = code.strip()
@@ -299,16 +316,7 @@ class AuthService(BaseService):
         user_with_cred = await self.user_repo.get_by_id_with_credential(cast(UUID, user.id))
         if user_with_cred is None:
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
-
         user_id = cast(UUID, user.id)
-        authed_by_password = self._reauth_by_password_or_raise_if_present(user=user_with_cred, password=password)
-        if not authed_by_password:
-            if await self.two_factor.is_enabled(user_id=user_id):
-                await self._reauth_by_two_factor_or_raise(
-                    user_id=user_id, code=two_factor_code, backup_code=backup_code
-                )
-            else:
-                self._reauth_by_recent_login_or_raise(user=user_with_cred)
 
         store = self._require_email_change_store()
         record = await store.get(user_id=user_id)
@@ -394,9 +402,11 @@ class AuthService(BaseService):
             raise Unauthorized(message=self._ta("USER_NOT_FOUND", "用户不存在"), error="USER_NOT_FOUND")
         has_password = cast(CredentialLike | None, getattr(user_with_cred, "credential", None)) is not None
         two_factor_enabled = await self.two_factor.is_enabled(user_id=user_id)
+        has_linked_oauth_identities = await self._has_linked_oauth_identities(user_id=user_id)
         return MySecurityCapabilityOut(
             has_password=has_password,
             two_factor_enabled=two_factor_enabled,
+            has_linked_oauth_identities=has_linked_oauth_identities,
             set_password_required_reauth_methods=(
                 []
                 if has_password
@@ -407,6 +417,85 @@ class AuthService(BaseService):
                 two_factor_enabled=two_factor_enabled,
             ),
         )
+
+    async def request_remove_password(
+        self,
+        *,
+        user_id: UUID,
+        current_password: str,
+        locale: str | None = None,
+    ) -> tuple[int, int]:
+        user = await self.user_repo.get_by_id_with_credential(user_id)
+        credential = cast(CredentialLike | None, getattr(user, "credential", None) if user is not None else None)
+        if user is None or credential is None:
+            raise Unauthorized(message=self._ta("UNAUTHORIZED", "未授权"), error="UNAUTHORIZED")
+        if not self.user_repo.is_active(user):
+            raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
+        if not await self.email_service.is_enabled():
+            raise BadRequest(
+                message=self._ta("MAIL_DISABLED", "系统未开启邮件服务，请联系管理员"),
+                error="MAIL_DISABLED",
+            )
+
+        email = str(getattr(user, "email", "") or "").strip().lower()
+        if not email:
+            raise BadRequest(message=self._ta("EMAIL_REQUIRED", "当前账号未绑定邮箱"), error="EMAIL_REQUIRED")
+        if not verify_password(current_password, cast(str, credential.password_hash), self.settings.auth):
+            raise Unauthorized(
+                message=self._ta("INVALID_CREDENTIALS", "原密码错误"),
+                error="INVALID_CREDENTIALS",
+            )
+
+        store = self._require_password_removal_store()
+        existing = await store.get(user_id=user_id)
+        if existing is not None:
+            expires_in = store.remaining_expires_in(existing)
+            if expires_in > 0:
+                retry_after = store.remaining_retry_after(existing)
+                if retry_after > 0:
+                    return expires_in, retry_after
+
+        code, expires_in, retry_after = await store.issue(user_id=user_id, email=email)
+        try:
+            await self.email_service.send_login_code(
+                recipient=email,
+                code=code,
+                expires_in=expires_in,
+                user_id=str(user_id),
+                locale=locale,
+            )
+        except BaseException:
+            await store.delete(user_id=user_id)
+            raise
+
+        return expires_in, retry_after
+
+    async def confirm_remove_password(self, *, user_id: UUID, code: str) -> None:
+        user = await self.user_repo.get_by_id_with_credential(user_id)
+        credential = cast(CredentialLike | None, getattr(user, "credential", None) if user is not None else None)
+        if user is None or credential is None:
+            raise Unauthorized(message=self._ta("UNAUTHORIZED", "未授权"), error="UNAUTHORIZED")
+        if not self.user_repo.is_active(user):
+            raise Forbidden(message=self._ta("USER_DISABLED", "账号不可用"), error="USER_DISABLED")
+
+        store = self._require_password_removal_store()
+        record = await store.get(user_id=user_id)
+        if not record:
+            raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
+
+        issued_code = str(record.get("code") or "").strip()
+        normalized_code = code.strip()
+        if issued_code != normalized_code:
+            tries = await store.bump_attempts(user_id=user_id)
+            if tries >= store.max_attempts:
+                await store.delete(user_id=user_id)
+            raise Unauthorized(message=self._ta("EMAIL_CODE_INVALID", "验证码无效或已过期"), error="EMAIL_CODE_INVALID")
+
+        await self.user_repo.remove_password(user)
+        await self.user_repo.increment_token_version(user)
+        await store.delete(user_id=user_id)
+        if self.refresh_store is not None:
+            await self.refresh_store.revoke_all(self._coerce_user_id(user))
 
     async def set_password_for_current_user(
         self,
@@ -746,6 +835,13 @@ class AuthService(BaseService):
 
     async def email_exists(self, *, email: str) -> bool:
         return await self.user_repo.exists_email(self._normalize_email(email))
+
+    async def get_email_check(self, *, email: str) -> tuple[bool, bool]:
+        user = await self.user_repo.get_by_email(self._normalize_email(email))
+        if user is None:
+            return False, False
+        credential = cast(CredentialLike | None, getattr(user, "credential", None))
+        return True, credential is not None
 
     async def username_exists(self, *, username: str) -> bool:
         return await self.user_repo.exists_username(username.strip().lower())

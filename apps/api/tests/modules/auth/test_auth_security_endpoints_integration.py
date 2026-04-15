@@ -73,10 +73,12 @@ async def test_auth_security_endpoints_two_factor_flow(
             email_check = await client.post("/api/v1/auth/email-check", json={"email": user.email})
             assert email_check.status_code == 200, email_check.text
             assert (email_check.json().get("data") or {}).get("exists") is True
+            assert (email_check.json().get("data") or {}).get("passwordLoginAvailable") is True
 
             missing_check = await client.post("/api/v1/auth/email-check", json={"email": "missing@example.com"})
             assert missing_check.status_code == 200, missing_check.text
             assert (missing_check.json().get("data") or {}).get("exists") is False
+            assert (missing_check.json().get("data") or {}).get("passwordLoginAvailable") is False
 
             tokens = await _login(client, email=user.email, password="pass1234")
             auth_headers = {"Authorization": f"Bearer {_access_token(tokens)}"}

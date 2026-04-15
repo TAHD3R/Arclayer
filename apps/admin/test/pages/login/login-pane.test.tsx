@@ -43,7 +43,7 @@ describe("LoginPane oauth section", () => {
   it("hides the oauth wrapper when no oauth providers render", () => {
     const { container } = render(
       <LoginPane
-        onEmailSubmit={async () => true}
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
@@ -68,7 +68,7 @@ describe("LoginPane oauth section", () => {
 
     render(
       <LoginPane
-        onEmailSubmit={async () => true}
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
         onSubmit={async () => undefined}
         emailCheckLoading={false}
         loading={false}
@@ -87,5 +87,33 @@ describe("LoginPane oauth section", () => {
     await user.click(screen.getByRole("button", { name: "auth:LOGIN_EMAIL_CODE_ACTION" }));
 
     expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", true);
+  });
+
+  it("routes passwordless accounts into email-code flow from the email step", async () => {
+    const onSwitchToEmailCode = vi.fn();
+
+    render(
+      <LoginPane
+        onEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: false })}
+        onSubmit={async () => undefined}
+        emailCheckLoading={false}
+        loading={false}
+        initialKeepSession={false}
+        loginSeed={null}
+        onForgotPassword={() => undefined}
+        onSwitchToEmailCode={onSwitchToEmailCode}
+        onSwitchToRegister={() => undefined}
+        publicRegisterEnabled
+        reducedMotion
+        itemVariants={{}}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("auth:FIELD_EMAIL_LABEL"), "demo@example.com");
+    await user.click(screen.getByRole("button", { name: "auth:LOGIN_NEXT_BUTTON" }));
+
+    expect(onSwitchToEmailCode).toHaveBeenCalledWith("demo@example.com", false, false);
+    expect(screen.queryByText("auth:FIELD_PASSWORD_LABEL")).not.toBeInTheDocument();
   });
 });

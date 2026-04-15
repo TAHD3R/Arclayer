@@ -84,12 +84,8 @@ def _build_service(monkeypatch, *, user: _FakeUser) -> AuthTwoFactorService:
     settings = get_settings()
 
     monkeypatch.setattr(
-        "src.modules.auth.two_factor.service.master_key_exists",
-        lambda _path: True,
-    )
-    monkeypatch.setattr(
-        "src.modules.auth.two_factor.service.load_master_key",
-        lambda _path: b"x" * 32,
+        "src.modules.auth.two_factor.service.ensure_master_key",
+        lambda _path: (b"x" * 32, "fingerprint"),
     )
 
     return AuthTwoFactorService(

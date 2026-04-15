@@ -32,9 +32,11 @@ import type {
   BootstrapFormValues,
   BootstrapPaneProps,
   InstanceRepairRequiredPaneProps,
+  LoginEmailLookupResult,
   LoginEmailCodeFormValues,
   LoginEmailCodePaneSeed,
   LoginFormValues,
+  LoginModeChangeOptions,
   LoginPaneSeed,
   LoginTwoFactorFormValues,
   LoginViewProps,
@@ -337,14 +339,7 @@ export function useLoginPage(): LoginPageState {
     });
   }, [effectiveMode, navigate, oauthError, redirectTo, t]);
 
-  const onModeChange = (
-    next: LoginMode,
-    options?: {
-      email?: string;
-      step?: "email" | "password" | "details" | "verify";
-      keepSession?: boolean;
-    },
-  ) => {
+  const onModeChange = (next: LoginMode, options?: LoginModeChangeOptions) => {
     const nextMode = resolveLoginMode(next, publicRegisterEnabled);
 
     setLoginSeed(
@@ -358,6 +353,7 @@ export function useLoginPage(): LoginPageState {
             email: options.email,
             autoRequest: options.step === "verify",
             keepSession: options.keepSession ?? keepSession,
+            passwordLoginAvailable: options.passwordLoginAvailable,
           }
         : null,
     );
@@ -373,9 +369,14 @@ export function useLoginPage(): LoginPageState {
     void navigate({ to: "/login", search: { redirect: redirectTo, mode: nextMode } });
   };
 
-  const onLoginEmailSubmit = async (email: string) => {
+  const onLoginEmailSubmit = async (email: string): Promise<LoginEmailLookupResult> => {
     const result = await emailCheckMutation.mutateAsync(email);
-    return result.exists;
+    return {
+      exists: result.exists,
+      passwordLoginAvailable: Boolean(
+        result.passwordLoginAvailable ?? result.password_login_available,
+      ),
+    };
   };
 
   const onRegisterEmailSubmit = async (email: string) => {

@@ -39,9 +39,6 @@ export type RequestMyEmailChangeOut = {
 export type ConfirmMyEmailChangePayload = {
   new_email: string;
   code: string;
-  password?: string;
-  two_factor_code?: string;
-  backup_code?: string;
 };
 
 export type DeleteMyAccountReauthMethod = "password" | "2fa" | "relogin";
@@ -51,16 +48,26 @@ export type MySecurityCapability = {
   twoFactorEnabled: boolean;
   setPasswordRequiredReauthMethods: DeleteMyAccountReauthMethod[];
   emailChangeRequiredReauthMethods: DeleteMyAccountReauthMethod[];
+  hasLinkedOauthIdentities: boolean;
   has_password?: boolean;
   two_factor_enabled?: boolean;
   set_password_required_reauth_methods?: DeleteMyAccountReauthMethod[];
   email_change_required_reauth_methods?: DeleteMyAccountReauthMethod[];
+  has_linked_oauth_identities?: boolean;
 };
 
 export type SetMyPasswordPayload = {
   new_password: string;
   code?: string;
   backup_code?: string;
+};
+
+export type RequestRemoveMyPasswordPayload = {
+  current_password: string;
+};
+
+export type ConfirmRemoveMyPasswordPayload = {
+  code: string;
 };
 
 export type DeleteMyAccountPayload = {
@@ -87,6 +94,8 @@ export type ResetTokenPayload = {
 
 export type EmailCheckOut = {
   exists: boolean;
+  passwordLoginAvailable?: boolean;
+  password_login_available?: boolean;
 };
 
 export type UsernameCheckOut = {

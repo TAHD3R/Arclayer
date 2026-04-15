@@ -57,7 +57,7 @@ function renderLoginView(overrides: Partial<React.ComponentProps<typeof LoginVie
       <LoginView
         mode="login"
         onModeChange={() => undefined}
-        onLoginEmailSubmit={async () => true}
+        onLoginEmailSubmit={async () => ({ exists: true, passwordLoginAvailable: true })}
         onLoginSubmit={async () => undefined}
         onLoginEmailCodeRequest={async () => ({ expiresIn: 600, retryAfter: 0 })}
         onLoginEmailCodeVerify={async () => undefined}

@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Smartphone, TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
-import { SecurityConfiguredTag, SecurityNotConfiguredTag } from "@/components/ui/tags";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
@@ -13,9 +12,10 @@ import { Input } from "@arclayer/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { QRCode } from "@arclayer/ui/qr-code";
-import { SettingCard, SettingCardContent, SettingCardHeader } from "@arclayer/ui/setting-card";
+import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 const OTP_LENGTH = 6;
 
@@ -80,6 +80,15 @@ function BackupCodesDialog(props: BackupCodesDialogProps) {
       </Button>
     </div>
   );
+}
+
+function resolveHasPassword(data: unknown): boolean {
+  if (!data || typeof data !== "object") return true;
+  const camel = (data as { hasPassword?: boolean }).hasPassword;
+  if (typeof camel === "boolean") return camel;
+  const snake = (data as { has_password?: boolean }).has_password;
+  if (typeof snake === "boolean") return snake;
+  return true;
 }
 
 function SetupDialog(props: SetupDialogProps) {
@@ -203,7 +212,6 @@ function SetupDialog(props: SetupDialogProps) {
       ) : props.requiresPassword ? (
         <SettingDialogField
           title={t("account:ME_SECURITY_2FA_SETUP_PASSWORD")}
-          description={t("account:ME_SECURITY_2FA_SETUP_DIALOG_DESC")}
           error={passwordError ?? undefined}
         >
           <PasswordInput
@@ -403,8 +411,6 @@ export function UserTwoFactorSection() {
   });
 
   const enabled = Boolean(statusQuery.data?.enabled ?? capabilitiesQuery.data?.enabled);
-  const backupCodesRemaining =
-    statusQuery.data?.backupCodesRemaining ?? statusQuery.data?.backup_codes_remaining ?? 0;
   const setupRequiredMethods =
     capabilitiesQuery.data?.setupRequiredReauthMethods ??
     capabilitiesQuery.data?.setup_required_reauth_methods ??
@@ -418,12 +424,14 @@ export function UserTwoFactorSection() {
     capabilitiesQuery.data?.regenerate_backup_codes_required_reauth_methods ??
     [];
   const canSetup = Boolean(capabilitiesQuery.data?.canSetup ?? capabilitiesQuery.data?.can_setup);
+  const hasPassword = resolveHasPassword(capabilitiesQuery.data);
   const actionLoading = statusQuery.isLoading || capabilitiesQuery.isLoading;
-
-  const secondaryDescription = useMemo(() => {
-    if (!enabled) return t("account:ME_SECURITY_2FA_AUTH_APP_DESC");
-    return t("account:ME_SECURITY_2FA_BACKUP_CODES_REMAINING", { count: backupCodesRemaining });
-  }, [backupCodesRemaining, enabled, t]);
+  const setupDisabled = actionLoading || !canSetup || !hasPassword;
+  const setupAction = (
+    <Button variant="outline" disabled={setupDisabled} onClick={() => setSetupOpen(true)}>
+      {t("account:ME_SECURITY_2FA_ENABLE")}
+    </Button>
+  );
 
   return (
     <>
@@ -441,43 +449,26 @@ export function UserTwoFactorSection() {
                 <Button variant="outline" onClick={() => setRegenerateOpen(true)}>
                   {t("account:ME_SECURITY_2FA_REGENERATE")}
                 </Button>
-                <Button variant="destructive" onClick={() => setDisableOpen(true)}>
+                <Button variant="outline" onClick={() => setDisableOpen(true)}>
                   {t("account:ME_SECURITY_2FA_DISABLE")}
                 </Button>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                disabled={actionLoading || !canSetup}
-                onClick={() => setSetupOpen(true)}
-              >
-                {t("account:ME_SECURITY_2FA_ENABLE")}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild focusTrigger={false}>
+                    <span>{setupAction}</span>
+                  </TooltipTrigger>
+                  {!hasPassword ? (
+                    <TooltipContent>
+                      {t("account:ME_SECURITY_2FA_ENABLE_DISABLED_NO_PASSWORD")}
+                    </TooltipContent>
+                  ) : null}
+                </Tooltip>
+              </TooltipProvider>
             )
           }
         />
-        <SettingCardContent>
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/30 ">
-              <Smartphone className="h-5 w-5 text-label-secondary" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-body font-medium text-label-primary">
-                  {t("account:ME_SECURITY_2FA_AUTH_APP_TITLE")}
-                </span>
-                {enabled ? (
-                  <SecurityConfiguredTag label={t("account:ME_SECURITY_2FA_AUTH_APP_CONFIGURED")} />
-                ) : (
-                  <SecurityNotConfiguredTag
-                    label={t("account:ME_SECURITY_2FA_AUTH_APP_NOT_CONFIGURED")}
-                  />
-                )}
-              </div>
-              <div className="mt-1 text-callout text-label-secondary">{secondaryDescription}</div>
-            </div>
-          </div>
-        </SettingCardContent>
       </SettingCard>
 
       <SetupDialog

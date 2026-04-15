@@ -29,6 +29,13 @@ vi.mock("@/lib/notifications", () => ({
   notifySuccessText: vi.fn(),
 }));
 
+vi.mock("@arclayer/ui/tooltip", () => ({
+  TooltipProvider: ({ children }: { children: ReactElement | ReactElement[] }) => <>{children}</>,
+  Tooltip: ({ children }: { children: ReactElement | ReactElement[] }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: ReactElement }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: ReactElement | string }) => <>{children}</>,
+}));
+
 const getTwoFactorStatusMock = vi.mocked(getTwoFactorStatus);
 const getTwoFactorCapabilitiesMock = vi.mocked(getTwoFactorCapabilities);
 const beginTwoFactorSetupMock = vi.mocked(beginTwoFactorSetup);
@@ -117,7 +124,7 @@ describe("UserTwoFactorSection", () => {
     renderWithQuery(<UserTwoFactorSection />);
 
     expect(
-      await screen.findByText(i18n.t("account:ME_SECURITY_2FA_AUTH_APP_NOT_CONFIGURED")),
+      await screen.findByText(i18n.t("account:ME_SECURITY_2FA_DISABLED_DESC")),
     ).toBeInTheDocument();
 
     await user.click(
@@ -212,7 +219,7 @@ describe("UserTwoFactorSection", () => {
     renderWithQuery(<UserTwoFactorSection />);
 
     expect(
-      await screen.findByText(i18n.t("account:ME_SECURITY_2FA_AUTH_APP_CONFIGURED")),
+      await screen.findByText(i18n.t("account:ME_SECURITY_2FA_ENABLED_DESC")),
     ).toBeInTheDocument();
 
     await user.click(
@@ -256,5 +263,25 @@ describe("UserTwoFactorSection", () => {
     await waitFor(() => {
       expect(disableTwoFactorMock).toHaveBeenCalledWith({ code: "654321" });
     });
+  });
+
+  it("disables setup when the account has no password", async () => {
+    getTwoFactorStatusMock.mockResolvedValue({ enabled: false, backupCodesRemaining: 0 });
+    getTwoFactorCapabilitiesMock.mockResolvedValue({
+      enabled: false,
+      canSetup: false,
+      setupRequiredReauthMethods: ["relogin"],
+      disableRequiredReauthMethods: [],
+      regenerateBackupCodesRequiredReauthMethods: [],
+      hasPassword: false,
+    });
+
+    renderWithQuery(<UserTwoFactorSection />);
+
+    expect(
+      await screen.findByRole("button", {
+        name: i18n.t("account:ME_SECURITY_2FA_ENABLE"),
+      }),
+    ).toBeDisabled();
   });
 });

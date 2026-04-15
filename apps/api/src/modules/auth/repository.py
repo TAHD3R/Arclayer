@@ -94,6 +94,10 @@ class UserRepository(BaseRepository):
         credential.password_updated_at = datetime.now(UTC)
         await credential.save(update_fields=["password_hash", "password_updated_at"])
 
+    async def remove_password(self, user: UserLike) -> None:
+        record = cast(User, user)
+        await UserCredential.filter(user_id=record.id).delete()
+
     async def patch_profile(
         self,
         user: UserLike,
@@ -275,6 +279,90 @@ class EmailLoginCodeStore:
         ttl = self._remaining_ttl(record)
         ex = ttl if ttl > 0 else None
         await self._client.set_json(self._email_key(email), record, ex=ex)
+        return tries
+
+    def remaining_expires_in(self, record: dict[str, Any]) -> int:
+        return self._remaining_ttl(record)
+
+    def remaining_retry_after(self, record: dict[str, Any]) -> int:
+        now_ts = int(datetime.now(UTC).timestamp())
+        raw = record.get("resend_available_at")
+        try:
+            resend_available_at = int(raw)
+        except (TypeError, ValueError):
+            return 0
+        return max(resend_available_at - now_ts, 0)
+
+    def _remaining_ttl(self, record: dict[str, Any]) -> int:
+        now_ts = int(datetime.now(UTC).timestamp())
+        raw = record.get("expires_at")
+        try:
+            expires_at = int(raw)
+        except (TypeError, ValueError):
+            return 0
+        return max(expires_at - now_ts, 0)
+
+
+class PasswordRemovalCodeStore:
+    """
+    Store short-lived password-removal verification codes keyed by user id.
+
+    Notes:
+    - One active code per user.
+    - Codes are stored in plaintext in Valkey with short TTL and bounded attempts.
+    - Resend cooldown is tracked inside the record so the caller can render countdown UI.
+    """
+
+    def __init__(
+        self,
+        client: ValkeyClientLike,
+        *,
+        ttl_seconds: int = 10 * 60,
+        resend_cooldown_seconds: int = 20,
+        max_attempts: int = 5,
+    ) -> None:
+        self._client = client
+        self._ttl_seconds = max(int(ttl_seconds), 60)
+        self._resend_cooldown_seconds = max(int(resend_cooldown_seconds), 1)
+        self.max_attempts = max(int(max_attempts), 3)
+
+    def _user_key(self, user_id: UUID) -> str:
+        return f"auth:remove_password:user:{user_id}"
+
+    async def issue(self, *, user_id: UUID, email: str) -> tuple[str, int, int]:
+        normalized_email = email.strip().lower()
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        ttl = self._ttl_seconds
+        retry_after = self._resend_cooldown_seconds
+        now_ts = int(datetime.now(UTC).timestamp())
+        record = {
+            "user_id": str(user_id),
+            "email": normalized_email,
+            "code": code,
+            "issued_at": now_ts,
+            "expires_at": now_ts + ttl,
+            "resend_available_at": now_ts + retry_after,
+            "attempts": 0,
+        }
+        await self._client.set_json(self._user_key(user_id), record, ex=ttl)
+        return code, ttl, retry_after
+
+    async def get(self, *, user_id: UUID) -> dict[str, Any] | None:
+        record = await self._client.get_json(self._user_key(user_id))
+        return record if isinstance(record, dict) else None
+
+    async def delete(self, *, user_id: UUID) -> None:
+        await self._client.delete(self._user_key(user_id))
+
+    async def bump_attempts(self, *, user_id: UUID) -> int:
+        record = await self.get(user_id=user_id)
+        if not record:
+            return 0
+        tries = int(record.get("attempts") or 0) + 1
+        record["attempts"] = tries
+        ttl = self._remaining_ttl(record)
+        ex = ttl if ttl > 0 else None
+        await self._client.set_json(self._user_key(user_id), record, ex=ex)
         return tries
 
     def remaining_expires_in(self, record: dict[str, Any]) -> int:

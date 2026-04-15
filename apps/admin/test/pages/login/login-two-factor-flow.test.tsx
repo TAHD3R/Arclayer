@@ -216,7 +216,7 @@ describe("LoginPage two-factor challenge flow", () => {
   });
 
   it("switches to otp pane when login returns TWO_FACTOR_REQUIRED", async () => {
-    emailCheckMock.mockResolvedValueOnce({ exists: true });
+    emailCheckMock.mockResolvedValueOnce({ exists: true, passwordLoginAvailable: true });
     loginMock.mockRejectedValueOnce(
       new ApiError({
         status: 401,
@@ -305,7 +305,7 @@ describe("LoginPage two-factor challenge flow", () => {
   });
 
   it("starts a two-factor challenge after verifying an email login code", async () => {
-    emailCheckMock.mockResolvedValueOnce({ exists: true });
+    emailCheckMock.mockResolvedValueOnce({ exists: true, passwordLoginAvailable: true });
     requestLoginEmailCodeMock.mockResolvedValueOnce({ expires_in: 600, retry_after: 0 });
     verifyLoginEmailCodeMock.mockRejectedValueOnce(
       new ApiError({

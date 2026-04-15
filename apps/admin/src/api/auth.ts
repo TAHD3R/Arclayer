@@ -6,8 +6,10 @@ import type {
   DeleteMyAccountCapability,
   DeleteMyAccountPayload,
   EmailCheckOut,
+  ConfirmRemoveMyPasswordPayload,
   LoginEmailCodeRequestOut,
   MySecurityCapability,
+  RequestRemoveMyPasswordPayload,
   RegisterPayload,
   RequestMyEmailChangeOut,
   RequestMyEmailChangePayload,
@@ -115,6 +117,21 @@ export async function getMySecurityCapabilities(): Promise<MySecurityCapability>
 
 export async function setMyPassword(payload: SetMyPasswordPayload): Promise<null> {
   return api.post<null>("/auth/me/set-password", payload);
+}
+
+export async function requestRemoveMyPassword(payload: RequestRemoveMyPasswordPayload): Promise<{
+  expiresIn?: number;
+  retryAfter?: number;
+  expires_in?: number;
+  retry_after?: number;
+}> {
+  return api.post("/auth/me/remove-password/request", payload);
+}
+
+export async function confirmRemoveMyPassword(
+  payload: ConfirmRemoveMyPasswordPayload,
+): Promise<null> {
+  return api.post<null>("/auth/me/remove-password/confirm", payload);
 }
 
 export async function getDeleteMyAccountCapabilities(): Promise<DeleteMyAccountCapability> {

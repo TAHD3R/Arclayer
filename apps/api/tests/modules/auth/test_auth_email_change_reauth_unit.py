@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
-from src.core.exceptions import BadRequest, Unauthorized
+from src.core.exceptions import BadRequest
 from src.models.organization.user import UserStatus
 from src.modules.auth.service import AuthService
 from src.modules.auth.tokens.service import hash_password
@@ -88,6 +88,10 @@ class _FakeUserRepo:
         _ = user, password_hash
         raise RuntimeError("not used")
 
+    async def remove_password(self, user) -> None:
+        _ = user
+        raise RuntimeError("not used")
+
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
 
@@ -149,7 +153,7 @@ def _build_service(*, user: _FakeUser, two_factor_enabled: bool) -> AuthService:
 
 
 @pytest.mark.asyncio
-async def test_confirm_email_change_password_account_uses_password_reauth() -> None:
+async def test_confirm_email_change_password_account_uses_email_code_only() -> None:
     settings = get_settings()
     user = _FakeUser(
         id=uuid4(),
@@ -162,36 +166,13 @@ async def test_confirm_email_change_password_account_uses_password_reauth() -> N
         user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
-        password="oldpass1",
-        two_factor_code=None,
-        backup_code=None,
     )
 
     assert profile.email == "new@example.com"
 
 
 @pytest.mark.asyncio
-async def test_confirm_email_change_sso_with_2fa_requires_2fa_reauth() -> None:
-    user = _FakeUser(id=uuid4(), credential=None, last_login_at=datetime(2020, 1, 1, tzinfo=UTC))
-    service = _build_service(user=user, two_factor_enabled=True)
-
-    with pytest.raises(Unauthorized) as exc:
-        await service.confirm_email_change(
-            user=cast(Any, user),
-            new_email="new@example.com",
-            code="654321",
-            password=None,
-            two_factor_code=None,
-            backup_code=None,
-        )
-
-    assert exc.value.error == "REAUTH_REQUIRED"
-    assert isinstance(exc.value.meta, dict)
-    assert exc.value.meta.get("methods") == ["2fa"]
-
-
-@pytest.mark.asyncio
-async def test_confirm_email_change_sso_with_2fa_accepts_totp_code() -> None:
+async def test_confirm_email_change_sso_with_2fa_uses_email_code_only() -> None:
     user = _FakeUser(id=uuid4(), credential=None, last_login_at=datetime(2020, 1, 1, tzinfo=UTC))
     service = _build_service(user=user, two_factor_enabled=True)
 
@@ -199,9 +180,6 @@ async def test_confirm_email_change_sso_with_2fa_accepts_totp_code() -> None:
         user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
-        password=None,
-        two_factor_code="123456",
-        backup_code=None,
     )
 
     assert profile.email == "new@example.com"
@@ -216,29 +194,6 @@ async def test_confirm_email_change_sso_without_2fa_accepts_recent_login() -> No
         user=cast(Any, user),
         new_email="new@example.com",
         code="654321",
-        password=None,
-        two_factor_code=None,
-        backup_code=None,
     )
 
     assert profile.email == "new@example.com"
-
-
-@pytest.mark.asyncio
-async def test_confirm_email_change_sso_without_2fa_requires_recent_login() -> None:
-    user = _FakeUser(id=uuid4(), credential=None, last_login_at=datetime(2020, 1, 1, tzinfo=UTC))
-    service = _build_service(user=user, two_factor_enabled=False)
-
-    with pytest.raises(Unauthorized) as exc:
-        await service.confirm_email_change(
-            user=cast(Any, user),
-            new_email="new@example.com",
-            code="654321",
-            password=None,
-            two_factor_code=None,
-            backup_code=None,
-        )
-
-    assert exc.value.error == "REAUTH_REQUIRED"
-    assert isinstance(exc.value.meta, dict)
-    assert exc.value.meta.get("methods") == ["relogin"]

@@ -68,6 +68,10 @@ class _FakeUserRepo:
             return
         row.credential.password_hash = password_hash
 
+    async def remove_password(self, user) -> None:
+        row = cast(_FakeUser, user)
+        row.credential = None
+
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
 
@@ -139,6 +143,7 @@ def test_security_capabilities_schema_fields_are_frozen() -> None:
     assert set(schema_type.model_fields) >= {
         "has_password",
         "two_factor_enabled",
+        "has_linked_oauth_identities",
         "set_password_required_reauth_methods",
         "email_change_required_reauth_methods",
     }

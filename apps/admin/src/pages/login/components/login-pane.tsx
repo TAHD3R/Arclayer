@@ -13,7 +13,7 @@ import { Button } from "@arclayer/ui/button";
 import { Checkbox } from "@arclayer/ui/checkbox";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 
-import type { LoginFormValues, LoginPaneSeed } from "../types";
+import type { LoginEmailLookupResult, LoginFormValues, LoginPaneSeed } from "../types";
 import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
@@ -32,7 +32,7 @@ type LoginPaneValues = LoginFormValues;
 type LoginPaneStep = "email" | "password";
 
 type LoginPaneProps = {
-  onEmailSubmit: (email: string) => Promise<boolean>;
+  onEmailSubmit: (email: string) => Promise<LoginEmailLookupResult>;
   onSubmit: (values: LoginFormValues) => Promise<void>;
   emailCheckLoading: boolean;
   loading: boolean;
@@ -40,7 +40,11 @@ type LoginPaneProps = {
   loginSeed?: LoginPaneSeed | null;
   redirect?: string;
   onForgotPassword: (email?: string) => void;
-  onSwitchToEmailCode: (email?: string, keepSession?: boolean) => void;
+  onSwitchToEmailCode: (
+    email?: string,
+    keepSession?: boolean,
+    passwordLoginAvailable?: boolean,
+  ) => void;
   onSwitchToRegister: (email?: string, step?: "details") => void;
   publicRegisterEnabled: boolean;
   reducedMotion: boolean;
@@ -99,10 +103,14 @@ export function LoginPane(props: LoginPaneProps) {
     const isValid = await form.trigger("email");
     if (!isValid) return;
     setEmailMissing(false);
-    const exists = await props.onEmailSubmit(form.getValues("email"));
-    if (!exists) {
+    const lookup = await props.onEmailSubmit(form.getValues("email"));
+    if (!lookup.exists) {
       setStep("email");
       setEmailMissing(true);
+      return;
+    }
+    if (!lookup.passwordLoginAvailable) {
+      props.onSwitchToEmailCode(form.getValues("email"), keepSession, false);
       return;
     }
     setStep("password");

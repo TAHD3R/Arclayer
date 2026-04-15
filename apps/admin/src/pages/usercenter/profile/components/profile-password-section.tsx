@@ -9,19 +9,29 @@ import * as authApi from "@/api/auth";
 import { PasswordRequirementChecklist } from "@/components/auth/password-requirement-checklist";
 import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { zodResolver } from "@/lib/forms/zod-resolver";
+import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { useAuthStore } from "@/stores/use-auth-store";
+import {
+  AUTH_OTP_GROUP_CLASS,
+  AUTH_OTP_SLOT_CLASS,
+} from "@/pages/login/components/auth-pane-primitives";
 import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { DialogField } from "./dialog-field";
+import { resolveHasPassword, resolveSetPasswordReauthMethods } from "./security-capabilities";
 
 export type UserPasswordSectionProps = {
   redirect: string;
 };
+
+type PasswordDialogMode = "change" | "remove";
+type RemovePasswordStep = "request" | "verify";
 
 type PasswordFormValues = {
   oldPassword: string;
@@ -31,6 +41,7 @@ type PasswordFormValues = {
   backupCode: string;
 };
 
+const OTP_LENGTH = 6;
 const EMPTY_VALUES: PasswordFormValues = {
   oldPassword: "",
   newPassword: "",
@@ -39,22 +50,16 @@ const EMPTY_VALUES: PasswordFormValues = {
   backupCode: "",
 };
 
-function resolveReauthMethods(data: unknown): string[] {
-  if (!data || typeof data !== "object") return [];
-  const methods =
-    (data as { setPasswordRequiredReauthMethods?: string[] }).setPasswordRequiredReauthMethods ??
-    (data as { set_password_required_reauth_methods?: string[] })
-      .set_password_required_reauth_methods;
-  return Array.isArray(methods) ? methods : [];
-}
-
-function resolveHasPassword(data: unknown): boolean {
-  if (!data || typeof data !== "object") return true;
-  const camel = (data as { hasPassword?: boolean }).hasPassword;
-  if (typeof camel === "boolean") return camel;
-  const snake = (data as { has_password?: boolean }).has_password;
-  if (typeof snake === "boolean") return snake;
-  return true;
+function normalizeRequestResult(result: {
+  expiresIn?: number;
+  expires_in?: number;
+  retryAfter?: number;
+  retry_after?: number;
+}) {
+  return {
+    expiresIn: result.expiresIn ?? result.expires_in ?? 0,
+    retryAfter: result.retryAfter ?? result.retry_after ?? 0,
+  };
 }
 
 function buildPasswordSchema(
@@ -124,6 +129,11 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
   const [open, setOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<PasswordDialogMode>("change");
+  const [removePasswordStep, setRemovePasswordStep] = useState<RemovePasswordStep>("request");
+  const [removePasswordRequestError, setRemovePasswordRequestError] = useState<string | null>(null);
+  const [removePasswordVerifyError, setRemovePasswordVerifyError] = useState<string | null>(null);
+  const [removePasswordRetryAfter, setRemovePasswordRetryAfter] = useState(0);
 
   const capabilityQuery = useQuery({
     queryKey: ["auth", "security-capabilities", sessionVersion],
@@ -134,7 +144,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   });
 
   const hasPassword = resolveHasPassword(capabilityQuery.data);
-  const setPasswordReauthMethods = resolveReauthMethods(capabilityQuery.data);
+  const setPasswordReauthMethods = resolveSetPasswordReauthMethods(capabilityQuery.data);
   const requiresSetPasswordTwoFactor = !hasPassword && setPasswordReauthMethods.includes("2fa");
   const requiresSetPasswordRelogin = !hasPassword && setPasswordReauthMethods.includes("relogin");
 
@@ -155,8 +165,6 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   const oldPasswordFieldId = useId();
   const newPasswordFieldId = useId();
   const confirmPasswordFieldId = useId();
-  const codeFieldId = useId();
-  const backupCodeFieldId = useId();
   const newPasswordValue = form.watch("newPassword");
 
   const cardTitle = hasPassword
@@ -165,16 +173,34 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   const actionText = hasPassword
     ? t("account:ME_SECURITY_CHANGE_PASSWORD_ACTION")
     : t("account:ME_PROFILE_SET_PASSWORD_ACTION");
-  const dialogTitle = hasPassword
-    ? t("account:ME_SECURITY_CHANGE_PASSWORD_DIALOG_TITLE")
-    : t("account:ME_PROFILE_SET_PASSWORD_DIALOG_TITLE");
+
+  const dialogTitle = useMemo(() => {
+    if (hasPassword && dialogMode === "remove") {
+      return t("account:ME_PROFILE_REMOVE_PASSWORD_DIALOG_TITLE");
+    }
+    return hasPassword
+      ? t("account:ME_SECURITY_CHANGE_PASSWORD_DIALOG_TITLE")
+      : t("account:ME_PROFILE_SET_PASSWORD_DIALOG_TITLE");
+  }, [dialogMode, hasPassword, t]);
 
   const dialogDescription = useMemo(() => {
+    if (hasPassword && dialogMode === "remove") {
+      return removePasswordStep === "verify"
+        ? t("account:ME_PROFILE_REMOVE_PASSWORD_VERIFY_DESC")
+        : t("account:ME_PROFILE_REMOVE_PASSWORD_DIALOG_DESC");
+    }
     if (hasPassword) return t("account:ME_SECURITY_CHANGE_PASSWORD_DIALOG_DESC");
     if (requiresSetPasswordTwoFactor) return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC_2FA");
     if (requiresSetPasswordRelogin) return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC_RELOGIN");
     return t("account:ME_PROFILE_SET_PASSWORD_DIALOG_DESC");
-  }, [hasPassword, requiresSetPasswordRelogin, requiresSetPasswordTwoFactor, t]);
+  }, [
+    dialogMode,
+    hasPassword,
+    removePasswordStep,
+    requiresSetPasswordRelogin,
+    requiresSetPasswordTwoFactor,
+    t,
+  ]);
 
   const cardDescription = useMemo(() => {
     if (capabilityQuery.isError) return t("account:ME_PROFILE_PASSWORD_CAPABILITY_LOAD_FAILED");
@@ -193,7 +219,20 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
   useEffect(() => {
     if (!open) return;
     form.reset(EMPTY_VALUES);
+    setDialogMode("change");
+    setRemovePasswordStep("request");
+    setRemovePasswordRequestError(null);
+    setRemovePasswordVerifyError(null);
+    setRemovePasswordRetryAfter(0);
   }, [form, open]);
+
+  useEffect(() => {
+    if (removePasswordRetryAfter <= 0) return;
+    const timer = window.setInterval(() => {
+      setRemovePasswordRetryAfter((current) => (current <= 1 ? 0 : current - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [removePasswordRetryAfter]);
 
   const changePasswordMutation = useMutation({
     mutationFn: async (values: PasswordFormValues) => {
@@ -224,9 +263,183 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
     onError: (err) => notifyError(err),
   });
 
+  const requestRemovePasswordMutation = useMutation({
+    mutationFn: async (currentPassword: string) => {
+      return authApi.requestRemoveMyPassword({ current_password: currentPassword });
+    },
+    onSuccess: (result) => {
+      const normalized = normalizeRequestResult(result);
+      setRemovePasswordRequestError(null);
+      setRemovePasswordVerifyError(null);
+      setRemovePasswordStep("verify");
+      setRemovePasswordRetryAfter(normalized.retryAfter);
+      form.setValue("code", "");
+      form.clearErrors("code");
+      notifySuccessText(t("auth:LOGIN_CODE_SENT"));
+    },
+  });
+
+  const confirmRemovePasswordMutation = useMutation({
+    mutationFn: async (code: string) => authApi.confirmRemoveMyPassword({ code }),
+    onSuccess: async () => {
+      notifySuccessText(t("account:ME_PROFILE_REMOVE_PASSWORD_SUCCESS"));
+      form.reset(EMPTY_VALUES);
+      setOpen(false);
+      setDialogMode("change");
+      setRemovePasswordStep("request");
+      setRemovePasswordRequestError(null);
+      setRemovePasswordVerifyError(null);
+      setRemovePasswordRetryAfter(0);
+      await queryClient.invalidateQueries({ queryKey: ["auth", "security-capabilities"] });
+    },
+    onError: (err) => notifyError(err),
+  });
+
   const canOpenDialog = !capabilityQuery.isLoading && !capabilityQuery.isError;
-  const isBusy = changePasswordMutation.isPending;
-  const saveDisabled = isBusy || requiresSetPasswordRelogin;
+  const isChangingPassword = changePasswordMutation.isPending;
+  const isRemovingPassword =
+    requestRemovePasswordMutation.isPending || confirmRemovePasswordMutation.isPending;
+  const saveDisabled = isChangingPassword || requiresSetPasswordRelogin;
+
+  async function requestRemovePasswordCode() {
+    setRemovePasswordRequestError(null);
+    const isValid = await form.trigger("oldPassword");
+    if (!isValid) return;
+    try {
+      await requestRemovePasswordMutation.mutateAsync(form.getValues("oldPassword").trim());
+    } catch (error) {
+      setRemovePasswordStep("request");
+      setRemovePasswordRequestError(
+        error instanceof ApiError ? error.message : t("auth:LOGIN_EMAIL_CODE_REQUEST_FAILED"),
+      );
+    }
+  }
+
+  async function confirmRemovePassword() {
+    const code = form.getValues("code").trim();
+    if (code.length < OTP_LENGTH) {
+      form.setError("code", {
+        type: "manual",
+        message: t("account:ME_PROFILE_REMOVE_PASSWORD_CODE_REQUIRED"),
+      });
+      return;
+    }
+    try {
+      setRemovePasswordVerifyError(null);
+      await confirmRemovePasswordMutation.mutateAsync(code);
+    } catch (error) {
+      setRemovePasswordVerifyError(
+        error instanceof ApiError ? error.message : t("auth:LOGIN_EMAIL_CODE_INVALID"),
+      );
+    }
+  }
+
+  const footer = useMemo(() => {
+    if (hasPassword && dialogMode === "remove") {
+      return (
+        <>
+          <Button
+            variant="ghost"
+            disabled={isRemovingPassword}
+            onClick={() => {
+              setDialogMode("change");
+              setRemovePasswordStep("request");
+              setRemovePasswordRequestError(null);
+              setRemovePasswordVerifyError(null);
+              setRemovePasswordRetryAfter(0);
+              form.clearErrors("code");
+            }}
+          >
+            {t("account:ME_PROFILE_REMOVE_PASSWORD_BACK")}
+          </Button>
+          <Button
+            variant="outline"
+            loading={
+              removePasswordStep === "request"
+                ? requestRemovePasswordMutation.isPending
+                : confirmRemovePasswordMutation.isPending
+            }
+            disabled={isRemovingPassword}
+            onClick={() => {
+              if (removePasswordStep === "request") {
+                void requestRemovePasswordCode();
+                return;
+              }
+              void confirmRemovePassword();
+            }}
+          >
+            {removePasswordStep === "request"
+              ? t("account:ME_PROFILE_REMOVE_PASSWORD_SEND_CODE")
+              : t("account:ME_PROFILE_REMOVE_PASSWORD_CONFIRM")}
+          </Button>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {hasPassword ? (
+          <Button
+            variant="ghost"
+            disabled={isChangingPassword}
+            onClick={() => {
+              setDialogMode("remove");
+              setRemovePasswordStep("request");
+              setRemovePasswordRequestError(null);
+              setRemovePasswordVerifyError(null);
+              setRemovePasswordRetryAfter(0);
+            }}
+          >
+            {t("account:ME_PROFILE_REMOVE_PASSWORD_ACTION")}
+          </Button>
+        ) : (
+          <Button variant="ghost" disabled={isChangingPassword} onClick={() => setOpen(false)}>
+            {t("common:CANCEL")}
+          </Button>
+        )}
+        {requiresSetPasswordRelogin ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setOpen(false);
+              void navigate({
+                to: "/login",
+                search: { redirect: props.redirect },
+                replace: true,
+              });
+            }}
+          >
+            {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_ACTION")}
+          </Button>
+        ) : null}
+        <Button
+          variant="outline"
+          loading={changePasswordMutation.isPending}
+          disabled={saveDisabled}
+          onClick={() =>
+            void form.handleSubmit((values) => changePasswordMutation.mutateAsync(values))()
+          }
+        >
+          {t("settings:SETTINGS_SAVE")}
+        </Button>
+      </>
+    );
+  }, [
+    changePasswordMutation.isPending,
+    confirmRemovePasswordMutation.isPending,
+    dialogMode,
+    form,
+    hasPassword,
+    isChangingPassword,
+    isRemovingPassword,
+    navigate,
+    props.redirect,
+    removePasswordStep,
+    requestRemovePasswordMutation.isPending,
+    requiresSetPasswordRelogin,
+    saveDisabled,
+    t,
+  ]);
 
   return (
     <>
@@ -245,131 +458,169 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
       <SettingDialog
         open={open}
         onOpenChange={(next) => {
-          if (!next && isBusy) return;
+          if (!next && (isChangingPassword || isRemovingPassword)) return;
           if (!next) form.reset(EMPTY_VALUES);
           setOpen(next);
         }}
         title={dialogTitle}
         description={dialogDescription}
-        footer={
-          <>
-            <Button variant="ghost" disabled={isBusy} onClick={() => setOpen(false)}>
-              {t("common:CANCEL")}
-            </Button>
-            {requiresSetPasswordRelogin ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  void navigate({
-                    to: "/login",
-                    search: { redirect: props.redirect },
-                    replace: true,
-                  });
-                }}
-              >
-                {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_ACTION")}
-              </Button>
-            ) : null}
-            <Button
-              variant="outline"
-              loading={changePasswordMutation.isPending}
-              disabled={saveDisabled}
-              onClick={() =>
-                void form.handleSubmit((values) => changePasswordMutation.mutateAsync(values))()
-              }
-            >
-              {t("settings:SETTINGS_SAVE")}
-            </Button>
-          </>
-        }
+        footer={footer}
       >
         <SettingDialogFields>
-          {hasPassword ? (
-            <DialogField
-              label={t("account:ME_SECURITY_OLD_PASSWORD")}
-              description={t("account:ME_SECURITY_CHANGE_PASSWORD_DIALOG_DESC")}
-              htmlFor={oldPasswordFieldId}
-              error={form.formState.errors.oldPassword?.message}
-            >
-              <PasswordInput
-                id={oldPasswordFieldId}
-                {...form.register("oldPassword")}
-                autoComplete="current-password"
-              />
-            </DialogField>
-          ) : null}
-
-          <DialogField
-            label={t("account:ME_SECURITY_NEW_PASSWORD")}
-            description={t("auth:PASSWORD_INVALID")}
-            htmlFor={newPasswordFieldId}
-            error={form.formState.errors.newPassword?.message}
-          >
-            <>
-              <PasswordInput
-                id={newPasswordFieldId}
-                {...form.register("newPassword")}
-                autoComplete="new-password"
-              />
-              <PasswordRequirementChecklist
-                password={newPasswordValue}
-                active={
-                  Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0
+          {hasPassword && dialogMode === "remove" ? (
+            removePasswordStep === "request" ? (
+              <>
+                <DialogField
+                  label={t("account:ME_SECURITY_OLD_PASSWORD")}
+                  htmlFor={oldPasswordFieldId}
+                  error={form.formState.errors.oldPassword?.message}
+                >
+                  <PasswordInput
+                    id={oldPasswordFieldId}
+                    {...form.register("oldPassword")}
+                    autoComplete="current-password"
+                  />
+                </DialogField>
+                {removePasswordRequestError ? (
+                  <p className="text-callout text-danger">{removePasswordRequestError}</p>
+                ) : null}
+              </>
+            ) : (
+              <DialogField
+                label={t("account:ME_PROFILE_REMOVE_PASSWORD_CODE")}
+                description={t("account:ME_PROFILE_REMOVE_PASSWORD_CODE_DESC")}
+                error={
+                  form.formState.errors.code?.message ?? removePasswordVerifyError ?? undefined
                 }
-                t={t}
-              />
-            </>
-          </DialogField>
-
-          <DialogField
-            label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
-            description={t("auth:VALIDATION_CONFIRM_PASSWORD_REQUIRED")}
-            htmlFor={confirmPasswordFieldId}
-            error={form.formState.errors.confirmPassword?.message}
-          >
-            <PasswordInput
-              id={confirmPasswordFieldId}
-              {...form.register("confirmPassword")}
-              autoComplete="new-password"
-            />
-          </DialogField>
-
-          {requiresSetPasswordTwoFactor ? (
+              >
+                <div className="grid gap-3">
+                  <p className="text-callout text-label-secondary">
+                    {t("account:ME_PROFILE_REMOVE_PASSWORD_CODE_SENT_HINT")}
+                  </p>
+                  <InputOTP
+                    value={form.watch("code")}
+                    onChange={(value) => {
+                      form.setValue("code", value, { shouldValidate: false });
+                      if (form.formState.errors.code) form.clearErrors("code");
+                      if (removePasswordVerifyError) setRemovePasswordVerifyError(null);
+                    }}
+                    maxLength={OTP_LENGTH}
+                    aria-label={t("account:ME_PROFILE_REMOVE_PASSWORD_CODE")}
+                    inputMode="numeric"
+                    disabled={confirmRemovePasswordMutation.isPending}
+                    containerClassName="w-full"
+                  >
+                    <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
+                      <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
+                      <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
+                      <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
+                      <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
+                      <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
+                      <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                  <div className="text-footnote text-label-secondary">
+                    <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")} </span>
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-footnote"
+                      disabled={
+                        requestRemovePasswordMutation.isPending || removePasswordRetryAfter > 0
+                      }
+                      onClick={() => void requestRemovePasswordCode()}
+                    >
+                      {removePasswordRetryAfter > 0
+                        ? t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", {
+                            countdown: `${removePasswordRetryAfter}s`,
+                          })
+                        : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
+                    </Button>
+                  </div>
+                </div>
+              </DialogField>
+            )
+          ) : (
             <>
+              {hasPassword ? (
+                <DialogField
+                  label={t("account:ME_SECURITY_OLD_PASSWORD")}
+                  htmlFor={oldPasswordFieldId}
+                  error={form.formState.errors.oldPassword?.message}
+                >
+                  <PasswordInput
+                    id={oldPasswordFieldId}
+                    {...form.register("oldPassword")}
+                    autoComplete="current-password"
+                  />
+                </DialogField>
+              ) : null}
+
               <DialogField
-                label={t("account:ME_PROFILE_PASSWORD_2FA_CODE")}
-                description={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
-                htmlFor={codeFieldId}
-                error={form.formState.errors.code?.message}
+                label={t("account:ME_SECURITY_NEW_PASSWORD")}
+                htmlFor={newPasswordFieldId}
+                error={form.formState.errors.newPassword?.message}
               >
-                <Input
-                  id={codeFieldId}
-                  {...form.register("code")}
-                  placeholder={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
-                />
+                <>
+                  <PasswordInput
+                    id={newPasswordFieldId}
+                    {...form.register("newPassword")}
+                    autoComplete="new-password"
+                  />
+                  <PasswordRequirementChecklist
+                    password={newPasswordValue}
+                    active={
+                      Boolean(form.formState.dirtyFields.newPassword) || newPasswordValue.length > 0
+                    }
+                    t={t}
+                  />
+                </>
               </DialogField>
 
               <DialogField
-                label={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE")}
-                description={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
-                htmlFor={backupCodeFieldId}
-                error={form.formState.errors.backupCode?.message}
+                label={t("account:ME_SECURITY_CONFIRM_PASSWORD")}
+                htmlFor={confirmPasswordFieldId}
+                error={form.formState.errors.confirmPassword?.message}
               >
-                <Input
-                  id={backupCodeFieldId}
-                  {...form.register("backupCode")}
-                  placeholder={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
+                <PasswordInput
+                  id={confirmPasswordFieldId}
+                  {...form.register("confirmPassword")}
+                  autoComplete="new-password"
                 />
               </DialogField>
+
+              {requiresSetPasswordTwoFactor ? (
+                <>
+                  <DialogField
+                    label={t("account:ME_PROFILE_PASSWORD_2FA_CODE")}
+                    description={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
+                    error={form.formState.errors.code?.message}
+                  >
+                    <Input
+                      {...form.register("code")}
+                      placeholder={t("account:ME_PROFILE_PASSWORD_2FA_CODE_PLACEHOLDER")}
+                    />
+                  </DialogField>
+
+                  <DialogField
+                    label={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE")}
+                    description={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
+                    error={form.formState.errors.backupCode?.message}
+                  >
+                    <Input
+                      {...form.register("backupCode")}
+                      placeholder={t("account:ME_PROFILE_PASSWORD_2FA_BACKUP_CODE_PLACEHOLDER")}
+                    />
+                  </DialogField>
+                </>
+              ) : null}
+
+              {requiresSetPasswordRelogin ? (
+                <div className="text-callout text-label-secondary">
+                  {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_REQUIRED")}
+                </div>
+              ) : null}
             </>
-          ) : null}
-
-          {requiresSetPasswordRelogin ? (
-            <div className="text-callout text-label-secondary">
-              {t("account:ME_PROFILE_SET_PASSWORD_RELOGIN_REQUIRED")}
-            </div>
-          ) : null}
+          )}
         </SettingDialogFields>
       </SettingDialog>
     </>

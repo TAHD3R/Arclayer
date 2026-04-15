@@ -37,6 +37,8 @@ from src.modules.auth.limits.service import (
     PASSWORD_CHANGE_RATE_LIMIT,
     REFRESH_RATE_LIMIT,
     REGISTER_RATE_LIMIT,
+    REMOVE_PASSWORD_CONFIRM_RATE_LIMIT,
+    REMOVE_PASSWORD_REQUEST_RATE_LIMIT,
     RESET_PASSWORD_RATE_LIMIT,
     SET_PASSWORD_RATE_LIMIT,
     TWO_FACTOR_BACKUP_REGEN_RATE_LIMIT,
@@ -53,6 +55,7 @@ from src.modules.auth.schema import (
     AvatarUploadInitRequest,
     ChangePasswordRequest,
     ConfirmMyEmailChangeRequest,
+    ConfirmRemoveMyPasswordRequest,
     DeleteMyAccountCapabilityOut,
     DeleteMyAccountRequest,
     EmailCheckOut,
@@ -71,6 +74,8 @@ from src.modules.auth.schema import (
     RegisterRequest,
     RequestMyEmailChangeOut,
     RequestMyEmailChangeRequest,
+    RequestRemoveMyPasswordOut,
+    RequestRemoveMyPasswordRequest,
     ResetPasswordRequest,
     ResetTokenPayload,
     SetMyPasswordRequest,
@@ -279,8 +284,13 @@ async def email_check(
     payload: EmailCheckRequest,
     service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[EmailCheckOut]:
-    exists = await service.email_exists(email=str(payload.email))
-    return ApiResponse.success(data=EmailCheckOut(exists=exists))
+    exists, password_login_available = await service.get_email_check(email=str(payload.email))
+    return ApiResponse.success(
+        data=EmailCheckOut(
+            exists=exists,
+            password_login_available=password_login_available,
+        )
+    )
 
 
 @guard_rate_limit(*LOGIN_RATE_LIMIT)
@@ -577,6 +587,45 @@ async def set_my_password(
         backup_code=payload.backup_code,
     )
     return ApiResponse.success(message=t("auth", "PASSWORD_SET"))
+
+
+@guard_rate_limit(*REMOVE_PASSWORD_REQUEST_RATE_LIMIT)
+@router.post(
+    "/me/remove-password/request",
+    response_model=ResponseModel[RequestRemoveMyPasswordOut],
+    summary="Request verification code before removing current password",
+)
+async def request_remove_my_password(
+    payload: RequestRemoveMyPasswordRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[RequestRemoveMyPasswordOut]:
+    """Request a verification code before removing the current password."""
+    expires_in, retry_after = await service.request_remove_password(
+        user_id=user.id,
+        current_password=payload.current_password,
+        locale=get_current_locale(),
+    )
+    return ApiResponse.success(
+        message=t("auth", "LOGIN_CODE_SENT"),
+        data=RequestRemoveMyPasswordOut(expires_in=expires_in, retry_after=retry_after),
+    )
+
+
+@guard_rate_limit(*REMOVE_PASSWORD_CONFIRM_RATE_LIMIT)
+@router.post(
+    "/me/remove-password/confirm",
+    response_model=ResponseModel[None],
+    summary="Confirm current-password removal",
+)
+async def confirm_remove_my_password(
+    payload: ConfirmRemoveMyPasswordRequest,
+    user: User = Depends(get_current_user),
+    service: AuthService = Depends(_get_auth_service),
+) -> ResponseModel[None]:
+    """Confirm current-password removal."""
+    await service.confirm_remove_password(user_id=user.id, code=payload.code)
+    return ApiResponse.success(message=t("auth", "PASSWORD_CHANGED"))
 
 
 @router.post(
@@ -1007,9 +1056,6 @@ async def confirm_email_change(
         user=user,
         new_email=str(payload.new_email),
         code=payload.code,
-        password=payload.password,
-        two_factor_code=payload.two_factor_code,
-        backup_code=payload.backup_code,
     )
     return ApiResponse.success(message=t("auth", "EMAIL_CHANGED"), data=profile)
 

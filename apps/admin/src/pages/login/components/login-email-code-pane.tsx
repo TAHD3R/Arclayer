@@ -288,14 +288,18 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
         <motion.div variants={variants} className="pt-1.5 empty:hidden">
           <AuthOauthButtons
             disabled={props.requestLoading || props.verifyLoading}
-            leadingActions={[
-              {
-                key: "password-login",
-                label: t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD"),
-                icon: <Lock size={14} />,
-                onClick: () => props.onBackToPassword(form.getValues("email")),
-              },
-            ]}
+            leadingActions={
+              props.seed?.passwordLoginAvailable === false
+                ? []
+                : [
+                    {
+                      key: "password-login",
+                      label: t("auth:LOGIN_EMAIL_CODE_USE_PASSWORD"),
+                      icon: <Lock size={14} />,
+                      onClick: () => props.onBackToPassword(form.getValues("email")),
+                    },
+                  ]
+            }
           />
         </motion.div>
         <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />

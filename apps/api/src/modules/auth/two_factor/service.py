@@ -18,7 +18,7 @@ from src.core.i18n import t
 from src.modules.auth.tokens.service import verify_password
 from src.modules.auth.two_factor.repository import TwoFactorRepository, TwoFactorRepositoryLike
 from src.modules.auth.two_factor.totp import generate_totp_secret, verify_totp_code
-from src.settings.crypto import decrypt_secret, encrypt_secret, load_master_key, master_key_exists
+from src.settings.crypto import decrypt_secret, encrypt_secret, ensure_master_key
 
 _BACKUP_CODE_COUNT: Final[int] = 10
 _BACKUP_CODE_BYTES: Final[int] = 10
@@ -100,19 +100,18 @@ class AuthTwoFactorService(BaseService):
     def _ta(self, key: str, default: str) -> str:
         return t("auth", key, default=default)
 
-    def _require_master_key(self) -> bytes:
+    def _ensure_secret_key(self) -> bytes:
         path = self.settings.security.master_key_path
-        if not master_key_exists(path):
-            raise ServiceUnavailable(
-                message=self._ta("MASTER_KEY_MISSING", "系统未配置 master key，无法启用 2FA"),
-                error="MASTER_KEY_MISSING",
-            )
         try:
-            return load_master_key(path)
+            key, _fingerprint = ensure_master_key(path)
+            return key
         except (OSError, ValueError) as exc:
             raise ServiceUnavailable(
-                message=self._ta("MASTER_KEY_INVALID", "master key 无效，无法启用 2FA"),
-                error="MASTER_KEY_INVALID",
+                message=self._ta(
+                    "TWO_FACTOR_SETUP_UNAVAILABLE",
+                    "系统安全密钥暂不可用，请稍后再试。",
+                ),
+                error="TWO_FACTOR_SETUP_UNAVAILABLE",
             ) from exc
 
     async def get_status(self, *, user_id: UUID) -> tuple[bool, int]:
@@ -180,7 +179,7 @@ class AuthTwoFactorService(BaseService):
 
         await self._ensure_reauthed_for_setup(user_id=user_id, password=password)
 
-        master_key = self._require_master_key()
+        master_key = self._ensure_secret_key()
         secret = generate_totp_secret()
         secret_enc = encrypt_secret(secret, key=master_key, aad=_aad(user_id))
         await self.repo.upsert_pending_secret(user_id=user_id, totp_secret_enc=secret_enc)
@@ -222,7 +221,7 @@ class AuthTwoFactorService(BaseService):
         enabled_at = now
         await self.repo.set_enabled_at(user_id=user_id, enabled_at=enabled_at)
 
-        master_key = self._require_master_key()
+        master_key = self._ensure_secret_key()
         backup_codes = [_build_backup_code() for _ in range(_BACKUP_CODE_COUNT)]
         hashes = _make_backup_code_hashes(codes=backup_codes, pepper=master_key)
         await self.repo.delete_backup_codes(user_id=user_id)
@@ -239,7 +238,7 @@ class AuthTwoFactorService(BaseService):
         backup_code: str,
         now: datetime,
     ) -> None:
-        master_key = self._require_master_key()
+        master_key = self._ensure_secret_key()
         normalized = _normalize_backup_code(backup_code)
         if not normalized:
             raise BadRequest(
@@ -265,7 +264,7 @@ class AuthTwoFactorService(BaseService):
         code: str,
         now: datetime,
     ) -> None:
-        master_key = self._require_master_key()
+        master_key = self._ensure_secret_key()
         secret = decrypt_secret(totp_secret_enc, key=master_key, aad=_aad(user_id))
         result = verify_totp_code(secret, code=code)
         if not result.ok or result.used_counter is None:
@@ -331,7 +330,7 @@ class AuthTwoFactorService(BaseService):
         else:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
 
-        master_key = self._require_master_key()
+        master_key = self._ensure_secret_key()
         backup_codes = [_build_backup_code() for _ in range(_BACKUP_CODE_COUNT)]
         hashes = _make_backup_code_hashes(codes=backup_codes, pepper=master_key)
 

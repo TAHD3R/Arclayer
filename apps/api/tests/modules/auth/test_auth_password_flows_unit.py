@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
-from src.core.exceptions import Unauthorized
+from src.core.exceptions import Conflict, Unauthorized
 from src.models.organization.user import UserStatus
 from src.modules.auth.contracts.schema import UserLike
 from src.modules.auth.service import AuthService
@@ -146,6 +146,10 @@ class FakeUserRepository:
         else:
             record.credential.password_hash = password_hash
 
+    async def remove_password(self, user: UserLike) -> None:
+        record = cast(FakeUser, user)
+        record.credential = None
+
     async def exists_username(self, username: str) -> bool:
         return username == self._user.username
 
@@ -208,6 +212,29 @@ async def test_change_password_invalid(monkeypatch) -> None:
         await service.change_password(user_id=user.id, old_password="bad", new_password="newpass1")
 
 
+async def test_change_password_rejects_same_password_as_business_error(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch)
+
+    with pytest.raises(Conflict) as exc:
+        await service.change_password(user_id=user.id, old_password="oldpass1", new_password="oldpass1")
+
+    assert exc.value.error == "PASSWORD_DUPLICATE"
+
+
+async def test_email_check_reports_password_login_availability(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch)
+
+    exists, password_login_available = await service.get_email_check(email=cast(str, user.email))
+    assert exists is True
+    assert password_login_available is True
+
+    user.credential = None
+
+    exists, password_login_available = await service.get_email_check(email=cast(str, user.email))
+    assert exists is True
+    assert password_login_available is False
+
+
 async def test_forgot_reset_password(monkeypatch) -> None:
     service, user = _build_service(monkeypatch)
 
@@ -219,3 +246,53 @@ async def test_forgot_reset_password(monkeypatch) -> None:
     assert user.token_version == 1
     assert user.credential is not None
     assert verify_password("resetpass1", user.credential.password_hash, service.settings.auth) is True
+
+
+async def test_request_remove_password_issues_login_code(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch)
+
+    async def _enabled() -> bool:
+        return True
+
+    async def _send_login_code(*, recipient: str, code: str, expires_in: int, user_id: str, locale: str | None) -> None:
+        assert recipient == "demo@example.com"
+        assert len(code) == 6
+        assert expires_in > 0
+        assert user_id
+        _ = locale
+
+    monkeypatch.setattr(service.email_service, "is_enabled", _enabled)
+    monkeypatch.setattr(service.email_service, "send_login_code", _send_login_code)
+
+    expires_in, retry_after = await service.request_remove_password(
+        user_id=user.id,
+        current_password="oldpass1",
+        locale="en-US",
+    )
+
+    assert expires_in > 0
+    assert retry_after > 0
+
+
+async def test_confirm_remove_password_deletes_local_credential(monkeypatch) -> None:
+    service, user = _build_service(monkeypatch)
+
+    async def _enabled() -> bool:
+        return True
+
+    async def _send_login_code(*, recipient: str, code: str, expires_in: int, user_id: str, locale: str | None) -> None:
+        _ = recipient, code, expires_in, user_id, locale
+
+    monkeypatch.setattr(service.email_service, "is_enabled", _enabled)
+    monkeypatch.setattr(service.email_service, "send_login_code", _send_login_code)
+
+    await service.request_remove_password(user_id=user.id, current_password="oldpass1", locale="en-US")
+    store = service.password_removal_store
+    assert store is not None
+    record = await store.get(user_id=user.id)
+    assert record is not None
+
+    await service.confirm_remove_password(user_id=user.id, code=str(record["code"]))
+
+    assert user.credential is None
+    assert user.token_version == 1
