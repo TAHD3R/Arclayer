@@ -54,6 +54,7 @@ function getStringValue(record: Record<string, unknown>, keys: readonly string[]
 }
 
 export function normalizeUserProfile(raw: unknown): {
+  id: string | null;
   username: string | null;
   email: string | null;
   displayName: string | null;
@@ -62,9 +63,17 @@ export function normalizeUserProfile(raw: unknown): {
 } {
   const data = asRecord(raw);
   if (!data) {
-    return { username: null, email: null, displayName: null, avatarUrl: null, avatarAssetId: null };
+    return {
+      id: null,
+      username: null,
+      email: null,
+      displayName: null,
+      avatarUrl: null,
+      avatarAssetId: null,
+    };
   }
   return {
+    id: getStringValue(data, ["userId", "id"]),
     username: getStringValue(data, ["username"]),
     email: getStringValue(data, ["email"]),
     displayName: getStringValue(data, ["display_name", "displayName"]),

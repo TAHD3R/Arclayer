@@ -211,9 +211,7 @@ export function ExpandableScreenContent({
                   e.stopPropagation();
                   collapse();
                 }}
-                className={`pointer-events-auto bg-transparent text-label-primary shadow-none backdrop-blur-sm ${
-                  closeButtonClassName || "hover:bg-accent hover:text-label-primary"
-                }`}
+                className={`pointer-events-auto ${closeButtonClassName}`}
                 aria-label="Close"
               >
                 <X className="size-4" />

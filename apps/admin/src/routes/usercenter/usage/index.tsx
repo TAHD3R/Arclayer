@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { UserCenterUsagePage } from "@/pages/usercenter/usage/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/usercenter/usage/")({
-  staticData: { titleKey: "account:ACCOUNT_PAGE_USAGE_TITLE" },
-  component: UserCenterUsagePage,
+  beforeLoad: () => {
+    throw redirect({ to: "/usercenter/profile", replace: true });
+  },
 });

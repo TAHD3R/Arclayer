@@ -18,18 +18,13 @@ export function UserAppearanceView(props: UserAppearanceViewProps) {
 
   return (
     <UserCenterSettingsSectionStack mode={mode}>
-      <UserCenterSettingPanel
-        title={t("ME_PREF_APPEARANCE_PANEL_TITLE")}
-        showDivider
-        variant={panelVariant}
-      >
+      <UserCenterSettingPanel title={t("ME_PREF_APPEARANCE_PANEL_TITLE")} variant={panelVariant}>
         <UserAppearanceSection />
       </UserCenterSettingPanel>
 
       <UserCenterSettingPanel
         title={t("ME_PREF_LOCALIZATION_PANEL_TITLE")}
         description={t("ME_PREF_LOCALIZATION_PANEL_DESC")}
-        showDivider
         variant={panelVariant}
       >
         <UserLocalizationSection />

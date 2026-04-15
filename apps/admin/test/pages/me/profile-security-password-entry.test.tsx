@@ -6,8 +6,8 @@ import type { ReactElement } from "react";
 
 import { changePassword, getMySecurityCapabilities, setMyPassword } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
+import { UserProfileAccountSecuritySection } from "@/pages/usercenter/profile/components/profile-account-security-section";
 import { UserPasswordSection } from "@/pages/usercenter/profile/components/profile-password-section";
-import { UserSecurityView } from "@/pages/usercenter/security/components/user-security-view";
 
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<object>("@tanstack/react-router");
@@ -88,18 +88,17 @@ beforeEach(() => {
 });
 
 describe("Profile password entry migration", () => {
-  it("security tab should no longer render change-password card", () => {
-    renderWithQuery(<UserSecurityView mode="dialog" />);
+  it("profile account security section renders 2fa and sessions inside profile", () => {
+    renderWithQuery(
+      <UserProfileAccountSecuritySection
+        email="tester@example.com"
+        redirect="/usercenter/profile"
+      />,
+    );
+
     expect(
-      screen.queryByText(i18n.t("account:ME_SECURITY_CHANGE_PASSWORD_TITLE")),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId("security-2fa")).toBeInTheDocument();
-  });
-
-  it("security page mode no longer renders mini category navigation", () => {
-    renderWithQuery(<UserSecurityView mode="page" />);
-
-    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+      screen.getByRole("button", { name: i18n.t("account:ME_PROFILE_EMAIL_CHANGE") }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("security-2fa")).toBeInTheDocument();
     expect(screen.getByTestId("security-sessions")).toBeInTheDocument();
   });

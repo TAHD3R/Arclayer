@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
 import { normalizeUserProfile } from "@/lib/auth/user-profile";
+import { UserProfileAccountSecuritySection } from "@/pages/usercenter/profile/components/profile-account-security-section";
 import { UserCenterSettingPanel } from "@/pages/usercenter/shared/usercenter-setting-panel";
 import { UserCenterSettingsSectionStack } from "@/pages/usercenter/shared/usercenter-settings-section-stack";
 import { UserProfileBasicsSection } from "@/pages/usercenter/profile/components/profile-basics-section";
@@ -15,7 +16,6 @@ import { SpinnerOverlay } from "@arclayer/ui/spinner";
 
 type UserProfileViewProps = {
   mode?: "page" | "dialog";
-  includeDanger?: boolean;
 };
 
 function UserProfileViewContent(props: Required<UserProfileViewProps>) {
@@ -42,30 +42,30 @@ function UserProfileViewContent(props: Required<UserProfileViewProps>) {
     <div className="relative min-h-full">
       <UserCenterSettingsSectionStack mode={props.mode}>
         <UserCenterSettingPanel
-          title={t("ME_PROFILE_PANEL_TITLE")}
+          title={t("ME_PROFILE_ACCOUNT_PANEL_TITLE")}
           showDivider
           variant={panelVariant}
         >
-          <UserProfileBasicsSection profile={profile} redirect={redirect} />
+          <UserProfileBasicsSection profile={profile} />
+        </UserCenterSettingPanel>
+
+        <UserLinkedAccountsSection redirect={redirect} mode={props.mode} />
+
+        <UserCenterSettingPanel
+          title={t("ME_PROFILE_ACCOUNT_SECURITY_PANEL_TITLE")}
+          showDivider
+          variant={panelVariant}
+        >
+          <UserProfileAccountSecuritySection email={profile.email} redirect={redirect} />
         </UserCenterSettingPanel>
 
         <UserCenterSettingPanel
-          title={t("ME_LINKED_ACCOUNTS_PANEL_TITLE")}
+          title={t("ME_DANGER_PANEL_TITLE")}
           showDivider
           variant={panelVariant}
         >
-          <UserLinkedAccountsSection redirect={redirect} />
+          <UserDangerSection email={profile.email} redirect={redirect} />
         </UserCenterSettingPanel>
-
-        {props.includeDanger ? (
-          <UserCenterSettingPanel
-            title={t("ME_DANGER_PANEL_TITLE")}
-            showDivider
-            variant={panelVariant}
-          >
-            <UserDangerSection email={profile.email} redirect={redirect} />
-          </UserCenterSettingPanel>
-        ) : null}
       </UserCenterSettingsSectionStack>
       {loading ? (
         <SpinnerOverlay
@@ -79,10 +79,5 @@ function UserProfileViewContent(props: Required<UserProfileViewProps>) {
 }
 
 export function UserProfileView(props: UserProfileViewProps) {
-  return (
-    <UserProfileViewContent
-      mode={props.mode ?? "page"}
-      includeDanger={props.includeDanger ?? true}
-    />
-  );
+  return <UserProfileViewContent mode={props.mode ?? "page"} />;
 }

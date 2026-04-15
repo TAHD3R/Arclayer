@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { UserCenterBillingPage } from "@/pages/usercenter/billing/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/usercenter/billing/")({
-  staticData: { titleKey: "account:ACCOUNT_PAGE_BILLING_TITLE" },
-  component: UserCenterBillingPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/usercenter/profile", replace: true });
+  },
 });

@@ -210,6 +210,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
           </Button>
           {requiresRelogin ? (
             <Button
+              variant="outline"
               onClick={() => {
                 closeIfIdle(false);
                 void navigate({
@@ -223,6 +224,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
             </Button>
           ) : null}
           <Button
+            variant="outline"
             loading={confirmMutation.isPending}
             disabled={saveDisabled}
             onClick={() =>
@@ -261,7 +263,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
               placeholder={t("account:ME_PROFILE_EMAIL_CODE_PLACEHOLDER")}
             />
             <Button
-              variant="secondary"
+              variant="outline"
               className="shrink-0"
               disabled={isBusy || capabilityQuery.isLoading || capabilityQuery.isError}
               loading={requestCodeMutation.isPending}

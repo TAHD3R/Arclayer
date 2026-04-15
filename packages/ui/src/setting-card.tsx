@@ -9,9 +9,7 @@ export function SettingCard({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <section className={cn("overflow-hidden rounded-2xl bg-card ", className)}>{children}</section>
-  );
+  return <section className={cn("overflow-hidden", className)}>{children}</section>;
 }
 
 export function SettingCardHeader({
@@ -26,7 +24,7 @@ export function SettingCardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center justify-between gap-4 bg-muted/20 px-6 py-5", className)}>
+    <div className={cn("flex items-center justify-between gap-4 py-4", className)}>
       <div className="min-w-0 flex-1">
         <div className="text-headline text-label-primary">{title}</div>
         {description && <div className="mt-1 text-callout text-label-secondary">{description}</div>}
@@ -43,7 +41,7 @@ export function SettingCardContent({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={cn("p-6", className)}>{children}</div>;
+  return <div className={cn("py-4", className)}>{children}</div>;
 }
 
 export function SettingCardFooter({

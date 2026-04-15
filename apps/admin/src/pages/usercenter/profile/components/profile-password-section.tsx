@@ -235,7 +235,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
           title={cardTitle}
           description={cardDescription}
           action={
-            <Button disabled={!canOpenDialog} onClick={() => setOpen(true)}>
+            <Button variant="outline" disabled={!canOpenDialog} onClick={() => setOpen(true)}>
               {actionText}
             </Button>
           }
@@ -258,6 +258,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
             </Button>
             {requiresSetPasswordRelogin ? (
               <Button
+                variant="outline"
                 onClick={() => {
                   setOpen(false);
                   void navigate({
@@ -271,6 +272,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
               </Button>
             ) : null}
             <Button
+              variant="outline"
               loading={changePasswordMutation.isPending}
               disabled={saveDisabled}
               onClick={() =>

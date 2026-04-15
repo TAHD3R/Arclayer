@@ -57,6 +57,10 @@ vi.mock("@/pages/usercenter/profile/components/profile-linked-accounts-section",
   UserLinkedAccountsSection: () => <div>linked-accounts</div>,
 }));
 
+vi.mock("@/pages/usercenter/profile/components/profile-account-security-section", () => ({
+  UserProfileAccountSecuritySection: () => <div>account-security</div>,
+}));
+
 vi.mock("@/pages/usercenter/profile/components/profile-danger-section", () => ({
   UserDangerSection: () => <div>danger-section</div>,
 }));
@@ -72,11 +76,20 @@ describe("UserProfileView", () => {
     };
   });
 
+  it("renders the danger section at the bottom of the profile view", () => {
+    render(<UserProfileView mode="dialog" />);
+
+    expect(screen.getByText("profile-basics")).toBeVisible();
+    expect(screen.getByText("linked-accounts")).toBeVisible();
+    expect(screen.getByText("account-security")).toBeVisible();
+    expect(screen.getByText("danger-section")).toBeVisible();
+  });
+
   it("shows an internal loading overlay while the profile query is pending", () => {
     meQueryState.isLoading = true;
     meQueryState.data = undefined as unknown as typeof meQueryState.data;
 
-    render(<UserProfileView mode="dialog" includeDanger={false} />);
+    render(<UserProfileView mode="dialog" />);
 
     expect(screen.getByLabelText("ME_TAB_PROFILE")).toBeVisible();
   });

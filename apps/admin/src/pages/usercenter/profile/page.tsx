@@ -12,7 +12,7 @@ export function UserCenterProfilePage() {
       description={t("ME_TAB_PROFILE_DESC")}
       showFavoriteToggle={false}
     >
-      <UserProfileView mode="page" includeDanger={false} />
+      <UserProfileView mode="page" />
     </DefaultPage>
   );
 }

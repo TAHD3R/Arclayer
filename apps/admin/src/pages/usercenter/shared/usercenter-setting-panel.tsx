@@ -16,17 +16,17 @@ export type UserCenterSettingPanelProps = {
 
 export function UserCenterSettingPanel(props: UserCenterSettingPanelProps) {
   const variant = props.variant ?? "page";
-  const showDivider = props.showDivider ?? true;
+  const showDivider = props.showDivider ?? false;
   if (variant === "dialog") {
     return (
       <section className={cn("flex flex-col", props.className)}>
         <header className="pb-4 pt-1">
-          <div className="text-title3 font-bold text-label-primary">{props.title}</div>
+          <div className="text-title2 font-bold text-label-primary">{props.title}</div>
           {props.description ? (
             <div className="mt-1 text-label-secondary">{props.description}</div>
           ) : null}
         </header>
-        {showDivider ? <div className={cn("h-px bg-border", props.dividerClassName)} /> : null}
+        {showDivider ? <div className={cn("h-px bg-border/50", props.dividerClassName)} /> : null}
         <div className={cn(showDivider ? "pt-4" : "pt-2", props.bodyClassName)}>
           {props.children}
         </div>

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 
@@ -74,7 +75,7 @@ describe("UserLinkedAccountsSection", () => {
     listSSOProvidersMock.mockResolvedValue({ providers: [] });
     listMyOAuthIdentitiesMock.mockResolvedValue({ identities: [] });
 
-    renderSection();
+    const view = renderSection();
 
     await waitFor(() => {
       expect(listSSOProvidersMock).toHaveBeenCalledTimes(1);
@@ -82,7 +83,7 @@ describe("UserLinkedAccountsSection", () => {
     });
     await waitUntilLoaded();
 
-    expect(screen.getByText(i18n.t("account:ME_LINKED_ACCOUNTS_EMPTY"))).toBeInTheDocument();
+    expect(view.container).toBeEmptyDOMElement();
     expect(screen.queryByText("Google")).not.toBeInTheDocument();
     expect(screen.queryByText("GitHub")).not.toBeInTheDocument();
     expect(screen.queryByText("user@example.com")).not.toBeInTheDocument();
@@ -97,7 +98,7 @@ describe("UserLinkedAccountsSection", () => {
       }),
     );
 
-    renderSection();
+    const view = renderSection();
 
     await waitFor(() => {
       expect(listSSOProvidersMock).toHaveBeenCalledTimes(1);
@@ -105,7 +106,7 @@ describe("UserLinkedAccountsSection", () => {
     });
     await waitUntilLoaded();
 
-    expect(screen.getByText(i18n.t("account:ME_LINKED_ACCOUNTS_EMPTY"))).toBeInTheDocument();
+    expect(view.container).toBeEmptyDOMElement();
     expect(screen.queryByText("user@example.com")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: i18n.t("account:ME_LINKED_ACCOUNTS_CONNECT") }),
@@ -113,5 +114,115 @@ describe("UserLinkedAccountsSection", () => {
     expect(
       screen.queryByRole("button", { name: i18n.t("account:ME_LINKED_ACCOUNTS_DISCONNECT") }),
     ).not.toBeInTheDocument();
+  });
+
+  it("oauth 关联按钮使用 outline 样式", async () => {
+    listSSOProvidersMock.mockResolvedValue({
+      providers: [{ provider: "google", label: "Google", startUrl: "/oauth/google/start" }],
+    });
+    listMyOAuthIdentitiesMock.mockResolvedValue({ identities: [] });
+
+    renderSection();
+
+    const connectButton = await screen.findByRole("button", {
+      name: i18n.t("account:ME_LINKED_ACCOUNTS_CONNECT"),
+    });
+
+    expect(connectButton).toHaveAttribute("data-variant", "outline");
+  });
+
+  it("已关联 provider 使用 i18n 标题和当前账号描述", async () => {
+    listSSOProvidersMock.mockResolvedValue({
+      providers: [{ provider: "google", label: "Google", startUrl: "/oauth/google/start" }],
+    });
+    listMyOAuthIdentitiesMock.mockResolvedValue({
+      identities: [
+        { provider: "google", email: "user@example.com", createdAt: "2026-04-16T00:00:00Z" },
+      ],
+    });
+
+    renderSection();
+
+    expect(await screen.findByText(i18n.t("auth:OAUTH_GOOGLE"))).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        i18n.t("account:ME_LINKED_ACCOUNTS_CURRENT_ACCOUNT", { email: "user@example.com" }),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("取消关联前弹出确认 dialog", async () => {
+    const user = userEvent.setup();
+    listSSOProvidersMock.mockResolvedValue({
+      providers: [{ provider: "google", label: "Google", startUrl: "/oauth/google/start" }],
+    });
+    listMyOAuthIdentitiesMock.mockResolvedValue({
+      identities: [
+        { provider: "google", email: "user@example.com", createdAt: "2026-04-16T00:00:00Z" },
+      ],
+    });
+
+    renderSection();
+
+    await user.click(
+      await screen.findByRole("button", { name: i18n.t("account:ME_LINKED_ACCOUNTS_DISCONNECT") }),
+    );
+
+    expect(
+      screen.getByText(i18n.t("account:ME_LINKED_ACCOUNTS_DISCONNECT_DIALOG_TITLE")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        i18n.t("account:ME_LINKED_ACCOUNTS_DISCONNECT_DIALOG_DESC", { provider: "Google" }),
+      ),
+    ).toBeInTheDocument();
+
+    const dialog = screen.getByRole("dialog");
+
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: i18n.t("account:ME_LINKED_ACCOUNTS_DISCONNECT"),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(unlinkMyOAuthIdentityMock).toHaveBeenCalledWith("google");
+    });
+  });
+
+  it("只让当前点击的 provider 显示 loading", async () => {
+    const user = userEvent.setup();
+    issueSSOLinkStateMock.mockImplementation(
+      () => new Promise(() => undefined) as ReturnType<typeof issueSSOLinkState>,
+    );
+    listSSOProvidersMock.mockResolvedValue({
+      providers: [
+        { provider: "google", label: "Google", startUrl: "/oauth/google/start" },
+        { provider: "github", label: "GitHub", startUrl: "/oauth/github/start" },
+      ],
+    });
+    listMyOAuthIdentitiesMock.mockResolvedValue({ identities: [] });
+
+    renderSection();
+
+    const googleRow = (await screen.findByText(i18n.t("auth:OAUTH_GOOGLE"))).closest(
+      "div.py-3",
+    ) as HTMLElement | null;
+    const githubRow = screen
+      .getByText(i18n.t("auth:OAUTH_GITHUB"))
+      .closest("div.py-3") as HTMLElement | null;
+    if (!googleRow || !githubRow) throw new Error("provider rows not found");
+
+    const googleButton = within(googleRow).getByRole("button", {
+      name: i18n.t("account:ME_LINKED_ACCOUNTS_CONNECT"),
+    });
+    const githubButton = within(githubRow).getByRole("button", {
+      name: i18n.t("account:ME_LINKED_ACCOUNTS_CONNECT"),
+    });
+
+    await user.click(googleButton);
+
+    expect(googleButton).toHaveAttribute("aria-busy", "true");
+    expect(githubButton).not.toHaveAttribute("aria-busy", "true");
   });
 });

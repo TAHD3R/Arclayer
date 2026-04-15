@@ -39,26 +39,10 @@ vi.mock("@/pages/usercenter/appearance/components/user-appearance-view", () => (
   UserAppearanceView: () => <div data-testid="overlay-appearance-view">appearance</div>,
 }));
 
-vi.mock("@/pages/usercenter/security/components/user-security-view", () => ({
-  UserSecurityView: () => <div data-testid="overlay-security-view">security</div>,
-}));
-
 vi.mock("@/pages/usercenter/notifications/components/user-notification-settings-view", () => ({
   UserNotificationSettingsView: () => (
     <div data-testid="overlay-notifications-view">notifications</div>
   ),
-}));
-
-vi.mock("@/pages/usercenter/billing/page", () => ({
-  UserCenterBillingContent: () => <div data-testid="overlay-billing-view">billing</div>,
-}));
-
-vi.mock("@/pages/usercenter/usage/page", () => ({
-  UserCenterUsageContent: () => <div data-testid="overlay-usage-view">usage</div>,
-}));
-
-vi.mock("@/pages/usercenter/danger/page", () => ({
-  UserCenterDangerContent: () => <div data-testid="overlay-danger-view">danger</div>,
 }));
 
 function renderOverlayHost() {
@@ -84,8 +68,32 @@ describe("UsercenterOverlayHost", () => {
   it("renders the active overlay tab content inside expandable screen chrome", () => {
     renderOverlayHost();
 
+    const header = screen.getByRole("tablist").closest("div.flex.items-center.gap-4.border-b");
+    const closeButton = screen.getByRole("button", { name: "Close" });
+
+    expect(header).not.toBeNull();
+    expect(header).toHaveClass(
+      "flex",
+      "items-center",
+      "gap-4",
+      "border-b",
+      "px-6",
+      "py-4",
+      "sm:px-8",
+      "sm:py-5",
+    );
+    expect(header).toContainElement(closeButton);
+    expect(closeButton).toHaveAttribute("data-variant", "ghost");
+    expect(closeButton).toHaveAttribute("data-size", "icon-sm");
+    expect(closeButton).toHaveClass("shrink-0");
+    expect(screen.getByRole("tab", { name: "account:ACCOUNT_NAV_PROFILE" })).toBeVisible();
     expect(screen.getByText("account:ME_TAB_PROFILE")).toBeVisible();
+    expect(screen.getByText("account:ME_TAB_PROFILE_DESC")).toBeVisible();
     expect(screen.getByTestId("overlay-profile-view")).toBeVisible();
+    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_SECURITY" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_BILLING" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_USAGE" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "account:ACCOUNT_NAV_DANGER" })).toBeNull();
   });
 
   it("switches tabs by masked navigation while keeping the current background route", async () => {

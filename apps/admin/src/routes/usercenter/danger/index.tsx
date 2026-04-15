@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { UserCenterDangerPage } from "@/pages/usercenter/danger/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/usercenter/danger/")({
-  staticData: { titleKey: "account:ACCOUNT_PAGE_DANGER_TITLE" },
-  component: UserCenterDangerPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/usercenter/profile", replace: true });
+  },
 });

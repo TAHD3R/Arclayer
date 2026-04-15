@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, SlidersHorizontal, Shield, UserRound, Workflow } from "lucide-react";
+import { Bell, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -62,17 +62,6 @@ function buildActionEntries(params: {
       icon: SlidersHorizontal,
       shortcut: ["G", ","],
       action: { type: "navigate", to: "/usercenter/appearance" },
-    },
-    {
-      id: "action:security",
-      key: "action:security",
-      kind: "action",
-      title: t("account:ME_TAB_SECURITY"),
-      subtitle: t("command:COMMAND_ACTION_SECURITY_DESC"),
-      keywords: [t("account:ME_TAB_SECURITY"), t("account:ME_TITLE")],
-      icon: Shield,
-      shortcut: ["G", "S"],
-      action: { type: "navigate", to: "/usercenter/security" },
     },
     {
       id: "action:notifications",

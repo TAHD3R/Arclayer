@@ -75,7 +75,9 @@ function BackupCodesDialog(props: BackupCodesDialogProps) {
           </code>
         ))}
       </div>
-      <Button onClick={props.onAcknowledge}>{props.acknowledgeLabel}</Button>
+      <Button variant="outline" onClick={props.onAcknowledge}>
+        {props.acknowledgeLabel}
+      </Button>
     </div>
   );
 }
@@ -130,6 +132,7 @@ function SetupDialog(props: SetupDialogProps) {
         {t("common:CANCEL")}
       </Button>
       <Button
+        variant="outline"
         loading={props.pending}
         onClick={() => void (setupData ? handleConfirm() : handleStart())}
       >
@@ -278,7 +281,7 @@ function ReauthDialog(props: ReauthDialogProps) {
             >
               {t("common:CANCEL")}
             </Button>
-            <Button loading={props.pending} onClick={() => void handleSubmit()}>
+            <Button variant="outline" loading={props.pending} onClick={() => void handleSubmit()}>
               {props.submitLabel}
             </Button>
           </>
@@ -435,7 +438,7 @@ export function UserTwoFactorSection() {
           action={
             enabled ? (
               <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={() => setRegenerateOpen(true)}>
+                <Button variant="outline" onClick={() => setRegenerateOpen(true)}>
                   {t("account:ME_SECURITY_2FA_REGENERATE")}
                 </Button>
                 <Button variant="destructive" onClick={() => setDisableOpen(true)}>
@@ -443,7 +446,11 @@ export function UserTwoFactorSection() {
                 </Button>
               </div>
             ) : (
-              <Button disabled={actionLoading || !canSetup} onClick={() => setSetupOpen(true)}>
+              <Button
+                variant="outline"
+                disabled={actionLoading || !canSetup}
+                onClick={() => setSetupOpen(true)}
+              >
                 {t("account:ME_SECURITY_2FA_ENABLE")}
               </Button>
             )

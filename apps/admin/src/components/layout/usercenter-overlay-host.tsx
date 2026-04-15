@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate, useRouter, useRouterState, useSearch } from "@tanstack/react-router";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -10,6 +11,7 @@ import {
   getUsercenterOverlayItem,
   USERCENTER_OVERLAY_ITEMS,
 } from "@/pages/usercenter/shared/usercenter-overlay-registry";
+import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsList, ChromeTabsTrigger } from "@arclayer/ui/chrome-tabs";
 import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 
@@ -67,20 +69,17 @@ export function UsercenterOverlayHost() {
       onExpandChange={handleOpenChange}
       layoutId="global-usercenter-overlay"
     >
-      <ExpandableScreenContent className="border border-border/80 bg-background shadow-2xl">
+      <ExpandableScreenContent
+        showCloseButton={false}
+        className="border border-border/80 bg-background shadow-2xl"
+      >
         <ChromeTabs
           value={activeItem.tab}
           onValueChange={handleTabChange}
           className="flex h-full min-h-0 flex-col"
         >
-          <div className="border-b border-border/70 px-6 pt-6 sm:px-8 sm:pt-8">
-            <div className="max-w-3xl pr-12 sm:pr-16">
-              <div className="text-title font-semibold text-label-primary">
-                {t(activeItem.titleKey)}
-              </div>
-              <p className="mt-2 text-body text-label-secondary">{t(activeItem.descriptionKey)}</p>
-            </div>
-            <div className="mt-5">
+          <div className="flex items-center gap-4 border-b border-border/70 px-6 py-4 sm:px-8 sm:py-5">
+            <div className="min-w-0 flex-1">
               <ChromeTabsList className="w-auto">
                 {USERCENTER_OVERLAY_ITEMS.map((item) => (
                   <ChromeTabsTrigger key={item.tab} value={item.tab}>
@@ -89,13 +88,33 @@ export function UsercenterOverlayHost() {
                 ))}
               </ChromeTabsList>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0"
+              aria-label="Close"
+              onClick={() => handleOpenChange(false)}
+            >
+              <X className="size-4" />
+            </Button>
           </div>
 
           <div
             data-testid="usercenter-overlay-scroll-region"
             className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8"
           >
-            <div className="mx-auto w-full max-w-5xl">{activeItem.render()}</div>
+            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+              <div className="max-w-3xl">
+                <div className="text-title font-semibold text-label-primary">
+                  {t(activeItem.titleKey)}
+                </div>
+                <p className="mt-2 text-body text-label-secondary">
+                  {t(activeItem.descriptionKey)}
+                </p>
+              </div>
+              {activeItem.render()}
+            </div>
           </div>
         </ChromeTabs>
       </ExpandableScreenContent>
