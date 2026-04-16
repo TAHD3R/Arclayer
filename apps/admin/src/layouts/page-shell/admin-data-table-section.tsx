@@ -116,9 +116,13 @@ export function AdminDataTableSection<TData>({
           refreshing={refreshing}
           refreshingLabel={t("common:DATA_TABLE_REFRESHING")}
           columnMenuLabels={{
+            sort: t("common:DATA_TABLE_SORT"),
+            filter: t("common:DATA_TABLE_FILTER"),
             sortAscending: t("common:DATA_TABLE_SORT_ASCENDING"),
             sortDescending: t("common:DATA_TABLE_SORT_DESCENDING"),
-            hideColumn: t("common:DATA_TABLE_HIDE_COLUMN"),
+            wrapContent: t("common:DATA_TABLE_WRAP_CONTENT"),
+            unwrapContent: t("common:DATA_TABLE_UNWRAP_CONTENT"),
+            hide: t("common:DATA_TABLE_HIDE"),
           }}
           rowClassName={rowClassName}
           onRowClick={onRowClick}

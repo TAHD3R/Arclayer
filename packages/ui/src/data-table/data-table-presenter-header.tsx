@@ -1,13 +1,15 @@
 "use client";
 
-import { useSortable } from "@dnd-kit/sortable";
 import { flexRender, type Header, type Table as ReactTable } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
 
 import { cn } from "@arclayer/lib/utils";
 import { TableHead, TableHeader, TableRow } from "@arclayer/ui/table";
 
-import { DataTableColumnHeaderMenu } from "./data-table-column-header-menu";
+import {
+  DataTableColumnHeaderMenu,
+  type DataTableColumnHeaderFilterAction,
+} from "./data-table-column-header-menu";
 import { DataTableColumnResizeHandle } from "./data-table-column-resize-handle";
 import {
   resolveHeaderAlignClass,
@@ -16,20 +18,20 @@ import {
   resolveHeaderPinStyle,
 } from "./data-table-presenter-utils";
 import { isDataTableColumnLocked } from "./data-table-column-settings-utils";
-import type { DataTableToolsLabels } from "./data-table-tools.types";
+import type { DataTableColumnMenuLabels } from "./data-table-tools.types";
 import type { DataTableRowHeight } from "./types";
 
 type ColumnMeta = { kind?: string };
 
 function resolveHeaderHeightClass(rowHeight: DataTableRowHeight, wrapHeaders: boolean): string {
   if (rowHeight === "short") return wrapHeaders ? "min-h-10" : "h-10";
-  if (rowHeight === "tall") return wrapHeaders ? "min-h-[3.375rem]" : "h-[3.375rem]";
-  if (rowHeight === "extraTall") return wrapHeaders ? "min-h-16" : "h-16";
-  return wrapHeaders ? "min-h-[2.875rem]" : "h-[2.875rem]";
+  if (rowHeight === "tall") return wrapHeaders ? "min-h-[3.25rem]" : "h-[3.25rem]";
+  if (rowHeight === "extraTall") return wrapHeaders ? "min-h-[3.75rem]" : "h-[3.75rem]";
+  return wrapHeaders ? "min-h-[2.75rem]" : "h-[2.75rem]";
 }
 
 function resolveHeaderContentClass(wrapHeaders: boolean): string {
-  return wrapHeaders ? "whitespace-normal break-words  py-2" : "truncate whitespace-nowrap";
+  return wrapHeaders ? "whitespace-normal break-words py-2" : "truncate whitespace-nowrap";
 }
 
 function isSelectColumn(meta: unknown, columnId: string): boolean {
@@ -68,14 +70,6 @@ function isLeafHeader<TData>(header: Header<TData, unknown>): boolean {
   return !header.isPlaceholder && header.colSpan === 1;
 }
 
-function toTransformStyle(
-  transform: { x: number; y: number; scaleX: number; scaleY: number } | null,
-) {
-  if (!transform) return undefined;
-  const { x, y, scaleX, scaleY } = transform;
-  return `translate3d(${x}px, ${y}px, 0) scaleX(${scaleX}) scaleY(${scaleY})`;
-}
-
 type SharedHeaderCellProps<TData> = {
   header: Header<TData, unknown>;
   rowHeight: DataTableRowHeight;
@@ -99,94 +93,80 @@ function resolveHeaderCellState<TData>(
     alignClass,
     justifyClass,
     pinStyle,
+    contentPaddingClass: resolveHeaderPaddingClass(header.column.columnDef.meta, id),
     content: header.isPlaceholder
       ? null
       : flexRender(header.column.columnDef.header, header.getContext()),
     className: cn(
-      "group/header-cell relative bg-background text-callout text-label-secondary/90 select-none align-middle font-medium",
+      "group/header-cell relative z-20 overflow-hidden border-r border-border/60 bg-background text-callout text-label-secondary/90 select-none align-middle font-semibold last:border-r-0",
       alignClass,
       pinStyle.className,
       resolveHeaderHeightClass(rowHeight, wrapHeaders),
-      resolveHeaderPaddingClass(header.column.columnDef.meta, id),
+      "px-0",
       "transition-[background-color,box-shadow,opacity] duration-150",
       headerCellClassName?.(header),
     ),
   };
 }
 
-function SortableHeaderCell<TData>(
+function InteractiveHeaderCell<TData>(
   props: SharedHeaderCellProps<TData> & {
-    dragging: { activeId: string | null; overId: string | null };
-    labels: Pick<DataTableToolsLabels, "sortAscending" | "sortDescending" | "hideColumn">;
+    wrapContent: boolean;
+    onWrapContentChange: (next: boolean) => void;
+    labels: DataTableColumnMenuLabels;
+    resolveColumnFilterAction?: (
+      header: Header<TData, unknown>,
+    ) => DataTableColumnHeaderFilterAction | undefined;
   },
 ) {
   const leaf = isLeafHeader(props.header);
   const id = props.header.column.id;
-  const dragDisabled = !leaf || isDataTableColumnLocked(id);
-  const sortable = useSortable({ id, disabled: dragDisabled });
-  const over = props.dragging.overId === id || sortable.isOver;
-  const active = props.dragging.activeId === id;
   const state = resolveHeaderCellState(
     props.header,
     props.rowHeight,
     props.wrapHeaders,
     props.headerCellClassName,
   );
-  const dndAttributes = { ...sortable.attributes, role: undefined, tabIndex: undefined };
+  const canWrapContent = !isActionsColumn(props.header.column.columnDef.meta, id);
   const sortKey = String(props.header.column.columnDef.meta?.sortKey ?? "").trim();
   const canSort = Boolean(sortKey) && props.header.column.getCanSort();
   const sorted = props.header.column.getIsSorted();
+  const filterAction = props.resolveColumnFilterAction?.(props.header);
   const ariaSort = sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none";
   const cellStyle = {
     ...state.pinStyle.style,
-    transform: toTransformStyle(sortable.transform ?? null),
-    transition: sortable.transition,
   } as CSSProperties;
 
   return (
     <TableHead
-      ref={sortable.setNodeRef}
       aria-sort={canSort ? ariaSort : undefined}
       data-column-id={id}
       data-pinned={props.header.column.getIsPinned() || undefined}
-      className={cn(
-        state.className,
-        over ? "bg-muted/60 ring-1 ring-ring/40 " : "",
-        active ? "opacity-35" : "",
-        sortable.isDragging ? "opacity-30" : "",
-      )}
+      className={cn(state.className, filterAction?.active ? "text-label-primary" : "")}
       style={cellStyle}
     >
       <div className={cn("flex h-full w-full items-center", state.justifyClass)}>
-        <div
-          className={cn(
-            "flex h-full w-full max-w-full items-center select-none",
-            dragDisabled ? "opacity-80" : "cursor-grab active:cursor-grabbing",
-          )}
-          {...dndAttributes}
-          {...sortable.listeners}
-        >
-          <DataTableColumnHeaderMenu
-            header={props.header}
-            justifyClass={state.justifyClass}
-            wrapHeaders={props.wrapHeaders}
-            content={state.content}
-            canSort={canSort}
-            sorted={sorted}
-            labels={props.labels}
-          />
-        </div>
+        <DataTableColumnHeaderMenu
+          header={props.header}
+          justifyClass={state.justifyClass}
+          wrapHeaders={props.wrapHeaders}
+          content={state.content}
+          canSort={canSort}
+          sorted={sorted}
+          wrapContent={props.wrapContent}
+          canWrapContent={canWrapContent}
+          onWrapContentChange={props.onWrapContentChange}
+          filterAction={filterAction}
+          labels={props.labels}
+          triggerClassName={cn("max-w-full items-center select-none", state.contentPaddingClass)}
+        />
       </div>
       {leaf ? <DataTableColumnResizeHandle header={props.header} /> : null}
     </TableHead>
   );
 }
 
-function StaticHeaderCell<TData>(
-  props: SharedHeaderCellProps<TData> & {
-    labels: Pick<DataTableToolsLabels, "sortAscending" | "sortDescending" | "hideColumn">;
-  },
-) {
+function StaticHeaderCell<TData>(props: SharedHeaderCellProps<TData>) {
   const state = resolveHeaderCellState(
     props.header,
     props.rowHeight,
@@ -201,7 +181,7 @@ function StaticHeaderCell<TData>(
     <TableHead
       data-column-id={state.id}
       data-pinned={props.header.column.getIsPinned() || undefined}
-      className={state.className}
+      className={cn(state.className, "bg-background")}
       style={state.pinStyle.style}
     >
       <div className={cn("flex h-full w-full items-center", state.justifyClass)}>
@@ -232,18 +212,26 @@ export function DataTablePresenterHeader<TData>(props: {
   table: ReactTable<TData>;
   rowHeight: DataTableRowHeight;
   wrapHeaders: boolean;
+  wrapContent: boolean;
+  onWrapContentChange: (next: boolean) => void;
   headerCellClassName?: (header: Header<TData, unknown>) => string | undefined;
-  dragging: { activeId: string | null; overId: string | null };
-  labels?: Pick<DataTableToolsLabels, "sortAscending" | "sortDescending" | "hideColumn">;
+  labels?: DataTableColumnMenuLabels;
+  resolveColumnFilterAction?: (
+    header: Header<TData, unknown>,
+  ) => DataTableColumnHeaderFilterAction | undefined;
 }) {
   const menuLabels = props.labels ?? {
+    sort: "Sort",
+    filter: "Filter",
     sortAscending: "Sort ascending",
     sortDescending: "Sort descending",
-    hideColumn: "Hide column",
+    wrapContent: "Wrap content",
+    unwrapContent: "Unwrap content",
+    hide: "Hide",
   };
 
   return (
-    <TableHeader className="border-b border-border/60 [&_tr]:border-0">
+    <TableHeader className="border-b border-border/60 bg-background [&_tr]:border-0">
       {props.table.getHeaderGroups().map((headerGroup) => (
         <TableRow key={headerGroup.id} className="border-0 hover:bg-transparent">
           {headerGroup.headers.map((header) => {
@@ -259,20 +247,21 @@ export function DataTablePresenterHeader<TData>(props: {
                   rowHeight={props.rowHeight}
                   wrapHeaders={props.wrapHeaders}
                   headerCellClassName={props.headerCellClassName}
-                  labels={menuLabels}
                 />
               );
             }
 
             return (
-              <SortableHeaderCell
+              <InteractiveHeaderCell
                 key={header.id}
                 header={header}
                 rowHeight={props.rowHeight}
                 wrapHeaders={props.wrapHeaders}
+                wrapContent={props.wrapContent}
+                onWrapContentChange={props.onWrapContentChange}
                 headerCellClassName={props.headerCellClassName}
-                dragging={props.dragging}
                 labels={menuLabels}
+                resolveColumnFilterAction={props.resolveColumnFilterAction}
               />
             );
           })}

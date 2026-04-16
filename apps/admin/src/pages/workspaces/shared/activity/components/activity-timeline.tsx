@@ -165,7 +165,7 @@ export function ActivityTimeline(props: ActivityTimelineProps) {
 
         return (
           <div key={group.key}>
-            <div className="sticky top-0 z-10 bg-card/90 backdrop-blur py-2">
+            <div className="sticky top-0 z-10 py-2">
               <div className="text-title2 font-bold">{group.label}</div>
             </div>
 

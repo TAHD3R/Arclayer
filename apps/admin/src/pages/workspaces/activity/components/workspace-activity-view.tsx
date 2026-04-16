@@ -8,7 +8,6 @@ import { ContentGuard } from "@/layouts/page-shell/content-guard";
 import { DataTableSearchInput } from "@/components/common/data-table-search-input";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { PageExtraToolbar } from "@/layouts/page-shell/page-extra-toolbar";
-import { Button } from "@arclayer/ui/button";
 import { Spinner } from "@arclayer/ui/spinner";
 import { ActivityDetailDialog } from "@/pages/workspaces/shared/activity/components/activity-detail-dialog";
 import {
@@ -130,13 +129,13 @@ export function WorkspaceActivityPage() {
           }
         />
       }
-      action={
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => {}}>
-            {t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}
-          </Button>
-        </div>
-      }
+      // action={
+      //   <div className="flex items-center gap-2">
+      //     <Button variant="outline" onClick={() => {}}>
+      //       {t("activity:ACTIVITY_ACTION_IMPORT_EXPORT")}
+      //     </Button>
+      //   </div>
+      // }
     >
       <ContentGuard
         loading={listQuery.isLoading}

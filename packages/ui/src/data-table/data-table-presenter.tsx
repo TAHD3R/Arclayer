@@ -1,43 +1,19 @@
 "use client";
 
 import { type Header, type Table as ReactTable } from "@tanstack/react-table";
-import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
-import { type MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import { type MouseEvent, useCallback, useRef, useState } from "react";
 
 import { cn } from "@arclayer/lib/utils";
 
-import { DataTableColumnDragOverlay } from "./data-table-column-drag-overlay";
 import { DataTablePresenterBody } from "./data-table-presenter-body";
 import { DataTablePresenterHeader } from "./data-table-presenter-header";
 import { DataTableRefreshOverlay } from "./data-table-refresh-overlay";
 import { DataTableScrollOverflowGradient } from "./data-table-scroll-overflow-gradient";
-import {
-  isDataTableColumnLocked,
-  moveDataTableColumnInUnlockedZone,
-  normalizeDataTableColumnOrder,
-  resolveDataTableColumnLabel,
-  useNormalizedDataTableColumnOrder,
-} from "./data-table-column-settings-utils";
-import type { DataTableToolsLabels } from "./data-table-tools.types";
+import { useNormalizedDataTableColumnOrder } from "./data-table-column-settings-utils";
+import type { DataTableColumnHeaderFilterAction } from "./data-table-column-header-menu";
+import type { DataTableColumnMenuLabels } from "./data-table-tools.types";
 import { resolveDataTableRowHeight, type DataTableDensity, type DataTableRowHeight } from "./types";
 import { useScrollOverflow } from "./use-scroll-overflow";
-
-type ColumnMeta = { kind?: string };
-
-function isLockedColumn(column: { id: string; columnDef: { meta?: unknown } }): boolean {
-  if (isDataTableColumnLocked(column.id)) return true;
-  const kind = (column.columnDef.meta as ColumnMeta | undefined)?.kind;
-  return kind === "select" || kind === "actions";
-}
 
 type DataTableToolbarSlots = {
   fullWidth?: React.ReactNode;
@@ -46,8 +22,6 @@ type DataTableToolbarSlots = {
 };
 
 type DataTableSurface = "card" | "embedded";
-
-const HEADER_DRAG_DISTANCE_PX = 6;
 
 type DataTablePresenterProps<TData> = {
   table: ReactTable<TData>;
@@ -60,9 +34,14 @@ type DataTablePresenterProps<TData> = {
   rowHeight?: DataTableRowHeight;
   density?: DataTableDensity;
   wrapHeaders?: boolean;
+  wrapContent?: boolean;
+  onWrapContentChange?: (next: boolean) => void;
   refreshing?: boolean;
   refreshingLabel?: string;
-  columnMenuLabels?: Pick<DataTableToolsLabels, "sortAscending" | "sortDescending" | "hideColumn">;
+  columnMenuLabels?: DataTableColumnMenuLabels;
+  resolveColumnFilterAction?: (
+    header: Header<TData, unknown>,
+  ) => DataTableColumnHeaderFilterAction | undefined;
   rowClassName?: (
     row: import("@tanstack/react-table").Row<TData>,
     rowIndex: number,
@@ -90,16 +69,23 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     rowHeight,
     density,
     wrapHeaders = false,
+    wrapContent: controlledWrapContent,
+    onWrapContentChange,
     refreshing = false,
     refreshingLabel = "Refreshing data...",
     columnMenuLabels,
+    resolveColumnFilterAction,
     rowClassName,
     onRowClick,
     headerCellClassName,
     cellClassName,
   } = props;
+  const wrapContentControlled =
+    typeof controlledWrapContent === "boolean" && typeof onWrapContentChange === "function";
+  const [internalWrapContent, setInternalWrapContent] = useState(Boolean(controlledWrapContent));
 
   const resolvedRowHeight = resolveDataTableRowHeight(rowHeight ?? density);
+  const resolvedWrapContent = wrapContentControlled ? controlledWrapContent : internalWrapContent;
   const hasToolbarRow = Boolean(toolbar?.left || toolbar?.right);
   const hasToolbar = Boolean(toolbar?.fullWidth || hasToolbarRow);
   const hasFooter = Boolean(footer);
@@ -110,109 +96,18 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
   const rightPinnedWidth = table.getRightLeafColumns().reduce((sum, col) => sum + col.getSize(), 0);
   const hasRightPinned = rightPinnedWidth > 0;
 
-  const normalizedOrder = useNormalizedDataTableColumnOrder(table);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: HEADER_DRAG_DISTANCE_PX } }),
-  );
+  useNormalizedDataTableColumnOrder(table);
 
-  const [activeHeaderId, setActiveHeaderId] = useState<string | null>(null);
-  const [overHeaderId, setOverHeaderId] = useState<string | null>(null);
-  const [activeOverlayWidth, setActiveOverlayWidth] = useState<number | null>(null);
-
-  const activeHeaderIdRef = useRef<string | null>(null);
-  const initialOrderRef = useRef<string[] | null>(null);
-  const leafIdsRef = useRef<readonly string[] | null>(null);
-  const lastValidOverHeaderIdRef = useRef<string | null>(null);
-
-  const measureColumnWidth = useCallback((columnId: string): number | null => {
-    const root = scrollRef.current;
-    if (!root) return null;
-    const attr = columnId.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    const el =
-      root.querySelector<HTMLElement>(`td[data-column-id="${attr}"]`) ??
-      root.querySelector<HTMLElement>(`th[data-column-id="${attr}"]`);
-    if (!el) return null;
-    const rect = el.getBoundingClientRect();
-    const width = rect.width;
-    return Number.isFinite(width) && width > 0 ? width : null;
-  }, []);
-
-  const onHeaderDragStart = useCallback(
-    (event: DragStartEvent) => {
-      const id = String(event.active.id);
-      activeHeaderIdRef.current = id;
-      initialOrderRef.current = [...normalizedOrder];
-      leafIdsRef.current = table.getAllLeafColumns().map((column) => column.id);
-      lastValidOverHeaderIdRef.current = null;
-      setActiveHeaderId(id);
-      setActiveOverlayWidth(measureColumnWidth(id));
+  const handleWrapContentChange = useCallback(
+    (next: boolean) => {
+      if (wrapContentControlled) {
+        onWrapContentChange(next);
+        return;
+      }
+      setInternalWrapContent(next);
     },
-    [measureColumnWidth, normalizedOrder, table],
+    [onWrapContentChange, wrapContentControlled],
   );
-
-  const onHeaderDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const nextOverId = event.over ? String(event.over.id) : null;
-      const nextActiveId = String(event.active.id);
-
-      const initialOrder = initialOrderRef.current;
-      const leafIds = leafIdsRef.current;
-      const lastValidOverId = lastValidOverHeaderIdRef.current;
-      const resolvedOverId = nextOverId ?? lastValidOverId;
-
-      setActiveHeaderId(null);
-      setOverHeaderId(null);
-      setActiveOverlayWidth(null);
-      activeHeaderIdRef.current = null;
-      initialOrderRef.current = null;
-      leafIdsRef.current = null;
-      lastValidOverHeaderIdRef.current = null;
-
-      if (!initialOrder) return;
-
-      if (!resolvedOverId || resolvedOverId === nextActiveId) {
-        table.setColumnOrder(initialOrder);
-        return;
-      }
-      if (isDataTableColumnLocked(nextActiveId) || isDataTableColumnLocked(resolvedOverId)) {
-        table.setColumnOrder(initialOrder);
-        return;
-      }
-
-      const activePinned = table.getColumn(nextActiveId)?.getIsPinned() ?? false;
-      const overPinned = table.getColumn(resolvedOverId)?.getIsPinned() ?? false;
-      if (activePinned !== overPinned) {
-        table.setColumnOrder(initialOrder);
-        return;
-      }
-
-      const resolvedLeafIds = leafIds ?? table.getAllLeafColumns().map((column) => column.id);
-      const normalized = normalizeDataTableColumnOrder(resolvedLeafIds, initialOrder);
-      table.setColumnOrder(
-        moveDataTableColumnInUnlockedZone(normalized, nextActiveId, resolvedOverId),
-      );
-    },
-    [table],
-  );
-
-  const activeHeaderLabel = useMemo(() => {
-    if (!activeHeaderId) return null;
-    const column = table.getColumn(activeHeaderId);
-    if (!column) return activeHeaderId;
-    return resolveDataTableColumnLabel({ id: column.id, columnDef: column.columnDef });
-  }, [activeHeaderId, table]);
-
-  const activeHeaderWidth = useMemo(() => {
-    if (!activeHeaderId) return null;
-    return activeOverlayWidth ?? table.getColumn(activeHeaderId)?.getSize() ?? null;
-  }, [activeHeaderId, activeOverlayWidth, table]);
-
-  const draggableLeafHeaderIds = table
-    .getVisibleLeafColumns()
-    .filter(
-      (column) => !isLockedColumn({ id: column.id, columnDef: { meta: column.columnDef.meta } }),
-    )
-    .map((column) => column.id);
 
   const surfaceClassName =
     surface === "embedded" ? "rounded-none border-0 bg-transparent " : "rounded-lg bg-background ";
@@ -249,79 +144,30 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
             rightOffset={rightPinnedWidth}
           />
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={onHeaderDragStart}
-            onDragOver={(event) => {
-              const nextOverId = event.over ? String(event.over.id) : null;
-              setOverHeaderId(nextOverId);
+          <table className={cn("min-w-full caption-bottom text-callout", tableClassName)}>
+            <DataTablePresenterHeader
+              table={table}
+              rowHeight={resolvedRowHeight}
+              wrapHeaders={wrapHeaders}
+              wrapContent={resolvedWrapContent}
+              onWrapContentChange={handleWrapContentChange}
+              headerCellClassName={headerCellClassName}
+              labels={columnMenuLabels}
+              resolveColumnFilterAction={resolveColumnFilterAction}
+            />
 
-              const nextActiveId = activeHeaderIdRef.current;
-              if (!nextOverId || !nextActiveId || nextOverId === nextActiveId) return;
-              if (isDataTableColumnLocked(nextActiveId) || isDataTableColumnLocked(nextOverId))
-                return;
-
-              const activePinned = table.getColumn(nextActiveId)?.getIsPinned() ?? false;
-              const overPinned = table.getColumn(nextOverId)?.getIsPinned() ?? false;
-              if (activePinned !== overPinned) return;
-
-              lastValidOverHeaderIdRef.current = nextOverId;
-            }}
-            onDragEnd={onHeaderDragEnd}
-            onDragCancel={() => {
-              const initialOrder = initialOrderRef.current;
-              setActiveHeaderId(null);
-              setOverHeaderId(null);
-              setActiveOverlayWidth(null);
-              activeHeaderIdRef.current = null;
-              initialOrderRef.current = null;
-              leafIdsRef.current = null;
-              lastValidOverHeaderIdRef.current = null;
-              if (initialOrder) table.setColumnOrder(initialOrder);
-            }}
-          >
-            <table className={cn("min-w-full caption-bottom text-callout", tableClassName)}>
-              <SortableContext
-                items={draggableLeafHeaderIds}
-                strategy={horizontalListSortingStrategy}
-              >
-                <DataTablePresenterHeader
-                  table={table}
-                  rowHeight={resolvedRowHeight}
-                  wrapHeaders={wrapHeaders}
-                  headerCellClassName={headerCellClassName}
-                  dragging={{ activeId: activeHeaderId, overId: overHeaderId }}
-                  labels={columnMenuLabels}
-                />
-              </SortableContext>
-
-              <DataTablePresenterBody
-                table={table}
-                emptyText={emptyText}
-                rowHeight={resolvedRowHeight}
-                activeColumnId={activeHeaderId}
-                overColumnId={overHeaderId}
-                rowClassName={rowClassName}
-                onRowClick={onRowClick}
-                cellClassName={cellClassName}
-              />
-            </table>
-
-            <DragOverlay
-              adjustScale={false}
-              dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}
-            >
-              {activeHeaderLabel ? (
-                <DataTableColumnDragOverlay
-                  table={table}
-                  columnId={activeHeaderId ?? ""}
-                  rowHeight={resolvedRowHeight}
-                  width={activeHeaderWidth}
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+            <DataTablePresenterBody
+              table={table}
+              emptyText={emptyText}
+              rowHeight={resolvedRowHeight}
+              wrapContent={resolvedWrapContent}
+              activeColumnId={null}
+              overColumnId={null}
+              rowClassName={rowClassName}
+              onRowClick={onRowClick}
+              cellClassName={cellClassName}
+            />
+          </table>
         </div>
 
         {hasFooter ? (

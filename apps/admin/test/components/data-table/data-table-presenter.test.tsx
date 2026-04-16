@@ -50,12 +50,40 @@ function SortableTableHarness() {
   );
 }
 
+function PinnedActionsHarness() {
+  const data = React.useMemo(() => [{ name: "Alice" }], []);
+  const columns = React.useMemo(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Name",
+      },
+      {
+        id: "actions",
+        header: "",
+        meta: { kind: "actions" as const },
+        cell: () => null,
+      },
+    ],
+    [],
+  );
+
+  const core = useDataTableCore({
+    columns,
+    data,
+    pageCount: 1,
+  });
+
+  return <DataTablePresenter table={core.table} emptyText="empty" />;
+}
+
 describe("DataTablePresenter", () => {
   it("sortable header button does not force uppercase text rendering", () => {
     render(<SortableTableHarness />);
 
     const headerButton = screen.getByRole("button", { name: "Name" });
     expect(headerButton).not.toHaveStyle({ textTransform: "uppercase" });
+    expect(headerButton.querySelector("svg")).toBeNull();
   });
 
   it("sortable header opens a menu for sort actions", async () => {
@@ -68,15 +96,25 @@ describe("DataTablePresenter", () => {
     expect(ordering).toHaveTextContent("");
 
     await user.click(headerButton);
-    await user.click(screen.getByRole("menuitem", { name: "Sort ascending" }));
+    screen.getByRole("menuitem", { name: "Sort" }).focus();
+    await user.keyboard("{ArrowRight}");
+    await user.click(await screen.findByRole("menuitem", { name: "Sort ascending" }));
     expect(ordering).toHaveTextContent("name");
 
     await user.click(headerButton);
-    await user.click(screen.getByRole("menuitem", { name: "Sort descending" }));
+    screen.getByRole("menuitem", { name: "Sort" }).focus();
+    await user.keyboard("{ArrowRight}");
+    await user.click(await screen.findByRole("menuitem", { name: "Sort descending" }));
     expect(ordering).toHaveTextContent("-name");
 
     await user.click(headerButton);
-    await user.click(screen.getByRole("menuitem", { name: "Hide column" }));
+    await user.click(screen.getByRole("menuitem", { name: "Wrap content" }));
+    await user.click(headerButton);
+    expect(screen.getByRole("menuitem", { name: "Unwrap content" })).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    await user.click(headerButton);
+    await user.click(screen.getByRole("menuitem", { name: "Hide" }));
     expect(screen.queryByRole("columnheader", { name: "Name" })).not.toBeInTheDocument();
   });
 
@@ -109,11 +147,102 @@ describe("DataTablePresenter", () => {
     const { container } = render(<NonSortableHarness />);
 
     await user.click(screen.getByRole("button", { name: "Value" }));
-    expect(screen.getByRole("menuitem", { name: "Hide column" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Hide" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Wrap content" })).toBeInTheDocument();
 
     const headerCells = container.querySelectorAll("th");
     expect(headerCells[0]?.className).toContain("text-left");
     expect(headerCells[1]?.className).toContain("text-right");
+  });
+
+  it("status-tag style headers use the default left alignment", () => {
+    function StatusHeaderHarness() {
+      const data = [{ status: "Pending" }];
+      const columns = [
+        {
+          accessorKey: "status",
+          header: "Status",
+          meta: { kind: "status" as const },
+        },
+      ];
+
+      const table = useReactTable({
+        data,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+      });
+
+      return <DataTablePresenter table={table} emptyText="empty" />;
+    }
+
+    render(<StatusHeaderHarness />);
+
+    expect(screen.getByRole("columnheader", { name: "Status" }).className).toContain("text-left");
+  });
+
+  it("whole-header menu can expose the shared filter action contract", async () => {
+    const onFilterSelect = vi.fn();
+
+    function FilterHarness() {
+      const data = [{ name: "Alice" }];
+      const columns = [{ accessorKey: "name", header: "Name" }];
+      const table = useReactTable({
+        data,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+      });
+
+      return (
+        <DataTablePresenter
+          table={table}
+          emptyText="empty"
+          resolveColumnFilterAction={() => ({
+            active: true,
+            summary: "Contains: Alice",
+            onSelect: onFilterSelect,
+          })}
+        />
+      );
+    }
+
+    const user = userEvent.setup();
+    render(<FilterHarness />);
+
+    await user.click(screen.getByRole("button", { name: "Name" }));
+    expect(screen.getByText("Contains: Alice")).toBeInTheDocument();
+    const menuItems = screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
+    expect(menuItems).toEqual(["FilterContains: Alice", "Hide", "Wrap content"]);
+    await user.click(screen.getByRole("menuitem", { name: "Filter" }));
+    expect(onFilterSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("header trigger uses the tighter connected cell styling without drag affordance", () => {
+    render(<SortableTableHarness />);
+
+    const headerButton = screen.getByRole("button", { name: "Name" });
+    const headerCell = screen.getByRole("columnheader", { name: "Name" });
+
+    expect(headerButton.className).toContain("rounded-none");
+    expect(headerButton.className).not.toContain("cursor-grab");
+    expect(headerCell.className).toContain("border-r");
+    expect(headerCell.className).toContain("px-0");
+    expect(headerCell.className).toContain("bg-background");
+    expect(headerCell.className).toContain("font-semibold");
+    expect(headerCell.className).toContain("z-20");
+  });
+
+  it("keeps ordinary headers above the overflow gradient beside right-pinned columns", () => {
+    const { container } = render(<PinnedActionsHarness />);
+
+    const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+    const actionsHeader = container.querySelector<HTMLTableCellElement>(
+      'th[data-column-id="actions"]',
+    );
+
+    expect(nameHeader.className).toContain("z-20");
+    expect(actionsHeader).not.toBeNull();
+    expect(actionsHeader?.className).toContain("z-30");
+    expect(actionsHeader?.dataset.pinned).toBe("right");
   });
 
   it("renders toolbar and footer inside the shared table surface", () => {

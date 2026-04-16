@@ -27,9 +27,13 @@ export type DataTableToolsLabels = {
   resetColumnSize: string;
   resetColumnOrder: string;
   clearSelection: string;
+  sort: string;
+  filter: string;
   sortAscending: string;
   sortDescending: string;
-  hideColumn: string;
+  wrapContent: string;
+  unwrapContent: string;
+  hide: string;
   moveUp: string;
   moveDown: string;
   drag: string;
@@ -42,6 +46,11 @@ export type DataTableToolsLabels = {
   densityDefault: string;
   densityRelaxed: string;
 };
+
+export type DataTableColumnMenuLabels = Pick<
+  DataTableToolsLabels,
+  "sort" | "filter" | "sortAscending" | "sortDescending" | "wrapContent" | "unwrapContent" | "hide"
+>;
 
 export type DataTableIconButtonProps = {
   label: string;

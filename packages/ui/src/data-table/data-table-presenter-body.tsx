@@ -33,6 +33,7 @@ export function DataTablePresenterBody<TData>(props: {
   table: ReactTable<TData>;
   emptyText: string;
   rowHeight: DataTableRowHeight;
+  wrapContent: boolean;
   activeColumnId: string | null;
   overColumnId: string | null;
   rowClassName?: (row: Row<TData>, rowIndex: number) => string | undefined;
@@ -88,7 +89,13 @@ export function DataTablePresenterBody<TData>(props: {
                   )}
                   style={pinStyle.style}
                 >
-                  <div className={cn("min-w-0 w-full", actionsColumn ? "" : "overflow-hidden")}>
+                  <div
+                    className={cn(
+                      "min-w-0 w-full",
+                      actionsColumn ? "" : "overflow-hidden",
+                      props.wrapContent && !actionsColumn ? "whitespace-normal break-words" : "",
+                    )}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </div>
                 </TableCell>

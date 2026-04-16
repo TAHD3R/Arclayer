@@ -38,6 +38,7 @@ export type DataTablePreferencesState = {
   density?: DataTableDensity;
   rowHeight?: DataTableRowHeight;
   wrapHeaders?: boolean;
+  wrapContent?: boolean;
 };
 
 export type DataTablePreferencesPatch = {
@@ -45,6 +46,7 @@ export type DataTablePreferencesPatch = {
   density?: DataTableDensity | null;
   rowHeight?: DataTableRowHeight | null;
   wrapHeaders?: boolean | null;
+  wrapContent?: boolean | null;
 };
 
 function resolvePreferencesOptions(
@@ -129,8 +131,15 @@ function normalizePreferencesState(input: unknown): DataTablePreferencesState | 
       ? resolveDataTableRowHeight(density)
       : undefined;
   const wrapHeaders = typeof obj.wrapHeaders === "boolean" ? obj.wrapHeaders : undefined;
+  const wrapContent = typeof obj.wrapContent === "boolean" ? obj.wrapContent : undefined;
 
-  if (!columnOrder?.length && !density && !rowHeight && typeof wrapHeaders === "undefined") {
+  if (
+    !columnOrder?.length &&
+    !density &&
+    !rowHeight &&
+    typeof wrapHeaders === "undefined" &&
+    typeof wrapContent === "undefined"
+  ) {
     return null;
   }
 
@@ -139,6 +148,7 @@ function normalizePreferencesState(input: unknown): DataTablePreferencesState | 
     ...(density ? { density } : {}),
     ...(rowHeight ? { rowHeight } : {}),
     ...(typeof wrapHeaders === "boolean" ? { wrapHeaders } : {}),
+    ...(typeof wrapContent === "boolean" ? { wrapContent } : {}),
   };
 }
 
@@ -196,6 +206,7 @@ export function updatePreferencesState(
     ...(prev?.density ? { density: prev.density } : {}),
     ...(prev?.rowHeight ? { rowHeight: prev.rowHeight } : {}),
     ...(typeof prev?.wrapHeaders === "boolean" ? { wrapHeaders: prev.wrapHeaders } : {}),
+    ...(typeof prev?.wrapContent === "boolean" ? { wrapContent: prev.wrapContent } : {}),
   };
 
   if (patch.columnOrder === null) delete merged.columnOrder;
@@ -210,11 +221,15 @@ export function updatePreferencesState(
   if (patch.wrapHeaders === null) delete merged.wrapHeaders;
   else if (patch.wrapHeaders !== undefined) merged.wrapHeaders = patch.wrapHeaders;
 
+  if (patch.wrapContent === null) delete merged.wrapContent;
+  else if (patch.wrapContent !== undefined) merged.wrapContent = patch.wrapContent;
+
   if (
     !merged.columnOrder?.length &&
     !merged.density &&
     !merged.rowHeight &&
-    typeof merged.wrapHeaders === "undefined"
+    typeof merged.wrapHeaders === "undefined" &&
+    typeof merged.wrapContent === "undefined"
   ) {
     clearPreferencesState(tableId, options);
     return;

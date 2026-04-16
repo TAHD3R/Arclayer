@@ -481,9 +481,13 @@ export function AssetsViewTableSection(props: {
           refreshing={props.refreshing}
           refreshingLabel={controller.t("common:DATA_TABLE_REFRESHING")}
           columnMenuLabels={{
+            sort: controller.t("common:DATA_TABLE_SORT"),
+            filter: controller.t("common:DATA_TABLE_FILTER"),
             sortAscending: controller.t("common:DATA_TABLE_SORT_ASCENDING"),
             sortDescending: controller.t("common:DATA_TABLE_SORT_DESCENDING"),
-            hideColumn: controller.t("common:DATA_TABLE_HIDE_COLUMN"),
+            wrapContent: controller.t("common:DATA_TABLE_WRAP_CONTENT"),
+            unwrapContent: controller.t("common:DATA_TABLE_UNWRAP_CONTENT"),
+            hide: controller.t("common:DATA_TABLE_HIDE"),
           }}
           rowClassName={(row) =>
             controller.selectedIds.has(row.original.id)

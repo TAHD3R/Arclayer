@@ -39,7 +39,7 @@ export function resolveHeaderAlignClass<TData>(header: Header<TData, unknown>): 
 
   const kind = resolveColumnKind(meta, header.column.id);
   if (kind === "actions") return "text-right";
-  if (kind === "select" || kind === "status") return "text-center";
+  if (kind === "select") return "text-center";
 
   return "text-left";
 }
@@ -127,7 +127,7 @@ export function resolveHeaderPinStyle<TData>(header: Header<TData, unknown>): Pi
   }
 
   return {
-    className: cn("z-30 bg-background"),
+    className: cn("z-30 bg-background shadow-none"),
     style,
   };
 }

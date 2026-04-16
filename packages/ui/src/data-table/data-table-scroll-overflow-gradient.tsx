@@ -13,7 +13,7 @@ export function DataTableScrollOverflowGradient(props: {
     <div
       aria-hidden
       className={cn(
-        "pointer-events-none absolute inset-y-0 z-25 w-10 transition-opacity duration-200",
+        "pointer-events-none absolute inset-y-0 z-15 w-10 transition-opacity duration-200",
         props.visible ? "opacity-100" : "opacity-0",
       )}
       style={{
