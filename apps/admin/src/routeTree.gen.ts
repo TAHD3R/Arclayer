@@ -24,10 +24,10 @@ import { Route as WWorkspaceIdIndexRouteImport } from './routes/w/$workspaceId/i
 import { Route as UsercenterUsageIndexRouteImport } from './routes/usercenter/usage/index'
 import { Route as UsercenterSecurityIndexRouteImport } from './routes/usercenter/security/index'
 import { Route as UsercenterProfileIndexRouteImport } from './routes/usercenter/profile/index'
+import { Route as UsercenterPreferencesIndexRouteImport } from './routes/usercenter/preferences/index'
 import { Route as UsercenterNotificationsIndexRouteImport } from './routes/usercenter/notifications/index'
 import { Route as UsercenterDangerIndexRouteImport } from './routes/usercenter/danger/index'
 import { Route as UsercenterBillingIndexRouteImport } from './routes/usercenter/billing/index'
-import { Route as UsercenterAppearanceIndexRouteImport } from './routes/usercenter/appearance/index'
 import { Route as SystemStorageIndexRouteImport } from './routes/system/storage/index'
 import { Route as SystemOauthIndexRouteImport } from './routes/system/oauth/index'
 import { Route as SystemNotificationsIndexRouteImport } from './routes/system/notifications/index'
@@ -138,6 +138,12 @@ const UsercenterProfileIndexRoute = UsercenterProfileIndexRouteImport.update({
   path: '/profile/',
   getParentRoute: () => UsercenterRoute,
 } as any)
+const UsercenterPreferencesIndexRoute =
+  UsercenterPreferencesIndexRouteImport.update({
+    id: '/preferences/',
+    path: '/preferences/',
+    getParentRoute: () => UsercenterRoute,
+  } as any)
 const UsercenterNotificationsIndexRoute =
   UsercenterNotificationsIndexRouteImport.update({
     id: '/notifications/',
@@ -154,12 +160,6 @@ const UsercenterBillingIndexRoute = UsercenterBillingIndexRouteImport.update({
   path: '/billing/',
   getParentRoute: () => UsercenterRoute,
 } as any)
-const UsercenterAppearanceIndexRoute =
-  UsercenterAppearanceIndexRouteImport.update({
-    id: '/appearance/',
-    path: '/appearance/',
-    getParentRoute: () => UsercenterRoute,
-  } as any)
 const SystemStorageIndexRoute = SystemStorageIndexRouteImport.update({
   id: '/storage/',
   path: '/storage/',
@@ -398,10 +398,10 @@ export interface FileRoutesByFullPath {
   '/system/notifications/': typeof SystemNotificationsIndexRoute
   '/system/oauth/': typeof SystemOauthIndexRoute
   '/system/storage/': typeof SystemStorageIndexRoute
-  '/usercenter/appearance/': typeof UsercenterAppearanceIndexRoute
   '/usercenter/billing/': typeof UsercenterBillingIndexRoute
   '/usercenter/danger/': typeof UsercenterDangerIndexRoute
   '/usercenter/notifications/': typeof UsercenterNotificationsIndexRoute
+  '/usercenter/preferences/': typeof UsercenterPreferencesIndexRoute
   '/usercenter/profile/': typeof UsercenterProfileIndexRoute
   '/usercenter/security/': typeof UsercenterSecurityIndexRoute
   '/usercenter/usage/': typeof UsercenterUsageIndexRoute
@@ -442,10 +442,10 @@ export interface FileRoutesByTo {
   '/system/notifications': typeof SystemNotificationsIndexRoute
   '/system/oauth': typeof SystemOauthIndexRoute
   '/system/storage': typeof SystemStorageIndexRoute
-  '/usercenter/appearance': typeof UsercenterAppearanceIndexRoute
   '/usercenter/billing': typeof UsercenterBillingIndexRoute
   '/usercenter/danger': typeof UsercenterDangerIndexRoute
   '/usercenter/notifications': typeof UsercenterNotificationsIndexRoute
+  '/usercenter/preferences': typeof UsercenterPreferencesIndexRoute
   '/usercenter/profile': typeof UsercenterProfileIndexRoute
   '/usercenter/security': typeof UsercenterSecurityIndexRoute
   '/usercenter/usage': typeof UsercenterUsageIndexRoute
@@ -490,10 +490,10 @@ export interface FileRoutesById {
   '/system/notifications/': typeof SystemNotificationsIndexRoute
   '/system/oauth/': typeof SystemOauthIndexRoute
   '/system/storage/': typeof SystemStorageIndexRoute
-  '/usercenter/appearance/': typeof UsercenterAppearanceIndexRoute
   '/usercenter/billing/': typeof UsercenterBillingIndexRoute
   '/usercenter/danger/': typeof UsercenterDangerIndexRoute
   '/usercenter/notifications/': typeof UsercenterNotificationsIndexRoute
+  '/usercenter/preferences/': typeof UsercenterPreferencesIndexRoute
   '/usercenter/profile/': typeof UsercenterProfileIndexRoute
   '/usercenter/security/': typeof UsercenterSecurityIndexRoute
   '/usercenter/usage/': typeof UsercenterUsageIndexRoute
@@ -539,10 +539,10 @@ export interface FileRouteTypes {
     | '/system/notifications/'
     | '/system/oauth/'
     | '/system/storage/'
-    | '/usercenter/appearance/'
     | '/usercenter/billing/'
     | '/usercenter/danger/'
     | '/usercenter/notifications/'
+    | '/usercenter/preferences/'
     | '/usercenter/profile/'
     | '/usercenter/security/'
     | '/usercenter/usage/'
@@ -583,10 +583,10 @@ export interface FileRouteTypes {
     | '/system/notifications'
     | '/system/oauth'
     | '/system/storage'
-    | '/usercenter/appearance'
     | '/usercenter/billing'
     | '/usercenter/danger'
     | '/usercenter/notifications'
+    | '/usercenter/preferences'
     | '/usercenter/profile'
     | '/usercenter/security'
     | '/usercenter/usage'
@@ -630,10 +630,10 @@ export interface FileRouteTypes {
     | '/system/notifications/'
     | '/system/oauth/'
     | '/system/storage/'
-    | '/usercenter/appearance/'
     | '/usercenter/billing/'
     | '/usercenter/danger/'
     | '/usercenter/notifications/'
+    | '/usercenter/preferences/'
     | '/usercenter/profile/'
     | '/usercenter/security/'
     | '/usercenter/usage/'
@@ -780,6 +780,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsercenterProfileIndexRouteImport
       parentRoute: typeof UsercenterRoute
     }
+    '/usercenter/preferences/': {
+      id: '/usercenter/preferences/'
+      path: '/preferences'
+      fullPath: '/usercenter/preferences/'
+      preLoaderRoute: typeof UsercenterPreferencesIndexRouteImport
+      parentRoute: typeof UsercenterRoute
+    }
     '/usercenter/notifications/': {
       id: '/usercenter/notifications/'
       path: '/notifications'
@@ -799,13 +806,6 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/usercenter/billing/'
       preLoaderRoute: typeof UsercenterBillingIndexRouteImport
-      parentRoute: typeof UsercenterRoute
-    }
-    '/usercenter/appearance/': {
-      id: '/usercenter/appearance/'
-      path: '/appearance'
-      fullPath: '/usercenter/appearance/'
-      preLoaderRoute: typeof UsercenterAppearanceIndexRouteImport
       parentRoute: typeof UsercenterRoute
     }
     '/system/storage/': {
@@ -1016,10 +1016,10 @@ const SystemRouteWithChildren =
 
 interface UsercenterRouteChildren {
   UsercenterIndexRoute: typeof UsercenterIndexRoute
-  UsercenterAppearanceIndexRoute: typeof UsercenterAppearanceIndexRoute
   UsercenterBillingIndexRoute: typeof UsercenterBillingIndexRoute
   UsercenterDangerIndexRoute: typeof UsercenterDangerIndexRoute
   UsercenterNotificationsIndexRoute: typeof UsercenterNotificationsIndexRoute
+  UsercenterPreferencesIndexRoute: typeof UsercenterPreferencesIndexRoute
   UsercenterProfileIndexRoute: typeof UsercenterProfileIndexRoute
   UsercenterSecurityIndexRoute: typeof UsercenterSecurityIndexRoute
   UsercenterUsageIndexRoute: typeof UsercenterUsageIndexRoute
@@ -1027,10 +1027,10 @@ interface UsercenterRouteChildren {
 
 const UsercenterRouteChildren: UsercenterRouteChildren = {
   UsercenterIndexRoute: UsercenterIndexRoute,
-  UsercenterAppearanceIndexRoute: UsercenterAppearanceIndexRoute,
   UsercenterBillingIndexRoute: UsercenterBillingIndexRoute,
   UsercenterDangerIndexRoute: UsercenterDangerIndexRoute,
   UsercenterNotificationsIndexRoute: UsercenterNotificationsIndexRoute,
+  UsercenterPreferencesIndexRoute: UsercenterPreferencesIndexRoute,
   UsercenterProfileIndexRoute: UsercenterProfileIndexRoute,
   UsercenterSecurityIndexRoute: UsercenterSecurityIndexRoute,
   UsercenterUsageIndexRoute: UsercenterUsageIndexRoute,

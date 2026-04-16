@@ -18,9 +18,9 @@ export const USER_CENTER_NAV_ITEMS: AdminNavItem[] = [
       },
       {
         key: "account.appearance",
-        label: "Appearance",
+        label: "Preferences",
         labelKey: "account:ACCOUNT_NAV_APPEARANCE",
-        to: "/usercenter/appearance",
+        to: "/usercenter/preferences",
         icon: Monitor,
       },
       {

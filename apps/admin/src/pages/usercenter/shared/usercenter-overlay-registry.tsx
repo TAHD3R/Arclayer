@@ -24,8 +24,8 @@ export const USERCENTER_OVERLAY_ITEMS: readonly UsercenterOverlayItem[] = [
     render: () => <UserProfileView mode="dialog" />,
   },
   {
-    tab: "appearance",
-    to: "/usercenter/appearance",
+    tab: "preferences",
+    to: "/usercenter/preferences",
     labelKey: "account:ACCOUNT_NAV_APPEARANCE",
     titleKey: "account:ME_TAB_PREFERENCES",
     descriptionKey: "account:ME_TAB_PREFERENCES_DESC",

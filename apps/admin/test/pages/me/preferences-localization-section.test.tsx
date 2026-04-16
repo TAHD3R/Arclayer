@@ -34,6 +34,11 @@ describe("UserLocalizationSection", () => {
     render(<UserLocalizationSection />);
 
     expect(screen.getAllByRole("switch")).toHaveLength(2);
+    expect(screen.getAllByRole("combobox")).toHaveLength(2);
+    expect(screen.getByText("ME_PREF_TIMEZONE_TITLE")).toBeInTheDocument();
+    expect(screen.getByText("ME_PREF_TIMEZONE_AUTO_SWITCH_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("ACCOUNT_SETTINGS_LANGUAGE_LABEL")).toBeInTheDocument();
+    expect(screen.getByText("ME_PREF_LANGUAGE_BROWSER_SWITCH_LABEL")).toBeInTheDocument();
   });
 
   it("disables manual selects when automatic switches are enabled", async () => {

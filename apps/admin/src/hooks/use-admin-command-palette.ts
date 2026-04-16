@@ -61,7 +61,7 @@ function buildActionEntries(params: {
       keywords: [t("account:ME_TAB_PREFERENCES"), t("account:ME_TITLE")],
       icon: SlidersHorizontal,
       shortcut: ["G", ","],
-      action: { type: "navigate", to: "/usercenter/appearance" },
+      action: { type: "navigate", to: "/usercenter/preferences" },
     },
     {
       id: "action:notifications",

@@ -1383,7 +1383,7 @@ export function FavoritesNode(props: FavoritesNodeProps) {
         >
           {overlayEntry ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex items-center gap-4 border-b border-border/70 px-6 py-4 sm:px-8 sm:py-5">
+              <div className="flex items-center gap-4 border-b border-border/70 px-10 py-3">
                 <div className="min-w-0 flex-1">
                   <Breadcrumb>
                     <BreadcrumbList className="m-0 mb-0! flex-nowrap overflow-hidden whitespace-nowrap p-0 text-callout">

@@ -9,6 +9,7 @@ import { AssetsViewHeader } from "@/pages/workspaces/assets/components/assets-vi
 import { DeleteAssetFolderDialog } from "@/pages/workspaces/assets/components/delete-asset-folder-dialog";
 import { MoveAssetsToFolderModal } from "@/pages/workspaces/assets/components/move-assets-to-folder-modal";
 import { UpdateAssetsAccessDialog } from "@/pages/workspaces/assets/components/update-assets-access-dialog";
+import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 import { Popover, PopoverContent, PopoverTrigger } from "@arclayer/ui/popover";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
@@ -140,6 +141,39 @@ describe("shared Select", () => {
       expect(dropdown).not.toBeNull();
       expect(overlayRoot).not.toBeNull();
       expect(overlayRoot?.contains(dropdown ?? null)).toBe(false);
+      expect(document.body.contains(dropdown)).toBe(true);
+    });
+  });
+
+  it("keeps Select content above expandable screens", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StrictMode>
+        <ExpandableScreen defaultExpanded>
+          <ExpandableScreenContent>
+            <div className="p-6">
+              <Select value="one" onValueChange={() => undefined}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pick one" />
+                </SelectTrigger>
+                <SelectContent position="popper" align="start">
+                  <SelectItem value="one">One</SelectItem>
+                  <SelectItem value="two">Two</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </ExpandableScreenContent>
+        </ExpandableScreen>
+      </StrictMode>,
+    );
+
+    await user.click(screen.getByRole("combobox"));
+
+    await waitFor(() => {
+      const dropdown = document.querySelector("[data-slot='select-content']");
+      expect(dropdown).not.toBeNull();
+      expect(dropdown).toHaveClass("z-[2400]");
       expect(document.body.contains(dropdown)).toBe(true);
     });
   });

@@ -11,6 +11,7 @@
   "MORE": "More",
   "SELECT": "Select",
   "SELECT_ALL": "Select all",
+  "SELECT_NONE": "Select none",
   "FILTER_NO_FIELDS_FOUND": "No filters found",
   "FILTER_NO_RESULTS_FOUND": "No results found",
   "FILTER_OPERATOR_CONTAINS": "Contains",

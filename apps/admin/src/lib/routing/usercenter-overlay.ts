@@ -1,6 +1,6 @@
 import type { ParsedLocation } from "@tanstack/react-router";
 
-export const USERCENTER_OVERLAY_TABS = ["profile", "appearance", "notifications"] as const;
+export const USERCENTER_OVERLAY_TABS = ["profile", "preferences", "notifications"] as const;
 
 export type UsercenterOverlayTab = (typeof USERCENTER_OVERLAY_TABS)[number];
 

@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@arclayer/ui/select";
 import { Switch } from "@arclayer/ui/switch";
 import { buildSupportedLocaleOptions, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { buildTimezoneOptions } from "@/lib/settings/general/localization-options";
+import { PreferenceSettingRow } from "@/pages/usercenter/appearance/components/preference-setting-row";
 import { usePreferencesStore } from "@/stores/use-preference-store";
 
 function getBrowserTimeZone(): string {
@@ -16,51 +16,54 @@ function getBrowserTimeZone(): string {
   }
 }
 
-type PreferenceSelectCardProps = {
+type PreferenceSelectRowProps = {
   description: string;
   disabled: boolean;
   onSelectChange: (value: string) => void;
-  onSwitchChange: (checked: boolean) => void;
   options: Array<{ label: string; value: string }>;
   selectValue: string;
-  switchDescription: string;
-  switchLabel: string;
   title: string;
 };
 
-function PreferenceSelectCard(props: PreferenceSelectCardProps) {
+function PreferenceSelectRow(props: PreferenceSelectRowProps) {
   return (
-    <SettingCard>
-      <SettingCardHeader
-        title={props.title}
-        description={props.description}
-        action={
-          <div className="flex w-56 flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-body text-label-primary">{props.switchLabel}</span>
-              <Switch checked={props.disabled} onCheckedChange={props.onSwitchChange} />
-            </div>
-            <div className="text-callout text-label-secondary">{props.switchDescription}</div>
-            <Select
-              value={props.selectValue}
-              disabled={props.disabled}
-              onValueChange={props.onSelectChange}
-            >
-              <SelectTrigger className="w-full" size="default">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper" align="start">
-                {props.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        }
-      />
-    </SettingCard>
+    <PreferenceSettingRow
+      title={props.title}
+      description={props.description}
+      action={
+        <Select
+          value={props.selectValue}
+          disabled={props.disabled}
+          onValueChange={props.onSelectChange}
+        >
+          <SelectTrigger className="w-56" size="default">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper" align="end">
+            {props.options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      }
+    />
+  );
+}
+
+function PreferenceSwitchRow(props: {
+  checked: boolean;
+  description: string;
+  onCheckedChange: (checked: boolean) => void;
+  title: string;
+}) {
+  return (
+    <PreferenceSettingRow
+      title={props.title}
+      description={props.description}
+      action={<Switch checked={props.checked} onCheckedChange={props.onCheckedChange} />}
+    />
   );
 }
 
@@ -105,25 +108,29 @@ export function UserLocalizationSection() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PreferenceSelectCard
+      <PreferenceSelectRow
         description={t("ME_PREF_TIMEZONE_DESC")}
         disabled={isAutoTimezoneEnabled}
         onSelectChange={(value) => setTimeZonePreference(value)}
-        onSwitchChange={(checked) => {
+        options={timeZoneOptions}
+        selectValue={timeZonePreference ?? browserTimeZone}
+        title={t("ME_PREF_TIMEZONE_TITLE")}
+      />
+
+      <PreferenceSwitchRow
+        checked={isAutoTimezoneEnabled}
+        description={t("ME_PREF_TIMEZONE_AUTO_SWITCH_DESC")}
+        onCheckedChange={(checked) => {
           if (checked) {
             setTimeZonePreference(null);
             return;
           }
           setTimeZonePreference(browserTimeZone);
         }}
-        options={timeZoneOptions}
-        selectValue={timeZonePreference ?? browserTimeZone}
-        switchDescription={t("ME_PREF_TIMEZONE_AUTO_SWITCH_DESC")}
-        switchLabel={t("ME_PREF_TIMEZONE_AUTO_SWITCH_LABEL")}
-        title={t("ME_PREF_TIMEZONE_TITLE")}
+        title={t("ME_PREF_TIMEZONE_AUTO_SWITCH_LABEL")}
       />
 
-      <PreferenceSelectCard
+      <PreferenceSelectRow
         description={t("ME_PREF_LANGUAGE_DESC")}
         disabled={isBrowserLanguageEnabled}
         onSelectChange={(value) => {
@@ -133,18 +140,22 @@ export function UserLocalizationSection() {
           }
           setLocale(value as AppLocale);
         }}
-        onSwitchChange={(checked) => {
+        options={languageOptions}
+        selectValue={languageValue}
+        title={t("ACCOUNT_SETTINGS_LANGUAGE_LABEL")}
+      />
+
+      <PreferenceSwitchRow
+        checked={isBrowserLanguageEnabled}
+        description={t("ME_PREF_LANGUAGE_BROWSER_SWITCH_DESC")}
+        onCheckedChange={(checked) => {
           if (checked) {
             setBrowserLocale();
             return;
           }
           setWorkspaceLocaleMode();
         }}
-        options={languageOptions}
-        selectValue={languageValue}
-        switchDescription={t("ME_PREF_LANGUAGE_BROWSER_SWITCH_DESC")}
-        switchLabel={t("ME_PREF_LANGUAGE_BROWSER_SWITCH_LABEL")}
-        title={t("ACCOUNT_SETTINGS_LANGUAGE_LABEL")}
+        title={t("ME_PREF_LANGUAGE_BROWSER_SWITCH_LABEL")}
       />
     </div>
   );
