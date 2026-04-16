@@ -6,12 +6,13 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_SETTINGS_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _SETTINGS_DIR.parents[3]
+
 
 def _normalize_runtime_fs_path(value: Path, *, default_base: Path) -> Path:
     if value.is_absolute():
         return value
-    current = Path(__file__).resolve().parent
-    repo_root = current.parents[2]
     prefixes = {
         "apps",
         "data",
@@ -23,7 +24,7 @@ def _normalize_runtime_fs_path(value: Path, *, default_base: Path) -> Path:
     }
     first = value.parts[0] if value.parts else ""
     if first in prefixes:
-        return (repo_root / value).resolve()
+        return (_REPO_ROOT / value).resolve()
     return (default_base / value).resolve()
 
 
@@ -282,15 +283,15 @@ class SecuritySettings(BaseSettings):
     )
 
     master_key_path: Path = Field(
-        default=Path(__file__).resolve().parents[3] / "data" / "secrets" / "master.key",
+        default=_REPO_ROOT / "data" / "secrets" / "master.key",
         description="Path to the master key file used for non-config secret encryption flows.",
     )
     signing_private_key_path: Path = Field(
-        default=Path(__file__).resolve().parents[3] / "data" / "secrets" / "signing.ed25519",
+        default=_REPO_ROOT / "data" / "secrets" / "signing.ed25519",
         description="Path to the Ed25519 private key used to sign system config revisions.",
     )
     signing_public_key_path: Path = Field(
-        default=Path(__file__).resolve().parents[3] / "data" / "secrets" / "signing.ed25519.pub",
+        default=_REPO_ROOT / "data" / "secrets" / "signing.ed25519.pub",
         description="Path to the Ed25519 public key used to verify system config revision signatures.",
     )
     enabled: bool = Field(default=False, description="Whether to enable FastAPI Guard middleware.")
@@ -378,16 +379,12 @@ class SecuritySettings(BaseSettings):
     @field_validator("master_key_path", mode="after")
     @classmethod
     def _normalize_master_key_path(cls, value: Path) -> Path:
-        current = Path(__file__).resolve().parent
-        repo_root = current.parents[2]
-        return _normalize_runtime_fs_path(value, default_base=repo_root)
+        return _normalize_runtime_fs_path(value, default_base=_REPO_ROOT)
 
     @field_validator("signing_private_key_path", "signing_public_key_path", mode="after")
     @classmethod
     def _normalize_signing_key_paths(cls, value: Path) -> Path:
-        current = Path(__file__).resolve().parent
-        repo_root = current.parents[2]
-        return _normalize_runtime_fs_path(value, default_base=repo_root)
+        return _normalize_runtime_fs_path(value, default_base=_REPO_ROOT)
 
     @field_validator("redis_url", "custom_log_file", "log_suspicious_level", "log_request_level", mode="before")
     @classmethod

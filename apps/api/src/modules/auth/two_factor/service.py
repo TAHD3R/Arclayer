@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import binascii
 import hmac
 import os
 import re
@@ -10,6 +11,8 @@ from typing import Final, Protocol, cast
 from urllib.parse import quote, urlencode
 from uuid import UUID
 
+from cryptography.exceptions import InvalidTag
+
 from src.common.constants.auth import REAUTH_MAX_AGE_SECONDS
 from src.common.services import BaseService
 from src.config import Settings
@@ -18,7 +21,7 @@ from src.core.i18n import t
 from src.modules.auth.tokens.service import verify_password
 from src.modules.auth.two_factor.repository import TwoFactorRepository, TwoFactorRepositoryLike
 from src.modules.auth.two_factor.totp import generate_totp_secret, verify_totp_code
-from src.settings.crypto import decrypt_secret, encrypt_secret, ensure_master_key
+from src.settings.crypto import decrypt_secret, encrypt_secret, ensure_master_key, master_key_exists
 
 _BACKUP_CODE_COUNT: Final[int] = 10
 _BACKUP_CODE_BYTES: Final[int] = 10
@@ -102,16 +105,35 @@ class AuthTwoFactorService(BaseService):
 
     def _ensure_secret_key(self) -> bytes:
         path = self.settings.security.master_key_path
+        if not master_key_exists(path):
+            raise ServiceUnavailable(
+                message=self._ta("MASTER_KEY_MISSING", "当前安全验证暂不可用，请联系管理员完成修复后重试。"),
+                error="MASTER_KEY_MISSING",
+            )
         try:
             key, _fingerprint = ensure_master_key(path)
             return key
-        except (OSError, ValueError) as exc:
+        except ValueError as exc:
+            raise ServiceUnavailable(
+                message=self._ta("MASTER_KEY_INVALID", "当前安全验证暂不可用，请联系管理员完成修复后重试。"),
+                error="MASTER_KEY_INVALID",
+            ) from exc
+        except OSError as exc:
             raise ServiceUnavailable(
                 message=self._ta(
                     "TWO_FACTOR_SETUP_UNAVAILABLE",
                     "系统安全密钥暂不可用，请稍后再试。",
                 ),
                 error="TWO_FACTOR_SETUP_UNAVAILABLE",
+            ) from exc
+
+    def _decrypt_totp_secret_or_raise(self, *, user_id: UUID, totp_secret_enc: str, master_key: bytes) -> str:
+        try:
+            return decrypt_secret(totp_secret_enc, key=master_key, aad=_aad(user_id))
+        except (InvalidTag, ValueError, UnicodeDecodeError, binascii.Error) as exc:
+            raise ServiceUnavailable(
+                message=self._ta("MASTER_KEY_INVALID", "当前安全验证暂不可用，请联系管理员完成修复后重试。"),
+                error="MASTER_KEY_INVALID",
             ) from exc
 
     async def get_status(self, *, user_id: UUID) -> tuple[bool, int]:
@@ -235,10 +257,16 @@ class AuthTwoFactorService(BaseService):
         self,
         *,
         user_id: UUID,
+        totp_secret_enc: str,
         backup_code: str,
         now: datetime,
     ) -> None:
         master_key = self._ensure_secret_key()
+        self._decrypt_totp_secret_or_raise(
+            user_id=user_id,
+            totp_secret_enc=totp_secret_enc,
+            master_key=master_key,
+        )
         normalized = _normalize_backup_code(backup_code)
         if not normalized:
             raise BadRequest(
@@ -265,7 +293,11 @@ class AuthTwoFactorService(BaseService):
         now: datetime,
     ) -> None:
         master_key = self._ensure_secret_key()
-        secret = decrypt_secret(totp_secret_enc, key=master_key, aad=_aad(user_id))
+        secret = self._decrypt_totp_secret_or_raise(
+            user_id=user_id,
+            totp_secret_enc=totp_secret_enc,
+            master_key=master_key,
+        )
         result = verify_totp_code(secret, code=code)
         if not result.ok or result.used_counter is None:
             raise BadRequest(
@@ -296,7 +328,12 @@ class AuthTwoFactorService(BaseService):
                 now=now,
             )
         elif backup_code:
-            await self._verify_or_consume_backup(user_id=user_id, backup_code=backup_code, now=now)
+            await self._verify_or_consume_backup(
+                user_id=user_id,
+                totp_secret_enc=cast(str, record.totp_secret_enc),
+                backup_code=backup_code,
+                now=now,
+            )
         else:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
 
@@ -326,7 +363,12 @@ class AuthTwoFactorService(BaseService):
                 now=now,
             )
         elif backup_code:
-            await self._verify_or_consume_backup(user_id=user_id, backup_code=backup_code, now=now)
+            await self._verify_or_consume_backup(
+                user_id=user_id,
+                totp_secret_enc=cast(str, record.totp_secret_enc),
+                backup_code=backup_code,
+                now=now,
+            )
         else:
             raise BadRequest(message=t("errors", "BAD_REQUEST"), error="BAD_REQUEST")
 
@@ -366,7 +408,12 @@ class AuthTwoFactorService(BaseService):
             return
 
         if backup_code:
-            await self._verify_or_consume_backup(user_id=user_id, backup_code=backup_code, now=now)
+            await self._verify_or_consume_backup(
+                user_id=user_id,
+                totp_secret_enc=cast(str, record.totp_secret_enc),
+                backup_code=backup_code,
+                now=now,
+            )
             return
 
         raise BadRequest(

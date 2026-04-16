@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from uuid import uuid4
 
@@ -11,8 +12,9 @@ from src.core.database.orm import verify_db_ready
 from src.core.registry import create_app
 from src.modules.auth.repository import EmailLoginCodeStore, UserRepository
 from src.modules.auth.tokens.service import hash_password
+from src.modules.auth.two_factor.challenge_store import TwoFactorChallengeStore
 from src.modules.auth.two_factor.totp import generate_totp_code
-from src.settings.crypto import ensure_master_key
+from src.settings.crypto import ensure_master_key, generate_master_key
 
 pytestmark = pytest.mark.integration
 
@@ -48,6 +50,46 @@ async def _login(client: AsyncClient, *, email: str, password: str, headers: dic
     payload = resp.json().get("data") or {}
     assert _access_token(payload)
     return payload
+
+
+async def _enable_two_factor(client: AsyncClient, *, email: str, password: str) -> tuple[str, list[str]]:
+    tokens = await _login(client, email=email, password=password)
+    auth_headers = {"Authorization": f"Bearer {_access_token(tokens)}"}
+
+    setup = await client.post(
+        "/api/v1/auth/2fa/setup",
+        json={"password": password},
+        headers=auth_headers,
+    )
+    assert setup.status_code == 200, setup.text
+    setup_data = setup.json().get("data") or {}
+    secret = str(setup_data.get("secret") or "")
+    assert secret
+
+    confirm = await client.post(
+        "/api/v1/auth/2fa/confirm",
+        json={"code": generate_totp_code(secret)},
+        headers=auth_headers,
+    )
+    assert confirm.status_code == 200, confirm.text
+    confirm_data = confirm.json().get("data") or {}
+    backup_codes = confirm_data.get("backupCodes") or confirm_data.get("backup_codes") or []
+    assert len(backup_codes) == 10
+
+    return secret, list(backup_codes)
+
+
+async def _issue_two_factor_challenge(client: AsyncClient, *, email: str, password: str) -> str:
+    challenged = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    )
+    assert challenged.status_code == 401, challenged.text
+    assert challenged.json().get("error") == "TWO_FACTOR_REQUIRED"
+    challenge_meta = challenged.json().get("meta") or {}
+    challenge_token = challenge_meta.get("two_factor_token") or challenge_meta.get("twoFactorToken")
+    assert isinstance(challenge_token, str) and challenge_token
+    return challenge_token
 
 
 async def test_auth_security_endpoints_two_factor_flow(
@@ -211,6 +253,88 @@ async def test_auth_email_code_login_flow(
             assert verify_resp.status_code == 200, verify_resp.text
             payload = verify_resp.json().get("data") or {}
             assert _access_token(payload)
+
+
+async def test_auth_login_two_factor_returns_business_error_when_master_key_is_missing(
+    prepared_db,
+    integration_valkey_settings,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+    _set_test_env(monkeypatch, base_dir=tmp_path)
+
+    settings = get_settings()
+    ensure_master_key(Path(settings.security.master_key_path))
+    user = await _create_user(password="pass1234")
+
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            secret, _backup_codes = await _enable_two_factor(client, email=user.email, password="pass1234")
+            challenge_token = await _issue_two_factor_challenge(client, email=user.email, password="pass1234")
+
+            Path(settings.security.master_key_path).unlink()
+
+            login_2fa = await client.post(
+                "/api/v1/auth/login/2fa",
+                json={"twoFactorToken": challenge_token, "code": generate_totp_code(secret)},
+            )
+
+            assert login_2fa.status_code == 503, login_2fa.text
+            assert login_2fa.json().get("error") == "MASTER_KEY_MISSING"
+            assert "InvalidTag" not in login_2fa.text
+
+            challenge_store = TwoFactorChallengeStore(app.state.valkey)
+            record = await challenge_store.get(token=challenge_token)
+            assert isinstance(record, dict)
+            assert int(record.get("attempts") or 0) == 0
+
+
+async def test_auth_login_two_factor_returns_business_error_when_master_key_does_not_match_secret(
+    prepared_db,
+    integration_valkey_settings,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _ = prepared_db
+    _ = integration_valkey_settings
+    _set_test_env(monkeypatch, base_dir=tmp_path)
+
+    settings = get_settings()
+    key_path = Path(settings.security.master_key_path)
+    ensure_master_key(key_path)
+    user = await _create_user(password="pass1234")
+
+    app = create_app()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with app.router.lifespan_context(app):
+        await verify_db_ready(settings)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            secret, _backup_codes = await _enable_two_factor(client, email=user.email, password="pass1234")
+            challenge_token = await _issue_two_factor_challenge(client, email=user.email, password="pass1234")
+
+            wrong_key = base64.urlsafe_b64encode(generate_master_key()).decode("utf-8").rstrip("=")
+            key_path.write_text(wrong_key + "\n", encoding="utf-8")
+
+            login_2fa = await client.post(
+                "/api/v1/auth/login/2fa",
+                json={"twoFactorToken": challenge_token, "code": generate_totp_code(secret)},
+            )
+
+            assert login_2fa.status_code == 503, login_2fa.text
+            assert login_2fa.json().get("error") == "MASTER_KEY_INVALID"
+            assert "InvalidTag" not in login_2fa.text
+
+            challenge_store = TwoFactorChallengeStore(app.state.valkey)
+            record = await challenge_store.get(token=challenge_token)
+            assert isinstance(record, dict)
+            assert int(record.get("attempts") or 0) == 0
 
 
 async def test_auth_sessions_endpoints_include_metadata_and_revoke_others(

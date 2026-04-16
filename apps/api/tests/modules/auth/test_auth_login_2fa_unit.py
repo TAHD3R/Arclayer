@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict
 
 from src.config import get_settings
-from src.core.exceptions import BadRequest, Unauthorized
+from src.core.exceptions import BadRequest, ServiceUnavailable, Unauthorized
 from src.models.organization.user import UserStatus
 from src.modules.auth.login.service import AuthLoginService
 from src.modules.auth.service import AuthService
@@ -267,6 +267,33 @@ async def test_complete_two_factor_login_bumps_attempts(monkeypatch) -> None:
     record = valkey._store.get(f"auth:2fa:challenge:{token}")
     assert isinstance(record, dict)
     assert int(record.get("attempts") or 0) == 1
+
+
+async def test_complete_two_factor_login_preserves_challenge_on_service_error(monkeypatch) -> None:
+    service, valkey, _ = _build_login_service(monkeypatch, two_factor_enabled=True)
+
+    class FailingTwoFactor:
+        async def is_enabled(self, *, user_id: UUID) -> bool:
+            return True
+
+        async def verify_for_login(self, *, user_id: UUID, code: str | None, backup_code: str | None) -> None:
+            raise ServiceUnavailable(message="系统未配置 Master Key，无法使用 2FA", error="MASTER_KEY_MISSING")
+
+    service.two_factor = FailingTwoFactor()
+
+    with pytest.raises(Unauthorized) as exc:
+        await service.login(email="demo@example.com", password="pass")
+
+    assert exc.value.meta is not None
+    token = str(exc.value.meta["two_factor_token"])
+
+    with pytest.raises(ServiceUnavailable) as service_error:
+        await service.complete_two_factor_login(two_factor_token=token, code="123456", backup_code=None)
+
+    assert service_error.value.error == "MASTER_KEY_MISSING"
+    record = valkey._store.get(f"auth:2fa:challenge:{token}")
+    assert isinstance(record, dict)
+    assert int(record.get("attempts") or 0) == 0
 
 
 async def test_request_login_email_code_stores_code_and_returns_metadata(monkeypatch) -> None:

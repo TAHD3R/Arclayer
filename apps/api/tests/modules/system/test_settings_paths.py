@@ -41,6 +41,35 @@ def test_security_master_key_path_resolves_repo_relative_path() -> None:
     settings = SecuritySettings(master_key_path=Path("data/secrets/master.key"))
     assert settings.master_key_path.is_absolute()
     assert _norm(settings.master_key_path).endswith("/data/secrets/master.key")
+    assert "/apps/data/" not in _norm(settings.master_key_path)
+
+
+def test_security_signing_key_paths_resolve_repo_relative_path() -> None:
+    settings = SecuritySettings(
+        signing_private_key_path=Path("data/secrets/signing.ed25519"),
+        signing_public_key_path=Path("data/secrets/signing.ed25519.pub"),
+    )
+    assert settings.signing_private_key_path.is_absolute()
+    assert settings.signing_public_key_path.is_absolute()
+    assert _norm(settings.signing_private_key_path).endswith("/data/secrets/signing.ed25519")
+    assert _norm(settings.signing_public_key_path).endswith("/data/secrets/signing.ed25519.pub")
+    assert "/apps/data/" not in _norm(settings.signing_private_key_path)
+    assert "/apps/data/" not in _norm(settings.signing_public_key_path)
+
+
+def test_security_default_secret_paths_resolve_under_repo_root(monkeypatch) -> None:
+    monkeypatch.delenv("SECURITY__MASTER_KEY_PATH", raising=False)
+    monkeypatch.delenv("SECURITY__SIGNING_PRIVATE_KEY_PATH", raising=False)
+    monkeypatch.delenv("SECURITY__SIGNING_PUBLIC_KEY_PATH", raising=False)
+
+    settings = SecuritySettings()
+
+    assert _norm(settings.master_key_path).endswith("/data/secrets/master.key")
+    assert _norm(settings.signing_private_key_path).endswith("/data/secrets/signing.ed25519")
+    assert _norm(settings.signing_public_key_path).endswith("/data/secrets/signing.ed25519.pub")
+    assert "/apps/data/" not in _norm(settings.master_key_path)
+    assert "/apps/data/" not in _norm(settings.signing_private_key_path)
+    assert "/apps/data/" not in _norm(settings.signing_public_key_path)
 
 
 def test_security_blank_optional_guard_values_normalize_to_none() -> None:
