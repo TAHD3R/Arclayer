@@ -29,7 +29,7 @@ describe("data-table-presenter-utils", () => {
     } as Parameters<typeof resolveHeaderPinStyle>[0];
 
     expect(resolveHeaderPinStyle(header).className).toContain("bg-background");
-    expect(resolveHeaderPinStyle(header).className).toContain("border-l");
+    expect(resolveHeaderPinStyle(header).className).not.toContain("border-l");
     expect(resolveHeaderPinStyle(header).style).toMatchObject({
       width: 56,
       minWidth: 56,
@@ -45,7 +45,7 @@ describe("data-table-presenter-utils", () => {
     } as Parameters<typeof resolveCellPinStyle>[0];
 
     expect(resolveCellPinStyle(cell).className).toContain("bg-inherit");
-    expect(resolveCellPinStyle(cell).className).toContain("border-l");
+    expect(resolveCellPinStyle(cell).className).not.toContain("border-l");
     expect(resolveCellPinStyle(cell).style).toMatchObject({
       width: 56,
       minWidth: 56,

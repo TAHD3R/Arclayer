@@ -103,7 +103,7 @@ function resolveHeaderCellState<TData>(
       ? null
       : flexRender(header.column.columnDef.header, header.getContext()),
     className: cn(
-      "group/header-cell relative border-b border-border/60 bg-background text-callout text-label-secondary/90 select-none align-middle font-medium",
+      "group/header-cell relative bg-background text-callout text-label-secondary/90 select-none align-middle font-medium",
       alignClass,
       pinStyle.className,
       resolveHeaderHeightClass(rowHeight, wrapHeaders),
@@ -243,9 +243,9 @@ export function DataTablePresenterHeader<TData>(props: {
   };
 
   return (
-    <TableHeader>
+    <TableHeader className="border-b border-border/60 [&_tr]:border-0">
       {props.table.getHeaderGroups().map((headerGroup) => (
-        <TableRow key={headerGroup.id} className="border-border/50 hover:bg-transparent">
+        <TableRow key={headerGroup.id} className="border-0 hover:bg-transparent">
           {headerGroup.headers.map((header) => {
             const meta = header.column.columnDef.meta;
             const columnId = header.column.id;

@@ -205,7 +205,7 @@ describe("TeamRolesView", () => {
     });
   });
 
-  it("shows permission count beside search and uses a wide permission column with bordered header", async () => {
+  it("shows permission count beside search and uses the shared borderless row treatment", async () => {
     const { container } = renderWithQuery(<TeamRolesView workspaceIdOverride="ws-1" />);
 
     await screen.findByTitle("Content editor");
@@ -214,23 +214,26 @@ describe("TeamRolesView", () => {
 
     const matrix = screen.getByRole("table");
     const matrixShell = matrix.parentElement;
-    expect(matrixShell).toHaveClass("rounded-lg", "border", "border-border", "bg-background");
+    expect(matrixShell).toHaveClass("rounded-lg", "bg-background");
+    expect(matrixShell).not.toHaveClass("border", "border-border");
     const columns = matrix.querySelectorAll("col");
     expect(columns).toHaveLength(3);
     expect(columns[0]).toHaveAttribute("style", expect.stringContaining("42%"));
     expect(columns[1]).toHaveAttribute("style", expect.stringContaining("29%"));
 
     const tableHead = matrix.querySelector("thead");
-    expect(tableHead).toHaveClass("border-b");
+    expect(tableHead).toHaveClass("border-b", "border-border/25");
 
     const headerCells = matrix.querySelectorAll("th");
-    expect(headerCells[0]).toHaveClass("bg-background", "border-r");
+    expect(headerCells[0]).toHaveClass("bg-background");
+    expect(headerCells[0]).not.toHaveClass("border-r");
 
     const firstBodyRow = matrix.querySelector("tbody tr");
-    expect(firstBodyRow).toHaveClass("bg-muted/35", "hover:bg-card");
+    expect(firstBodyRow).toHaveClass("bg-background", "hover:bg-muted/20");
 
     const stickyPermissionCell = firstBodyRow?.querySelector("td");
-    expect(stickyPermissionCell).toHaveClass("bg-inherit", "border-r");
+    expect(stickyPermissionCell).toHaveClass("bg-inherit");
+    expect(stickyPermissionCell).not.toHaveClass("border-r");
 
     const pageBody = container.querySelector(".flex.flex-col.gap-4.pb-8");
     expect(pageBody).not.toBeNull();

@@ -314,7 +314,7 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
         {hasEmptySearch ? (
           <ContentGuard loading={false} empty emptyTitle={t("team:TEAM_ROLES_EMPTY_SEARCH")} />
         ) : (
-          <div className="relative isolate overflow-x-auto rounded-lg border border-border bg-background">
+          <div className="relative isolate overflow-x-auto rounded-lg bg-background">
             <table className="w-full table-fixed border-collapse caption-bottom text-callout">
               <colgroup>
                 <col style={{ width: matrixColumnWidths.permission }} />
@@ -322,9 +322,9 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                   <col key={role.code} style={{ width: matrixColumnWidths.role }} />
                 ))}
               </colgroup>
-              <TableHeader className="border-b border-border/60">
-                <TableRow className="border-border/40 bg-background hover:bg-transparent">
-                  <TableHead className="sticky top-0 left-0 z-[3] border-r border-border/40 bg-background align-top text-center">
+              <TableHeader className="border-b border-border/60 [&_tr]:border-0">
+                <TableRow className="border-0 bg-background hover:bg-transparent">
+                  <TableHead className="sticky top-0 left-0 z-[3] bg-background align-top text-center">
                     <div className="flex min-h-24 items-center justify-center px-2 py-2.5 text-center">
                       <span className="block text-callout font-semibold text-label-secondary">
                         {t("team:TEAM_ROLES_COL_PERMISSION")}
@@ -403,9 +403,9 @@ export function TeamRolesView(props: { workspaceIdOverride?: string | null } = {
                 {filteredPermissions.map((perm) => (
                   <TableRow
                     key={perm.code}
-                    className="group/row border-border/50 bg-muted/35 hover:bg-card"
+                    className="group/row border-border/45 bg-background hover:bg-muted/20"
                   >
-                    <TableCell className="sticky left-0 z-[1] border-r border-border/40 bg-inherit transition-colors">
+                    <TableCell className="sticky left-0 z-[1] bg-inherit transition-colors">
                       <div className="min-w-0">
                         <div className="break-words font-semibold text-label-primary">
                           {perm.name}

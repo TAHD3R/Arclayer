@@ -53,7 +53,7 @@ export function DataTablePresenterBody<TData>(props: {
           <TableRow
             key={row.id}
             className={cn(
-              "group/row border-border/50 bg-muted/35 transition-colors hover:bg-card data-[state=selected]:bg-muted/40 last:border-b-0",
+              "group/row border-border/45 bg-background transition-colors hover:bg-muted/20 data-[state=selected]:bg-muted/24 last:border-b-0",
               props.rowClassName?.(row, rowIndex),
             )}
             onClick={(event) => {
@@ -97,7 +97,7 @@ export function DataTablePresenterBody<TData>(props: {
           </TableRow>
         ))
       ) : (
-        <TableRow className="border-border/40 hover:bg-transparent last:border-b-0">
+        <TableRow className="border-border/25 bg-background hover:bg-transparent last:border-b-0">
           <TableCell className="h-28 px-6 text-center text-label-secondary" colSpan={colSpan}>
             {props.emptyText}
           </TableCell>

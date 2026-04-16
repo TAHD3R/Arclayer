@@ -146,14 +146,12 @@ describe("DataTablePresenter", () => {
     expect(surface).toContainElement(toolbar);
     expect(surface).toContainElement(footer);
     expect(surface?.className).toContain("rounded-lg");
-    expect(surface?.className).toContain("border");
-    expect(surface?.className).toContain("border-border");
     expect(surface?.className).toContain("bg-background");
 
     const separators = container.querySelectorAll(
       "div.border-b.border-border\\/60, div.border-t.border-border\\/60",
     );
-    expect(separators.length).toBeGreaterThanOrEqual(2);
+    expect(separators.length).toBe(0);
   });
 
   it("uses text-callout styling for header cells", () => {
@@ -170,8 +168,8 @@ describe("DataTablePresenter", () => {
     const bodyRow = container.querySelector("tbody tr");
 
     expect(headerCell.className).toContain("bg-background");
-    expect(bodyRow?.className).toContain("bg-muted/35");
-    expect(bodyRow?.className).toContain("hover:bg-card");
+    expect(bodyRow?.className).toContain("bg-background");
+    expect(bodyRow?.className).toContain("hover:bg-muted/20");
   });
 });
 

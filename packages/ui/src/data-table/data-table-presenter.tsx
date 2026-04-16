@@ -215,9 +215,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
     .map((column) => column.id);
 
   const surfaceClassName =
-    surface === "embedded"
-      ? "rounded-none border-0 bg-transparent "
-      : "rounded-lg border border-border bg-background ";
+    surface === "embedded" ? "rounded-none border-0 bg-transparent " : "rounded-lg bg-background ";
   const sectionPaddingClass = "px-0";
 
   return (
@@ -226,7 +224,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
         className={cn("relative min-h-0 flex flex-1 flex-col overflow-hidden", surfaceClassName)}
       >
         {hasToolbar ? (
-          <div className={cn("border-b border-border/60 bg-muted/4 py-3", sectionPaddingClass)}>
+          <div className={cn("bg-transparent py-3", sectionPaddingClass)}>
             {toolbar?.fullWidth ? <div className="min-w-0">{toolbar.fullWidth}</div> : null}
 
             {hasToolbarRow ? (
@@ -327,11 +325,7 @@ export function DataTablePresenter<TData>(props: DataTablePresenterProps<TData>)
         </div>
 
         {hasFooter ? (
-          <div
-            className={cn("border-t border-border/60 bg-muted/[0.03] py-3", sectionPaddingClass)}
-          >
-            {footer}
-          </div>
+          <div className={cn("bg-transparent py-3", sectionPaddingClass)}>{footer}</div>
         ) : null}
 
         <DataTableRefreshOverlay active={refreshing} label={refreshingLabel} />
