@@ -203,6 +203,18 @@ describe("GlobalLayout", () => {
     expect(navKeys).toContain("global.system");
   });
 
+  it("includes the resources placeholder before workspaces in global navigation", () => {
+    renderWithQueryClient(<GlobalLayout />);
+
+    const navKeys = topbarSpy.mock.calls[0]?.[0]?.navItems?.map(
+      (item: { key: string }) => item.key,
+    );
+
+    expect(navKeys).toContain("global.resources");
+    expect(navKeys.indexOf("global.resources")).toBeGreaterThan(navKeys.indexOf("global.home"));
+    expect(navKeys.indexOf("global.resources")).toBeLessThan(navKeys.indexOf("global.workspaces"));
+  });
+
   it("renders only route content when favorite overlay content-only mode is active", () => {
     mockSearchStr = "?arclayer_favorite_overlay=content-only";
 

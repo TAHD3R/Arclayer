@@ -29,19 +29,26 @@ import { buttonVariants } from "./button-variants";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+const SIDEBAR_HOVER_OPEN_DELAY_MS = 110;
+const SIDEBAR_HOVER_CLOSE_DELAY_MS = 180;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+const SIDEBAR_EXPAND_TRANSITION_CLASSNAME = "duration-280 ease-[cubic-bezier(0.4,0,0.2,1)]";
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
   open: boolean;
   setOpen: (open: boolean) => void;
+  hoverOpen: boolean;
+  hoverIntent: boolean;
   openMobile: boolean;
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  markHoverPointerEnter: () => void;
+  markHoverPointerLeave: () => void;
 };
 
 const [LocalSidebarProvider, useSidebar] = getStrictContext<SidebarContextProps>("SidebarContext");
@@ -63,6 +70,10 @@ function SidebarProvider({
 }: SidebarProviderProps) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
+  const [hoverOpen, setHoverOpen] = React.useState(false);
+  const [hoverIntent, setHoverIntent] = React.useState(false);
+  const hoverOpenTimerRef = React.useRef<number | null>(null);
+  const hoverCloseTimerRef = React.useRef<number | null>(null);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -83,10 +94,72 @@ function SidebarProvider({
     [setOpenProp, open],
   );
 
+  const clearHoverOpenTimer = React.useCallback(() => {
+    if (hoverOpenTimerRef.current === null) return;
+    window.clearTimeout(hoverOpenTimerRef.current);
+    hoverOpenTimerRef.current = null;
+  }, []);
+
+  const clearHoverCloseTimer = React.useCallback(() => {
+    if (hoverCloseTimerRef.current === null) return;
+    window.clearTimeout(hoverCloseTimerRef.current);
+    hoverCloseTimerRef.current = null;
+  }, []);
+
+  const markHoverPointerEnter = React.useCallback(() => {
+    clearHoverOpenTimer();
+    clearHoverCloseTimer();
+    if (isMobile || open) return;
+    setHoverIntent(true);
+    if (hoverOpen) return;
+    hoverOpenTimerRef.current = window.setTimeout(() => {
+      setHoverOpen(true);
+      hoverOpenTimerRef.current = null;
+    }, SIDEBAR_HOVER_OPEN_DELAY_MS);
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, hoverOpen, isMobile, open]);
+
+  const markHoverPointerLeave = React.useCallback(() => {
+    clearHoverOpenTimer();
+    clearHoverCloseTimer();
+    if (isMobile || open) {
+      setHoverIntent(false);
+      setHoverOpen(false);
+      return;
+    }
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      setHoverIntent(false);
+      setHoverOpen(false);
+      hoverCloseTimerRef.current = null;
+    }, SIDEBAR_HOVER_CLOSE_DELAY_MS);
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, isMobile, open]);
+
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
   }, [isMobile, setOpen, setOpenMobile]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    setHoverIntent(false);
+    setHoverOpen(false);
+    clearHoverOpenTimer();
+    clearHoverCloseTimer();
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, open]);
+
+  React.useEffect(() => {
+    if (!isMobile) return;
+    setHoverIntent(false);
+    setHoverOpen(false);
+    clearHoverOpenTimer();
+    clearHoverCloseTimer();
+  }, [clearHoverCloseTimer, clearHoverOpenTimer, isMobile]);
+
+  React.useEffect(() => {
+    return () => {
+      clearHoverOpenTimer();
+      clearHoverCloseTimer();
+    };
+  }, [clearHoverCloseTimer, clearHoverOpenTimer]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -103,19 +176,35 @@ function SidebarProvider({
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
-  const state = open ? "expanded" : "collapsed";
+  const state = open || hoverOpen ? "expanded" : "collapsed";
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
       state,
       open,
       setOpen,
+      hoverOpen,
+      hoverIntent,
       isMobile,
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      markHoverPointerEnter,
+      markHoverPointerLeave,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+    [
+      state,
+      open,
+      setOpen,
+      hoverOpen,
+      hoverIntent,
+      isMobile,
+      openMobile,
+      setOpenMobile,
+      toggleSidebar,
+      markHoverPointerEnter,
+      markHoverPointerLeave,
+    ],
   );
 
   return (
@@ -163,7 +252,15 @@ function Sidebar({
   transition = { type: "spring", stiffness: 350, damping: 35 },
   ...props
 }: SidebarProps) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const {
+    isMobile,
+    state,
+    open,
+    openMobile,
+    setOpenMobile,
+    markHoverPointerEnter,
+    markHoverPointerLeave,
+  } = useSidebar();
 
   if (collapsible === "none") {
     return (
@@ -237,7 +334,8 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-(--sidebar-width) bg-transparent transition-[width] duration-360 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+          "relative w-(--sidebar-width) origin-left bg-transparent transition-[width] motion-reduce:transition-none",
+          SIDEBAR_EXPAND_TRANSITION_CLASSNAME,
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -248,16 +346,21 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-360 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:flex",
+          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] motion-reduce:transition-none md:flex",
+          SIDEBAR_EXPAND_TRANSITION_CLASSNAME,
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+          side === "left" ? "origin-left" : "origin-right",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
           className,
         )}
+        onPointerEnter={collapsible === "icon" && !open ? markHoverPointerEnter : undefined}
+        onPointerMove={collapsible === "icon" && !open ? markHoverPointerEnter : undefined}
+        onPointerLeave={collapsible === "icon" && !open ? markHoverPointerLeave : undefined}
         {...props}
       >
         <Highlight
@@ -272,7 +375,9 @@ function Sidebar({
           <div
             data-sidebar="sidebar"
             data-slot="sidebar-inner"
-            className="bg-sidebar group-data-[variant=floating]:border-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:"
+            className={cn(
+              "bg-sidebar flex h-full w-full origin-left flex-col overflow-hidden group-data-[variant=floating]:border-border group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border",
+            )}
           >
             {children}
           </div>
@@ -573,7 +678,7 @@ const sidebarMenuButtonActiveVariants = cva(
 );
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-callout outline-hidden ring-sidebar-ring transition-[width,height,padding] [&:not([data-highlight])]:hover:bg-sidebar-accent [&:not([data-highlight])]:hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground [&:not([data-highlight])]:data-[state=open]:hover:bg-sidebar-accent [&:not([data-highlight])]:data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:mx-auto [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full min-w-0 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-callout outline-hidden ring-sidebar-ring transition-[color,background-color,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] [&:not([data-highlight])]:hover:bg-sidebar-accent [&:not([data-highlight])]:hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground [&:not([data-highlight])]:data-[state=open]:hover:bg-sidebar-accent [&:not([data-highlight])]:data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:gap-0 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -615,7 +720,7 @@ const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonP
     ref,
   ) {
     const Comp = asChild ? Slot.Root : "button";
-    const { isMobile, state } = useSidebar();
+    const { isMobile, state, hoverIntent } = useSidebar();
 
     const button = (
       <HighlightItem asChild activeClassName={sidebarMenuButtonActiveVariants({ variant })}>
@@ -646,7 +751,7 @@ const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonP
     return (
       <Tooltip key={tooltipKey} side="right" align="center">
         <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent hidden={state !== "collapsed" || isMobile} {...tooltip} />
+        <TooltipContent hidden={state !== "collapsed" || isMobile || hoverIntent} {...tooltip} />
       </Tooltip>
     );
   },

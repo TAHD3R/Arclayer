@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AdminSidebarShell } from "@/components/layout/admin-sidebar-shell";
@@ -163,5 +163,94 @@ describe("AdminSidebarShell", () => {
       expect(tooltip?.style.left).toBe("110px");
       expect(tooltip?.style.top).toBe("144px");
     });
+  });
+
+  it("temporarily expands a collapsed desktop sidebar after the hover threshold and collapses after the leave delay", () => {
+    vi.useFakeTimers();
+
+    try {
+      const view = render(
+        <SidebarProvider defaultOpen={false} className="h-screen">
+          <AdminSidebarShell
+            showNavSkeleton={false}
+            showOrgNavErrorOverlay={false}
+            mainItems={[]}
+            footerItems={[]}
+            collapsible="icon"
+          />
+        </SidebarProvider>,
+      );
+
+      const sidebar = view.container.querySelector<HTMLElement>('[data-slot="sidebar"]');
+      const sidebarContainer = view.container.querySelector<HTMLElement>(
+        '[data-slot="sidebar-container"]',
+      );
+
+      expect(sidebar).not.toBeNull();
+      expect(sidebarContainer).not.toBeNull();
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+
+      act(() => {
+        fireEvent.pointerEnter(sidebarContainer!);
+        fireEvent.pointerMove(sidebarContainer!);
+        vi.advanceTimersByTime(80);
+      });
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+
+      act(() => {
+        vi.advanceTimersByTime(30);
+      });
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+
+      act(() => {
+        fireEvent.pointerLeave(sidebarContainer!);
+        vi.advanceTimersByTime(140);
+      });
+      expect(sidebar).toHaveAttribute("data-state", "expanded");
+
+      act(() => {
+        vi.advanceTimersByTime(40);
+      });
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("ignores quick pointer passes over the collapsed sidebar", () => {
+    vi.useFakeTimers();
+
+    try {
+      const view = render(
+        <SidebarProvider defaultOpen={false} className="h-screen">
+          <AdminSidebarShell
+            showNavSkeleton={false}
+            showOrgNavErrorOverlay={false}
+            mainItems={[]}
+            footerItems={[]}
+            collapsible="icon"
+          />
+        </SidebarProvider>,
+      );
+
+      const sidebar = view.container.querySelector<HTMLElement>('[data-slot="sidebar"]');
+      const sidebarContainer = view.container.querySelector<HTMLElement>(
+        '[data-slot="sidebar-container"]',
+      );
+
+      expect(sidebar).not.toBeNull();
+      expect(sidebarContainer).not.toBeNull();
+
+      act(() => {
+        fireEvent.pointerEnter(sidebarContainer!);
+        vi.advanceTimersByTime(80);
+        fireEvent.pointerLeave(sidebarContainer!);
+        vi.runAllTimers();
+      });
+
+      expect(sidebar).toHaveAttribute("data-state", "collapsed");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

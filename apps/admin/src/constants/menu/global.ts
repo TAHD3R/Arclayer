@@ -1,4 +1,4 @@
-import { House, Settings2, Users, Wrench } from "lucide-react";
+import { Rainbow, House, Settings2, Users, Wrench } from "lucide-react";
 
 import type { AdminNavItem } from "@/types/admin-nav";
 import { findActiveTrailNodes } from "@/lib/admin-nav-utils";
@@ -12,12 +12,22 @@ export const GLOBAL_NAV_ITEMS: AdminNavItem[] = [
     icon: House,
   },
   {
+    key: "global.resources",
+    label: "Resources",
+    labelKey: "nav:NAV_RESOURCES",
+    to: "/resources",
+    icon: Rainbow,
+    disabled: true,
+    insertStarredAfter: true,
+  },
+  {
     key: "global.workspaces",
     label: "Workspaces",
     labelKey: "account:ACCOUNT_NAV_WORKSPACES",
     to: "/workspaces",
     groupBehavior: "navigate-self-and-expand",
     icon: Users,
+    dividerBefore: true,
   },
   {
     key: "global.maintenance",

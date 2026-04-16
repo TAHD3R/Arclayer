@@ -8,7 +8,7 @@ export function iconSlot(
 ) {
   const collapseMotionClassName =
     opts?.collapseMotion === "shift"
-      ? "transition-colors duration-320 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+      ? "transform-gpu transition-[color,transform] duration-220 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
       : null;
 
   if (depth === 0 && Icon) {
@@ -17,6 +17,7 @@ export function iconSlot(
         className={cn(
           "size-5 shrink-0 inline-flex items-center justify-center",
           collapseMotionClassName,
+          opts?.collapseMotion === "shift" ? "group-data-[collapsible=icon]:translate-x-0" : null,
           opts?.isActive ? "text-primary" : null,
         )}
         aria-hidden="true"

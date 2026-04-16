@@ -49,6 +49,7 @@ const treeItems: AdminNavItem[] = [
     key: "content",
     label: "Content",
     icon: Users,
+    groupLabelBefore: "Website",
     children: items,
   },
 ];
@@ -102,6 +103,40 @@ describe("AdminSiderNav spacing", () => {
     expect(menu).toHaveClass("group-data-[collapsible=icon]:gap-2.5");
   });
 
+  it("widens collapsed dividers so they read as dividers instead of dots", () => {
+    render(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    const groupDivider = document.querySelector('[data-slot="admin-side-nav-group-divider"]');
+
+    expect(groupDivider).not.toBeNull();
+    expect(groupDivider).toHaveClass("group-data-[collapsible=icon]:inset-x-1.5");
+    expect(groupDivider?.className).toContain("origin-left");
+  });
+
+  it("keeps the sidebar inner column stretched so group markers and dividers use the full width", () => {
+    const { container } = render(
+      <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
+        <Sidebar collapsible="icon" animateOnHover={false}>
+          <AdminSiderNav items={treeItems} favoriteWorkspaceBase="/w/ws-1" />
+        </Sidebar>
+      </SidebarProvider>,
+    );
+
+    const sidebarInner = container.querySelector('[data-slot="sidebar-inner"]');
+    const groupMarker = document.querySelector('[data-slot="admin-side-nav-group-marker"]');
+
+    expect(sidebarInner).not.toBeNull();
+    expect(sidebarInner?.className).not.toContain("items-start");
+    expect(sidebarInner?.className).not.toContain("items-end");
+    expect(groupMarker).toHaveClass("w-full");
+  });
+
   it("uses the updated nav item padding, height, and active styling", () => {
     render(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
@@ -132,11 +167,12 @@ describe("AdminSiderNav spacing", () => {
       "!py-1.5",
       "text-callout",
     );
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:size-9!");
+    expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-9!");
+    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!pr-1.5");
     expect(teamButton.className).toContain("data-[active=true]:bg-transparent");
   });
 
-  it("uses the top-level group trigger spacing without section labels", () => {
+  it("uses the top-level group trigger spacing with the new group marker row", () => {
     render(
       <SidebarProvider open onOpenChange={() => undefined} className="h-screen">
         <Sidebar collapsible="icon" animateOnHover={false}>
@@ -148,7 +184,8 @@ describe("AdminSiderNav spacing", () => {
     const groupButton = screen.getByRole("button", { name: "Content" });
     const groupChevronWrapper = groupButton.querySelector("span:last-child");
 
-    expect(document.querySelector('[data-sidebar="group-label"]')).toBeNull();
+    expect(screen.getByText("Website")).toBeVisible();
+    expect(document.querySelector('[data-slot="admin-side-nav-group-marker"]')).not.toBeNull();
     expect(groupButton).toHaveClass("!pl-3", "!pr-2.5", "h-9", "rounded-md");
     expect(groupChevronWrapper).toHaveClass("ml-auto");
   });

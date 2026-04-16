@@ -4,13 +4,12 @@ import type { AdminNavItem } from "@/types/admin-nav";
 
 export const NAV_ITEM_HEIGHT_CLASSNAME = "h-9";
 export const NAV_ITEM_RADIUS_CLASSNAME = "rounded-md";
-export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME =
-  "group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:mx-auto!";
+export const NAV_ITEM_COLLAPSED_BUTTON_CLASSNAME = "group-data-[collapsible=icon]:!pr-1.5";
 export const NAV_ITEM_BUTTON_PADDING_CLASSNAME = "!pl-3 !pr-2.5 !py-1.5";
 export const NAV_ROOT_MENU_GAP_CLASSNAME = "gap-1.5 group-data-[collapsible=icon]:gap-2.5";
 export const NAV_SUBTREE_CLASSNAME = "mx-0 ml-0 gap-1 pl-7 border-l-0";
 export const NAV_SUBTREE_GUIDE_CLASSNAME = cn("relative");
-export const NAV_DIVIDER_CLASSNAME = "mx-4 my-1";
+export const NAV_DIVIDER_CLASSNAME = "mx-4 my-1 group-data-[collapsible=icon]:mx-1.5";
 export const NAV_TRAILING_RAIL_CLASSNAME = "ml-auto flex shrink-0 items-center self-center";
 export const NAV_TRAILING_ICON_SLOT_CLASSNAME = "inline-flex size-6 items-center justify-center";
 

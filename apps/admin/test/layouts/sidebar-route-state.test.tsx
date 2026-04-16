@@ -148,7 +148,15 @@ describe("sidebar route state wiring", () => {
 
     expect(screen.getByTestId("scene-layout")).toBeInTheDocument();
     expect(props.favoriteWorkspaceBase).toBe("/w/ws-1");
-    expect(props.mainItems.map((item) => item.key)).toContain("content");
+    expect(props.mainItems.map((item) => item.key)).toEqual([
+      "dashboard",
+      "assets",
+      "content.models",
+      "content.library",
+      "settings.site",
+      "team",
+      "workspace",
+    ]);
   });
 
   it("renders route content without the admin scene shell in favorite overlay content-only mode", () => {

@@ -10,6 +10,7 @@ import { useFavoritesStore } from "@/stores/use-favorites-store";
 import {
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarSeparator,
   useSidebar,
@@ -55,7 +56,40 @@ type AdminSiderNavState = {
   openChainForKey: (key: string) => void;
   selectActiveSource: (source: "base" | "starred", targetPath?: string) => void;
   collapsedMode: boolean;
+  hoverIntent: boolean;
 };
+
+function resolveLeadingLabel(item: AdminNavItem, t: (key: string) => string): string | null {
+  if (item.groupLabelBeforeKey) return t(item.groupLabelBeforeKey);
+  return item.groupLabelBefore ?? null;
+}
+
+function NavGroupMarker(props: { label: string }) {
+  return (
+    <div
+      data-slot="admin-side-nav-group-marker"
+      className="relative w-full py-1.5"
+      aria-hidden="true"
+    >
+      <SidebarGroupLabel
+        data-slot="admin-side-nav-group-label"
+        className={cn(
+          "h-auto origin-left px-3 py-0 text-[11px] font-medium tracking-[0.08em] text-label-tertiary transition-[opacity,transform] duration-420 ease-[cubic-bezier(0.18,0.9,0.32,1)] motion-reduce:transition-none",
+          "group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:translate-y-1 group-data-[collapsible=icon]:opacity-0",
+        )}
+      >
+        {props.label}
+      </SidebarGroupLabel>
+      <div
+        data-slot="admin-side-nav-group-divider"
+        className={cn(
+          "bg-sidebar-border pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 origin-left scale-x-75 opacity-0 transition-[opacity,transform] duration-420 ease-[cubic-bezier(0.18,0.9,0.32,1)] motion-reduce:transition-none group-data-[collapsible=icon]:inset-x-1.5",
+          "group-data-[collapsible=icon]:scale-x-100 group-data-[collapsible=icon]:opacity-100",
+        )}
+      />
+    </div>
+  );
+}
 
 type ActiveSource = "base" | "starred";
 
@@ -75,6 +109,14 @@ function injectStarredItem(
   starredItem: AdminNavItem | null,
 ): AdminNavItem[] {
   if (!starredItem) return [...items];
+  const explicitAnchorIndex = items.findIndex((item) => item.insertStarredAfter);
+  if (explicitAnchorIndex >= 0) {
+    return [
+      ...items.slice(0, explicitAnchorIndex + 1),
+      starredItem,
+      ...items.slice(explicitAnchorIndex + 1),
+    ];
+  }
   const [firstItem, ...rest] = items;
   if (firstItem && !firstItem.children?.length) {
     return [firstItem, starredItem, ...rest];
@@ -179,7 +221,7 @@ function useDisplayItems(
 }
 
 function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
-  const { state: sidebarState, isMobile } = useSidebar();
+  const { state: sidebarState, isMobile, hoverIntent } = useSidebar();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const activePathname = props.pathnameOverride ?? pathname;
   const { baseItems, favoriteItems, starredItem, displayItems } = useDisplayItems(
@@ -243,6 +285,7 @@ function useAdminSiderNavState(props: AdminSiderNavProps): AdminSiderNavState {
     openChainForKey,
     selectActiveSource,
     collapsedMode: isCollapsed,
+    hoverIntent,
   };
 }
 
@@ -260,7 +303,9 @@ function NavItemsTree(props: {
   selectActiveSource: (source: ActiveSource, targetPath?: string) => void;
   resolvePermissionName?: (code: string) => string | null;
   isCollapsed: boolean;
+  hoverIntent: boolean;
 }) {
+  const { t } = useTranslation();
   const hoverDropdown = useCollapsedDropdownController();
 
   return (
@@ -275,6 +320,10 @@ function NavItemsTree(props: {
         >
           {props.items.map((item) => (
             <Fragment key={item.key}>
+              {resolveLeadingLabel(item, t) ? (
+                <NavGroupMarker label={resolveLeadingLabel(item, t) as string} />
+              ) : null}
+              {item.dividerBefore ? <SidebarSeparator className={NAV_DIVIDER_CLASSNAME} /> : null}
               <NavNode
                 item={item}
                 commandNavItems={props.commandNavItems}
@@ -291,7 +340,7 @@ function NavItemsTree(props: {
                 selectActiveSource={props.selectActiveSource}
                 resolvePermissionName={props.resolvePermissionName}
                 isCollapsed={props.isCollapsed}
-                hoverDropdown={props.isCollapsed ? hoverDropdown : null}
+                hoverDropdown={props.isCollapsed && !props.hoverIntent ? hoverDropdown : null}
               />
               {item.dividerAfter ? <SidebarSeparator className={NAV_DIVIDER_CLASSNAME} /> : null}
             </Fragment>
@@ -321,6 +370,7 @@ export function AdminSiderNav(props: AdminSiderNavProps) {
         selectActiveSource={state.selectActiveSource}
         resolvePermissionName={props.resolvePermissionName}
         isCollapsed={state.collapsedMode}
+        hoverIntent={state.hoverIntent}
       />
     </nav>
   );

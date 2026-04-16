@@ -1,4 +1,5 @@
 import {
+  Boxes,
   Globe,
   History,
   Images,
@@ -26,6 +27,15 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
     labelKey: "nav:NAV_ASSETS",
     to: "/assets",
     icon: Images,
+    groupLabelBefore: "Website",
+    groupLabelBeforeKey: "nav:NAV_GROUP_WEBSITE",
+  },
+  {
+    key: "content.models",
+    label: "Content Model",
+    labelKey: "nav:NAV_CONTENT_MODELS",
+    to: "/content/models",
+    icon: Boxes,
   },
   {
     key: "content.library",
@@ -54,6 +64,7 @@ const BASE_WORKSPACE_NAV_ITEMS: AdminNavItem[] = [
     label: "Team",
     labelKey: "nav:NAV_SECTION_TEAM",
     icon: Users,
+    dividerBefore: true,
     children: [
       {
         key: "settings.team.memberList",

@@ -7,6 +7,9 @@ export type AdminNavItem = {
   key: string;
   label: string;
   labelKey?: string;
+  insertStarredAfter?: boolean;
+  groupLabelBefore?: string;
+  groupLabelBeforeKey?: string;
   renderLabel?: (item: AdminNavItem) => ReactNode;
   to?: string;
   groupBehavior?: "preferred-child" | "navigate-self-and-expand";
@@ -20,6 +23,7 @@ export type AdminNavItem = {
   children?: AdminNavItem[];
   position?: "main" | "footer";
   actionRenderer?: (item: AdminNavItem) => ReactNode;
+  dividerBefore?: boolean;
   dividerAfter?: boolean;
   trailingIcon?: LucideIcon;
   onAction?: () => void;
