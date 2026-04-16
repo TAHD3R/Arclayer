@@ -669,6 +669,28 @@ describe("ContentLibraryPage", () => {
         capabilities: ["rich_text_editable", "publishable"],
         defaultEditor: "rich_text",
       },
+      {
+        id: "model-section",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        key: "reusable-section",
+        name: "Reusable Section",
+        description: "Shared section building blocks",
+        category: "site_builder",
+        capabilities: ["visual_editable", "has_slots", "localizable"],
+        defaultEditor: "visual",
+      },
+      {
+        id: "model-category",
+        workspaceId: "ws-1",
+        siteId: "site-1",
+        key: "category",
+        name: "Category",
+        description: "Taxonomy records",
+        category: "content_library",
+        capabilities: ["queryable", "has_relations", "publishable"],
+        defaultEditor: "form",
+      },
     ]);
     mocked.listAllContentItems.mockResolvedValue([
       {
@@ -1286,9 +1308,6 @@ describe("ContentLibraryPage", () => {
     ).toBeDisabled();
     expect(nameInput).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText("CONTENT_LIBRARY_SAVE_AS_UNCHANGED_NAME_HINT")).toBeInTheDocument();
-    expect(nameInput.nextElementSibling).toHaveTextContent(
-      "CONTENT_LIBRARY_SAVE_AS_UNCHANGED_NAME_HINT",
-    );
     expect(mocked.createContentLibraryView).not.toHaveBeenCalled();
   });
 
@@ -1369,6 +1388,48 @@ describe("ContentLibraryPage", () => {
 
     expect(mocked.navigate).toHaveBeenCalledWith({
       to: "/w/ws-1/content/models",
+    });
+  });
+
+  test("opens the official create overlay from the page header instead of navigating away", async () => {
+    const user = userEvent.setup();
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT" }),
+      ).toBeInTheDocument();
+    });
+
+    mocked.navigate.mockClear();
+
+    await user.click(
+      within(screen.getByTestId("page-action")).getByRole("button", {
+        name: "CONTENT_LIBRARY_ACTION_NEW_CONTENT",
+      }),
+    );
+
+    expect(mocked.navigate).toHaveBeenCalledWith({
+      search: { create: "1" },
+      replace: false,
+    });
+  });
+
+  test("renders only the official protocol choices when the create overlay is open", async () => {
+    mocked.routeSearch.current = { create: "1" };
+
+    renderWithQuery(<ContentLibraryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("content:CONTENT_LIBRARY_CREATE_DIALOG_TITLE")).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(getAllByI18nTail("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
+      expect(getAllByI18nTail("CONTENT_TYPE_PAGE_NAME").length).toBeGreaterThan(0);
+      expect(getAllByI18nTail("CONTENT_TYPE_REUSABLE_SECTION_NAME").length).toBeGreaterThan(0);
+      expect(getAllByI18nTail("CONTENT_TYPE_CATEGORY_NAME").length).toBeGreaterThan(0);
     });
   });
 

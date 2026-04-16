@@ -44,7 +44,6 @@ import {
 } from "@arclayer/ui/alert-dialog";
 import { Button } from "@arclayer/ui/button";
 import {
-  workspaceContentCreatePath,
   workspaceContentLibraryItemPath,
   workspaceContentModelsPath,
 } from "@/lib/routing/workspace-content-routing";
@@ -52,6 +51,7 @@ import { getContentTypeLabel } from "../content-type-presentation";
 import { useContentLibraryTableColumns } from "./components/content-library-table-columns";
 import { ContentLibraryActionDialogs } from "./components/content-library-action-dialogs";
 import { ContentLibraryCardList } from "./components/content-library-card-list";
+import { ContentLibraryCreateContentDialog } from "./components/content-library-create-content-dialog";
 import {
   ContentLibraryItemSettingsDialogs,
   type ContentLibraryItemSettingsDialogState,
@@ -174,6 +174,24 @@ function getContentLibraryCardMode(): boolean {
 
 function getContentLibraryPreservedViewSearch(view: unknown) {
   return typeof view === "string" && view.trim() ? { view: view.trim() } : undefined;
+}
+
+function getContentLibraryPreservedSearch(params: {
+  view: unknown;
+  focusItemId: unknown;
+  includeCreate?: boolean;
+}) {
+  const viewSearch = getContentLibraryPreservedViewSearch(params.view);
+  const focusItemId =
+    typeof params.focusItemId === "string" && params.focusItemId.trim()
+      ? params.focusItemId.trim()
+      : undefined;
+
+  return {
+    ...viewSearch,
+    ...(focusItemId ? { focusItemId } : {}),
+    ...(params.includeCreate ? { create: "1" as const } : {}),
+  };
 }
 
 function shouldAutoCollapseSidebarForPreview(): boolean {
@@ -485,6 +503,7 @@ export function ContentLibraryPage() {
     () => contentLibraryTableId(workspaceId ? String(workspaceId) : null),
     [workspaceId],
   );
+  const createDialogOpen = search.create === "1";
   const viewMode: ContentLibraryViewMode = manualViewMode ?? (autoCardMode ? "card" : "table");
   const modelsQuery = useQuery({
     queryKey: buildContentModelsQueryKey(workspaceId ? String(workspaceId) : null),
@@ -779,13 +798,29 @@ export function ContentLibraryPage() {
     [navigate, search.view, workspaceId],
   );
   const handleClosePreview = React.useCallback(() => {
-    const preservedViewSearch = getContentLibraryPreservedViewSearch(search.view);
     setPreviewRowId(null);
     void navigate({
-      search: preservedViewSearch ?? {},
+      search: getContentLibraryPreservedSearch({
+        view: search.view,
+        focusItemId: null,
+        includeCreate: createDialogOpen,
+      }),
       replace: true,
     });
-  }, [navigate, search.view]);
+  }, [createDialogOpen, navigate, search.view]);
+  const handleCreateDialogOpenChange = React.useCallback(
+    (open: boolean) => {
+      void navigate({
+        search: getContentLibraryPreservedSearch({
+          view: search.view,
+          focusItemId: search.focusItemId,
+          includeCreate: open,
+        }),
+        replace: !open,
+      });
+    },
+    [navigate, search.focusItemId, search.view],
+  );
   const handlePreviewResizePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const container = splitLayoutRef.current;
@@ -1346,9 +1381,7 @@ export function ContentLibraryPage() {
         action={
           <ContentLibraryPrimaryAction
             workspaceId={workspaceId ? String(workspaceId) : null}
-            onNavigateCreate={() =>
-              void navigate({ to: workspaceContentCreatePath(String(workspaceId)) })
-            }
+            onNavigateCreate={() => handleCreateDialogOpenChange(true)}
             onNavigateModels={() =>
               void navigate({ to: workspaceContentModelsPath(String(workspaceId)) })
             }
@@ -1505,6 +1538,13 @@ export function ContentLibraryPage() {
         </AnimatePresence>
       </div>
       <>
+        {workspaceId ? (
+          <ContentLibraryCreateContentDialog
+            open={createDialogOpen}
+            workspaceId={String(workspaceId)}
+            onOpenChange={handleCreateDialogOpenChange}
+          />
+        ) : null}
         <ContentLibraryViewFormDialog
           open={Boolean(viewDialogState && dialogTargetView)}
           mode={viewDialogState?.mode ?? "edit"}

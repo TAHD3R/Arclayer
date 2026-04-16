@@ -8,6 +8,7 @@ import {
 type WorkspaceContentLibrarySearch = {
   view?: string;
   focusItemId?: string;
+  create?: "1";
 };
 
 export const Route = createFileRoute("/w/$workspaceId/content/library/")({
@@ -21,10 +22,12 @@ export const Route = createFileRoute("/w/$workspaceId/content/library/")({
       typeof search.focusItemId === "string" && search.focusItemId.trim()
         ? search.focusItemId.trim()
         : undefined;
+    const create = search.create === "1" ? "1" : undefined;
 
     return {
       ...(view ? { view } : {}),
       ...(focusItemId ? { focusItemId } : {}),
+      ...(create ? { create } : {}),
     };
   },
   staticData: { titleKey: "nav:NAV_CONTENT_LIBRARY" },

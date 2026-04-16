@@ -56,7 +56,7 @@ export function ContentStructuredSurfacePage(props: {
     getContentTypeDescription({
       modelKey: props.item.modelKey,
       t,
-    }) ?? t("CONTENT_TYPE_STRUCTURED_CONTENT_DESC");
+    }) ?? t("CONTENT_TYPE_CATEGORY_DESC");
   const libraryHref = workspaceContentLibraryFocusedItemHref(props.workspaceId, props.item.id);
   const missingCapabilities = getMissingStructuredCapabilities(props.item);
 

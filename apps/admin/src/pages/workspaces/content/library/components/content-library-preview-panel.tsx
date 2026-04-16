@@ -4,6 +4,10 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@arclayer/ui/card";
 import { Button } from "@arclayer/ui/button";
 import { cn } from "@arclayer/lib/utils";
+import {
+  getContentTypeDescription,
+  getContentTypeLabel,
+} from "@/pages/workspaces/content/content-type-presentation";
 
 import type { ContentLibraryTableRow } from "../types";
 import { ContentLibraryArticleEditorShell } from "../article-editor/components/content-library-article-editor-shell";
@@ -197,14 +201,26 @@ export function ContentLibraryPreviewPanel(props: {
   className?: string;
 }) {
   const { t } = useTranslation("content");
+  const contentTypeTitle = getContentTypeLabel({
+    modelKey: props.row.modelKey,
+    fallbackName: props.row.modelName,
+    fallbackLabel: props.row.role ?? props.row.modelKey ?? props.row.name,
+    t,
+  });
+  const contentTypeDescription =
+    getContentTypeDescription({
+      modelKey: props.row.modelKey,
+      fallbackDescription: props.row.modelDescription,
+      t,
+    }) ?? t("CONTENT_TYPE_CATEGORY_DESC");
 
   if (props.row.editWith === "canvas" || props.row.role === "page") {
     return (
       <ContentLibrarySummaryPreview
         icon="page"
         row={props.row}
-        title={t("CONTENT_TYPE_PAGE_NAME")}
-        description={t("CONTENT_TYPE_PAGE_DESC")}
+        title={contentTypeTitle}
+        description={contentTypeDescription}
         onEditPermalink={props.onEditPermalink}
         onEditSeo={props.onEditSeo}
         onEditVisibility={props.onEditVisibility}
@@ -219,8 +235,8 @@ export function ContentLibraryPreviewPanel(props: {
       <ContentLibrarySummaryPreview
         icon="structured"
         row={props.row}
-        title={t("CONTENT_TYPE_STRUCTURED_CONTENT_NAME")}
-        description={t("CONTENT_TYPE_STRUCTURED_CONTENT_DESC")}
+        title={contentTypeTitle}
+        description={contentTypeDescription}
         onEditVisibility={props.onEditVisibility}
         onOpenStructuredFields={props.onOpenStructuredFields}
         className={props.className}

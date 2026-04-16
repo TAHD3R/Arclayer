@@ -31,7 +31,7 @@ describe("ContentSiteBuilderPage", () => {
           workspaceId: "ws-1",
           siteId: "site-1",
           modelId: "model-1",
-          modelKey: "landing-page",
+          modelKey: "page",
           slug: "landing-page",
           title: "Landing page",
           status: "draft",

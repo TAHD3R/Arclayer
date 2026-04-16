@@ -26,6 +26,14 @@ vi.mock("@/pages/workspaces/content/library/article-editor/page", () => ({
   ),
 }));
 
+vi.mock("@/pages/workspaces/content/site-builder/page", () => ({
+  ContentSiteBuilderPage: (props: { workspaceId: string; item?: { id: string } | null }) => (
+    <div data-testid="content-site-builder-page">
+      {props.workspaceId}:{props.item?.id ?? "none"}
+    </div>
+  ),
+}));
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -120,7 +128,7 @@ describe("ContentLibraryItemResolverPage", () => {
     expect(screen.queryByTestId("content-library-article-editor-page")).not.toBeInTheDocument();
   });
 
-  test("renders a library handoff page for canvas continuation surfaces", async () => {
+  test("renders the site builder surface for canvas continuation surfaces", async () => {
     getContentItemMock.mockResolvedValue({
       id: "item-3",
       workspaceId: "ws-1",
@@ -153,11 +161,9 @@ describe("ContentLibraryItemResolverPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("content-page-handoff-state")).toBeInTheDocument();
+      expect(screen.getByTestId("content-site-builder-page")).toBeInTheDocument();
     });
-    expect(
-      screen.getByRole("link", { name: "CONTENT_PAGE_HANDOFF_ACTION_OPEN_IN_LIBRARY" }),
-    ).toHaveAttribute("href", "/w/ws-1/content/library?view=draft&focusItemId=item-3");
+    expect(screen.getByTestId("content-site-builder-page")).toHaveTextContent("ws-1:item-3");
     expect(screen.queryByTestId("content-library-article-editor-page")).not.toBeInTheDocument();
     expect(screen.queryByTestId("content-item-continuation-state")).not.toBeInTheDocument();
   });

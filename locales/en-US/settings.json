@@ -8,7 +8,7 @@
   "SETTINGS_I18N_REMOVE_LOCALE": "Remove locale",
   "SETTINGS_I18N_VALIDATION_DEFAULT_REQUIRED": "Please fill in the value for the default locale first.",
   "SETTINGS_SITE_SETTINGS_TITLE": "Site settings",
-  "SETTINGS_SITE_SETTINGS_DESC": "Manage site identity, browser presentation, and localization defaults for the current workspace.",
+  "SETTINGS_SITE_SETTINGS_DESC": "Manage system-level site identity, public addresses, browser assets, SEO defaults, and localization rules for the current workspace.",
   "SETTINGS_SYSTEM_TITLE": "System settings",
   "SETTINGS_SYSTEM_DESC": "Configure sign-in methods, delivery channels, storage connections, and platform capabilities for this instance.",
   "SETTINGS_SYSTEM_NAV_ACCESS": "Accounts & sign-up",

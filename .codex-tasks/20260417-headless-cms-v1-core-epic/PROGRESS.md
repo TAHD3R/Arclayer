@@ -126,3 +126,37 @@
   - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_canonical_content_runtime_integration.py`
   - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_content_routing_integration.py tests/modules/sites/test_sites_canonical_content_runtime_integration.py`
 - **Next step**: Pause for phase report before activating child 5.
+
+---
+
+## Context Recovery Block
+
+- **Current milestone**: Phase 5 — Admin IA cutover
+- **Current status**: IN_PROGRESS
+- **Last completed**: Phase 4 perspective and dependency rules
+- **Current artifact**: `.codex-tasks/20260417-headless-cms-v1-core-epic/tasks/20260417-phase5-admin-ia-cutover/TODO.csv`
+- **Key context**: Backend contracts for models, route resolve, flattened delivery, and perspective/dependency rules are now stable. The remaining gap is the admin interaction architecture: `Content Library` still navigates to a separate create page, `Models` still reads like a control form, and `Page` items still stop in a handoff shell instead of a real `Site Builder` route.
+- **Known issues**: The approved IA requires hard cuts only. No fallback navigation tree, no dual create narratives, and no lingering Site Settings copy that implies content composition belongs there.
+- **Next action**: Implement Library-first create overlay and then hard-cut the remaining admin surfaces to the approved IA.
+
+---
+
+## Milestone 5: Admin IA Cutover
+
+- **Status**: DONE
+- **Started**: 2026-04-17
+- **Completed**: 2026-04-17
+- **What was done**:
+  - Moved content creation into a Library header overlay and restricted that overlay to the four official protocol types.
+  - Rebuilt `Models` into a governance-oriented control surface with protocol navigation, system contract framing, extension controls, and impact inspection.
+  - Hard-cut Page continuation into Site Builder and redirected the legacy `/content/create` route into `Content Library` with `create=1`.
+  - Updated content presentation copy and resolver tests so the admin IA now matches the approved `Library core + governance/model canvas + contextual builder` shape.
+- **Validation**:
+  - Passed: `pnpm -C apps/admin test test/pages/workspaces/content/content-models-control-center.test.tsx`
+  - Passed: `pnpm -C apps/admin test test/pages/workspaces/content/content-library-page.test.tsx`
+  - Passed: `pnpm -C apps/admin test test/pages/workspaces/content/content-library-resolver-route.test.tsx test/pages/workspaces/content/content-surface-routing.test.tsx test/pages/workspaces/content/content-site-builder-shell.test.tsx`
+  - Passed: `pnpm -C apps/admin test test/pages/workspaces/content/content-bootstrap-page.test.tsx`
+  - Passed: `pnpm -C apps/admin test test/routes/workspace-content-create-route-redirect.test.ts test/layouts/sidebar-route-state.test.tsx test/components/layout/admin-side-nav.test.tsx`
+  - Attempted: `pnpm admin:check`
+  - Result: Phase 5 surfaces stayed green, lint was clean, and the full admin gate remains blocked by unrelated repo-level failures in assets typecheck plus unrelated existing admin tests.
+- **Next step**: Pause for phase report before continuing Phase 6 validation and closeout.

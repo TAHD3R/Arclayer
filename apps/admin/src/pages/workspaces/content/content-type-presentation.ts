@@ -1,12 +1,12 @@
-import { FolderTree, LayoutTemplate, Newspaper, type LucideIcon } from "lucide-react";
+import { Blocks, FolderTree, LayoutTemplate, Newspaper, type LucideIcon } from "lucide-react";
 
 import type { AdminContentModel } from "@/types/api";
 
 type TranslateFn = (key: string) => string;
-export type ContentBootstrapVariant = "article" | "page" | "structured";
+export type ContentBootstrapVariant = "article" | "page" | "reusable-section" | "category";
 
 type OfficialContentTypePresentation = {
-  key: "article" | "landing-page" | "structured-entry";
+  key: "article" | "page" | "reusable-section" | "category";
   nameKey: string;
   descriptionKey: string;
   icon: LucideIcon;
@@ -21,19 +21,26 @@ const OFFICIAL_CONTENT_TYPE_PRESENTATIONS = {
     icon: Newspaper,
     order: 0,
   },
-  "landing-page": {
-    key: "landing-page",
+  page: {
+    key: "page",
     nameKey: "CONTENT_TYPE_PAGE_NAME",
     descriptionKey: "CONTENT_TYPE_PAGE_DESC",
     icon: LayoutTemplate,
     order: 1,
   },
-  "structured-entry": {
-    key: "structured-entry",
-    nameKey: "CONTENT_TYPE_STRUCTURED_CONTENT_NAME",
-    descriptionKey: "CONTENT_TYPE_STRUCTURED_CONTENT_DESC",
-    icon: FolderTree,
+  "reusable-section": {
+    key: "reusable-section",
+    nameKey: "CONTENT_TYPE_REUSABLE_SECTION_NAME",
+    descriptionKey: "CONTENT_TYPE_REUSABLE_SECTION_DESC",
+    icon: Blocks,
     order: 2,
+  },
+  category: {
+    key: "category",
+    nameKey: "CONTENT_TYPE_CATEGORY_NAME",
+    descriptionKey: "CONTENT_TYPE_CATEGORY_DESC",
+    icon: FolderTree,
+    order: 3,
   },
 } as const satisfies Record<string, OfficialContentTypePresentation>;
 
@@ -90,6 +97,14 @@ export function sortContentModelsByPresentation(
   });
 }
 
+export function filterOfficialContentModels(
+  models: readonly AdminContentModel[],
+): AdminContentModel[] {
+  return sortContentModelsByPresentation(models).filter((model) =>
+    Boolean(getOfficialContentTypePresentation(model.key)),
+  );
+}
+
 export function resolveContentBootstrapVariant(
   model:
     | Pick<
@@ -103,8 +118,9 @@ export function resolveContentBootstrapVariant(
 
   const official = getOfficialContentTypePresentation(model.key);
   if (official?.key === "article") return "article";
-  if (official?.key === "landing-page") return "page";
-  if (official?.key === "structured-entry") return "structured";
+  if (official?.key === "page") return "page";
+  if (official?.key === "reusable-section") return "reusable-section";
+  if (official?.key === "category") return "category";
 
   if (model.defaultRole === "article" || model.defaultSurface === "writing") return "article";
   if (
@@ -116,12 +132,14 @@ export function resolveContentBootstrapVariant(
   ) {
     return "page";
   }
+  if (model.defaultRole === "reusable-section") return "reusable-section";
+  if (model.defaultRole === "taxonomy") return "category";
   if (
     model.defaultSurface === "structured" ||
     model.capabilities.includes("queryable") ||
     model.capabilities.includes("has_relations")
   ) {
-    return "structured";
+    return "category";
   }
-  return "structured";
+  return "category";
 }

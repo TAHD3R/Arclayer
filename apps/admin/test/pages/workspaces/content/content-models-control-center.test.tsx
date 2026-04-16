@@ -114,7 +114,7 @@ describe("ContentModelsControlCenterPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("CONTENT_TYPE_ARTICLE_NAME")).toBeInTheDocument();
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
     });
 
     const saveButton = screen.getByRole("button", {
@@ -185,7 +185,7 @@ describe("ContentModelsControlCenterPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("CONTENT_TYPE_ARTICLE_NAME")).toBeInTheDocument();
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
     });
 
     const surfaceSelect = screen.getByLabelText("CONTENT_MODELS_FIELD_SURFACE");
@@ -222,7 +222,7 @@ describe("ContentModelsControlCenterPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("CONTENT_TYPE_ARTICLE_NAME")).toBeInTheDocument();
+      expect(screen.getAllByText("CONTENT_TYPE_ARTICLE_NAME").length).toBeGreaterThan(0);
     });
 
     expect(screen.getByText("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")).toBeInTheDocument();

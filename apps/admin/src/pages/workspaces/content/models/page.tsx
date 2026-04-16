@@ -8,6 +8,13 @@ import {
   patchContentModel,
 } from "@/api/content";
 import { DefaultPage } from "@/layouts/page-shell/default-page";
+import { notifyError } from "@/lib/notifications";
+import {
+  getContentTypeDescription,
+  getContentTypeLabel,
+  sortContentModelsByPresentation,
+} from "@/pages/workspaces/content/content-type-presentation";
+import { buildContentModelsQueryKey } from "@/pages/workspaces/content/library/utils";
 import type {
   AdminContentContinuationPosture,
   AdminContentContinuationRole,
@@ -16,13 +23,6 @@ import type {
   AdminContentModelImpactPreview,
   PatchAdminContentModelPayload,
 } from "@/types/api";
-import {
-  getContentTypeDescription,
-  getContentTypeLabel,
-  getOfficialContentTypePresentation,
-  sortContentModelsByPresentation,
-} from "@/pages/workspaces/content/content-type-presentation";
-import { buildContentModelsQueryKey } from "@/pages/workspaces/content/library/utils";
 
 const CONTINUATION_ROLE_OPTIONS: Array<AdminContentContinuationRole> = [
   "page",
@@ -45,13 +45,6 @@ const CONTINUATION_SURFACE_OPTIONS: Array<AdminContentContinuationSurface> = [
   "canvas",
   "structured",
 ];
-
-type ContentModelDraft = {
-  defaultRole: AdminContentContinuationRole | null;
-  defaultPosture: AdminContentContinuationPosture | null;
-  defaultSurface: AdminContentContinuationSurface | null;
-  starterPackPolicyText: string;
-};
 
 const CAPABILITY_PRESENTATION = {
   versioned: {
@@ -138,23 +131,12 @@ const EDITOR_PRESENTATION = {
   table: "CONTENT_MODELS_EDITOR_TABLE_LABEL",
 } as const satisfies Record<NonNullable<AdminContentModel["defaultEditor"]>, string>;
 
-function ModelFactCard(props: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
-      <div className="text-xs text-muted-foreground">{props.label}</div>
-      <div className="mt-2 text-sm font-medium text-foreground">{props.value}</div>
-    </div>
-  );
-}
-
-function ModelCapabilityCard(props: { label: string; description: string }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
-      <div className="text-sm font-medium text-foreground">{props.label}</div>
-      <div className="mt-1 text-sm text-muted-foreground">{props.description}</div>
-    </div>
-  );
-}
+type ContentModelDraft = {
+  defaultRole: AdminContentContinuationRole | null;
+  defaultPosture: AdminContentContinuationPosture | null;
+  defaultSurface: AdminContentContinuationSurface | null;
+  starterPackPolicyText: string;
+};
 
 function formatPolicyText(value: Record<string, unknown> | null | undefined): string {
   if (!value) return "";
@@ -209,6 +191,38 @@ function buildPatchPayload(
   return payload;
 }
 
+function ModelFact(props: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-4">
+      <div className="text-xs text-muted-foreground">{props.label}</div>
+      <div className="mt-2 text-sm font-medium text-foreground">{props.value}</div>
+    </div>
+  );
+}
+
+function CanvasNode(props: { title: string; description: string }) {
+  return (
+    <div className="rounded-[24px] border border-border/70 bg-background px-5 py-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-foreground">{props.title}</div>
+        <span className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Locked
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{props.description}</p>
+    </div>
+  );
+}
+
+function ImpactMetric(props: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card/70 px-4 py-4">
+      <div className="text-xs text-muted-foreground">{props.label}</div>
+      <div className="mt-2 text-xl font-semibold text-foreground">{props.value}</div>
+    </div>
+  );
+}
+
 export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
   const { t } = useTranslation("content");
   const queryClient = useQueryClient();
@@ -227,7 +241,6 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
     [modelsQuery.data],
   );
   const selectedModel = models.find((model) => model.id === selectedModelId) ?? models[0] ?? null;
-  const selectedOfficialType = getOfficialContentTypePresentation(selectedModel?.key);
   const selectedTypeLabel = selectedModel
     ? getContentTypeLabel({
         modelKey: selectedModel.key,
@@ -258,93 +271,141 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
       setSaveError(null);
       return;
     }
-    setSelectedModelId(selectedModel.id);
     setDraft(createDraft(selectedModel));
     setPreview(null);
     setPreviewPayloadKey(null);
     setSaveError(null);
   }, [selectedModel]);
 
-  let payload: PatchAdminContentModelPayload | null = null;
-  let payloadError: string | null = null;
-  if (selectedModel && draft) {
+  const currentPayloadState = React.useMemo(() => {
+    if (!selectedModel || !draft) return { payload: null, error: null as string | null };
     try {
-      payload = buildPatchPayload(selectedModel, draft);
-    } catch {
-      payloadError = t("CONTENT_MODELS_STARTER_PACK_POLICY_INVALID");
+      return {
+        payload: buildPatchPayload(selectedModel, draft),
+        error: null as string | null,
+      };
+    } catch (error) {
+      return {
+        payload: null,
+        error: error instanceof Error ? error.message : "CONTENT_MODELS_SAVE_FAILED",
+      };
     }
-  }
-  const payloadKey = JSON.stringify(payload ?? {});
-  const hasChanges = Boolean(payload && Object.keys(payload).length > 0);
-  const previewIsFresh = previewPayloadKey === payloadKey;
+  }, [draft, selectedModel]);
+  React.useEffect(() => {
+    setSaveError((current) => {
+      if (currentPayloadState.error) return currentPayloadState.error;
+      if (current === "CONTENT_MODELS_STARTER_PACK_POLICY_INVALID") return null;
+      return current;
+    });
+  }, [currentPayloadState.error]);
+  const currentPayload = currentPayloadState.payload;
+  const currentPayloadKey = React.useMemo(
+    () => stableValue(currentPayload ?? {}),
+    [currentPayload],
+  );
+  const previewIsCurrent =
+    preview !== null && previewPayloadKey !== null && previewPayloadKey === currentPayloadKey;
+  const hasPendingChanges = Boolean(currentPayload && Object.keys(currentPayload).length > 0);
 
   const previewMutation = useMutation({
-    mutationFn: async (nextPayload: PatchAdminContentModelPayload) => {
-      if (!selectedModel) {
-        throw new Error("Missing selected model");
-      }
-      return getContentModelImpactPreview(props.workspaceId, selectedModel.id, nextPayload);
+    mutationFn: async () => {
+      if (!selectedModel || !draft) return null;
+      const payload = buildPatchPayload(selectedModel, draft);
+      if (Object.keys(payload).length === 0) return null;
+      const result = await getContentModelImpactPreview(
+        props.workspaceId,
+        selectedModel.id,
+        payload,
+      );
+      return { payloadKey: stableValue(payload), result };
     },
-    onSuccess: (result) => {
-      setPreview(result);
-      setPreviewPayloadKey(payloadKey);
+    onSuccess: (value) => {
       setSaveError(null);
+      setPreview(value?.result ?? null);
+      setPreviewPayloadKey(value?.payloadKey ?? null);
+    },
+    onError: (error) => {
+      setSaveError(error instanceof Error ? error.message : "CONTENT_MODELS_SAVE_FAILED");
+      notifyError(error);
     },
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (nextPayload: PatchAdminContentModelPayload) => {
-      if (!selectedModel || !preview) {
-        throw new Error("Missing preview context");
+    mutationFn: async () => {
+      if (!selectedModel || !draft || !preview || !previewIsCurrent) {
+        throw new Error("CONTENT_MODELS_PREVIEW_REQUIRED");
       }
+      const payload = buildPatchPayload(selectedModel, draft);
       return patchContentModel(props.workspaceId, selectedModel.id, {
-        ...nextPayload,
+        ...payload,
         impactPreviewToken: preview.previewToken,
       });
     },
-    onSuccess: (updatedModel) => {
-      queryClient.setQueryData<AdminContentModel[]>(
-        buildContentModelsQueryKey(props.workspaceId),
-        (current) => {
-          const items = current ?? [];
-          const didReplace = items.some((item) => item.id === updatedModel.id);
-          if (!didReplace) return [...items, updatedModel];
-          return items.map((item) => (item.id === updatedModel.id ? updatedModel : item));
-        },
-      );
-      setSelectedModelId(updatedModel.id);
+    onSuccess: async (updatedModel) => {
+      setSaveError(null);
       setPreview(null);
       setPreviewPayloadKey(null);
-      setSaveError(null);
+      setDraft(createDraft(updatedModel));
+      await queryClient.invalidateQueries({
+        queryKey: buildContentModelsQueryKey(props.workspaceId),
+      });
     },
     onError: (error) => {
-      setSaveError(error instanceof Error ? error.message : t("CONTENT_MODELS_SAVE_FAILED"));
+      setSaveError(error instanceof Error ? error.message : "CONTENT_MODELS_SAVE_FAILED");
+      notifyError(error);
     },
   });
 
-  function updateDraft(patch: Partial<ContentModelDraft>) {
-    setDraft((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        ...patch,
-      };
-    });
-    setPreview(null);
-    setPreviewPayloadKey(null);
-    setSaveError(null);
+  if (modelsQuery.isLoading) {
+    return (
+      <DefaultPage
+        title={t("CONTENT_MODELS_TITLE")}
+        description={t("CONTENT_MODELS_DESC")}
+        showFavoriteToggle={false}
+      >
+        <div>{t("CONTENT_MODELS_LOADING")}</div>
+      </DefaultPage>
+    );
   }
 
-  async function handlePreview() {
-    if (!payload || !hasChanges) return;
-    await previewMutation.mutateAsync(payload);
+  if (modelsQuery.isError) {
+    return (
+      <DefaultPage
+        title={t("CONTENT_MODELS_TITLE")}
+        description={t("CONTENT_MODELS_DESC")}
+        showFavoriteToggle={false}
+      >
+        <div>{t("CONTENT_MODELS_EMPTY")}</div>
+      </DefaultPage>
+    );
   }
 
-  async function handleSave() {
-    if (!payload || !hasChanges || !preview || !previewIsFresh || preview.hasBlockingChanges)
-      return;
-    await saveMutation.mutateAsync(payload);
+  if (!selectedModel || !draft || !selectedTypeLabel) {
+    return (
+      <DefaultPage
+        title={t("CONTENT_MODELS_TITLE")}
+        description={t("CONTENT_MODELS_DESC")}
+        showFavoriteToggle={false}
+      >
+        <div>{t("CONTENT_MODELS_EMPTY")}</div>
+      </DefaultPage>
+    );
   }
+
+  const systemNodes = [
+    {
+      title: t("CONTENT_MODELS_SYSTEM_NODE_ROUTING_TITLE"),
+      description: t("CONTENT_MODELS_SYSTEM_NODE_ROUTING_DESC"),
+    },
+    {
+      title: t("CONTENT_MODELS_SYSTEM_NODE_DELIVERY_TITLE"),
+      description: t("CONTENT_MODELS_SYSTEM_NODE_DELIVERY_DESC"),
+    },
+    {
+      title: t("CONTENT_MODELS_SYSTEM_NODE_WORKFLOW_TITLE"),
+      description: t("CONTENT_MODELS_SYSTEM_NODE_WORKFLOW_DESC"),
+    },
+  ];
 
   return (
     <DefaultPage
@@ -352,352 +413,324 @@ export function ContentModelsControlCenterPage(props: { workspaceId: string }) {
       description={t("CONTENT_MODELS_DESC")}
       showFavoriteToggle={false}
     >
-      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-border/60 bg-card/70 p-4">
-          <h2 className="text-sm font-semibold text-foreground">
+      <div
+        className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_340px]"
+        data-testid="content-models-governance-surface"
+      >
+        <aside className="rounded-[28px] border border-border/60 bg-card/60 p-4">
+          <div className="text-sm font-semibold text-foreground">
             {t("CONTENT_MODELS_LIST_TITLE")}
-          </h2>
-          <div className="mt-4 space-y-2">
-            {models.map((model) => (
-              <button
-                key={model.id}
-                className={[
-                  "flex w-full flex-col rounded-xl border px-3 py-3 text-left transition",
-                  selectedModel?.id === model.id
-                    ? "border-foreground/20 bg-accent/40"
-                    : "border-border/60 bg-background hover:bg-accent/20",
-                ].join(" ")}
-                onClick={() => setSelectedModelId(model.id)}
-                type="button"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  {(() => {
-                    const presentation = getOfficialContentTypePresentation(model.key);
-                    const TypeIcon = presentation?.icon;
-                    return TypeIcon ? <TypeIcon className="size-4 text-muted-foreground" /> : null;
-                  })()}
-                  {getContentTypeLabel({
-                    modelKey: model.key,
-                    fallbackName: model.name,
-                    fallbackLabel: model.key,
-                    t,
-                  })}
-                </span>
-                <span className="mt-1 text-xs text-muted-foreground">
-                  {model.description?.trim() || model.key}
-                </span>
-              </button>
-            ))}
-            {!modelsQuery.isLoading && models.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border/60 px-3 py-4 text-sm text-muted-foreground">
-                {t("CONTENT_MODELS_EMPTY")}
-              </p>
-            ) : null}
+          </div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            {t("CONTENT_MODELS_PROTOCOL_LIST_DESC")}
+          </div>
+          <div className="mt-4 grid gap-2">
+            {models.map((model) => {
+              const active = model.id === selectedModel.id;
+              const label = getContentTypeLabel({
+                modelKey: model.key,
+                fallbackName: model.name,
+                fallbackLabel: model.key,
+                t,
+              });
+              return (
+                <button
+                  key={model.id}
+                  type="button"
+                  className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    active
+                      ? "border-border bg-background text-foreground"
+                      : "border-border/60 bg-transparent text-muted-foreground hover:bg-muted/40"
+                  }`}
+                  onClick={() => setSelectedModelId(model.id)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium">{label}</div>
+                    <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] uppercase tracking-[0.14em]">
+                      {t("CONTENT_MODELS_LOCKED_BADGE")}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">{model.key}</div>
+                </button>
+              );
+            })}
           </div>
         </aside>
 
-        <section className="rounded-2xl border border-border/60 bg-card/80 p-6">
-          {modelsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">{t("CONTENT_MODELS_LOADING")}</p>
-          ) : null}
-
-          {!modelsQuery.isLoading && selectedModel && draft ? (
-            <div className="space-y-6">
-              <header className="space-y-1">
-                <div className="flex items-center gap-3">
-                  {selectedOfficialType ? (
-                    <span className="inline-flex size-10 items-center justify-center rounded-full border border-border/60 bg-background/70 text-muted-foreground">
-                      <selectedOfficialType.icon className="size-5" />
-                    </span>
-                  ) : null}
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-semibold text-foreground">
-                      {selectedTypeLabel ?? selectedModel.name}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedTypeDescription || selectedModel.description || selectedModel.key}
-                    </p>
-                  </div>
+        <section className="space-y-6">
+          <div className="rounded-[32px] border border-border/60 bg-card/70 p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-2">
+                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {t("CONTENT_MODELS_PROTOCOL_CANVAS_EYEBROW")}
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <span>
-                    {t("CONTENT_MODELS_FIELD_MODEL_KEY")}: {selectedModel.key}
-                  </span>
-                  <span>·</span>
-                  <span>
-                    {t("CONTENT_MODELS_FIELD_DEFAULT_EDITOR")}:{" "}
-                    {t(
-                      selectedModel.defaultEditor
-                        ? EDITOR_PRESENTATION[selectedModel.defaultEditor]
-                        : "CONTENT_MODELS_OPTION_UNSET",
-                    )}
-                  </span>
-                </div>
-              </header>
-
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <ModelFactCard
-                  label={t("CONTENT_MODELS_FIELD_NAME")}
-                  value={selectedTypeLabel ?? selectedModel.name}
-                />
-                <ModelFactCard
-                  label={t("CONTENT_MODELS_FIELD_DESCRIPTION")}
-                  value={selectedTypeDescription || t("CONTENT_MODELS_OPTION_UNSET")}
-                />
-                <ModelFactCard
+                <h2 className="text-2xl font-semibold text-foreground">{selectedTypeLabel}</h2>
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                  {selectedTypeDescription}
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <ModelFact label={t("CONTENT_MODELS_FIELD_MODEL_KEY")} value={selectedModel.key} />
+                <ModelFact
                   label={t("CONTENT_MODELS_FIELD_DEFAULT_EDITOR")}
-                  value={t(
+                  value={
                     selectedModel.defaultEditor
-                      ? EDITOR_PRESENTATION[selectedModel.defaultEditor]
-                      : "CONTENT_MODELS_OPTION_UNSET",
-                  )}
+                      ? t(EDITOR_PRESENTATION[selectedModel.defaultEditor])
+                      : t("CONTENT_MODELS_OPTION_UNSET")
+                  }
                 />
-                <ModelFactCard
+                <ModelFact
                   label={t("CONTENT_MODELS_FIELD_CAPABILITY_COUNT")}
                   value={String(selectedModel.capabilities.length)}
                 />
-              </section>
+                <ModelFact
+                  label={t("CONTENT_MODELS_FIELD_SURFACE")}
+                  value={
+                    draft.defaultSurface
+                      ? t(SURFACE_PRESENTATION[draft.defaultSurface])
+                      : t("CONTENT_MODELS_OPTION_UNSET")
+                  }
+                />
+              </div>
+            </div>
 
-              <section className="space-y-4">
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-foreground">
-                    {t("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t("CONTENT_MODELS_SECTION_CAPABILITIES_DESC")}
-                  </p>
-                </div>
-                {selectedModel.capabilities.length > 0 ? (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {selectedModel.capabilities.map((capability) => (
-                      <ModelCapabilityCard
-                        key={capability}
-                        label={t(CAPABILITY_PRESENTATION[capability].labelKey)}
-                        description={t(CAPABILITY_PRESENTATION[capability].descriptionKey)}
-                      />
+            <div className="mt-6 rounded-[28px] border border-dashed border-border/70 bg-background/80 p-5">
+              <div className="text-sm font-semibold text-foreground">
+                {t("CONTENT_MODELS_PROTOCOL_CANVAS_TITLE")}
+              </div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {t("CONTENT_MODELS_PROTOCOL_CANVAS_DESC")}
+              </div>
+              <div
+                className="mt-5 grid gap-4 md:grid-cols-3"
+                data-testid="content-models-governance-canvas"
+              >
+                {systemNodes.map((node) => (
+                  <CanvasNode key={node.title} title={node.title} description={node.description} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="rounded-[28px] border border-border/60 bg-card/60 p-5">
+              <div className="text-sm font-semibold text-foreground">
+                {t("CONTENT_MODELS_SECTION_CAPABILITIES_TITLE")}
+              </div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {t("CONTENT_MODELS_SECTION_CAPABILITIES_DESC")}
+              </div>
+              <div className="mt-4 grid gap-3">
+                {selectedModel.capabilities.map((capability) => (
+                  <div
+                    key={capability}
+                    className="rounded-2xl border border-border/60 bg-background px-4 py-4"
+                  >
+                    <div className="text-sm font-medium text-foreground">
+                      {t(CAPABILITY_PRESENTATION[capability].labelKey)}
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {t(CAPABILITY_PRESENTATION[capability].descriptionKey)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-border/60 bg-card/60 p-5">
+              <div className="text-sm font-semibold text-foreground">
+                {t("CONTENT_MODELS_SECTION_DEFAULTS_TITLE")}
+              </div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {t("CONTENT_MODELS_SECTION_EXTENSIONS_DESC")}
+              </div>
+              <div className="mt-4 grid gap-4">
+                <label className="grid gap-2 text-sm">
+                  <span className="font-medium text-foreground">
+                    {t("CONTENT_MODELS_FIELD_ROLE")}
+                  </span>
+                  <select
+                    aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
+                    className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
+                    value={draft.defaultRole ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) =>
+                        current
+                          ? {
+                              ...current,
+                              defaultRole: event.target.value
+                                ? (event.target.value as AdminContentContinuationRole)
+                                : null,
+                            }
+                          : current,
+                      )
+                    }
+                  >
+                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                    {CONTINUATION_ROLE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {t(ROLE_PRESENTATION[option])}
+                      </option>
                     ))}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-border/60 px-4 py-4 text-sm text-muted-foreground">
-                    {t("CONTENT_MODELS_CAPABILITIES_EMPTY")}
-                  </div>
-                )}
-              </section>
+                  </select>
+                </label>
 
-              <section className="space-y-4 rounded-2xl border border-border/60 bg-background/70 p-5">
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-foreground">
-                    {t("CONTENT_MODELS_SECTION_DEFAULTS_TITLE")}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t("CONTENT_MODELS_SECTION_DEFAULTS_DESC")}
-                  </p>
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <label className="space-y-2 text-sm">
-                    <span className="font-medium text-foreground">
-                      {t("CONTENT_MODELS_FIELD_ROLE")}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {t("CONTENT_MODELS_FIELD_ROLE_HINT")}
-                    </span>
-                    <select
-                      aria-label={t("CONTENT_MODELS_FIELD_ROLE")}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2"
-                      value={draft.defaultRole ?? ""}
-                      onChange={(event) =>
-                        updateDraft({
-                          defaultRole: (event.target.value ||
-                            null) as AdminContentContinuationRole | null,
-                        })
-                      }
-                    >
-                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                      {CONTINUATION_ROLE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {t(ROLE_PRESENTATION[option])}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <label className="grid gap-2 text-sm">
+                  <span className="font-medium text-foreground">
+                    {t("CONTENT_MODELS_FIELD_POSTURE")}
+                  </span>
+                  <select
+                    aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
+                    className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
+                    value={draft.defaultPosture ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) =>
+                        current
+                          ? {
+                              ...current,
+                              defaultPosture: event.target.value
+                                ? (event.target.value as AdminContentContinuationPosture)
+                                : null,
+                            }
+                          : current,
+                      )
+                    }
+                  >
+                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                    {CONTINUATION_POSTURE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {t(POSTURE_PRESENTATION[option])}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label className="space-y-2 text-sm">
-                    <span className="font-medium text-foreground">
-                      {t("CONTENT_MODELS_FIELD_POSTURE")}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {t("CONTENT_MODELS_FIELD_POSTURE_HINT")}
-                    </span>
-                    <select
-                      aria-label={t("CONTENT_MODELS_FIELD_POSTURE")}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2"
-                      value={draft.defaultPosture ?? ""}
-                      onChange={(event) =>
-                        updateDraft({
-                          defaultPosture: (event.target.value ||
-                            null) as AdminContentContinuationPosture | null,
-                        })
-                      }
-                    >
-                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                      {CONTINUATION_POSTURE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {t(POSTURE_PRESENTATION[option])}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <label className="grid gap-2 text-sm">
+                  <span className="font-medium text-foreground">
+                    {t("CONTENT_MODELS_FIELD_SURFACE")}
+                  </span>
+                  <select
+                    aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
+                    className="h-11 rounded-xl border border-border/70 bg-background px-3 text-sm"
+                    value={draft.defaultSurface ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) =>
+                        current
+                          ? {
+                              ...current,
+                              defaultSurface: event.target.value
+                                ? (event.target.value as AdminContentContinuationSurface)
+                                : null,
+                            }
+                          : current,
+                      )
+                    }
+                  >
+                    <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
+                    {CONTINUATION_SURFACE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {t(SURFACE_PRESENTATION[option])}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label className="space-y-2 text-sm">
-                    <span className="font-medium text-foreground">
-                      {t("CONTENT_MODELS_FIELD_SURFACE")}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {t("CONTENT_MODELS_FIELD_SURFACE_HINT")}
-                    </span>
-                    <select
-                      aria-label={t("CONTENT_MODELS_FIELD_SURFACE")}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2"
-                      value={draft.defaultSurface ?? ""}
-                      onChange={(event) =>
-                        updateDraft({
-                          defaultSurface: (event.target.value ||
-                            null) as AdminContentContinuationSurface | null,
-                        })
-                      }
-                    >
-                      <option value="">{t("CONTENT_MODELS_OPTION_UNSET")}</option>
-                      {CONTINUATION_SURFACE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {t(SURFACE_PRESENTATION[option])}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              </section>
-
-              <details className="rounded-2xl border border-border/60 bg-background/70 p-5">
-                <summary className="cursor-pointer list-none text-base font-semibold text-foreground">
-                  {t("CONTENT_MODELS_SECTION_ADVANCED_TITLE")}
-                </summary>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {t("CONTENT_MODELS_SECTION_ADVANCED_DESC")}
-                </p>
-                <label className="mt-4 block space-y-2 text-sm">
+                <label className="grid gap-2 text-sm">
                   <span className="font-medium text-foreground">
                     {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
                   </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY_HINT")}
-                  </span>
                   <textarea
-                    aria-label={t("CONTENT_MODELS_FIELD_STARTER_PACK_POLICY")}
-                    className="min-h-36 w-full rounded-2xl border border-border bg-background px-3 py-3 font-mono text-xs"
                     value={draft.starterPackPolicyText}
                     onChange={(event) =>
-                      updateDraft({
-                        starterPackPolicyText: event.target.value,
-                      })
+                      setDraft((current) =>
+                        current
+                          ? {
+                              ...current,
+                              starterPackPolicyText: event.target.value,
+                            }
+                          : current,
+                      )
                     }
+                    className="min-h-36 rounded-2xl border border-border/70 bg-background px-3 py-3 font-mono text-sm"
                   />
                 </label>
-              </details>
-
-              {payloadError ? (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {payloadError}
-                </div>
-              ) : null}
-
-              {preview ? (
-                <div
-                  className={[
-                    "rounded-2xl border px-4 py-4",
-                    preview.hasBlockingChanges
-                      ? "border-destructive/30 bg-destructive/10"
-                      : "border-border/60 bg-background/80",
-                  ].join(" ")}
-                  data-testid="content-model-preview-summary"
-                >
-                  <div className="grid gap-4 md:grid-cols-4">
-                    <div>
-                      <div className="text-xs text-muted-foreground">
-                        {t("CONTENT_MODELS_PREVIEW_AFFECTED")}
-                      </div>
-                      <div className="mt-1 text-lg font-semibold">{preview.affectedItemsCount}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">
-                        {t("CONTENT_MODELS_PREVIEW_RECOVERY")}
-                      </div>
-                      <div className="mt-1 text-lg font-semibold">{preview.recoveryItemsCount}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">
-                        {t("CONTENT_MODELS_PREVIEW_RESHAPE")}
-                      </div>
-                      <div className="mt-1 text-lg font-semibold">{preview.reshapeItemsCount}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">
-                        {t("CONTENT_MODELS_PREVIEW_BREAKING")}
-                      </div>
-                      <div className="mt-1 text-lg font-semibold">
-                        {preview.impact.breakingChanges.length}
-                      </div>
-                    </div>
-                  </div>
-                  {preview.hasBlockingChanges ? (
-                    <p className="mt-4 text-sm font-medium text-destructive">
-                      {t("CONTENT_MODELS_PREVIEW_BLOCKING")}
-                    </p>
-                  ) : (
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      {t("CONTENT_MODELS_PREVIEW_READY")}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-
-              {saveError ? (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {saveError}
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!hasChanges || Boolean(payloadError) || previewMutation.isPending}
-                  onClick={() => void handlePreview()}
-                  type="button"
-                >
-                  {previewMutation.isPending
-                    ? t("CONTENT_MODELS_PREVIEW_PENDING")
-                    : t("CONTENT_MODELS_PREVIEW_ACTION")}
-                </button>
-                <button
-                  className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={
-                    !hasChanges ||
-                    Boolean(payloadError) ||
-                    !preview ||
-                    !previewIsFresh ||
-                    preview.hasBlockingChanges ||
-                    saveMutation.isPending
-                  }
-                  onClick={() => void handleSave()}
-                  type="button"
-                >
-                  {saveMutation.isPending
-                    ? t("CONTENT_MODELS_SAVE_PENDING")
-                    : t("CONTENT_MODELS_SAVE_ACTION")}
-                </button>
               </div>
             </div>
-          ) : null}
+          </div>
         </section>
+
+        <aside className="space-y-4 rounded-[28px] border border-border/60 bg-card/60 p-5">
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              {t("CONTENT_MODELS_INSPECTOR_TITLE")}
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {t("CONTENT_MODELS_INSPECTOR_DESC")}
+            </div>
+          </div>
+
+          {preview ? (
+            <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                <ImpactMetric
+                  label={t("CONTENT_MODELS_PREVIEW_AFFECTED")}
+                  value={preview.affectedItemsCount}
+                />
+                <ImpactMetric
+                  label={t("CONTENT_MODELS_PREVIEW_RECOVERY")}
+                  value={preview.recoveryItemsCount}
+                />
+                <ImpactMetric
+                  label={t("CONTENT_MODELS_PREVIEW_RESHAPE")}
+                  value={preview.reshapeItemsCount}
+                />
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-background px-4 py-4 text-sm text-muted-foreground">
+                {preview.hasBlockingChanges
+                  ? t("CONTENT_MODELS_PREVIEW_BLOCKING")
+                  : t("CONTENT_MODELS_PREVIEW_READY")}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 px-4 py-4 text-sm text-muted-foreground">
+              {t("CONTENT_MODELS_INSPECTOR_EMPTY")}
+            </div>
+          )}
+
+          {saveError ? (
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-4 text-sm text-destructive">
+              {t(saveError)}
+            </div>
+          ) : null}
+
+          <div className="grid gap-3">
+            <button
+              type="button"
+              className="h-11 rounded-xl border border-border/70 bg-background px-4 text-sm font-medium text-foreground disabled:opacity-60"
+              disabled={!hasPendingChanges || previewMutation.isPending}
+              onClick={() => previewMutation.mutate()}
+            >
+              {previewMutation.isPending
+                ? t("CONTENT_MODELS_PREVIEW_PENDING")
+                : t("CONTENT_MODELS_PREVIEW_ACTION")}
+            </button>
+            <button
+              type="button"
+              className="h-11 rounded-xl bg-foreground px-4 text-sm font-medium text-background disabled:opacity-60"
+              disabled={
+                !hasPendingChanges ||
+                !previewIsCurrent ||
+                preview?.hasBlockingChanges === true ||
+                saveMutation.isPending
+              }
+              onClick={() => saveMutation.mutate()}
+            >
+              {saveMutation.isPending
+                ? t("CONTENT_MODELS_SAVE_PENDING")
+                : t("CONTENT_MODELS_SAVE_ACTION")}
+            </button>
+          </div>
+        </aside>
       </div>
     </DefaultPage>
   );

@@ -258,17 +258,45 @@ function TypeSpecificSettingsField(
       ? "CONTENT_BOOTSTRAP_FIELD_ARTICLE_SETTINGS_LABEL"
       : variant === "page"
         ? "CONTENT_BOOTSTRAP_FIELD_PAGE_SETTINGS_LABEL"
-        : variant === "structured"
-          ? "CONTENT_BOOTSTRAP_FIELD_STRUCTURED_SETTINGS_LABEL"
-          : "CONTENT_BOOTSTRAP_FIELD_TYPE_SETTINGS_LABEL";
+        : variant === "reusable-section"
+          ? "CONTENT_BOOTSTRAP_FIELD_REUSABLE_SECTION_SETTINGS_LABEL"
+          : variant === "category"
+            ? "CONTENT_BOOTSTRAP_FIELD_CATEGORY_SETTINGS_LABEL"
+            : "CONTENT_BOOTSTRAP_FIELD_TYPE_SETTINGS_LABEL";
   const descriptionKey =
     variant === "article"
       ? "CONTENT_BOOTSTRAP_FIELD_ARTICLE_SETTINGS_DESC"
       : variant === "page"
         ? "CONTENT_BOOTSTRAP_FIELD_PAGE_SETTINGS_DESC"
-        : variant === "structured"
-          ? "CONTENT_BOOTSTRAP_FIELD_STRUCTURED_SETTINGS_DESC"
-          : "CONTENT_BOOTSTRAP_FIELD_TYPE_SETTINGS_EMPTY";
+        : variant === "reusable-section"
+          ? "CONTENT_BOOTSTRAP_FIELD_REUSABLE_SECTION_SETTINGS_DESC"
+          : variant === "category"
+            ? "CONTENT_BOOTSTRAP_FIELD_CATEGORY_SETTINGS_DESC"
+            : "CONTENT_BOOTSTRAP_FIELD_TYPE_SETTINGS_EMPTY";
+  const slugLabelKey =
+    variant === "page"
+      ? "CONTENT_BOOTSTRAP_FIELD_ROUTE_PATH_LABEL"
+      : variant === "reusable-section"
+        ? "CONTENT_BOOTSTRAP_FIELD_SECTION_KEY_LABEL"
+        : variant === "category"
+          ? "CONTENT_BOOTSTRAP_FIELD_CATEGORY_SLUG_LABEL"
+          : "CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK";
+  const slugHelpKey =
+    variant === "page"
+      ? "CONTENT_BOOTSTRAP_FIELD_ROUTE_PATH_HELP"
+      : variant === "reusable-section"
+        ? "CONTENT_BOOTSTRAP_FIELD_SECTION_KEY_HELP"
+        : variant === "category"
+          ? "CONTENT_BOOTSTRAP_FIELD_CATEGORY_SLUG_HELP"
+          : "CONTENT_BOOTSTRAP_FIELD_PERMALINK_HELP";
+  const visibilityHelpKey =
+    variant === "article"
+      ? "CONTENT_BOOTSTRAP_FIELD_ARTICLE_VISIBILITY_HELP"
+      : variant === "page"
+        ? "CONTENT_BOOTSTRAP_FIELD_PAGE_VISIBILITY_HELP"
+        : variant === "reusable-section"
+          ? "CONTENT_BOOTSTRAP_FIELD_REUSABLE_SECTION_VISIBILITY_HELP"
+          : "CONTENT_BOOTSTRAP_FIELD_CATEGORY_VISIBILITY_HELP";
 
   return (
     <Accordion type="single" collapsible defaultValue="content-type-settings" className="px-0">
@@ -285,17 +313,10 @@ function TypeSpecificSettingsField(
           </div>
         ) : (
           <div className="grid gap-4">
-            <FieldBlock
-              label={t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
-              help={t(
-                variant === "structured"
-                  ? "CONTENT_BOOTSTRAP_FIELD_STRUCTURED_PERMALINK_HELP"
-                  : "CONTENT_BOOTSTRAP_FIELD_PERMALINK_HELP",
-              )}
-            >
+            <FieldBlock label={t(slugLabelKey)} help={t(slugHelpKey)}>
               <Input
                 id="content-create-slug"
-                aria-label={t("CONTENT_LIBRARY_PREVIEW_FIELD_PERMALINK")}
+                aria-label={t(slugLabelKey)}
                 value={props.slug}
                 disabled={props.busy}
                 onChange={(event) => props.onSlugChange(event.target.value)}
@@ -337,15 +358,11 @@ function TypeSpecificSettingsField(
               </>
             ) : null}
 
-            {variant === "article" || variant === "structured" ? (
+            {variant ? (
               <VisibilityField
                 busy={props.busy}
                 value={props.visibility}
-                helpKey={
-                  variant === "article"
-                    ? "CONTENT_BOOTSTRAP_FIELD_ARTICLE_VISIBILITY_HELP"
-                    : "CONTENT_BOOTSTRAP_FIELD_STRUCTURED_VISIBILITY_HELP"
-                }
+                helpKey={visibilityHelpKey}
                 onChange={props.onVisibilityChange}
               />
             ) : null}
