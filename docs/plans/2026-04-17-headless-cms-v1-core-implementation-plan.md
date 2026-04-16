@@ -15,6 +15,7 @@
 - `Section Binding` 使用结构化 `props_mapping`，后端负责 `server-side flattening`，前端不解释表达式。
 - `public` 只读取已发布世界；`preview` 优先读取 draft，缺失时回退 published；模型合同和内容版本都使用 draft/published 双指针。
 - Admin IA 采用 `Content Library` 为核心、`Models` 为治理切面、`Site Builder` 为情境式页面切面的结构；`Create` 作为 `Content Library` header action 进入。
+- 执行过程中对过时设计采用 `hard cut`：旧入口、旧叙事、旧合同、旧页面壳体在新主线落地时直接替换，不保留兼容层、双轨入口或 silent fallback。
 
 ## Dependency Graph
 
@@ -442,6 +443,7 @@
 | `props_mapping` 改造过大，短期内打断现有 editor / delivery 兼容 | High | v1 先支持最小 `context_path + literal`，并让 flattening 在新合同上增量落地，不一次引入表达式系统 |
 | Admin IA 改造容易退回“多菜单并列”或“页面壳体先行” | Medium | 始终以 `Content Library` 为主平面；Models 和 Site Builder 只作为治理/情境入口推进 |
 | `Site Settings` 与 global sections 职责拆分不彻底，后续会形成两套全局内容系统 | Medium | 在同一阶段明确“绑定规则留在 settings，内容正文回到 sections”的切线，并用 UI copy 与路由入口一起收紧 |
+| 为保守上线而继续保留旧入口或兼容桥，导致 repo 同时存在两套内容主线 | High | 按 `hard cut` 执行：新入口 ready 后立即移除旧入口和旧表述，并用 focused tests 覆盖 cutover 后的唯一真路径 |
 
 ## Open Questions
 
