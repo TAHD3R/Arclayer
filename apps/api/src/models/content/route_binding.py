@@ -29,6 +29,7 @@ class RouteBindingRecord(BaseModel):
 
     locale = fields.CharField(max_length=16, default="zh-CN", db_index=True)
     path = fields.CharField(max_length=512, db_index=True)
+    route_contract = fields.JSONField(null=True)
     is_active = fields.BooleanField(default=True, db_index=True)
 
     if TYPE_CHECKING:

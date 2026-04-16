@@ -42,4 +42,4 @@ class PublishingRoutesResolveService(BaseService):
         if resolved is not None:
             return resolved
 
-        return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), pageBlueprint=None)
+        return SiteRouteResolveOut(match=SiteRouteMatchOut(kind="not_found"), document=None)

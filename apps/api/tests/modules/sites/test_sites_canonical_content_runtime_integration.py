@@ -2,144 +2,156 @@ from __future__ import annotations
 
 import pytest
 
-from tests.modules.workspaces.content.test_content_items_integration import _workspace_client
+from tests.modules.workspaces.content.test_content_items_integration import (
+    _bootstrap_shape_payload,
+    _create_article_model,
+    _create_page_model,
+    _workspace_client,
+)
 
 pytestmark = pytest.mark.integration
 
 
-def _page_model_payload() -> dict:
+def _page_item_payload(title: str) -> dict:
     return {
-        "key": "page",
-        "name": "Page",
-        "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
-        "relations": [],
-        "capabilities": ["versioned", "publishable", "routable", "visual_editable"],
-        "routing": {"mode": "single", "slugField": "title"},
-        "workflow": {"states": ["draft", "published"], "initialState": "draft"},
-        "views": [],
-    }
-
-
-def _component_model_payload() -> dict:
-    return {
-        "key": "header_component",
-        "name": "Header Component",
-        "fields": [{"key": "title", "label": "Title", "scalar": "text", "required": True}],
-        "relations": [],
-        "capabilities": ["versioned", "publishable", "visual_editable"],
-        "routing": {"mode": "none"},
-        "workflow": {"states": ["draft", "published"], "initialState": "draft"},
-        "views": [],
-    }
-
-
-def _header_doc(title: str) -> dict:
-    return {
-        "version": 1,
-        "rootId": "page",
-        "nodesById": {
-            "page": {
-                "id": "page",
-                "type": "page_root",
-                "name": "Page",
-                "children": ["h1"],
-                "layout": {"children": {"mode": "absolute"}},
-            },
-            "h1": {
-                "id": "h1",
-                "type": "text",
-                "text": {"en-US": title},
-                "tag": "h1",
-                "layout": {
-                    "self": {"rect": {"x": 0, "y": 0, "width": 720, "height": 0}},
-                    "children": {"mode": "absolute"},
-                },
-            },
-        },
-    }
-
-
-def _page_doc_with_ref(*, ref_entry_id: str, title: str) -> dict:
-    return {
-        "version": 1,
-        "rootId": "page",
-        "nodesById": {
-            "page": {
-                "id": "page",
-                "type": "page_root",
-                "name": "Page",
-                "children": ["heading", "ref1"],
-                "seo": {"title": {"en-US": title}},
-                "layout": {"children": {"mode": "absolute"}},
-            },
-            "heading": {
-                "id": "heading",
-                "type": "text",
-                "text": {"en-US": title},
-                "tag": "h1",
-                "layout": {
-                    "self": {"rect": {"x": 0, "y": 0, "width": 720, "height": 0}},
-                    "children": {"mode": "absolute"},
-                },
-            },
-            "ref1": {
-                "id": "ref1",
-                "type": "content_ref",
-                "refEntryId": ref_entry_id,
-                "refState": "published",
-            },
-        },
-    }
-
-
-def _item_payload(model_key: str, slug: str, title: str) -> dict:
-    return {
-        "modelKey": model_key,
-        "slug": slug,
+        "modelKey": "page",
         "title": title,
         "locale": "en-US",
-        "visibility": "public",
-        "status": "draft",
     }
 
 
-def _draft_payload(*, title: str, doc: dict, seo_description: str) -> dict:
+def _article_item_payload(slug: str, title: str) -> dict:
+    return {
+        "modelKey": "article",
+        "title": title,
+        "locale": "en-US",
+    }
+
+
+def _page_draft_payload(*, title: str, path: str) -> dict:
     return {
         "expectedVersion": 0,
-        "changeSummary": "initial draft",
-        "fieldsSnapshot": {"title": title},
+        "changeSummary": f"{title} draft",
+        "fieldsSnapshot": {"title": title, "path": path},
         "presentations": [
-            {"kind": "form_data", "payload": {"title": title}},
-            {"kind": "visual_blueprint", "payload": doc},
+            {"kind": "form_data", "payload": {"title": title, "path": path}},
+            {
+                "kind": "visual_blueprint",
+                "payload": {
+                    "root": "page_root",
+                    "nodes": {
+                        "page_root": {
+                            "type": "stack",
+                            "layout": {"direction": "column"},
+                            "children": ["hero"],
+                        },
+                        "hero": {
+                            "type": "hero_banner",
+                            "props": {"headline": "fallback"},
+                        },
+                    },
+                },
+            },
+            {
+                "kind": "slot_mapping",
+                "payload": {
+                    "version": 1,
+                    "sections": {
+                        "hero": {
+                            "propsDefaults": {"tone": "default"},
+                            "props": {
+                                "headline": {
+                                    "kind": "context_path",
+                                    "source": "primary",
+                                    "path": ["title"],
+                                },
+                                "slug": {
+                                    "kind": "context_path",
+                                    "source": "routeParams",
+                                    "path": ["slug"],
+                                },
+                                "eyebrow": {"kind": "literal", "value": "From template"},
+                            },
+                        }
+                    },
+                },
+            },
             {
                 "kind": "seo",
                 "payload": {
                     "metaTitle": f"{title} | Arclayer",
-                    "metaDescription": seo_description,
+                    "metaDescription": f"{title} description",
                 },
             },
         ],
     }
 
 
-async def _create_model(client, workspace_id: str, payload: dict) -> None:
-    res = await client.post(f"/api/v1/workspaces/{workspace_id}/content/models", json=payload)
-    assert res.status_code == 201, res.text
+def _article_draft_payload(*, expected_version: int, title: str, slug: str) -> dict:
+    return {
+        "expectedVersion": expected_version,
+        "changeSummary": f"{title} draft",
+        "fieldsSnapshot": {
+            "title": title,
+            "slug": slug,
+            "summary": f"{title} summary",
+            "body": f"{title} body",
+        },
+        "presentations": [
+            {
+                "kind": "form_data",
+                "payload": {
+                    "title": title,
+                    "slug": slug,
+                    "summary": f"{title} summary",
+                    "body": f"{title} body",
+                },
+            },
+            {"kind": "rich_text_document", "payload": {"type": "doc", "content": []}},
+            {
+                "kind": "seo",
+                "payload": {
+                    "metaTitle": f"{title} | Arclayer",
+                    "metaDescription": f"{title} summary",
+                },
+            },
+        ],
+    }
 
 
-async def _create_item(client, workspace_id: str, payload: dict) -> str:
-    res = await client.post(f"/api/v1/workspaces/{workspace_id}/content/items", json=payload)
-    assert res.status_code == 201, res.text
-    return res.json()["data"]["id"]
+async def _create_page_item(client, workspace_id: str, *, title: str) -> str:
+    item_res = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items",
+        json=_page_item_payload(title),
+    )
+    assert item_res.status_code == 201, item_res.text
+    item_id = item_res.json()["data"]["id"]
+    shape_res = await client.patch(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
+        json=_bootstrap_shape_payload(
+            preset_key="page",
+            capability_pack_ids=["publishable", "routable", "treeable"],
+        ),
+    )
+    assert shape_res.status_code == 200, shape_res.text
+    return item_id
 
 
-async def _publish_item(client, workspace_id: str, item_id: str, payload: dict) -> None:
+async def _create_article_item(client, workspace_id: str, *, slug: str, title: str) -> str:
+    item_res = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items",
+        json=_article_item_payload(slug, title),
+    )
+    assert item_res.status_code == 201, item_res.text
+    return item_res.json()["data"]["id"]
+
+
+async def _publish_page_item(client, workspace_id: str, *, item_id: str, title: str, path: str) -> None:
     draft_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
-        json=payload,
+        json=_page_draft_payload(title=title, path=path),
     )
     assert draft_res.status_code == 201, draft_res.text
-
     publish_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
         json={},
@@ -147,72 +159,145 @@ async def _publish_item(client, workspace_id: str, item_id: str, payload: dict) 
     assert publish_res.status_code == 200, publish_res.text
 
 
+async def _save_article_draft(
+    client,
+    workspace_id: str,
+    *,
+    item_id: str,
+    expected_version: int,
+    title: str,
+    slug: str,
+) -> None:
+    draft_res = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        json=_article_draft_payload(expected_version=expected_version, title=title, slug=slug),
+    )
+    assert draft_res.status_code == 201, draft_res.text
+
+
+async def _publish_article_version(client, workspace_id: str, *, item_id: str, version: int) -> None:
+    publish_res = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/{version}/publish",
+        json={},
+    )
+    assert publish_res.status_code == 200, publish_res.text
+
+
 @pytest.mark.asyncio
-async def test_sites_route_resolve_reads_canonical_content_items_and_includes(
+async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_delivery(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        await _create_model(client, workspace_id, _page_model_payload())
-        await _create_model(client, workspace_id, _component_model_payload())
+        await _create_page_model(client, workspace_id)
+        await _create_article_model(client, workspace_id)
 
-        header_item_id = await _create_item(
-            client,
-            workspace_id,
-            _item_payload("header_component", "header", "Header"),
-        )
-        about_item_id = await _create_item(
-            client,
-            workspace_id,
-            _item_payload("page", "about", "About"),
-        )
+        template_item_id = await _create_page_item(client, workspace_id, title="Blog Template")
+        static_item_id = await _create_page_item(client, workspace_id, title="New Landing")
+        article_item_id = await _create_article_item(client, workspace_id, slug="world", title="Entry world v1")
 
-        await _publish_item(
+        await _publish_page_item(
             client,
             workspace_id,
-            header_item_id,
-            _draft_payload(
-                title="Header",
-                doc=_header_doc("Header"),
-                seo_description="Header description",
-            ),
+            item_id=template_item_id,
+            title="Blog Template",
+            path="/blog/:slug",
         )
-        await _publish_item(
+        await _publish_page_item(
             client,
             workspace_id,
-            about_item_id,
-            _draft_payload(
-                title="About",
-                doc=_page_doc_with_ref(ref_entry_id=header_item_id, title="About"),
-                seo_description="About description",
-            ),
+            item_id=static_item_id,
+            title="New Landing",
+            path="/blog/new",
         )
+        await _save_article_draft(
+            client,
+            workspace_id,
+            item_id=article_item_id,
+            expected_version=0,
+            title="Entry world v1",
+            slug="world",
+        )
+        await _publish_article_version(client, workspace_id, item_id=article_item_id, version=1)
 
-        route_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{about_item_id}",
-            json={"locale": "en-US", "path": "/about", "isActive": True},
+        dynamic_route_res = await client.put(
+            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{template_item_id}",
+            json={
+                "locale": "en-US",
+                "path": "/blog/:slug",
+                "routeMode": "dynamic",
+                "primarySource": {
+                    "modelKey": "article",
+                    "fieldKey": "slug",
+                    "paramName": "slug",
+                },
+                "isActive": True,
+            },
         )
-        assert route_res.status_code == 200, route_res.text
+        assert dynamic_route_res.status_code == 200, dynamic_route_res.text
+
+        static_route_res = await client.put(
+            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{static_item_id}",
+            json={"locale": "en-US", "path": "/blog/new", "isActive": True},
+        )
+        assert static_route_res.status_code == 200, static_route_res.text
 
         site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
         assert site_res.status_code == 200, site_res.text
         site_id = site_res.json()["data"]["siteId"]
 
-        resolve_res = await client.get(
-            f"/api/v1/sites/{site_id}/routes/resolve",
-            params={"path": "/about", "mode": "public"},
+        token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
+        assert token_res.status_code == 201, token_res.text
+        preview_token = token_res.json()["data"]["token"]
+
+        await _save_article_draft(
+            client,
+            workspace_id,
+            item_id=article_item_id,
+            expected_version=1,
+            title="Entry world v2 (draft)",
+            slug="world",
         )
-        assert resolve_res.status_code == 200, resolve_res.text
-        payload = resolve_res.json()["data"]
 
-        assert payload["match"]["kind"] == "page"
-        assert payload["match"]["pageId"] == about_item_id
-        assert payload["pageMeta"]["title"] == "About | Arclayer"
-        assert payload["pageMeta"]["description"] == "About description"
-        assert payload["dataSources"]["primaryEntry"]["id"] == about_item_id
-        assert payload["dataSources"]["primaryEntry"]["data"]["fields"]["title"] == "About"
+        public_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/world", "mode": "public"},
+        )
+        assert public_res.status_code == 200, public_res.text
+        public_payload = public_res.json()["data"]
+        assert public_payload["match"]["kind"] == "page"
+        assert public_payload["match"]["pageId"] == template_item_id
+        assert public_payload["match"]["params"] == {"slug": "world"}
+        assert public_payload["context"]["primary"]["id"] == article_item_id
+        assert public_payload["context"]["primary"]["title"] == "Entry world v1"
+        assert public_payload["document"]["path"] == "/blog/world"
+        assert public_payload["document"]["sections"] == [
+            {
+                "id": "hero",
+                "componentKey": "hero_banner",
+                "props": {
+                    "headline": "Entry world v1",
+                    "tone": "default",
+                    "slug": "world",
+                    "eyebrow": "From template",
+                },
+            }
+        ]
 
-        include = payload["includes"][f"{header_item_id}:published"]
-        assert include["entryId"] == header_item_id
-        assert include["resolvedState"] == "published"
-        assert include["pageBlueprint"] is not None
+        preview_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/world", "mode": "preview", "token": preview_token},
+        )
+        assert preview_res.status_code == 200, preview_res.text
+        preview_payload = preview_res.json()["data"]
+        assert preview_payload["context"]["primary"]["title"] == "Entry world v2 (draft)"
+        assert preview_payload["document"]["sections"][0]["props"]["headline"] == "Entry world v2 (draft)"
+
+        static_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/blog/new", "mode": "public"},
+        )
+        assert static_res.status_code == 200, static_res.text
+        static_payload = static_res.json()["data"]
+        assert static_payload["match"]["pageId"] == static_item_id
+        assert static_payload["document"]["sections"][0]["props"]["headline"] == "New Landing"

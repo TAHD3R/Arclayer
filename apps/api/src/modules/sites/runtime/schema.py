@@ -148,23 +148,49 @@ class SiteRouteMatchOut(BaseSchema):
     )
 
 
-class SitePrimaryEntryOut(BaseSchema):
+class SitePrimaryContextOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
     id: PublicUUID = Field(..., description="Primary entry id.")
+    model_key: str | None = Field(default=None, alias="modelKey", description="Primary entry model key.")
+    slug: str | None = Field(default=None, description="Primary entry slug.")
+    title: str | None = Field(default=None, description="Primary entry title.")
     data: dict[str, Any] = Field(
         default_factory=dict,
-        description="Primary entry data snapshot (JSON). Typically shaped as { fields: {...} }.",
+        description="Primary entry data snapshot with depth-1 fields.",
     )
 
 
-class SiteRouteDataSourcesOut(BaseSchema):
+class SiteRouteContextOut(BaseSchema):
     model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
 
-    primary_entry: SitePrimaryEntryOut | None = Field(
+    primary: SitePrimaryContextOut | None = Field(
         default=None,
-        alias="primaryEntry",
-        description="Primary entry data source snapshot (if available).",
+        description="Resolved primary record context.",
+    )
+    route_params: dict[str, str] = Field(
+        default_factory=dict,
+        alias="routeParams",
+        description="Resolved route params.",
+    )
+
+
+class SiteFlattenedSectionOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    id: str = Field(..., min_length=1, description="Stable section instance id.")
+    component_key: str = Field(..., alias="componentKey", min_length=1, description="Section component key.")
+    props: dict[str, JsonValue] = Field(default_factory=dict, description="Flattened section props.")
+
+
+class SiteFlattenedPageOut(BaseSchema):
+    model_config = BaseSchema.model_config | ConfigDict(extra="forbid")
+
+    path: str = Field(..., min_length=1, description="Resolved request pathname.")
+    layout: dict[str, JsonValue] | None = Field(default=None, description="Optional page/root layout payload.")
+    sections: list[SiteFlattenedSectionOut] = Field(
+        default_factory=list,
+        description="Flattened top-level section instances in render order.",
     )
 
 
@@ -233,19 +259,13 @@ class SiteRouteResolveOut(BaseSchema):
         alias="pageMeta",
         description="Resolved page metadata (title/description) used for SSR head.",
     )
-    page_blueprint: PageBlueprint | None = Field(
+    document: SiteFlattenedPageOut | None = Field(
         default=None,
-        alias="pageBlueprint",
-        description="Resolved PageBlueprint document (if any).",
+        description="Flattened delivery document.",
     )
-    data_sources: SiteRouteDataSourcesOut | None = Field(
+    context: SiteRouteContextOut | None = Field(
         default=None,
-        alias="dataSources",
-        description="Optional binding data sources snapshot (v1).",
-    )
-    includes: dict[str, ContentRefIncludeV1] | None = Field(
-        default=None,
-        description="Flat map of content_ref includes. Key = '${entryId}:${resolvedState}'.",
+        description="Resolved runtime context.",
     )
     warnings: list[ResolveWarningV1] | None = Field(
         default=None,

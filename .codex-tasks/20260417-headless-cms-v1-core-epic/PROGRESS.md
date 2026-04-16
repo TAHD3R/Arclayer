@@ -79,3 +79,34 @@
   - `apps/api/tests/modules/workspaces/content/test_content_model_defaults_preview_integration.py`
   - `apps/api/tests/modules/workspaces/test_workspace_content_models_integration.py`
 - **Next step**: Child 2 — Content version and publish semantics
+
+---
+
+## Milestone 2: Content Version And Publish Semantics
+
+- **Status**: DONE
+- **Started**: 2026-04-17
+- **Completed**: 2026-04-17
+- **What was done**:
+  - Established page/article canonical snapshot isolation between draft and published revisions.
+  - Added publish safety gates around official protocol models so delivery-critical system fields stay valid before publish succeeds.
+  - Recorded Phase 2 completion in child truth files and shipped the first two phases in commit `c124bca4`.
+- **Validation**:
+  - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_content_presentations_integration.py tests/modules/workspaces/content/test_content_items_transition_guards_integration.py tests/modules/workspaces/content/test_content_items_continuation_contract_integration.py`
+- **Next step**: Child 3 — Route and delivery core
+
+---
+
+## Milestone 3: Route And Delivery Core
+
+- **Status**: DONE
+- **Started**: 2026-04-17
+- **Completed**: 2026-04-17
+- **What was done**:
+  - Added structured route contracts plus dynamic matcher precedence and conflict validation.
+  - Hard-cut site route resolve output to the new flattened delivery contract with `document.sections` and `context.primary`.
+  - Fixed preview primary context to read draft snapshot fields so dynamic page preview now returns draft article metadata instead of stale item-row metadata.
+- **Validation**:
+  - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_canonical_content_runtime_integration.py::test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_delivery`
+  - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_content_routing_integration.py tests/modules/sites/test_sites_canonical_content_runtime_integration.py`
+- **Next step**: Pause for phase report before activating child 4.

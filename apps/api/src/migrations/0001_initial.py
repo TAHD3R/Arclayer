@@ -863,6 +863,7 @@ class Migration(migrations.Migration):
                 ('item', fields.ForeignKeyField('models.ContentItemRecord', source_field='item_id', db_constraint=True, to_field='id', related_name='route_bindings', on_delete=OnDelete.CASCADE)),
                 ('locale', fields.CharField(default='zh-CN', db_index=True, max_length=16)),
                 ('path', fields.CharField(db_index=True, max_length=512)),
+                ('route_contract', fields.JSONField(null=True)),
                 ('is_active', fields.BooleanField(default=True, db_index=True)),
             ],
             options={'table': 'domain_content_route_bindings', 'app': 'models', 'unique_together': (('site_id', 'locale', 'path'), ('item_id', 'locale')), 'pk_attr': 'id', 'table_description': 'Domain model for route binding records.'},

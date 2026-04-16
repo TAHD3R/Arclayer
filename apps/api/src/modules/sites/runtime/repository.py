@@ -92,6 +92,22 @@ class RuntimeRepositoryMixin:
             .first()
         )
 
+    async def list_content_route_bindings(self, *, site_id: UUID) -> list[RouteBindingRecord]:
+        return list(
+            await RouteBindingRecord
+            .filter(site_id=site_id, is_active=True)
+            .prefetch_related("item__model_definition")
+            .all()
+        )
+
+    async def list_content_entries_by_model_key(self, *, site_id: UUID, model_key: str) -> list[ContentItemRecord]:
+        return list(
+            await ContentItemRecord
+            .filter(site_id=site_id, model_definition__key=model_key)
+            .prefetch_related("model_definition")
+            .all()
+        )
+
     async def get_content_revision_by_number(self, *, entry_id: UUID, revision: int) -> ContentVersionRecord | None:
         return await ContentVersionRecord.get_or_none(item_id=entry_id, version=int(revision))
 

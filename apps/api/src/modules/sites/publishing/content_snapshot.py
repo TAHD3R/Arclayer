@@ -14,6 +14,7 @@ from src.models.content.seo_profile import SEOProfileRecord
 class CanonicalContentSnapshot:
     fields: dict[str, Any]
     raw_page_blueprint: dict[str, Any] | None
+    raw_slot_mapping: dict[str, Any] | None
     meta: dict[str, Any] | None
     meta_title: str | None
     meta_description: str | None
@@ -73,6 +74,7 @@ def build_canonical_content_snapshot(
     return CanonicalContentSnapshot(
         fields=fields,
         raw_page_blueprint=presentation_map.get(ContentPresentationKind.VISUAL_BLUEPRINT.value),
+        raw_slot_mapping=presentation_map.get(ContentPresentationKind.SLOT_MAPPING.value),
         meta=meta,
         meta_title=meta_title or title,
         meta_description=meta_description,

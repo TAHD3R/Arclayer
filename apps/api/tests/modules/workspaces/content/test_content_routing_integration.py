@@ -4,6 +4,7 @@ import pytest
 
 from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
+    _create_article_model,
     _create_page_model,
     _workspace_client,
 )
@@ -11,7 +12,7 @@ from tests.modules.workspaces.content.test_content_items_integration import (
 pytestmark = pytest.mark.integration
 
 
-def _item_payload(slug: str, title: str) -> dict:
+def _item_payload(title: str) -> dict:
     return {
         "title": title,
         "locale": "en-US",
@@ -19,77 +20,115 @@ def _item_payload(slug: str, title: str) -> dict:
     }
 
 
-async def _create_model_and_items(client, workspace_id: str) -> tuple[str, str]:
-    await _create_page_model(client, workspace_id)
-    root_res = await client.post(
+async def _create_page_item(client, workspace_id: str, title: str) -> str:
+    item_res = await client.post(
         f"/api/v1/workspaces/{workspace_id}/content/items",
-        json=_item_payload("home", "Home"),
+        json=_item_payload(title),
     )
-    assert root_res.status_code == 201, root_res.text
-    root_item_id = root_res.json()["data"]["id"]
-    root_shape_res = await client.patch(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{root_item_id}/bootstrap-shape",
+    assert item_res.status_code == 201, item_res.text
+    item_id = item_res.json()["data"]["id"]
+    shape_res = await client.patch(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/bootstrap-shape",
         json=_bootstrap_shape_payload(
             preset_key="page",
             capability_pack_ids=["publishable", "routable", "treeable"],
         ),
     )
-    assert root_shape_res.status_code == 200, root_shape_res.text
-
-    child_res = await client.post(
-        f"/api/v1/workspaces/{workspace_id}/content/items",
-        json=_item_payload("about", "About"),
-    )
-    assert child_res.status_code == 201, child_res.text
-    child_item_id = child_res.json()["data"]["id"]
-    child_shape_res = await client.patch(
-        f"/api/v1/workspaces/{workspace_id}/content/items/{child_item_id}/bootstrap-shape",
-        json=_bootstrap_shape_payload(
-            preset_key="page",
-            capability_pack_ids=["publishable", "routable", "treeable"],
-        ),
-    )
-    assert child_shape_res.status_code == 200, child_shape_res.text
-    return root_item_id, child_item_id
+    assert shape_res.status_code == 200, shape_res.text
+    return item_id
 
 
 @pytest.mark.asyncio
-async def test_content_routing_upsert_bindings_and_hierarchy(
+async def test_content_routing_lists_static_and_dynamic_route_contracts(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
     async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
-        root_item_id, child_item_id = await _create_model_and_items(client, workspace_id)
+        await _create_page_model(client, workspace_id)
+        await _create_article_model(client, workspace_id)
+        static_item_id = await _create_page_item(client, workspace_id, "Static")
+        dynamic_item_id = await _create_page_item(client, workspace_id, "Dynamic")
 
-        root_route_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{root_item_id}",
-            json={"locale": "en-US", "path": "/", "isActive": True},
+        static_route_res = await client.put(
+            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{static_item_id}",
+            json={"locale": "en-US", "path": "/blog/new", "isActive": True},
         )
-        assert root_route_res.status_code == 200, root_route_res.text
+        assert static_route_res.status_code == 200, static_route_res.text
+        assert static_route_res.json()["data"]["routeMode"] == "static"
 
-        child_route_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{child_item_id}",
-            json={"locale": "en-US", "path": "/about", "isActive": True},
+        dynamic_route_res = await client.put(
+            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{dynamic_item_id}",
+            json={
+                "locale": "en-US",
+                "path": "/blog/:slug",
+                "routeMode": "dynamic",
+                "primarySource": {
+                    "modelKey": "article",
+                    "fieldKey": "slug",
+                    "paramName": "slug",
+                },
+                "routePriority": 5,
+                "isActive": True,
+            },
         )
-        assert child_route_res.status_code == 200, child_route_res.text
-
-        root_node_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{root_item_id}",
-            json={"parentItemId": None, "sortOrder": 0},
-        )
-        assert root_node_res.status_code == 200, root_node_res.text
-
-        child_node_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy/{child_item_id}",
-            json={"parentItemId": root_item_id, "sortOrder": 10},
-        )
-        assert child_node_res.status_code == 200, child_node_res.text
-        assert child_node_res.json()["data"]["parentItemId"] == root_item_id
+        assert dynamic_route_res.status_code == 200, dynamic_route_res.text
+        payload = dynamic_route_res.json()["data"]
+        assert payload["routeMode"] == "dynamic"
+        assert payload["routePriority"] == 5
+        assert payload["structureSignature"] == "/blog/:"
+        assert payload["primarySource"] == {
+            "modelKey": "article",
+            "fieldKey": "slug",
+            "paramName": "slug",
+        }
 
         bindings_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/routing/bindings")
         assert bindings_res.status_code == 200, bindings_res.text
-        assert len(bindings_res.json()["data"]) == 2
+        bindings = {row["itemId"]: row for row in bindings_res.json()["data"]}
+        assert bindings[static_item_id]["routeMode"] == "static"
+        assert bindings[dynamic_item_id]["routeMode"] == "dynamic"
 
-        hierarchy_res = await client.get(f"/api/v1/workspaces/{workspace_id}/content/routing/hierarchy")
-        assert hierarchy_res.status_code == 200, hierarchy_res.text
-        assert len(hierarchy_res.json()["data"]) == 2
+
+@pytest.mark.asyncio
+async def test_content_routing_rejects_ambiguous_dynamic_patterns(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_page_model(client, workspace_id)
+        await _create_article_model(client, workspace_id)
+        first_item_id = await _create_page_item(client, workspace_id, "First")
+        second_item_id = await _create_page_item(client, workspace_id, "Second")
+
+        first_res = await client.put(
+            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{first_item_id}",
+            json={
+                "locale": "en-US",
+                "path": "/blog/:slug",
+                "routeMode": "dynamic",
+                "primarySource": {
+                    "modelKey": "article",
+                    "fieldKey": "slug",
+                    "paramName": "slug",
+                },
+                "isActive": True,
+            },
+        )
+        assert first_res.status_code == 200, first_res.text
+
+        second_res = await client.put(
+            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{second_item_id}",
+            json={
+                "locale": "en-US",
+                "path": "/blog/:id",
+                "routeMode": "dynamic",
+                "primarySource": {
+                    "modelKey": "article",
+                    "fieldKey": "slug",
+                    "paramName": "id",
+                },
+                "isActive": True,
+            },
+        )
+        assert second_res.status_code == 409, second_res.text
+        assert second_res.json()["error"] == "CONTENT_ROUTE_PATTERN_CONFLICT"
