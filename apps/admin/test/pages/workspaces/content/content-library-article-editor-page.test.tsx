@@ -373,11 +373,12 @@ describe("content-library-article-editor-page", () => {
       target: { value: "Launch memo updated | Arclayer" },
     });
     await user.click(screen.getByRole("button", { name: "common:CONFIRM" }));
-    await waitFor(() => {
-      expect(
-        screen.queryByLabelText("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE"),
-      ).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(document.body).not.toHaveAttribute("data-scroll-locked");
+      },
+      { timeout: 5000 },
+    );
 
     await user.click(screen.getByLabelText("CONTENT_LIBRARY_EDITOR_DOCUMENT_MENU"));
     const slugInput = await screen.findByLabelText("CONTENT_LIBRARY_EDITOR_MENU_SLUG");

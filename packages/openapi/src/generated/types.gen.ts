@@ -1385,12 +1385,6 @@ export type ChangePasswordRequest = {
  */
 export type ConfirmMyEmailChangeRequest = {
     /**
-     * Backupcode
-     *
-     * 2FA backup code.
-     */
-    backupCode?: string | null;
-    /**
      * Code
      *
      * Email verification code.
@@ -1402,18 +1396,20 @@ export type ConfirmMyEmailChangeRequest = {
      * New email address.
      */
     newEmail: string;
+};
+
+/**
+ * ConfirmRemoveMyPasswordRequest
+ *
+ * Confirm password removal.
+ */
+export type ConfirmRemoveMyPasswordRequest = {
     /**
-     * Password
+     * Code
      *
-     * Current password.
+     * Email verification code.
      */
-    password?: string | null;
-    /**
-     * Twofactorcode
-     *
-     * 2FA TOTP code.
-     */
-    twoFactorCode?: string | null;
+    code: string;
 };
 
 /**
@@ -2243,6 +2239,10 @@ export type ContentModelMutationOut = {
      */
     description?: string | null;
     /**
+     * Draftcontractrevision
+     */
+    draftContractRevision?: number;
+    /**
      * Id
      */
     id: string;
@@ -2255,6 +2255,18 @@ export type ContentModelMutationOut = {
      * Name
      */
     name: string;
+    /**
+     * Protocolkey
+     */
+    protocolKey?: string | null;
+    /**
+     * Protocolversion
+     */
+    protocolVersion?: number;
+    /**
+     * Publishedcontractrevision
+     */
+    publishedContractRevision?: number | null;
     /**
      * Siteid
      */
@@ -2271,6 +2283,14 @@ export type ContentModelMutationOut = {
     surfacePolicy?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Systemfieldkeys
+     */
+    systemFieldKeys?: Array<string>;
+    /**
+     * Systemmanaged
+     */
+    systemManaged?: boolean;
     /**
      * Workspaceid
      */
@@ -2324,6 +2344,12 @@ export type ContentModelOut = {
      */
     description?: string | null;
     /**
+     * Draftcontractrevision
+     *
+     * Current mutable draft contract revision.
+     */
+    draftContractRevision?: number;
+    /**
      * Fieldschema
      *
      * Field schema payload.
@@ -2357,6 +2383,24 @@ export type ContentModelOut = {
     presentationSchema?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Protocolkey
+     *
+     * Official model protocol identity when this model is system managed.
+     */
+    protocolKey?: 'article' | 'page' | 'reusable-section' | 'category' | null;
+    /**
+     * Protocolversion
+     *
+     * Official protocol revision.
+     */
+    protocolVersion?: number;
+    /**
+     * Publishedcontractrevision
+     *
+     * Published contract revision used by delivery reads.
+     */
+    publishedContractRevision?: number | null;
     /**
      * Relationschema
      *
@@ -2395,6 +2439,18 @@ export type ContentModelOut = {
     surfacePolicy?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Systemfieldkeys
+     *
+     * Locked system field keys reserved by the official protocol.
+     */
+    systemFieldKeys?: Array<string>;
+    /**
+     * Systemmanaged
+     *
+     * Whether the model is managed by the platform.
+     */
+    systemManaged?: boolean;
     /**
      * Viewschema
      *
@@ -2603,66 +2659,6 @@ export type ContentRecoveryActionOut = {
      * Optional admin route for the recovery action.
      */
     route?: string | null;
-};
-
-/**
- * ContentRefIncludeErrorV1
- */
-export type ContentRefIncludeErrorV1 = {
-    /**
-     * Code
-     *
-     * Structured error code.
-     */
-    code: 'NOT_FOUND' | 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'INVALID_SCHEMA' | 'STATE_FORBIDDEN';
-    /**
-     * Message
-     *
-     * Human-readable error detail.
-     */
-    message?: string | null;
-};
-
-/**
- * ContentRefIncludeV1
- */
-export type ContentRefIncludeV1 = {
-    /**
-     * Data
-     *
-     * Entry field values snapshot.
-     */
-    data?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Entryid
-     *
-     * Resolved entry public id.
-     */
-    entryId: string;
-    /**
-     * Structured error if resolution failed.
-     */
-    error?: ContentRefIncludeErrorV1 | null;
-    /**
-     * Meta
-     *
-     * Entry metadata.
-     */
-    meta?: {
-        [key: string]: JsonValueOutput;
-    } | null;
-    /**
-     * Resolved PageBlueprint document.
-     */
-    pageBlueprint?: PageBlueprint | null;
-    /**
-     * Resolvedstate
-     *
-     * Actual resolved revision state.
-     */
-    resolvedState: 'draft' | 'published';
 };
 
 /**
@@ -4899,6 +4895,12 @@ export type EmailCheckOut = {
      * Whether an account already exists for the email address.
      */
     exists: boolean;
+    /**
+     * Passwordloginavailable
+     *
+     * Whether the account can continue with password login.
+     */
+    passwordLoginAvailable: boolean;
 };
 
 /**
@@ -5608,6 +5610,12 @@ export type MySecurityCapabilityOut = {
      * Required re-auth method(s) to confirm email change: password, 2fa, or relogin.
      */
     emailChangeRequiredReauthMethods?: Array<string>;
+    /**
+     * Haslinkedoauthidentities
+     *
+     * Whether the account has linked OAuth identities available for sign-in.
+     */
+    hasLinkedOauthIdentities?: boolean;
     /**
      * Haspassword
      *
@@ -7646,50 +7654,6 @@ export type OrganizationWorkspaceSlugAvailabilityOut = {
 export type OrganizationWorkspaceTemplate = 'blog' | 'website' | 'blank';
 
 /**
- * PageBlueprint
- */
-export type PageBlueprint = {
-    /**
-     * Nodesbyid
-     *
-     * Node table.
-     */
-    nodesById?: {
-        [key: string]: ({
-            type: 'page_root';
-        } & DesignPageRootNodeV1Output) | ({
-            type: 'frame';
-        } & DesignFrameNodeV1Output) | ({
-            type: 'group';
-        } & DesignGroupNodeV1Output) | ({
-            type: 'rect';
-        } & DesignRectNodeV1Output) | ({
-            type: 'text';
-        } & DesignTextNodeV1Output) | ({
-            type: 'image';
-        } & DesignImageNodeV1Output) | ({
-            type: 'embed';
-        } & DesignEmbedNodeV1Output) | ({
-            type: 'prefab_instance';
-        } & DesignPrefabInstanceNodeV1Output) | ({
-            type: 'content_ref';
-        } & DesignContentRefNodeV1Output);
-    };
-    /**
-     * Rootid
-     *
-     * Root node id (must be page_root).
-     */
-    rootId: string;
-    /**
-     * Version
-     *
-     * PageBlueprint version.
-     */
-    version?: 1;
-};
-
-/**
  * PageBlueprintFragment
  *
  * Reusable PageBlueprint fragment (insertable subtree).
@@ -9475,6 +9439,40 @@ export type RequestMyEmailChangeRequest = {
      * New email address.
      */
     newEmail: string;
+};
+
+/**
+ * RequestRemoveMyPasswordOut
+ *
+ * Password-removal request response.
+ */
+export type RequestRemoveMyPasswordOut = {
+    /**
+     * Expiresin
+     *
+     * Code expires in seconds.
+     */
+    expiresIn: number;
+    /**
+     * Retryafter
+     *
+     * Seconds before another code can be sent.
+     */
+    retryAfter: number;
+};
+
+/**
+ * RequestRemoveMyPasswordRequest
+ *
+ * Request a verification code before removing the current password.
+ */
+export type RequestRemoveMyPasswordRequest = {
+    /**
+     * Currentpassword
+     *
+     * Current password.
+     */
+    currentPassword: string;
 };
 
 /**
@@ -12097,6 +12095,31 @@ export type ResponseModelRequestMyEmailChangeOut = {
 };
 
 /**
+ * ResponseModel[RequestRemoveMyPasswordOut]
+ */
+export type ResponseModelRequestRemoveMyPasswordOut = {
+    data?: RequestRemoveMyPasswordOut | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Meta
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Timestamp
+     */
+    timestamp?: number;
+};
+
+/**
  * ResponseModel[ResetTokenPayload]
  */
 export type ResponseModelResetTokenPayload = {
@@ -13468,15 +13491,37 @@ export type RouteBindingOut = {
     /**
      * Path
      *
-     * Resolved pathname.
+     * Route pattern.
      */
     path: string;
+    /**
+     * Primary source declaration for dynamic routes.
+     */
+    primarySource?: RoutePrimarySourceOut | null;
+    /**
+     * Routemode
+     *
+     * Route mode derived from the persisted route contract.
+     */
+    routeMode?: 'static' | 'dynamic';
+    /**
+     * Routepriority
+     *
+     * Explicit route priority applied after specificity sorting.
+     */
+    routePriority?: number;
     /**
      * Siteid
      *
      * Site id.
      */
     siteId: string;
+    /**
+     * Structuresignature
+     *
+     * Normalized structural signature used for ambiguity checks.
+     */
+    structureSignature?: string;
     /**
      * Workspaceid
      *
@@ -13504,9 +13549,73 @@ export type RouteBindingUpsertIn = {
     /**
      * Path
      *
-     * Route pathname.
+     * Route pattern.
      */
     path: string;
+    /**
+     * Primary source declaration required for dynamic routes.
+     */
+    primarySource?: RoutePrimarySourceIn | null;
+    /**
+     * Routemode
+     *
+     * Optional route mode override. When omitted it is inferred from the pattern.
+     */
+    routeMode?: 'static' | 'dynamic' | null;
+    /**
+     * Routepriority
+     *
+     * Explicit route priority applied after specificity sorting.
+     */
+    routePriority?: number;
+};
+
+/**
+ * RoutePrimarySourceIn
+ */
+export type RoutePrimarySourceIn = {
+    /**
+     * Fieldkey
+     *
+     * Lookup field key.
+     */
+    fieldKey: string;
+    /**
+     * Modelkey
+     *
+     * Primary source model key.
+     */
+    modelKey: string;
+    /**
+     * Paramname
+     *
+     * Route param name.
+     */
+    paramName: string;
+};
+
+/**
+ * RoutePrimarySourceOut
+ */
+export type RoutePrimarySourceOut = {
+    /**
+     * Fieldkey
+     *
+     * Lookup field key.
+     */
+    fieldKey: string;
+    /**
+     * Modelkey
+     *
+     * Primary source model key.
+     */
+    modelKey: string;
+    /**
+     * Paramname
+     *
+     * Route param name.
+     */
+    paramName: string;
 };
 
 /**
@@ -13885,6 +13994,58 @@ export type SiteDomainVerifyOut = {
      * Observed TXT values from DNS lookup (best-effort, truncated).
      */
     observedTxtValues?: Array<string>;
+};
+
+/**
+ * SiteFlattenedPageOut
+ */
+export type SiteFlattenedPageOut = {
+    /**
+     * Layout
+     *
+     * Optional page/root layout payload.
+     */
+    layout?: {
+        [key: string]: JsonValueOutput;
+    } | null;
+    /**
+     * Path
+     *
+     * Resolved request pathname.
+     */
+    path: string;
+    /**
+     * Sections
+     *
+     * Flattened top-level section instances in render order.
+     */
+    sections?: Array<SiteFlattenedSectionOut>;
+};
+
+/**
+ * SiteFlattenedSectionOut
+ */
+export type SiteFlattenedSectionOut = {
+    /**
+     * Componentkey
+     *
+     * Section component key.
+     */
+    componentKey: string;
+    /**
+     * Id
+     *
+     * Stable section instance id.
+     */
+    id: string;
+    /**
+     * Props
+     *
+     * Flattened section props.
+     */
+    props?: {
+        [key: string]: JsonValueOutput;
+    };
 };
 
 /**
@@ -14282,13 +14443,13 @@ export type SitePreviewTokenOut = {
 };
 
 /**
- * SitePrimaryEntryOut
+ * SitePrimaryContextOut
  */
-export type SitePrimaryEntryOut = {
+export type SitePrimaryContextOut = {
     /**
      * Data
      *
-     * Primary entry data snapshot (JSON). Typically shaped as { fields: {...} }.
+     * Primary entry data snapshot with depth-1 fields.
      */
     data?: {
         [key: string]: unknown;
@@ -14299,6 +14460,24 @@ export type SitePrimaryEntryOut = {
      * Primary entry id.
      */
     id: string;
+    /**
+     * Modelkey
+     *
+     * Primary entry model key.
+     */
+    modelKey?: string | null;
+    /**
+     * Slug
+     *
+     * Primary entry slug.
+     */
+    slug?: string | null;
+    /**
+     * Title
+     *
+     * Primary entry title.
+     */
+    title?: string | null;
 };
 
 /**
@@ -14350,13 +14529,21 @@ export type SiteResolvedPageMetaOut = {
 };
 
 /**
- * SiteRouteDataSourcesOut
+ * SiteRouteContextOut
  */
-export type SiteRouteDataSourcesOut = {
+export type SiteRouteContextOut = {
     /**
-     * Primary entry data source snapshot (if available).
+     * Resolved primary record context.
      */
-    primaryEntry?: SitePrimaryEntryOut | null;
+    primary?: SitePrimaryContextOut | null;
+    /**
+     * Routeparams
+     *
+     * Resolved route params.
+     */
+    routeParams?: {
+        [key: string]: string;
+    };
 };
 
 /**
@@ -14438,25 +14625,17 @@ export type SiteRouteMatchOut = {
  */
 export type SiteRouteResolveOut = {
     /**
-     * Optional binding data sources snapshot (v1).
+     * Resolved runtime context.
      */
-    dataSources?: SiteRouteDataSourcesOut | null;
+    context?: SiteRouteContextOut | null;
     /**
-     * Includes
-     *
-     * Flat map of content_ref includes. Key = '${entryId}:${resolvedState}'.
+     * Flattened delivery document.
      */
-    includes?: {
-        [key: string]: ContentRefIncludeV1;
-    } | null;
+    document?: SiteFlattenedPageOut | null;
     /**
      * Match result.
      */
     match: SiteRouteMatchOut;
-    /**
-     * Resolved PageBlueprint document (if any).
-     */
-    pageBlueprint?: PageBlueprint | null;
     /**
      * Resolved page metadata (title/description) used for SSR head.
      */
@@ -17884,6 +18063,56 @@ export type GlobalAuthMeInvitationsResponses = {
 };
 
 export type GlobalAuthMeInvitationsResponse = GlobalAuthMeInvitationsResponses[keyof GlobalAuthMeInvitationsResponses];
+
+export type GlobalAuthConfirmRemoveMyPasswordData = {
+    body: ConfirmRemoveMyPasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/remove-password/confirm';
+};
+
+export type GlobalAuthConfirmRemoveMyPasswordErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthConfirmRemoveMyPasswordError = GlobalAuthConfirmRemoveMyPasswordErrors[keyof GlobalAuthConfirmRemoveMyPasswordErrors];
+
+export type GlobalAuthConfirmRemoveMyPasswordResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelNoneType;
+};
+
+export type GlobalAuthConfirmRemoveMyPasswordResponse = GlobalAuthConfirmRemoveMyPasswordResponses[keyof GlobalAuthConfirmRemoveMyPasswordResponses];
+
+export type GlobalAuthRequestRemoveMyPasswordData = {
+    body: RequestRemoveMyPasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me/remove-password/request';
+};
+
+export type GlobalAuthRequestRemoveMyPasswordErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GlobalAuthRequestRemoveMyPasswordError = GlobalAuthRequestRemoveMyPasswordErrors[keyof GlobalAuthRequestRemoveMyPasswordErrors];
+
+export type GlobalAuthRequestRemoveMyPasswordResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelRequestRemoveMyPasswordOut;
+};
+
+export type GlobalAuthRequestRemoveMyPasswordResponse = GlobalAuthRequestRemoveMyPasswordResponses[keyof GlobalAuthRequestRemoveMyPasswordResponses];
 
 export type GlobalAuthGetMySecurityCapabilitiesData = {
     body?: never;

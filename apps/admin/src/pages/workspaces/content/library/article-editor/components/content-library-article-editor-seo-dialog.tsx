@@ -71,7 +71,9 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
       >
         <SettingDialogFields className="py-2">
           <SettingDialogField
-            title={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}
+            title={
+              <label htmlFor={metaTitleId}>{t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE")}</label>
+            }
             description={t("CONTENT_LIBRARY_EDITOR_SEO_META_TITLE_HELP")}
           >
             <Input
@@ -82,7 +84,11 @@ export function ContentLibraryArticleEditorSeoDialog(props: {
           </SettingDialogField>
 
           <SettingDialogField
-            title={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
+            title={
+              <label htmlFor={metaDescriptionId}>
+                {t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION")}
+              </label>
+            }
             description={t("CONTENT_LIBRARY_EDITOR_SEO_META_DESCRIPTION_HELP")}
           >
             <Textarea

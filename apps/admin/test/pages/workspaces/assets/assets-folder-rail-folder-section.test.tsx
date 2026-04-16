@@ -83,6 +83,7 @@ describe("AssetsFolderRailFolderSection", () => {
 
   it("keeps multi-column folder cards readable with clamped title and description", async () => {
     const user = userEvent.setup();
+    const folderDescription = ROOT_FOLDER.description;
 
     render(
       <AssetsFolderRailFolderSection
@@ -105,8 +106,9 @@ describe("AssetsFolderRailFolderSection", () => {
       screen.getByRole("menuitemradio", { name: "assets:ASSET_FOLDER_LAYOUT_MULTI" }),
     );
 
-    expect(screen.getByText("Campaign")).toHaveClass("line-clamp-2");
-    expect(screen.getByText("assets:ASSET_FOLDER_ADD_CARD_TITLE")).toHaveClass("line-clamp-2");
-    expect(screen.getByText(ROOT_FOLDER.description)).toHaveClass("line-clamp-4");
+    expect(screen.getByText("Campaign")).toHaveClass("line-clamp-3");
+    expect(screen.getByText("assets:ASSET_FOLDER_ADD_CARD_TITLE")).toHaveClass("line-clamp-3");
+    expect(folderDescription).toBeTruthy();
+    expect(screen.getByText(folderDescription!)).toHaveClass("line-clamp-3");
   });
 });

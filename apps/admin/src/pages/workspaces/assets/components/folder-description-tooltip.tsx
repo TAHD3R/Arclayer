@@ -51,11 +51,9 @@ export function FolderDescriptionTooltip(props: FolderDescriptionTooltipProps) {
   if (!clamped || props.disabled) return descriptionNode;
 
   return (
-    <Tooltip>
+    <Tooltip align="start" side="top">
       <TooltipTrigger asChild>{descriptionNode}</TooltipTrigger>
-      <TooltipContent align="start" side="top" className="max-w-72 text-left">
-        {text}
-      </TooltipContent>
+      <TooltipContent className="max-w-72 text-left">{text}</TooltipContent>
     </Tooltip>
   );
 }

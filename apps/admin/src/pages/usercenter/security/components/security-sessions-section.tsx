@@ -6,8 +6,17 @@ import * as authApi from "@/api/auth";
 import { useAdminDateTimeFormatter } from "@/hooks/use-admin-date-time-formatter";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
 import { ContentGuard } from "@/layouts/page-shell/content-guard";
+import {
+  AlertDialog,
+  AlertDialogAction as AlertDialogActionPrimitive,
+  AlertDialogCancel as AlertDialogCancelPrimitive,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@arclayer/ui/alert-dialog";
 import { Button } from "@arclayer/ui/button";
-import { ConfirmDialog } from "@arclayer/ui/confirm-dialog";
 import { SettingCard, SettingCardContent, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { Spinner } from "@arclayer/ui/spinner";
 
@@ -153,48 +162,86 @@ export function UserSessionsSection() {
         </SettingCardContent>
       </SettingCard>
 
-      <ConfirmDialog
+      <AlertDialog
         open={Boolean(pendingRevokeSession)}
         onOpenChange={(open) => {
           if (!open && !revokeSessionMutation.isPending) {
             setPendingRevokeSession(null);
           }
         }}
-        title={t("account:ME_SECURITY_SESSIONS_KICK_CONFIRM_TITLE")}
-        description={
-          pendingRevokeSession
-            ? t("account:ME_SECURITY_SESSIONS_KICK_CONFIRM_DESC", {
-                device: pendingRevokeSession.device,
-              })
-            : undefined
-        }
-        cancelText={t("common:CANCEL")}
-        confirmText={t("account:ME_SECURITY_SESSIONS_KICK")}
-        loading={revokeSessionMutation.isPending}
-        onConfirm={async () => {
-          if (!pendingRevokeSession) return;
-          await revokeSessionMutation.mutateAsync(pendingRevokeSession);
-          setPendingRevokeSession(null);
-        }}
-      />
+      >
+        <AlertDialogContent className="sm:max-w-130">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("account:ME_SECURITY_SESSIONS_KICK_CONFIRM_TITLE")}
+            </AlertDialogTitle>
+            {pendingRevokeSession ? (
+              <AlertDialogDescription className="text-body">
+                {t("account:ME_SECURITY_SESSIONS_KICK_CONFIRM_DESC", {
+                  device: pendingRevokeSession.device,
+                })}
+              </AlertDialogDescription>
+            ) : null}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <Button variant="outline" disabled={revokeSessionMutation.isPending}>
+                {t("common:CANCEL")}
+              </Button>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <Button
+                loading={revokeSessionMutation.isPending}
+                onClick={async () => {
+                  if (!pendingRevokeSession) return;
+                  await revokeSessionMutation.mutateAsync(pendingRevokeSession);
+                  setPendingRevokeSession(null);
+                }}
+              >
+                {t("account:ME_SECURITY_SESSIONS_KICK")}
+              </Button>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <ConfirmDialog
+      <AlertDialog
         open={revokeOthersOpen}
         onOpenChange={(open) => {
           if (!open && !revokeOthersMutation.isPending) {
             setRevokeOthersOpen(false);
           }
         }}
-        title={t("account:ME_SECURITY_SESSIONS_KICK_ALL_CONFIRM_TITLE")}
-        description={t("account:ME_SECURITY_SESSIONS_KICK_ALL_CONFIRM_DESC")}
-        cancelText={t("common:CANCEL")}
-        confirmText={t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
-        loading={revokeOthersMutation.isPending}
-        onConfirm={async () => {
-          await revokeOthersMutation.mutateAsync();
-          setRevokeOthersOpen(false);
-        }}
-      />
+      >
+        <AlertDialogContent className="sm:max-w-130">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("account:ME_SECURITY_SESSIONS_KICK_ALL_CONFIRM_TITLE")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-body">
+              {t("account:ME_SECURITY_SESSIONS_KICK_ALL_CONFIRM_DESC")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancelPrimitive asChild>
+              <Button variant="outline" disabled={revokeOthersMutation.isPending}>
+                {t("common:CANCEL")}
+              </Button>
+            </AlertDialogCancelPrimitive>
+            <AlertDialogActionPrimitive asChild>
+              <Button
+                loading={revokeOthersMutation.isPending}
+                onClick={async () => {
+                  await revokeOthersMutation.mutateAsync();
+                  setRevokeOthersOpen(false);
+                }}
+              >
+                {t("account:ME_SECURITY_SESSIONS_KICK_ALL")}
+              </Button>
+            </AlertDialogActionPrimitive>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

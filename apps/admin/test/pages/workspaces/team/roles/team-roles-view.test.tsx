@@ -222,7 +222,7 @@ describe("TeamRolesView", () => {
     expect(columns[1]).toHaveAttribute("style", expect.stringContaining("29%"));
 
     const tableHead = matrix.querySelector("thead");
-    expect(tableHead).toHaveClass("border-b", "border-border/25");
+    expect(tableHead).toHaveClass("border-b", "border-border/60");
 
     const headerCells = matrix.querySelectorAll("th");
     expect(headerCells[0]).toHaveClass("bg-background");

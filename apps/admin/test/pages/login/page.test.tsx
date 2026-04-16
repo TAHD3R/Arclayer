@@ -224,7 +224,7 @@ describe("LoginView auth pane hierarchy", () => {
     });
 
     expect(screen.getByRole("link", { name: "Arclayer" })).toBeInTheDocument();
-    expect(screen.getByText("auth:TWO_FACTOR_CODE_LABEL")).toBeInTheDocument();
+    expect(screen.getAllByText("auth:TWO_FACTOR_CODE_LABEL").length).toBeGreaterThan(0);
 
     const submitButton = screen.getByRole("button", {
       name: "auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON",

@@ -131,13 +131,13 @@
 
 ## Context Recovery Block
 
-- **Current milestone**: Phase 5 — Admin IA cutover
+- **Current milestone**: Phase 6 — Validation and closeout
 - **Current status**: IN_PROGRESS
-- **Last completed**: Phase 4 perspective and dependency rules
-- **Current artifact**: `.codex-tasks/20260417-headless-cms-v1-core-epic/tasks/20260417-phase5-admin-ia-cutover/TODO.csv`
-- **Key context**: Backend contracts for models, route resolve, flattened delivery, and perspective/dependency rules are now stable. The remaining gap is the admin interaction architecture: `Content Library` still navigates to a separate create page, `Models` still reads like a control form, and `Page` items still stop in a handoff shell instead of a real `Site Builder` route.
-- **Known issues**: The approved IA requires hard cuts only. No fallback navigation tree, no dual create narratives, and no lingering Site Settings copy that implies content composition belongs there.
-- **Next action**: Implement Library-first create overlay and then hard-cut the remaining admin surfaces to the approved IA.
+- **Last completed**: Phase 5 admin IA cutover
+- **Current artifact**: `.codex-tasks/20260417-headless-cms-v1-core-epic/tasks/20260417-phase6-validation-closeout/TODO.csv`
+- **Key context**: The Headless CMS v1 implementation work is complete through Phase 5. Phase 6 synced the generated OpenAPI client and cleared the admin blocker tests exposed by the cutover. The remaining gap is repo-wide validation outside the epic surface.
+- **Known issues**: `pnpm api:check` still fails on 16 unrelated backend tests. `pnpm admin:check` clears lint, typecheck, and the touched suites, then later crashes with a Node heap OOM in unrelated full-suite Vitest execution.
+- **Next action**: Pause for the phase report with blocker evidence so the next scope decision is explicit.
 
 ---
 
@@ -160,3 +160,26 @@
   - Attempted: `pnpm admin:check`
   - Result: Phase 5 surfaces stayed green, lint was clean, and the full admin gate remains blocked by unrelated repo-level failures in assets typecheck plus unrelated existing admin tests.
 - **Next step**: Pause for phase report before continuing Phase 6 validation and closeout.
+
+---
+
+## Milestone 6: Validation And Closeout
+
+- **Status**: IN_PROGRESS
+- **Started**: 2026-04-17
+- **Last updated**: 2026-04-17
+- **What was done**:
+  - Cleared the Phase 6 admin closeout regressions around favorites overlay normalization, security session dialogs and action cells, assets tooltip typing, SEO dialog labeling, and the affected UI test expectations.
+  - Regenerated `packages/openapi/src/generated/*` from the live backend contract.
+  - Verified the touched admin suites and typecheck pass again after the fixes.
+  - Ran the repo-level `api` and `admin` gates and recorded the remaining non-epic blockers.
+- **Validation**:
+  - Passed: `pnpm -C apps/admin typecheck`
+  - Passed: `pnpm -C apps/admin test test/pages/login/login-instance-entry-flow.test.tsx`
+  - Passed: `pnpm -C apps/admin test test/pages/workspaces/content/content-library-article-editor-page.test.tsx`
+  - Passed: `pnpm -C packages/openapi generate`
+  - Failed: `pnpm api:check`
+  - Result: 16 unrelated backend tests fail across exception handlers, i18n, 2FA privileged ops, TOTP anti-replay, system runtime settings, workspace slug update, and tenant context
+  - Failed: `pnpm admin:check`
+  - Result: lint and typecheck pass, touched suites pass, and the full Vitest run later crashes with `JavaScript heap out of memory` plus a worker timeout in unrelated admin suites
+- **Next step**: Pause for phase report before widening scope into repo-wide gate repair.

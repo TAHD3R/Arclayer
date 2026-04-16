@@ -204,14 +204,17 @@ describe("LoginPage instance entry flow", () => {
 
     await user.type(await screen.findByLabelText("auth:FIELD_DISPLAY_NAME_LABEL"), "Founder");
     await user.type(screen.getByLabelText("auth:FIELD_USERNAME_LABEL"), "founder01");
-    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "bootstrap123");
+    await user.type(screen.getByLabelText("auth:FIELD_PASSWORD_LABEL"), "Bootstrap123");
+    await waitFor(() => {
+      expect(screen.getByText("auth:USERNAME_AVAILABILITY_AVAILABLE")).toBeInTheDocument();
+    });
     await user.click(screen.getByRole("button", { name: "auth:INSTANCE_BOOTSTRAP_BUTTON" }));
 
     await waitFor(() => {
       expect(bootstrapInstanceMock).toHaveBeenCalledWith({
         username: "founder01",
         email: "founder@example.com",
-        password: "bootstrap123",
+        password: "Bootstrap123",
         display_name: "Founder",
       });
     });

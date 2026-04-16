@@ -1,6 +1,10 @@
 import { Monitor, Smartphone, Tablet } from "lucide-react";
 
 import { cn } from "@arclayer/lib/utils";
+import {
+  buildDataTableActionsColumnMeta,
+  DataTableActionsCell,
+} from "@/components/common/data-table-actions-cell";
 import { Button } from "@arclayer/ui/button";
 
 export type SessionRow = {
@@ -58,21 +62,25 @@ function SessionActionCell(props: {
 }) {
   if (!props.row.revocable) {
     return (
-      <Button variant="outline" size="sm" disabled>
-        {props.t("account:ME_SECURITY_SESSIONS_KICK")}
-      </Button>
+      <DataTableActionsCell>
+        <Button variant="outline" size="sm" disabled>
+          {props.t("account:ME_SECURITY_SESSIONS_KICK")}
+        </Button>
+      </DataTableActionsCell>
     );
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      loading={props.isRevoking && props.revokingSessionId === props.row.sessionId}
-      onClick={() => props.onRevoke(props.row)}
-    >
-      {props.t("account:ME_SECURITY_SESSIONS_KICK")}
-    </Button>
+    <DataTableActionsCell>
+      <Button
+        variant="outline"
+        size="sm"
+        loading={props.isRevoking && props.revokingSessionId === props.row.sessionId}
+        onClick={() => props.onRevoke(props.row)}
+      >
+        {props.t("account:ME_SECURITY_SESSIONS_KICK")}
+      </Button>
+    </DataTableActionsCell>
   );
 }
 
@@ -86,6 +94,8 @@ type SecuritySessionsTableContentProps = {
 };
 
 export function SecuritySessionsTableContent(props: SecuritySessionsTableContentProps) {
+  const actionsColumnMeta = buildDataTableActionsColumnMeta("right");
+
   if (!props.rows.length) {
     return <div className="py-4 text-callout text-label-secondary">{props.emptyText}</div>;
   }
@@ -104,7 +114,12 @@ export function SecuritySessionsTableContent(props: SecuritySessionsTableContent
             <th className="w-[20%] px-4 py-2 text-left text-footnote font-medium text-label-secondary">
               {props.t("account:ME_SECURITY_SESSIONS_COL_LOCATION")}
             </th>
-            <th className="w-[16%] py-2 pl-4 text-right text-footnote font-medium text-label-secondary">
+            <th
+              className={cn(
+                "w-[16%] py-2 pl-4 text-footnote font-medium text-label-secondary",
+                actionsColumnMeta.headerAlign === "center" ? "text-center" : "text-right",
+              )}
+            >
               {props.t("account:ME_SECURITY_SESSIONS_COL_ACTIONS")}
             </th>
           </tr>
