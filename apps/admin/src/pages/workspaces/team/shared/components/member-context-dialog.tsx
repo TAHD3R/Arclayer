@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Building2, FolderKanban } from "lucide-react";
 
-import { cn } from "@arclayer/lib/utils";
 import { Button } from "@arclayer/ui/button";
 import {
   ChromeTabs,
@@ -118,12 +117,6 @@ export function MemberContextDialog(props: MemberContextDialogProps) {
       size="xl"
       title={props.dialogTitle}
       description={props.dialogDescription}
-      contentClassName={cn(
-        "rounded-[14px]",
-        "w-[90vw]! max-w-310!",
-        "h-[calc(100%-100px)]! max-h-[calc(100%-100px)]!",
-        "[&>div]:h-full [&>div]:min-h-0",
-      )}
       bodyClassName="flex h-full min-h-0 flex-col gap-0 overflow-hidden p-0!"
     >
       <div className="flex min-h-0 flex-1 flex-col bg-card">

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, EllipsisVertical, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, EllipsisVertical } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 import {
@@ -50,7 +50,6 @@ function PreviewToolbar(props: {
   nextAsset: AssetMasonryItem | null;
   onSelectAsset: (asset: AssetMasonryItem) => void;
   onAction: (key: AssetMoreActionKey) => void;
-  onClose: () => void;
   menuItems: AssetMoreMenuItem[];
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
@@ -103,21 +102,8 @@ function PreviewToolbar(props: {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-9"
-        aria-label="Close"
-        onClick={props.onClose}
-      >
-        <X className="size-4" />
-      </Button>
     </div>
   );
-}
-
-function buildDialogHeightClass() {
-  return "h-[min(92dvh,56rem)]! max-h-[min(92dvh,56rem)]!";
 }
 
 export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
@@ -180,6 +166,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
         }}
         size="xl"
         title={active?.name ?? ""}
+        headerAlign="center"
         headerRight={
           active ? (
             <PreviewToolbar
@@ -187,13 +174,11 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
               nextAsset={nextAsset}
               onSelectAsset={props.onSelectAsset}
               onAction={handleMoreAction}
-              onClose={props.onClose}
               menuItems={moreMenuItems}
               t={controller.t}
             />
           ) : null
         }
-        contentClassName={`w-[min(96vw,96rem)]! max-w-[96rem]! ${buildDialogHeightClass()} [&>div]:h-full [&>div]:min-h-0`}
         bodyClassName="flex h-full min-h-0 gap-0 overflow-hidden bg-card p-0!"
       >
         {active ? (

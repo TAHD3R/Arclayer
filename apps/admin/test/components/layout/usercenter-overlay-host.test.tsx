@@ -77,10 +77,8 @@ describe("UsercenterOverlayHost", () => {
       "items-center",
       "gap-4",
       "border-b",
-      "px-6",
-      "py-4",
-      "sm:px-8",
-      "sm:py-5",
+      "border-border/70",
+      "px-10",
     );
     expect(header).toContainElement(closeButton);
     expect(closeButton).toHaveAttribute("data-variant", "ghost");
