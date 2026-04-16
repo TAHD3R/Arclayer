@@ -55,3 +55,9 @@ export type OrganizationWorkspaceCreateInput = {
   timezone?: string;
   dateFormat?: string;
 };
+
+export type OrganizationWorkspaceSlugAvailability = {
+  normalizedSlug: string | null;
+  available: boolean;
+  reason: "invalid" | "reserved" | "exists" | null;
+};

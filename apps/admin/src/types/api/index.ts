@@ -33,6 +33,7 @@ export type {
   OrganizationWorkspaceCreateInput,
   OrganizationWorkspaceMember,
   OrganizationWorkspaceMemberPreview,
+  OrganizationWorkspaceSlugAvailability,
   OrganizationWorkspaceTemplate,
 } from "./organization-workspaces";
 export type {

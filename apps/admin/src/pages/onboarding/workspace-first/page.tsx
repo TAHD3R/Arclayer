@@ -29,6 +29,13 @@ import {
 import { FeatureCarousel, Onboarding, StepIndicator } from "@/components/ui/onboarding";
 import { useDebouncedValue } from "@/lib/auth/form-feedback";
 import {
+  applyManualWorkspaceSlugInput,
+  createNameSeedWorkspaceSlugState,
+  createProfileSeedWorkspaceSlugState,
+  syncWorkspaceSlugWithName,
+  type WorkspaceSlugState,
+} from "@/lib/workspace-slug";
+import {
   buildDateFormatOptions,
   buildLocaleOptions,
   buildTimezoneOptions,
@@ -41,16 +48,6 @@ import { notifyError } from "@/lib/notifications";
 import { resolvePostAuthRoute } from "@/lib/routing/post-auth-routing";
 import { DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE } from "@/lib/time/datetime-config";
 import { useWorkspaceStore } from "@/stores/use-workspace-store";
-
-function normalizeWorkspaceSlugInput(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+/g, "")
-    .replace(/-+$/g, "")
-    .slice(0, 64);
-}
 
 function getBrowserTimeZone() {
   try {
@@ -114,7 +111,9 @@ export function WorkspaceFirstOnboardingPage() {
   });
 
   const [workspaceName, setWorkspaceName] = useState("");
-  const [workspaceSlug, setWorkspaceSlug] = useState("");
+  const [workspaceSlugState, setWorkspaceSlugState] = useState<WorkspaceSlugState>(() =>
+    createNameSeedWorkspaceSlugState(""),
+  );
   const [workspaceNameTouched, setWorkspaceNameTouched] = useState(false);
   const [workspaceSlugTouched, setWorkspaceSlugTouched] = useState(false);
   const [step, setStep] = useState(1);
@@ -134,6 +133,7 @@ export function WorkspaceFirstOnboardingPage() {
   const [stepError, setStepError] = useState<string | null>(null);
   const lastAutoWorkspaceNameRef = useRef("");
 
+  const workspaceSlug = workspaceSlugState.value;
   const debouncedSlug = useDebouncedValue(workspaceSlug, 250);
   const ownerName = useMemo(
     () => resolveWorkspaceOwnerName(profileQuery.data),
@@ -257,12 +257,21 @@ export function WorkspaceFirstOnboardingPage() {
   }, [autoWorkspaceName, workspaceName, workspaceNameTouched]);
 
   useEffect(() => {
+    setWorkspaceSlugState((current) => syncWorkspaceSlugWithName(current, workspaceName));
+  }, [workspaceName]);
+
+  useEffect(() => {
     const username = String(profileQuery.data?.username || "").trim();
     if (!username) return;
     if (workspaceSlugTouched) return;
-    if (workspaceSlug) return;
-    setWorkspaceSlug(normalizeWorkspaceSlugInput(username));
-  }, [profileQuery.data?.username, workspaceSlug, workspaceSlugTouched]);
+    setWorkspaceSlugState((current) => {
+      const next = createProfileSeedWorkspaceSlugState(username);
+      if (current.source === next.source && current.value === next.value) {
+        return current;
+      }
+      return next;
+    });
+  }, [profileQuery.data?.username, workspaceSlugTouched]);
 
   useEffect(() => {
     if (!lockedWorkspace) return;
@@ -270,7 +279,10 @@ export function WorkspaceFirstOnboardingPage() {
       setWorkspaceName(lockedWorkspace.name);
     }
     if (!workspaceSlugTouched) {
-      setWorkspaceSlug(lockedWorkspace.slug);
+      setWorkspaceSlugState({
+        value: lockedWorkspace.slug,
+        source: "manual",
+      });
     }
   }, [lockedWorkspace, workspaceNameTouched, workspaceSlugTouched]);
 
@@ -600,7 +612,7 @@ export function WorkspaceFirstOnboardingPage() {
                 readOnly={workspaceCreated}
                 onChange={(event) => {
                   setWorkspaceSlugTouched(true);
-                  setWorkspaceSlug(normalizeWorkspaceSlugInput(event.target.value));
+                  setWorkspaceSlugState(applyManualWorkspaceSlugInput(event.target.value));
                 }}
                 onBlur={() => setWorkspaceSlugTouched(true)}
                 placeholder={t("onboarding:WORKSPACE_SLUG_PLACEHOLDER")}

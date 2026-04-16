@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { DefaultPage } from "@/layouts/page-shell/default-page";
 import { workspaceHomePath } from "@/lib/routing/workspace-routing";
+import { createNameSeedWorkspaceSlugState } from "@/lib/workspace-slug";
 import { buildDataTableToolsLabels } from "@/components/common/data-table-tools-labels";
 import { Button } from "@arclayer/ui/button";
 import { ChromeTabs, ChromeTabsContent } from "@arclayer/ui/chrome-tabs";
@@ -18,6 +19,7 @@ import {
   UserCenterWorkspacesDialogs,
   type CreateWorkspaceFormValues,
 } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-dialogs";
+import { WorkspacesCreateCard } from "@/pages/usercenter/workspaces/components/workspaces-create-card";
 import { UserCenterWorkspacesToolbar } from "@/pages/usercenter/workspaces/components/usercenter-workspaces-toolbar";
 import { WorkspacesContentSection } from "@/pages/usercenter/workspaces/components/workspaces-table-section";
 import { useUserCenterWorkspacesColumns } from "@/pages/usercenter/workspaces/components/workspaces-columns";
@@ -39,9 +41,14 @@ export function WorkspacesPage() {
   const [tab, setTab] = useState<UserCenterWorkspacesTab>("active");
   const [viewMode, setViewMode] = useState<UserCenterWorkspacesViewMode>("card");
   const [createOpen, setCreateOpen] = useState(autoOpenCreate);
-  const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>({
-    name: "",
-    description: "",
+  const [createValues, setCreateValues] = useState<CreateWorkspaceFormValues>(() => {
+    const initialSlugState = createNameSeedWorkspaceSlugState("");
+    return {
+      name: "",
+      slug: initialSlugState.value,
+      slugSource: initialSlugState.source,
+      description: "",
+    };
   });
 
   useEffect(() => {
@@ -64,6 +71,9 @@ export function WorkspacesPage() {
     },
     [navigate, setCurrentWorkspaceId],
   );
+  const handleOpenCreate = useCallback(() => {
+    setCreateOpen(true);
+  }, []);
 
   const workspaceMenuActions = useWorkspaceMenuActions({
     organizationId: undefined,
@@ -140,6 +150,20 @@ export function WorkspacesPage() {
       labels={toolsLabels}
     />
   );
+  const showPageAction = viewMode === "table";
+  const renderCreateWorkspaceButton = () => (
+    <Button variant="default" onClick={handleOpenCreate}>
+      <Plus size={16} />
+      {t("common:ORG_WORKSPACES_CREATE_TEAM")}
+    </Button>
+  );
+  const activeCreateCard = (
+    <WorkspacesCreateCard
+      title={t("common:ORG_WORKSPACES_CREATE_TEAM")}
+      description={t("common:ORG_WORKSPACES_CREATE_TEAM_DIALOG_DESC")}
+      onClick={handleOpenCreate}
+    />
+  );
 
   return (
     <ChromeTabs
@@ -151,17 +175,7 @@ export function WorkspacesPage() {
         description={t("account:ACCOUNT_PAGE_WORKSPACES_DESC")}
         contentClassName="min-h-0 flex flex-col"
         showFavoriteToggle={false}
-        action={
-          <Button
-            variant="default"
-            onClick={() => {
-              setCreateOpen(true);
-            }}
-          >
-            <Plus size={16} />
-            {t("common:ORG_WORKSPACES_CREATE_TEAM")}
-          </Button>
-        }
+        action={showPageAction ? renderCreateWorkspaceButton() : undefined}
         extra={pageToolbar}
       >
         <div className="flex min-h-0 flex-1 flex-col">
@@ -171,6 +185,7 @@ export function WorkspacesPage() {
               tableHook={activeTableHook}
               emptyTitle={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_TITLE")}
               emptyDescription={t("common:ORG_WORKSPACES_ACTIVE_EMPTY_DESC")}
+              emptyExtra={renderCreateWorkspaceButton()}
               onRetry={() => void activeTableHook.refetch()}
               onRowClick={(row) => handleEnterWorkspace(row.original.workspaceId)}
               t={t}
@@ -195,6 +210,7 @@ export function WorkspacesPage() {
               onCancelWorkspaceEdit={workspaceMenuActions.cancelWorkspaceEdit}
               disableWorkspaceNavigation={workspaceMenuActions.isWorkspaceEditNavigationSuppressed}
               onCardClick={(workspace) => handleEnterWorkspace(workspace.workspaceId)}
+              appendCard={activeCreateCard}
             />
           </ChromeTabsContent>
 
@@ -235,6 +251,7 @@ export function WorkspacesPage() {
         t={t}
         createDialog={{
           open: createOpen,
+          organizationId: undefined,
           setOpen: setCreateOpen,
           values: createValues,
           setValues: setCreateValues,
@@ -242,7 +259,13 @@ export function WorkspacesPage() {
           onSubmit: async (values) => {
             await workspaceMenuActions.mutations.createMutation.mutateAsync(values);
             setCreateOpen(false);
-            setCreateValues({ name: "", description: "" });
+            const resetSlugState = createNameSeedWorkspaceSlugState("");
+            setCreateValues({
+              name: "",
+              slug: resetSlugState.value,
+              slugSource: resetSlugState.source,
+              description: "",
+            });
           },
         }}
         archiveDialog={workspaceMenuActions.archiveDialog}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import type { ReactNode } from "react";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 
@@ -36,6 +37,8 @@ interface WorkspacesCardGridProps {
   onCardClick?: (ws: UserCenterWorkspaceListItem) => void;
   emptyTitle: string;
   emptyDescription: string;
+  emptyExtra?: ReactNode;
+  appendCard?: ReactNode;
   t: UserCenterWorkspacesTranslateFn;
 }
 
@@ -60,6 +63,8 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
     onCardClick,
     emptyTitle,
     emptyDescription,
+    emptyExtra,
+    appendCard,
     t,
   } = props;
 
@@ -126,6 +131,7 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
       empty={empty}
       emptyTitle={emptyTitle}
       emptyDescription={emptyDescription}
+      emptyExtra={emptyExtra}
       wrapperSpacing="flush"
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -150,6 +156,7 @@ export function WorkspacesCardGrid(props: WorkspacesCardGridProps) {
             }
           />
         ))}
+        {items.length > 0 ? appendCard : null}
       </div>
 
       <div className="flex justify-center py-4">

@@ -1,5 +1,13 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { CheckCircle2 } from "lucide-react";
 
+import { checkOrganizationWorkspaceSlugAvailability } from "@/api/organization-workspaces";
+import { useDebouncedValue } from "@/lib/auth/form-feedback";
+import {
+  applyManualWorkspaceSlugInput,
+  syncWorkspaceSlugWithName,
+  type WorkspaceSlugSource,
+} from "@/lib/workspace-slug";
 import type { OrganizationWorkspace } from "@/types/api";
 import { cn } from "@arclayer/lib/utils";
 import {
@@ -26,6 +34,8 @@ import { WorkspaceIconDialog } from "./workspace-icon-dialog";
 
 export type CreateWorkspaceFormValues = {
   name: string;
+  slug: string;
+  slugSource: WorkspaceSlugSource;
   description?: string;
 };
 
@@ -33,6 +43,7 @@ interface UserCenterWorkspacesDialogsProps {
   t: UserCenterWorkspacesTranslateFn;
   createDialog: {
     open: boolean;
+    organizationId?: string;
     setOpen: Dispatch<SetStateAction<boolean>>;
     values: CreateWorkspaceFormValues;
     setValues: Dispatch<SetStateAction<CreateWorkspaceFormValues>>;
@@ -185,14 +196,92 @@ export function WorkspaceActionDialogs(props: WorkspaceActionDialogsProps) {
 export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsProps) {
   const { t, createDialog, archiveDialog, deleteDialog, iconDialog } = props;
   const [createNameTouched, setCreateNameTouched] = useState(false);
+  const [createSlugTouched, setCreateSlugTouched] = useState(false);
+  const [createSlugCheck, setCreateSlugCheck] = useState<{
+    slug: string;
+    available: boolean;
+    reason: "invalid" | "reserved" | "exists" | null;
+  } | null>(null);
+  const [createSlugChecking, setCreateSlugChecking] = useState(false);
+  const [createSlugCheckFailedSlug, setCreateSlugCheckFailedSlug] = useState<string | null>(null);
   const createNameMissing = !createDialog.values.name.trim();
+  const createSlug = createDialog.values.slug.trim();
+  const createSlugMissing = !createSlug;
   const showCreateNameError = createNameTouched && createNameMissing;
+  const debouncedCreateSlug = useDebouncedValue(createSlug, 250);
+  const createSlugCheckMatchesCurrentValue = createSlugCheck?.slug === createSlug;
+  const createSlugCheckFailed = createSlugCheckFailedSlug === createSlug;
+  const createSlugAvailable =
+    createSlugCheckMatchesCurrentValue && createSlugCheck?.available === true;
+  const createSlugUnavailableReason =
+    createSlugCheckMatchesCurrentValue && createSlugCheck?.available === false
+      ? createSlugCheck.reason
+      : null;
+  const showCreateSlugRequired =
+    (createNameTouched || createSlugTouched) && !createNameMissing && createSlugMissing;
+  const createSlugNeedsFreshCheck =
+    createDialog.open &&
+    !createSlugMissing &&
+    (debouncedCreateSlug !== createSlug || !createSlugCheckMatchesCurrentValue);
+  const createSlugStatusChecking =
+    createDialog.open && !createSlugMissing && (createSlugChecking || createSlugNeedsFreshCheck);
+  const createConfirmDisabled =
+    createNameMissing || createSlugMissing || createSlugStatusChecking || !createSlugAvailable;
 
   useEffect(() => {
     if (createDialog.open) {
       setCreateNameTouched(false);
+      setCreateSlugTouched(false);
+      return;
     }
+
+    setCreateSlugCheck(null);
+    setCreateSlugChecking(false);
+    setCreateSlugCheckFailedSlug(null);
   }, [createDialog.open]);
+
+  useEffect(() => {
+    if (!createDialog.open || !debouncedCreateSlug) {
+      setCreateSlugCheck(null);
+      setCreateSlugChecking(false);
+      setCreateSlugCheckFailedSlug(null);
+      return;
+    }
+
+    let active = true;
+    setCreateSlugChecking(true);
+    setCreateSlugCheckFailedSlug(null);
+
+    void checkOrganizationWorkspaceSlugAvailability(
+      createDialog.organizationId,
+      debouncedCreateSlug,
+    )
+      .then((availability) => {
+        if (!active) return;
+        setCreateSlugCheck({
+          slug: debouncedCreateSlug,
+          available: availability.available,
+          reason: availability.reason,
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setCreateSlugCheck({
+          slug: debouncedCreateSlug,
+          available: false,
+          reason: null,
+        });
+        setCreateSlugCheckFailedSlug(debouncedCreateSlug);
+      })
+      .finally(() => {
+        if (!active) return;
+        setCreateSlugChecking(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [createDialog.open, createDialog.organizationId, debouncedCreateSlug]);
 
   return (
     <>
@@ -217,10 +306,12 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
             <Button
               variant="default"
               loading={createDialog.pending}
-              disabled={!createDialog.values.name.trim()}
+              disabled={createConfirmDisabled}
               onClick={async () => {
                 await createDialog.onSubmit({
                   name: createDialog.values.name.trim(),
+                  slug: createSlug,
+                  slugSource: createDialog.values.slugSource,
                   description: createDialog.values.description?.trim() || undefined,
                 });
               }}
@@ -246,12 +337,79 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
               value={createDialog.values.name}
               onChange={(event) => {
                 setCreateNameTouched(true);
-                createDialog.setValues((prev) => ({ ...prev, name: event.target.value }));
+                createDialog.setValues((prev) => {
+                  const nextName = event.target.value;
+                  const nextSlugState = syncWorkspaceSlugWithName(
+                    {
+                      value: prev.slug,
+                      source: prev.slugSource,
+                    },
+                    nextName,
+                  );
+
+                  return {
+                    ...prev,
+                    name: nextName,
+                    slug: nextSlugState.value,
+                    slugSource: nextSlugState.source,
+                  };
+                });
               }}
               onBlur={() => setCreateNameTouched(true)}
               placeholder={t("common:ORG_WORKSPACES_FIELD_NAME_PLACEHOLDER")}
               aria-invalid={showCreateNameError}
             />
+          </SettingDialogField>
+
+          <SettingDialogField
+            title={t("common:ORG_WORKSPACES_FIELD_SLUG")}
+            description={t("common:ORG_WORKSPACES_FIELD_SLUG_HELP")}
+          >
+            <div className="space-y-2">
+              <Input
+                value={createDialog.values.slug}
+                onChange={(event) => {
+                  setCreateSlugTouched(true);
+                  createDialog.setValues((prev) => {
+                    const nextSlugState = applyManualWorkspaceSlugInput(event.target.value);
+                    return {
+                      ...prev,
+                      slug: nextSlugState.value,
+                      slugSource: nextSlugState.source,
+                    };
+                  });
+                }}
+                onBlur={() => setCreateSlugTouched(true)}
+                placeholder={t("common:ORG_WORKSPACES_FIELD_SLUG_PLACEHOLDER")}
+                aria-invalid={
+                  showCreateSlugRequired || createSlugCheckFailed || createSlugUnavailableReason
+                    ? true
+                    : undefined
+                }
+              />
+              {showCreateSlugRequired ? (
+                <div className="text-footnote text-destructive">
+                  {t("common:ORG_WORKSPACES_FIELD_SLUG_REQUIRED")}
+                </div>
+              ) : createSlugStatusChecking ? (
+                <div className="text-footnote text-label-secondary">
+                  {t("common:ORG_WORKSPACES_FIELD_SLUG_CHECKING")}
+                </div>
+              ) : createSlugAvailable ? (
+                <div className="flex items-center gap-2 text-footnote text-success">
+                  <CheckCircle2 className="size-4" />
+                  <span>{t("common:ORG_WORKSPACES_FIELD_SLUG_AVAILABLE")}</span>
+                </div>
+              ) : createSlugCheckFailed ? (
+                <div className="text-footnote text-destructive">
+                  {t("common:ORG_WORKSPACES_FIELD_SLUG_CHECK_FAILED")}
+                </div>
+              ) : createSlugUnavailableReason ? (
+                <div className="text-footnote text-destructive">
+                  {resolveWorkspaceSlugReasonText(createSlugUnavailableReason, t)}
+                </div>
+              ) : null}
+            </div>
           </SettingDialogField>
 
           <SettingDialogField
@@ -261,12 +419,12 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
             <textarea
               rows={3}
               value={createDialog.values.description ?? ""}
-              onChange={(event) =>
+              onChange={(event) => {
                 createDialog.setValues((prev) => ({
                   ...prev,
                   description: event.target.value,
-                }))
-              }
+                }));
+              }}
               placeholder={t("common:ORG_WORKSPACES_FIELD_DESCRIPTION_PLACEHOLDER")}
               className={cn(
                 "w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-body  transition-colors",
@@ -282,4 +440,13 @@ export function UserCenterWorkspacesDialogs(props: UserCenterWorkspacesDialogsPr
       <WorkspaceActionDialogs t={t} archiveDialog={archiveDialog} deleteDialog={deleteDialog} />
     </>
   );
+}
+
+function resolveWorkspaceSlugReasonText(
+  reason: "invalid" | "reserved" | "exists",
+  t: (key: string) => string,
+) {
+  if (reason === "reserved") return t("common:ORG_WORKSPACES_FIELD_SLUG_RESERVED");
+  if (reason === "exists") return t("common:ORG_WORKSPACES_FIELD_SLUG_EXISTS");
+  return t("common:ORG_WORKSPACES_FIELD_SLUG_INVALID");
 }

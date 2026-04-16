@@ -13,12 +13,20 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("@/layouts/page-shell/content-guard", () => ({
-  ContentGuard: (props: { wrapperSpacing?: string; className?: string; children?: ReactNode }) => (
+  ContentGuard: (props: {
+    wrapperSpacing?: string;
+    className?: string;
+    emptyExtra?: ReactNode;
+    children?: ReactNode;
+  }) => (
     <div
       data-testid="content-guard"
       data-wrapper-spacing={props.wrapperSpacing ?? ""}
       data-class-name={props.className ?? ""}
     >
+      {props.emptyExtra ? (
+        <div data-testid="content-guard-empty-extra">{props.emptyExtra}</div>
+      ) : null}
       {props.children}
     </div>
   ),
@@ -66,11 +74,13 @@ describe("WorkspacesCardGrid", () => {
         onCancelWorkspaceEdit={() => undefined}
         emptyTitle="Empty"
         emptyDescription="No workspaces"
+        emptyExtra={<button type="button">Create workspace</button>}
         t={(key) => key}
       />,
     );
 
     expect(screen.getByTestId("content-guard")).toHaveAttribute("data-wrapper-spacing", "flush");
+    expect(screen.getByTestId("content-guard-empty-extra")).toHaveTextContent("Create workspace");
   });
 
   it("renders only the organization workspace cards in the active list", () => {
@@ -209,5 +219,74 @@ describe("WorkspacesCardGrid", () => {
     );
 
     expect(screen.getByTestId("workspace-card")).toHaveAttribute("data-clickable", "no");
+  });
+
+  it("appends the create-workspace card after existing workspace cards", () => {
+    useInfiniteQueryMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      data: {
+        pages: [
+          {
+            items: [
+              {
+                id: "team-1",
+                workspaceId: "team-1",
+                organizationId: "org-1",
+                slug: "alpha",
+                name: "Workspace Alpha",
+                description: "Primary workspace",
+                iconMode: "initials",
+                iconColor: "#337ea9",
+                iconGlyph: null,
+                iconEmoji: null,
+                iconUrl: null,
+                isArchived: false,
+                archivedAt: null,
+                archivedByUserId: null,
+                memberCount: 2,
+                membersPreview: [],
+                createdAt: "2026-04-14T00:00:00Z",
+                enterable: true,
+              },
+            ],
+          },
+        ],
+      },
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      isError: false,
+    });
+    useQueryMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+      data: undefined,
+    });
+
+    render(
+      <WorkspacesCardGrid
+        archived={false}
+        searchInput=""
+        buildMenuItems={() => []}
+        editingWorkspaceId={null}
+        editingWorkspaceField={null}
+        editingWorkspaceName=""
+        editingWorkspaceDescription=""
+        onEditingWorkspaceNameChange={() => undefined}
+        onEditingWorkspaceDescriptionChange={() => undefined}
+        onCommitWorkspaceEdit={() => undefined}
+        onCancelWorkspaceEdit={() => undefined}
+        emptyTitle="Empty"
+        emptyDescription="No workspaces"
+        appendCard={<button type="button">Create workspace card</button>}
+        t={(key) => key}
+      />,
+    );
+
+    expect(screen.getByText("Create workspace card")).toBeInTheDocument();
+    expect(screen.getAllByTestId("workspace-card")).toHaveLength(1);
   });
 });

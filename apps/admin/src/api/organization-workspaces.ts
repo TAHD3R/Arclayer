@@ -11,6 +11,7 @@ import type {
   OrganizationWorkspaceMember,
   OrganizationWorkspaceArchiveResult,
   OrganizationWorkspaceCreateInput,
+  OrganizationWorkspaceSlugAvailability,
 } from "@/types/api";
 
 export async function listOrganizationWorkspaces(params: {
@@ -94,6 +95,15 @@ export async function createOrganizationWorkspace(
   payload: OrganizationWorkspaceCreateInput,
 ): Promise<OrganizationWorkspace> {
   return api.post<OrganizationWorkspace>(organizationWorkspacesBasePath(organizationId), payload);
+}
+
+export async function checkOrganizationWorkspaceSlugAvailability(
+  organizationId: string | undefined,
+  slug: string,
+): Promise<OrganizationWorkspaceSlugAvailability> {
+  return api.get<OrganizationWorkspaceSlugAvailability>(
+    `${organizationWorkspacesBasePath(organizationId)}/slug-availability${toQueryString({ slug })}`,
+  );
 }
 
 export async function archiveOrganizationWorkspace(

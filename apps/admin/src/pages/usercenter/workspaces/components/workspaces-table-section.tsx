@@ -20,6 +20,7 @@ interface WorkspacesContentSectionProps {
   tableHook: UserCenterWorkspaceTableHook;
   emptyTitle: string;
   emptyDescription: string;
+  emptyExtra?: ReactNode;
   onRetry: () => void;
   onRowClick?: (row: Row<UserCenterWorkspaceListItem>) => void;
   t: UserCenterWorkspacesTranslateFn;
@@ -41,6 +42,7 @@ interface WorkspacesContentSectionProps {
     field: WorkspaceEditingField,
   ) => void;
   onCancelWorkspaceEdit: () => void;
+  appendCard?: ReactNode;
   disableWorkspaceNavigation?: boolean;
   onCardClick?: (ws: UserCenterWorkspaceListItem) => void;
   toolbar?: ReactNode;
@@ -67,6 +69,8 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
         onCardClick={props.onCardClick}
         emptyTitle={props.emptyTitle}
         emptyDescription={props.emptyDescription}
+        emptyExtra={props.emptyExtra}
+        appendCard={props.appendCard}
         t={props.t}
       />
     );
@@ -89,6 +93,7 @@ export function WorkspacesContentSection(props: WorkspacesContentSectionProps) {
       emptyText={props.t("common:EMPTY_DESC")}
       emptyTitle={props.emptyTitle}
       emptyDescription={props.emptyDescription}
+      emptyExtra={props.emptyExtra}
       loading={props.tableHook.isLoading}
       error={props.tableHook.error}
       onRetry={props.onRetry}
