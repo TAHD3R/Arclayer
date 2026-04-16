@@ -13,6 +13,7 @@ export function ContentLibraryArticleEditorPage(props: { workspaceId: string; it
     <AdminRouteContainer
       className="h-full overflow-hidden"
       innerClassName="h-full min-h-0 flex flex-col overflow-hidden px-0 pt-0 pb-0"
+      pageFrame="full"
     >
       <div
         className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card"

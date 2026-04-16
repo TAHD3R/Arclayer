@@ -148,7 +148,9 @@ export function ColumnsPage({
         ) : (
           mainRegion
         )}
-        {footer ? <div className={clsx(hasFooter && "-mx-10")}>{footer}</div> : null}
+        {footer ? (
+          <div className={clsx(hasFooter && "-mx-[var(--admin-route-gutter-x)]")}>{footer}</div>
+        ) : null}
       </div>
     </AdminRouteContainer>
   );

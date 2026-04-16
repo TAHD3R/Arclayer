@@ -181,7 +181,7 @@ describe("ColumnsPage", () => {
     expect(shell).toHaveClass("flex-1");
     expect(body).toHaveClass("flex-1");
     expect(body).not.toHaveClass("self-start");
-    expect(footerWrap).toHaveClass("-mx-10");
+    expect(footerWrap).toHaveClass("-mx-[var(--admin-route-gutter-x)]");
     expect(screen.getByText("Selection toolbar")).toBeInTheDocument();
   });
 

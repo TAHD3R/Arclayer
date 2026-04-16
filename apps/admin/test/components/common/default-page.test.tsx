@@ -58,15 +58,7 @@ describe("DefaultPage", () => {
     expect(favoriteIcon).toHaveClass("inline-flex", "items-center", "justify-center");
     expect(shell).toHaveClass("flex", "min-h-0", "min-w-0", "w-full");
     expect(shell).not.toHaveClass("flex-1");
-    expect(body).toHaveClass(
-      "flex",
-      "min-h-0",
-      "min-w-0",
-      "w-full",
-      "flex-1",
-      "flex-col",
-      "self-start",
-    );
+    expect(body).toHaveClass("flex", "min-h-0", "min-w-0", "w-full", "flex-1", "flex-col");
     expect(content).toHaveClass("min-h-0", "min-w-0", "w-full", "flex-1");
     expect(document.querySelector('[data-slot="columns-page-shell"]')).toBeNull();
   });
