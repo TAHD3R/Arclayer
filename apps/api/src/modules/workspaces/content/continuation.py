@@ -10,6 +10,7 @@ from src.models.content._enums import (
     ContentShapeState,
 )
 from src.models.content.model_definition import ContentModelDefinitionRecord
+from src.modules.workspaces.content.models.protocol_registry import get_official_model_protocol
 
 UNSHAPED_ITEM_REASON_CODE = "UNSHAPED_ITEM"
 MODEL_DEFAULT_INVALID_REASON_CODE = "MODEL_DEFAULT_INVALID"
@@ -173,6 +174,16 @@ def resolve_model_continuation_defaults(
     starter_pack_policy: Any,
     surface_policy: Any,
 ) -> ContentModelContinuationDefaults:
+    protocol = get_official_model_protocol(key)
+    if protocol is not None:
+        return ContentModelContinuationDefaults(
+            default_role=protocol.default_role,
+            default_posture=protocol.default_posture,
+            default_surface=protocol.default_surface,
+            starter_pack_policy=protocol.starter_pack_policy,
+            surface_policy=protocol.surface_policy,
+        )
+
     normalized_capabilities = _normalize_string_list(capabilities)
     resolved_surface = _normalize_string(default_surface) or _derive_surface(
         default_editor=default_editor,

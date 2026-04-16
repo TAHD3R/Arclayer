@@ -38,20 +38,20 @@ async def test_content_model_create_persists_and_exposes_continuation_defaults(
         assert response.status_code == 201, response.text
         payload = response.json()["data"]
         assert payload["defaultRole"] == "article"
-        assert payload["defaultPosture"] == "entry"
+        assert payload["defaultPosture"] == "structured"
         assert payload["defaultSurface"] == "writing"
 
         saved = await ContentModelDefinitionRecord.filter(key="article").first()
         assert saved is not None
         assert str(saved.default_role) == "article"
-        assert str(saved.default_posture) == "entry"
+        assert str(saved.default_posture) == "structured"
         assert str(saved.default_surface) == "writing"
 
         list_response = await client.get(f"/api/v1/workspaces/{workspace_id}/content/models")
         assert list_response.status_code == 200, list_response.text
         listed = list_response.json()["data"]["items"][0]
         assert listed["defaultRole"] == "article"
-        assert listed["defaultPosture"] == "entry"
+        assert listed["defaultPosture"] == "structured"
         assert listed["defaultSurface"] == "writing"
 
 
@@ -90,7 +90,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert shape_res.status_code == 200, shape_res.text
         shaped = shape_res.json()["data"]
         assert shaped["resolvedRole"] == "article"
-        assert shaped["resolvedPosture"] == "entry"
+        assert shaped["resolvedPosture"] == "structured"
         assert shaped["resolvedSurface"] == "writing"
         assert shaped["shapeState"] == "ready"
         assert shaped.get("shapeReasonCode") is None
@@ -106,7 +106,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
 
         row = await ContentItemRecord.get(id=decode_public_id(item_id))
         assert str(row.resolved_role) == "article"
-        assert str(row.resolved_posture) == "entry"
+        assert str(row.resolved_posture) == "structured"
         assert str(row.resolved_surface) == "writing"
         assert str(row.shape_state) == "ready"
         assert row.shape_reason_code is None
@@ -118,7 +118,7 @@ async def test_content_item_shape_persists_resolved_truth_and_open_intent(
         assert duplicate_res.status_code == 200, duplicate_res.text
         duplicate = duplicate_res.json()["data"]
         assert duplicate["resolvedRole"] == "article"
-        assert duplicate["resolvedPosture"] == "entry"
+        assert duplicate["resolvedPosture"] == "structured"
         assert duplicate["resolvedSurface"] == "writing"
         assert duplicate["shapeState"] == "ready"
         assert duplicate["runtime"] == "text"

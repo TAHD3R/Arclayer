@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from tortoise.backends.base.client import BaseDBAsyncClient
@@ -16,7 +17,11 @@ from src.models.content._enums import (
 from src.models.content.content_item import ContentItemRecord
 from src.models.content.content_version import ContentVersionRecord
 from src.modules.workspaces.content.continuation import resolve_item_continuation_truth
-from src.modules.workspaces.content.contracts.schema import ContentItemOut, ContentVersionOut
+from src.modules.workspaces.content.contracts.schema import (
+    ContentItemOut,
+    ContentPresentationKind,
+    ContentVersionOut,
+)
 from src.modules.workspaces.content.items.domain_helpers import (
     VERSION_TRANSITIONS,
     PresentationPayload,
@@ -35,6 +40,7 @@ from src.modules.workspaces.content.items.domain_helpers import (
     normalize_visibility,
     status_by_published_version,
     to_item_out,
+    validate_version_publish_contract,
 )
 from src.modules.workspaces.content.items.input_schema import (
     ContentItemBootstrapShapeIn,
@@ -426,6 +432,32 @@ class WorkspaceContentCanonicalItemsService:
             version = await self._get_locked_version(item_id=item.id, version_number=version_number, conn=conn)
             if version.state not in allowed_from:
                 raise Conflict("Invalid version transition", error="CONTENT_VERSION_TRANSITION_INVALID")
+
+            if target_state == ContentVersionState.PUBLISHED:
+                presentation_rows = await self.repo.list_presentations(version_id=version.id, conn=conn)
+                presentations: PresentationPayload = [
+                    (
+                        cast(ContentPresentationKind, str(presentation.kind)),
+                        presentation.payload if isinstance(presentation.payload, dict) else None,
+                    )
+                    for presentation in presentation_rows
+                ]
+                publish_reasons = validate_version_publish_contract(
+                    model=item.model_definition,
+                    version=version,
+                    presentations=presentations,
+                )
+                if publish_reasons:
+                    raise Conflict(
+                        "Content publish validation failed",
+                        error="CONTENT_PUBLISH_VALIDATION_FAILED",
+                        meta={
+                            "protocolKey": str(item.model_definition.protocol_key or item.model_definition.key)
+                            if item.model_definition is not None
+                            else None,
+                            "reasons": publish_reasons,
+                        },
+                    )
 
             version = await self.repo.update_version_fields(
                 version,

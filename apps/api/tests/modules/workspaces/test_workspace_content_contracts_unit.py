@@ -24,6 +24,12 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
         key="page",
         name="Page",
         description="Reusable routed pages for the site builder.",
+        protocol_key="page",
+        protocol_version=1,
+        system_managed=True,
+        system_field_keys=["title", "path", "route_pattern"],
+        draft_contract_revision=2,
+        published_contract_revision=1,
         category="site_builder",
         capabilities=["versioned", "routable", "treeable", "visual_editable", "publishable"],
         default_editor="visual",
@@ -44,6 +50,12 @@ def test_content_model_out_exposes_capability_oriented_contract() -> None:
 
     assert payload["category"] == "site_builder"
     assert payload["description"] == "Reusable routed pages for the site builder."
+    assert payload["protocol_key"] == "page"
+    assert payload["protocol_version"] == 1
+    assert payload["system_managed"] is True
+    assert payload["system_field_keys"] == ["title", "path", "route_pattern"]
+    assert payload["draft_contract_revision"] == 2
+    assert payload["published_contract_revision"] == 1
     assert payload["default_editor"] == "visual"
     assert payload["default_role"] == "page"
     assert payload["default_posture"] == "page"
@@ -66,6 +78,7 @@ def test_content_model_out_rejects_unknown_capability() -> None:
             site_id=uuid4(),
             key="page",
             name="Page",
+            protocol_key="page",
             category="site_builder",
             capabilities=cast(list[ContentModelCapability], ["page_magic"]),
             default_editor="visual",

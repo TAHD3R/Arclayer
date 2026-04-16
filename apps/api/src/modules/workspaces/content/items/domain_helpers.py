@@ -39,6 +39,7 @@ from src.modules.workspaces.content.items.input_schema import (
     ContentPresentationIn,
     ContentVersionPatchIn,
 )
+from src.modules.workspaces.content.models.protocol_registry import get_official_model_protocol
 
 PresentationPayload = list[tuple[ContentPresentationKind, dict[str, Any] | None]]
 SEO_PRESENTATION_KIND: ContentPresentationKind = "seo"
@@ -264,14 +265,19 @@ def derive_item_workbench_library_group(
     item: ContentItemRecord,
     model: ContentModelDefinitionRecord | None,
 ) -> str:
+    role = str(item.resolved_role) if item.resolved_role is not None else None
     surface = str(item.resolved_surface) if item.resolved_surface is not None else None
+    if role in {"page", "reusable-section"}:
+        return "site-content"
+    if role in {"taxonomy", "person", "settings", "data"}:
+        return "structured-content"
     if surface == "canvas":
         return "site-content"
     if surface == "structured":
         return "structured-content"
-    if _is_site_content_model(model):
+    if model is not None and str(model.category) == "site_builder":
         return "site-content"
-    if _is_structured_model(model):
+    if model is not None and str(model.default_editor or "") in {"form", "table"}:
         return "structured-content"
     return "general-content"
 
@@ -451,6 +457,67 @@ def extract_component_bindings(payloads: PresentationPayload) -> list[dict[str, 
             })
         return out
     return []
+
+
+def validate_version_publish_contract(
+    *,
+    model: ContentModelDefinitionRecord | None,
+    version: ContentVersionRecord,
+    presentations: PresentationPayload,
+) -> list[dict[str, Any]]:
+    if model is None:
+        return []
+
+    protocol = get_official_model_protocol(str(model.protocol_key or model.key))
+    if protocol is None:
+        return []
+
+    reasons: list[dict[str, Any]] = []
+    fields_snapshot = version.fields_snapshot if isinstance(version.fields_snapshot, dict) else {}
+    seen_reasons: set[tuple[str, str]] = set()
+
+    for field in protocol.system_fields:
+        if not field.required:
+            continue
+        value = fields_snapshot.get(field.key)
+        if value is None:
+            reason_key = ("REQUIRED_SYSTEM_FIELD_MISSING", field.key)
+            if reason_key not in seen_reasons:
+                seen_reasons.add(reason_key)
+                reasons.append({"code": "REQUIRED_SYSTEM_FIELD_MISSING", "fieldKey": field.key})
+            continue
+        if isinstance(value, str) and not value.strip():
+            reason_key = ("REQUIRED_SYSTEM_FIELD_MISSING", field.key)
+            if reason_key not in seen_reasons:
+                seen_reasons.add(reason_key)
+                reasons.append({"code": "REQUIRED_SYSTEM_FIELD_MISSING", "fieldKey": field.key})
+
+    allowed_kinds = {
+        str(kind).strip()
+        for kind in (
+            (protocol.presentation_policy or {}).get("allowedKinds", []) if protocol.presentation_policy else []
+        )
+        if isinstance(kind, str) and kind.strip()
+    }
+    if allowed_kinds:
+        for kind, _payload in presentations:
+            normalized_kind = str(kind).strip()
+            if normalized_kind in allowed_kinds:
+                continue
+            reason_key = ("PRESENTATION_KIND_NOT_ALLOWED", normalized_kind)
+            if reason_key in seen_reasons:
+                continue
+            seen_reasons.add(reason_key)
+            reasons.append({"code": "PRESENTATION_KIND_NOT_ALLOWED", "kind": normalized_kind})
+
+    if protocol.key == "page":
+        path_value = fields_snapshot.get("path")
+        if isinstance(path_value, str):
+            normalized_path = path_value.strip()
+            if normalized_path and not normalized_path.startswith("/"):
+                reasons.append({"code": "ROUTE_FIELD_INVALID", "fieldKey": "path"})
+
+    return reasons
 
 
 def to_version_out(version: ContentVersionRecord, payloads: PresentationPayload) -> ContentVersionOut:

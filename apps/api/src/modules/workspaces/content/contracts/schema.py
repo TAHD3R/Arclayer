@@ -9,6 +9,7 @@ from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
 
 ContentModelCategory = Literal["site_builder", "content_library", "system", "custom"]
+ContentModelProtocolKey = Literal["article", "page", "reusable-section", "category"]
 ContentModelCapability = Literal[
     "versioned",
     "routable",
@@ -125,6 +126,22 @@ class ContentModelOut(BaseSchema):
     key: str = Field(..., min_length=1, max_length=64, description="Stable model key.")
     name: str = Field(..., min_length=1, max_length=128, description="Display name.")
     description: str | None = Field(default=None, max_length=512, description="Optional model description.")
+    protocol_key: ContentModelProtocolKey | None = Field(
+        default=None,
+        description="Official model protocol identity when this model is system managed.",
+    )
+    protocol_version: int = Field(default=1, ge=1, description="Official protocol revision.")
+    system_managed: bool = Field(default=False, description="Whether the model is managed by the platform.")
+    system_field_keys: list[str] = Field(
+        default_factory=list,
+        description="Locked system field keys reserved by the official protocol.",
+    )
+    draft_contract_revision: int = Field(default=1, ge=1, description="Current mutable draft contract revision.")
+    published_contract_revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Published contract revision used by delivery reads.",
+    )
     category: ContentModelCategory = Field(..., description="Model grouping category.")
     capabilities: list[ContentModelCapability] = Field(default_factory=list, description="Enabled model capabilities.")
     default_editor: ContentDefaultEditor = Field(default="form", description="Default editor mode.")

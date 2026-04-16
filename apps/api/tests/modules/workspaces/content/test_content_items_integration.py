@@ -140,7 +140,7 @@ async def _create_article_model(client: AsyncClient, workspace_id: str) -> dict:
         defaultEditor="rich_text",
         capabilities=["publishable", "rich_text_editable"],
         defaultRole="article",
-        defaultPosture="entry",
+        defaultPosture="structured",
         defaultSurface="writing",
     )
 
@@ -178,6 +178,7 @@ def _draft_payload() -> dict:
         "changeSummary": "initial draft",
         "fieldsSnapshot": {
             "title": "Hello World",
+            "slug": "hello-world",
             "summary": "This is the canonical summary.",
             "body": "Draft body",
         },
@@ -186,12 +187,19 @@ def _draft_payload() -> dict:
                 "kind": "form_data",
                 "payload": {
                     "title": "Hello World",
+                    "slug": "hello-world",
                     "summary": "This is the canonical summary.",
                     "body": "Draft body",
                 },
             },
             {"kind": "rich_text_document", "payload": {"type": "doc", "content": []}},
-            {"kind": "visual_blueprint", "payload": {"root": "page", "nodes": {}}},
+            {
+                "kind": "seo",
+                "payload": {
+                    "metaTitle": "Hello World | Arclayer",
+                    "metaDescription": "This is the canonical summary.",
+                },
+            },
         ],
     }
 
@@ -254,7 +262,7 @@ async def test_content_items_full_workflow_with_first_class_presentations(
         assert version_row.last_transition_by_user_id is not None
 
         docs = await PresentationDocumentRecord.filter(version_id=version_row.id).order_by("kind")
-        assert [doc.kind for doc in docs] == ["form_data", "rich_text_document", "visual_blueprint"]
+        assert [doc.kind for doc in docs] == ["form_data", "rich_text_document", "seo"]
 
 
 @pytest.mark.asyncio
@@ -329,7 +337,7 @@ async def test_content_items_create_uses_model_defaults_when_model_key_is_provid
         payload = item_res.json()["data"]
         assert payload["modelKey"] == "article"
         assert payload["resolvedRole"] == "article"
-        assert payload["resolvedPosture"] == "entry"
+        assert payload["resolvedPosture"] == "structured"
         assert payload["resolvedSurface"] == "writing"
         assert payload["shapeState"] == "ready"
 
@@ -613,7 +621,7 @@ async def test_content_items_return_version_detail_with_fields_snapshot_and_pres
         assert {entry["kind"] for entry in data["presentations"]} == {
             "form_data",
             "rich_text_document",
-            "visual_blueprint",
+            "seo",
         }
 
 
@@ -860,9 +868,10 @@ async def test_content_items_duplicate_creates_new_draft_copy_with_presentations
         duplicate_uuid = decode_public_id(duplicated["id"])
         duplicate_version = await ContentVersionRecord.get(item_id=duplicate_uuid, version=1)
         docs = await PresentationDocumentRecord.filter(version_id=duplicate_version.id).order_by("kind")
-        assert [doc.kind for doc in docs] == ["form_data", "rich_text_document", "visual_blueprint"]
+        assert [doc.kind for doc in docs] == ["form_data", "rich_text_document", "seo"]
         assert duplicate_version.fields_snapshot == {
             "title": "Hello World",
+            "slug": "hello-world",
             "summary": "This is the canonical summary.",
             "body": "Draft body",
         }

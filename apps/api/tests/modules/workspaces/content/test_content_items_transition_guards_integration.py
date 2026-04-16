@@ -245,3 +245,86 @@ async def test_content_items_patch_draft_propagates_actor_audit_fields(
         version = await ContentVersionRecord.get(item_id=item_uuid, version=1)
         assert item.updated_by_user_id is not None
         assert version.last_transition_by_user_id is not None
+
+
+@pytest.mark.asyncio
+async def test_content_items_publish_rejects_missing_required_official_system_fields(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        model_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_model_payload(),
+        )
+        assert model_res.status_code == 201, model_res.text
+
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        invalid_draft = _draft_payload()
+        invalid_draft["fieldsSnapshot"].pop("slug", None)
+        invalid_draft["presentations"][0]["payload"].pop("slug", None)
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=invalid_draft,
+        )
+        assert draft_res.status_code == 201, draft_res.text
+
+        publish_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            json={},
+        )
+        assert publish_res.status_code == 409, publish_res.text
+        assert publish_res.json()["error"] == "CONTENT_PUBLISH_VALIDATION_FAILED"
+        assert publish_res.json()["meta"]["reasons"] == [
+            {
+                "code": "REQUIRED_SYSTEM_FIELD_MISSING",
+                "fieldKey": "slug",
+            }
+        ]
+
+
+@pytest.mark.asyncio
+async def test_content_items_publish_rejects_disallowed_official_presentation_kind(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        model_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json=_model_payload(),
+        )
+        assert model_res.status_code == 201, model_res.text
+
+        item_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items",
+            json=_item_payload(),
+        )
+        assert item_res.status_code == 201, item_res.text
+        item_id = item_res.json()["data"]["id"]
+
+        invalid_draft = _draft_payload()
+        invalid_draft["presentations"].append({"kind": "visual_blueprint", "payload": {"root": "page"}})
+        draft_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+            json=invalid_draft,
+        )
+        assert draft_res.status_code == 201, draft_res.text
+
+        publish_res = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+            json={},
+        )
+        assert publish_res.status_code == 409, publish_res.text
+        assert publish_res.json()["error"] == "CONTENT_PUBLISH_VALIDATION_FAILED"
+        assert publish_res.json()["meta"]["reasons"] == [
+            {
+                "code": "PRESENTATION_KIND_NOT_ALLOWED",
+                "kind": "visual_blueprint",
+            }
+        ]

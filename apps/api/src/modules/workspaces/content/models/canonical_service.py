@@ -7,7 +7,7 @@ import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
@@ -49,6 +49,11 @@ from src.modules.workspaces.content.models.domain_helpers import (
     normalize_model_category,
     to_content_model_out,
 )
+from src.modules.workspaces.content.models.protocol_registry import (
+    OfficialModelFieldDefinition,
+    OfficialModelProtocol,
+    get_official_model_protocol,
+)
 from src.modules.workspaces.content.models.repository import WorkspaceContentModelsRepository
 
 
@@ -85,6 +90,24 @@ def _normalize_required_text(value: str, *, error: str) -> str:
 
 def _capabilities(values: list[ContentModelCapability]) -> list[str]:
     return [str(value) for value in values]
+
+
+_SYSTEM_MANAGED_PATCH_FIELDS = frozenset({
+    "key",
+    "name",
+    "category",
+    "default_editor",
+    "default_role",
+    "default_posture",
+    "default_surface",
+    "capabilities",
+    "routing",
+    "presentation",
+    "seo",
+    "starter_pack_policy",
+    "surface_policy",
+    "workflow",
+})
 
 
 @dataclass(frozen=True)
@@ -271,6 +294,17 @@ def _preview_field_rows(
     )
 
 
+def _preview_field_rows_from_contracts(fields: list[ContentModelFieldContract]) -> tuple[Any, ...]:
+    return tuple(
+        _PreviewFieldRow(
+            key=item.key,
+            field_type=item.scalar,
+            is_required=item.required,
+        )
+        for item in fields
+    )
+
+
 def _preview_relation_rows(
     payload: ContentModelDefinitionPatchContract, record: ContentModelDefinitionRecord
 ) -> tuple[Any, ...]:
@@ -284,17 +318,6 @@ def _preview_relation_rows(
             is_required=item.required,
         )
         for item in (payload.relations or [])
-    )
-
-
-def _build_preview_model_record(
-    *,
-    record: ContentModelDefinitionRecord,
-    payload: ContentModelDefinitionPatchContract,
-) -> _PreviewModelRecord:
-    return _PreviewModelRecord(
-        fields=_preview_field_rows(payload, record),
-        relations=_preview_relation_rows(payload, record),
     )
 
 
@@ -492,6 +515,114 @@ def _build_default_changes(
     return changes
 
 
+def _to_field_contract(field: OfficialModelFieldDefinition) -> ContentModelFieldContract:
+    return ContentModelFieldContract(
+        key=field.key,
+        label=field.label,
+        scalar=field.scalar,
+        required=field.required,
+        config=field.config,
+    )
+
+
+def _system_field_keys(protocol: OfficialModelProtocol) -> list[str]:
+    return [field.key for field in protocol.system_fields]
+
+
+def _merge_system_and_custom_fields(
+    *,
+    protocol: OfficialModelProtocol,
+    custom_fields: list[ContentModelFieldContract],
+) -> list[ContentModelFieldContract]:
+    return [_to_field_contract(field) for field in protocol.system_fields] + list(custom_fields)
+
+
+def _assert_custom_fields_do_not_shadow_system_fields(
+    *,
+    protocol: OfficialModelProtocol,
+    fields: list[ContentModelFieldContract],
+) -> None:
+    reserved = set(_system_field_keys(protocol))
+    collisions = sorted({field.key for field in fields if field.key in reserved})
+    if collisions:
+        raise Conflict(
+            "Custom fields cannot shadow system protocol fields",
+            error="CONTENT_MODEL_SYSTEM_FIELD_COLLISION",
+            meta={"fieldKeys": collisions, "protocolKey": protocol.key},
+        )
+
+
+def _assert_protocol_identity_matches_payload(
+    *,
+    payload: ContentModelDefinitionContract,
+    protocol: OfficialModelProtocol,
+) -> None:
+    if payload.name.strip() != protocol.name:
+        raise Conflict(
+            "Official protocol model name must match the platform contract",
+            error="CONTENT_MODEL_PROTOCOL_IDENTITY_MISMATCH",
+            meta={"expectedName": protocol.name, "protocolKey": protocol.key},
+        )
+
+
+def _assert_system_patch_fields_are_not_mutated(
+    *,
+    record: ContentModelDefinitionRecord,
+    fields_set: set[str],
+) -> None:
+    if not record.is_system_managed:
+        return
+    locked_fields = sorted(field_name for field_name in fields_set if field_name in _SYSTEM_MANAGED_PATCH_FIELDS)
+    if locked_fields:
+        raise Conflict(
+            "System managed model contract fields are locked",
+            error="CONTENT_MODEL_SYSTEM_FIELD_LOCKED",
+            meta={"fieldNames": locked_fields, "protocolKey": record.protocol_key},
+        )
+
+
+def _contract_snapshot_payload(
+    *,
+    protocol: OfficialModelProtocol,
+    description: str | None,
+    fields: list[ContentModelFieldContract],
+    relations: list[ContentModelRelationContract],
+    views: list[ContentModelViewContract],
+) -> dict[str, Any]:
+    return {
+        "protocol_key": protocol.key,
+        "protocol_version": protocol.protocol_version,
+        "system_managed": protocol.system_managed,
+        "system_field_keys": _system_field_keys(protocol),
+        "key": protocol.key,
+        "name": protocol.name,
+        "description": description,
+        "category": protocol.category,
+        "default_editor": protocol.default_editor,
+        "default_role": protocol.default_role,
+        "default_posture": protocol.default_posture,
+        "default_surface": protocol.default_surface,
+        "capabilities": list(protocol.capabilities),
+        "routing_policy": protocol.routing_policy,
+        "presentation_policy": protocol.presentation_policy,
+        "seo_policy": protocol.seo_policy,
+        "starter_pack_policy": protocol.starter_pack_policy,
+        "surface_policy": protocol.surface_policy,
+        "workflow_policy": protocol.workflow_policy,
+        "fields": [field.model_dump(mode="json", by_alias=False, exclude_none=True) for field in fields],
+        "relations": [relation.model_dump(mode="json", by_alias=False, exclude_none=True) for relation in relations],
+        "views": [view.model_dump(mode="json", by_alias=False, exclude_none=True) for view in views],
+    }
+
+
+def _bump_draft_contract_revision(record: ContentModelDefinitionRecord, *, fields_set: set[str]) -> int:
+    mutable_fields = fields_set - {"impact_preview_token"}
+    current = int(record.draft_contract_revision or 1)
+    if not mutable_fields:
+        return current
+    return current + 1
+
+
 def _build_patch_updates(payload: ContentModelDefinitionPatchContract) -> dict[str, Any]:
     updates: dict[str, Any] = {}
     fields_set = payload.model_fields_set
@@ -555,39 +686,63 @@ class WorkspaceContentCanonicalModelsService:
         site_id: UUID,
         payload: ContentModelDefinitionContract,
     ) -> ContentModelMutationResult:
+        protocol = get_official_model_protocol(payload.key)
+        if protocol is None:
+            raise Conflict(
+                "Headless CMS v1 only supports official protocol models",
+                error="CONTENT_MODEL_PROTOCOL_UNSUPPORTED",
+                meta={"supportedKeys": ["article", "page", "reusable-section", "category"]},
+            )
+        _assert_protocol_identity_matches_payload(payload=payload, protocol=protocol)
+        _assert_custom_fields_do_not_shadow_system_fields(protocol=protocol, fields=payload.fields)
+        merged_fields = _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields)
+        published_contract_snapshot = _contract_snapshot_payload(
+            protocol=protocol,
+            description=payload.description,
+            fields=merged_fields,
+            relations=payload.relations,
+            views=payload.views,
+        )
         defaults = resolve_model_continuation_defaults(
-            key=payload.key,
-            name=payload.name,
-            category=payload.category,
-            default_editor=payload.default_editor,
-            capabilities=_capabilities(payload.capabilities),
-            default_role=payload.default_role,
-            default_posture=payload.default_posture,
-            default_surface=payload.default_surface,
-            starter_pack_policy=payload.starter_pack_policy,
-            surface_policy=payload.surface_policy,
+            key=protocol.key,
+            name=protocol.name,
+            category=protocol.category,
+            default_editor=protocol.default_editor,
+            capabilities=list(protocol.capabilities),
+            default_role=protocol.default_role,
+            default_posture=protocol.default_posture,
+            default_surface=protocol.default_surface,
+            starter_pack_policy=protocol.starter_pack_policy,
+            surface_policy=protocol.surface_policy,
         )
         if defaults.default_role is None or defaults.default_posture is None or defaults.default_surface is None:
             raise ValueError("Content model continuation defaults must resolve before create_model_definition")
         record = await self.repo.create_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
-            key=_normalize_required_text(payload.key, error="Invalid model key"),
-            name=_normalize_required_text(payload.name, error="Invalid model name"),
+            key=_normalize_required_text(protocol.key, error="Invalid model key"),
+            name=_normalize_required_text(protocol.name, error="Invalid model name"),
             description=payload.description,
-            category=normalize_model_category(payload.category),
-            default_editor=normalize_default_editor(payload.default_editor),
+            category=normalize_model_category(cast(ContentModelCategory, protocol.category)),
+            default_editor=normalize_default_editor(cast(ContentDefaultEditor, protocol.default_editor)),
             default_role=defaults.default_role,
             default_posture=defaults.default_posture,
             default_surface=defaults.default_surface,
-            capabilities=_capabilities(payload.capabilities),
-            routing_policy=dump_contract(payload.routing),
-            presentation_policy=dump_contract(payload.presentation),
-            seo_policy=dump_contract(payload.seo),
+            protocol_key=protocol.key,
+            protocol_version=protocol.protocol_version,
+            is_system_managed=protocol.system_managed,
+            system_field_keys=_system_field_keys(protocol),
+            draft_contract_revision=1,
+            published_contract_revision=1,
+            published_contract_snapshot=published_contract_snapshot,
+            capabilities=list(protocol.capabilities),
+            routing_policy=protocol.routing_policy,
+            presentation_policy=protocol.presentation_policy,
+            seo_policy=protocol.seo_policy,
             starter_pack_policy=defaults.starter_pack_policy,
             surface_policy=defaults.surface_policy,
-            workflow_policy=dump_contract(payload.workflow),
-            fields=payload.fields,
+            workflow_policy=protocol.workflow_policy,
+            fields=merged_fields,
             relations=payload.relations,
             views=payload.views,
         )
@@ -603,7 +758,22 @@ class WorkspaceContentCanonicalModelsService:
         payload: ContentModelDefinitionPatchContract,
     ) -> _ModelUpdateContext:
         fields_set = set(payload.model_fields_set)
+        _assert_system_patch_fields_are_not_mutated(record=record, fields_set=fields_set)
+        protocol = get_official_model_protocol(record.protocol_key or record.key)
+        if record.is_system_managed and protocol is None:
+            raise Conflict(
+                "System managed model is missing an official protocol registry entry",
+                error="CONTENT_MODEL_PROTOCOL_MISSING",
+                meta={"protocolKey": record.protocol_key or record.key},
+            )
+        if protocol is not None and "fields" in fields_set:
+            _assert_custom_fields_do_not_shadow_system_fields(protocol=protocol, fields=payload.fields or [])
         fields_to_update = _build_patch_updates(payload)
+        if record.is_system_managed and protocol is not None and "fields" in fields_set:
+            payload_fields = _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields or [])
+        else:
+            payload_fields = payload.fields or []
+        fields_to_update["draft_contract_revision"] = _bump_draft_contract_revision(record, fields_set=fields_set)
         next_default_role, next_default_posture, next_default_surface = _resolved_next_defaults(
             record=record,
             fields_to_update=fields_to_update,
@@ -647,7 +817,14 @@ class WorkspaceContentCanonicalModelsService:
             preview_token=_build_impact_preview_token(self.settings, claims=claims),
             impact=_build_mutation_impact(
                 record,
-                _build_preview_model_record(record=record, payload=payload),
+                _PreviewModelRecord(
+                    fields=(
+                        _preview_field_rows_from_contracts(payload_fields)
+                        if "fields" in fields_set
+                        else tuple(_field_rows(record).values())
+                    ),
+                    relations=_preview_relation_rows(payload, record),
+                ),
             ),
         )
         return _ModelUpdateContext(
@@ -699,6 +876,10 @@ class WorkspaceContentCanonicalModelsService:
         )
         if existing is None:
             return None
+        _assert_system_patch_fields_are_not_mutated(
+            record=existing,
+            fields_set=set(payload.model_fields_set),
+        )
         preview_token = (payload.impact_preview_token or "").strip()
         if not preview_token:
             raise Conflict(
@@ -730,12 +911,18 @@ class WorkspaceContentCanonicalModelsService:
                 error="CONTENT_MODEL_IMPACT_PREVIEW_BLOCKING",
             )
         fields_set = payload.model_fields_set
+        protocol = get_official_model_protocol(existing.protocol_key or existing.key)
+        merged_fields = (
+            _merge_system_and_custom_fields(protocol=protocol, custom_fields=payload.fields or [])
+            if protocol is not None and "fields" in fields_set
+            else payload.fields
+        )
         updated = await self.repo.update_model_definition(
             workspace_id=workspace_id,
             site_id=site_id,
             model_id=model_id,
             fields_to_update=context.fields_to_update,
-            fields=(payload.fields if "fields" in fields_set else None),
+            fields=(merged_fields if "fields" in fields_set else None),
             relations=(payload.relations if "relations" in fields_set else None),
             views=(payload.views if "views" in fields_set else None),
         )

@@ -28,50 +28,36 @@ def _blank_first_create_payload() -> dict:
     return {
         "key": "article",
         "name": "Article",
-        "fields": [],
-        "relations": [],
-        "capabilities": [],
-        "routing": {"mode": "none"},
-        "workflow": {"states": []},
-        "views": [],
     }
 
 
 def _explicit_update_payload() -> dict:
     return {
-        "name": "Article v2",
         "description": "Updated contract",
-        "category": "content_library",
-        "defaultEditor": "rich_text",
         "fields": [
             {
-                "key": "title",
-                "label": "Title",
-                "scalar": "text",
-                "required": True,
-                "config": {"maxLength": 128},
+                "key": "reading_time_minutes",
+                "label": "Reading Time",
+                "scalar": "number",
+                "required": False,
+                "config": {"min": 0},
             }
         ],
         "relations": [
             {
-                "key": "author",
+                "key": "primary_category",
                 "relation": "many_to_one",
-                "targetModelKey": "author",
+                "targetModelKey": "category",
                 "required": False,
                 "config": {"display": "inline"},
             }
         ],
-        "capabilities": ["versioned", "routable", "has_relations", "publishable"],
-        "routing": {"mode": "single", "slugField": "title"},
-        "presentation": {"allowedKinds": ["rich_text_document", "seo"]},
-        "seo": {"titleField": "title", "descriptionField": "summary"},
-        "workflow": {"states": ["draft", "review", "published"], "initialState": "draft"},
         "views": [
             {
                 "key": "table_main",
                 "label": "Main Table",
                 "type": "table",
-                "config": {"columns": ["title", "author"]},
+                "config": {"columns": ["title", "reading_time_minutes"]},
             }
         ],
     }
@@ -179,25 +165,46 @@ async def test_content_models_create_blank_first_payload_returns_201(
         assert payload["key"] == "article"
         assert payload["name"] == "Article"
         assert "kind" not in payload
+        assert payload["protocolKey"] == "article"
+        assert payload["protocolVersion"] == 1
+        assert payload["systemManaged"] is True
+        assert payload["systemFieldKeys"] == ["title", "slug", "summary", "content", "published_at"]
+        assert payload["draftContractRevision"] == 1
+        assert payload["publishedContractRevision"] == 1
 
         saved = await ContentModelDefinitionRecord.filter(key="article").first()
         assert saved is not None
         assert saved.name == "Article"
-        assert saved.category == "custom"
-        assert saved.default_editor == "form"
-        assert saved.kind is None
-        assert saved.capabilities == []
-        assert saved.routing_policy == {"mode": "none"}
-        assert saved.presentation_policy is None
-        assert saved.seo_policy is None
-        assert saved.workflow_policy == {"states": []}
+        assert saved.category == "content_library"
+        assert saved.default_editor == "rich_text"
+        assert saved.protocol_key == "article"
+        assert saved.protocol_version == 1
+        assert saved.is_system_managed is True
+        assert saved.system_field_keys == ["title", "slug", "summary", "content", "published_at"]
+        assert saved.draft_contract_revision == 1
+        assert saved.published_contract_revision == 1
+        assert saved.capabilities == [
+            "versioned",
+            "routable",
+            "rich_text_editable",
+            "has_relations",
+            "publishable",
+            "seo_managed",
+        ]
+        assert saved.routing_policy == {"mode": "single", "slug_field": "slug"}
+        assert saved.presentation_policy == {"allowedKinds": ["form_data", "rich_text_document", "seo"]}
+        assert saved.seo_policy == {"titleField": "title", "descriptionField": "summary"}
+        assert saved.workflow_policy == {"states": ["draft", "published"], "initial_state": "draft"}
+        assert saved.published_contract_snapshot is not None
 
         list_response = await client.get(f"/api/v1/workspaces/{workspace_id}/content/models")
         assert list_response.status_code == 200, list_response.text
         model_payload = list_response.json()["data"]["items"][0]
         assert model_payload["key"] == "article"
-        assert model_payload["category"] == "custom"
-        assert model_payload["defaultEditor"] == "form"
+        assert model_payload["protocolKey"] == "article"
+        assert model_payload["category"] == "content_library"
+        assert model_payload["defaultEditor"] == "rich_text"
+        assert model_payload["fieldSchema"]["content"]["scalar"] == "long_text"
 
 
 @pytest.mark.asyncio
@@ -221,32 +228,55 @@ async def test_content_models_patch_updates_explicit_contract_sections(
         )
         assert patch_response.status_code == 200, patch_response.text
         patched_payload = patch_response.json()["data"]
-        assert patched_payload["name"] == "Article v2"
+        assert patched_payload["name"] == "Article"
+        assert patched_payload["protocolKey"] == "article"
+        assert patched_payload["systemManaged"] is True
+        assert patched_payload["draftContractRevision"] == 2
+        assert patched_payload["publishedContractRevision"] == 1
         assert patched_payload["impact"]["hasBreakingChanges"] is False
         assert patched_payload["impact"]["breakingChanges"] == []
         assert patched_payload["impact"]["warnings"] == []
 
         saved = await ContentModelDefinitionRecord.filter(key="article").first()
         assert saved is not None
-        assert saved.name == "Article v2"
+        assert saved.name == "Article"
         assert saved.description == "Updated contract"
         assert saved.category == "content_library"
         assert saved.default_editor == "rich_text"
-        assert saved.capabilities == ["versioned", "routable", "has_relations", "publishable"]
-        assert saved.routing_policy == {"mode": "single", "slug_field": "title"}
-        assert saved.presentation_policy == {"allowedKinds": ["rich_text_document", "seo"]}
+        assert saved.capabilities == [
+            "versioned",
+            "routable",
+            "rich_text_editable",
+            "has_relations",
+            "publishable",
+            "seo_managed",
+        ]
+        assert saved.routing_policy == {"mode": "single", "slug_field": "slug"}
+        assert saved.presentation_policy == {"allowedKinds": ["form_data", "rich_text_document", "seo"]}
         assert saved.seo_policy == {"titleField": "title", "descriptionField": "summary"}
-        assert saved.workflow_policy == {"states": ["draft", "review", "published"], "initial_state": "draft"}
+        assert saved.workflow_policy == {"states": ["draft", "published"], "initial_state": "draft"}
+        assert saved.draft_contract_revision == 2
+        assert saved.published_contract_revision == 1
+        assert saved.published_contract_snapshot is not None
+        published_snapshot = dict(saved.published_contract_snapshot)
+        published_snapshot_fields = {field["key"] for field in published_snapshot["fields"]}
+        assert "reading_time_minutes" not in published_snapshot_fields
 
         saved_fields = await ContentModelFieldRecord.filter(model_definition_id=saved.id).order_by("sort_order")
-        assert len(saved_fields) == 1
-        assert saved_fields[0].key == "title"
-        assert saved_fields[0].label == "Title"
+        assert [field.key for field in saved_fields] == [
+            "title",
+            "slug",
+            "summary",
+            "content",
+            "published_at",
+            "reading_time_minutes",
+        ]
+        assert saved_fields[-1].label == "Reading Time"
 
         saved_relations = await ContentModelRelationRecord.filter(model_definition_id=saved.id).order_by("sort_order")
         assert len(saved_relations) == 1
-        assert saved_relations[0].key == "author"
-        assert saved_relations[0].target_model_key == "author"
+        assert saved_relations[0].key == "primary_category"
+        assert saved_relations[0].target_model_key == "category"
 
         saved_views = await ContentModelViewRecord.filter(model_definition_id=saved.id).order_by("sort_order")
         assert len(saved_views) == 1
@@ -339,3 +369,17 @@ async def test_content_models_patch_returns_breaking_impact_for_destructive_sche
         codes = {entry["code"] for entry in impact["breakingChanges"]}
         assert "field_removed" in codes
         assert "relation_removed" in codes
+
+
+@pytest.mark.asyncio
+async def test_content_models_rejects_non_official_model_keys(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace_id}/content/models",
+            json={"key": "author", "name": "Author"},
+        )
+        assert response.status_code == 409, response.text
+        assert response.json()["error"] == "CONTENT_MODEL_PROTOCOL_UNSUPPORTED"

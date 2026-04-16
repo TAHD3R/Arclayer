@@ -12,7 +12,6 @@ from src.models.content._enums import (
     ContentShapeState,
 )
 from src.models.content.content_item import ContentItemRecord
-from src.models.content.model_definition import ContentModelDefinitionRecord
 from tests.modules.workspaces.content.test_content_items_integration import (
     _wait_latest_workspace_audit_event,
 )
@@ -72,41 +71,24 @@ async def test_content_model_impact_preview_returns_counts_and_preview_token(
         assert create_response.status_code == 201, create_response.text
         model_payload = create_response.json()["data"]
         model_id = model_payload["id"]
-        model = await ContentModelDefinitionRecord.get(id=decode_public_id(model_id))
-
-        await _seed_model_item(
-            workspace_id=workspace_id,
-            model_key=model.key,
-            model_id=model_id,
-            site_id=model.site_id,
-            title="First Article",
-            resolved_role="article",
-            resolved_posture="structured",
-            resolved_surface="structured",
-        )
-        await _seed_model_item(
-            workspace_id=workspace_id,
-            model_key=model.key,
-            model_id=model_id,
-            site_id=model.site_id,
-            title="Second Article",
-            resolved_role="article",
-            resolved_posture="structured",
-            resolved_surface="structured",
-        )
-
         preview = await _preview_model_update(
             client,
             workspace_id=workspace_id,
             model_id=model_id,
             payload={
-                "defaultSurface": "writing",
-                "defaultPosture": "entry",
+                "fields": [
+                    {
+                        "key": "reading_time_minutes",
+                        "label": "Reading Time",
+                        "scalar": "number",
+                        "required": False,
+                    }
+                ],
             },
         )
-        assert preview["affectedItemsCount"] == 2
+        assert preview["affectedItemsCount"] == 0
         assert preview["recoveryItemsCount"] == 0
-        assert preview["reshapeItemsCount"] == 2
+        assert preview["reshapeItemsCount"] == 0
         assert preview["hasBlockingChanges"] is False
         assert isinstance(preview["previewToken"], str)
         assert preview["previewToken"]
@@ -126,8 +108,14 @@ async def test_content_model_patch_requires_valid_preview_token(
         assert create_response.status_code == 201, create_response.text
         model_id = create_response.json()["data"]["id"]
         payload = {
-            "defaultSurface": "writing",
-            "defaultPosture": "entry",
+            "fields": [
+                {
+                    "key": "reading_time_minutes",
+                    "label": "Reading Time",
+                    "scalar": "number",
+                    "required": False,
+                }
+            ],
         }
 
         missing_preview_response = await client.patch(
@@ -149,7 +137,7 @@ async def test_content_model_patch_requires_valid_preview_token(
 
 
 @pytest.mark.asyncio
-async def test_content_model_blocking_preview_prevents_patch(
+async def test_content_model_locked_system_fields_are_rejected(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -160,43 +148,16 @@ async def test_content_model_blocking_preview_prevents_patch(
         )
         assert create_response.status_code == 201, create_response.text
         model_id = create_response.json()["data"]["id"]
-        model = await ContentModelDefinitionRecord.get(id=decode_public_id(model_id))
-
-        await _seed_model_item(
-            workspace_id=workspace_id,
-            model_key=model.key,
-            model_id=model_id,
-            site_id=model.site_id,
-            title="Blocking Article",
-            resolved_role="article",
-            resolved_posture="structured",
-            resolved_surface="structured",
-        )
-
-        preview = await _preview_model_update(
-            client,
-            workspace_id=workspace_id,
-            model_id=model_id,
-            payload={"defaultSurface": None},
-        )
-        assert preview["affectedItemsCount"] == 1
-        assert preview["recoveryItemsCount"] == 1
-        assert preview["reshapeItemsCount"] == 0
-        assert preview["hasBlockingChanges"] is True
-
         patch_response = await client.patch(
             f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
-            json={
-                "defaultSurface": None,
-                "impactPreviewToken": preview["previewToken"],
-            },
+            json={"defaultSurface": "structured"},
         )
         assert patch_response.status_code == 409, patch_response.text
-        assert patch_response.json()["error"] == "CONTENT_MODEL_IMPACT_PREVIEW_BLOCKING"
+        assert patch_response.json()["error"] == "CONTENT_MODEL_SYSTEM_FIELD_LOCKED"
 
 
 @pytest.mark.asyncio
-async def test_content_model_patch_emits_model_default_audit_event(
+async def test_content_model_patch_emits_model_contract_audit_event(
     prepared_db,
     integration_valkey_settings,
 ) -> None:
@@ -209,37 +170,34 @@ async def test_content_model_patch_emits_model_default_audit_event(
         model_id = create_response.json()["data"]["id"]
         model_uuid = decode_public_id(model_id)
         workspace_uuid = decode_public_id(workspace_id)
-        model = await ContentModelDefinitionRecord.get(id=model_uuid)
-
-        await _seed_model_item(
-            workspace_id=workspace_id,
-            model_key=model.key,
-            model_id=model_id,
-            site_id=model.site_id,
-            title="Audited Article",
-            resolved_role="article",
-            resolved_posture="structured",
-            resolved_surface="structured",
-        )
-
         preview = await _preview_model_update(
             client,
             workspace_id=workspace_id,
             model_id=model_id,
             payload={
-                "defaultSurface": "writing",
-                "defaultPosture": "entry",
-                "starterPackPolicy": {"mode": "optional"},
-                "surfacePolicy": {"writing": {"enabled": True}},
+                "description": "Article extensions",
+                "fields": [
+                    {
+                        "key": "reading_time_minutes",
+                        "label": "Reading Time",
+                        "scalar": "number",
+                        "required": False,
+                    }
+                ],
             },
         )
         patch_response = await client.patch(
             f"/api/v1/workspaces/{workspace_id}/content/models/{model_id}",
             json={
-                "defaultSurface": "writing",
-                "defaultPosture": "entry",
-                "starterPackPolicy": {"mode": "optional"},
-                "surfacePolicy": {"writing": {"enabled": True}},
+                "description": "Article extensions",
+                "fields": [
+                    {
+                        "key": "reading_time_minutes",
+                        "label": "Reading Time",
+                        "scalar": "number",
+                        "required": False,
+                    }
+                ],
                 "impactPreviewToken": preview["previewToken"],
             },
         )
@@ -252,23 +210,10 @@ async def test_content_model_patch_emits_model_default_audit_event(
         )
         assert event.properties is not None
         assert event.properties["model_key"] == "article"
-        assert event.properties["impact_preview"]["affected_items_count"] == 1
+        assert event.properties["draft_contract_revision"] == 2
+        assert event.properties["published_contract_revision"] == 1
+        assert event.properties["impact_preview"]["affected_items_count"] == 0
         assert event.properties["impact_preview"]["recovery_items_count"] == 0
-        assert event.properties["impact_preview"]["reshape_items_count"] == 1
+        assert event.properties["impact_preview"]["reshape_items_count"] == 0
         assert event.properties["impact_preview"]["has_blocking_changes"] is False
-        assert event.properties["default_changes"]["default_surface"] == {
-            "before": "structured",
-            "after": "writing",
-        }
-        assert event.properties["default_changes"]["default_posture"] == {
-            "before": "structured",
-            "after": "entry",
-        }
-        assert event.properties["default_changes"]["starter_pack_policy"] == {
-            "before": None,
-            "after": {"mode": "optional"},
-        }
-        assert event.properties["default_changes"]["surface_policy"] == {
-            "before": None,
-            "after": {"writing.enabled": True},
-        }
+        assert event.properties["default_changes"] == {}

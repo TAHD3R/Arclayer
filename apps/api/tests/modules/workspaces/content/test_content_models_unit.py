@@ -27,6 +27,7 @@ from src.models.content.presentation_document import PresentationDocumentRecord
 from src.models.content.published_graph import PublishedGraphRecord
 from src.models.content.route_binding import RouteBindingRecord
 from src.modules.workspaces.content.contracts import schema as contracts_schema
+from src.modules.workspaces.content.models.protocol_registry import list_official_model_protocols
 
 REPO_ROOT = Path(__file__).resolve().parents[6]
 MIGRATION_BASELINE = REPO_ROOT / "apps/api/src/migrations/0001_initial.py"
@@ -110,6 +111,30 @@ def test_model_definition_record_persists_explicit_category_editor_and_policy_co
     assert "default_editor" in record_fields
     assert "presentation_policy" in record_fields
     assert "seo_policy" in record_fields
+    assert "protocol_key" in record_fields
+    assert "protocol_version" in record_fields
+    assert "is_system_managed" in record_fields
+    assert "system_field_keys" in record_fields
+    assert "draft_contract_revision" in record_fields
+    assert "published_contract_revision" in record_fields
+    assert "published_contract_snapshot" in record_fields
+    assert "kind" not in record_fields
+
+
+def test_official_model_registry_defines_v1_protocol_surface() -> None:
+    protocols = {protocol.key: protocol for protocol in list_official_model_protocols()}
+
+    assert set(protocols) == {"article", "page", "reusable-section", "category"}
+    assert [field.key for field in protocols["article"].system_fields] == [
+        "title",
+        "slug",
+        "summary",
+        "content",
+        "published_at",
+    ]
+    assert protocols["page"].default_surface == "canvas"
+    assert protocols["reusable-section"].system_managed is True
+    assert protocols["category"].routing_policy == {"mode": "single", "slug_field": "slug"}
 
 
 def test_content_model_relation_persists_target_model_key_and_optional_target_model_definition() -> None:
@@ -200,12 +225,21 @@ def test_rebuild_kernel_requires_first_class_seo_component_binding_and_publish_a
 
 def test_migration_baseline_matches_content_kernel_constraints() -> None:
     migration = MIGRATION_BASELINE.read_text(encoding="utf-8")
+    model_definition_section = migration.split("name='ContentModelDefinitionRecord'", maxsplit=1)[1]
+    model_definition_section = model_definition_section.split("name='ContentItemRecord'", maxsplit=1)[0]
 
     assert "'target_model_key'" in migration
     assert "'category'" in migration
     assert "'default_editor'" in migration
     assert "'presentation_policy'" in migration
     assert "'seo_policy'" in migration
+    assert "'protocol_key'" in migration
+    assert "'protocol_version'" in migration
+    assert "'is_system_managed'" in migration
+    assert "'system_field_keys'" in migration
+    assert "'draft_contract_revision'" in migration
+    assert "'published_contract_revision'" in migration
+    assert "'published_contract_snapshot'" in migration
     assert "'bootstrap_preset_key'" in migration
     assert "'bootstrap_preset_state'" in migration
     assert "'capability_pack_ids'" in migration
@@ -213,6 +247,7 @@ def test_migration_baseline_matches_content_kernel_constraints() -> None:
     assert "'last_transition_by_user_id'" in migration
     assert "'unique_together': (('model_definition_id', 'locale', 'slug'),)" in migration
     assert "'field_values'" not in migration
+    assert "'kind'" not in model_definition_section
 
     hierarchy_node_section = migration.split("name='HierarchyNodeRecord'", maxsplit=1)[1]
     hierarchy_node_section = hierarchy_node_section.split("name='PresentationDocumentRecord'", maxsplit=1)[0]

@@ -6,6 +6,7 @@ from uuid import UUID
 
 from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, Body, Depends, Request, status
+from pydantic import Field
 
 from src.common.schemas import BaseSchema
 from src.common.types.public_uuid import PublicUUID
@@ -48,6 +49,12 @@ class ContentModelMutationOut(BaseSchema):
     key: str
     name: str
     description: str | None = None
+    protocol_key: str | None = None
+    protocol_version: int = 1
+    system_managed: bool = False
+    system_field_keys: list[str] = Field(default_factory=list)
+    draft_contract_revision: int = 1
+    published_contract_revision: int | None = None
     default_role: str | None = None
     default_posture: str | None = None
     default_surface: str | None = None
@@ -98,6 +105,14 @@ def _to_mutation_out(result: ContentModelMutationResult) -> ContentModelMutation
         key=str(record.key),
         name=str(record.name),
         description=record.description,
+        protocol_key=record.protocol_key,
+        protocol_version=int(record.protocol_version or 1),
+        system_managed=bool(record.is_system_managed),
+        system_field_keys=list(record.system_field_keys or []),
+        draft_contract_revision=int(record.draft_contract_revision or 1),
+        published_contract_revision=(
+            int(record.published_contract_revision) if record.published_contract_revision is not None else None
+        ),
         default_role=(str(record.default_role) if record.default_role is not None else None),
         default_posture=(str(record.default_posture) if record.default_posture is not None else None),
         default_surface=(str(record.default_surface) if record.default_surface is not None else None),
@@ -139,6 +154,12 @@ async def _publish_content_model_activity_event(
     properties = {
         "model_key": str(result.record.key),
         "model_name": str(result.record.name),
+        "draft_contract_revision": int(result.record.draft_contract_revision or 1),
+        "published_contract_revision": (
+            int(result.record.published_contract_revision)
+            if result.record.published_contract_revision is not None
+            else None
+        ),
         "default_changes": _normalize_default_changes_for_audit(result.default_changes),
         "impact_preview": (
             {

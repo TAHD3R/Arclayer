@@ -13,7 +13,10 @@ from src.modules.workspaces.content.contracts.schema import (
     ContentDefaultEditor,
     ContentModelCategory,
     ContentModelOut,
+    ContentModelProtocolKey,
 )
+
+_KNOWN_PROTOCOL_KEYS = {"article", "page", "reusable-section", "category"}
 
 
 def normalize_model_category(value: ContentModelCategory | None) -> str:
@@ -85,6 +88,17 @@ def to_content_model_out(record: ContentModelDefinitionRecord) -> ContentModelOu
         key=record.key,
         name=record.name,
         description=record.description,
+        protocol_key=cast(
+            ContentModelProtocolKey | None,
+            record.protocol_key if record.protocol_key in _KNOWN_PROTOCOL_KEYS else None,
+        ),
+        protocol_version=int(record.protocol_version or 1),
+        system_managed=bool(record.is_system_managed),
+        system_field_keys=cast(list[str], list(record.system_field_keys or [])),
+        draft_contract_revision=int(record.draft_contract_revision or 1),
+        published_contract_revision=(
+            int(record.published_contract_revision) if record.published_contract_revision is not None else None
+        ),
         category=cast(ContentModelCategory, str(record.category or "custom")),
         capabilities=cast(list[Any], [str(value) for value in (record.capabilities or [])]),
         default_editor=cast(ContentDefaultEditor, str(record.default_editor or "form")),
