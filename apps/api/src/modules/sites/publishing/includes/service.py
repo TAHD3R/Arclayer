@@ -233,12 +233,13 @@ class PublishingIncludesService(BaseService):
                 )
                 continue
 
-            include_key = f"{entry_id_str}:{resolved}"
+            preferred_state = resolved
+            include_key = f"{entry_id_str}:{preferred_state}"
 
             if entry_id_str in stack:
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
-                    resolvedState=resolved,
+                    resolvedState=preferred_state,
                     pageBlueprint=None,
                     error=ContentRefIncludeErrorV1(code="CYCLE_DETECTED"),
                 )
@@ -258,13 +259,36 @@ class PublishingIncludesService(BaseService):
             entry_doc, entry_data, entry_meta, load_error = await self.load_content_ref_entry(
                 site_id=site_id,
                 entry_id_public=entry_id_str,
-                state=resolved,
+                state=preferred_state,
             )
+            resolved_state = preferred_state
+
+            if load_error is not None and mode == "preview" and ref_state_raw == "auto" and preferred_state == "draft":
+                fallback_doc, fallback_data, fallback_meta, fallback_error = await self.load_content_ref_entry(
+                    site_id=site_id,
+                    entry_id_public=entry_id_str,
+                    state="published",
+                )
+                if fallback_error is None:
+                    entry_doc = fallback_doc
+                    entry_data = fallback_data
+                    entry_meta = fallback_meta
+                    load_error = None
+                    resolved_state = "published"
+                    include_key = f"{entry_id_str}:{resolved_state}"
+                    warnings.append(
+                        ResolveWarningV1(
+                            code="DEPENDENCY_FALLBACK_PUBLISHED",
+                            message=f"preview fallback to published dependency {entry_id_str}",
+                            refEntryId=entry_id_str,
+                            refNodeId=getattr(node, "id", None),
+                        )
+                    )
 
             if load_error is not None:
                 collector[include_key] = ContentRefIncludeV1(
                     entryId=entry_id,
-                    resolvedState=resolved,
+                    resolvedState=resolved_state,
                     pageBlueprint=None,
                     data=entry_data,
                     meta=entry_meta,
@@ -282,7 +306,7 @@ class PublishingIncludesService(BaseService):
 
             collector[include_key] = ContentRefIncludeV1(
                 entryId=entry_id,
-                resolvedState=resolved,
+                resolvedState=resolved_state,
                 pageBlueprint=entry_doc,
                 data=entry_data,
                 meta=entry_meta,

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+from src.common.utils.public_ids import decode_public_id
+from src.models.content.content_item import ContentItemRecord
 from tests.modules.workspaces.content.test_content_items_integration import (
     _bootstrap_shape_payload,
     _create_article_model,
@@ -87,6 +89,52 @@ def _page_draft_payload(*, title: str, path: str) -> dict:
     }
 
 
+def _page_dependency_draft_payload(*, title: str, path: str, ref_entry_id: str) -> dict:
+    return {
+        "expectedVersion": 0,
+        "changeSummary": f"{title} draft",
+        "fieldsSnapshot": {"title": title, "path": path},
+        "presentations": [
+            {"kind": "form_data", "payload": {"title": title, "path": path}},
+            {
+                "kind": "visual_blueprint",
+                "payload": {
+                    "version": 1,
+                    "rootId": "page",
+                    "nodesById": {
+                        "page": {
+                            "id": "page",
+                            "type": "page_root",
+                            "children": ["dependency_ref"],
+                            "layout": {"children": {"mode": "absolute"}},
+                        },
+                        "dependency_ref": {
+                            "id": "dependency_ref",
+                            "type": "content_ref",
+                            "refEntryId": ref_entry_id,
+                            "refState": "auto",
+                        },
+                    },
+                },
+            },
+            {
+                "kind": "slot_mapping",
+                "payload": {
+                    "version": 1,
+                    "sections": {},
+                },
+            },
+            {
+                "kind": "seo",
+                "payload": {
+                    "metaTitle": f"{title} | Arclayer",
+                    "metaDescription": f"{title} dependency page",
+                },
+            },
+        ],
+    }
+
+
 def _article_draft_payload(*, expected_version: int, title: str, slug: str) -> dict:
     return {
         "expectedVersion": expected_version,
@@ -159,6 +207,27 @@ async def _publish_page_item(client, workspace_id: str, *, item_id: str, title: 
     assert publish_res.status_code == 200, publish_res.text
 
 
+async def _publish_dependency_page_item(
+    client,
+    workspace_id: str,
+    *,
+    item_id: str,
+    title: str,
+    path: str,
+    ref_entry_id: str,
+) -> None:
+    draft_res = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/draft",
+        json=_page_dependency_draft_payload(title=title, path=path, ref_entry_id=ref_entry_id),
+    )
+    assert draft_res.status_code == 201, draft_res.text
+    publish_res = await client.post(
+        f"/api/v1/workspaces/{workspace_id}/content/items/{item_id}/versions/1/publish",
+        json={},
+    )
+    assert publish_res.status_code == 200, publish_res.text
+
+
 async def _save_article_draft(
     client,
     workspace_id: str,
@@ -181,6 +250,31 @@ async def _publish_article_version(client, workspace_id: str, *, item_id: str, v
         json={},
     )
     assert publish_res.status_code == 200, publish_res.text
+
+
+async def _upsert_route_binding(
+    client,
+    workspace_id: str,
+    *,
+    item_id: str,
+    path: str,
+    route_mode: str | None = None,
+    primary_source: dict | None = None,
+) -> None:
+    payload: dict[str, object] = {
+        "locale": "en-US",
+        "path": path,
+        "isActive": True,
+    }
+    if route_mode is not None:
+        payload["routeMode"] = route_mode
+    if primary_source is not None:
+        payload["primarySource"] = primary_source
+    route_res = await client.put(
+        f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{item_id}",
+        json=payload,
+    )
+    assert route_res.status_code == 200, route_res.text
 
 
 @pytest.mark.asyncio
@@ -220,27 +314,19 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         )
         await _publish_article_version(client, workspace_id, item_id=article_item_id, version=1)
 
-        dynamic_route_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{template_item_id}",
-            json={
-                "locale": "en-US",
-                "path": "/blog/:slug",
-                "routeMode": "dynamic",
-                "primarySource": {
-                    "modelKey": "article",
-                    "fieldKey": "slug",
-                    "paramName": "slug",
-                },
-                "isActive": True,
+        await _upsert_route_binding(
+            client,
+            workspace_id,
+            item_id=template_item_id,
+            path="/blog/:slug",
+            route_mode="dynamic",
+            primary_source={
+                "modelKey": "article",
+                "fieldKey": "slug",
+                "paramName": "slug",
             },
         )
-        assert dynamic_route_res.status_code == 200, dynamic_route_res.text
-
-        static_route_res = await client.put(
-            f"/api/v1/workspaces/{workspace_id}/content/routing/bindings/{static_item_id}",
-            json={"locale": "en-US", "path": "/blog/new", "isActive": True},
-        )
-        assert static_route_res.status_code == 200, static_route_res.text
+        await _upsert_route_binding(client, workspace_id, item_id=static_item_id, path="/blog/new")
 
         site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
         assert site_res.status_code == 200, site_res.text
@@ -301,3 +387,186 @@ async def test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_del
         static_payload = static_res.json()["data"]
         assert static_payload["match"]["pageId"] == static_item_id
         assert static_payload["document"]["sections"][0]["props"]["headline"] == "New Landing"
+
+
+@pytest.mark.asyncio
+async def test_sites_route_resolve_returns_primary_record_unavailable_for_public_dynamic_route(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_page_model(client, workspace_id)
+        await _create_article_model(client, workspace_id)
+
+        template_item_id = await _create_page_item(client, workspace_id, title="Draft Only Template")
+        article_item_id = await _create_article_item(client, workspace_id, slug="world", title="Draft only world")
+
+        await _publish_page_item(
+            client,
+            workspace_id,
+            item_id=template_item_id,
+            title="Draft Only Template",
+            path="/draft-only/:slug",
+        )
+        await _save_article_draft(
+            client,
+            workspace_id,
+            item_id=article_item_id,
+            expected_version=0,
+            title="Draft only world",
+            slug="world",
+        )
+        await _upsert_route_binding(
+            client,
+            workspace_id,
+            item_id=template_item_id,
+            path="/draft-only/:slug",
+            route_mode="dynamic",
+            primary_source={
+                "modelKey": "article",
+                "fieldKey": "slug",
+                "paramName": "slug",
+            },
+        )
+
+        site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+        assert site_res.status_code == 200, site_res.text
+        site_id = site_res.json()["data"]["siteId"]
+
+        token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
+        assert token_res.status_code == 201, token_res.text
+        preview_token = token_res.json()["data"]["token"]
+
+        public_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/draft-only/world", "mode": "public"},
+        )
+        assert public_res.status_code == 409, public_res.text
+        assert public_res.json()["error"] == "PAGE_PRIMARY_RECORD_UNAVAILABLE"
+
+        preview_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/draft-only/world", "mode": "preview", "token": preview_token},
+        )
+        assert preview_res.status_code == 200, preview_res.text
+        preview_payload = preview_res.json()["data"]
+        assert preview_payload["context"]["primary"]["id"] == article_item_id
+        assert preview_payload["context"]["primary"]["title"] == "Draft only world"
+        assert preview_payload["match"]["revisionState"] == "draft"
+
+
+@pytest.mark.asyncio
+async def test_sites_route_resolve_enforces_dependency_availability_and_preview_diagnostics(
+    prepared_db,
+    integration_valkey_settings,
+) -> None:
+    async with _workspace_client(prepared_db, integration_valkey_settings) as (client, workspace_id):
+        await _create_page_model(client, workspace_id)
+        await _create_article_model(client, workspace_id)
+
+        public_page_id = await _create_page_item(client, workspace_id, title="Public Dependency Page")
+        fallback_page_id = await _create_page_item(client, workspace_id, title="Preview Fallback Dependency Page")
+        missing_page_id = await _create_page_item(client, workspace_id, title="Preview Missing Dependency Page")
+
+        draft_only_dependency_id = await _create_article_item(client, workspace_id, slug="draft-dep", title="Draft Dep")
+        fallback_dependency_id = await _create_article_item(
+            client,
+            workspace_id,
+            slug="fallback-dep",
+            title="Fallback Dep v1",
+        )
+        missing_dependency_id = await _create_article_item(
+            client,
+            workspace_id,
+            slug="missing-dep",
+            title="Missing Dep",
+        )
+
+        await _save_article_draft(
+            client,
+            workspace_id,
+            item_id=draft_only_dependency_id,
+            expected_version=0,
+            title="Draft Dep",
+            slug="draft-dep",
+        )
+        await _save_article_draft(
+            client,
+            workspace_id,
+            item_id=fallback_dependency_id,
+            expected_version=0,
+            title="Fallback Dep v1",
+            slug="fallback-dep",
+        )
+        await _publish_article_version(client, workspace_id, item_id=fallback_dependency_id, version=1)
+
+        fallback_dependency_uuid = decode_public_id(fallback_dependency_id)
+        fallback_dependency = await ContentItemRecord.get(id=fallback_dependency_uuid)
+        fallback_dependency.draft_version = 0
+        await fallback_dependency.save(update_fields=["draft_version"])
+
+        await _publish_dependency_page_item(
+            client,
+            workspace_id,
+            item_id=public_page_id,
+            title="Public Dependency Page",
+            path="/dependency-public",
+            ref_entry_id=draft_only_dependency_id,
+        )
+        await _publish_dependency_page_item(
+            client,
+            workspace_id,
+            item_id=fallback_page_id,
+            title="Preview Fallback Dependency Page",
+            path="/dependency-fallback",
+            ref_entry_id=fallback_dependency_id,
+        )
+        await _publish_dependency_page_item(
+            client,
+            workspace_id,
+            item_id=missing_page_id,
+            title="Preview Missing Dependency Page",
+            path="/dependency-missing",
+            ref_entry_id=missing_dependency_id,
+        )
+
+        await _upsert_route_binding(client, workspace_id, item_id=public_page_id, path="/dependency-public")
+        await _upsert_route_binding(client, workspace_id, item_id=fallback_page_id, path="/dependency-fallback")
+        await _upsert_route_binding(client, workspace_id, item_id=missing_page_id, path="/dependency-missing")
+
+        site_res = await client.get(f"/api/v1/workspaces/{workspace_id}/site")
+        assert site_res.status_code == 200, site_res.text
+        site_id = site_res.json()["data"]["siteId"]
+
+        token_res = await client.post(f"/api/v1/sites/{site_id}/preview-tokens", json={"ttlSeconds": 600})
+        assert token_res.status_code == 201, token_res.text
+        preview_token = token_res.json()["data"]["token"]
+
+        public_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/dependency-public", "mode": "public"},
+        )
+        assert public_res.status_code == 409, public_res.text
+        assert public_res.json()["error"] == "PAGE_DEPENDENCY_UNAVAILABLE"
+
+        fallback_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/dependency-fallback", "mode": "preview", "token": preview_token},
+        )
+        assert fallback_res.status_code == 200, fallback_res.text
+        fallback_payload = fallback_res.json()["data"]
+        assert fallback_payload["warnings"] == [
+            {
+                "code": "DEPENDENCY_FALLBACK_PUBLISHED",
+                "message": f"preview fallback to published dependency {fallback_dependency_id}",
+                "refEntryId": fallback_dependency_id,
+                "refNodeId": "dependency_ref",
+            }
+        ]
+
+        missing_res = await client.get(
+            f"/api/v1/sites/{site_id}/routes/resolve",
+            params={"path": "/dependency-missing", "mode": "preview", "token": preview_token},
+        )
+        assert missing_res.status_code == 500, missing_res.text
+        assert missing_res.json()["error"] == "PAGE_PREVIEW_DEPENDENCY_UNAVAILABLE"

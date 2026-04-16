@@ -110,3 +110,19 @@
   - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_canonical_content_runtime_integration.py::test_sites_route_resolve_prefers_static_route_and_flattens_dynamic_delivery`
   - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_content_routing_integration.py tests/modules/sites/test_sites_canonical_content_runtime_integration.py`
 - **Next step**: Pause for phase report before activating child 4.
+
+---
+
+## Milestone 4: Perspectives And Dependencies
+
+- **Status**: DONE
+- **Started**: 2026-04-17
+- **Completed**: 2026-04-17
+- **What was done**:
+  - Added formal primary availability errors to dynamic page resolve so matched routes no longer degrade to `primary = null` when the record exists but the current perspective cannot deliver it.
+  - Reconnected `content_ref` dependency checks to the new flattened route resolve contract and enforced public/preview dependency availability inside `pages.resolve`.
+  - Added preview dependency fallback warnings and blocking dependency errors with focused runtime coverage.
+- **Validation**:
+  - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/sites/test_sites_canonical_content_runtime_integration.py`
+  - Passed: `timeout 60s env RUN_INTEGRATION_TESTS=1 pnpm -C apps/api uv -- pytest -q tests/modules/workspaces/content/test_content_routing_integration.py tests/modules/sites/test_sites_canonical_content_runtime_integration.py`
+- **Next step**: Pause for phase report before activating child 5.

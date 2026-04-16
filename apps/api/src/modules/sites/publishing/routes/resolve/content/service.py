@@ -4,10 +4,14 @@ from typing import Any, Literal
 from uuid import UUID
 
 from src.common.services import BaseService
+from src.core.exceptions import Conflict, NotFound
+from src.core.exceptions.types import InternalServerError
+from src.modules.sites.design.schema import PageBlueprint
 from src.modules.sites.publishing.content_snapshot import CanonicalContentSnapshot, build_canonical_content_snapshot
 from src.modules.sites.publishing.includes.service import PublishingIncludesService
 from src.modules.sites.repository import SitesRepository
 from src.modules.sites.schema import (
+    ResolveWarningV1,
     SiteFlattenedPageOut,
     SiteFlattenedSectionOut,
     SitePrimaryContextOut,
@@ -287,6 +291,90 @@ class ContentPageRouteResolver(BaseService):
         )
         return use_rev, state, snapshot
 
+    async def _load_snapshot_for_state(
+        self,
+        *,
+        item,
+        state: Literal["draft", "published"],
+    ) -> CanonicalContentSnapshot | None:
+        revision = int(item.draft_version or 0) if state == "draft" else int(item.published_version or 0)
+        if revision < 1:
+            return None
+        version = await self._repo.get_content_revision_by_number(entry_id=UUID(str(item.id)), revision=revision)
+        if version is None:
+            return None
+        presentations = await self._repo.list_content_presentations(version_id=version.id)
+        seo_profile = await self._repo.get_content_seo_profile(version_id=version.id)
+        return build_canonical_content_snapshot(
+            item=item,
+            version=version,
+            presentations=presentations,
+            seo_profile=seo_profile,
+        )
+
+    @staticmethod
+    def _candidate_matches_route(
+        *,
+        candidate,
+        snapshot_fields: dict[str, Any] | None,
+        field_key: str,
+        param_value: str,
+    ) -> bool:
+        snapshot_fields = snapshot_fields or {}
+        lookup_value = (
+            snapshot_fields.get("slug")
+            if field_key == "slug"
+            else snapshot_fields.get("title")
+            if field_key == "title"
+            else snapshot_fields.get(field_key)
+        )
+        if lookup_value is None:
+            lookup_value = getattr(candidate, field_key, None)
+        return str(lookup_value) == param_value if lookup_value is not None else False
+
+    async def _resolve_page_dependencies(
+        self,
+        *,
+        site_id: UUID,
+        raw_page_blueprint: dict[str, Any] | None,
+        mode: Literal["public", "preview"],
+    ) -> list[ResolveWarningV1]:
+        if not isinstance(raw_page_blueprint, dict):
+            return []
+        try:
+            document = PageBlueprint.model_validate(raw_page_blueprint)
+        except Exception:
+            return []
+
+        includes, warnings = await self._includes.resolve_content_refs(
+            document=document,
+            site_id=site_id,
+            mode=mode,
+        )
+        blocking = [
+            {
+                "entryId": str(include.entry_id),
+                "resolvedState": include.resolved_state,
+                "code": include.error.code,
+                "message": include.error.message,
+            }
+            for include in includes.values()
+            if include.error is not None
+        ]
+        if blocking:
+            if mode == "public":
+                raise Conflict(
+                    "Page dependency unavailable",
+                    error="PAGE_DEPENDENCY_UNAVAILABLE",
+                    details=blocking,
+                )
+            raise InternalServerError(
+                "Preview dependency unavailable",
+                error="PAGE_PREVIEW_DEPENDENCY_UNAVAILABLE",
+                details=blocking,
+            )
+        return warnings
+
     async def _resolve_primary_context(
         self,
         *,
@@ -318,28 +406,86 @@ class ContentPageRouteResolver(BaseService):
             return None
 
         candidates = await self._repo.list_content_entries_by_model_key(site_id=site_id, model_key=model_key)
+        saw_matching_record = False
         for candidate in candidates:
-            _, _, snapshot = await self._load_snapshot_for_item(item=candidate, mode=mode)
-            if snapshot is None:
+            draft_snapshot = await self._load_snapshot_for_state(item=candidate, state="draft")
+            published_snapshot = await self._load_snapshot_for_state(item=candidate, state="published")
+            draft_fields = draft_snapshot.fields if draft_snapshot is not None else None
+            published_fields = published_snapshot.fields if published_snapshot is not None else None
+
+            if mode == "preview":
+                if self._candidate_matches_route(
+                    candidate=candidate,
+                    snapshot_fields=draft_fields,
+                    field_key=field_key,
+                    param_value=param_value,
+                ):
+                    snapshot_fields = draft_fields or {}
+                    return SitePrimaryContextOut(
+                        id=UUID(str(candidate.id)),
+                        modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                        slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
+                        title=str(snapshot_fields.get("title") or candidate.title or ""),
+                        data=_summarize_depth_one(snapshot_fields) or {},
+                    )
+                if self._candidate_matches_route(
+                    candidate=candidate,
+                    snapshot_fields=published_fields,
+                    field_key=field_key,
+                    param_value=param_value,
+                ):
+                    snapshot_fields = published_fields or {}
+                    return SitePrimaryContextOut(
+                        id=UUID(str(candidate.id)),
+                        modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                        slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
+                        title=str(snapshot_fields.get("title") or candidate.title or ""),
+                        data=_summarize_depth_one(snapshot_fields) or {},
+                    )
+                if self._candidate_matches_route(
+                    candidate=candidate,
+                    snapshot_fields=None,
+                    field_key=field_key,
+                    param_value=param_value,
+                ):
+                    saw_matching_record = True
                 continue
-            snapshot_fields = snapshot.fields or {}
-            lookup_value = (
-                snapshot_fields.get("slug")
-                if field_key == "slug"
-                else snapshot_fields.get("title")
-                if field_key == "title"
-                else snapshot_fields.get(field_key)
+
+            if self._candidate_matches_route(
+                candidate=candidate,
+                snapshot_fields=published_fields,
+                field_key=field_key,
+                param_value=param_value,
+            ):
+                snapshot_fields = published_fields or {}
+                return SitePrimaryContextOut(
+                    id=UUID(str(candidate.id)),
+                    modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
+                    slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
+                    title=str(snapshot_fields.get("title") or candidate.title or ""),
+                    data=_summarize_depth_one(snapshot_fields) or {},
+                )
+            if self._candidate_matches_route(
+                candidate=candidate,
+                snapshot_fields=draft_fields,
+                field_key=field_key,
+                param_value=param_value,
+            ) or self._candidate_matches_route(
+                candidate=candidate,
+                snapshot_fields=None,
+                field_key=field_key,
+                param_value=param_value,
+            ):
+                saw_matching_record = True
+
+        if saw_matching_record:
+            if mode == "public":
+                raise Conflict("Primary record unavailable", error="PAGE_PRIMARY_RECORD_UNAVAILABLE")
+            raise InternalServerError(
+                "Primary record preview unavailable",
+                error="PAGE_PRIMARY_RECORD_PREVIEW_UNAVAILABLE",
             )
-            if str(lookup_value) != param_value:
-                continue
-            return SitePrimaryContextOut(
-                id=UUID(str(candidate.id)),
-                modelKey=(candidate.model_definition.key if candidate.model_definition is not None else None),
-                slug=str(snapshot_fields.get("slug") or candidate.slug or ""),
-                title=str(snapshot_fields.get("title") or candidate.title or ""),
-                data=_summarize_depth_one(snapshot_fields) or {},
-            )
-        return None
+        raise NotFound("Primary record not found", error="PAGE_PRIMARY_RECORD_NOT_FOUND")
 
     async def resolve(
         self,
@@ -400,6 +546,11 @@ class ContentPageRouteResolver(BaseService):
             route_params=route_params,
             mode=mode,
         )
+        warnings = await self._resolve_page_dependencies(
+            site_id=site_id,
+            raw_page_blueprint=page_snapshot.raw_page_blueprint if page_snapshot is not None else None,
+            mode=mode,
+        )
         primary_data = primary.data if primary is not None else None
         layout, sections = _flatten_sections(
             raw_page_blueprint=page_snapshot.raw_page_blueprint if page_snapshot is not None else None,
@@ -421,4 +572,5 @@ class ContentPageRouteResolver(BaseService):
             pageMeta=page_meta,
             document=SiteFlattenedPageOut(path=pathname, layout=layout, sections=sections),
             context=SiteRouteContextOut(primary=primary, routeParams=route_params),
+            warnings=warnings or None,
         )
