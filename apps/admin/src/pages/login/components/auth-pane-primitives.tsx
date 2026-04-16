@@ -1,13 +1,14 @@
 import { CircleHelp } from "lucide-react";
 import { motion, type Variants } from "motion/react";
-import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { type ReactNode, useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AdminFullLogo } from "@/components/layout/admin-logo";
 import { LegalFooter, LegalFooterCopyright } from "@/components/layout/legal-footer";
 import { cn } from "@arclayer/lib/utils";
 import { FieldTitle } from "@arclayer/ui/field";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@arclayer/ui/tooltip";
 
 export const AUTH_PANE_STACK_CLASS = "grid gap-5";
@@ -24,9 +25,11 @@ export const AUTH_PLAIN_INPUT_CLASS = cn(
   "h-10 min-w-0 rounded-md border-border/80 bg-card px-4 text-callout ",
   "placeholder:text-label-tertiary focus-visible:ring-primary/15 md:text-callout",
 );
-export const AUTH_OTP_GROUP_CLASS = "grid w-full grid-cols-6 gap-2";
+export const AUTH_OTP_CONTAINER_CLASS = "w-full min-w-0";
+export const AUTH_OTP_GROUP_CLASS = "grid w-full min-w-0 grid-cols-6 gap-2.5";
 export const AUTH_OTP_SLOT_CLASS = cn(
-  "h-10 w-full flex-1 rounded-md border border-input text-callout transition-colors",
+  "h-14 min-w-0 w-full flex-1 rounded-xl border border-border/70 bg-background",
+  "text-title3 font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
 
@@ -91,6 +94,49 @@ export function AuthPaneTitleRow(props: { title: string; helpText?: string; acti
 
 export function AuthButtonLabel(props: { children: ReactNode }) {
   return <span>{props.children}</span>;
+}
+
+export function AuthOtpInput(props: {
+  value: string;
+  onChange: (value: string) => void;
+  "aria-label"?: string;
+  ariaLabel?: string;
+  disabled?: boolean;
+  invalid?: boolean;
+  maxLength?: number;
+}) {
+  const inputId = useId();
+  const accessibleLabel = props["aria-label"] ?? props.ariaLabel ?? "";
+
+  return (
+    <>
+      <label htmlFor={inputId} className="sr-only">
+        {accessibleLabel}
+      </label>
+      <InputOTP
+        id={inputId}
+        value={props.value}
+        onChange={props.onChange}
+        maxLength={props.maxLength ?? 6}
+        aria-label={accessibleLabel}
+        aria-invalid={props.invalid ? true : undefined}
+        autoComplete="one-time-code"
+        inputMode="numeric"
+        disabled={props.disabled}
+        pushPasswordManagerStrategy="none"
+        containerClassName={AUTH_OTP_CONTAINER_CLASS}
+      >
+        <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
+          <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
+          <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
+          <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
+          <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
+          <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
+          <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
+        </InputOTPGroup>
+      </InputOTP>
+    </>
+  );
 }
 
 export function AuthPaneLegal(props: { i18nKey: string; variants: Variants | {} }) {

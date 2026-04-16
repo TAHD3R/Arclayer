@@ -15,6 +15,18 @@ import {
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { UserTwoFactorSection } from "@/pages/usercenter/security/components/security-two-factor-section";
 
+const navigateMock = vi.fn();
+const clearAuthMock = vi.fn();
+const clearWorkspaceMock = vi.fn();
+
+vi.mock("@tanstack/react-router", async () => {
+  const actual = await vi.importActual<object>("@tanstack/react-router");
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
+
 vi.mock("@/api/auth", () => ({
   getTwoFactorStatus: vi.fn(),
   getTwoFactorCapabilities: vi.fn(),
@@ -27,6 +39,16 @@ vi.mock("@/api/auth", () => ({
 vi.mock("@/lib/notifications", () => ({
   notifyError: vi.fn(),
   notifySuccessText: vi.fn(),
+}));
+
+vi.mock("@/stores/use-auth-store", () => ({
+  useAuthStore: (selector: (state: { sessionVersion: number; clear: () => void }) => unknown) =>
+    selector({ sessionVersion: 1, clear: clearAuthMock }),
+}));
+
+vi.mock("@/stores/use-workspace-store", () => ({
+  useWorkspaceStore: (selector: (state: { clearWorkspace: () => void }) => unknown) =>
+    selector({ clearWorkspace: clearWorkspaceMock }),
 }));
 
 vi.mock("@arclayer/ui/tooltip", () => ({
@@ -102,6 +124,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  navigateMock.mockResolvedValue(undefined);
 });
 
 describe("UserTwoFactorSection", () => {
@@ -200,6 +223,20 @@ describe("UserTwoFactorSection", () => {
         name: i18n.t("account:ME_SECURITY_2FA_BACKUP_CODES_ACK"),
       }),
     ).toBeInTheDocument();
+    await user.click(
+      dialogScope.getByRole("button", {
+        name: i18n.t("account:ME_SECURITY_2FA_BACKUP_CODES_ACK"),
+      }),
+    );
+    await waitFor(() => {
+      expect(clearAuthMock).toHaveBeenCalled();
+      expect(clearWorkspaceMock).toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/login",
+        search: { redirect: "/" },
+        replace: true,
+      });
+    });
   });
 
   it("submits regenerate and disable actions with reauth inputs", async () => {
@@ -227,6 +264,9 @@ describe("UserTwoFactorSection", () => {
     );
     let dialog = await screen.findByRole("dialog");
     let dialogScope = within(dialog);
+    await user.click(
+      dialogScope.getByRole("button", { name: i18n.t("auth:TWO_FACTOR_USE_BACKUP_CODE") }),
+    );
     await user.type(
       dialogScope.getByLabelText(i18n.t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")),
       "ABCD-EFGH",
@@ -262,6 +302,15 @@ describe("UserTwoFactorSection", () => {
 
     await waitFor(() => {
       expect(disableTwoFactorMock).toHaveBeenCalledWith({ code: "654321" });
+    });
+    await waitFor(() => {
+      expect(clearAuthMock).toHaveBeenCalled();
+      expect(clearWorkspaceMock).toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/login",
+        search: { redirect: "/" },
+        replace: true,
+      });
     });
   });
 

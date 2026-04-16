@@ -12,7 +12,6 @@ import { zodResolver } from "@/lib/forms/zod-resolver";
 import { AuthLinkButton, AuthInputControl } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 
 import type {
   LoginEmailCodeFormValues,
@@ -23,11 +22,10 @@ import {
   AUTH_FIELD_CLASS,
   AUTH_INPUT_CLASS,
   AUTH_INPUT_GROUP_CLASS,
-  AUTH_OTP_GROUP_CLASS,
-  AUTH_OTP_SLOT_CLASS,
   AUTH_PANE_STACK_CLASS,
   AuthButtonLabel,
   AuthInlineNotice,
+  AuthOtpInput,
   AuthPaneHeader,
   AuthPaneLegal,
   AuthPaneTitleRow,
@@ -221,7 +219,7 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
             <Field className={AUTH_FIELD_CLASS}>
               <FieldContent className="gap-2">
                 <AuthPaneTitleRow title={t("auth:LOGIN_EMAIL_CODE_FIELD_LABEL")} />
-                <InputOTP
+                <AuthOtpInput
                   value={form.watch("code")}
                   onChange={(value) => {
                     form.setValue("code", value, { shouldValidate: false });
@@ -230,22 +228,11 @@ export function LoginEmailCodePane(props: LoginEmailCodePaneProps) {
                     }
                     if (verifyError) setVerifyError(null);
                   }}
-                  maxLength={OTP_LENGTH}
                   aria-label={t("auth:LOGIN_EMAIL_CODE_FIELD_LABEL")}
-                  aria-invalid={verifyError ? true : undefined}
-                  inputMode="numeric"
+                  invalid={Boolean(verifyError)}
                   disabled={props.verifyLoading}
-                  containerClassName="w-full"
-                >
-                  <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
-                    <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
-                  </InputOTPGroup>
-                </InputOTP>
+                  maxLength={OTP_LENGTH}
+                />
                 <FieldError>
                   {form.formState.errors.code?.message
                     ? String(form.formState.errors.code.message)

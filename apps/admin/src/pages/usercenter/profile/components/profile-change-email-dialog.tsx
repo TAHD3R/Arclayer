@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useEffect, useId, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -8,21 +8,19 @@ import * as authApi from "@/api/auth";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
-import {
-  AUTH_OTP_GROUP_CLASS,
-  AUTH_OTP_SLOT_CLASS,
-} from "@/pages/login/components/auth-pane-primitives";
+import { AuthOtpInput, AuthPaneTitleRow } from "@/pages/login/components/auth-pane-primitives";
+import { useSecurityRelogin } from "@/pages/usercenter/shared/use-security-relogin";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
-import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
+import { SettingDialogField, SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { DialogField } from "./dialog-field";
 
 export type UserChangeEmailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nextEmail: string;
+  redirect?: string;
 };
 
 type ChangeEmailDialogStep = "request" | "verify";
@@ -55,10 +53,10 @@ function buildSchema(t: (key: string) => string) {
 
 export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
   const { t } = useTranslation(["account", "auth", "settings", "common"]);
-  const queryClient = useQueryClient();
   const [step, setStep] = useState<ChangeEmailDialogStep>("request");
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState(0);
+  const forceRelogin = useSecurityRelogin(props.redirect);
 
   const normalizedEmail = useMemo(() => String(props.nextEmail || "").trim(), [props.nextEmail]);
   const schema = useMemo(() => buildSchema(t), [t]);
@@ -109,12 +107,7 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
     },
     onSuccess: async () => {
       notifySuccessText(t("settings:SETTINGS_SAVED"));
-      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      props.onOpenChange(false);
-      form.reset(EMPTY_VALUES);
-      setStep("request");
-      setVerifyError(null);
-      setRetryAfter(0);
+      await forceRelogin();
     },
   });
 
@@ -205,49 +198,46 @@ export function UserChangeEmailDialog(props: UserChangeEmailDialogProps) {
         ) : null}
 
         {step === "verify" ? (
-          <DialogField
-            label={t("account:ME_PROFILE_EMAIL_CODE")}
+          <SettingDialogField
+            title={
+              <AuthPaneTitleRow
+                title={t("account:ME_PROFILE_EMAIL_CODE")}
+                action={
+                  <div className="flex items-center gap-1 text-footnote text-label-secondary">
+                    <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")}</span>
+                    <Button
+                      variant="link"
+                      size="inline"
+                      className="h-auto p-0 text-footnote"
+                      disabled={requestCodeMutation.isPending || retryAfter > 0}
+                      onClick={() => void requestEmailCode()}
+                    >
+                      {retryAfter > 0
+                        ? t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: `${retryAfter}s` })
+                        : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
+                    </Button>
+                  </div>
+                }
+              />
+            }
             description={t("account:ME_PROFILE_EMAIL_CODE_DESC")}
             error={form.formState.errors.code?.message ?? verifyError ?? undefined}
           >
             <div className="grid gap-3">
-              <InputOTP
+              <AuthOtpInput
                 value={form.watch("code")}
                 onChange={(value) => {
                   form.setValue("code", value, { shouldValidate: false });
                   if (form.formState.errors.code) form.clearErrors("code");
                   if (verifyError) setVerifyError(null);
                 }}
-                maxLength={OTP_LENGTH}
                 aria-label={t("account:ME_PROFILE_EMAIL_CODE")}
-                inputMode="numeric"
+                invalid={Boolean(verifyError)}
                 disabled={confirmMutation.isPending}
-                containerClassName="w-full"
-              >
-                <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
-                  <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
-                  <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
-                </InputOTPGroup>
-              </InputOTP>
-              <div className="text-center text-footnote text-label-secondary">
-                <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")} </span>
-                <Button
-                  variant="link"
-                  className="h-auto p-0 text-footnote"
-                  disabled={requestCodeMutation.isPending || retryAfter > 0}
-                  onClick={() => void requestEmailCode()}
-                >
-                  {retryAfter > 0
-                    ? t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: `${retryAfter}s` })
-                    : t("auth:LOGIN_EMAIL_CODE_RESEND_ACTION")}
-                </Button>
-              </div>
+                maxLength={OTP_LENGTH}
+              />
             </div>
-          </DialogField>
+          </SettingDialogField>
         ) : null}
       </SettingDialogFields>
     </SettingDialog>

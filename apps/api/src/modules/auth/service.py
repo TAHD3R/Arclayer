@@ -344,6 +344,7 @@ class AuthService(BaseService):
             raise Conflict(message=self._ta("EMAIL_EXISTS", "邮箱已被占用"), error="EMAIL_EXISTS")
 
         await self.user_repo.set_email(user_with_cred, new_email)
+        await self.invalidate_user_sessions(user=user_with_cred)
         await store.delete(user_id=user_id)
         return self.build_user_profile(user_with_cred)
 
@@ -395,6 +396,11 @@ class AuthService(BaseService):
         if two_factor_enabled:
             return ["2fa"]
         return ["relogin"]
+
+    async def invalidate_user_sessions(self, *, user: UserLike) -> None:
+        await self.user_repo.increment_token_version(user)
+        if self.refresh_store is not None:
+            await self.refresh_store.revoke_all(self._coerce_user_id(user))
 
     async def get_my_security_capabilities(self, *, user_id: UUID) -> MySecurityCapabilityOut:
         user_with_cred = cast(User | None, await self.user_repo.get_by_id_with_credential(user_id))

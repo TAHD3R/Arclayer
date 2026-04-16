@@ -110,12 +110,7 @@ async def test_auth_security_endpoints_two_factor_flow(
             assert len(backup_codes) == 10
 
             status_enabled = await client.get("/api/v1/auth/2fa", headers=auth_headers)
-            assert status_enabled.status_code == 200, status_enabled.text
-            status_enabled_data = status_enabled.json().get("data") or {}
-            assert status_enabled_data.get("enabled") is True
-            assert (
-                status_enabled_data.get("backupCodesRemaining", status_enabled_data.get("backup_codes_remaining")) == 10
-            )
+            assert status_enabled.status_code == 401, status_enabled.text
 
             challenged = await client.post(
                 "/api/v1/auth/login",
@@ -152,8 +147,13 @@ async def test_auth_security_endpoints_two_factor_flow(
             assert disable.status_code == 200, disable.text
 
             status_disabled = await client.get("/api/v1/auth/2fa", headers=second_headers)
-            assert status_disabled.status_code == 200, status_disabled.text
-            assert (status_disabled.json().get("data") or {}).get("enabled") is False
+            assert status_disabled.status_code == 401, status_disabled.text
+
+            final_tokens = await _login(client, email=user.email, password="pass1234")
+            final_headers = {"Authorization": f"Bearer {_access_token(final_tokens)}"}
+            final_status = await client.get("/api/v1/auth/2fa", headers=final_headers)
+            assert final_status.status_code == 200, final_status.text
+            assert (final_status.json().get("data") or {}).get("enabled") is False
 
 
 async def test_auth_email_code_login_flow(

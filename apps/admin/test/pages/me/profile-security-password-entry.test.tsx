@@ -15,11 +15,15 @@ import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { UserProfileAccountSecuritySection } from "@/pages/usercenter/profile/components/profile-account-security-section";
 import { UserPasswordSection } from "@/pages/usercenter/profile/components/profile-password-section";
 
+const navigateMock = vi.fn();
+const clearAuthMock = vi.fn();
+const clearWorkspaceMock = vi.fn();
+
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<object>("@tanstack/react-router");
   return {
     ...actual,
-    useNavigate: () => vi.fn(),
+    useNavigate: () => navigateMock,
   };
 });
 
@@ -32,8 +36,13 @@ vi.mock("@/api/auth", () => ({
 }));
 
 vi.mock("@/stores/use-auth-store", () => ({
-  useAuthStore: (selector: (state: { sessionVersion: number }) => unknown) =>
-    selector({ sessionVersion: 1 }),
+  useAuthStore: (selector: (state: { sessionVersion: number; clear: () => void }) => unknown) =>
+    selector({ sessionVersion: 1, clear: clearAuthMock }),
+}));
+
+vi.mock("@/stores/use-workspace-store", () => ({
+  useWorkspaceStore: (selector: (state: { clearWorkspace: () => void }) => unknown) =>
+    selector({ clearWorkspace: clearWorkspaceMock }),
 }));
 
 vi.mock("@/lib/notifications", () => ({
@@ -92,6 +101,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  navigateMock.mockResolvedValue(undefined);
   getMySecurityCapabilitiesMock.mockResolvedValue({
     hasPassword: true,
     twoFactorEnabled: false,
@@ -202,6 +212,15 @@ describe("Profile password entry migration", () => {
       expect(setMyPasswordMock).toHaveBeenCalledWith({ new_password: "Newpass1", code: "123456" });
     });
     expect(changePasswordMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(clearAuthMock).toHaveBeenCalled();
+      expect(clearWorkspaceMock).toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/login",
+        search: { redirect: "/usercenter/profile" },
+        replace: true,
+      });
+    });
   });
 
   it("password accounts can switch to remove-password verification flow", async () => {
@@ -235,6 +254,15 @@ describe("Profile password entry migration", () => {
 
     await waitFor(() => {
       expect(confirmRemoveMyPasswordMock).toHaveBeenCalledWith({ code: "123456" });
+    });
+    await waitFor(() => {
+      expect(clearAuthMock).toHaveBeenCalled();
+      expect(clearWorkspaceMock).toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/login",
+        search: { redirect: "/usercenter/profile" },
+        replace: true,
+      });
     });
   });
 });

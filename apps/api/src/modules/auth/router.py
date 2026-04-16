@@ -777,9 +777,11 @@ async def confirm_two_factor_setup(
     payload: TwoFactorConfirmRequest,
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+    auth_service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[TwoFactorConfirmOut]:
     """Confirm 2FA setup (TOTP code required)."""
     codes = await service.confirm_setup(user_id=user.id, code=payload.code)
+    await auth_service.invalidate_user_sessions(user=user)
     return ApiResponse.success(data=TwoFactorConfirmOut(backup_codes=codes))
 
 
@@ -793,9 +795,11 @@ async def disable_two_factor(
     payload: TwoFactorDisableRequest,
     user: User = Depends(get_current_user),
     service: AuthTwoFactorService = Depends(_get_auth_two_factor_service),
+    auth_service: AuthService = Depends(_get_auth_service),
 ) -> ResponseModel[None]:
     """Disable 2FA (TOTP or backup code required)."""
     await service.disable(user_id=user.id, code=payload.code, backup_code=payload.backup_code)
+    await auth_service.invalidate_user_sessions(user=user)
     return ApiResponse.success(message=t("auth", "TWO_FACTOR_DISABLED"))
 
 

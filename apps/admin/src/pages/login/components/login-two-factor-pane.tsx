@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@arclayer/ui/button";
 import { Field, FieldContent, FieldError } from "@arclayer/ui/field";
 import { Input } from "@arclayer/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 
 import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
@@ -13,10 +12,9 @@ import type { AuthChallengeSnapshot } from "@/stores/use-auth-challenge-store";
 import type { LoginTwoFactorFormValues } from "../types";
 import {
   AUTH_FIELD_CLASS,
-  AUTH_OTP_GROUP_CLASS,
-  AUTH_OTP_SLOT_CLASS,
   AUTH_PANE_STACK_CLASS,
   AUTH_PLAIN_INPUT_CLASS,
+  AuthOtpInput,
   AuthPaneHeader,
   AuthPaneLegal,
   AuthPaneTitleRow,
@@ -76,6 +74,10 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
     method === "backup_code"
       ? t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")
       : t("auth:TWO_FACTOR_CODE_LABEL");
+  const methodSwitchLabel =
+    method === "totp"
+      ? t("auth:TWO_FACTOR_USE_BACKUP_CODE")
+      : t("auth:TWO_FACTOR_USE_AUTHENTICATOR");
   const backToLoginLabel =
     props.challenge.source === "email-code"
       ? t("auth:TWO_FACTOR_BACK_TO_EMAIL_CODE")
@@ -100,7 +102,20 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
         <motion.div variants={variants}>
           <Field className={AUTH_FIELD_CLASS}>
             <FieldContent className="gap-2">
-              <AuthPaneTitleRow title={primaryLabel} />
+              <AuthPaneTitleRow
+                title={primaryLabel}
+                action={
+                  <AuthLinkButton
+                    className="shrink-0"
+                    onClick={() =>
+                      setMethod((current) => (current === "totp" ? "backup_code" : "totp"))
+                    }
+                    type="button"
+                  >
+                    {methodSwitchLabel}
+                  </AuthLinkButton>
+                }
+              />
               {method === "backup_code" ? (
                 <Input
                   value={value}
@@ -114,25 +129,14 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
                   spellCheck={false}
                 />
               ) : (
-                <InputOTP
+                <AuthOtpInput
                   value={value}
                   onChange={setValue}
-                  maxLength={OTP_LENGTH}
                   aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
-                  aria-invalid={error ? true : undefined}
-                  inputMode="numeric"
+                  invalid={Boolean(error)}
                   disabled={props.loading}
-                  containerClassName="w-full"
-                >
-                  <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
-                    <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
-                    <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
-                  </InputOTPGroup>
-                </InputOTP>
+                  maxLength={OTP_LENGTH}
+                />
               )}
               <FieldError>{error}</FieldError>
             </FieldContent>
@@ -144,15 +148,6 @@ export function LoginTwoFactorPane(props: LoginTwoFactorPaneProps) {
             {t("auth:LOGIN_TWO_FACTOR_VERIFY_BUTTON")}
           </Button>
           <AuthPaneLegal i18nKey="auth:LEGAL_LOGIN" variants={variants} />
-          <AuthLinkButton
-            className="justify-start"
-            onClick={() => setMethod((current) => (current === "totp" ? "backup_code" : "totp"))}
-            type="button"
-          >
-            {method === "totp"
-              ? t("auth:TWO_FACTOR_USE_BACKUP_CODE")
-              : t("auth:TWO_FACTOR_USE_AUTHENTICATOR")}
-          </AuthLinkButton>
           <AuthLinkButton className="justify-start" onClick={props.onBackToLogin} type="button">
             {backToLoginLabel}
           </AuthLinkButton>

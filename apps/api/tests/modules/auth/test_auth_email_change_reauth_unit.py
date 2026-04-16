@@ -59,6 +59,14 @@ class _FakeEmailChangeStore:
         self.record = None
 
 
+class _FakeRefreshStore:
+    def __init__(self) -> None:
+        self.revoked_user_ids: list[UUID] = []
+
+    async def revoke_all(self, user_id: UUID) -> None:
+        self.revoked_user_ids.append(user_id)
+
+
 class _FakeUserRepo:
     def __init__(self, user: _FakeUser) -> None:
         self._user = user
@@ -139,6 +147,7 @@ class _FakeTwoFactor:
 
 def _build_service(*, user: _FakeUser, two_factor_enabled: bool) -> AuthService:
     settings = get_settings()
+    refresh_store = _FakeRefreshStore()
     service = AuthService(
         settings,
         valkey=None,
@@ -149,7 +158,12 @@ def _build_service(*, user: _FakeUser, two_factor_enabled: bool) -> AuthService:
         Any,
         _FakeEmailChangeStore(new_email="new@example.com", verification_code="654321"),
     )
+    service.refresh_store = cast(Any, refresh_store)
     return service
+
+
+def _get_fake_refresh_store(service: AuthService) -> _FakeRefreshStore:
+    return cast(_FakeRefreshStore, service.refresh_store)
 
 
 @pytest.mark.asyncio
@@ -169,6 +183,8 @@ async def test_confirm_email_change_password_account_uses_email_code_only() -> N
     )
 
     assert profile.email == "new@example.com"
+    assert user.token_version == 1
+    assert _get_fake_refresh_store(service).revoked_user_ids == [user.id]
 
 
 @pytest.mark.asyncio
@@ -183,6 +199,8 @@ async def test_confirm_email_change_sso_with_2fa_uses_email_code_only() -> None:
     )
 
     assert profile.email == "new@example.com"
+    assert user.token_version == 1
+    assert _get_fake_refresh_store(service).revoked_user_ids == [user.id]
 
 
 @pytest.mark.asyncio
@@ -197,3 +215,5 @@ async def test_confirm_email_change_sso_without_2fa_accepts_recent_login() -> No
     )
 
     assert profile.email == "new@example.com"
+    assert user.token_version == 1
+    assert _get_fake_refresh_store(service).revoked_user_ids == [user.id]

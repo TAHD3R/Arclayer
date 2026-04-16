@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { TriangleAlert } from "lucide-react";
+import { Copy, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import * as authApi from "@/api/auth";
+import { copyToClipboard } from "@/lib/clipboard";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { AuthOtpInput, AuthPaneTitleRow } from "@/pages/login/components/auth-pane-primitives";
+import { useSecurityRelogin } from "@/pages/usercenter/shared/use-security-relogin";
 import { useAuthStore } from "@/stores/use-auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@arclayer/ui/alert";
+import { AuthLinkButton } from "@arclayer/ui/auth-controls";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { QRCode } from "@arclayer/ui/qr-code";
 import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
@@ -32,6 +35,7 @@ type SetupDialogProps = {
   requiresPassword: boolean;
   pending: boolean;
   onOpenChange: (open: boolean) => void;
+  onAcknowledgeBackupCodes: () => void;
   onStart: (
     password?: string,
   ) => Promise<{ secret: string; otpauthUri?: string; otpauth_uri?: string }>;
@@ -52,6 +56,8 @@ type ReauthDialogProps = {
     backupCode?: string;
   }) => Promise<{ backupCodes?: string[]; backup_codes?: string[] } | null>;
 };
+
+type ReauthMethod = "totp" | "backup_code";
 
 function normalizeBackupCodes(
   result: { backupCodes?: string[]; backup_codes?: string[] } | null,
@@ -135,6 +141,16 @@ function SetupDialog(props: SetupDialogProps) {
     setBackupCodes(normalizeBackupCodes(result));
   };
 
+  const handleCopySecret = async () => {
+    if (!setupData?.secret) return;
+    try {
+      await copyToClipboard(setupData.secret);
+      notifySuccessText(t("account:ME_SECURITY_2FA_SETUP_SECRET_COPIED"));
+    } catch (error) {
+      notifyError(error);
+    }
+  };
+
   const footer = backupCodes.length ? null : (
     <>
       <Button variant="ghost" disabled={props.pending} onClick={() => props.onOpenChange(false)}>
@@ -169,44 +185,45 @@ function SetupDialog(props: SetupDialogProps) {
           title={t("account:ME_SECURITY_2FA_BACKUP_CODES_TITLE")}
           description={t("account:ME_SECURITY_2FA_BACKUP_CODES_DESC")}
           acknowledgeLabel={t("account:ME_SECURITY_2FA_BACKUP_CODES_ACK")}
-          onAcknowledge={() => props.onOpenChange(false)}
+          onAcknowledge={props.onAcknowledgeBackupCodes}
         />
       ) : setupData ? (
         <SettingDialogFields>
-          <div className="flex justify-center rounded-xl border border-border/70 bg-muted/20 p-4">
+          <div className="flex justify-center py-2">
             <QRCode value={setupData.otpauthUri || setupData.secret} />
           </div>
           <SettingDialogField
             title={t("account:ME_SECURITY_2FA_SETUP_SECRET_LABEL")}
             description={t("account:ME_SECURITY_2FA_SETUP_SECRET_HELP")}
           >
-            <code className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 font-mono text-body text-label-primary">
-              {setupData.secret}
-            </code>
+            <div className="flex min-w-0 items-center gap-2">
+              <code className="min-w-0 flex-1 truncate font-mono text-body text-label-primary">
+                {setupData.secret}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                aria-label={t("account:ME_SECURITY_2FA_SETUP_SECRET_COPY")}
+                onClick={() => void handleCopySecret()}
+              >
+                <Copy className="size-4" />
+              </Button>
+            </div>
           </SettingDialogField>
           <SettingDialogField
-            title={t("auth:TWO_FACTOR_CODE_LABEL")}
+            title={<AuthPaneTitleRow title={t("auth:TWO_FACTOR_CODE_LABEL")} />}
             description={t("account:ME_SECURITY_2FA_SETUP_DIALOG_DESC")}
             error={codeError ?? undefined}
           >
-            <InputOTP
+            <AuthOtpInput
               value={code}
               onChange={setCode}
-              maxLength={OTP_LENGTH}
               aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
-              inputMode="numeric"
+              invalid={Boolean(codeError)}
               disabled={props.pending}
-              containerClassName="justify-start"
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
+              maxLength={OTP_LENGTH}
+            />
           </SettingDialogField>
         </SettingDialogFields>
       ) : props.requiresPassword ? (
@@ -232,6 +249,7 @@ function ReauthDialog(props: ReauthDialogProps) {
   const [backupCode, setBackupCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [resultCodes, setResultCodes] = useState<string[]>([]);
+  const [method, setMethod] = useState<ReauthMethod>(props.allowCode ? "totp" : "backup_code");
 
   useEffect(() => {
     if (props.open) return;
@@ -239,32 +257,34 @@ function ReauthDialog(props: ReauthDialogProps) {
     setBackupCode("");
     setError(null);
     setResultCodes([]);
-  }, [props.open]);
+    setMethod(props.allowCode ? "totp" : "backup_code");
+  }, [props.allowCode, props.open]);
+
+  const activeMethod: ReauthMethod =
+    props.allowCode && props.allowBackupCode
+      ? method
+      : props.allowBackupCode
+        ? "backup_code"
+        : "totp";
+  const methodSwitchLabel =
+    activeMethod === "totp"
+      ? t("auth:TWO_FACTOR_USE_BACKUP_CODE")
+      : t("auth:TWO_FACTOR_USE_AUTHENTICATOR");
 
   const handleSubmit = async () => {
     const normalizedCode = code.trim();
     const normalizedBackupCode = backupCode.trim();
-    if (props.allowCode && props.allowBackupCode) {
-      if (!normalizedCode && !normalizedBackupCode) {
-        setError(t("account:ME_SECURITY_2FA_REAUTH_ONE_OF_REQUIRED"));
-        return;
-      }
-      if (normalizedCode && normalizedBackupCode) {
-        setError(t("account:ME_SECURITY_2FA_REAUTH_MUTUALLY_EXCLUSIVE"));
-        return;
-      }
-    }
-    if (props.allowCode && !props.allowBackupCode && !normalizedCode) {
+    if (activeMethod === "totp" && !normalizedCode) {
       setError(t("auth:VALIDATION_TWO_FACTOR_CODE_REQUIRED"));
       return;
     }
-    if (!props.allowCode && props.allowBackupCode && !normalizedBackupCode) {
+    if (activeMethod === "backup_code" && !normalizedBackupCode) {
       setError(t("auth:VALIDATION_TWO_FACTOR_BACKUP_CODE_REQUIRED"));
       return;
     }
     const result = await props.onSubmit({
-      ...(normalizedCode ? { code: normalizedCode } : {}),
-      ...(normalizedBackupCode ? { backupCode: normalizedBackupCode } : {}),
+      ...(activeMethod === "totp" ? { code: normalizedCode } : {}),
+      ...(activeMethod === "backup_code" ? { backupCode: normalizedBackupCode } : {}),
     });
     setError(null);
     setResultCodes(normalizeBackupCodes(result));
@@ -306,35 +326,63 @@ function ReauthDialog(props: ReauthDialogProps) {
         />
       ) : (
         <SettingDialogFields>
-          {props.allowCode ? (
+          {activeMethod === "totp" ? (
             <SettingDialogField
-              title={t("auth:TWO_FACTOR_CODE_LABEL")}
+              title={
+                <AuthPaneTitleRow
+                  title={t("auth:TWO_FACTOR_CODE_LABEL")}
+                  action={
+                    props.allowCode && props.allowBackupCode ? (
+                      <AuthLinkButton
+                        className="shrink-0"
+                        onClick={() => {
+                          setError(null);
+                          setMethod("backup_code");
+                        }}
+                        type="button"
+                      >
+                        {methodSwitchLabel}
+                      </AuthLinkButton>
+                    ) : null
+                  }
+                />
+              }
               description={t("account:ME_SECURITY_2FA_DISABLE_DIALOG_DESC")}
+              error={error ?? undefined}
             >
-              <InputOTP
+              <AuthOtpInput
                 value={code}
                 onChange={setCode}
-                maxLength={OTP_LENGTH}
                 aria-label={t("auth:TWO_FACTOR_CODE_LABEL")}
-                inputMode="numeric"
+                invalid={Boolean(error)}
                 disabled={props.pending}
-                containerClassName="justify-start"
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
+                maxLength={OTP_LENGTH}
+              />
             </SettingDialogField>
           ) : null}
-          {props.allowBackupCode ? (
+          {activeMethod === "backup_code" ? (
             <SettingDialogField
-              title={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
+              title={
+                <AuthPaneTitleRow
+                  title={t("auth:TWO_FACTOR_BACKUP_CODE_LABEL")}
+                  action={
+                    props.allowCode && props.allowBackupCode ? (
+                      <AuthLinkButton
+                        className="shrink-0"
+                        onClick={() => {
+                          setError(null);
+                          setMethod("totp");
+                        }}
+                        type="button"
+                      >
+                        {methodSwitchLabel}
+                      </AuthLinkButton>
+                    ) : null
+                  }
+                />
+              }
               description={t("auth:TWO_FACTOR_BACKUP_CODE_PLACEHOLDER")}
+              error={error ?? undefined}
             >
               <Input
                 value={backupCode}
@@ -345,17 +393,21 @@ function ReauthDialog(props: ReauthDialogProps) {
               />
             </SettingDialogField>
           ) : null}
-          {error ? <p className="text-footnote text-danger">{error}</p> : null}
         </SettingDialogFields>
       )}
     </SettingDialog>
   );
 }
 
-export function UserTwoFactorSection() {
+export type UserTwoFactorSectionProps = {
+  redirect?: string;
+};
+
+export function UserTwoFactorSection(props: UserTwoFactorSectionProps) {
   const { t } = useTranslation(["account"]);
   const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
+  const forceRelogin = useSecurityRelogin(props.redirect);
   const [setupOpen, setSetupOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
@@ -385,7 +437,6 @@ export function UserTwoFactorSection() {
   const confirmSetupMutation = useMutation({
     mutationFn: async (payload: { code: string }) => authApi.confirmTwoFactorSetup(payload),
     onSuccess: async () => {
-      await refreshSecurityState();
       notifySuccessText(t("account:ME_SECURITY_2FA_SETUP_SUCCESS"));
     },
     onError: (error) => notifyError(error),
@@ -394,9 +445,9 @@ export function UserTwoFactorSection() {
     mutationFn: async (payload: { code?: string; backupCode?: string }) =>
       authApi.disableTwoFactor(payload),
     onSuccess: async () => {
-      await refreshSecurityState();
       notifySuccessText(t("account:ME_SECURITY_2FA_DISABLE_SUCCESS"));
       setDisableOpen(false);
+      await forceRelogin();
     },
     onError: (error) => notifyError(error),
   });
@@ -476,6 +527,7 @@ export function UserTwoFactorSection() {
         requiresPassword={setupRequiredMethods.includes("password")}
         pending={beginSetupMutation.isPending || confirmSetupMutation.isPending}
         onOpenChange={setSetupOpen}
+        onAcknowledgeBackupCodes={() => void forceRelogin()}
         onStart={async (password) => beginSetupMutation.mutateAsync(password ? { password } : {})}
         onConfirm={async (code) => confirmSetupMutation.mutateAsync({ code })}
       />

@@ -8,9 +8,31 @@ import { confirmMyEmailChange, requestMyEmailChange } from "@/api/auth";
 import { DEFAULT_LOCALE, i18n, initI18n } from "@/lib/i18n";
 import { UserChangeEmailDialog } from "@/pages/usercenter/profile/components/profile-change-email-dialog";
 
+const navigateMock = vi.fn();
+const clearAuthMock = vi.fn();
+const clearWorkspaceMock = vi.fn();
+
+vi.mock("@tanstack/react-router", async () => {
+  const actual = await vi.importActual<object>("@tanstack/react-router");
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
+
 vi.mock("@/api/auth", () => ({
   requestMyEmailChange: vi.fn(),
   confirmMyEmailChange: vi.fn(),
+}));
+
+vi.mock("@/stores/use-auth-store", () => ({
+  useAuthStore: (selector: (state: { clear: () => void }) => unknown) =>
+    selector({ clear: clearAuthMock }),
+}));
+
+vi.mock("@/stores/use-workspace-store", () => ({
+  useWorkspaceStore: (selector: (state: { clearWorkspace: () => void }) => unknown) =>
+    selector({ clearWorkspace: clearWorkspaceMock }),
 }));
 
 vi.mock("@/lib/notifications", () => ({
@@ -61,6 +83,7 @@ beforeEach(() => {
     avatarAssetId: null,
     isSuperAdmin: false,
   });
+  navigateMock.mockResolvedValue(undefined);
 });
 
 describe("UserChangeEmailDialog", () => {
@@ -97,8 +120,12 @@ describe("UserChangeEmailDialog", () => {
       screen.queryByLabelText(i18n.t("account:ME_PROFILE_EMAIL_NEW_EMAIL")),
     ).not.toBeInTheDocument();
 
-    const resendRow = screen.getByText(i18n.t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")).parentElement;
-    expect(resendRow).toHaveClass("text-center");
+    expect(screen.getByText(i18n.t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX"))).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("auth:LOGIN_EMAIL_CODE_RESEND_WAIT", { countdown: "20s" }),
+      }),
+    ).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(i18n.t("account:ME_PROFILE_EMAIL_CODE")), "654321");
     await user.click(screen.getByRole("button", { name: i18n.t("settings:SETTINGS_SAVE") }));
@@ -107,6 +134,15 @@ describe("UserChangeEmailDialog", () => {
       expect(confirmMyEmailChangeMock).toHaveBeenCalledWith({
         new_email: "new@example.com",
         code: "654321",
+      });
+    });
+    await waitFor(() => {
+      expect(clearAuthMock).toHaveBeenCalled();
+      expect(clearWorkspaceMock).toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/login",
+        search: { redirect: "/" },
+        replace: true,
       });
     });
   });

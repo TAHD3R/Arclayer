@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useId, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -11,16 +11,13 @@ import { PASSWORD_PATTERN } from "@/lib/auth/form-feedback";
 import { zodResolver } from "@/lib/forms/zod-resolver";
 import { ApiError } from "@/lib/http";
 import { notifyError, notifySuccessText } from "@/lib/notifications";
+import { AuthOtpInput } from "@/pages/login/components/auth-pane-primitives";
+import { useSecurityRelogin } from "@/pages/usercenter/shared/use-security-relogin";
 import { useAuthStore } from "@/stores/use-auth-store";
-import {
-  AUTH_OTP_GROUP_CLASS,
-  AUTH_OTP_SLOT_CLASS,
-} from "@/pages/login/components/auth-pane-primitives";
 import { SettingCard, SettingCardHeader } from "@arclayer/ui/setting-card";
 import { SettingDialog } from "@arclayer/ui/setting-dialog";
 import { Button } from "@arclayer/ui/button";
 import { Input } from "@arclayer/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@arclayer/ui/input-otp";
 import { PasswordInput } from "@arclayer/ui/password-input";
 import { SettingDialogFields } from "@arclayer/ui/setting-dialog-field";
 import { DialogField } from "./dialog-field";
@@ -126,8 +123,8 @@ function buildPasswordSchema(
 export function UserPasswordSection(props: UserPasswordSectionProps) {
   const { t } = useTranslation(["account", "auth", "settings", "common"]);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const sessionVersion = useAuthStore((s) => s.sessionVersion);
+  const forceRelogin = useSecurityRelogin(props.redirect);
   const [open, setOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<PasswordDialogMode>("change");
   const [removePasswordStep, setRemovePasswordStep] = useState<RemovePasswordStep>("request");
@@ -256,9 +253,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
           ? t("account:ME_SECURITY_PASSWORD_CHANGED")
           : t("account:ME_PROFILE_SET_PASSWORD_SUCCESS"),
       );
-      form.reset(EMPTY_VALUES);
-      setOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["auth", "security-capabilities"] });
+      await forceRelogin();
     },
     onError: (err) => notifyError(err),
   });
@@ -283,14 +278,7 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
     mutationFn: async (code: string) => authApi.confirmRemoveMyPassword({ code }),
     onSuccess: async () => {
       notifySuccessText(t("account:ME_PROFILE_REMOVE_PASSWORD_SUCCESS"));
-      form.reset(EMPTY_VALUES);
-      setOpen(false);
-      setDialogMode("change");
-      setRemovePasswordStep("request");
-      setRemovePasswordRequestError(null);
-      setRemovePasswordVerifyError(null);
-      setRemovePasswordRetryAfter(0);
-      await queryClient.invalidateQueries({ queryKey: ["auth", "security-capabilities"] });
+      await forceRelogin();
     },
     onError: (err) => notifyError(err),
   });
@@ -497,28 +485,18 @@ export function UserPasswordSection(props: UserPasswordSectionProps) {
                   <p className="text-callout text-label-secondary">
                     {t("account:ME_PROFILE_REMOVE_PASSWORD_CODE_SENT_HINT")}
                   </p>
-                  <InputOTP
+                  <AuthOtpInput
                     value={form.watch("code")}
                     onChange={(value) => {
                       form.setValue("code", value, { shouldValidate: false });
                       if (form.formState.errors.code) form.clearErrors("code");
                       if (removePasswordVerifyError) setRemovePasswordVerifyError(null);
                     }}
-                    maxLength={OTP_LENGTH}
                     aria-label={t("account:ME_PROFILE_REMOVE_PASSWORD_CODE")}
-                    inputMode="numeric"
+                    invalid={Boolean(removePasswordVerifyError)}
                     disabled={confirmRemovePasswordMutation.isPending}
-                    containerClassName="w-full"
-                  >
-                    <InputOTPGroup className={AUTH_OTP_GROUP_CLASS}>
-                      <InputOTPSlot index={0} className={AUTH_OTP_SLOT_CLASS} />
-                      <InputOTPSlot index={1} className={AUTH_OTP_SLOT_CLASS} />
-                      <InputOTPSlot index={2} className={AUTH_OTP_SLOT_CLASS} />
-                      <InputOTPSlot index={3} className={AUTH_OTP_SLOT_CLASS} />
-                      <InputOTPSlot index={4} className={AUTH_OTP_SLOT_CLASS} />
-                      <InputOTPSlot index={5} className={AUTH_OTP_SLOT_CLASS} />
-                    </InputOTPGroup>
-                  </InputOTP>
+                    maxLength={OTP_LENGTH}
+                  />
                   <div className="text-footnote text-label-secondary">
                     <span>{t("auth:LOGIN_EMAIL_CODE_RESEND_PREFIX")} </span>
                     <Button

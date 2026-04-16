@@ -74,7 +74,7 @@ export function UserProfileAccountSecuritySection(props: UserProfileAccountSecur
         </SettingCard>
 
         <UserPasswordSection redirect={props.redirect} />
-        <UserTwoFactorSection />
+        <UserTwoFactorSection redirect={props.redirect} />
         <UserSessionsSection />
       </div>
 
@@ -82,6 +82,7 @@ export function UserProfileAccountSecuritySection(props: UserProfileAccountSecur
         open={changeEmailOpen}
         onOpenChange={setChangeEmailOpen}
         nextEmail={props.email ?? ""}
+        redirect={props.redirect}
       />
     </>
   );

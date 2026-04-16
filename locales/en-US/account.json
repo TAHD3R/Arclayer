@@ -298,6 +298,8 @@
   "ME_SECURITY_2FA_SETUP_CONTINUE": "Continue",
   "ME_SECURITY_2FA_SETUP_SECRET_LABEL": "Manual setup key",
   "ME_SECURITY_2FA_SETUP_SECRET_HELP": "If you cannot scan the QR code, enter this key manually in your authenticator app.",
+  "ME_SECURITY_2FA_SETUP_SECRET_COPY": "Copy setup key",
+  "ME_SECURITY_2FA_SETUP_SECRET_COPIED": "Setup key copied",
   "ME_SECURITY_2FA_SETUP_CONFIRM": "Confirm setup",
   "ME_SECURITY_2FA_SETUP_SUCCESS": "Two-step verification has been enabled.",
   "ME_SECURITY_2FA_BACKUP_CODES_TITLE": "Save your backup recovery codes",
