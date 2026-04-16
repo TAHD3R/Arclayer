@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { getI18n } from "react-i18next";
 import { toast, type ExternalToast } from "sonner";
+
+type AdminToastType = "success" | "error" | "info" | "warning";
 
 export type AdminToastContent =
   | React.ReactNode
@@ -20,7 +23,23 @@ function isStructuredToastContent(content: AdminToastContent): content is {
   return typeof content === "object" && !React.isValidElement(content) && "title" in content;
 }
 
-function normalizeToastContent(content: AdminToastContent) {
+function resolveDefaultToastTitle(type: AdminToastType): string {
+  const key = {
+    success: "TOAST_TITLE_SUCCESS",
+    error: "TOAST_TITLE_ERROR",
+    info: "TOAST_TITLE_INFO",
+    warning: "TOAST_TITLE_WARNING",
+  }[type];
+
+  const i18n = getI18n();
+  if (!i18n) {
+    throw new Error("[admin-toast] i18n has not been initialized.");
+  }
+
+  return i18n.t(key, { ns: "common" });
+}
+
+function normalizeToastContent(type: AdminToastType, content: AdminToastContent) {
   if (isStructuredToastContent(content)) {
     return {
       title: content.title,
@@ -29,17 +48,18 @@ function normalizeToastContent(content: AdminToastContent) {
   }
 
   return {
-    title: content,
-    description: undefined,
+    title: resolveDefaultToastTitle(type),
+    description: content ?? undefined,
   };
 }
 
 function dispatchToast(
+  type: AdminToastType,
   trigger: (title: React.ReactNode, data?: ExternalToast) => string | number,
   content: AdminToastContent,
   data?: ExternalToast,
 ) {
-  const normalized = normalizeToastContent(content);
+  const normalized = normalizeToastContent(type, content);
 
   return trigger(normalized.title, {
     ...data,
@@ -49,13 +69,13 @@ function dispatchToast(
 
 const messageApi = {
   success: (content: AdminToastContent, data?: ExternalToast) =>
-    dispatchToast(toast.success, content, data),
+    dispatchToast("success", toast.success, content, data),
   error: (content: AdminToastContent, data?: ExternalToast) =>
-    dispatchToast(toast.error, content, data),
+    dispatchToast("error", toast.error, content, data),
   info: (content: AdminToastContent, data?: ExternalToast) =>
-    dispatchToast(toast.info, content, data),
+    dispatchToast("info", toast.info, content, data),
   warning: (content: AdminToastContent, data?: ExternalToast) =>
-    dispatchToast(toast.warning, content, data),
+    dispatchToast("warning", toast.warning, content, data),
 };
 
 export const message = Object.assign(messageApi, {

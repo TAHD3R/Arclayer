@@ -1,10 +1,10 @@
 "use client";
 
 import {
+  AlertCircleIcon,
   CircleCheckIcon,
   InfoIcon,
   Loader2Icon,
-  OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -17,17 +17,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
     ...toastOptions,
     classNames: {
       toast:
-        "rounded-xl border border-border/70 bg-popover text-popover-foreground shadow-lg shadow-black/5",
-      content: "grid gap-1.5",
-      title: "!text-headline !text-current",
-      description: "!text-callout !text-current",
-      icon: "mt-0.5 shrink-0 text-current",
+        "rounded-md border border-border/70 bg-popover text-popover-foreground !w-[min(22rem,calc(100vw-2rem))] !items-start !gap-3 !px-4 !py-3 !shadow-none",
+      content: "grid flex-1 gap-0.5",
+      title: "!text-headline !font-semibold !leading-5 !text-label-primary",
+      description: "!text-callout !leading-5 !text-label-secondary",
+      icon: "mt-0.5 shrink-0 self-start text-current [&_svg]:size-4",
       closeButton:
         "border-border/60 bg-background text-label-secondary hover:bg-accent hover:text-label-primary",
-      success: "border-positive/25 text-positive",
-      error: "border-negative/25 text-negative",
-      warning: "border-warning/35 text-warning",
-      info: "border-primary/20 text-primary",
+      success: "border-positive/25 [&_[data-icon]]:text-positive",
+      error: "border-negative/25 [&_[data-icon]]:text-negative",
+      warning: "border-warning/35 [&_[data-icon]]:text-warning",
+      info: "border-primary/20 [&_[data-icon]]:text-primary",
+      loading: "[&_[data-icon]]:text-primary",
       ...toastOptions?.classNames,
     },
   };
@@ -42,7 +43,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
         warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
+        error: <AlertCircleIcon className="size-4" />,
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       style={
@@ -51,6 +52,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
+          "--toast-icon-margin-start": "0px",
+          "--toast-icon-margin-end": "0px",
+          "--toast-svg-margin-start": "0px",
+          "--toast-svg-margin-end": "0px",
           "--toast-close-button-start": "unset",
           "--toast-close-button-end": "0",
           "--toast-close-button-transform": "translate(35%, -35%)",

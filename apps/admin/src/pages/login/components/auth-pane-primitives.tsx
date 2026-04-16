@@ -28,8 +28,8 @@ export const AUTH_PLAIN_INPUT_CLASS = cn(
 export const AUTH_OTP_CONTAINER_CLASS = "w-full min-w-0";
 export const AUTH_OTP_GROUP_CLASS = "grid w-full min-w-0 grid-cols-6 gap-2.5";
 export const AUTH_OTP_SLOT_CLASS = cn(
-  "h-14 min-w-0 w-full flex-1 rounded-xl border border-border/70 bg-background",
-  "text-title3 font-semibold text-label-primary transition-colors",
+  "h-10 min-w-0 w-full flex-1 rounded-md border border-border/80 bg-card",
+  "text-callout font-semibold text-label-primary transition-colors",
 );
 export const AUTH_INLINE_NOTICE_CLASS = cn("text-callout text-label-secondary");
 

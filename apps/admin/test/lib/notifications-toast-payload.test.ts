@@ -22,9 +22,9 @@ vi.mock("@/lib/i18n", async (importOriginal) => {
       t: (key: string) =>
         (
           ({
-            TOAST_TITLE_ERROR: "Request failed",
-            TOAST_TITLE_INFO: "Notice",
-            TOAST_TITLE_SUCCESS: "Success",
+            TOAST_TITLE_ERROR: "Oops! Something went wrong.",
+            TOAST_TITLE_INFO: "Heads up!",
+            TOAST_TITLE_SUCCESS: "Success!",
           }) as const
         )[key as "TOAST_TITLE_ERROR" | "TOAST_TITLE_INFO" | "TOAST_TITLE_SUCCESS"] ?? key,
     },
@@ -38,7 +38,7 @@ describe("notifications toast payloads", () => {
     notifySuccessText("Workspace created.");
 
     expect(messageSuccessMock).toHaveBeenCalledWith({
-      title: "Success",
+      title: "Success!",
       description: "Workspace created.",
     });
   });
@@ -49,7 +49,7 @@ describe("notifications toast payloads", () => {
     notifyErrorText("You do not have permission to do that.");
 
     expect(messageErrorMock).toHaveBeenCalledWith({
-      title: "Request failed",
+      title: "Oops! Something went wrong.",
       description: "You do not have permission to do that.",
     });
   });
@@ -60,7 +60,7 @@ describe("notifications toast payloads", () => {
     notifyInfoText("Copied to clipboard.");
 
     expect(messageInfoMock).toHaveBeenCalledWith({
-      title: "Notice",
+      title: "Heads up!",
       description: "Copied to clipboard.",
     });
   });

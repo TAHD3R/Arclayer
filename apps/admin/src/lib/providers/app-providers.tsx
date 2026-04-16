@@ -25,7 +25,7 @@ export function AppProviders({ children }: PropsWithChildren) {
         >
           <TooltipProvider>
             {children}
-            <Toaster richColors />
+            <Toaster position="bottom-center" />
           </TooltipProvider>
         </ChromeTabsProvider>
       </QueryClientProvider>

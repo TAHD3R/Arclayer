@@ -101,6 +101,8 @@ describe("Login auth otp layouts", () => {
     const otpGrid = container.querySelector(".grid-cols-6");
     expect(otpGrid).toHaveClass("w-full");
     expect(otpGrid?.querySelectorAll(".flex-1")).toHaveLength(6);
+    const otpSlots = otpGrid?.querySelectorAll(".flex-1");
+    expect(otpSlots?.[0]).toHaveClass("h-10", "rounded-md", "bg-card");
   });
 
   it("starts resend cooldown and shows a success toast after requesting a code", async () => {
@@ -146,5 +148,7 @@ describe("Login auth otp layouts", () => {
     expect(otpGrid).toBeInTheDocument();
     expect(otpGrid).toHaveClass("w-full");
     expect(otpGrid?.querySelectorAll(".flex-1")).toHaveLength(6);
+    const otpSlots = otpGrid?.querySelectorAll(".flex-1");
+    expect(otpSlots?.[0]).toHaveClass("h-10", "rounded-md", "bg-card");
   });
 });
