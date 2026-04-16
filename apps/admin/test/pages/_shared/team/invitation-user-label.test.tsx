@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { InvitationUserLabel } from "@/pages/workspaces/team/shared/components/invitation-user-label";
@@ -21,9 +20,7 @@ beforeAll(() => {
 });
 
 describe("InvitationUserLabel", () => {
-  it("为邀请场景提供统一 trigger affordance 和上下文 hover card", async () => {
-    const user = userEvent.setup();
-
+  it("为邀请场景保留简洁身份行，并移除 preview card 详情", () => {
     render(
       <InvitationUserLabel
         user={{
@@ -46,15 +43,10 @@ describe("InvitationUserLabel", () => {
     const trigger = screen.getByText("Ada Lovelace").closest("[data-user-identity-trigger]");
     expect(trigger).not.toBeNull();
     expect(trigger).toHaveClass("rounded-lg");
-    expect(trigger).toHaveClass("hover:bg-accent/45");
-
-    await user.hover(trigger!);
-
-    await waitFor(() => {
-      expect(screen.getByText("Administrator")).toBeVisible();
-      expect(screen.getByText("Pending")).toBeVisible();
-      expect(screen.getByText("invitee@example.com")).toBeVisible();
-      expect(screen.getByText("2026-03-24 09:00")).toBeVisible();
-    });
+    expect(screen.queryByText("ada@example.com")).toBeNull();
+    expect(screen.queryByText("Administrator")).toBeNull();
+    expect(screen.queryByText("Pending")).toBeNull();
+    expect(screen.queryByText("invitee@example.com")).toBeNull();
+    expect(screen.queryByText("2026-03-24 09:00")).toBeNull();
   });
 });

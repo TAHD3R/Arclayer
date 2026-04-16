@@ -11,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@arclayer/ui/hover-card";
 
 import type { AssetsViewController } from "../hooks/use-assets-view-controller";
 import { buildAssetMoreMenuItems, handleAssetMoreAction } from "./asset-more-actions";
@@ -19,7 +18,6 @@ import { getMimeLabel, getPurposeLabel, getVisibilityLabel } from "./asset-mason
 import { LazyAssetImage } from "./lazy-asset-image";
 
 const UNKNOWN_UPLOADER_FALLBACK = "-";
-const HOVER_CARD_WIDTH_CLASSNAME = "w-70";
 
 export const ASSET_TABLE_SELECT_COLUMN_WIDTH = 56;
 export const ASSET_TABLE_ACTIONS_COLUMN_WIDTH = 72;
@@ -29,11 +27,6 @@ function resolveUploaderName(
   t: (key: string, options?: Record<string, unknown>) => string,
 ) {
   return asset.uploaderName?.trim() || t("assets:ASSET_UPLOADER_UNKNOWN");
-}
-
-function resolveUploaderEmail(asset: AssetMasonryItem) {
-  const email = asset.uploaderEmail?.trim();
-  return email || null;
 }
 
 export function buildAssetFilenameSubtitle(
@@ -74,64 +67,21 @@ export function AssetPreviewCell(props: { asset: AssetMasonryItem; subtitle: str
 export function AssetUploaderCell(props: {
   asset: AssetMasonryItem;
   t: (key: string, options?: Record<string, unknown>) => string;
-  uploadedAtText: string;
 }) {
   const uploaderName = resolveUploaderName(props.asset, props.t);
-  const uploaderEmail = resolveUploaderEmail(props.asset);
-  const uploadedAtLabel =
-    props.uploadedAtText === UNKNOWN_UPLOADER_FALLBACK
-      ? null
-      : `${props.t("assets:ASSET_META_CREATED_AT")}: ${props.uploadedAtText}`;
 
   return (
-    <HoverCard openDelay={120} closeDelay={80}>
-      <HoverCardTrigger asChild>
-        <div className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1">
-          <UserAvatar
-            name={uploaderName}
-            assetRef={props.asset.uploaderAvatarUrl}
-            size={24}
-            className="shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-body text-label-primary">{uploaderName}</div>
-            {uploaderEmail ? (
-              <div className="truncate text-footnote text-label-secondary">{uploaderEmail}</div>
-            ) : null}
-          </div>
-        </div>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="top"
-        align="start"
-        sideOffset={8}
-        className={`${HOVER_CARD_WIDTH_CLASSNAME} rounded-xl border bg-popover p-0 text-popover-foreground `}
-      >
-        <div className="p-4 text-popover-foreground">
-          <div className="flex items-start gap-3">
-            <UserAvatar
-              name={uploaderName}
-              assetRef={props.asset.uploaderAvatarUrl}
-              size={40}
-              className="shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-body font-semibold text-label-primary">
-                {uploaderName}
-              </div>
-              {uploaderEmail ? (
-                <div className="mt-1 truncate text-footnote text-label-secondary">
-                  {uploaderEmail}
-                </div>
-              ) : null}
-              {uploadedAtLabel ? (
-                <div className="mt-2 text-footnote  text-label-secondary">{uploadedAtLabel}</div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
+    <div className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1">
+      <UserAvatar
+        name={uploaderName}
+        assetRef={props.asset.uploaderAvatarUrl}
+        size={24}
+        className="shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-body text-label-primary">{uploaderName}</div>
+      </div>
+    </div>
   );
 }
 

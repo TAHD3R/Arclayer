@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ActivityUserPill } from "@/pages/workspaces/shared/activity/components/activity-user-pill";
@@ -27,9 +26,7 @@ beforeAll(() => {
 });
 
 describe("ActivityUserPill", () => {
-  it("在活动详情里保留上下文 secondary，同时 hover card 补充默认身份信息", async () => {
-    const user = userEvent.setup();
-
+  it("在活动详情里直接展示上下文 secondary", () => {
     render(
       <ActivityUserPill
         user={{
@@ -42,14 +39,8 @@ describe("ActivityUserPill", () => {
       />,
     );
 
+    expect(screen.getByText("Alice Johnson")).toBeVisible();
+    expect(screen.getByText("user_123")).toBeVisible();
     expect(screen.queryByText("alice")).toBeNull();
-    expect(screen.queryByText("user_123")).toBeNull();
-
-    await user.hover(screen.getByText("Alice Johnson"));
-
-    await waitFor(() => {
-      expect(screen.getByText("alice")).toBeVisible();
-      expect(screen.getByText("user_123")).toBeVisible();
-    });
   });
 });

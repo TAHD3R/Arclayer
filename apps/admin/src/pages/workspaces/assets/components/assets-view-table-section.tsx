@@ -114,13 +114,7 @@ function buildAssetsTableColumns(params: {
       accessorFn: (asset) => asset.uploaderName || "",
       meta: { title: t("assets:ASSET_META_UPLOADED_BY"), kind: "meta" },
       header: t("assets:ASSET_META_UPLOADED_BY"),
-      cell: ({ row }) => (
-        <AssetUploaderCell
-          asset={row.original}
-          t={t}
-          uploadedAtText={dateTime.formatDateTime(row.original.createdAt, { emptyValue: "-" })}
-        />
-      ),
+      cell: ({ row }) => <AssetUploaderCell asset={row.original} t={t} />,
       size: 220,
       minSize: 180,
     },

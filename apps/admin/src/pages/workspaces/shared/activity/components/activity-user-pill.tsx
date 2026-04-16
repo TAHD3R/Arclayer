@@ -1,12 +1,9 @@
 import * as React from "react";
-import { useTranslation } from "react-i18next";
 
 import {
   UserIdentityInline,
   getUserIdentityPrimaryLabel,
-  getUserIdentitySecondaryLabel,
 } from "@/pages/workspaces/team/shared/components/user-identity";
-import { UserIdentityMetaList } from "@/pages/workspaces/team/shared/components/user-identity-meta";
 
 export type ActivityUserSummary = {
   id: string;
@@ -24,30 +21,19 @@ export function ActivityUserPill(props: {
   secondary?: React.ReactNode;
   size?: number;
 }) {
-  const { t } = useTranslation(["activity"]);
   const size = props.size ?? 24;
   const user = props.user;
-  const primary = getUserIdentityPrimaryLabel(user);
-  const fallbackSecondary = getUserIdentitySecondaryLabel(user);
   const referenceText =
     typeof props.secondary === "string" || typeof props.secondary === "number"
       ? String(props.secondary).trim()
       : "";
-  const cardDescription =
-    referenceText && referenceText !== primary && referenceText !== fallbackSecondary ? (
-      <UserIdentityMetaList
-        items={[{ label: t("activity:ACTIVITY_FIELD_REFERENCE"), value: referenceText }]}
-      />
-    ) : null;
 
   return (
     <UserIdentityInline
       user={user ?? null}
       avatarSize={size}
       className="min-w-0"
-      triggerSecondary={null}
-      cardSecondary={fallbackSecondary || referenceText || null}
-      cardDescription={cardDescription}
+      triggerSecondary={referenceText || null}
       triggerClassName="gap-2"
       primaryClassName="truncate text-footnote font-medium"
       secondaryClassName="truncate text-caption text-label-secondary"
