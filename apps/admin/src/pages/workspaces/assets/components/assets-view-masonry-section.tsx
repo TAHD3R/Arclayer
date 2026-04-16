@@ -106,6 +106,7 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
   const [masonryGridNode, setMasonryGridNode] = useState<HTMLElement | null>(null);
   const nextPageRequestRef = useRef(false);
   const nextPageRequestBaseCountRef = useRef<number | null>(null);
+  const masonryColumnCountRef = useRef<number | null>(null);
   const [observedShellWidth, setObservedShellWidth] = useState(0);
   const [queuedNextPage, setQueuedNextPage] = useState(false);
   const viewportHeight = useViewportHeight();
@@ -277,10 +278,11 @@ export function AssetsViewMasonrySection(props: AssetsViewMasonrySectionProps) {
     setQueuedNextPage(false);
   }, [masonryDatasetKey]);
 
-  const masonryMaxColumnCount = useMemo(
-    () => getAssetsMasonryMaxColumnCount(masonryWidth),
-    [masonryWidth],
-  );
+  const masonryMaxColumnCount = useMemo(() => {
+    const nextCount = getAssetsMasonryMaxColumnCount(masonryWidth, masonryColumnCountRef.current);
+    masonryColumnCountRef.current = nextCount;
+    return nextCount;
+  }, [masonryWidth]);
   const masonryScrollState = useAssetsMasonryScrollState(masonryGridNode, viewportHeight);
   const maybeLoadMore = useInfiniteLoader(
     () => {

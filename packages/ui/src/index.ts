@@ -67,7 +67,6 @@ export * from "./auto-height";
 export * from "./chrome-tabs";
 export * from "./chart";
 export * from "./combobox";
-export * from "./complex-dialog";
 export * from "./confirm-dialog";
 export * from "./data-table";
 export * from "./date-time-range-field";

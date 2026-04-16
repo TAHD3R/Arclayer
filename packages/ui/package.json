@@ -34,7 +34,6 @@
     "./combobox": "./src/combobox/index.ts",
     "./command": "./src/command.tsx",
     "./confirm-dialog": "./src/confirm-dialog.tsx",
-    "./complex-dialog": "./src/complex-dialog.tsx",
     "./context-menu": "./src/context-menu.tsx",
     "./data-table": "./src/data-table/index.ts",
     "./dialog": "./src/dialog.tsx",

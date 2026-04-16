@@ -28,6 +28,7 @@ export const AssetsViewAssetRow = memo(function AssetsViewAssetRow(props: Assets
         <AssetMasonryTile
           asset={asset}
           selected={selected}
+          selectionAffordance="tile"
           moreMenuItems={props.moreMenuItems}
           onSelect={(event) => props.onSelect(asset, event)}
           onToggleSelected={props.onToggleSelected}

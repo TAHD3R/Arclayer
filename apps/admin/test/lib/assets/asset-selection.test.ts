@@ -24,14 +24,20 @@ describe("asset-selection", () => {
     expect(next.lastActiveId).toBe("c");
   });
 
-  test("selectOrClearOnPlainClick keeps the only selected item selected on single click", () => {
+  test("selectOrClearOnPlainClick clears the only selected item on single click", () => {
     const next = selectOrClearOnPlainClick(state(["a"], "a"), "a", 1);
-    expect(Array.from(next.selectedIds)).toEqual(["a"]);
-    expect(next.lastActiveId).toBe("a");
+    expect(Array.from(next.selectedIds)).toEqual([]);
+    expect(next.lastActiveId).toBe(null);
   });
 
   test("selectOrClearOnPlainClick keeps selection on the second click of a double-click", () => {
     const next = selectOrClearOnPlainClick(state(["a"], "a"), "a", 2);
+    expect(Array.from(next.selectedIds)).toEqual(["a"]);
+    expect(next.lastActiveId).toBe("a");
+  });
+
+  test("selectOrClearOnPlainClick collapses a multi-selection to the clicked item", () => {
+    const next = selectOrClearOnPlainClick(state(["a", "b"], "b"), "a", 1);
     expect(Array.from(next.selectedIds)).toEqual(["a"]);
     expect(next.lastActiveId).toBe("a");
   });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   type ColumnPinningState,
   type ColumnDef,
@@ -53,17 +53,18 @@ import {
 import { getMimeLabel, getVisibilityLabel } from "./asset-masonry-tile";
 
 function buildAssetsTableColumns(params: {
-  controller: AssetsViewController;
   t: (key: string, options?: Record<string, unknown>) => string;
-  dateTime: ReturnType<typeof useWorkspaceDateTimeFormatter>;
-  allVisibleSelected: boolean;
+  formatCreatedAt: (iso: string | undefined) => string;
   onToggleAllVisible: () => void;
+  onToggleRowSelected: (assetId: string) => void;
+  isSelected: (assetId: string) => boolean;
   onMoreAction: (
     key: Parameters<typeof handleAssetMoreAction>[0]["key"],
     asset: AssetMasonryItem,
   ) => void;
 }): ColumnDef<AssetMasonryItem, unknown>[] {
-  const { allVisibleSelected, controller, dateTime, onMoreAction, onToggleAllVisible, t } = params;
+  const { formatCreatedAt, isSelected, onMoreAction, onToggleAllVisible, onToggleRowSelected, t } =
+    params;
 
   return [
     {
@@ -76,7 +77,7 @@ function buildAssetsTableColumns(params: {
       header: () => (
         <div className="flex w-full items-center justify-center">
           <Checkbox
-            checked={allVisibleSelected}
+            checked={isSelected("__all__")}
             aria-label={t("common:SELECT_ALL") || "Select all"}
             onCheckedChange={onToggleAllVisible}
           />
@@ -85,12 +86,10 @@ function buildAssetsTableColumns(params: {
       cell: ({ row }) => (
         <div className="flex w-full items-center justify-center">
           <Checkbox
-            checked={controller.selectedIds.has(row.original.id)}
+            checked={isSelected(row.original.id)}
             aria-label={t("common:SELECT") || "Select"}
             onClick={(event) => event.stopPropagation()}
-            onCheckedChange={() =>
-              controller.setSelection((prev) => toggleSelect(prev, row.original.id))
-            }
+            onCheckedChange={() => onToggleRowSelected(row.original.id)}
           />
         </div>
       ),
@@ -159,7 +158,7 @@ function buildAssetsTableColumns(params: {
       accessorFn: (asset) => asset.createdAt || "",
       meta: { title: t("assets:ASSET_META_CREATED_AT"), kind: "time" },
       header: t("assets:ASSET_META_CREATED_AT"),
-      cell: ({ row }) => dateTime.formatDateTime(row.original.createdAt, { emptyValue: "-" }),
+      cell: ({ row }) => formatCreatedAt(row.original.createdAt),
       size: 180,
       minSize: 160,
     },
@@ -174,11 +173,7 @@ function buildAssetsTableColumns(params: {
       header: "",
       cell: ({ row }) => (
         <DataTableActionsCell align="center">
-          <AssetActionsCell
-            asset={row.original}
-            controller={controller}
-            onMoreAction={onMoreAction}
-          />
+          <AssetActionsCell asset={row.original} t={t} onMoreAction={onMoreAction} />
         </DataTableActionsCell>
       ),
     },
@@ -224,6 +219,27 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
   const [rowHeight, setRowHeight] = useDataTableRowHeightPreference({ tableId });
   const [wrapHeaders, setWrapHeaders] = useDataTableWrapHeadersPreference({ tableId });
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const allVisibleSelectedRef = useRef(false);
+  const dateTimeRef = useRef(dateTime.formatDateTime);
+  const itemsRef = useRef(controller.items);
+  const orderedAssetIdsRef = useRef(controller.orderedAssetIds);
+  const selectedIdsRef = useRef(controller.selectedIds);
+  const actionsRef = useRef({
+    setActive: controller.setActive,
+    openEditAssetDialog: controller.openEditAssetDialog,
+    openAssetEditAccessDialog: controller.openAssetEditAccessDialog,
+    openAssetDeleteDialog: controller.openAssetDeleteDialog,
+  });
+
+  itemsRef.current = controller.items;
+  orderedAssetIdsRef.current = controller.orderedAssetIds;
+  selectedIdsRef.current = controller.selectedIds;
+  actionsRef.current = {
+    setActive: controller.setActive,
+    openEditAssetDialog: controller.openEditAssetDialog,
+    openAssetEditAccessDialog: controller.openAssetEditAccessDialog,
+    openAssetDeleteDialog: controller.openAssetDeleteDialog,
+  };
 
   const allVisibleSelected = useMemo(
     () =>
@@ -231,27 +247,51 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
       controller.items.every((asset) => controller.selectedIds.has(asset.id)),
     [controller.items, controller.selectedIds],
   );
+  allVisibleSelectedRef.current = allVisibleSelected;
+  dateTimeRef.current = dateTime.formatDateTime;
 
   const handleToggleAllVisible = useCallback(() => {
-    if (allVisibleSelected) {
+    const visibleItems = itemsRef.current;
+    const visibleSelected =
+      visibleItems.length > 0 &&
+      visibleItems.every((asset) => selectedIdsRef.current.has(asset.id));
+
+    if (visibleSelected) {
       controller.setSelection((prev) => clearSelection(prev));
       controller.setFocusedFolderId(null);
       return;
     }
 
-    const orderedIds = controller.items.map((asset) => asset.id);
+    const orderedIds = visibleItems.map((asset) => asset.id);
     controller.setSelection({
       selectedIds: new Set(orderedIds),
       lastActiveId: orderedIds.at(-1) ?? null,
     });
     controller.setFocusedFolderId(null);
-  }, [allVisibleSelected, controller]);
+  }, [controller.setFocusedFolderId, controller.setSelection]);
+
+  const handleToggleRowSelected = useCallback(
+    (assetId: string) => {
+      controller.setSelection((prev) => toggleSelect(prev, assetId));
+    },
+    [controller.setSelection],
+  );
+
+  const isSelected = useCallback((assetId: string) => {
+    if (assetId === "__all__") return allVisibleSelectedRef.current;
+    return selectedIdsRef.current.has(assetId);
+  }, []);
+
+  const formatCreatedAt = useCallback(
+    (iso: string | undefined) => dateTimeRef.current(iso, { emptyValue: "-" }),
+    [],
+  );
 
   const handleRowClick = useCallback(
     (asset: AssetMasonryItem, event: MouseEvent<HTMLTableRowElement>) => {
       controller.setFocusedFolderId(null);
       if (event.shiftKey) {
-        controller.setSelection((prev) => rangeSelect(prev, asset.id, controller.orderedAssetIds));
+        controller.setSelection((prev) => rangeSelect(prev, asset.id, orderedAssetIdsRef.current));
       } else if (event.metaKey || event.ctrlKey) {
         controller.setSelection((prev) => toggleSelect(prev, asset.id));
       } else {
@@ -262,36 +302,44 @@ export function useAssetsViewTableController(controller: AssetsViewController) {
       event.preventDefault();
       controller.setActive(asset);
     },
-    [controller],
+    [controller.setActive, controller.setFocusedFolderId, controller.setSelection],
   );
 
   const handleMoreAction = useCallback(
     (key: Parameters<typeof handleAssetMoreAction>[0]["key"], asset: AssetMasonryItem) => {
+      const nextActions = actionsRef.current;
       void handleAssetMoreAction({
         key,
         asset,
         publicUrl: asset.publicUrl || null,
         t,
-        onOpenDetails: () => controller.setActive(asset),
-        onOpenEditAsset: () => controller.openEditAssetDialog(asset),
-        onOpenEditAccess: () => controller.openAssetEditAccessDialog(asset),
-        onOpenDelete: () => controller.openAssetDeleteDialog(asset),
+        onOpenDetails: () => nextActions.setActive(asset),
+        onOpenEditAsset: () => nextActions.openEditAssetDialog(asset),
+        onOpenEditAccess: () => nextActions.openAssetEditAccessDialog(asset),
+        onOpenDelete: () => nextActions.openAssetDeleteDialog(asset),
       });
     },
-    [controller, t],
+    [t],
   );
 
   const columns = useMemo(
     () =>
       buildAssetsTableColumns({
-        controller,
         t,
-        dateTime,
-        allVisibleSelected,
+        formatCreatedAt,
         onToggleAllVisible: handleToggleAllVisible,
+        onToggleRowSelected: handleToggleRowSelected,
+        isSelected,
         onMoreAction: handleMoreAction,
       }),
-    [allVisibleSelected, controller, dateTime, handleMoreAction, handleToggleAllVisible, t],
+    [
+      formatCreatedAt,
+      handleMoreAction,
+      handleToggleAllVisible,
+      handleToggleRowSelected,
+      isSelected,
+      t,
+    ],
   );
   const defaultColumnPinning = useMemo(() => resolveDefaultColumnPinning(columns), [columns]);
   const [columnPinning, setColumnPinning] = useState(() => defaultColumnPinning);
@@ -439,8 +487,8 @@ export function AssetsViewTableSection(props: {
           }}
           rowClassName={(row) =>
             controller.selectedIds.has(row.original.id)
-              ? "bg-accent/35 hover:bg-accent/45"
-              : undefined
+              ? "select-none bg-accent/35 hover:bg-accent/45"
+              : "select-none"
           }
           onRowClick={(row, _rowIndex, event) => props.onRowClick(row.original, event)}
         />

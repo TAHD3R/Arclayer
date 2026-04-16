@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
 
-import type { AssetsViewController } from "../hooks/use-assets-view-controller";
 import { buildAssetMoreMenuItems, handleAssetMoreAction } from "./asset-more-actions";
 import { getMimeLabel, getPurposeLabel, getVisibilityLabel } from "./asset-masonry-tile";
 import { LazyAssetImage } from "./lazy-asset-image";
@@ -111,14 +110,14 @@ export function AssetPurposeCell(props: {
 
 export function AssetActionsCell(props: {
   asset: AssetMasonryItem;
-  controller: AssetsViewController;
+  t: (key: string, options?: Record<string, unknown>) => string;
   onMoreAction: (
     key: Parameters<typeof handleAssetMoreAction>[0]["key"],
     asset: AssetMasonryItem,
   ) => void;
 }) {
   const items = buildAssetMoreMenuItems({
-    t: props.controller.t,
+    t: props.t,
     asset: props.asset,
     publicUrl: props.asset.publicUrl || null,
   });
@@ -126,11 +125,7 @@ export function AssetActionsCell(props: {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={props.controller.t("common:MORE") || "More"}
-        >
+        <Button variant="ghost" size="icon-sm" aria-label={props.t("common:MORE") || "More"}>
           <MoreVertical className="size-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -139,7 +134,7 @@ export function AssetActionsCell(props: {
           icon={<Eye size={16} />}
           onSelect={() => props.onMoreAction("view_details", props.asset)}
         >
-          {props.controller.t("assets:ASSET_ACTION_VIEW_DETAILS")}
+          {props.t("assets:ASSET_ACTION_VIEW_DETAILS")}
         </DropdownMenuIconItem>
         <DropdownMenuSeparator />
         {items.map((item, index) =>

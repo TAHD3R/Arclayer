@@ -32,6 +32,13 @@ describe("AssetsViewMasonrySection", () => {
     expect(getAssetsMasonryMaxColumnCount(3200)).toBe(8);
   });
 
+  it("keeps the previous column count while width is still inside the resize buffer", () => {
+    expect(getAssetsMasonryMaxColumnCount(1080, 4)).toBe(4);
+    expect(getAssetsMasonryMaxColumnCount(1060, 4)).toBe(3);
+    expect(getAssetsMasonryMaxColumnCount(1096, 3)).toBe(3);
+    expect(getAssetsMasonryMaxColumnCount(1116, 3)).toBe(4);
+  });
+
   it("reserves one placeholder batch in virtual total when another page exists", () => {
     expect(
       getAssetsMasonryVirtualTotalItems({

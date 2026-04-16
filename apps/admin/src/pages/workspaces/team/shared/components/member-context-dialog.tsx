@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Building2, FolderKanban } from "lucide-react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { Building2, FolderKanban, X } from "lucide-react";
 
 import { Button } from "@arclayer/ui/button";
 import {
@@ -8,7 +8,7 @@ import {
   ChromeTabsList,
   ChromeTabsTrigger,
 } from "@arclayer/ui/chrome-tabs";
-import { ComplexDialog } from "@arclayer/ui/complex-dialog";
+import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 import { UserAvatar } from "@/components/common/entity-avatar";
 import { BaseTag, lucideTagIcon } from "@/components/ui/tags/tag-base";
 import type { MemberIdentity } from "./member-identity-cell";
@@ -102,6 +102,8 @@ function renderActionButtons(actions: readonly MemberContextDialogAction[] | und
 export function MemberContextDialog(props: MemberContextDialogProps) {
   const initialTab = props.defaultTabKey ?? props.tabs[0]?.key ?? "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
+  const titleId = useId();
+  const descriptionId = useId();
   const primary = useMemo(() => getPrimaryLabel(props.member), [props.member]);
   const secondary = useMemo(() => getSecondaryLabel(props.member), [props.member]);
 
@@ -111,70 +113,107 @@ export function MemberContextDialog(props: MemberContextDialogProps) {
   }, [props.defaultTabKey, props.open, props.tabs]);
 
   return (
-    <ComplexDialog
-      open={props.open}
-      onOpenChange={props.onOpenChange}
-      size="xl"
-      title={props.dialogTitle}
-      description={props.dialogDescription}
-      bodyClassName="flex h-full min-h-0 flex-col gap-0 overflow-hidden p-0!"
+    <ExpandableScreen
+      expanded={props.open}
+      onExpandChange={props.onOpenChange}
+      layoutId="member-context-dialog"
     >
-      <div className="flex min-h-0 flex-1 flex-col bg-card">
-        <div className="border-b bg-gradient-to-b from-muted/40 to-background px-7 pt-6">
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="flex min-w-0 flex-1 items-center gap-4 pb-5">
-              <UserAvatar
-                name={primary}
-                assetRef={props.member?.avatarUrl}
-                size={72}
-                className="shrink-0"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-title2 font-bold text-label-primary">{primary}</div>
-                {secondary ? (
-                  <div className="truncate text-callout text-label-secondary">{secondary}</div>
+      <ExpandableScreenContent
+        showCloseButton={false}
+        className="border border-border/80 bg-background shadow-2xl"
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={props.dialogDescription ? descriptionId : undefined}
+          className="flex h-full min-h-0 flex-col"
+        >
+          <div className="flex items-start gap-4 border-b border-border/70 px-6 py-4 sm:px-8 sm:py-5">
+            <div className="min-w-0 flex-1">
+              <div className="min-w-0">
+                <h2 id={titleId} className="min-w-0 text-title font-semibold text-label-primary">
+                  {props.dialogTitle}
+                </h2>
+                {props.dialogDescription ? (
+                  <p id={descriptionId} className="mt-2 text-body text-label-secondary">
+                    {props.dialogDescription}
+                  </p>
                 ) : null}
-                <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 [&>*]:max-w-full">
-                  <HeaderScopeTag label={props.scopeLabel} variant={props.scopeVariant} />
-                  {props.badges}
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0"
+              aria-label="Close"
+              onClick={() => props.onOpenChange(false)}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col bg-card">
+            <div className="border-b bg-gradient-to-b from-muted/40 to-background px-7 pt-6">
+              <div className="flex flex-wrap items-start justify-between gap-5">
+                <div className="flex min-w-0 flex-1 items-center gap-4 pb-5">
+                  <UserAvatar
+                    name={primary}
+                    assetRef={props.member?.avatarUrl}
+                    size={72}
+                    className="shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-title2 font-bold text-label-primary">
+                      {primary}
+                    </div>
+                    {secondary ? (
+                      <div className="truncate text-callout text-label-secondary">{secondary}</div>
+                    ) : null}
+                    <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 [&>*]:max-w-full">
+                      <HeaderScopeTag label={props.scopeLabel} variant={props.scopeVariant} />
+                      {props.badges}
+                    </div>
+                  </div>
                 </div>
+
+                {props.actionButtons?.length ? (
+                  <div className="shrink-0 pb-5">{renderActionButtons(props.actionButtons)}</div>
+                ) : null}
               </div>
             </div>
 
-            {props.actionButtons?.length ? (
-              <div className="shrink-0 pb-5">{renderActionButtons(props.actionButtons)}</div>
-            ) : null}
+            <ChromeTabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <div className="border-b px-7">
+                <ChromeTabsList className="w-auto shrink-0">
+                  {props.tabs.map((tab) => (
+                    <ChromeTabsTrigger key={tab.key} value={tab.key}>
+                      {tab.label}
+                    </ChromeTabsTrigger>
+                  ))}
+                </ChromeTabsList>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-hidden px-7 py-5">
+                {props.tabs.map((tab) => (
+                  <ChromeTabsContent
+                    key={tab.key}
+                    value={tab.key}
+                    className="flex h-full min-h-0 flex-1 flex-col !pt-0 data-[state=inactive]:hidden"
+                  >
+                    {tab.content}
+                  </ChromeTabsContent>
+                ))}
+              </div>
+            </ChromeTabs>
           </div>
         </div>
-
-        <ChromeTabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="flex min-h-0 flex-1 flex-col"
-        >
-          <div className="border-b px-7">
-            <ChromeTabsList className="w-auto shrink-0">
-              {props.tabs.map((tab) => (
-                <ChromeTabsTrigger key={tab.key} value={tab.key}>
-                  {tab.label}
-                </ChromeTabsTrigger>
-              ))}
-            </ChromeTabsList>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-hidden px-7 py-5">
-            {props.tabs.map((tab) => (
-              <ChromeTabsContent
-                key={tab.key}
-                value={tab.key}
-                className="flex h-full min-h-0 flex-1 flex-col !pt-0 data-[state=inactive]:hidden"
-              >
-                {tab.content}
-              </ChromeTabsContent>
-            ))}
-          </div>
-        </ChromeTabs>
-      </div>
-    </ComplexDialog>
+      </ExpandableScreenContent>
+    </ExpandableScreen>
   );
 }

@@ -3,12 +3,20 @@ import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AssetsViewController } from "@/pages/workspaces/assets/hooks/use-assets-view-controller";
 import { useAssetsViewTableController } from "@/pages/workspaces/assets/components/assets-view-table-section";
+import type { AssetsViewController } from "@/pages/workspaces/assets/hooks/use-assets-view-controller";
 
-function createControllerStub(): AssetsViewController {
+const translate = (key: string) => key;
+const setSelection = vi.fn();
+const setFocusedFolderId = vi.fn();
+const setActive = vi.fn();
+const openEditAssetDialog = vi.fn();
+const openAssetEditAccessDialog = vi.fn();
+const openAssetDeleteDialog = vi.fn();
+
+function createControllerStub(selectedIds: Set<string> = new Set()): AssetsViewController {
   return {
-    t: (key: string) => key,
+    t: translate,
     workspaceId: "ws-1",
     items: [
       {
@@ -29,13 +37,13 @@ function createControllerStub(): AssetsViewController {
       },
     ],
     orderedAssetIds: ["asset-1"],
-    selectedIds: new Set<string>(),
-    setSelection: vi.fn(),
-    setFocusedFolderId: vi.fn(),
-    setActive: vi.fn(),
-    openEditAssetDialog: vi.fn(),
-    openAssetEditAccessDialog: vi.fn(),
-    openAssetDeleteDialog: vi.fn(),
+    selectedIds,
+    setSelection,
+    setFocusedFolderId,
+    setActive,
+    openEditAssetDialog,
+    openAssetEditAccessDialog,
+    openAssetDeleteDialog,
     pagedAssetsQuery: {
       isFetching: false,
       isLoading: false,
@@ -46,6 +54,7 @@ function createControllerStub(): AssetsViewController {
 describe("useAssetsViewTableController", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.clearAllMocks();
   });
 
   it("stays stable under StrictMode", () => {
@@ -93,5 +102,40 @@ describe("useAssetsViewTableController", () => {
       "createdAt",
       "actions",
     ]);
+  });
+
+  it("keeps the name column renderer stable when selection changes", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result, rerender } = renderHook(
+      ({ controller }) => useAssetsViewTableController(controller),
+      {
+        initialProps: { controller: createControllerStub() },
+        wrapper: ({ children }) => (
+          <StrictMode>
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          </StrictMode>
+        ),
+      },
+    );
+
+    const firstNameColumn = result.current.table.getColumn("name");
+    const firstSelectColumn = result.current.table.getColumn("select");
+
+    rerender({
+      controller: createControllerStub(new Set(["asset-1"])),
+    });
+
+    const nextNameColumn = result.current.table.getColumn("name");
+    const nextSelectColumn = result.current.table.getColumn("select");
+
+    expect(firstNameColumn?.columnDef.cell).toBe(nextNameColumn?.columnDef.cell);
+    expect(firstSelectColumn?.columnDef.cell).toBe(nextSelectColumn?.columnDef.cell);
+    expect(firstSelectColumn?.columnDef.header).toBe(nextSelectColumn?.columnDef.header);
   });
 });

@@ -5,7 +5,7 @@ import type { AdminAssetFolder } from "@/types/api";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 import { Button } from "@arclayer/ui/button";
 import { SelectedCountTag } from "@/components/ui/tags";
-import { AssetPreviewDialog } from "./asset-preview-dialog";
+import { AssetPreviewDialog, type AssetPreviewWorkspaceBreadcrumb } from "./asset-preview-dialog";
 import { BulkDeleteAssetsDialog } from "./bulk-delete-assets-dialog";
 import { CreateAssetFolderDialog } from "./create-asset-folder-dialog";
 import { DeleteAssetDialog } from "./delete-asset-dialog";
@@ -27,6 +27,8 @@ interface AssetsViewOverlaysProps {
   setActive: React.Dispatch<React.SetStateAction<AssetMasonryItem | null>>;
   items: AssetMasonryItem[];
   currentFolderPathLabel: string;
+  folderBreadcrumbs: string[];
+  workspaceBreadcrumb: AssetPreviewWorkspaceBreadcrumb | null;
   moveModalOpen: boolean;
   setMoveModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   folders: AdminAssetFolder[];
@@ -175,6 +177,8 @@ export function AssetsViewOverlays(props: AssetsViewOverlaysProps) {
         active={props.active}
         items={props.items}
         currentFolderPathLabel={props.currentFolderPathLabel}
+        folderBreadcrumbs={props.folderBreadcrumbs}
+        workspaceBreadcrumb={props.workspaceBreadcrumb}
         onSelectAsset={(asset) => props.setActive(asset)}
         onOpenEditAsset={props.onOpenEditAsset}
         onClose={() => props.setActive(null)}

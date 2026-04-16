@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { buildAssetMoreMenuItems } from "@/pages/workspaces/assets/components/asset-more-actions";
 import { AssetMasonryTile } from "@/pages/workspaces/assets/components/asset-masonry-tile";
@@ -21,7 +21,32 @@ const asset: AssetMasonryItem = {
   uploaderName: "Jane Doe",
 };
 
+const previewAsset: AssetMasonryItem = {
+  ...asset,
+  previewUrl: "https://cdn.example.com/hero.png",
+};
+
 describe("AssetMasonryTile", () => {
+  const originalIntersectionObserver = globalThis.IntersectionObserver;
+
+  beforeAll(() => {
+    class MockIntersectionObserver {
+      constructor(private readonly callback?: IntersectionObserverCallback) {}
+
+      observe(target: Element) {
+        this.callback?.([{ isIntersecting: true, target } as IntersectionObserverEntry], this);
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+
+    globalThis.IntersectionObserver = MockIntersectionObserver as typeof IntersectionObserver;
+  });
+
+  afterAll(() => {
+    globalThis.IntersectionObserver = originalIntersectionObserver;
+  });
+
   it("opens the asset on the second click even after selection rerender", () => {
     const onOpen = vi.fn();
 
@@ -81,7 +106,7 @@ describe("AssetMasonryTile", () => {
     expect(onPointerDown).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps checkbox clicks local to the checkbox", () => {
+  it("keeps checkbox clicks local when checkbox affordance is enabled", () => {
     const onSelect = vi.fn();
     const onToggleSelected = vi.fn();
 
@@ -135,6 +160,28 @@ describe("AssetMasonryTile", () => {
 
     fireEvent.click(tile as HTMLElement, { detail: 2 });
     expect(onOpen).toHaveBeenCalledWith(asset);
+  });
+
+  it("uses tile-level selected styling without rendering a checkbox in tile affordance mode", () => {
+    const { container } = render(
+      <AssetMasonryTile
+        asset={asset}
+        selected
+        selectionAffordance="tile"
+        onSelect={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    const tile = container.querySelector('[data-asset-tile="true"]');
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(tile).toHaveAttribute("data-selected", "true");
+    expect(tile).toHaveClass("border-primary/80");
+    expect(
+      screen.queryByRole("button", { name: "assets:ASSET_CLEAR_SELECTION" }),
+    ).not.toBeInTheDocument();
+    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("inset-0");
   });
 
   it("keeps edit actions local to the action button", () => {
@@ -196,6 +243,32 @@ describe("AssetMasonryTile", () => {
 
     expect(container.querySelector('[data-tile-actions-visible="true"]')).not.toBeNull();
     expect(onMoreAction).not.toHaveBeenCalled();
+  });
+
+  it("hides the hover toolbar after preview loading fails", () => {
+    const menuItems = buildAssetMoreMenuItems({
+      t: (key: string) => key,
+      asset: previewAsset,
+      publicUrl: "https://cdn.example.com/hero.png",
+    });
+
+    const { container } = render(
+      <AssetMasonryTile
+        asset={previewAsset}
+        onSelect={vi.fn()}
+        onOpen={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        moreMenuItems={menuItems}
+      />,
+    );
+
+    fireEvent.error(screen.getByRole("img", { name: "hero.png" }));
+
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("common:MORE")).not.toBeInTheDocument();
+    expect(container.querySelector('[data-tile-actions-visible="true"]')).toBeNull();
+    expect(container.querySelector('[data-tile-actions-visible="false"]')).toBeNull();
   });
 
   it("uses a larger and tighter hover toolbar treatment", () => {

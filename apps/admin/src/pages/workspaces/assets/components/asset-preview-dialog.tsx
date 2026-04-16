@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, EllipsisVertical } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { ChevronLeft, ChevronRight, EllipsisVertical, X } from "lucide-react";
+import { Fragment, useEffect, useId, useMemo } from "react";
 
 import {
   AlertDialog,
@@ -9,8 +9,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@arclayer/ui/alert-dialog";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@arclayer/ui/breadcrumb";
 import { Button } from "@arclayer/ui/button";
-import { ComplexDialog } from "@arclayer/ui/complex-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,11 +23,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@arclayer/ui/dropdown-menu";
+import { ExpandableScreen, ExpandableScreenContent } from "@arclayer/ui/expandable-screen";
 import {
   AlertDialogAction as AlertDialogActionPrimitive,
   AlertDialogCancel as AlertDialogCancelPrimitive,
 } from "@arclayer/ui/radix-primitives/radix-alert-dialog";
 
+import {
+  WorkspaceAvatar,
+  workspaceAvatarPropsFromIdentity,
+  type WorkspaceAvatarIdentity,
+} from "@/components/common/entity-avatar";
 import type { AssetMasonryItem } from "@/types/assets-masonry";
 
 import {
@@ -42,8 +53,14 @@ type AssetPreviewDialogProps = {
   items: AssetMasonryItem[];
   onSelectAsset: (asset: AssetMasonryItem) => void;
   currentFolderPathLabel: string;
+  folderBreadcrumbs: string[];
+  workspaceBreadcrumb: AssetPreviewWorkspaceBreadcrumb | null;
   onOpenEditAsset: (asset: AssetMasonryItem) => void;
 };
+
+export type AssetPreviewWorkspaceBreadcrumb = {
+  name: string;
+} & WorkspaceAvatarIdentity;
 
 function PreviewToolbar(props: {
   previousAsset: AssetMasonryItem | null;
@@ -111,6 +128,7 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
     active: props.active,
     onClose: props.onClose,
   });
+  const titleId = useId();
   const active = controller.active;
   const currentIndex = useMemo(
     () => (active ? props.items.findIndex((item) => item.id === active.id) : -1),
@@ -159,58 +177,122 @@ export function AssetPreviewDialog(props: AssetPreviewDialogProps) {
 
   return (
     <>
-      <ComplexDialog
-        open={Boolean(active)}
-        onOpenChange={(open) => {
+      <ExpandableScreen
+        expanded={Boolean(active)}
+        onExpandChange={(open) => {
           if (!open) props.onClose();
         }}
-        size="xl"
-        title={active?.name ?? ""}
-        headerAlign="center"
-        headerRight={
-          active ? (
-            <PreviewToolbar
-              previousAsset={previousAsset}
-              nextAsset={nextAsset}
-              onSelectAsset={props.onSelectAsset}
-              onAction={handleMoreAction}
-              menuItems={moreMenuItems}
-              t={controller.t}
-            />
-          ) : null
-        }
-        bodyClassName="flex h-full min-h-0 gap-0 overflow-hidden bg-card p-0!"
+        layoutId="asset-preview-dialog"
       >
-        {active ? (
-          <div className="flex min-h-0 flex-1 bg-card">
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border/60 bg-card">
-              <div className="min-h-0 flex-1 overflow-hidden">
-                <AssetPreviewStage
-                  active={active}
-                  activeAspectRatio={controller.activeAspectRatio}
-                  previewAspectRatio={controller.previewAspectRatio}
-                  setPreviewAspectRatio={controller.setPreviewAspectRatio}
-                  previewSrc={controller.previewSrc}
-                  setPreviewSrc={controller.setPreviewSrc}
-                  previewCandidates={controller.previewCandidates}
-                  failedPreviewRef={controller.failedPreviewRef}
-                  t={controller.t}
-                />
-              </div>
-            </section>
+        <ExpandableScreenContent
+          showCloseButton={false}
+          className="border border-border/80 bg-background shadow-2xl"
+        >
+          {active ? (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              className="flex h-full min-h-0 flex-col"
+            >
+              <div className="flex items-center gap-4 border-b border-border/70 bg-muted px-6 py-4 sm:px-8 sm:py-5">
+                <div className="min-w-0 flex-1">
+                  <Breadcrumb>
+                    <BreadcrumbList className="m-0 mb-0! flex-nowrap overflow-hidden whitespace-nowrap p-0 text-callout">
+                      {props.workspaceBreadcrumb ? (
+                        <BreadcrumbItem className="min-w-0">
+                          <span className="flex min-w-0 items-center gap-2 truncate text-label-secondary">
+                            <WorkspaceAvatar
+                              name={props.workspaceBreadcrumb.name}
+                              size={18}
+                              className="rounded-[4px]"
+                              {...workspaceAvatarPropsFromIdentity(props.workspaceBreadcrumb)}
+                            />
+                            <span className="truncate">{props.workspaceBreadcrumb.name}</span>
+                          </span>
+                        </BreadcrumbItem>
+                      ) : null}
 
-            <aside className="flex w-[24rem] min-w-0 flex-col bg-card/95 backdrop-blur-sm">
-              <div className="min-h-0 flex-1 overflow-auto p-4">
-                <AssetPreviewSidebar
-                  active={active}
-                  controller={controller}
-                  currentFolderPathLabel={props.currentFolderPathLabel}
-                />
+                      {(props.workspaceBreadcrumb
+                        ? [controller.t("assets:ASSET_BREADCRUMB_ROOT"), ...props.folderBreadcrumbs]
+                        : props.folderBreadcrumbs
+                      ).map((segment, index) => (
+                        <Fragment key={`${segment}-${index}`}>
+                          <BreadcrumbSeparator />
+                          <BreadcrumbItem className="min-w-0">
+                            <span className="flex min-w-0 items-center gap-2 truncate text-label-secondary">
+                              <span className="truncate">{segment}</span>
+                            </span>
+                          </BreadcrumbItem>
+                        </Fragment>
+                      ))}
+
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem className="min-w-0">
+                        <h2
+                          id={titleId}
+                          className="truncate text-callout font-semibold text-label-primary"
+                        >
+                          {active.name}
+                        </h2>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <PreviewToolbar
+                    previousAsset={previousAsset}
+                    nextAsset={nextAsset}
+                    onSelectAsset={props.onSelectAsset}
+                    onAction={handleMoreAction}
+                    menuItems={moreMenuItems}
+                    t={controller.t}
+                  />
+                  <div className="mx-1 h-4 w-px bg-border/70" aria-hidden="true" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    aria-label="Close"
+                    onClick={props.onClose}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
               </div>
-            </aside>
-          </div>
-        ) : null}
-      </ComplexDialog>
+
+              <div className="flex min-h-0 flex-1 gap-0 overflow-hidden bg-card">
+                <section className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border/60 bg-card">
+                  <div className="min-h-0 flex-1 overflow-hidden">
+                    <AssetPreviewStage
+                      active={active}
+                      activeAspectRatio={controller.activeAspectRatio}
+                      previewAspectRatio={controller.previewAspectRatio}
+                      setPreviewAspectRatio={controller.setPreviewAspectRatio}
+                      previewSrc={controller.previewSrc}
+                      setPreviewSrc={controller.setPreviewSrc}
+                      previewCandidates={controller.previewCandidates}
+                      failedPreviewRef={controller.failedPreviewRef}
+                      t={controller.t}
+                    />
+                  </div>
+                </section>
+
+                <aside className="flex w-[24rem] min-w-0 flex-col bg-card/95 backdrop-blur-sm">
+                  <div className="min-h-0 flex-1 overflow-auto p-4">
+                    <AssetPreviewSidebar
+                      active={active}
+                      controller={controller}
+                      currentFolderPathLabel={props.currentFolderPathLabel}
+                    />
+                  </div>
+                </aside>
+              </div>
+            </div>
+          ) : null}
+        </ExpandableScreenContent>
+      </ExpandableScreen>
 
       <UpdateAssetsAccessDialog
         open={controller.editAccessOpen}

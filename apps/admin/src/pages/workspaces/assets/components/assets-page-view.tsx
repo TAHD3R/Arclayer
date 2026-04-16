@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 
+import { getWorkspaceDetail } from "@/api/workspaces";
 import { ColumnsPage } from "@/layouts/page-shell/columns-page";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { invalidateAssetListQueries } from "@/lib/assets/invalidate-asset-list-queries";
 import { Button } from "@arclayer/ui/button";
 import { readStorageItem, writeStorageItem } from "@/lib/storage";
-import type { AdminAssetFolder, AdminAssetTag } from "@/types/api";
+import type { AdminAssetFolder, AdminAssetTag, WorkspaceDetail } from "@/types/api";
 
 import { clearSelection } from "@/lib/assets/asset-selection";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { useAssetsViewController } from "../hooks/use-assets-view-controller";
 import { AssetsFolderRail } from "./assets-folder-rail";
 import { AssetsViewDndSurface } from "./assets-view-dnd-surface";
@@ -20,6 +23,8 @@ import { AssetsViewTableSection, useAssetsViewTableController } from "./assets-v
 
 export function AssetsPageView(props: { initialSearchQuery?: string; initialAssetId?: string }) {
   const [viewMode, setViewMode] = useState<AssetsViewMode>("card");
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const [cardSidebarOpen, setCardSidebarOpen] = useState(() => {
     const stored = readStorageItem(STORAGE_KEYS.assetsFolderRailOpen);
     return stored ? stored === "true" : true;
@@ -119,12 +124,45 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
     setActive(matched);
   }, [controller.items, props.initialAssetId, setActive]);
 
+  const workspaceDetailQuery = useQuery({
+    queryKey: [
+      "workspace",
+      "detail",
+      scope?.type === "workspace" ? scope.id : null,
+      sessionVersion,
+    ],
+    enabled: Boolean(accessToken && scope?.type === "workspace" && scope.id),
+    queryFn: async () => getWorkspaceDetail(String(scope?.type === "workspace" ? scope.id : "")),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    meta: { silent: true },
+  });
+
   const currentFolderPathLabel = currentFolderId
     ? [
         t("assets:ASSET_BREADCRUMB_ROOT"),
         ...controller.folderPath.map((folder) => folder.name),
       ].join(" / ")
     : t("assets:ASSET_BREADCRUMB_ROOT");
+  const folderBreadcrumbs = useMemo(
+    () => controller.folderPath.map((folder) => folder.name),
+    [controller.folderPath],
+  );
+  const workspaceBreadcrumb = useMemo(() => {
+    const detail = workspaceDetailQuery.data;
+    if (!detail) return null;
+    return {
+      name: detail.name,
+      iconMode: detail.iconMode,
+      iconColor: detail.iconColor,
+      iconGlyph: detail.iconGlyph,
+      iconEmoji: detail.iconEmoji,
+      iconUrl: detail.iconUrl,
+    } satisfies Pick<
+      WorkspaceDetail,
+      "name" | "iconMode" | "iconColor" | "iconGlyph" | "iconEmoji" | "iconUrl"
+    >;
+  }, [workspaceDetailQuery.data]);
 
   const setCreateFolderDialogOpen = (open: boolean) => {
     setCreateFolderOpen(open);
@@ -284,6 +322,8 @@ export function AssetsPageView(props: { initialSearchQuery?: string; initialAsse
             setActive={setActive}
             items={controller.items}
             currentFolderPathLabel={currentFolderPathLabel}
+            folderBreadcrumbs={folderBreadcrumbs}
+            workspaceBreadcrumb={workspaceBreadcrumb}
             moveModalOpen={moveModalOpen}
             setMoveModalOpen={setMoveModalOpen}
             folders={(foldersQuery.data?.items ?? []) as AdminAssetFolder[]}

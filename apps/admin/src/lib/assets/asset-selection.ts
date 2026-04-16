@@ -67,15 +67,19 @@ export function orderSelectedIds(selectedIds: ReadonlySet<string>, orderedIds: s
 /**
  * Plain click behavior for the Masonry tiles:
  * - Plain click selects the item.
- * - Clicking the only selected item again should keep it selected.
+ * - Clicking the only selected item again clears the selection.
  *
- * Clearing selection already has dedicated interactions (blank-area click, toolbar action, checkbox),
- * so toggling here only creates selection churn and preview flicker.
+ * Multi-select still collapses to the clicked item so range-select and additive selection
+ * keep a predictable anchor.
  */
 export function selectOrClearOnPlainClick(
   state: AssetSelectionState,
   id: string,
-  _clickDetail: number,
+  clickDetail: number,
 ): AssetSelectionState {
+  if (clickDetail > 1) return state;
+  if (state.selectedIds.size === 1 && state.selectedIds.has(id)) {
+    return clearSelection(state);
+  }
   return selectOnly(state, id);
 }

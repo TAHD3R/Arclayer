@@ -72,6 +72,8 @@ describe("AssetPreviewDialog", () => {
         items={[asset]}
         onSelectAsset={vi.fn()}
         currentFolderPathLabel="Root"
+        folderBreadcrumbs={["Campaigns", "May"]}
+        workspaceBreadcrumb={{ name: "Philip Cole's Workspace 2" }}
         onOpenEditAsset={vi.fn()}
       />,
     );
@@ -82,7 +84,7 @@ describe("AssetPreviewDialog", () => {
     expect(document.querySelector('[data-slot="dropdown-menu-content"]')).toHaveClass("z-[2400]");
   });
 
-  it("keeps only a centered title in the dialog header", () => {
+  it("renders a left-aligned headline title on a muted header", () => {
     render(
       <AssetPreviewDialog
         active={asset}
@@ -90,11 +92,19 @@ describe("AssetPreviewDialog", () => {
         items={[asset]}
         onSelectAsset={vi.fn()}
         currentFolderPathLabel="Root"
+        folderBreadcrumbs={["Campaigns", "May"]}
+        workspaceBreadcrumb={{ name: "Philip Cole's Workspace 2" }}
         onOpenEditAsset={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "hero.png" })).toHaveClass("text-center");
+    const title = screen.getByRole("heading", { name: "hero.png" });
+    expect(title).toHaveClass("text-callout");
+    expect(title.closest(".bg-muted")).not.toBeNull();
+    expect(title.closest(".items-center")).not.toBeNull();
+    expect(screen.getByText("Philip Cole's Workspace 2")).toBeInTheDocument();
+    expect(screen.getByText("Campaigns")).toBeInTheDocument();
+    expect(screen.getByText("May")).toBeInTheDocument();
     expect(screen.queryByText("Philip Cole · 2026-04-15")).not.toBeInTheDocument();
   });
 });

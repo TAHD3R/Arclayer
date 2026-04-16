@@ -78,7 +78,7 @@ export function UsercenterOverlayHost() {
           onValueChange={handleTabChange}
           className="flex h-full min-h-0 flex-col"
         >
-          <div className="flex items-center gap-4 border-b border-border/70 px-10">
+          <div className="flex items-center gap-4 border-b border-border/70 px-6  sm:px-8  bg-muted">
             <div className="min-w-0 flex-1">
               <ChromeTabsList className="w-auto">
                 {USERCENTER_OVERLAY_ITEMS.map((item) => (
