@@ -189,6 +189,9 @@ describe("AdminSidebarShell", () => {
       expect(sidebar).not.toBeNull();
       expect(sidebarContainer).not.toBeNull();
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-collapsible", "icon");
+      expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
 
       act(() => {
         fireEvent.pointerEnter(sidebarContainer!);
@@ -201,17 +204,24 @@ describe("AdminSidebarShell", () => {
         vi.advanceTimersByTime(30);
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-collapsible", "");
+      expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
 
       act(() => {
         fireEvent.pointerLeave(sidebarContainer!);
         vi.advanceTimersByTime(140);
       });
       expect(sidebar).toHaveAttribute("data-state", "expanded");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-layout-collapsible", "icon");
 
       act(() => {
         vi.advanceTimersByTime(40);
       });
       expect(sidebar).toHaveAttribute("data-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-layout-state", "collapsed");
+      expect(sidebar).toHaveAttribute("data-collapsible", "icon");
     } finally {
       vi.useRealTimers();
     }

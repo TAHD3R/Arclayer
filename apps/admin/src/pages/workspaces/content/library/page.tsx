@@ -683,7 +683,7 @@ export function ContentLibraryPage() {
     const previewOpen = Boolean(previewRowId);
     if (!sidebar.isMobile && previewOpen && !previewOpenRef.current) {
       const shouldCollapseSidebar =
-        sidebar.state === "expanded" && shouldAutoCollapseSidebarForPreview();
+        sidebar.layoutState === "expanded" && shouldAutoCollapseSidebarForPreview();
       collapsedSidebarForPreviewRef.current = shouldCollapseSidebar;
       if (shouldCollapseSidebar) {
         sidebar.setOpen(false);

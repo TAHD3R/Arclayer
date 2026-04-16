@@ -74,7 +74,7 @@ function NavGroupMarker(props: { label: string }) {
       <SidebarGroupLabel
         data-slot="admin-side-nav-group-label"
         className={cn(
-          "h-auto origin-left px-3 py-0 text-[11px] font-medium tracking-[0.08em] text-label-tertiary transition-[opacity,transform] duration-420 ease-[cubic-bezier(0.18,0.9,0.32,1)] motion-reduce:transition-none",
+          "h-auto origin-left px-3 py-0 text-xs font-semibold text-label-tertiary transition-[opacity,transform] duration-420 ease-[cubic-bezier(0.18,0.9,0.32,1)] motion-reduce:transition-none",
           "group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:translate-y-1 group-data-[collapsible=icon]:opacity-0",
         )}
       >

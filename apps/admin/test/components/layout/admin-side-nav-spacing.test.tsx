@@ -168,7 +168,8 @@ describe("AdminSiderNav spacing", () => {
       "text-callout",
     );
     expect(teamButton.className).not.toContain("group-data-[collapsible=icon]:size-9!");
-    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!pr-1.5");
+    expect(teamButton.className).toContain("group-data-[collapsible=icon]:!p-1.5");
+    expect(teamButton.className).toContain("group-data-[collapsible=icon]:justify-center");
     expect(teamButton.className).toContain("data-[active=true]:bg-transparent");
   });
 

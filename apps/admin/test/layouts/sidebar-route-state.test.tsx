@@ -105,7 +105,15 @@ function latestSceneProps() {
 
 function SidebarConsumerProbe() {
   const sidebar = useSidebar();
-  return <div data-testid="sidebar-probe">{sidebar.state}</div>;
+  return (
+    <div
+      data-testid="sidebar-probe"
+      data-layout-state={sidebar.layoutState}
+      data-visual-state={sidebar.state}
+    >
+      {sidebar.state}
+    </div>
+  );
 }
 
 describe("sidebar route state wiring", () => {
@@ -174,5 +182,6 @@ describe("sidebar route state wiring", () => {
     expect(screen.queryByTestId("scene-layout")).not.toBeInTheDocument();
     expect(screen.getByTestId("embedded-route-content")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-probe")).toHaveTextContent("expanded");
+    expect(screen.getByTestId("sidebar-probe")).toHaveAttribute("data-layout-state", "expanded");
   });
 });

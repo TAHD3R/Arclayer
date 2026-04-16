@@ -39,6 +39,7 @@ const SIDEBAR_EXPAND_TRANSITION_CLASSNAME = "duration-280 ease-[cubic-bezier(0.4
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
+  layoutState: "expanded" | "collapsed";
   open: boolean;
   setOpen: (open: boolean) => void;
   hoverOpen: boolean;
@@ -174,13 +175,16 @@ function SidebarProvider({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleSidebar]);
 
-  // We add a state so that we can do data-state="expanded" or "collapsed".
-  // This makes it easier to style the sidebar with Tailwind classes.
-  const state = open || hoverOpen ? "expanded" : "collapsed";
+  // The sidebar has two desktop concerns:
+  // - visual state drives labels, tooltips, and hover-preview presentation
+  // - layout state drives the reserved page width
+  const layoutState = open ? "expanded" : "collapsed";
+  const visualState = open || hoverOpen ? "expanded" : "collapsed";
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
-      state,
+      state: visualState,
+      layoutState,
       open,
       setOpen,
       hoverOpen,
@@ -193,7 +197,8 @@ function SidebarProvider({
       markHoverPointerLeave,
     }),
     [
-      state,
+      visualState,
+      layoutState,
       open,
       setOpen,
       hoverOpen,
@@ -255,7 +260,9 @@ function Sidebar({
   const {
     isMobile,
     state,
+    layoutState,
     open,
+    hoverOpen,
     openMobile,
     setOpenMobile,
     markHoverPointerEnter,
@@ -321,11 +328,15 @@ function Sidebar({
     );
   }
 
+  const isHoverPreviewExpanded = collapsible === "icon" && !open && hoverOpen;
+
   return (
     <div
       className="group peer text-sidebar-foreground hidden md:block"
       data-state={state}
+      data-layout-state={layoutState}
       data-collapsible={state === "collapsed" ? collapsible : ""}
+      data-layout-collapsible={layoutState === "collapsed" ? collapsible : ""}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
@@ -336,11 +347,11 @@ function Sidebar({
         className={cn(
           "relative w-(--sidebar-width) origin-left bg-transparent transition-[width] motion-reduce:transition-none",
           SIDEBAR_EXPAND_TRANSITION_CLASSNAME,
-          "group-data-[collapsible=offcanvas]:w-0",
+          "group-data-[layout-collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
-            ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+            ? "group-data-[layout-collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
+            : "group-data-[layout-collapsible=icon]:w-(--sidebar-width-icon)",
         )}
       />
       <div
@@ -349,13 +360,21 @@ function Sidebar({
           "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] motion-reduce:transition-none md:flex",
           SIDEBAR_EXPAND_TRANSITION_CLASSNAME,
           side === "left"
-            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+            ? "left-0 group-data-[layout-collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
+            : "right-0 group-data-[layout-collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
           side === "left" ? "origin-left" : "origin-right",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
-            ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            ? cn(
+                "p-2",
+                !isHoverPreviewExpanded &&
+                  "group-data-[layout-collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]",
+              )
+            : cn(
+                !isHoverPreviewExpanded &&
+                  "group-data-[layout-collapsible=icon]:w-(--sidebar-width-icon)",
+                "group-data-[side=left]:border-r group-data-[side=right]:border-l",
+              ),
           className,
         )}
         onPointerEnter={collapsible === "icon" && !open ? markHoverPointerEnter : undefined}
@@ -517,7 +536,7 @@ function SidebarInset({ className, ...props }: SidebarInsetProps) {
       data-slot="sidebar-inset"
       className={cn(
         "bg-card relative flex w-full flex-1 flex-col",
-        "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]: md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
+        "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]: md:peer-data-[variant=inset]:peer-data-[layout-state=collapsed]:ml-2",
         className,
       )}
       {...props}
@@ -571,7 +590,7 @@ function SidebarSeparator({ className, ...props }: SidebarSeparatorProps) {
     <Separator
       data-slot="sidebar-separator"
       data-sidebar="separator"
-      className={cn("bg-sidebar-border mx-2 w-auto", className)}
+      className={cn("bg-sidebar-border mx-2 w-auto ", className)}
       {...props}
     />
   );
